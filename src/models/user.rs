@@ -1,5 +1,5 @@
 use diesel::prelude::*;
-use super::schema::users;
+use crate::db::schema::users;
 
 #[derive(Queryable, Insertable)]
 #[table_name="users"]

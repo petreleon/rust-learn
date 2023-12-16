@@ -10,6 +10,5 @@ actix-web = "4"
 infer = "0.15.0"
 diesel = { version = "2.1.0", features = ["postgres"] }
 dotenvy = "0.15"
+diesel_migrations = "2.1.0"
 
-[print_schema]
-file = "src/db/schema.rs"
