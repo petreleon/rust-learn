@@ -1,3 +1,5 @@
+mod models;
+
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, HttpRequest};
 use infer::Infer;
 
