@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    volumes:
+      - .:/usr/src/app
+      - cargo_cache:/usr/local/cargo/registry
+    depends_on:
+      - db
+    ports:
+       - "8080:8080"  # Maps port 8080 on the host to port 8080 in the container
+    env_file:
+      - .env
+
+  db:
+    image: postgres:latest
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+
+volumes:
+  cargo_cache:
+  postgres_data:
