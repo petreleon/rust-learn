@@ -9,6 +9,12 @@ async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
 }
 
+#[get("/{name}")]
+async fn hello2(name: web::Path<String>) -> impl Responder {
+    let response_message = format!("Hello, {}!", name);
+    HttpResponse::Ok().body(response_message)
+}
+
 #[post("/echo")]
 async fn echo(req_body: String) -> impl Responder {
     HttpResponse::Ok().body(req_body)
@@ -35,6 +41,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .service(hello)
+            .service(hello2)
             .service(echo)
             .service(echo_bin)
             .route("/hey", web::get().to(manual_hello))

@@ -17,8 +17,8 @@ CREATE TABLE chapters (
     id SERIAL PRIMARY KEY,
     course_id INTEGER REFERENCES courses(id),
     title VARCHAR NOT NULL,
-    order INTEGER NOT NULL,
-    UNIQUE (course_id, order)
+    "order" INTEGER NOT NULL,
+    UNIQUE (course_id, "order")
     -- other fields
 );
 
@@ -26,10 +26,10 @@ CREATE TABLE chapters (
 CREATE TABLE contents (
     id SERIAL PRIMARY KEY,
     chapter_id INTEGER REFERENCES chapters(id),
-    order INTEGER NOT NULL,
+    "order" INTEGER NOT NULL,
     content_type VARCHAR NOT NULL,
     data TEXT,
-    UNIQUE (chapter_id, order)
+    UNIQUE (chapter_id, "order")
     -- other fields
 );
 
@@ -38,8 +38,8 @@ CREATE TABLE contents (
 CREATE TABLE paths_courses (
     path_id INTEGER REFERENCES paths(id),
     course_id INTEGER REFERENCES courses(id),
-    order INTEGER NOT NULL,
+    "order" INTEGER NOT NULL,
     PRIMARY KEY (path_id, course_id),
-    UNIQUE (path_id, order)
+    UNIQUE (path_id, "order")
 );
 

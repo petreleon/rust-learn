@@ -16,5 +16,6 @@ COPY . .
 # Compile the current project
 RUN cargo build --release
 
-# Run the binary
-CMD ["./target/release/rust-learn"]
+# Make the binary executable
+RUN chmod +x ./target/release/rust-learn
+
