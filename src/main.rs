@@ -1,5 +1,6 @@
 mod models;
 pub mod db;
+pub mod api;
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, HttpRequest};
 use infer::Infer;
@@ -40,11 +41,13 @@ async fn manual_hello() -> impl Responder {
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
+            .route("/hey", web::get().to(manual_hello))
+            .service(api::api_scope())
             .service(hello)
             .service(hello2)
             .service(echo)
             .service(echo_bin)
-            .route("/hey", web::get().to(manual_hello))
+            
     })
     .bind(("0.0.0.0", 8080))?
     .run()

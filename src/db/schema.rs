@@ -46,6 +46,9 @@ diesel::table! {
         id -> Int4,
         name -> Varchar,
         email -> Varchar,
+        date_of_birth -> Nullable<Date>,
+        created_at -> Timestamp,
+        kyc_verified -> Bool,
     }
 }
 
