@@ -1,10 +1,10 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    authorizations (id) {
+    authentications (id) {
         id -> Int4,
         user_id -> Nullable<Int4>,
-        type_authorization -> Varchar,
+        type_authentication -> Varchar,
         info_auth -> Nullable<Text>,
     }
 }
@@ -61,14 +61,14 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(authorizations -> users (user_id));
+diesel::joinable!(authentications -> users (user_id));
 diesel::joinable!(chapters -> courses (course_id));
 diesel::joinable!(contents -> chapters (chapter_id));
 diesel::joinable!(paths_courses -> courses (course_id));
 diesel::joinable!(paths_courses -> paths (path_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    authorizations,
+    authentications,
     chapters,
     contents,
     courses,

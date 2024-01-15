@@ -1046,6 +1046,7 @@ dependencies = [
  "diesel_migrations",
  "dotenvy",
  "infer",
+ "serde",
 ]
 
 [[package]]

@@ -12,3 +12,4 @@ diesel = { version = "2.1.0", features = ["postgres", "r2d2", "chrono"] }
 dotenvy = "0.15"
 diesel_migrations = "2.1.0"
 chrono = "0.4"
+serde = { version = "1.0", features = ["derive"] }

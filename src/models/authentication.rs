@@ -1,12 +1,12 @@
 use diesel::prelude::*;
-use crate::db::schema::authorizations;
+use crate::db::schema::authentications;
 use crate::models::user::User;
 
 #[derive(Queryable, Insertable, Associations)]
 #[belongs_to(User)]
-#[table_name="authorizations"]
-pub struct Authorization {
+#[table_name="authentications"]
+pub struct Authentication {
     pub user_id: i32,
-    pub type_authorization: String,
+    pub type_authentication: String,
     pub info_auth: String,
 }
