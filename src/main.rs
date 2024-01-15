@@ -9,7 +9,6 @@ use diesel::r2d2::{self, ConnectionManager};
 use diesel::PgConnection;
 use std::env;
 
-pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -46,25 +45,21 @@ async fn manual_hello() -> impl Responder {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-    let manager = ConnectionManager::<PgConnection>::new(database_url);
-    let pool: DbPool = r2d2::Pool::builder()
-        .build(manager)
-        .expect("Failed to create pool.");
+    // Use the establish_connection function from the db module
+    let pool = db::establish_connection();
 
     HttpServer::new(move || {
         App::new()
-            .app_data(pool.clone())
+            .data(pool.clone()) // Use the created pool
             .route("/hey", web::get().to(manual_hello))
             .service(api::api_scope())
             .service(hello)
             .service(hello2)
             .service(echo)
             .service(echo_bin)
-            
     })
-    .bind(("0.0.0.0", 8080))?
+    .bind("0.0.0.0:8080")? // Update the bind address if necessary
     .run()
     .await
 }
