@@ -1,4 +1,4 @@
-use super::schema::contents;
+use crate::db::schema::contents;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]

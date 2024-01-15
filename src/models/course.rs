@@ -1,4 +1,4 @@
-use super::schema::courses;
+use crate::db::schema::courses;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]

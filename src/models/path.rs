@@ -1,4 +1,4 @@
-use super::schema::paths;
+use crate::db::schema::paths;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
