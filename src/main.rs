@@ -9,6 +9,8 @@ use diesel::r2d2::{self, ConnectionManager};
 use diesel::PgConnection;
 use std::env;
 
+pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
+
 #[get("/")]
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
@@ -53,7 +55,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .data(pool.clone())
+            .app_data(pool.clone())
             .route("/hey", web::get().to(manual_hello))
             .service(api::api_scope())
             .service(hello)
