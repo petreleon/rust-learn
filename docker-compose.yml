@@ -20,6 +20,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
     env_file:
       - .env
+    ports:
+      - "5433:5432"  # Maps port 5433 on the host to port 5432 in the container
 
 volumes:
   cargo_cache:
