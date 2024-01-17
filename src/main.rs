@@ -1,6 +1,7 @@
 mod models;
 pub mod db;
 pub mod api;
+pub mod utils;
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, HttpRequest};
 use infer::Infer;
@@ -51,7 +52,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .app_data(pool.clone()) // Use the created pool
+            .app_data(web::Data::new(pool.clone())) // Use the created pool
             .route("/hey", web::get().to(manual_hello))
             .service(api::api_scope())
             .service(hello)

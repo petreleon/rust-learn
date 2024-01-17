@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse, Responder, post};
+use actix_web::{web, HttpResponse, Responder, post, get};
 use serde::Deserialize;
 use bcrypt::{hash, verify, DEFAULT_COST};
 use crate::models::authentication::Authentication;
@@ -7,6 +7,7 @@ use crate::db;
 use crate::db::schema::users;
 use diesel::prelude::*;
 use chrono::{NaiveDate, NaiveDateTime};
+use crate::utils::jwt_utils::create_jwt;
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
@@ -48,7 +49,14 @@ pub async fn login(
         Ok(LoginQueryResult { user, info_auth }) => {
             if let Some(hash) = info_auth {
                 if verify(&req.password, &hash).unwrap_or(false) {
-                    HttpResponse::Ok().body("Login successful")
+                    match create_jwt(user.id()) {
+                        Ok(user_jwt) => {
+                            HttpResponse::Ok().json(user_jwt) // Return JWT token in response
+                        }
+                        Err(_) => {
+                            HttpResponse::InternalServerError().body("Failed to create JWT")
+                        }
+                    }
                 } else {
                     HttpResponse::Unauthorized().body("Invalid credentials")
                 }
@@ -110,10 +118,16 @@ pub async fn register(
     HttpResponse::Ok().body("Registration successful")
 }
 
+// hello 
+#[get("/hello")]
+pub async fn hello() -> impl Responder {
+    HttpResponse::Ok().body("Hello world!")
+}
 
 // Define the scope for authentication-related routes
 pub fn auth_scope() -> actix_web::Scope {
     web::scope("/auth")
     .service(login)
     .service(register)
+    .service(hello)
 }
