@@ -1,4 +1,4 @@
-// models/user.rs
+// models/user_jwt.rs
 
 use serde::{Serialize, Deserialize};
 
