@@ -51,7 +51,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .data(pool.clone()) // Use the created pool
+            .app_data(pool.clone()) // Use the created pool
             .route("/hey", web::get().to(manual_hello))
             .service(api::api_scope())
             .service(hello)
