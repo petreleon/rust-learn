@@ -47,11 +47,9 @@ Replace `your_username`, `your_password`, and `your_db_name` with your PostgreSQ
 
 To get RustLearn up and running on your machine, you'll have to set up your environment correctly.
 
-### For Windows Users
+1. (For Windows Users) Install Windows Subsystem for Linux (WSL 2) by following the instructions [here](https://docs.microsoft.com/en-us/windows/wsl/install).
 
-1. Install Windows Subsystem for Linux (WSL 2) by following the instructions [here](https://docs.microsoft.com/en-us/windows/wsl/install).
-
-2. Once WSL 2 is installed, we recommend running the following commands to install Homebrew, a package manager:
+2. Once WSL 2 is installed or you have Linux or MacOS, we recommend running the following commands to install Homebrew, a package manager:
 
     ```bash
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
