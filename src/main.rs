@@ -2,6 +2,7 @@ mod models;
 pub mod db;
 pub mod api;
 pub mod utils;
+pub mod services;
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, HttpRequest};
 use infer::Infer;
