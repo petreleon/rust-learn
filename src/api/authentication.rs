@@ -1,7 +1,8 @@
-use actix_web::{web, HttpResponse, Responder, post, get};
+// src/api/authentication.rs
+use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use serde::Deserialize;
 use bcrypt::{hash, verify, DEFAULT_COST};
-use crate::models::authentication::Authentication;
+use crate::models::{authentication::Authentication, user_jwt::UserJWT};
 use crate::models::user::User;
 use crate::db;
 use crate::db::schema::users;
@@ -110,6 +111,7 @@ pub async fn register(
     };
 
     use crate::db::schema::authentications;
+use actix_web::HttpRequest;
     diesel::insert_into(authentications::table)
         .values(&new_auth)
         .execute(&mut conn)
@@ -124,10 +126,20 @@ pub async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
 }
 
+#[get("/user_id")]
+pub async fn user_id(req: HttpRequest) -> impl Responder {
+    if let Some(user_jwt) = req.extensions().get::<UserJWT>() {
+        HttpResponse::Ok().body(format!("Hello! Your ID is {}", user_jwt.user_id))
+    } else {
+        HttpResponse::Ok().body("You didn't provide any ID")
+    }
+}
+
 // Define the scope for authentication-related routes
 pub fn auth_scope() -> actix_web::Scope {
     web::scope("/auth")
     .service(login)
     .service(register)
     .service(hello)
+    .service(user_id)
 }
