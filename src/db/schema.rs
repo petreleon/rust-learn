@@ -36,6 +36,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    organizations (id) {
+        id -> Int4,
+        name -> Varchar,
+        website_link -> Nullable<Varchar>,
+        profile_url -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
     paths (id) {
         id -> Int4,
         name -> Varchar,
@@ -72,6 +81,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     chapters,
     contents,
     courses,
+    organizations,
     paths,
     paths_courses,
     users,
