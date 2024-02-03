@@ -20,7 +20,7 @@ RUN cargo build --release
 RUN chmod 777 ./target/release/rust-learn
 
 # Compile the current project
-RUN cargo build --debug
+RUN cargo build
 
 # Make the binary executable
 RUN chmod 777 ./target/debug/rust-learn
