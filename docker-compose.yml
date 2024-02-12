@@ -12,7 +12,7 @@ services:
        - "8080:8080"  # Maps port 8080 on the host to port 8080 in the container
     env_file:
       - .env
-    command: cargo run
+    command: sleep infinity
 
   db:
     image: postgres:latest

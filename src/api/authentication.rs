@@ -41,7 +41,7 @@ pub async fn login(
 
     let user_auth_result = users::table
         .filter(users::email.eq(&req.email))
-        .inner_join(authentications::table.on(users::id.nullable().eq(authentications::user_id)))
+        .inner_join(authentications::table.on(users::id.eq(authentications::user_id)))
         .filter(authentications::type_authentication.eq("password")) // Ensure type is "password"
         .select((users::all_columns, authentications::info_auth.nullable()))
         .first::<LoginQueryResult>(&mut conn);
