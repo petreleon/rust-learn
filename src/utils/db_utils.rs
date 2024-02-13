@@ -1,17 +1,9 @@
-use diesel::{dsl::{any, count}, prelude::*, sql_types::{Int4, Integer}};
-use diesel::sql_types::Nullable;
+use diesel::{dsl::min, prelude::*};
 
-use crate::db::schema::role_permission_organization; 
-use diesel::dsl::{min, exists};
 use std::cmp::Ordering;
 // Checks if a user has a specific permission on the platform
 use crate::db::schema::*;
-use diesel::prelude::*;
 
-use diesel::prelude::*;
-
-use diesel::prelude::*;
-use crate::utils::db_utils::role_permission_platform::star;
 fn user_permission_platform_request(
     conn: &mut PgConnection,
     user_id: i32,
@@ -57,7 +49,6 @@ fn user_hierarchy_compare_platform(
     user1_id: i32,
     user2_id: i32,
 ) -> QueryResult<Ordering> {
-    use crate::db::schema::{role_platform_hierarchy, user_role_platform};
 
     let user1_min_level = role_platform_hierarchy::table
         .inner_join(user_role_platform::table.on(role_platform_hierarchy::role_id.eq(user_role_platform::role_id)))
@@ -85,7 +76,6 @@ fn user_hierarchy_compare_organization(
     user1_id: i32,
     user2_id: i32,
 ) -> QueryResult<Ordering> {
-    use crate::db::schema::{role_organization_hierarchy, user_role_organization};
 
     let user1_min_level = role_organization_hierarchy::table
         .inner_join(user_role_organization::table.on(role_organization_hierarchy::role_id.eq(user_role_organization::role_id)))
