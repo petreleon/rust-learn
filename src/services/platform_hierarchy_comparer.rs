@@ -1,6 +1,6 @@
 use actix_service::{forward_ready, Service, Transform};
 use actix_web::{dev::{ServiceRequest, ServiceResponse}, Error, web};
-use futures::future::{self, Either, Ready, LocalBoxFuture};
+use futures::future::{self, Ready, LocalBoxFuture};
 use std::marker::PhantomData;
 use std::cmp::Ordering;
 use serde_urlencoded;
