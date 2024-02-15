@@ -12,3 +12,4 @@ pub mod user_role_platform;
 pub mod role_permission_platform;
 pub mod role_permission_organization;
 pub mod role;
+pub mod param_type;
