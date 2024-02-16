@@ -1,6 +1,6 @@
 // src/services/jwt_middleware.rs
 use actix_service::Service;
-use actix_web::{dev::{ServiceRequest, ServiceResponse, Transform}, error::ErrorBadRequest, web::Data, Error, HttpMessage};
+use actix_web::{dev::{ServiceRequest, ServiceResponse, Transform}, error::ErrorBadRequest, Error, HttpMessage};
 use futures::future::{ok, ready, Either, Ready};
 use std::task::{Context, Poll};
 

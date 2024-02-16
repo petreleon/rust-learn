@@ -3,7 +3,6 @@ use actix_web::{dev::{ServiceRequest, ServiceResponse}, Error, web};
 use futures::future::{self, Ready, LocalBoxFuture};
 use std::marker::PhantomData;
 use std::cmp::Ordering;
-use serde_urlencoded;
 use futures::FutureExt;
 use actix_web::HttpMessage;
 
@@ -11,15 +10,15 @@ use crate::{db::DbPool, utils::request_utils::extract_param};
 use crate::models::{user_jwt::UserJWT, param_type::ParamType};
 use crate::utils::db_utils::user_hierarchy_compare_platform;
 
-pub struct Middleware<S> {
+pub struct PlatformHierarchyMiddleware<S> {
     _service: PhantomData<S>,
     type_param_of_id_user: ParamType,
     name_param_of_id_user: String,
 }
 
-impl<S> Middleware<S> {
+impl<S> PlatformHierarchyMiddleware<S> {
     pub fn new(type_param_of_id_user: ParamType, name_param_of_id_user: String) -> Self {
-        Middleware {
+        PlatformHierarchyMiddleware {
             _service: PhantomData,
             type_param_of_id_user,
             name_param_of_id_user,
@@ -27,7 +26,7 @@ impl<S> Middleware<S> {
     }
 }
 
-impl<S, B> Transform<S, ServiceRequest> for Middleware<S>
+impl<S, B> Transform<S, ServiceRequest> for PlatformHierarchyMiddleware<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     S::Future: 'static,
@@ -36,11 +35,11 @@ where
     type Response = ServiceResponse<B>;
     type Error = Error;
     type InitError = ();
-    type Transform = MiddlewareService<S>;
+    type Transform = PlatformHierarchyMiddlewareService<S>;
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        future::ready(Ok(MiddlewareService {
+        future::ready(Ok(PlatformHierarchyMiddlewareService {
             service,
             type_param_of_id_user: self.type_param_of_id_user,
             name_param_of_id_user: self.name_param_of_id_user.clone(),
@@ -48,13 +47,13 @@ where
     }
 }
 
-pub struct MiddlewareService<S> {
+pub struct PlatformHierarchyMiddlewareService<S> {
     service: S,
     type_param_of_id_user: ParamType,
     name_param_of_id_user: String,
 }
 
-impl<S, B> Service<ServiceRequest> for MiddlewareService<S>
+impl<S, B> Service<ServiceRequest> for PlatformHierarchyMiddlewareService<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     S::Future: 'static,
