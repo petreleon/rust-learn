@@ -4,7 +4,7 @@ pub mod authentication;
 use actix_service::ServiceFactory;
 use actix_web::{Scope, dev::ServiceRequest, dev::ServiceResponse, Error};
 use actix_web::body::MessageBody;
-use crate::services::jwt_middleware::JwtMiddleware;
+use crate::middlewares::jwt_middleware::JwtMiddleware;
 use actix_web::web;
 
 pub fn api_scope() -> Scope<impl ServiceFactory<ServiceRequest, Config = (), Response = ServiceResponse, Error = Error, InitError = ()>> {
