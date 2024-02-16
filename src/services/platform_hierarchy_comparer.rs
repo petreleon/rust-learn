@@ -7,16 +7,9 @@ use serde_urlencoded;
 use futures::FutureExt;
 use actix_web::HttpMessage;
 
-use crate::db::DbPool;
+use crate::{db::DbPool, utils::request_utils::extract_param};
 use crate::models::{user_jwt::UserJWT, param_type::ParamType};
 use crate::utils::db_utils::user_hierarchy_compare_platform;
-
-fn extract_param(req: &ServiceRequest, param_name: &str, param_type: ParamType) -> Option<String> {
-    match param_type {
-        ParamType::Header => req.headers().get(param_name).and_then(|hv| hv.to_str().ok()).map(|s| s.to_string()),
-        ParamType::Query => req.uri().query().and_then(|query| serde_urlencoded::from_str::<std::collections::HashMap<String, String>>(query).ok()).and_then(|params| params.get(param_name).cloned()),
-    }
-}
 
 pub struct Middleware<S> {
     _service: PhantomData<S>,
