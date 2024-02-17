@@ -3,6 +3,7 @@ pub mod db;
 pub mod api;
 pub mod utils;
 pub mod middlewares;
+pub mod config;
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, HttpRequest};
 use infer::Infer;
