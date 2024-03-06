@@ -9,6 +9,8 @@ use crate::db::schema::users;
 use diesel::prelude::*;
 use chrono::{NaiveDate, NaiveDateTime};
 use crate::utils::jwt_utils::create_jwt;
+// TODO Add initial roles on registration
+// TODO Add confirmation email on registration
 
 #[derive(Deserialize)]
 pub struct LoginRequest {

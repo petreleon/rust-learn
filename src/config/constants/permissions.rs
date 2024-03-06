@@ -1,5 +1,5 @@
 use strum_macros::{Display, EnumString};
-
+// TODO: Add the permissions that are going to be used in the application
 
 #[derive(Display, EnumString, Debug, PartialEq)]
 #[allow(non_camel_case_types)]
