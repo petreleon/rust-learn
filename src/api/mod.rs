@@ -3,7 +3,7 @@ pub mod users;
 pub mod authentication;
 use actix_service::ServiceFactory;
 use actix_web::{Scope, dev::ServiceRequest, dev::ServiceResponse, Error};
-use actix_web::body::MessageBody;
+
 use crate::middlewares::jwt_middleware::JwtMiddleware;
 use actix_web::web;
 

@@ -113,7 +113,6 @@ pub async fn register(
     };
 
     use crate::db::schema::authentications;
-use actix_web::HttpRequest;
     diesel::insert_into(authentications::table)
         .values(&new_auth)
         .execute(&mut conn)

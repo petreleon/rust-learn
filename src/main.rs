@@ -5,12 +5,8 @@ pub mod utils;
 pub mod middlewares;
 pub mod config;
 
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, HttpRequest};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use infer::Infer;
-
-use diesel::r2d2::{self, ConnectionManager};
-use diesel::PgConnection;
-use std::env;
 
 
 #[get("/")]

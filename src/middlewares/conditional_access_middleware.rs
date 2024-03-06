@@ -1,6 +1,6 @@
 use actix_service::{forward_ready, Service, Transform};
-use actix_web::{dev::{ServiceRequest, ServiceResponse}, Error, web};
-use futures::future::{self, Ready, LocalBoxFuture, BoxFuture};
+use actix_web::{dev::{ServiceRequest, ServiceResponse}, Error};
+use futures::future::{self, Ready, LocalBoxFuture};
 use std::marker::PhantomData;
 use std::sync::Arc;
 use futures::FutureExt;
