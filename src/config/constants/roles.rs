@@ -9,5 +9,7 @@ enum Roles {
     USER,
     GUEST,
     TEACHER,
+    TEACHER_COURSE,
     STUDENT,
+    STUDENT_COURSE,
 }
