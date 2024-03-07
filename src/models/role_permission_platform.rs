@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use crate::models::role::Role;
 
 #[derive(Queryable, Identifiable, Associations)]
-#[belongs_to(Role)]
+#[diesel(belongs_to(Role))]
 #[diesel(table_name = role_permission_platform)]
 pub struct RolePermissionPlatform {
     pub id: i32,

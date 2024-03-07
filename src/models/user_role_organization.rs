@@ -5,9 +5,9 @@ use crate::models::role::Role;
 use crate::models::organization::Organization;
 
 #[derive(Queryable, Identifiable, Associations)]
-#[belongs_to(User)]
-#[belongs_to(Role)]
-#[belongs_to(Organization)]
+#[diesel(belongs_to(User))]
+#[diesel(belongs_to(Role))]
+#[diesel(belongs_to(Organization))]
 #[diesel(table_name = user_role_organization)]
 pub struct UserRoleOrganization {
     pub id: i32,

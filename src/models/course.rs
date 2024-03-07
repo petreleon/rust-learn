@@ -2,7 +2,7 @@ use crate::db::schema::courses;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]
-#[table_name = "courses"]
+#[diesel(table_name = courses)]
 pub struct Course {
     pub id: i32,
     pub title: String,

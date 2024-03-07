@@ -4,8 +4,8 @@ use crate::models::user::User;
 use crate::models::role::Role;
 
 #[derive(Queryable, Identifiable, Associations)]
-#[belongs_to(User)]
-#[belongs_to(Role)]
+#[diesel(belongs_to(User))]
+#[diesel(belongs_to(Role))]
 #[diesel(table_name = user_role_platform)]
 pub struct UserRolePlatform {
     pub id: i32,

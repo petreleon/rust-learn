@@ -4,8 +4,8 @@ use crate::models::role::Role;
 use crate::models::organization::Organization;
 
 #[derive(Queryable, Identifiable, Associations)]
-#[belongs_to(Role)]
-#[belongs_to(Organization)]
+#[diesel(belongs_to(Role))]
+#[diesel(belongs_to(Organization))]
 #[diesel(table_name = role_organization_hierarchy)]
 pub struct RoleOrganizationHierarchy {
     pub id: i32,

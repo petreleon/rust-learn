@@ -3,8 +3,8 @@ use crate::db::schema::authentications;
 use crate::models::user::User;
 
 #[derive(Queryable, Insertable, Associations)]
-#[belongs_to(User)]
-#[table_name="authentications"]
+#[diesel(belongs_to(User))]
+#[diesel(table_name = authentications)]
 pub struct Authentication {
     pub user_id: i32,
     pub type_authentication: String,

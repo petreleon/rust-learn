@@ -2,7 +2,7 @@ use crate::db::schema::contents;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]
-#[table_name = "contents"]
+#[diesel(table_name = contents)]
 pub struct Content {
     pub id: i32,
     pub chapter_id: Option<i32>,
