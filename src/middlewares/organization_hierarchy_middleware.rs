@@ -40,7 +40,7 @@ impl<S> OrganizationHierarchyMiddleware<S> {
 
 impl<S, B> Transform<S, ServiceRequest> for OrganizationHierarchyMiddleware<S>
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static + std::clone::Clone,
     S::Future: 'static,
     B: 'static,
 {
@@ -61,17 +61,17 @@ where
     }
 }
 
-pub struct OrganizationHierarchyMiddlewareService<S> {
-    service: S,
+pub struct OrganizationHierarchyMiddlewareService<S: Clone> {
+service: S,
     type_param_of_id_user: ParamType,
     name_param_of_id_user: String,
     type_param_of_organization: ParamType,
     name_param_of_organization: String,
 }
 
-impl<S, B> Service<ServiceRequest> for OrganizationHierarchyMiddlewareService<S>
+impl<S: Clone, B> Service<ServiceRequest> for OrganizationHierarchyMiddlewareService<S>
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + Clone + 'static,
     B: 'static,
 {
     type Response = ServiceResponse<B>;
@@ -81,45 +81,48 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        // Directly extract the database connection from the request's extensions
 
-        // Extract other necessary data from the request
+        // These clones ensure that we own the data fully and no references are held.
         let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
-        let organization_id_str_opt = extract_param(&req, "organization_id", ParamType::Query);
-        let second_user_id_str_opt = extract_param(&req, "user_id", ParamType::Query);
-        let db_pool = match req.app_data::<web::Data<DbPool>>() {
-            Some(pool) => pool.clone(),
-            None => {
-                let error = actix_web::error::ErrorInternalServerError("Failed to access database pool");
-                return future::ready(Err(error)).boxed_local();
-            },
-        };
-        let fut = self.service.call(req);
+        let organization_id_str_opt = extract_param(&req, "organization_id", ParamType::Query).map(|s| s.to_owned());
+        let second_user_id_str_opt = extract_param(&req, "user_id", ParamType::Query).map(|s| s.to_owned());
 
+        // Clone `self` if needed or ensure `self.service` is moved or referenced correctly.
+        let service = self.service.clone();
+        let mut can_proceed = false;
         async move {
-            
-            let mut connection = db_pool.get().or_else(|_| Err(Error::from(ErrorInternalServerError("Failed to get database connection"))))?;
-            let organization_id = organization_id_str_opt
-                .and_then(|id_str| id_str.parse::<i32>().ok())
-                .ok_or_else(|| ErrorBadRequest("Invalid or missing organization parameter"))?;
+            {
+                let mut binding = req.extensions_mut();
+                let connection: &mut PooledConnection<ConnectionManager<diesel::PgConnection>> = match binding.get_mut::<PooledConnection<ConnectionManager<PgConnection>>>() {
+                    Some(conn) => conn,
+                    None => return Err(Error::from(actix_web::error::ErrorInternalServerError("Failed to get database connection"))),
+                };
+                
+                let organization_id = organization_id_str_opt
+                    .and_then(|id_str| id_str.parse::<i32>().ok())
+                    .ok_or_else(|| actix_web::error::ErrorBadRequest("Invalid or missing organization parameter"))?;
 
-            let second_user_id = second_user_id_str_opt
-                .and_then(|id_str| id_str.parse::<i32>().ok())
-                .ok_or_else(|| ErrorBadRequest("Invalid or missing user parameter"))?;
+                let second_user_id = second_user_id_str_opt
+                    .and_then(|id_str| id_str.parse::<i32>().ok())
+                    .ok_or_else(|| actix_web::error::ErrorBadRequest("Invalid or missing user parameter"))?;
 
-            let user_jwt = user_jwt_opt.ok_or_else(|| ErrorUnauthorized("Unauthorized"))?;
+                let user_jwt = user_jwt_opt.ok_or_else(|| actix_web::error::ErrorUnauthorized("Unauthorized"))?;
 
-            // Perform your logic with the database connection
-            match user_hierarchy_compare_organization(&mut connection, organization_id, user_jwt.user_id, second_user_id) {
-                Ok(ordering) => {
-                    if ordering == Ordering::Less {
-                        return Err(ErrorForbidden("Forbidden"));
-                    }
-                },
-                Err(_) => return Err(ErrorInternalServerError("Failed to compare user hierarchy with organization")),
+                // Here, ensure all logic that uses captured variables doesn't require them to have a reference to outside the async block.
+                can_proceed = match user_hierarchy_compare_organization(&mut *connection, organization_id, user_jwt.user_id, second_user_id) {
+                    Ok(ordering) => ordering != Ordering::Less,
+                    Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to compare user hierarchy with organization")),
+                };
+                
+            }
+            if !can_proceed {
+                return Err(actix_web::error::ErrorForbidden("Forbidden"));
             }
 
+            // Use the cloned service here.
+            let fut = service.call(req);
             fut.await
-        }.boxed_local()
+        }
+        .boxed_local()
     }
 }
