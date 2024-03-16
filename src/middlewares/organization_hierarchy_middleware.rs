@@ -1,10 +1,11 @@
 // Filename: organization_hierarchy_middleware.rs
 
 use actix_service::{forward_ready, Service, Transform};
-use actix_web::{dev::{ServiceRequest, ServiceResponse}, Error, web, HttpMessage};
+use actix_web::{dev::{ServiceRequest, ServiceResponse}, error::{ErrorBadRequest, ErrorForbidden, ErrorInternalServerError, ErrorUnauthorized}, web, Error, HttpMessage};
+use diesel::{connection, r2d2::{ConnectionManager, PooledConnection}, PgConnection};
 use futures::future::{self, Ready, LocalBoxFuture};
 use futures::FutureExt;
-use std::cmp::Ordering;
+use std::{cell::Ref, cmp::Ordering};
 use std::marker::PhantomData;
 
 // Assuming these modules are defined in your application
@@ -71,7 +72,6 @@ pub struct OrganizationHierarchyMiddlewareService<S> {
 impl<S, B> Service<ServiceRequest> for OrganizationHierarchyMiddlewareService<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
-    S::Future: 'static,
     B: 'static,
 {
     type Response = ServiceResponse<B>;
@@ -81,6 +81,12 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
+        // Directly extract the database connection from the request's extensions
+
+        // Extract other necessary data from the request
+        let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
+        let organization_id_str_opt = extract_param(&req, "organization_id", ParamType::Query);
+        let second_user_id_str_opt = extract_param(&req, "user_id", ParamType::Query);
         let db_pool = match req.app_data::<web::Data<DbPool>>() {
             Some(pool) => pool.clone(),
             None => {
@@ -88,41 +94,29 @@ where
                 return future::ready(Err(error)).boxed_local();
             },
         };
-
-        let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
-        let organization_id_str_opt = extract_param(&req, &self.name_param_of_organization, self.type_param_of_organization);
-        let second_user_id_str_opt = extract_param(&req, &self.name_param_of_id_user, self.type_param_of_id_user);
-
         let fut = self.service.call(req);
 
         async move {
-            let organization_id = match organization_id_str_opt {
-                Some(id_str) => id_str.parse::<i32>().ok(),
-                None => None,
-            }.ok_or(actix_web::error::ErrorBadRequest("Invalid or missing organization parameter"))?;
+            
+            let mut connection = db_pool.get().or_else(|_| Err(Error::from(ErrorInternalServerError("Failed to get database connection"))))?;
+            let organization_id = organization_id_str_opt
+                .and_then(|id_str| id_str.parse::<i32>().ok())
+                .ok_or_else(|| ErrorBadRequest("Invalid or missing organization parameter"))?;
 
-            let second_user_id = match second_user_id_str_opt {
-                Some(id_str) => id_str.parse::<i32>().ok(),
-                None => None,
-            }.ok_or(actix_web::error::ErrorBadRequest("Invalid or missing user parameter"))?;
+            let second_user_id = second_user_id_str_opt
+                .and_then(|id_str| id_str.parse::<i32>().ok())
+                .ok_or_else(|| ErrorBadRequest("Invalid or missing user parameter"))?;
 
-            let mut conn = match db_pool.get() {
-                Ok(conn) => conn,
-                Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to get database connection")),
-            };
+            let user_jwt = user_jwt_opt.ok_or_else(|| ErrorUnauthorized("Unauthorized"))?;
 
-            let user_jwt = match user_jwt_opt {
-                Some(u) => u,
-                None => return Err(actix_web::error::ErrorUnauthorized("Unauthorized access")),
-            };
-
-            match user_hierarchy_compare_organization(&mut conn, organization_id, user_jwt.user_id, second_user_id) {
+            // Perform your logic with the database connection
+            match user_hierarchy_compare_organization(&mut connection, organization_id, user_jwt.user_id, second_user_id) {
                 Ok(ordering) => {
                     if ordering == Ordering::Less {
-                        return Err(actix_web::error::ErrorForbidden("Modification not permitted: second user has a greater hierarchy level within the organization"));
+                        return Err(ErrorForbidden("Forbidden"));
                     }
                 },
-                Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to compare user hierarchy with organization")),
+                Err(_) => return Err(ErrorInternalServerError("Failed to compare user hierarchy with organization")),
             }
 
             fut.await
