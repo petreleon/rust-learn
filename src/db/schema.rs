@@ -36,6 +36,13 @@ diesel::table! {
 }
 
 diesel::table! {
+    db_version_control (id) {
+        id -> Int4,
+        version -> Int4,
+    }
+}
+
+diesel::table! {
     organizations (id) {
         id -> Int4,
         name -> Varchar,
@@ -185,6 +192,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     chapters,
     contents,
     courses,
+    db_version_control,
     organizations,
     paths,
     paths_courses,

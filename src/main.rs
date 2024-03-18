@@ -4,7 +4,7 @@ pub mod api;
 pub mod utils;
 pub mod middlewares;
 pub mod config;
-
+use crate::config::db_setup::version_updater;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use infer::Infer;
 
@@ -47,7 +47,10 @@ async fn main() -> std::io::Result<()> {
 
     // Use the establish_connection function from the db module
     let pool = db::establish_connection();
-
+    {
+        let mut conn = pool.get().expect("Failed to get DB connection from pool");
+        version_updater(&mut *conn).expect("Failed to update database version");
+    }
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone())) // Use the created pool

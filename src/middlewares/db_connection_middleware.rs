@@ -1,4 +1,3 @@
-use once_cell::sync::Lazy;
 use actix_web::HttpMessage;
 use actix_web::{web, dev::ServiceRequest, Error, HttpResponse};
 use std::sync::Arc;
