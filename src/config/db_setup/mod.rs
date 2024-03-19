@@ -6,6 +6,11 @@ use diesel::{dsl::max, prelude::*};
 use diesel::pg::PgConnection;
 use crate::db::schema::db_version_control::dsl::*;
 use self::updates::{apply_update_v1};
+fn updates() -> Vec<(i32, for<'a> fn(&'a mut diesel::PgConnection) -> Result<(), diesel::result::Error>)> {
+     vec![
+         (1, apply_update_v1),
+     ]
+}
 
 pub fn version_updater(conn: &mut PgConnection) -> QueryResult<()> {
 
@@ -18,18 +23,19 @@ pub fn version_updater(conn: &mut PgConnection) -> QueryResult<()> {
         _ => 0,
     };
 
-    let updates = vec![
-        (1, apply_update_v1),
-    ];
+    let mut max_version = 0;
 
-    for (target_version, update_function) in updates {
+    for (target_version, update_function) in updates() {
         if current_version < target_version {
             update_function(conn)?;
-            diesel::update(db_version_control.filter(id.eq(1)))
-                .set(version.eq(target_version))
-                .execute(conn)?;
+        }
+        if target_version < max_version {
+            max_version = target_version;
         }
     }
 
+    diesel::update(db_version_control.filter(id.eq(1)))
+        .set(version.eq(max_version))
+        .execute(conn)?;
     Ok(())
 }
