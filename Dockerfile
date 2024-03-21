@@ -12,3 +12,16 @@ WORKDIR /usr/src/app
 
 # Copy the current directory contents into the container at /usr/src/app
 COPY . .
+
+# Compile the current project
+RUN cargo build --release
+
+# Make the binary executable
+RUN chmod 777 ./target/release/rust-learn
+
+# Compile the current project
+RUN cargo build
+
+# Make the binary executable
+RUN chmod 777 ./target/debug/rust-learn
+
