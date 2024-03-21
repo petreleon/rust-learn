@@ -1,0 +1,15 @@
+{
+    "name": "Rust & PostgreSQL Development",
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/usr/src/app",
+    "shutdownAction": "stopCompose",
+    "customizations":{
+        "vscode": {
+            "extensions": [
+                "1YiB.rust-bundle"
+            ]
+        }
+    }
+}
+  
