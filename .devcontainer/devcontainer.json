@@ -7,7 +7,6 @@
     "customizations":{
         "vscode": {
             "extensions": [
-                "1YiB.rust-bundle"
             ]
         }
     }

@@ -5,7 +5,7 @@ services:
     build: .
     volumes:
       - .:/usr/src/app
-      - cargo_cache:/usr/local/cargo/registry
+      - cargo_disk:/usr/local/cargo
     depends_on:
       - db
     ports:
@@ -24,5 +24,5 @@ services:
       - "5433:5432"  # Maps port 5433 on the host to port 5432 in the container
 
 volumes:
-  cargo_cache:
   postgres_data:
+  cargo_disk:
