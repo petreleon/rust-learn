@@ -27,7 +27,7 @@ pub struct RegisterRequest {
 }
 
 #[derive(Queryable)]
-struct LoginQueryResult {
+pub struct LoginQueryResult {
     user: User,
     info_auth: Option<String>,
 }
