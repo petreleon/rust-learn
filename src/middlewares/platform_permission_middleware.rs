@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use futures::FutureExt;
 use actix_web::HttpMessage;
 
-use crate::{db::DbPool, models::user_jwt::UserJWT, utils::db_utils::user_permission_platform_request};
+use crate::{db::DbPool, models::user_jwt::UserJWT, utils::db_utils::platform::user_permission_platform_request};
 
 pub struct PlatformPermissionMiddleware<S> {
     _service: PhantomData<S>,
