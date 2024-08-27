@@ -1,4 +1,4 @@
-// For example, src/config/db_setup/updates/update_v1.rs
+// src/config/db_setup/updates/update_v1.rs
 
 use diesel::pg::PgConnection;
 use diesel::QueryResult;

@@ -1,3 +1,4 @@
+// src/config/constants/roles.rs
 use strum_macros::{Display, EnumString};
 
 #[derive(Display, EnumString, Debug, PartialEq)]

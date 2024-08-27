@@ -5,11 +5,12 @@ pub mod updates;
 use diesel::{dsl::max, prelude::*};
 use diesel::pg::PgConnection;
 use crate::db::schema::db_version_control::dsl::*;
-use self::updates::{apply_update_v1};
+use self::updates::{apply_update_v1, apply_update_v2};
 fn updates() -> Vec<(i32, for<'a> fn(&'a mut diesel::PgConnection) -> Result<(), diesel::result::Error>)> {
-     vec![
-         (1, apply_update_v1),
-     ]
+    vec![
+        (1, apply_update_v1),
+        (2, apply_update_v2)
+    ]
 }
 
 pub fn version_updater(conn: &mut PgConnection) -> QueryResult<()> {
