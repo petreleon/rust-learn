@@ -1,4 +1,4 @@
-// db_utils/user_registration_connection.rs
+// src/utils/db_utils/authentication_registration.rs
 
 use bcrypt::verify;
 use diesel::prelude::*;
