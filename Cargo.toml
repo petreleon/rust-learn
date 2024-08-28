@@ -6,10 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-web = "4"
+actix-web = "4.9"
 actix-service = "2.0.2"
 futures = "0.3"
-infer = "0.15.0"
+infer = "0.16.0"
 diesel = { version = "2.1.0", features = ["postgres", "r2d2", "chrono"] }
 dotenvy = "0.15"
 diesel_migrations = "2.1.0"
@@ -21,3 +21,4 @@ jsonwebtoken = "9"
 log = "0.4"
 strum = "0.26"
 strum_macros = "0.26"
+time = "0.3.36"

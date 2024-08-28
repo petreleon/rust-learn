@@ -3,7 +3,7 @@
 use diesel::pg::PgConnection;
 use diesel::QueryResult;
 use std::env;
-use crate::db_utils::user_registration_connection::create_user;
+use crate::utils::db_utils::authentication_registration::create_user;
 use chrono::NaiveDate;
 
 pub fn apply_update_v2(conn: &mut PgConnection) -> QueryResult<()> {
