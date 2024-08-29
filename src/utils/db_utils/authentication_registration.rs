@@ -43,22 +43,5 @@ pub fn create_user(
     Ok(inserted_user)
 }
 
-pub fn verify_user_login(
-    conn: &mut PgConnection,
-    email: &str,
-    password: &str,
-) -> Result<LoginQueryResult, diesel::result::Error> {
-    use crate::db::schema::{users, authentications};
-
-    // Attempt to retrieve the user and their hashed password from the database
-    let user_auth_result = users::table
-        .filter(users::email.eq(&email))
-        .inner_join(authentications::table.on(users::id.eq(authentications::user_id)))
-        .filter(authentications::type_authentication.eq("password")) // Ensure type is "password"
-        .select((users::all_columns, authentications::info_auth.nullable()))
-        .first::<LoginQueryResult>(conn);
-
-    return user_auth_result;
-}
 
 // You might also include additional utility functions as needed for authentication, such as checking if an email already exists, etc.
