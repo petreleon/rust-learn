@@ -8,6 +8,7 @@ use crate::db::schema::role_permission_platform;
 use crate::db::schema::role_permission_platform::dsl::*;
 use crate::db::schema::roles::dsl::{roles, name, id as role_id_column};
 use crate::config::constants::roles::Roles;
+use crate::config::constants::permissions::Permissions;
 
 /// Assigns a permission to a role on the platform after checking if it already exists.
 ///
@@ -15,7 +16,7 @@ use crate::config::constants::roles::Roles;
 ///
 /// * `conn` - A mutable reference to the PostgreSQL connection.
 /// * `role` - A role variant from the `Roles` enum.
-/// * `permission_str` - The permission string to be assigned to the role.
+/// * `perm` - A permission variant from the `Permissions` enum.
 ///
 /// # Returns
 ///
@@ -24,7 +25,7 @@ use crate::config::constants::roles::Roles;
 pub fn assign_permission_to_role_platform(
     conn: &mut PgConnection,
     role: Roles,
-    permission_str: &str,
+    perm: Permissions,
 ) -> QueryResult<usize> {
     // Retrieve the role id based on the role name.
     let role_id_value = roles
@@ -32,11 +33,14 @@ pub fn assign_permission_to_role_platform(
         .select(role_id_column)
         .first::<i32>(conn)?;
 
+    // Convert the permission enum to a string.
+    let perm_str = perm.to_string();
+
     // Check if the permission is already assigned to this role.
     let permission_exists = select(exists(
         role_permission_platform::table
-            .filter(role_id.eq(role_id_value))
-            .filter(permission.eq(permission_str))
+            .filter(role_permission_platform::role_id.eq(role_id_value))
+            .filter(role_permission_platform::permission.eq(perm_str.as_str()))
     ))
     .get_result(conn)?;
 
@@ -55,7 +59,7 @@ pub fn assign_permission_to_role_platform(
 
     let new_permission = NewPermission {
         role_id: role_id_value,
-        permission: permission_str,
+        permission: perm_str.as_str(),
     };
 
     // Insert the new permission record into the role_permission_platform table.
