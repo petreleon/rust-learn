@@ -7,7 +7,8 @@
     "customizations":{
         "vscode": {
             "extensions": [
-                "1YiB.rust-bundle"
+                "tamasfe.even-better-toml",
+                "rust-lang.rust-analyzer"
             ]
         }
     }
