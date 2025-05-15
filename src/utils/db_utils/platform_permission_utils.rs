@@ -6,11 +6,11 @@ use diesel::QueryResult;
 use diesel::dsl::{exists, select};
 use crate::db::schema::role_permission_platform;
 use crate::db::schema::role_permission_platform::dsl::*;
-use crate::db::schema::roles::dsl::{roles, name, id as role_id_column};
+use crate::db::schema::platform_roles::dsl::{platform_roles, name as role_name, id as platform_role_id_column};
 use crate::config::constants::roles::Roles;
 use crate::config::constants::permissions::Permissions;
 
-/// Assigns a permission to a role on the platform after checking if it already exists.
+/// Assigns a permission to a platform role after checking if it already exists.
 ///
 /// # Arguments
 ///
@@ -27,10 +27,10 @@ pub fn assign_permission_to_role_platform(
     role: Roles,
     perm: Permissions,
 ) -> QueryResult<usize> {
-    // Retrieve the role id based on the role name.
-    let role_id_value = roles
-        .filter(name.eq(role.to_string()))
-        .select(role_id_column)
+    // Retrieve the platform_role_id based on the role name.
+    let platform_role_id_value = platform_roles
+        .filter(role_name.eq(role.to_string()))
+        .select(platform_role_id_column)
         .first::<i32>(conn)?;
 
     // Convert the permission enum to a string.
@@ -39,8 +39,9 @@ pub fn assign_permission_to_role_platform(
     // Check if the permission is already assigned to this role.
     let permission_exists = select(exists(
         role_permission_platform::table
-            .filter(role_permission_platform::role_id.eq(role_id_value))
-            .filter(role_permission_platform::permission.eq(perm_str.as_str()))
+            // Nullable column, so match types:
+            .filter(platform_role_id.nullable().eq(Some(platform_role_id_value)))
+            .filter(permission.eq(perm_str.as_str()))
     ))
     .get_result(conn)?;
 
@@ -51,14 +52,14 @@ pub fn assign_permission_to_role_platform(
 
     // Define a new permission record.
     #[derive(Insertable)]
-    #[table_name = "role_permission_platform"]
+    #[diesel(table_name = role_permission_platform)]
     struct NewPermission<'a> {
-        role_id: i32,
+        platform_role_id: Option<i32>,
         permission: &'a str,
     }
 
     let new_permission = NewPermission {
-        role_id: role_id_value,
+        platform_role_id: Some(platform_role_id_value),
         permission: perm_str.as_str(),
     };
 
