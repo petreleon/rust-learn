@@ -30,7 +30,7 @@ pub fn version_updater(conn: &mut PgConnection) -> QueryResult<()> {
         if current_version < target_version {
             update_function(conn)?;
         }
-        if target_version < max_version {
+        if target_version > max_version {
             max_version = target_version;
         }
     }
