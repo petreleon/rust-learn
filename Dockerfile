@@ -1,5 +1,5 @@
 # Start from the latest Rust image as the base
-FROM rust:latest
+FROM rust:1.88.0
 
 # # Install locales and set the default locale to en_US.UTF-8
 # RUN apt-get update && apt-get install -y locales && rm -rf /var/lib/apt/lists/* \

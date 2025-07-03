@@ -23,6 +23,20 @@ services:
     ports:
       - "5433:5432"  # Maps port 5433 on the host to port 5432 in the container
 
+  hardhat:
+    build:
+      context: .
+      dockerfile: Dockerfile.hardhat
+    env_file:
+      - .env
+    ports:
+      - "8545:8545"
+    volumes:
+      - hardhat_data:/workspace/hardhat-db
+    command: >
+      sh -c "if [ -z \"$ETH_MNEMONIC\" ]; then echo 'ETH_MNEMONIC not set'; exit 1; fi; npx hardhat node --mnemonic \"$ETH_MNEMONIC\" --db-path /workspace/hardhat-db"
+
 volumes:
   postgres_data:
   cargo_disk:
+  hardhat_data:
