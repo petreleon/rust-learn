@@ -1,3 +1,5 @@
+# TODO: Create an environment for running Ethereum nodes with geth
+
 # Use official Debian as a parent image
 FROM debian:stable-slim
 
