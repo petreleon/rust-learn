@@ -10,6 +10,7 @@ services:
       - cargo_disk:/usr/local/cargo
     depends_on:
       - db
+      - geth
     ports:
        - "8080:8080"  # Maps port 8080 on the host to port 8080 in the container
     env_file:
@@ -26,7 +27,9 @@ services:
       - "5433:5432"  # Maps port 5433 on the host to port 5432 in the container
 
   geth:
-    image: ethereum/client-go:stable
+    build:
+      context: ./ethereum
+      dockerfile: Dockerfile
     ports:
       - "8545:8545"
       - "30303:30303"
