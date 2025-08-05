@@ -85,6 +85,14 @@ diesel::table! {
 }
 
 diesel::table! {
+    persistent_states (id) {
+        id -> Int4,
+        key -> Text,
+        value -> Text,
+    }
+}
+
+diesel::table! {
     platform_roles (id) {
         id -> Int4,
         name -> Varchar,
@@ -218,6 +226,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     organizations,
     paths,
     paths_courses,
+    persistent_states,
     platform_roles,
     role_course_hierarchy,
     role_organization_hierarchy,
