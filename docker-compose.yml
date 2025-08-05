@@ -35,8 +35,6 @@ services:
       - "30303:30303"
     volumes:
       - geth_data:/root/.ethereum
-      - ./ethereum/geth-entrypoint.sh:/geth-entrypoint.sh
-    entrypoint: ["sh", "/geth-entrypoint.sh"]
     env_file:
       - .env
 

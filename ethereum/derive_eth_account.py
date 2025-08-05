@@ -7,6 +7,7 @@ def main():
     if not mnemonic:
         print('ETH_MNEMONIC not set.', file=sys.stderr)
         sys.exit(1)
+    Account.enable_unaudited_hdwallet_features()
     acct = Account.from_mnemonic(mnemonic)
     print(acct.address)
     print(acct.key.hex())
