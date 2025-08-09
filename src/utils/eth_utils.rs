@@ -15,9 +15,15 @@ pub fn load_wallet_from_env() -> Wallet<k256::ecdsa::SigningKey> {
     Wallet::from_mnemonic(&mnemonic, None).expect("Failed to create wallet from mnemonic")
 }
 
-/// Connects to local Ethereum node
+/// Connects to an Ethereum node using env configuration
 pub fn get_provider() -> Provider<Http> {
-    Provider::<Http>::try_from("http://localhost:8545").expect("Could not connect to provider")
+    dotenvy::dotenv().ok();
+    let url = std::env::var("ETH_RPC_URL").ok().unwrap_or_else(|| {
+        let host = std::env::var("ETH_HOST").unwrap_or_else(|_| "geth".to_string());
+        let port = std::env::var("ETH_PORT").unwrap_or_else(|_| "8545".to_string());
+        format!("http://{}:{}", host, port)
+    });
+    Provider::<Http>::try_from(url).expect("Could not create provider from ETH_RPC_URL/ETH_HOST/ETH_PORT")
 }
 
 /// Compiles the LearnToken contract using ethers-solc
@@ -93,5 +99,19 @@ pub fn get_learn_token_address(conn: &mut PgConnection) -> QueryResult<Option<Ad
         Ok(Some(parsed))
     } else {
         Ok(None)
+    }
+}
+
+/// On startup, ensure LearnToken is deployed. If already stored, reuse it; otherwise deploy and save.
+pub async fn deploy_startup(
+    conn: &mut PgConnection,
+    name: &str,
+    symbol: &str,
+    decimals: u8,
+) -> QueryResult<Address> {
+    if let Some(addr) = get_learn_token_address(conn)? {
+        Ok(addr)
+    } else {
+        deploy_learn_token_and_save(conn, name, symbol, decimals).await
     }
 }

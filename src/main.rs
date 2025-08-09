@@ -50,6 +50,12 @@ async fn main() -> std::io::Result<()> {
     {
         let mut conn = pool.get().expect("Failed to get DB connection from pool");
         version_updater(&mut *conn).expect("Failed to update database version");
+
+        // Ensure LearnToken is deployed (idempotent: uses persistent state)
+        match crate::utils::eth_utils::deploy_startup(&mut conn, "LearnToken", "LRN", 18).await {
+            Ok(addr) => eprintln!("LearnToken available at {}", format!("{:#x}", addr)),
+            Err(err) => eprintln!("deploy_startup failed: {:?}", err),
+        }
     }
     HttpServer::new(move || {
         App::new()
