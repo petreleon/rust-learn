@@ -3,16 +3,23 @@
 
 use crate::utils::db_utils::persistent_state::{get_persistent_state, set_persistent_state};
 use diesel::prelude::*;
-use diesel::{dsl::excluded, PgConnection, QueryResult};
+use diesel::{PgConnection, QueryResult};
 use ethers::prelude::*;
+use ethers::signers::coins_bip39::English;
+use ethers::abi::Abi;
+use ethers::core::types::Bytes;
 use std::env;
 use std::str::FromStr;
+use ethers::signers::MnemonicBuilder;
 
 /// Loads wallet from ETH_MNEMONIC in .env
 pub fn load_wallet_from_env() -> Wallet<k256::ecdsa::SigningKey> {
     dotenvy::dotenv().ok();
     let mnemonic = env::var("ETH_MNEMONIC").expect("ETH_MNEMONIC not set");
-    Wallet::from_mnemonic(&mnemonic, None).expect("Failed to create wallet from mnemonic")
+    MnemonicBuilder::<English>::default()
+        .phrase(mnemonic.as_str())
+        .build()
+        .expect("Failed to create wallet from mnemonic")
 }
 
 /// Connects to an Ethereum node using env configuration
@@ -36,9 +43,9 @@ pub fn compile_contract() -> (Abi, Bytes) {
         .unwrap();
     let project = Project::builder().paths(paths).build().unwrap();
     let output = project.compile().unwrap();
-    let contract = output.find("LearnToken").unwrap();
-    let abi = contract.abi.unwrap().clone();
-    let bytecode = contract.bytecode.unwrap().clone();
+    let contract = output.find("LearnToken", "LearnToken.sol").unwrap();
+    let abi = contract.abi.as_ref().unwrap().clone().into();
+    let bytecode = contract.bytecode.as_ref().unwrap().object.clone().into_bytes().unwrap();
     (abi, bytecode)
 }
 
@@ -52,7 +59,7 @@ pub async fn deploy_contract(
     symbol: String,
     decimals: u8,
 ) -> Address {
-    let client = SignerMiddleware::new(provider, wallet);
+    let client = std::sync::Arc::new(SignerMiddleware::new(provider, wallet));
     let factory = ContractFactory::new(abi, bytecode, client);
     let deployer = factory.deploy((name, symbol, decimals)).unwrap();
     let contract = deployer.send().await.unwrap();
@@ -81,8 +88,7 @@ pub async fn deploy_learn_token_and_save(
         symbol.to_string(),
         decimals,
     )
-    .await
-    .map_err(|_| diesel::result::Error::NotFound)?; // Map ethers error to a Diesel error kind
+    .await;
 
     // Persist address as 0x-prefixed hex
     let addr_hex = format!("{:#x}", addr);
