@@ -3102,6 +3102,7 @@ dependencies = [
  "jsonwebtoken 9.3.0",
  "log",
  "serde",
+ "serde_json",
  "serde_urlencoded",
  "strum 0.27.2",
  "strum_macros 0.27.2",

@@ -16,6 +16,7 @@ diesel_migrations = "2.2.0"
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_urlencoded = "0.7"
+serde_json = "1"
 bcrypt = "0.17"
 jsonwebtoken = "9"
 log = "0.4"
