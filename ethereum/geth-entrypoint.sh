@@ -16,5 +16,12 @@ PRIVATE_KEY=$(echo "$ACCOUNT_INFO" | sed -n '2p')
 # Import account into geth keystore without writing to a file or outputting to terminal
 printf "%s" "$PRIVATE_KEY" | geth account import --password /dev/null /dev/stdin > /dev/null
 
-# Start geth with the derived address as etherbase
-exec geth --dev --http --http.addr 0.0.0.0 --http.port 8545 --http.api eth,net,web3,personal,miner --ws --ws.addr 0.0.0.0 --ws.port 8546 --ws.api eth,net,web3,personal,miner --allow-insecure-unlock --miner.etherbase=$ADDRESS --http.corsdomain='*' --http.vhosts='*'
+# Start geth with HTTP/WS RPC APIs (no personal module on HTTP/WS in recent geth)
+# Dev mode uses an in-memory chain; prefunded dev accounts are available.
+exec geth \
+  --dev \
+  --http --http.addr 0.0.0.0 --http.port 8545 \
+  --http.api eth,net,web3 \
+  --ws --ws.addr 0.0.0.0 --ws.port 8546 \
+  --ws.api eth,net,web3 \
+  --http.corsdomain='*' --http.vhosts='*'
