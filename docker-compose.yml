@@ -10,9 +10,10 @@ services:
       - cargo_disk:/usr/local/cargo
     depends_on:
       - db
-      - geth
+      - anvil
+      - minio
     ports:
-       - "8080:8080"  # Maps port 8080 on the host to port 8080 in the container
+      - "8080:8080"  # Maps port 8080 on the host to port 8080 in the container
     env_file:
       - .env
     command: sleep infinity
@@ -26,20 +27,39 @@ services:
     ports:
       - "5433:5432"  # Maps port 5433 on the host to port 5432 in the container
 
-  geth:
-    build:
-      context: ./ethereum
-      dockerfile: Dockerfile
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # Web console
+
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    command: [
+      "anvil",
+      "--host", "0.0.0.0",
+      "--port", "8545",
+      "--block-time", "1",
+      "--chain-id", "31337",
+      "--state", "/anvil/state.json",
+      "--state-interval", "5",
+      "-m", "${ETH_MNEMONIC}"
+    ]
     ports:
       - "8545:8545"
-      - "8546:8546"
-      - "30303:30303"
-    volumes:
-      - geth_data:/root/.ethereum
     env_file:
       - .env
+    volumes:
+      - anvil_data:/anvil
 
 volumes:
   postgres_data:
   cargo_disk:
-  geth_data:
+  minio_data:
+  anvil_data:
