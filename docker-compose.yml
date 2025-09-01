@@ -12,10 +12,6 @@ services:
       - db
       - anvil
       - minio
-    ports:
-      - "8080:8080"  # Maps port 8080 on the host to port 8080 in the container
-    env_file:
-      - .env
     command: sleep infinity
 
   db:
@@ -41,25 +37,27 @@ services:
 
   anvil:
     image: ghcr.io/foundry-rs/foundry:latest
-    command: [
-      "anvil",
-      "--host", "0.0.0.0",
-      "--port", "8545",
-      "--block-time", "1",
-      "--chain-id", "31337",
-      "--state", "/anvil/state.json",
-      "--state-interval", "5",
-      "-m", "${ETH_MNEMONIC}"
-    ]
+    # Run anvil with explicit host binding
+    command: ["anvil","--host","0.0.0.0","--port","8545","--block-time","1","--chain-id","31337","--state","/anvil/state.json","--state-interval","5","-m","${ETH_MNEMONIC}"]
     ports:
       - "8545:8545"
     env_file:
       - .env
+    environment:
+      ANVIL_IP_ADDR: 0.0.0.0
     volumes:
-      - anvil_data:/anvil
+      - anvil_state:/anvil
+    stop_signal: SIGINT
+    stop_grace_period: 15s
+    # Optional healthcheck (uncomment if desired)
+    # healthcheck:
+    #   test: ["CMD","cast","rpc","eth_chainId"]
+    #   interval: 10s
+    #   timeout: 2s
+    #   retries: 6
 
 volumes:
   postgres_data:
   cargo_disk:
   minio_data:
-  anvil_data:
+  anvil_state:
