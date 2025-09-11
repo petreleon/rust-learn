@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   app:
@@ -16,45 +16,40 @@ services:
 
   db:
     image: postgres:latest
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
     env_file:
       - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"  # Maps port 5433 on the host to port 5432 in the container
+      - "5433:5432"
 
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     volumes:
       - minio_data:/data
     ports:
-      - "9000:9000" # S3 API
-      - "9001:9001" # Web console
+      - "9000:9000"
+      - "9001:9001"
 
   anvil:
-    image: ghcr.io/foundry-rs/foundry:latest
-    # Run anvil with explicit host binding
-    command: ["anvil","--host","0.0.0.0","--port","8545","--block-time","1","--chain-id","31337","--state","/anvil/state.json","--state-interval","5","-m","${ETH_MNEMONIC}"]
-    ports:
-      - "8545:8545"
+    image: ghcr.io/foundry-rs/foundry:nightly
+    entrypoint: ["/anvil-entrypoint.sh"]
     env_file:
       - .env
     environment:
       ANVIL_IP_ADDR: 0.0.0.0
+    ports:
+      - "8545:8545"
     volumes:
       - anvil_state:/anvil
+      - ./scripts/anvil-entrypoint.sh:/anvil-entrypoint.sh:ro
+    user: root
     stop_signal: SIGINT
     stop_grace_period: 15s
-    # Optional healthcheck (uncomment if desired)
-    # healthcheck:
-    #   test: ["CMD","cast","rpc","eth_chainId"]
-    #   interval: 10s
-    #   timeout: 2s
-    #   retries: 6
 
 volumes:
   postgres_data:
