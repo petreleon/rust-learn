@@ -25,3 +25,9 @@ strum_macros = "0.27"
 time = "0.3.41"
 ethers = "2.0.14"
 ethers-solc = { version = "2", features = ["svm"] }
+minio = "0.3.0"
+http = "1"
+
+# Async runtime used by actix and for MinIO helpers
+tokio = { version = "1", features = ["rt", "macros", "io-util", "sync"] }
+anyhow = "1.0"

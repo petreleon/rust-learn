@@ -7,6 +7,7 @@ pub mod config;
 use crate::config::db_setup::version_updater;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use infer::Infer;
+use crate::utils::minio_utils::MinioState;
 
 
 #[get("/")]
@@ -47,6 +48,14 @@ async fn main() -> std::io::Result<()> {
 
     // Use the establish_connection function from the db module
     let pool = db::establish_connection();
+    // Initialize MinIO client state and put into app data
+    let minio_state = match MinioState::new_from_env().await {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Failed to initialize MinIO client: {:?}", e);
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "MinIO init failed"));
+        }
+    };
     {
         let mut conn = pool.get().expect("Failed to get DB connection from pool");
         version_updater(&mut *conn).expect("Failed to update database version");
@@ -60,6 +69,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone())) // Use the created pool
+            .app_data(web::Data::new(minio_state.clone())) // MinIO client shared state
             .route("/hey", web::get().to(manual_hello))
             .service(api::api_scope())
             .service(hello)
