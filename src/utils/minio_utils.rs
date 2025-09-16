@@ -37,7 +37,19 @@ impl MinioState {
         // Ensure bucket exists and create if not.
         let resp = self.0.bucket_exists(bucket).send().await?;
         if !resp.exists {
-            self.0.create_bucket(bucket).send().await?;
+            // Try to create the bucket; if it's already owned by us (or was
+            // created concurrently) treat that as success.
+            match self.0.create_bucket(bucket).send().await {
+                Ok(_) => {}
+                Err(e) => {
+                    let s = e.to_string();
+                    if s.contains("BucketAlreadyOwnedByYou") {
+                        // ignore
+                    } else {
+                        return Err(e.into());
+                    }
+                }
+            }
         }
 
         let content = ObjectContent::from(path.as_ref());
