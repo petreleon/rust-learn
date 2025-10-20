@@ -33,7 +33,6 @@ diesel::table! {
         id -> Int4,
         name -> Varchar,
         description -> Nullable<Text>,
-        created_for -> Nullable<Int4>,
     }
 }
 
@@ -56,7 +55,6 @@ diesel::table! {
         id -> Int4,
         name -> Varchar,
         description -> Nullable<Text>,
-        created_for -> Nullable<Int4>,
     }
 }
 
@@ -192,8 +190,6 @@ diesel::table! {
 diesel::joinable!(authentications -> users (user_id));
 diesel::joinable!(chapters -> courses (course_id));
 diesel::joinable!(contents -> chapters (chapter_id));
-diesel::joinable!(course_roles -> courses (created_for));
-diesel::joinable!(organization_roles -> organizations (created_for));
 diesel::joinable!(paths_courses -> courses (course_id));
 diesel::joinable!(paths_courses -> paths (path_id));
 diesel::joinable!(role_course_hierarchy -> course_roles (course_role_id));
@@ -216,26 +212,4 @@ diesel::joinable!(user_role_platform -> platform_roles (platform_role_id));
 diesel::joinable!(user_role_platform -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    authentications,
-    chapters,
-    contents,
-    course_roles,
-    courses,
-    db_version_control,
-    organization_roles,
-    organizations,
-    paths,
-    paths_courses,
-    persistent_states,
-    platform_roles,
-    role_course_hierarchy,
-    role_organization_hierarchy,
-    role_permission_course,
-    role_permission_organization,
-    role_permission_platform,
-    role_platform_hierarchy,
-    user_role_course,
-    user_role_organization,
-    user_role_platform,
-    users,
-);
+    authentications,chapters,contents,course_roles,courses,db_version_control,organization_roles,organizations,paths,paths_courses,persistent_states,platform_roles,role_course_hierarchy,role_organization_hierarchy,role_permission_course,role_permission_organization,role_permission_platform,role_platform_hierarchy,user_role_course,user_role_organization,user_role_platform,users,);
