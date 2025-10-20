@@ -44,14 +44,23 @@ pub fn compile_contract() -> (Abi, Bytes) {
     let mut remappings: Vec<Remapping> = Vec::new();
     if let Ok(oz_env) = env::var("OZ_PATH") {
         // match abi_export.rs style: @openzeppelin/={path}/
+        let oz_env_path = Path::new(&oz_env).to_path_buf();
+        let oz_env_str = match oz_env_path.canonicalize() {
+            Ok(p) => p.display().to_string(),
+            Err(_) => oz_env_path.display().to_string(),
+        };
         remappings.push(
-            Remapping::from_str(&format!("@openzeppelin/={}/", Path::new(&oz_env).display())).unwrap(),
+            Remapping::from_str(&format!("@openzeppelin/={}/", oz_env_str)).unwrap(),
         );
     } else {
         let oz_path = Path::new("./ethereum/contracts").join("lib/openzeppelin-contracts");
         if oz_path.exists() {
+            let oz_path_str = match oz_path.canonicalize() {
+                Ok(p) => p.display().to_string(),
+                Err(_) => oz_path.display().to_string(),
+            };
             remappings.push(
-                Remapping::from_str(&format!("@openzeppelin/={}/", oz_path.display())).unwrap(),
+                Remapping::from_str(&format!("@openzeppelin/={}/", oz_path_str)).unwrap(),
             );
         }
     }
@@ -87,11 +96,20 @@ pub fn compile_contract() -> (Abi, Bytes) {
     // Build solc args for remappings
     let mut solc_args: Vec<String> = Vec::new();
     if let Ok(oz_env) = env::var("OZ_PATH") {
-        solc_args.push(format!("@openzeppelin={}", oz_env));
+        let oz_env_path = Path::new(&oz_env).to_path_buf();
+        let oz_env_str = match oz_env_path.canonicalize() {
+            Ok(p) => p.display().to_string(),
+            Err(_) => oz_env_path.display().to_string(),
+        };
+        solc_args.push(format!("@openzeppelin={}", oz_env_str));
     } else {
         let oz_path = Path::new("./ethereum/contracts").join("lib/openzeppelin-contracts");
         if oz_path.exists() {
-            solc_args.push(format!("@openzeppelin={}", oz_path.display()));
+            let oz_path_str = match oz_path.canonicalize() {
+                Ok(p) => p.display().to_string(),
+                Err(_) => oz_path.display().to_string(),
+            };
+            solc_args.push(format!("@openzeppelin={}", oz_path_str));
         }
     }
 
