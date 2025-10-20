@@ -6,8 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract LearnToken is ERC20, Ownable {
     uint8 private _customDecimals;
-
-    constructor(string memory name, string memory symbol, uint8 decimals_) ERC20(name, symbol) {
+    constructor(string memory name, string memory symbol, uint8 decimals_) ERC20(name, symbol) Ownable(msg.sender) {
         _customDecimals = decimals_;
     }
 
