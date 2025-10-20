@@ -28,6 +28,14 @@ ethers-solc = { version = "2", features = ["svm"] }
 minio = "0.3.0"
 http = "1"
 
+# For decoding solc .bin hex output in the solc fallback
+hex = "0.4"
+
 # Async runtime used by actix and for MinIO helpers
 tokio = { version = "1", features = ["rt", "macros", "io-util", "sync"] }
 anyhow = "1.0"
+
+[[test]]
+name = "blockchain_integration_tests"
+path = "tests/blockchain_integration_tests.rs"
+harness = true

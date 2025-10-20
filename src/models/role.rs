@@ -15,7 +15,6 @@ pub struct OrganizationRole {
     pub id: i32,
     pub name: String,
     pub description: Option<String>,
-    pub created_for: i32, // organization_id
 }
 
 #[derive(Queryable, Insertable)]
@@ -24,5 +23,4 @@ pub struct CourseRole {
     pub id: i32,
     pub name: String,
     pub description: Option<String>,
-    pub created_for: i32, // course_id
 }

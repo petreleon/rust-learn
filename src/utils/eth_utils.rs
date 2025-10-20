@@ -10,6 +10,7 @@ use ethers::abi::Abi;
 use ethers::core::types::Bytes;
 use std::env;
 use std::str::FromStr;
+use std::path::Path;
 use ethers::signers::MnemonicBuilder;
 
 /// Loads wallet from ETH_MNEMONIC in .env
@@ -35,17 +36,98 @@ pub fn get_provider() -> Provider<Http> {
 
 /// Compiles the LearnToken contract using ethers-solc
 pub fn compile_contract() -> (Abi, Bytes) {
-    use ethers_solc::{Project, ProjectPathsConfig, Solc};
+    use ethers_solc::{Project, ProjectPathsConfig, remappings::Remapping};
+    use std::process::Command;
+    use std::fs;
+    // Configure remappings for OpenZeppelin. Prefer OZ_PATH env var if set,
+    // otherwise fall back to the local `lib/openzeppelin-contracts` path under sources.
+    let mut remappings: Vec<Remapping> = Vec::new();
+    if let Ok(oz_env) = env::var("OZ_PATH") {
+        // match abi_export.rs style: @openzeppelin/={path}/
+        remappings.push(
+            Remapping::from_str(&format!("@openzeppelin/={}/", Path::new(&oz_env).display())).unwrap(),
+        );
+    } else {
+        let oz_path = Path::new("./ethereum/contracts").join("lib/openzeppelin-contracts");
+        if oz_path.exists() {
+            remappings.push(
+                Remapping::from_str(&format!("@openzeppelin/={}/", oz_path.display())).unwrap(),
+            );
+        }
+    }
+
     let paths = ProjectPathsConfig::builder()
         .root("./ethereum/contracts")
         .sources("./ethereum/contracts")
+        .artifacts("./ethereum/artifacts")
+        .remappings(remappings)
         .build()
-        .unwrap();
-    let project = Project::builder().paths(paths).build().unwrap();
-    let output = project.compile().unwrap();
-    let contract = output.find("LearnToken", "LearnToken.sol").unwrap();
-    let abi = contract.abi.as_ref().unwrap().clone().into();
-    let bytecode = contract.bytecode.as_ref().unwrap().object.clone().into_bytes().unwrap();
+        .expect("Failed to build project paths");
+    let project = Project::builder().paths(paths).build().expect("Failed to build project");
+    let output = project.compile().expect("Failed to compile project");
+
+    // Try to find the contract via ethers_solc output first
+    if let Some(contract) = output.find("LearnToken", "LearnToken.sol") {
+        let abi = contract.abi.as_ref().expect("ABI not found").clone().into();
+        let bytecode = contract
+            .bytecode
+            .as_ref()
+            .expect("Bytecode not found")
+            .object
+            .clone()
+            .into_bytes()
+            .expect("Could not get bytecode");
+        return (abi, bytecode);
+    }
+
+    // Fallback: use solc CLI to produce ABI and BIN artifacts into ./ethereum/artifacts
+    // (matches the fallback used by abi_export.rs)
+    eprintln!("[eth_utils] ethers_solc output did not contain LearnToken; falling back to solc CLI");
+
+    // Build solc args for remappings
+    let mut solc_args: Vec<String> = Vec::new();
+    if let Ok(oz_env) = env::var("OZ_PATH") {
+        solc_args.push(format!("@openzeppelin={}", oz_env));
+    } else {
+        let oz_path = Path::new("./ethereum/contracts").join("lib/openzeppelin-contracts");
+        if oz_path.exists() {
+            solc_args.push(format!("@openzeppelin={}", oz_path.display()));
+        }
+    }
+
+    let out_dir = Path::new("./ethereum/artifacts");
+    if !out_dir.exists() {
+        fs::create_dir_all(&out_dir).expect("failed to create artifacts dir");
+    }
+
+    let mut cmd = Command::new("solc");
+    // produce both abi and bin
+    cmd.arg("--abi").arg("--bin").arg("--overwrite").arg("-o").arg(out_dir);
+    for arg in &solc_args {
+        cmd.arg(arg);
+    }
+    cmd.arg("./ethereum/contracts/LearnToken.sol");
+
+    let status = cmd.status().expect("failed to run solc CLI");
+    if !status.success() {
+        panic!("solc CLI failed to compile the contract");
+    }
+
+    // solc writes <ContractName>.abi and <ContractName>.bin in out_dir
+    let abi_path = out_dir.join("LearnToken.abi");
+    let bin_path = out_dir.join("LearnToken.bin");
+
+    if !abi_path.exists() || !bin_path.exists() {
+        panic!("solc CLI did not produce expected artifacts");
+    }
+
+    let abi_json = fs::read_to_string(&abi_path).expect("failed to read abi file");
+    let abi: Abi = serde_json::from_str(&abi_json).expect("failed to parse ABI JSON");
+
+    let bin_hex = fs::read_to_string(&bin_path).expect("failed to read bin file");
+    let bin_bytes = hex::decode(bin_hex.trim()).expect("failed to decode bin hex");
+    let bytecode = Bytes::from(bin_bytes);
+
     (abi, bytecode)
 }
 

@@ -5,6 +5,9 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env
+    environment:
+      ETH_HOST: anvil
+      ETH_PORT: "8545"
     volumes:
       - .:/usr/src/app
       - cargo_disk:/usr/local/cargo
@@ -12,7 +15,10 @@ services:
       - db
       - anvil
       - minio
-    command: sleep infinity
+    # Initialize git submodules inside the mounted workspace (so the
+    # `ethereum/contracts/lib/openzeppelin-contracts` submodule is fetched on
+    # first run). After initializing submodules, keep the container alive.
+    command: sh -c 'git submodule update --init --recursive || true; sleep infinity'
 
   db:
     image: postgres:latest
