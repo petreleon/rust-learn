@@ -10,7 +10,7 @@ actix-web = "4.11"
 actix-service = "2.0.3"
 futures = "0.3"
 infer = "0.19.0"
-diesel = { version = "2.2.12", features = ["postgres", "r2d2", "chrono"] }
+diesel = { version = "2.2.12", features = ["postgres", "r2d2", "chrono", "numeric"] }
 dotenvy = "0.15"
 diesel_migrations = "2.2.0"
 chrono = { version = "0.4", features = ["serde"] }
@@ -34,6 +34,7 @@ hex = "0.4"
 # Async runtime used by actix and for MinIO helpers
 tokio = { version = "1", features = ["rt", "macros", "io-util", "sync"] }
 anyhow = "1.0"
+bigdecimal = { version = "0.4", default-features = true, features = ["serde"] }
 
 [[test]]
 name = "blockchain_integration_tests"
