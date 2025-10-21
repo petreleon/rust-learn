@@ -187,6 +187,15 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    wallets (id) {
+        id -> Int4,
+        user_id -> Nullable<Int4>,
+        organization_id -> Nullable<Int4>,
+        value -> Numeric,
+    }
+}
+
 diesel::joinable!(authentications -> users (user_id));
 diesel::joinable!(chapters -> courses (course_id));
 diesel::joinable!(contents -> chapters (chapter_id));
@@ -210,6 +219,8 @@ diesel::joinable!(user_role_organization -> organizations (organization_id));
 diesel::joinable!(user_role_organization -> users (user_id));
 diesel::joinable!(user_role_platform -> platform_roles (platform_role_id));
 diesel::joinable!(user_role_platform -> users (user_id));
+diesel::joinable!(wallets -> organizations (organization_id));
+diesel::joinable!(wallets -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    authentications,chapters,contents,course_roles,courses,db_version_control,organization_roles,organizations,paths,paths_courses,persistent_states,platform_roles,role_course_hierarchy,role_organization_hierarchy,role_permission_course,role_permission_organization,role_permission_platform,role_platform_hierarchy,user_role_course,user_role_organization,user_role_platform,users,);
+    authentications,chapters,contents,course_roles,courses,db_version_control,organization_roles,organizations,paths,paths_courses,persistent_states,platform_roles,role_course_hierarchy,role_organization_hierarchy,role_permission_course,role_permission_organization,role_permission_platform,role_platform_hierarchy,user_role_course,user_role_organization,user_role_platform,users,wallets,);
