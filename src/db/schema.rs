@@ -51,6 +51,22 @@ diesel::table! {
 }
 
 diesel::table! {
+    external_transactions (id) {
+        id -> Int8,
+        amount -> Numeric,
+        blockchain_address -> Text,
+    }
+}
+
+diesel::table! {
+    internal_transactions (id) {
+        id -> Int8,
+        wallet_id -> Int4,
+        amount -> Numeric,
+    }
+}
+
+diesel::table! {
     organization_roles (id) {
         id -> Int4,
         name -> Varchar,
@@ -151,6 +167,30 @@ diesel::table! {
 }
 
 diesel::table! {
+    transactions (id) {
+        id -> Int8,
+        #[sql_name = "type"]
+        #[max_length = 50]
+        type_ -> Varchar,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    transactions_external_transactions (transaction_id, external_transaction_id) {
+        transaction_id -> Int8,
+        external_transaction_id -> Int8,
+    }
+}
+
+diesel::table! {
+    transactions_internal_transactions (transaction_id, internal_transaction_id) {
+        transaction_id -> Int8,
+        internal_transaction_id -> Int8,
+    }
+}
+
+diesel::table! {
     user_role_course (id) {
         id -> Int4,
         user_id -> Nullable<Int4>,
@@ -199,6 +239,7 @@ diesel::table! {
 diesel::joinable!(authentications -> users (user_id));
 diesel::joinable!(chapters -> courses (course_id));
 diesel::joinable!(contents -> chapters (chapter_id));
+diesel::joinable!(internal_transactions -> wallets (wallet_id));
 diesel::joinable!(paths_courses -> courses (course_id));
 diesel::joinable!(paths_courses -> paths (path_id));
 diesel::joinable!(role_course_hierarchy -> course_roles (course_role_id));
@@ -211,6 +252,10 @@ diesel::joinable!(role_permission_organization -> organization_roles (organizati
 diesel::joinable!(role_permission_organization -> organizations (organization_id));
 diesel::joinable!(role_permission_platform -> platform_roles (platform_role_id));
 diesel::joinable!(role_platform_hierarchy -> platform_roles (platform_role_id));
+diesel::joinable!(transactions_external_transactions -> external_transactions (external_transaction_id));
+diesel::joinable!(transactions_external_transactions -> transactions (transaction_id));
+diesel::joinable!(transactions_internal_transactions -> internal_transactions (internal_transaction_id));
+diesel::joinable!(transactions_internal_transactions -> transactions (transaction_id));
 diesel::joinable!(user_role_course -> course_roles (course_role_id));
 diesel::joinable!(user_role_course -> courses (course_id));
 diesel::joinable!(user_role_course -> users (user_id));
@@ -223,4 +268,4 @@ diesel::joinable!(wallets -> organizations (organization_id));
 diesel::joinable!(wallets -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    authentications,chapters,contents,course_roles,courses,db_version_control,organization_roles,organizations,paths,paths_courses,persistent_states,platform_roles,role_course_hierarchy,role_organization_hierarchy,role_permission_course,role_permission_organization,role_permission_platform,role_platform_hierarchy,user_role_course,user_role_organization,user_role_platform,users,wallets,);
+    authentications,chapters,contents,course_roles,courses,db_version_control,external_transactions,internal_transactions,organization_roles,organizations,paths,paths_courses,persistent_states,platform_roles,role_course_hierarchy,role_organization_hierarchy,role_permission_course,role_permission_organization,role_permission_platform,role_platform_hierarchy,transactions,transactions_external_transactions,transactions_internal_transactions,user_role_course,user_role_organization,user_role_platform,users,wallets,);
