@@ -36,6 +36,11 @@ tokio = { version = "1", features = ["rt", "macros", "io-util", "sync"] }
 anyhow = "1.0"
 bigdecimal = { version = "0.4", default-features = true, features = ["serde"] }
 
+[dev-dependencies]
+# used only by tests to generate random mnemonics
+bip39 = "1.1"
+getrandom = "0.2"
+
 [[test]]
 name = "blockchain_integration_tests"
 path = "tests/blockchain_integration_tests.rs"

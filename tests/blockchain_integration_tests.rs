@@ -2,6 +2,8 @@ use rust_learn::utils::eth_utils::{compile_contract, deploy_contract, get_provid
 use ethers::prelude::*;
 use ethers::signers::MnemonicBuilder;
 use ethers::signers::coins_bip39::English;
+use bip39::Mnemonic;
+use getrandom::getrandom;
 
 // This test requires a running Anvil node accessible via the .env configuration.
 // It is ignored by default.
@@ -96,16 +98,39 @@ async fn test_deploy_and_mint() {
 #[tokio::test(flavor = "multi_thread")]
 #[ignore]
 async fn test_permit_import() {
-    // Use a separate deployer wallet index to avoid nonce conflicts
-    let mnemonic = std::env::var("ETH_MNEMONIC").expect("ETH_MNEMONIC not set for test");
+    // Generate distinct mnemonics for deployer and owner
+    let mut entropy_deployer = [0u8; 16];
+    getrandom(&mut entropy_deployer).expect("failed to get randomness for deployer");
+    let mnemonic_deployer = Mnemonic::from_entropy(&entropy_deployer).expect("failed to build deployer mnemonic");
+    let phrase_deployer = mnemonic_deployer.to_string();
+    eprintln!("[test_permit_import] generated deployer mnemonic: {}", phrase_deployer);
+
+    let mut entropy_owner = [0u8; 16];
+    getrandom(&mut entropy_owner).expect("failed to get randomness for owner");
+    let mnemonic_owner = Mnemonic::from_entropy(&entropy_owner).expect("failed to build owner mnemonic");
+    let phrase_owner = mnemonic_owner.to_string();
+    eprintln!("[test_permit_import] generated owner mnemonic: {}", phrase_owner);
+
+    // Deployer and owner come from different mnemonics (both at index 0)
     let deployer_wallet = MnemonicBuilder::<English>::default()
-        .phrase(mnemonic.as_str())
-        .index(3u32)
+        .phrase(phrase_deployer.as_str())
+        .index(0u32)
         .expect("failed to set derivation index")
         .build()
         .expect("failed to build deployer wallet")
         .with_chain_id(31337u64);
     let provider = get_provider();
+
+    // Fund the freshly-generated deployer wallet from the default Anvil-funded faucet
+    let faucet = load_wallet_from_env().with_chain_id(31337u64);
+    let faucet_client = std::sync::Arc::new(SignerMiddleware::new(provider.clone(), faucet));
+    let fund_value = U256::from(10u64) * U256::from(10).pow(U256::from(18)); // 10 ETH
+    let tx = TransactionRequest::pay(deployer_wallet.address(), fund_value);
+    let pending = faucet_client
+        .send_transaction(tx, None)
+        .await
+        .expect("funding deployer tx send");
+    let _ = pending.await.expect("funding deployer tx confirm");
 
     // Deploy token
     let (abi, bytecode) = compile_contract("LearnToken.sol", "LearnToken");
@@ -122,10 +147,9 @@ async fn test_permit_import() {
     let token = Contract::new(token_addr, abi.clone(), client.clone());
 
     // Derive a separate owner wallet from the same mnemonic at index 1 (this wallet will sign the permit)
-    let mnemonic = std::env::var("ETH_MNEMONIC").expect("ETH_MNEMONIC not set for test");
     let owner_wallet = MnemonicBuilder::<English>::default()
-        .phrase(mnemonic.as_str())
-        .index(1u32)
+        .phrase(phrase_owner.as_str())
+        .index(0u32)
         .expect("failed to set derivation index")
         .build()
         .expect("failed to build owner wallet");
