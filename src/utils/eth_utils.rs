@@ -34,8 +34,8 @@ pub fn get_provider() -> Provider<Http> {
     Provider::<Http>::try_from(url).expect("Could not create provider from ETH_RPC_URL/ETH_HOST/ETH_PORT")
 }
 
-/// Compiles the LearnToken contract using ethers-solc
-pub fn compile_contract() -> (Abi, Bytes) {
+/// Compile a specific contract file+name using ethers-solc. Returns (Abi, Bytecode).
+pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes) {
     use ethers_solc::{Project, ProjectPathsConfig, remappings::Remapping};
     use std::process::Command;
     use std::fs;
@@ -76,7 +76,7 @@ pub fn compile_contract() -> (Abi, Bytes) {
     let output = project.compile().expect("Failed to compile project");
 
     // Try to find the contract via ethers_solc output first
-    if let Some(contract) = output.find("LearnToken", "LearnToken.sol") {
+    if let Some(contract) = output.find(contract_name, contract_file) {
         let abi = contract.abi.as_ref().expect("ABI not found").clone().into();
         let bytecode = contract
             .bytecode
@@ -124,7 +124,7 @@ pub fn compile_contract() -> (Abi, Bytes) {
     for arg in &solc_args {
         cmd.arg(arg);
     }
-    cmd.arg("./ethereum/contracts/LearnToken.sol");
+    cmd.arg(format!("./ethereum/contracts/{}", contract_file));
 
     let status = cmd.status().expect("failed to run solc CLI");
     if !status.success() {
@@ -132,8 +132,8 @@ pub fn compile_contract() -> (Abi, Bytes) {
     }
 
     // solc writes <ContractName>.abi and <ContractName>.bin in out_dir
-    let abi_path = out_dir.join("LearnToken.abi");
-    let bin_path = out_dir.join("LearnToken.bin");
+    let abi_path = out_dir.join(format!("{}.abi", contract_name));
+    let bin_path = out_dir.join(format!("{}.bin", contract_name));
 
     if !abi_path.exists() || !bin_path.exists() {
         panic!("solc CLI did not produce expected artifacts");
@@ -155,13 +155,12 @@ pub async fn deploy_contract(
     provider: Provider<Http>,
     abi: Abi,
     bytecode: Bytes,
-    name: String,
-    symbol: String,
-    decimals: u8,
+    // constructor args will be passed by caller via the factory.deploy(...) call
+    deploy_args: impl ethers::core::abi::Tokenize,
 ) -> Address {
     let client = std::sync::Arc::new(SignerMiddleware::new(provider, wallet));
     let factory = ContractFactory::new(abi, bytecode, client);
-    let deployer = factory.deploy((name, symbol, decimals)).unwrap();
+    let deployer = factory.deploy(deploy_args).unwrap();
     let contract = deployer.send().await.unwrap();
     contract.address()
 }
@@ -178,15 +177,13 @@ pub async fn deploy_learn_token_and_save(
     let provider = get_provider();
 
     // Compile and deploy
-    let (abi, bytecode) = compile_contract();
+    let (abi, bytecode) = compile_contract("LearnToken.sol", "LearnToken");
     let addr = deploy_contract(
         wallet,
         provider,
         abi,
         bytecode,
-        name.to_string(),
-        symbol.to_string(),
-        decimals,
+        (name.to_string(), symbol.to_string(), decimals),
     )
     .await;
 
@@ -195,6 +192,81 @@ pub async fn deploy_learn_token_and_save(
     set_persistent_state(conn, "learn_token_address", &addr_hex)?;
 
     Ok(addr)
+}
+
+/// Deploy LearnTokenPresigner and save its address under `learn_token_presigner_address`.
+pub async fn deploy_learn_token_presigner_and_save(
+    conn: &mut PgConnection,
+    learn_token_addr: Address,
+) -> QueryResult<Address> {
+    let wallet = load_wallet_from_env();
+    let provider = get_provider();
+
+    let (abi, bytecode) = compile_contract("LearnTokenPresigner.sol", "LearnTokenPresigner");
+    let addr = deploy_contract(wallet, provider, abi, bytecode, (learn_token_addr,)).await;
+
+    let addr_hex = format!("{:#x}", addr);
+    set_persistent_state(conn, "learn_token_presigner_address", &addr_hex)?;
+    Ok(addr)
+}
+
+/// Deploy PlatformImporter and save its address under `platform_importer_address`.
+pub async fn deploy_platform_importer_and_save(
+    conn: &mut PgConnection,
+    treasury: Address,
+) -> QueryResult<Address> {
+    let wallet = load_wallet_from_env();
+    let provider = get_provider();
+
+    let (abi, bytecode) = compile_contract("PlatformImporter.sol", "PlatformImporter");
+    let addr = deploy_contract(wallet, provider, abi, bytecode, (treasury,)).await;
+
+    let addr_hex = format!("{:#x}", addr);
+    set_persistent_state(conn, "platform_importer_address", &addr_hex)?;
+    Ok(addr)
+}
+
+/// Ensure all required contracts are deployed and persisted. Returns tuple of addresses.
+pub async fn deploy_all_startup(
+    conn: &mut PgConnection,
+    name: &str,
+    symbol: &str,
+    decimals: u8,
+) -> QueryResult<(Address, Option<Address>, Option<Address>)> {
+    // Deploy LearnToken if missing
+    let token_addr = if let Some(a) = get_persistent_state(conn, "learn_token_address")? {
+        Address::from_str(a.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?
+    } else {
+        deploy_learn_token_and_save(conn, name, symbol, decimals).await?;
+        let s = get_persistent_state(conn, "learn_token_address")?.unwrap();
+        Address::from_str(s.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?
+    };
+
+    // Deploy LearnTokenPresigner if missing
+    let presigner_addr = if let Some(a) = get_persistent_state(conn, "learn_token_presigner_address")? {
+        Some(Address::from_str(a.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?)
+    } else {
+        // deploy using token_addr
+        let addr = deploy_learn_token_presigner_and_save(conn, token_addr).await?;
+        Some(addr)
+    };
+
+    // Deploy PlatformImporter if missing (use PLATFORM_TREASURY env or deployer address)
+    let importer_addr = if let Some(a) = get_persistent_state(conn, "platform_importer_address")? {
+        Some(Address::from_str(a.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?)
+    } else {
+        let treasury_addr = if let Ok(t) = env::var("PLATFORM_TREASURY") {
+            Address::from_str(t.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?
+        } else {
+            // fallback to account derived from mnemonic
+            let wallet = load_wallet_from_env();
+            wallet.address()
+        };
+        let addr = deploy_platform_importer_and_save(conn, treasury_addr).await?;
+        Some(addr)
+    };
+
+    Ok((token_addr, presigner_addr, importer_addr))
 }
 
 /// Retrieve the stored LearnToken address if present

@@ -11,38 +11,73 @@ async fn test_deploy_and_mint() {
     // 1. Setup: Load wallet, provider, and compile contract
     let wallet = load_wallet_from_env().with_chain_id(31337u64);
     let provider = get_provider();
-    let (abi, bytecode) = compile_contract();
 
-    // 2. Deploy the contract
-    let contract_address = deploy_contract(
+    // Compile and deploy LearnToken
+    let (abi, bytecode) = compile_contract("LearnToken.sol", "LearnToken");
+    let token_addr = deploy_contract(
         wallet.clone(),
         provider.clone(),
         abi.clone(),
         bytecode,
-        "Test Token".to_string(),
-        "TST".to_string(),
-        18,
+        ("Test Token".to_string(), "TST".to_string(), 18u8),
     )
     .await;
 
-    // 3. Create a contract instance
-    let client = std::sync::Arc::new(SignerMiddleware::new(provider, wallet.clone()));
-    let contract = Contract::new(contract_address, abi, client);
+    let client = std::sync::Arc::new(SignerMiddleware::new(provider.clone(), wallet.clone()));
+    let token = Contract::new(token_addr, abi.clone(), client.clone());
 
-    // 4. Mint tokens
-    let mint_to_address: Address = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8".parse().unwrap();
+    // Mint tokens to the test wallet
+    let my_addr = wallet.address();
     let amount_to_mint = U256::from(100) * U256::from(10).pow(U256::from(18)); // 100 tokens
+    let mint_call: ContractCall<_, ()> = token.method("mint", (my_addr, amount_to_mint)).unwrap();
+    let pending = mint_call.send().await.expect("mint send");
+    let _ = pending.await.expect("mint confirm").unwrap();
 
-    let mint_call: ContractCall<_, ()> = contract.method("mint", (mint_to_address, amount_to_mint)).unwrap();
-    
-    let pending_tx = mint_call.send().await.expect("Minting transaction failed to send");
-    let receipt = pending_tx.await.expect("Minting transaction failed to confirm").unwrap();
+    // Verify minted balance
+    let balance: U256 = token.method::<_, U256>("balanceOf", my_addr).unwrap().call().await.expect("balanceOf");
+    assert_eq!(balance, amount_to_mint);
 
-    assert_eq!(receipt.status, Some(1.into()), "Minting transaction failed");
+    // Deploy LearnTokenPresigner
+    let (presigner_abi, presigner_bytecode) = compile_contract("LearnTokenPresigner.sol", "LearnTokenPresigner");
+    let presigner_addr = deploy_contract(
+        wallet.clone(),
+        provider.clone(),
+        presigner_abi.clone(),
+        presigner_bytecode,
+        (token_addr,),
+    )
+    .await;
+    let presigner = Contract::new(presigner_addr, presigner_abi.clone(), client.clone());
 
-    // 5. Verify the balance
-    let balance_call: ContractCall<_, U256> = contract.method("balanceOf", mint_to_address).unwrap();
-    let balance = balance_call.call().await.expect("Failed to get balance");
+    // Approve presigner to transfer tokens and deposit
+    let approve_call = token.method::<_, bool>("approve", (presigner_addr, amount_to_mint)).unwrap();
+    let p = approve_call.send().await.expect("approve send");
+    let _ = p.await.expect("approve confirm").unwrap();
 
-    assert_eq!(balance, amount_to_mint, "The token balance is incorrect after minting.");
+    // Deposit into presigner
+    let deposit_call = presigner.method::<_, ()>("deposit", amount_to_mint).unwrap();
+    let d = deposit_call.send().await.expect("deposit send");
+    let _ = d.await.expect("deposit confirm").unwrap();
+
+    // Withdraw back
+    let withdraw_call = presigner.method::<_, ()>("withdraw", amount_to_mint).unwrap();
+    let w = withdraw_call.send().await.expect("withdraw send");
+    let _ = w.await.expect("withdraw confirm").unwrap();
+
+    // Deploy PlatformImporter (we won't test permit here)
+    let (importer_abi, importer_bytecode) = compile_contract("PlatformImporter.sol", "PlatformImporter");
+    let treasury = my_addr; // use self as treasury for test
+    let importer_addr = deploy_contract(
+        wallet.clone(),
+        provider.clone(),
+        importer_abi.clone(),
+        importer_bytecode,
+        (treasury,),
+    )
+    .await;
+
+    // Sanity: deployed addresses are non-zero
+    assert_ne!(token_addr, Address::zero());
+    assert_ne!(presigner_addr, Address::zero());
+    assert_ne!(importer_addr, Address::zero());
 }

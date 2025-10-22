@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract LearnToken is ERC20, Ownable {
+/// @notice LearnToken with optional custom decimals and ERC-2612 permit support
+contract LearnToken is ERC20, ERC20Permit, Ownable {
     uint8 private _customDecimals;
-    constructor(string memory name, string memory symbol, uint8 decimals_) ERC20(name, symbol) Ownable(msg.sender) {
+
+    constructor(string memory name, string memory symbol, uint8 decimals_) ERC20(name, symbol) ERC20Permit(name) Ownable(msg.sender) {
         _customDecimals = decimals_;
     }
 
