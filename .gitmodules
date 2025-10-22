@@ -2,3 +2,8 @@
 	path = ethereum/contracts/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts.git
 	branch = v5.4.0
+
+[submodule "third_party/minio"]
+	path = third_party/minio
+	url = https://github.com/minio/minio.git
+	branch = master
