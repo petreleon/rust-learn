@@ -1,5 +1,7 @@
 use rust_learn::utils::eth_utils::{compile_contract, deploy_contract, get_provider, load_wallet_from_env};
 use ethers::prelude::*;
+use ethers::signers::MnemonicBuilder;
+use ethers::signers::coins_bip39::English;
 
 // This test requires a running Anvil node accessible via the .env configuration.
 // It is ignored by default.
@@ -9,7 +11,15 @@ use ethers::prelude::*;
 #[ignore]
 async fn test_deploy_and_mint() {
     // 1. Setup: Load wallet, provider, and compile contract
-    let wallet = load_wallet_from_env().with_chain_id(31337u64);
+    // Use a dedicated derivation index to avoid nonce clashes with any persistent anvil state
+    let mnemonic = std::env::var("ETH_MNEMONIC").expect("ETH_MNEMONIC not set for test");
+    let wallet = MnemonicBuilder::<English>::default()
+        .phrase(mnemonic.as_str())
+        .index(2u32)
+        .expect("failed to set derivation index")
+        .build()
+        .expect("failed to build deployer wallet")
+        .with_chain_id(31337u64);
     let provider = get_provider();
 
     // Compile and deploy LearnToken
@@ -80,4 +90,130 @@ async fn test_deploy_and_mint() {
     assert_ne!(token_addr, Address::zero());
     assert_ne!(presigner_addr, Address::zero());
     assert_ne!(importer_addr, Address::zero());
+}
+
+// Test EIP-2612 permit flow with PlatformImporter.importWithPermit
+#[tokio::test(flavor = "multi_thread")]
+#[ignore]
+async fn test_permit_import() {
+    // Use a separate deployer wallet index to avoid nonce conflicts
+    let mnemonic = std::env::var("ETH_MNEMONIC").expect("ETH_MNEMONIC not set for test");
+    let deployer_wallet = MnemonicBuilder::<English>::default()
+        .phrase(mnemonic.as_str())
+        .index(3u32)
+        .expect("failed to set derivation index")
+        .build()
+        .expect("failed to build deployer wallet")
+        .with_chain_id(31337u64);
+    let provider = get_provider();
+
+    // Deploy token
+    let (abi, bytecode) = compile_contract("LearnToken.sol", "LearnToken");
+    let token_addr = deploy_contract(
+        deployer_wallet.clone(),
+        provider.clone(),
+        abi.clone(),
+        bytecode,
+        ("Permit Token".to_string(), "PTKN".to_string(), 18u8),
+    )
+    .await;
+
+    let client = std::sync::Arc::new(SignerMiddleware::new(provider.clone(), deployer_wallet.clone()));
+    let token = Contract::new(token_addr, abi.clone(), client.clone());
+
+    // Derive a separate owner wallet from the same mnemonic at index 1 (this wallet will sign the permit)
+    let mnemonic = std::env::var("ETH_MNEMONIC").expect("ETH_MNEMONIC not set for test");
+    let owner_wallet = MnemonicBuilder::<English>::default()
+        .phrase(mnemonic.as_str())
+        .index(1u32)
+        .expect("failed to set derivation index")
+        .build()
+        .expect("failed to build owner wallet");
+    let owner = owner_wallet.address();
+
+    // Mint tokens to owner
+    let amount = U256::from(50) * U256::from(10).pow(U256::from(18));
+    let _ = token.method::<_, ()>("mint", (owner, amount)).unwrap().send().await.unwrap().await.unwrap();
+
+    // Deploy importer with treasury = random address
+    let (importer_abi, importer_bytecode) = compile_contract("PlatformImporter.sol", "PlatformImporter");
+    let treasury = Address::random();
+    let importer_addr = deploy_contract(
+        deployer_wallet.clone(),
+        provider.clone(),
+        importer_abi.clone(),
+        importer_bytecode,
+        (treasury,),
+    )
+    .await;
+    let importer = Contract::new(importer_addr, importer_abi.clone(), client.clone());
+
+    // Build permit signature following EIP-2612
+    use ethers::utils::keccak256;
+    use ethers::core::types::H256;
+
+    // typehash
+    let typehash = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)".as_bytes());
+
+    // fetch nonce and domain separator from token
+    let nonce: U256 = token.method::<_, U256>("nonces", owner).unwrap().call().await.unwrap();
+    let domain_separator: H256 = token.method::<_, H256>("DOMAIN_SEPARATOR", ()).unwrap().call().await.unwrap();
+
+    // deadline
+    let deadline = U256::from(9999999999u64);
+
+    // helper to make 32-byte arrays
+    fn pad_u256(value: U256) -> [u8; 32] {
+        let mut b = [0u8; 32];
+        value.to_big_endian(&mut b);
+        b
+    }
+    fn pad_address(addr: Address) -> [u8; 32] {
+        let mut b = [0u8; 32];
+        let bytes = addr.as_bytes();
+        b[12..32].copy_from_slice(bytes);
+        b
+    }
+
+    // struct hash = keccak256(typehash || owner || spender || value || nonce || deadline)
+    let mut enc = Vec::with_capacity(32 * 6);
+    enc.extend_from_slice(&typehash);
+    enc.extend_from_slice(&pad_address(owner));
+    enc.extend_from_slice(&pad_address(importer_addr));
+    enc.extend_from_slice(&pad_u256(amount));
+    enc.extend_from_slice(&pad_u256(nonce));
+    enc.extend_from_slice(&pad_u256(deadline));
+    let struct_hash = keccak256(&enc);
+
+    // digest = keccak256("\x19\x01" || domain_separator || struct_hash)
+    let mut digest_input = Vec::with_capacity(2 + 32 + 32);
+    digest_input.push(0x19u8);
+    digest_input.push(0x01u8);
+    digest_input.extend_from_slice(domain_separator.as_bytes());
+    digest_input.extend_from_slice(&struct_hash);
+    let digest = keccak256(&digest_input);
+    let digest_h256 = H256::from_slice(&digest);
+
+    // Sign digest with owner's wallet (synchronous return)
+    let sig = owner_wallet.sign_hash(digest_h256).unwrap();
+    let v = sig.v as u8;
+    let r = sig.r;
+    let s = sig.s;
+    // Convert to raw 32-byte arrays to match bytes32 exactly
+    let r_bytes: [u8; 32] = pad_u256(r);
+    let s_bytes: [u8; 32] = pad_u256(s);
+
+    // Call importWithPermit
+    let tx = importer
+        .method::<_, ()>("importWithPermit", (token_addr, owner, amount, U256::from(9999999999u64), v, r_bytes, s_bytes))
+        .unwrap()
+        .send()
+        .await
+        .expect("import tx send")
+        .await
+        .expect("import tx confirm");
+
+    // Check treasury balance increased
+    let bal: U256 = token.method::<_, U256>("balanceOf", treasury).unwrap().call().await.unwrap();
+    assert_eq!(bal, amount);
 }
