@@ -30,7 +30,9 @@ services:
       - "5433:5432"
 
   minio:
-    image: minio/minio:latest
+    build:
+      context: ./third_party/minio
+      dockerfile: Dockerfile
     command: server /data --console-address ":9001"
     env_file:
       - .env
