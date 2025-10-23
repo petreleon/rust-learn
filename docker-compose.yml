@@ -32,7 +32,7 @@ services:
   minio:
     build:
       context: .
-      dockerfile: docker/minio.dockerfile
+      dockerfile: docker/minio.Dockerfile
     command: server /data --console-address ":9001"
     env_file:
       - .env
