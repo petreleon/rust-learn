@@ -31,8 +31,8 @@ services:
 
   minio:
     build:
-      context: ./third_party/minio
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: docker/minio.dockerfile
     command: server /data --console-address ":9001"
     env_file:
       - .env
