@@ -67,11 +67,12 @@ where
             },
         };
 
-        let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
-        let permission_name = self.permission_name.clone();
+    let permission_name = self.permission_name.clone();
+    // Capture UserJWT from request extensions before moving `req`
+    let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
 
-        // Now `req` can be moved without issues
-        let fut = self.service.call(req);
+    // Now `req` can be moved without issues
+    let fut = self.service.call(req);
 
         async move {
             let user_jwt = match user_jwt_opt {

@@ -47,7 +47,7 @@ where
                     let token = &auth_str["Bearer ".len()..];
                     if let Ok(token_data) = decode_jwt(token) {
                         let user_jwt: UserJWT = token_data.claims;
-                        // Add user_jwt to request extensions
+                        // Add user_jwt to request extensions so downstream handlers/middleware can read it
                         let exp = user_jwt.exp;
                         let now = chrono::Utc::now().timestamp() as usize; // Convert now to usize
                         if exp < now {

@@ -82,8 +82,7 @@ S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + Clone
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
 
-        // These clones ensure that we own the data fully and no references are held.
-        let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
+    // These clones ensure that we own the data fully and no references are held.
         let organization_id_str_opt = extract_param(&req, "organization_id", ParamType::Query).map(|s| s.to_owned());
         let second_user_id_str_opt = extract_param(&req, "user_id", ParamType::Query).map(|s| s.to_owned());
 
@@ -91,30 +90,42 @@ S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + Clone
         let service = self.service.clone();
         let mut can_proceed = false;
         async move {
-            {
-                let mut binding = req.extensions_mut();
-                let connection: &mut PooledConnection<ConnectionManager<diesel::PgConnection>> = match binding.get_mut::<PooledConnection<ConnectionManager<PgConnection>>>() {
-                    Some(conn) => conn,
-                    None => return Err(Error::from(actix_web::error::ErrorInternalServerError("Failed to get database connection"))),
-                };
-                
-                let organization_id = organization_id_str_opt
-                    .and_then(|id_str| id_str.parse::<i32>().ok())
-                    .ok_or_else(|| actix_web::error::ErrorBadRequest("Invalid or missing organization parameter"))?;
+            // Obtain a DB connection directly from the pool (no request extensions)
+            let pool = req.app_data::<web::Data<DbPool>>().ok_or_else(|| actix_web::error::ErrorInternalServerError("Failed to get database pool"))?;
+            let mut conn = pool.get().map_err(|_| actix_web::error::ErrorInternalServerError("Failed to get database connection"))?;
 
-                let second_user_id = second_user_id_str_opt
-                    .and_then(|id_str| id_str.parse::<i32>().ok())
-                    .ok_or_else(|| actix_web::error::ErrorBadRequest("Invalid or missing user parameter"))?;
+            let organization_id = organization_id_str_opt
+                .and_then(|id_str| id_str.parse::<i32>().ok())
+                .ok_or_else(|| actix_web::error::ErrorBadRequest("Invalid or missing organization parameter"))?;
 
-                let user_jwt = user_jwt_opt.ok_or_else(|| actix_web::error::ErrorUnauthorized("Unauthorized"))?;
+            let second_user_id = second_user_id_str_opt
+                .and_then(|id_str| id_str.parse::<i32>().ok())
+                .ok_or_else(|| actix_web::error::ErrorBadRequest("Invalid or missing user parameter"))?;
 
-                // Here, ensure all logic that uses captured variables doesn't require them to have a reference to outside the async block.
-                can_proceed = match user_hierarchy_compare_organization(&mut *connection, organization_id, user_jwt.user_id, second_user_id) {
-                    Ok(ordering) => ordering != Ordering::Less,
-                    Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to compare user hierarchy with organization")),
-                };
-                
-            }
+            // Extract and decode JWT from Authorization header rather than from request extensions
+            let user_jwt = if let Some(auth_header) = req.headers().get("Authorization") {
+                if let Ok(auth_str) = auth_header.to_str() {
+                    if auth_str.starts_with("Bearer ") {
+                        let token = &auth_str["Bearer ".len()..];
+                        match crate::utils::jwt_utils::decode_jwt(token) {
+                            Ok(token_data) => token_data.claims,
+                            Err(_) => return Err(actix_web::error::ErrorUnauthorized("Unauthorized")),
+                        }
+                    } else {
+                        return Err(actix_web::error::ErrorUnauthorized("Unauthorized"));
+                    }
+                } else {
+                    return Err(actix_web::error::ErrorUnauthorized("Unauthorized"));
+                }
+            } else {
+                return Err(actix_web::error::ErrorUnauthorized("Unauthorized"));
+            };
+
+            // Now call the compare function with the borrowed connection
+            can_proceed = match user_hierarchy_compare_organization(&mut conn, organization_id, user_jwt.user_id, second_user_id) {
+                Ok(ordering) => ordering != Ordering::Less,
+                Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to compare user hierarchy with organization")),
+            };
             if !can_proceed {
                 return Err(actix_web::error::ErrorForbidden("Forbidden"));
             }

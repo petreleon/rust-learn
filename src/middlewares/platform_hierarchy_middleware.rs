@@ -74,15 +74,16 @@ where
             },
         };
     
-        let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
-        let type_param_of_id_user = self.type_param_of_id_user;
-        let name_param_of_id_user = self.name_param_of_id_user.clone();
-    
-        // Extract necessary data from `req` before it's moved
-        let second_user_id_str_opt = extract_param(&req, &name_param_of_id_user, type_param_of_id_user);
-    
-        // Now `req` can be moved without issues
-        let fut = self.service.call(req);
+    let type_param_of_id_user = self.type_param_of_id_user;
+    let name_param_of_id_user = self.name_param_of_id_user.clone();
+
+    // Extract necessary data from `req` before it's moved
+    let second_user_id_str_opt = extract_param(&req, &name_param_of_id_user, type_param_of_id_user);
+    // Capture UserJWT (if present) from request extensions before moving `req`
+    let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
+
+    // Now `req` can be moved without issues
+    let fut = self.service.call(req);
     
         async move {
             // Use the extracted data instead of accessing `req` directly
@@ -100,7 +101,6 @@ where
                 Ok(conn) => conn,
                 Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to get database connection")),
             };
-    
             let user_jwt = match user_jwt_opt {
                 Some(u) => u,
                 None => return Err(actix_web::error::ErrorUnauthorized("Unauthorized access")),

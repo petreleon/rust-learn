@@ -85,8 +85,9 @@ where
             },
         };
 
-        let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
-        let organization_id_str_opt = extract_param(&req, &name_param_of_organization, type_param_of_organization);
+    let organization_id_str_opt = extract_param(&req, &name_param_of_organization, type_param_of_organization);
+    // Capture UserJWT from request extensions before moving `req`
+    let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
 
         let fut = self.service.call(req);
 
@@ -100,7 +101,6 @@ where
                 Ok(conn) => conn,
                 Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to get database connection")),
             };
-
             let user_jwt = match user_jwt_opt {
                 Some(u) => u,
                 None => return Err(actix_web::error::ErrorUnauthorized("Unauthorized access")),

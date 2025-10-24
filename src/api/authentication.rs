@@ -1,5 +1,5 @@
 // src/api/authentication.rs
-use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpResponse, Responder, HttpRequest};
 use serde::Deserialize;
 use bcrypt::{hash, verify, DEFAULT_COST};
 use crate::models::{authentication::Authentication, user_jwt::UserJWT};
@@ -39,7 +39,10 @@ pub async fn login(
 ) -> impl Responder {
     use crate::db::schema::{users, authentications};
 
-    let mut conn = pool.get().expect("couldn't get db connection from pool");
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
 
     let user_auth_result = users::table
         .filter(users::email.eq(&req.email))
@@ -87,7 +90,10 @@ pub async fn register(
     pool: web::Data<db::DbPool>,
     req: web::Json<RegisterRequest>,
 ) -> impl Responder {
-    let mut conn = pool.get().expect("couldn't get db connection from pool");
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
 
     // Create new user
     let new_user_data = NewUser {
@@ -129,11 +135,20 @@ pub async fn hello() -> impl Responder {
 
 #[get("/user_id")]
 pub async fn user_id(req: HttpRequest) -> impl Responder {
-    if let Some(user_jwt) = req.extensions().get::<UserJWT>() {
-        HttpResponse::Ok().body(format!("Hello! Your ID is {}", user_jwt.user_id))
-    } else {
-        HttpResponse::Ok().body("You didn't provide any ID")
+    // Try to decode the Authorization header to extract the user ID instead of reading request extensions
+    if let Some(auth_header) = req.headers().get("Authorization") {
+        if let Ok(auth_str) = auth_header.to_str() {
+            if auth_str.starts_with("Bearer ") {
+                let token = &auth_str["Bearer ".len()..];
+                if let Ok(token_data) = crate::utils::jwt_utils::decode_jwt(token) {
+                    let user_jwt = token_data.claims;
+                    return HttpResponse::Ok().body(format!("Hello! Your ID is {}", user_jwt.user_id));
+                }
+            }
+        }
     }
+
+    HttpResponse::Ok().body("You didn't provide any ID")
 }
 
 // Define the scope for authentication-related routes
