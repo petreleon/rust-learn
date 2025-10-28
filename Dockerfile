@@ -52,4 +52,11 @@ RUN solc --version
 # Your Rust tooling
 RUN cargo install diesel_cli --no-default-features --features postgres
 
+# Ensure cargo-installed binaries (diesel, rustup shims) are always on PATH
+ENV CARGO_HOME=/usr/local/cargo
+ENV PATH="/usr/local/cargo/bin:${PATH}"
+
+# Also place diesel in a standard bin dir so it's always found regardless of shell PATH
+RUN ln -sf /usr/local/cargo/bin/diesel /usr/local/bin/diesel
+
 WORKDIR /usr/src/app

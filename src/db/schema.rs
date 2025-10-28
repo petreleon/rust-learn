@@ -118,7 +118,6 @@ diesel::table! {
     role_course_hierarchy (id) {
         id -> Int4,
         course_role_id -> Nullable<Int4>,
-        course_id -> Nullable<Int4>,
         hierarchy_level -> Int4,
     }
 }
@@ -127,7 +126,6 @@ diesel::table! {
     role_organization_hierarchy (id) {
         id -> Int4,
         organization_role_id -> Nullable<Int4>,
-        organization_id -> Nullable<Int4>,
         hierarchy_level -> Int4,
     }
 }
@@ -243,9 +241,7 @@ diesel::joinable!(internal_transactions -> wallets (wallet_id));
 diesel::joinable!(paths_courses -> courses (course_id));
 diesel::joinable!(paths_courses -> paths (path_id));
 diesel::joinable!(role_course_hierarchy -> course_roles (course_role_id));
-diesel::joinable!(role_course_hierarchy -> courses (course_id));
 diesel::joinable!(role_organization_hierarchy -> organization_roles (organization_role_id));
-diesel::joinable!(role_organization_hierarchy -> organizations (organization_id));
 diesel::joinable!(role_permission_course -> course_roles (course_role_id));
 diesel::joinable!(role_permission_course -> courses (course_id));
 diesel::joinable!(role_permission_organization -> organization_roles (organization_role_id));
