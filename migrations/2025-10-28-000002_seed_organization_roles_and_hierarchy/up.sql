@@ -1,16 +1,13 @@
--- Seed organization roles and their default hierarchy (idempotent)
--- Lower hierarchy_level = higher privilege (0 = highest)
 
--- Roles to add: DIRECTOR, DEPUTY_DIRECTOR, TEACHER, STUDENT, ACCOUNTANT
-
--- Insert roles if they do not exist
-INSERT INTO organization_roles (name, description)
-SELECT 'DIRECTOR', 'Organization director'
-WHERE NOT EXISTS (SELECT 1 FROM organization_roles WHERE name = 'DIRECTOR');
+-- Roles to add: SUPERADMIN, ADMIN, TEACHER, STUDENT, MODERATOR
 
 INSERT INTO organization_roles (name, description)
-SELECT 'DEPUTY_DIRECTOR', 'Deputy director'
-WHERE NOT EXISTS (SELECT 1 FROM organization_roles WHERE name = 'DEPUTY_DIRECTOR');
+SELECT 'SUPERADMIN', 'Organization super administrator'
+WHERE NOT EXISTS (SELECT 1 FROM organization_roles WHERE name = 'SUPERADMIN');
+
+INSERT INTO organization_roles (name, description)
+SELECT 'ADMIN', 'Organization administrator'
+WHERE NOT EXISTS (SELECT 1 FROM organization_roles WHERE name = 'ADMIN');
 
 INSERT INTO organization_roles (name, description)
 SELECT 'TEACHER', 'Organization teacher'
@@ -21,19 +18,18 @@ SELECT 'STUDENT', 'Organization student'
 WHERE NOT EXISTS (SELECT 1 FROM organization_roles WHERE name = 'STUDENT');
 
 INSERT INTO organization_roles (name, description)
-SELECT 'ACCOUNTANT', 'Organization accountant'
-WHERE NOT EXISTS (SELECT 1 FROM organization_roles WHERE name = 'ACCOUNTANT');
+SELECT 'MODERATOR', 'Organization moderator'
+WHERE NOT EXISTS (SELECT 1 FROM organization_roles WHERE name = 'MODERATOR');
 
--- Insert default global hierarchy rows (column organization_id was removed in a prior migration)
 WITH role_ids AS (
-    SELECT id, name FROM organization_roles WHERE name IN ('DIRECTOR','DEPUTY_DIRECTOR','TEACHER','STUDENT','ACCOUNTANT')
+    SELECT id, name FROM organization_roles WHERE name IN ('SUPERADMIN','ADMIN','TEACHER','STUDENT','MODERATOR')
 )
 INSERT INTO role_organization_hierarchy (organization_role_id, hierarchy_level)
 SELECT id,
        CASE name
-           WHEN 'DIRECTOR' THEN 0
-           WHEN 'DEPUTY_DIRECTOR' THEN 1
-           WHEN 'ACCOUNTANT' THEN 2
+           WHEN 'SUPERADMIN' THEN 0
+           WHEN 'ADMIN' THEN 1
+           WHEN 'MODERATOR' THEN 2
            WHEN 'TEACHER' THEN 3
            WHEN 'STUDENT' THEN 4
        END AS hierarchy_level
