@@ -78,3 +78,7 @@ This should spin up all the necessary services for RustLearn to function. You're
 ---
 
 Should you have any questions or need further assistance, please raise an issue in the repository and we'll be happy to help.
+
+## Third-party libraries & software
+
+See `THIRD_PARTY.md` for a curated list of Rust crates, Docker images, and external tools used by this project (versions and links).
