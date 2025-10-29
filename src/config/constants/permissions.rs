@@ -127,4 +127,9 @@ pub enum Permissions {
     // Data & Reporting
     VIEW_ANALYTICS_DASHBOARD,
     MANAGE_EXPORT_JOBS,
+
+    // Tests / QA
+    RUN_TESTS,
+    VIEW_TEST_RESULTS,
+    MANAGE_TEST_SUITES,
 }
