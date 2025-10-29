@@ -132,4 +132,5 @@ pub enum Permissions {
     RUN_TESTS,
     VIEW_TEST_RESULTS,
     MANAGE_TEST_SUITES,
+    TAKE_TESTS,
 }
