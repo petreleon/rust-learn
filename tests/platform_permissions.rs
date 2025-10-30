@@ -11,7 +11,10 @@ fn unique_email(prefix: &str) -> String {
     format!("{}+{}@example.com", prefix, ts)
 }
 
-fn setup_conn() -> diesel::PgConnection {
+use diesel::r2d2::{ConnectionManager, PooledConnection};
+use diesel::PgConnection;
+
+fn setup_conn() -> PooledConnection<ConnectionManager<PgConnection>> {
     // Load .env so DATABASE_URL and other envs are available in tests
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
@@ -105,10 +108,10 @@ fn assign_permission_to_admin_and_verify_user_gets_it() {
     let mut conn = setup_conn();
 
     // Choose a permission that ADMIN does not have by default
-    let perm_to_add = Permissions::MANAGE_MINIO_OBJECTS;
-
+    // Choose a permission that ADMIN does not have by default
+    // Note: we'll reuse the enum value by referring to the constant again later to avoid move issues.
     // Assign it to ADMIN role (idempotent: insert or 0 rows if already exists)
-    let rows = assign_permission_to_role_platform(&mut conn, Roles::ADMIN, perm_to_add)
+    let rows = assign_permission_to_role_platform(&mut conn, Roles::ADMIN, Permissions::MANAGE_MINIO_OBJECTS)
         .expect("failed to assign permission to ADMIN");
     assert!(rows == 0 || rows == 1, "unexpected rows affected: {}", rows);
 
@@ -127,7 +130,7 @@ fn assign_permission_to_admin_and_verify_user_gets_it() {
         .expect("failed to assign ADMIN role");
 
     // Now the permission should be granted to ADMIN users
-    let ok = user_permission_platform_request(&mut conn, user.id(), &perm_to_add.to_string())
+    let ok = user_permission_platform_request(&mut conn, user.id(), &Permissions::MANAGE_MINIO_OBJECTS.to_string())
         .expect("permission query failed");
-    assert!(ok, "ADMIN user should have {:?} after assignment", perm_to_add);
+    assert!(ok, "ADMIN user should have MANAGE_MINIO_OBJECTS after assignment");
 }
