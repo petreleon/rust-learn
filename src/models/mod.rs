@@ -14,3 +14,4 @@ pub mod role_permission_organization;
 pub mod role;
 pub mod param_type;
 pub mod notification;
+pub mod upload_job;

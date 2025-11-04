@@ -58,6 +58,40 @@ services:
     stop_signal: SIGINT
     stop_grace_period: 15s
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      # concurrency for ffmpeg workers (default 1)
+      WORKER_CONCURRENCY: "1"
+      # retry/backoff configuration
+      WORKER_MAX_ATTEMPTS: "5"
+      WORKER_BASE_BACKOFF_SECONDS: "60"
+    volumes:
+      - .:/usr/src/app
+      - cargo_disk:/usr/local/cargo
+    depends_on:
+      - db
+      - minio
+    command: sh -c '/usr/local/cargo/bin/cargo run --bin worker'
+    restart: unless-stopped
+    stop_signal: SIGTERM
+    stop_grace_period: 2m
+    healthcheck:
+      test: ["CMD-SHELL", "if [ -f /tmp/worker_alive ]; then last=$(stat -c %Y /tmp/worker_alive); now=$(date +%s); diff=$((now-last)); if [ $diff -lt 120 ]; then exit 0; else exit 1; fi; else exit 1; fi"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+
 volumes:
   postgres_data:
   cargo_disk:

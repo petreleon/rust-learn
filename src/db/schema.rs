@@ -245,6 +245,20 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    upload_jobs (id) {
+        id -> Int8,
+        bucket -> Varchar,
+        object -> Text,
+        user_id -> Nullable<Int4>,
+        status -> Varchar,
+        attempts -> Int4,
+        last_error -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
 diesel::joinable!(authentications -> users (user_id));
 diesel::joinable!(chapters -> courses (course_id));
 diesel::joinable!(contents -> chapters (chapter_id));
