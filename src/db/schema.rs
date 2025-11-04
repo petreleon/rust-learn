@@ -67,6 +67,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    notifications (id) {
+        id -> Int8,
+        user_id -> Nullable<Int4>,
+        title -> Text,
+        body -> Text,
+        created_at -> Timestamptz,
+        read -> Bool,
+    }
+}
+
+diesel::table! {
     organization_roles (id) {
         id -> Int4,
         name -> Varchar,
@@ -238,6 +249,7 @@ diesel::joinable!(authentications -> users (user_id));
 diesel::joinable!(chapters -> courses (course_id));
 diesel::joinable!(contents -> chapters (chapter_id));
 diesel::joinable!(internal_transactions -> wallets (wallet_id));
+diesel::joinable!(notifications -> users (user_id));
 diesel::joinable!(paths_courses -> courses (course_id));
 diesel::joinable!(paths_courses -> paths (path_id));
 diesel::joinable!(role_course_hierarchy -> course_roles (course_role_id));
@@ -264,4 +276,4 @@ diesel::joinable!(wallets -> organizations (organization_id));
 diesel::joinable!(wallets -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    authentications,chapters,contents,course_roles,courses,db_version_control,external_transactions,internal_transactions,organization_roles,organizations,paths,paths_courses,persistent_states,platform_roles,role_course_hierarchy,role_organization_hierarchy,role_permission_course,role_permission_organization,role_permission_platform,role_platform_hierarchy,transactions,transactions_external_transactions,transactions_internal_transactions,user_role_course,user_role_organization,user_role_platform,users,wallets,);
+    authentications,chapters,contents,course_roles,courses,db_version_control,external_transactions,internal_transactions,notifications,organization_roles,organizations,paths,paths_courses,persistent_states,platform_roles,role_course_hierarchy,role_organization_hierarchy,role_permission_course,role_permission_organization,role_permission_platform,role_platform_hierarchy,transactions,transactions_external_transactions,transactions_internal_transactions,user_role_course,user_role_organization,user_role_platform,users,wallets,);

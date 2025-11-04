@@ -6,3 +6,4 @@ pub mod request_utils;
 pub mod eth_utils;
 pub mod minio_utils;
 pub mod centralized_wallets;
+pub mod notifications;

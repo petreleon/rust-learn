@@ -56,6 +56,8 @@ async fn main() -> std::io::Result<()> {
             return Err(std::io::Error::new(std::io::ErrorKind::Other, "MinIO init failed"));
         }
     };
+    // Initialize notifications state (DB-backed using the pool)
+    let notifications_state = crate::utils::notifications::NotificationsState::new(pool.clone());
     {
         let mut conn = pool.get().expect("Failed to get DB connection from pool");
         version_updater(&mut *conn).expect("Failed to update database version");
@@ -70,6 +72,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(pool.clone())) // Use the created pool
             .app_data(web::Data::new(minio_state.clone())) // MinIO client shared state
+            .app_data(web::Data::new(notifications_state.clone())) // Notifications shared state
             .route("/hey", web::get().to(manual_hello))
             .service(api::api_scope())
             .service(hello)
