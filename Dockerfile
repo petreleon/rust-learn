@@ -37,6 +37,7 @@ FROM rust:latest
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev pkg-config libssl-dev build-essential git ca-certificates \
+    ffmpeg \
  && rm -rf /var/lib/apt/lists/*
 
 # Copy solc + Z3 runtime libs from builder
