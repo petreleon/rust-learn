@@ -73,6 +73,53 @@ To get RustLearn up and running on your machine, you'll have to set up your envi
     docker-compose up
     ```
 
+    ## Worker service (background video processing)
+
+    The `worker` service runs the background job processor that dequeues `upload_jobs` and uses ffmpeg via server-side code.
+
+    Build and run notes:
+
+    - Building the Rust worker binary can require several GB of RAM during linking. If your Docker VM is low on memory, the linker may be killed (SIGKILL) during image build or `cargo run` inside the container.
+    - To avoid runtime compilation and the associated memory spikes, the image builds the `worker` binary at image build time and installs it to `/usr/local/bin/worker`. The `worker` service runs that binary directly.
+    - If the image build fails while building `worker`, increase Docker VM memory (Docker Desktop → Resources, or `colima start --memory 8192`).
+
+    Recommended steps:
+
+    1. Increase Docker VM memory if needed (8GB+ suggested).
+    2. Build the app image (this also builds the `worker` binary inside the image):
+
+        ```bash
+        docker compose build app
+        ```
+
+    3. Start infra and the worker:
+
+        ```bash
+        docker compose up -d db minio
+        docker compose up -d worker
+        ```
+
+    4. Alternatively, prebuild the worker inside the app container and then start the `worker` service:
+
+        ```bash
+        docker compose run --rm app sh -lc '/usr/local/cargo/bin/cargo build --release --bin worker'
+        docker compose up -d worker
+        ```
+
+    Troubleshooting:
+
+    - If `docker compose up -d worker` errors with `exec: "/usr/local/bin/worker": no such file or directory`, the binary wasn’t baked into the image. Rebuild the `app` image after increasing memory, or prebuild the worker using the alternative step above.
+    - The worker writes a heartbeat file at `/tmp/worker_alive` which is used by the service healthcheck. If the worker becomes unhealthy, check logs:
+
+      ```bash
+      docker compose logs -f worker
+      ```
+
+    Tuning:
+
+    - Control concurrency: `WORKER_CONCURRENCY` (default 1)
+    - Retry policy: `WORKER_MAX_ATTEMPTS` (default 5), `WORKER_BASE_BACKOFF_SECONDS` (default 60)
+
 This should spin up all the necessary services for RustLearn to function. You're now ready to jump into the world of incentivized learning!
 
 ---

@@ -61,3 +61,13 @@ ENV PATH="/usr/local/cargo/bin:${PATH}"
 RUN ln -sf /usr/local/cargo/bin/diesel /usr/local/bin/diesel
 
 WORKDIR /usr/src/app
+
+# Build the worker binary during image build so runtime containers don't compile
+# the workspace (link-time is memory heavy and can get OOM-killed in constrained containers).
+# Copy source, build the `worker` binary, and install it to /usr/local/bin.
+COPY . .
+# Build with a single job to reduce memory pressure during linking. Fail if worker cannot be built.
+ENV CARGO_BUILD_JOBS=1
+RUN cargo build -j1 --release --bin worker
+# Copy it to a stable path in the image
+RUN test -x target/release/worker && cp target/release/worker /usr/local/bin/worker

@@ -76,12 +76,13 @@ services:
     depends_on:
       - db
       - minio
-    command: sh -c '/usr/local/cargo/bin/cargo run --bin worker'
+    # Run the prebuilt worker binary in the image (avoid building in the container)
+    command: /usr/local/bin/worker
     restart: unless-stopped
     stop_signal: SIGTERM
     stop_grace_period: 2m
     healthcheck:
-      test: ["CMD-SHELL", "if [ -f /tmp/worker_alive ]; then last=$(stat -c %Y /tmp/worker_alive); now=$(date +%s); diff=$((now-last)); if [ $diff -lt 120 ]; then exit 0; else exit 1; fi; else exit 1; fi"]
+      test: ["CMD-SHELL", "find /tmp -maxdepth 1 -name worker_alive -newermt '2 minutes ago' -print -quit | grep -q ."]
       interval: 30s
       timeout: 5s
       retries: 3

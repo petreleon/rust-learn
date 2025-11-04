@@ -3,7 +3,8 @@ use diesel::sql_types::{BigInt, Varchar, Text, Nullable, Int4, Timestamptz};
 use chrono::{DateTime, Utc};
 use crate::db::schema::upload_jobs;
 
-#[derive(QueryableByName, Debug, Clone)]
+#[derive(QueryableByName, Queryable, Identifiable, Selectable, Debug, Clone)]
+#[diesel(table_name = upload_jobs)]
 pub struct UploadJob {
     #[diesel(sql_type = BigInt)]
     pub id: i64,

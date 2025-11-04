@@ -200,6 +200,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    upload_jobs (id) {
+        id -> Int8,
+        bucket -> Varchar,
+        object -> Text,
+        user_id -> Nullable<Int4>,
+        status -> Varchar,
+        attempts -> Int4,
+        last_error -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     user_role_course (id) {
         id -> Int4,
         user_id -> Nullable<Int4>,
@@ -245,20 +259,6 @@ diesel::table! {
     }
 }
 
-diesel::table! {
-    upload_jobs (id) {
-        id -> Int8,
-        bucket -> Varchar,
-        object -> Text,
-        user_id -> Nullable<Int4>,
-        status -> Varchar,
-        attempts -> Int4,
-        last_error -> Nullable<Text>,
-        created_at -> Timestamptz,
-        updated_at -> Nullable<Timestamptz>,
-    }
-}
-
 diesel::joinable!(authentications -> users (user_id));
 diesel::joinable!(chapters -> courses (course_id));
 diesel::joinable!(contents -> chapters (chapter_id));
@@ -278,6 +278,7 @@ diesel::joinable!(transactions_external_transactions -> external_transactions (e
 diesel::joinable!(transactions_external_transactions -> transactions (transaction_id));
 diesel::joinable!(transactions_internal_transactions -> internal_transactions (internal_transaction_id));
 diesel::joinable!(transactions_internal_transactions -> transactions (transaction_id));
+diesel::joinable!(upload_jobs -> users (user_id));
 diesel::joinable!(user_role_course -> course_roles (course_role_id));
 diesel::joinable!(user_role_course -> courses (course_id));
 diesel::joinable!(user_role_course -> users (user_id));
@@ -290,4 +291,4 @@ diesel::joinable!(wallets -> organizations (organization_id));
 diesel::joinable!(wallets -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    authentications,chapters,contents,course_roles,courses,db_version_control,external_transactions,internal_transactions,notifications,organization_roles,organizations,paths,paths_courses,persistent_states,platform_roles,role_course_hierarchy,role_organization_hierarchy,role_permission_course,role_permission_organization,role_permission_platform,role_platform_hierarchy,transactions,transactions_external_transactions,transactions_internal_transactions,user_role_course,user_role_organization,user_role_platform,users,wallets,);
+    authentications,chapters,contents,course_roles,courses,db_version_control,external_transactions,internal_transactions,notifications,organization_roles,organizations,paths,paths_courses,persistent_states,platform_roles,role_course_hierarchy,role_organization_hierarchy,role_permission_course,role_permission_organization,role_permission_platform,role_platform_hierarchy,transactions,transactions_external_transactions,transactions_internal_transactions,upload_jobs,user_role_course,user_role_organization,user_role_platform,users,wallets,);

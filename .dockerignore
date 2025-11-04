@@ -1,0 +1,15 @@
+target
+.git
+node_modules
+**/target
+**/.git
+ethereum/artifacts
+tmp
+tmp/*
+.DS_Store
+.env
+Cargo.lock
+**/node_modules
+.vscode
+.idea
+*.log

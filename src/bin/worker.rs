@@ -4,7 +4,8 @@ use anyhow::Result;
 use dotenvy::dotenv;
 use diesel::prelude::*;
 use diesel::RunQueryDsl;
-use rust_learn::db::DbPool;
+use diesel::query_dsl::methods::LockingDsl;
+// DbPool import not needed in this binary
 use tokio::sync::Semaphore;
 use tokio::fs as tokio_fs;
 use tokio::signal::unix::{signal, SignalKind};
@@ -79,26 +80,37 @@ async fn main() -> Result<()> {
             }
         };
 
-        // Atomically pick a queued job and set it to processing using a single UPDATE .. RETURNING
+        // Use a transaction + FOR UPDATE SKIP LOCKED to safely claim a job without raw SQL
         // Select only queued jobs whose updated_at (used as available_at for retries)
         // is either NULL or <= now() so backoff delays are respected.
-        let sql = r#"
-            UPDATE upload_jobs
-            SET status = 'processing', updated_at = now()
-            WHERE id = (
-                SELECT id FROM upload_jobs
-                WHERE status = 'queued' AND (updated_at IS NULL OR updated_at <= now())
-                ORDER BY created_at
-                FOR UPDATE SKIP LOCKED
-                LIMIT 1
-            )
-            RETURNING id, bucket, object, user_id, status, attempts, last_error, created_at, updated_at
-        "#;
+        use rust_learn::db::schema::upload_jobs::dsl as uj;
 
         // Stamp alive for healthcheck
         let _ = tokio_fs::write("/tmp/worker_alive", format!("{}", chrono::Utc::now().timestamp())).await;
 
-        let job_opt: Option<rust_learn::models::upload_job::UploadJob> = match diesel::sql_query(sql).get_result::<rust_learn::models::upload_job::UploadJob>(&mut *conn).optional() {
+        let job_opt: Option<rust_learn::models::upload_job::UploadJob> = match conn.transaction::<_, diesel::result::Error, _>(|tx| {
+            // Find one eligible job and lock it
+            let candidate = uj::upload_jobs
+                .filter(
+                    uj::status.eq("queued")
+                        .and(uj::updated_at.is_null().or(uj::updated_at.le(chrono::Utc::now())))
+                )
+                .order(uj::created_at.asc())
+                .for_update()
+                .skip_locked()
+                .first::<rust_learn::models::upload_job::UploadJob>(tx)
+                .optional()?;
+
+            if let Some(c) = candidate {
+                // Mark it processing and bump updated_at, return the full row
+                let claimed = diesel::update(uj::upload_jobs.filter(uj::id.eq(c.id)))
+                    .set((uj::status.eq("processing"), uj::updated_at.eq(chrono::Utc::now())))
+                    .get_result::<rust_learn::models::upload_job::UploadJob>(tx)?;
+                Ok(Some(claimed))
+            } else {
+                Ok(None)
+            }
+        }) {
             Ok(j) => j,
             Err(e) => {
                 eprintln!("Failed to claim job: {:?}", e);
@@ -152,7 +164,9 @@ async fn main() -> Result<()> {
             let res = minio_cloned.process_uploaded_video(&bucket, &object, uid, notifications_cloned).await;
 
             if res.is_ok() {
-                if let Err(e) = diesel::sql_query(format!("UPDATE upload_jobs SET status = 'done', updated_at = now() WHERE id = {}", job_id)).execute(&mut *conn_for_task) {
+                if let Err(e) = diesel::update(uj::upload_jobs.filter(uj::id.eq(job_id)))
+                    .set((uj::status.eq("done"), uj::updated_at.eq(chrono::Utc::now())))
+                    .execute(&mut *conn_for_task) {
                     eprintln!("Failed to mark job done {}: {:?}", job_id, e);
                 }
             } else {
@@ -162,9 +176,13 @@ async fn main() -> Result<()> {
 
                 if new_attempts >= max_attempts {
                     // mark as permanently failed
-                    let q = format!("UPDATE upload_jobs SET status = 'failed', attempts = {}, last_error = $1, updated_at = now() WHERE id = {}", new_attempts, job_id);
-                    if let Err(e) = diesel::sql_query(q)
-                        .bind::<diesel::sql_types::Text, _>(err_text)
+                    if let Err(e) = diesel::update(uj::upload_jobs.filter(uj::id.eq(job_id)))
+                        .set((
+                            uj::status.eq("failed"),
+                            uj::attempts.eq(new_attempts as i32),
+                            uj::last_error.eq(Some(err_text.clone())),
+                            uj::updated_at.eq(chrono::Utc::now()),
+                        ))
                         .execute(&mut *conn_for_task) {
                         eprintln!("Failed to mark job failed {}: {:?}", job_id, e);
                     }
@@ -172,9 +190,17 @@ async fn main() -> Result<()> {
                     // exponential backoff (base * 2^attempts)
                     let backoff = base_backoff_seconds.saturating_mul(2u64.saturating_pow(current_attempts as u32));
                     // set updated_at to future time so claim SQL skips it until backoff expires
-                    let q = format!("UPDATE upload_jobs SET status = 'queued', attempts = {}, last_error = $1, updated_at = now() + interval '{} seconds' WHERE id = {}", new_attempts, backoff, job_id);
-                    if let Err(e) = diesel::sql_query(q)
-                        .bind::<diesel::sql_types::Text, _>(err_text)
+                    let future_time = chrono::Utc::now()
+                        .checked_add_signed(chrono::Duration::seconds(backoff as i64))
+                        .unwrap_or_else(chrono::Utc::now);
+
+                    if let Err(e) = diesel::update(uj::upload_jobs.filter(uj::id.eq(job_id)))
+                        .set((
+                            uj::status.eq("queued"),
+                            uj::attempts.eq(new_attempts as i32),
+                            uj::last_error.eq(Some(err_text.clone())),
+                            uj::updated_at.eq(future_time),
+                        ))
                         .execute(&mut *conn_for_task) {
                         eprintln!("Failed to schedule retry for job {}: {:?}", job_id, e);
                     }
