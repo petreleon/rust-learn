@@ -42,10 +42,11 @@ This project uses several third-party Rust crates and external tools/services. T
 ## Docker images / runtime services used in docker-compose.yml
 - postgres:latest — PostgreSQL database used for the app. https://hub.docker.com/_/postgres
 - ghcr.io/foundry-rs/foundry:nightly — Anvil (local Ethereum node) for blockchain integration testing. https://github.com/foundry-rs/foundry
-- MinIO (built from `docker/minio.Dockerfile`) — S3-compatible object storage for file uploads. https://min.io/
+- MinIO (built from `docker/minio.Dockerfile` via `go install github.com/minio/minio@latest`) — S3-compatible object storage for file uploads. https://min.io/
 
 ## CLI tools referenced in Dockerfile / project
 - diesel_cli — installed into the app image with `--features postgres` and used to run migrations. https://crates.io/crates/diesel_cli
 
 ## Notes and license links
 - Most Rust crates are MIT/Apache-2.0 or similar; check each crate’s page for exact license information.
+- MinIO is AGPL-3.0; we build it from upstream source during the Docker image build (see `docker/minio.Dockerfile`). Ensure any distribution of the resulting container complies with AGPL requirements (offer source + license).
