@@ -61,7 +61,7 @@ services:
   worker:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: docker/worker.Dockerfile
     env_file:
       - .env
     environment:
