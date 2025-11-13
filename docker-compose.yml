@@ -15,10 +15,11 @@ services:
       - db
       - anvil
       - minio
-    # Initialize git submodules inside the mounted workspace (so the
-    # `ethereum/contracts/lib/openzeppelin-contracts` submodule is fetched on
-    # first run). After initializing submodules, keep the container alive.
-    command: sh -c 'git submodule update --init --recursive || true; sleep infinity'
+    # Use the app entrypoint script which:
+    # - initializes git submodules
+    # - if PROD_MODE=TRUE runs diesel migrations and starts the app
+    # - otherwise sleeps indefinitely to keep the container alive
+    command: /usr/src/app/scripts/app-entrypoint.sh
 
   db:
     image: postgres:latest
