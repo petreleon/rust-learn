@@ -2,41 +2,7 @@ use anyhow::{anyhow, Result};
 use bigdecimal::BigDecimal;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-// no raw SQL imports needed; using Diesel DSL
 
-// Local schema declarations for Diesel DSL usage without touching src/db/schema.rs
-diesel::table! {
-    wallets (id) {
-        id -> Int4,
-        user_id -> Nullable<Int4>,
-        organization_id -> Nullable<Int4>,
-        value -> Numeric,
-    }
-}
-
-diesel::table! {
-    internal_transactions (id) {
-        id -> Int8,
-        wallet_id -> Int4,
-        amount -> Numeric,
-    }
-}
-
-diesel::table! {
-    transactions (id) {
-        id -> Int8,
-        #[sql_name = "type"]
-        r#type -> Varchar,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    transactions_internal_transactions (transaction_id, internal_transaction_id) {
-        transaction_id -> Int8,
-        internal_transaction_id -> Int8,
-    }
-}
 
 /// Owner type for locating a wallet
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,7 +29,7 @@ pub fn wallet_locator(conn: &mut PgConnection, owner_type: &str, owner_id: i32) 
 
     match owner {
         OwnerType::User => {
-            use self::wallets::dsl as W;
+            use crate::db::schema::wallets::dsl as W;
             if let Some(existing_id) = W::wallets
                 .select(W::id)
                 .filter(W::user_id.eq(owner_id).and(W::organization_id.is_null()))
@@ -79,7 +45,7 @@ pub fn wallet_locator(conn: &mut PgConnection, owner_type: &str, owner_id: i32) 
             Ok(new_id)
         }
         OwnerType::Organization => {
-            use self::wallets::dsl as W;
+            use crate::db::schema::wallets::dsl as W;
             if let Some(existing_id) = W::wallets
                 .select(W::id)
                 .filter(W::organization_id.eq(owner_id).and(W::user_id.is_null()))
@@ -109,8 +75,8 @@ pub struct TransferResult {
 /// - Updates the wallet balance atomically (SELECT ... FOR UPDATE, then UPDATE)
 /// Returns the created internal_transactions.id
 pub fn transact(conn: &mut PgConnection, wallet_id: i32, amount: BigDecimal) -> Result<i64> {
-    use self::internal_transactions::dsl as IT;
-    use self::wallets::dsl as W;
+    use crate::db::schema::internal_transactions::dsl as IT;
+    use crate::db::schema::wallets::dsl as W;
 
     // Perform the guarded atomic update first: ensure balance doesn't go negative.
     // Use RETURNING id to check that the row was updated. If no rows were affected,
@@ -179,9 +145,9 @@ pub fn transfers_between_wallets(
 
     for attempt in 0..MAX_RETRIES {
         let result = conn.transaction::<TransferResult, anyhow::Error, _>(|txn| {
-            use self::transactions::dsl as TX;
-            use self::transactions_internal_transactions::dsl as LINK;
-            use self::wallets::dsl as W;
+            use crate::db::schema::transactions::dsl as TX;
+            use crate::db::schema::transactions_internal_transactions::dsl as LINK;
+            use crate::db::schema::wallets::dsl as W;
 
             if from_wallet_id == to_wallet_id {
                 return Err(anyhow!("cannot transfer to the same wallet"));
@@ -203,7 +169,7 @@ pub fn transfers_between_wallets(
 
             // Create generic transaction
             let tx_id: i64 = diesel::insert_into(TX::transactions)
-                .values(TX::r#type.eq("internal_transfer"))
+                .values(TX::type_.eq("internal_transfer"))
                 .returning(TX::id)
                 .get_result(txn)?;
 
