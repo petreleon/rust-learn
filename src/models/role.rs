@@ -9,6 +9,16 @@ pub struct PlatformRole {
     pub description: Option<String>,
 }
 
+impl PlatformRole {
+    pub fn find_by_name(role_name: &str, conn: &mut PgConnection) -> QueryResult<i32> {
+        use crate::db::schema::platform_roles::dsl::*;
+        platform_roles
+            .filter(name.eq(role_name))
+            .select(id)
+            .first::<i32>(conn)
+    }
+}
+
 #[derive(Queryable, Insertable)]
 #[diesel(table_name = organization_roles)]
 pub struct OrganizationRole {
@@ -23,4 +33,14 @@ pub struct CourseRole {
     pub id: i32,
     pub name: String,
     pub description: Option<String>,
+}
+
+impl CourseRole {
+    pub fn find_by_name(role_name: &str, conn: &mut PgConnection) -> QueryResult<i32> {
+        use crate::db::schema::course_roles::dsl::*;
+        course_roles
+            .filter(name.eq(role_name))
+            .select(id)
+            .first::<i32>(conn)
+    }
 }

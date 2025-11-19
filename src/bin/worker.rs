@@ -83,34 +83,12 @@ async fn main() -> Result<()> {
         // Use a transaction + FOR UPDATE SKIP LOCKED to safely claim a job without raw SQL
         // Select only queued jobs whose updated_at (used as available_at for retries)
         // is either NULL or <= now() so backoff delays are respected.
-        use rust_learn::db::schema::upload_jobs::dsl as uj;
+
 
         // Stamp alive for healthcheck
         let _ = tokio_fs::write("/tmp/worker_alive", format!("{}", chrono::Utc::now().timestamp())).await;
 
-        let job_opt: Option<rust_learn::models::upload_job::UploadJob> = match conn.transaction::<_, diesel::result::Error, _>(|tx| {
-            // Find one eligible job and lock it
-            let candidate = uj::upload_jobs
-                .filter(
-                    uj::status.eq("queued")
-                        .and(uj::updated_at.is_null().or(uj::updated_at.le(chrono::Utc::now())))
-                )
-                .order(uj::created_at.asc())
-                .for_update()
-                .skip_locked()
-                .first::<rust_learn::models::upload_job::UploadJob>(tx)
-                .optional()?;
-
-            if let Some(c) = candidate {
-                // Mark it processing and bump updated_at, return the full row
-                let claimed = diesel::update(uj::upload_jobs.filter(uj::id.eq(c.id)))
-                    .set((uj::status.eq("processing"), uj::updated_at.eq(chrono::Utc::now())))
-                    .get_result::<rust_learn::models::upload_job::UploadJob>(tx)?;
-                Ok(Some(claimed))
-            } else {
-                Ok(None)
-            }
-        }) {
+        let job_opt: Option<rust_learn::models::upload_job::UploadJob> = match rust_learn::models::upload_job::UploadJob::claim_job(&mut conn) {
             Ok(j) => j,
             Err(e) => {
                 eprintln!("Failed to claim job: {:?}", e);
@@ -164,9 +142,7 @@ async fn main() -> Result<()> {
             let res = minio_cloned.process_uploaded_video(&bucket, &object, uid, notifications_cloned).await;
 
             if res.is_ok() {
-                if let Err(e) = diesel::update(uj::upload_jobs.filter(uj::id.eq(job_id)))
-                    .set((uj::status.eq("done"), uj::updated_at.eq(chrono::Utc::now())))
-                    .execute(&mut *conn_for_task) {
+                if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_done(job_id, &mut *conn_for_task) {
                     eprintln!("Failed to mark job done {}: {:?}", job_id, e);
                 }
             } else {
@@ -176,14 +152,7 @@ async fn main() -> Result<()> {
 
                 if new_attempts >= max_attempts {
                     // mark as permanently failed
-                    if let Err(e) = diesel::update(uj::upload_jobs.filter(uj::id.eq(job_id)))
-                        .set((
-                            uj::status.eq("failed"),
-                            uj::attempts.eq(new_attempts as i32),
-                            uj::last_error.eq(Some(err_text.clone())),
-                            uj::updated_at.eq(chrono::Utc::now()),
-                        ))
-                        .execute(&mut *conn_for_task) {
+                    if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_failed(job_id, new_attempts as i32, err_text.clone(), &mut *conn_for_task) {
                         eprintln!("Failed to mark job failed {}: {:?}", job_id, e);
                     }
                 } else {
@@ -194,14 +163,7 @@ async fn main() -> Result<()> {
                         .checked_add_signed(chrono::Duration::seconds(backoff as i64))
                         .unwrap_or_else(chrono::Utc::now);
 
-                    if let Err(e) = diesel::update(uj::upload_jobs.filter(uj::id.eq(job_id)))
-                        .set((
-                            uj::status.eq("queued"),
-                            uj::attempts.eq(new_attempts as i32),
-                            uj::last_error.eq(Some(err_text.clone())),
-                            uj::updated_at.eq(future_time),
-                        ))
-                        .execute(&mut *conn_for_task) {
+                    if let Err(e) = rust_learn::models::upload_job::UploadJob::schedule_retry(job_id, new_attempts as i32, err_text.clone(), future_time, &mut *conn_for_task) {
                         eprintln!("Failed to schedule retry for job {}: {:?}", job_id, e);
                     }
                 }

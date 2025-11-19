@@ -2,9 +2,9 @@
 
 pub mod updates;
 
-use diesel::{dsl::max, prelude::*};
+use crate::models::db_version_control::DbVersionControl;
 use diesel::pg::PgConnection;
-use crate::db::schema::db_version_control::dsl::*;
+use diesel::QueryResult;
 use self::updates::{apply_update_v1, apply_update_v2};
 
 // A small alias for update functions stored in the update list.
@@ -32,11 +32,7 @@ fn updates() -> Vec<(i32, UpdateFn)> {
 ///   (no change if there are no updates or max <= current).
 pub fn version_updater(conn: &mut PgConnection) -> QueryResult<()> {
     // Query the current version row. If it's missing or null, treat as 0.
-    let current_version_opt: Option<i32> = db_version_control
-        .select(max(version))
-        .first(conn)?;
-
-    let current_version = current_version_opt.unwrap_or(0);
+    let current_version = DbVersionControl::get_current_version(conn)?;
 
     let updates = updates();
 
@@ -58,9 +54,7 @@ pub fn version_updater(conn: &mut PgConnection) -> QueryResult<()> {
 
     // Only write back if we advanced (or if the available max is greater).
     if max_version > current_version {
-        diesel::update(db_version_control.filter(id.eq(1)))
-            .set(version.eq(max_version))
-            .execute(conn)?;
+        DbVersionControl::update_version(conn, max_version)?;
     }
 
     Ok(())

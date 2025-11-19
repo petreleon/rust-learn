@@ -2,6 +2,8 @@ use anyhow::{anyhow, Result};
 use bigdecimal::BigDecimal;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use crate::models::wallet::{Wallet, NewWallet};
+use crate::models::transaction::{Transaction, InternalTransaction, TransactionLink};
 
 
 /// Owner type for locating a wallet
@@ -29,38 +31,33 @@ pub fn wallet_locator(conn: &mut PgConnection, owner_type: &str, owner_id: i32) 
 
     match owner {
         OwnerType::User => {
-            use crate::db::schema::wallets::dsl as W;
-            if let Some(existing_id) = W::wallets
-                .select(W::id)
-                .filter(W::user_id.eq(owner_id).and(W::organization_id.is_null()))
-                .first::<i32>(conn)
-                .optional()? {
+            if let Some(existing_id) = Wallet::find_by_user_id(owner_id, conn)? {
                 return Ok(existing_id);
             }
             let zero = BigDecimal::from(0);
-            let new_id: i32 = diesel::insert_into(W::wallets)
-                .values((W::user_id.eq(owner_id), W::organization_id.eq::<Option<i32>>(None), W::value.eq(zero)))
-                .returning(W::id)
-                .get_result(conn)?;
+            let new_wallet = NewWallet {
+                user_id: Some(owner_id),
+                organization_id: None,
+                value: zero,
+            };
+            let new_id = Wallet::create(new_wallet, conn)?;
             Ok(new_id)
         }
         OwnerType::Organization => {
-            use crate::db::schema::wallets::dsl as W;
-            if let Some(existing_id) = W::wallets
-                .select(W::id)
-                .filter(W::organization_id.eq(owner_id).and(W::user_id.is_null()))
-                .first::<i32>(conn)
-                .optional()? {
+            if let Some(existing_id) = Wallet::find_by_organization_id(owner_id, conn)? {
                 return Ok(existing_id);
             }
             let zero = BigDecimal::from(0);
-            let new_id: i32 = diesel::insert_into(W::wallets)
-                .values((W::user_id.eq::<Option<i32>>(None), W::organization_id.eq(owner_id), W::value.eq(zero)))
-                .returning(W::id)
-                .get_result(conn)?;
+            let new_wallet = NewWallet {
+                user_id: None,
+                organization_id: Some(owner_id),
+                value: zero,
+            };
+            let new_id = Wallet::create(new_wallet, conn)?;
             Ok(new_id)
         }
     }
+
 }
 
 #[derive(Debug)]
@@ -75,32 +72,17 @@ pub struct TransferResult {
 /// - Updates the wallet balance atomically (SELECT ... FOR UPDATE, then UPDATE)
 /// Returns the created internal_transactions.id
 pub fn transact(conn: &mut PgConnection, wallet_id: i32, amount: BigDecimal) -> Result<i64> {
-    use crate::db::schema::internal_transactions::dsl as IT;
-    use crate::db::schema::wallets::dsl as W;
-
     // Perform the guarded atomic update first: ensure balance doesn't go negative.
     // Use RETURNING id to check that the row was updated. If no rows were affected,
     // the guard failed (would go negative) and we return an error.
-    let zero = BigDecimal::from(0);
-    let updated_rows = diesel::update(
-        W::wallets.filter(
-            W::id
-                .eq(wallet_id)
-                .and((W::value + amount.clone()).ge(zero.clone())),
-        ),
-    )
-    .set(W::value.eq(W::value + amount.clone()))
-    .execute(conn)?;
+    let updated_rows = Wallet::update_balance_guarded(wallet_id, amount.clone(), conn)?;
 
     if updated_rows == 0 {
         return Err(anyhow!("insufficient funds or wallet not found"));
     }
 
     // Now insert the internal transaction row (we already adjusted the balance)
-    let internal_id: i64 = diesel::insert_into(IT::internal_transactions)
-        .values((IT::wallet_id.eq(wallet_id), IT::amount.eq(amount.clone())))
-        .returning(IT::id)
-        .get_result(conn)?;
+    let internal_id = InternalTransaction::create(wallet_id, amount, conn)?;
 
     Ok(internal_id)
 }
@@ -145,10 +127,6 @@ pub fn transfers_between_wallets(
 
     for attempt in 0..MAX_RETRIES {
         let result = conn.transaction::<TransferResult, anyhow::Error, _>(|txn| {
-            use crate::db::schema::transactions::dsl as TX;
-            use crate::db::schema::transactions_internal_transactions::dsl as LINK;
-            use crate::db::schema::wallets::dsl as W;
-
             if from_wallet_id == to_wallet_id {
                 return Err(anyhow!("cannot transfer to the same wallet"));
             }
@@ -156,31 +134,18 @@ pub fn transfers_between_wallets(
             // Lock both wallet rows in ascending id order to avoid cycles
             let mut ids = vec![from_wallet_id, to_wallet_id];
             ids.sort_unstable();
-            let _locked: Vec<(i32, BigDecimal)> = W::wallets
-                .select((W::id, W::value))
-                .filter(W::id.eq_any(&ids))
-                .order(W::id.asc())
-                .for_update()
-                .load(txn)?;
+            let _locked = Wallet::lock_wallets(ids, txn)?;
 
             // Perform debit and credit using the helper (these will do guarded updates)
             let debit_id = pay(txn, from_wallet_id, amount.clone())?;
             let credit_id = receive(txn, to_wallet_id, amount.clone())?;
 
             // Create generic transaction
-            let tx_id: i64 = diesel::insert_into(TX::transactions)
-                .values(TX::type_.eq("internal_transfer"))
-                .returning(TX::id)
-                .get_result(txn)?;
+            let tx_id = Transaction::create("internal_transfer", txn)?;
 
             // Link generic transaction to internal entries
-            diesel::insert_into(LINK::transactions_internal_transactions)
-                .values((LINK::transaction_id.eq(tx_id), LINK::internal_transaction_id.eq(debit_id)))
-                .execute(txn)?;
-
-            diesel::insert_into(LINK::transactions_internal_transactions)
-                .values((LINK::transaction_id.eq(tx_id), LINK::internal_transaction_id.eq(credit_id)))
-                .execute(txn)?;
+            TransactionLink::create(tx_id, debit_id, txn)?;
+            TransactionLink::create(tx_id, credit_id, txn)?;
 
             Ok(TransferResult { transaction_id: tx_id, debit_internal_id: debit_id, credit_internal_id: credit_id })
         });

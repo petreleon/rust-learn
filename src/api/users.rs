@@ -3,7 +3,6 @@ use actix_web::web;
 use serde_json::json;
 use diesel::prelude::*;
 use crate::db;
-use crate::db::schema::users::dsl as users_dsl;
 use crate::models::user::User;
 
 // GET /user -> list users (placeholder implementation)
@@ -14,7 +13,7 @@ async fn list_users(pool: web::Data<db::DbPool>) -> impl Responder {
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = users_dsl::users.load::<User>(&mut conn);
+    let result = User::find_all(&mut conn);
 
     match result {
         Ok(user_list) => {
@@ -46,7 +45,7 @@ async fn get_user(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Res
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = users_dsl::users.filter(users_dsl::id.eq(user_id)).first::<User>(&mut conn);
+    let result = User::find_by_id(user_id, &mut conn);
 
     match result {
         Ok(u) => HttpResponse::Ok().json(json!({

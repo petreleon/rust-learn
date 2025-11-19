@@ -3,10 +3,9 @@
 use bcrypt::verify;
 use diesel::prelude::*;
 use diesel::PgConnection;
-use crate::api::authentication::LoginQueryResult;
-use crate::db::schema::{users, authentications};
-use crate::models::{user::User, authentication::Authentication};
-use crate::api::authentication::NewUser;
+
+use crate::models::user::{User, NewUser};
+use crate::models::authentication::Authentication;
 use bcrypt::{hash, DEFAULT_COST};
 use chrono::NaiveDate;
 
@@ -25,9 +24,7 @@ pub fn create_user(
         kyc_verified: false,
     };
 
-    let inserted_user = diesel::insert_into(users::table)
-        .values(&new_user)
-        .get_result::<User>(conn)?;
+    let inserted_user = User::create(new_user, conn)?;
 
     let hashed_password = hash(password, DEFAULT_COST).expect("Error hashing password");
     let new_auth = Authentication {
@@ -36,9 +33,7 @@ pub fn create_user(
         info_auth: hashed_password,
     };
 
-    diesel::insert_into(authentications::table)
-        .values(&new_auth)
-        .execute(conn)?;
+    Authentication::create(new_auth, conn)?;
 
     Ok(inserted_user)
 }

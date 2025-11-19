@@ -10,3 +10,11 @@ pub struct Authentication {
     pub type_authentication: String,
     pub info_auth: String,
 }
+
+impl Authentication {
+    pub fn create(new_auth: Authentication, conn: &mut PgConnection) -> QueryResult<usize> {
+        diesel::insert_into(authentications::table)
+            .values(&new_auth)
+            .execute(conn)
+    }
+}

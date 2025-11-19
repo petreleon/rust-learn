@@ -44,4 +44,56 @@ pub struct NewUploadJob<'a> {
 
 impl UploadJob {
     pub fn id(&self) -> i64 { self.id }
+
+    pub fn claim_job(conn: &mut PgConnection) -> QueryResult<Option<UploadJob>> {
+        conn.transaction(|tx| {
+            let candidate = upload_jobs::table
+                .filter(
+                    upload_jobs::status.eq("queued")
+                        .and(upload_jobs::updated_at.is_null().or(upload_jobs::updated_at.le(Utc::now())))
+                )
+                .order(upload_jobs::created_at.asc())
+                .for_update()
+                .skip_locked()
+                .first::<UploadJob>(tx)
+                .optional()?;
+
+            if let Some(c) = candidate {
+                let claimed = diesel::update(upload_jobs::table.filter(upload_jobs::id.eq(c.id)))
+                    .set((upload_jobs::status.eq("processing"), upload_jobs::updated_at.eq(Utc::now())))
+                    .get_result::<UploadJob>(tx)?;
+                Ok(Some(claimed))
+            } else {
+                Ok(None)
+            }
+        })
+    }
+
+    pub fn mark_done(id: i64, conn: &mut PgConnection) -> QueryResult<usize> {
+        diesel::update(upload_jobs::table.filter(upload_jobs::id.eq(id)))
+            .set((upload_jobs::status.eq("done"), upload_jobs::updated_at.eq(Utc::now())))
+            .execute(conn)
+    }
+
+    pub fn mark_failed(id: i64, attempts: i32, error: String, conn: &mut PgConnection) -> QueryResult<usize> {
+        diesel::update(upload_jobs::table.filter(upload_jobs::id.eq(id)))
+            .set((
+                upload_jobs::status.eq("failed"),
+                upload_jobs::attempts.eq(attempts),
+                upload_jobs::last_error.eq(Some(error)),
+                upload_jobs::updated_at.eq(Utc::now()),
+            ))
+            .execute(conn)
+    }
+
+    pub fn schedule_retry(id: i64, attempts: i32, error: String, future_time: DateTime<Utc>, conn: &mut PgConnection) -> QueryResult<usize> {
+        diesel::update(upload_jobs::table.filter(upload_jobs::id.eq(id)))
+            .set((
+                upload_jobs::status.eq("queued"),
+                upload_jobs::attempts.eq(attempts),
+                upload_jobs::last_error.eq(Some(error)),
+                upload_jobs::updated_at.eq(future_time),
+            ))
+            .execute(conn)
+    }
 }
