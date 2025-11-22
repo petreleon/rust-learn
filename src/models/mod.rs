@@ -16,6 +16,7 @@ pub mod param_type;
 pub mod notification;
 pub mod upload_job;
 pub mod wallet;
+pub mod courses_organizations;
 pub mod transaction;
 pub mod persistent_state;
 pub mod user_role_course;
