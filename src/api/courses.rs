@@ -59,28 +59,11 @@ async fn create_course(pool: web::Data<db::DbPool>, req: web::Json<CreateCourseR
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = conn.transaction::<_, diesel::result::Error, _>(|conn| {
-        let new_course = NewCourse {
-            title: req.title.clone(),
-        };
-
-        let course = diesel::insert_into(courses::table)
-            .values(&new_course)
-            .get_result::<Course>(conn)?;
-
-        for (index, org_id) in req.organization_ids.iter().enumerate() {
-            let new_link = NewCourseOrganization {
-                course_id: course.id,
-                organization_id: *org_id,
-                order: index as i32,
-            };
-            diesel::insert_into(courses_organizations::table)
-                .values(&new_link)
-                .execute(conn)?;
-        }
-
-        Ok(course)
-    });
+    let result = crate::utils::course_utils::create_course_with_invites(
+        &mut conn,
+        req.title.clone(),
+        req.organization_ids.clone(),
+    );
 
     match result {
         Ok(course) => HttpResponse::Created().json(course),

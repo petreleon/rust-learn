@@ -119,6 +119,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    pending_course_organization_invites (id) {
+        id -> Int4,
+        course_id -> Int4,
+        organization_id -> Int4,
+        order -> Int4,
+    }
+}
+
+diesel::table! {
     persistent_states (id) {
         id -> Int4,
         key -> Text,
@@ -277,6 +286,8 @@ diesel::joinable!(internal_transactions -> wallets (wallet_id));
 diesel::joinable!(notifications -> users (user_id));
 diesel::joinable!(paths_courses -> courses (course_id));
 diesel::joinable!(paths_courses -> paths (path_id));
+diesel::joinable!(pending_course_organization_invites -> courses (course_id));
+diesel::joinable!(pending_course_organization_invites -> organizations (organization_id));
 diesel::joinable!(role_course_hierarchy -> course_roles (course_role_id));
 diesel::joinable!(role_organization_hierarchy -> organization_roles (organization_role_id));
 diesel::joinable!(role_permission_course -> course_roles (course_role_id));
@@ -302,4 +313,4 @@ diesel::joinable!(wallets -> organizations (organization_id));
 diesel::joinable!(wallets -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    authentications,chapters,contents,course_roles,courses,courses_organizations,db_version_control,external_transactions,internal_transactions,notifications,organization_roles,organizations,paths,paths_courses,persistent_states,platform_roles,role_course_hierarchy,role_organization_hierarchy,role_permission_course,role_permission_organization,role_permission_platform,role_platform_hierarchy,transactions,transactions_external_transactions,transactions_internal_transactions,upload_jobs,user_role_course,user_role_organization,user_role_platform,users,wallets,);
+    authentications,chapters,contents,course_roles,courses,courses_organizations,db_version_control,external_transactions,internal_transactions,notifications,organization_roles,organizations,paths,paths_courses,pending_course_organization_invites,persistent_states,platform_roles,role_course_hierarchy,role_organization_hierarchy,role_permission_course,role_permission_organization,role_permission_platform,role_platform_hierarchy,transactions,transactions_external_transactions,transactions_internal_transactions,upload_jobs,user_role_course,user_role_organization,user_role_platform,users,wallets,);

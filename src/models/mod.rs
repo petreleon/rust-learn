@@ -17,6 +17,7 @@ pub mod notification;
 pub mod upload_job;
 pub mod wallet;
 pub mod courses_organizations;
+pub mod pending_course_organization_invites;
 pub mod transaction;
 pub mod persistent_state;
 pub mod user_role_course;

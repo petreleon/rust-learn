@@ -1,0 +1,1 @@
+DROP TABLE pending_course_organization_invites;
