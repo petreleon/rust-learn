@@ -8,7 +8,8 @@ use crate::db;
 use diesel::prelude::*;
 use chrono::{NaiveDate, NaiveDateTime};
 use crate::utils::jwt_utils::create_jwt;
-// TODO Add initial roles on registration
+use crate::models::{role::PlatformRole, user_role_platform::UserRolePlatform};
+
 // TODO Add confirmation email on registration
 
 #[derive(Deserialize)]
@@ -86,6 +87,13 @@ pub async fn register(
 
     let inserted_user = User::create(new_user_data, &mut conn)
         .expect("Error saving new user");
+
+    // Assign default role (STUDENT)
+    let role_id = PlatformRole::find_by_name("STUDENT", &mut conn)
+        .expect("Error finding STUDENT role");
+    
+    UserRolePlatform::assign(&mut conn, inserted_user.id(), role_id)
+        .expect("Error assigning default role to user");
 
     // Hash password and create authentication
     let hashed_password = hash(&req.password, DEFAULT_COST).unwrap();
