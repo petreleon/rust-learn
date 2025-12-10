@@ -28,6 +28,16 @@ pub struct OrganizationRole {
     pub description: Option<String>,
 }
 
+impl OrganizationRole {
+    pub fn find_by_name(role_name: &str, conn: &mut PgConnection) -> QueryResult<i32> {
+        use crate::db::schema::organization_roles::dsl::*;
+        organization_roles
+            .filter(name.eq(role_name))
+            .select(id)
+            .first::<i32>(conn)
+    }
+}
+
 #[derive(Queryable, Insertable)]
 #[diesel(table_name = course_roles)]
 pub struct CourseRole {

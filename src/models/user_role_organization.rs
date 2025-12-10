@@ -36,4 +36,17 @@ impl UserRoleOrganization {
 
         Ok(has_permission)
     }
+    pub fn assign(conn: &mut PgConnection, p_user_id: i32, p_organization_id: i32, p_organization_role_id: i32) -> QueryResult<usize> {
+        use crate::db::schema::user_role_organization::dsl::*;
+        
+        let new_user_role = (
+            user_id.eq(p_user_id),
+            organization_role_id.eq(p_organization_role_id),
+            organization_id.eq(p_organization_id),
+        );
+
+        diesel::insert_into(user_role_organization)
+            .values(&new_user_role)
+            .execute(conn)
+    }
 }

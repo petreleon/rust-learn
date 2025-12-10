@@ -25,4 +25,13 @@ impl RoleOrganizationHierarchy {
             .select(min(role_organization_hierarchy::hierarchy_level))
             .first::<Option<i32>>(conn)
     }
+
+    pub fn get_role_level(conn: &mut PgConnection, p_role_id: i32) -> QueryResult<i32> {
+        use crate::db::schema::role_organization_hierarchy::dsl::*;
+
+        role_organization_hierarchy
+            .filter(organization_role_id.eq(p_role_id))
+            .select(hierarchy_level)
+            .first::<i32>(conn)
+    }
 }
