@@ -2,7 +2,7 @@ use crate::db::schema::chapters;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Identifiable, Associations, PartialEq, Debug, Serialize)]
+#[derive(Queryable, Identifiable, Associations, PartialEq, Debug, Serialize, Deserialize)]
 #[diesel(belongs_to(crate::models::course::Course))]
 #[diesel(table_name = chapters)]
 pub struct Chapter {

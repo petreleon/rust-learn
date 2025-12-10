@@ -207,6 +207,8 @@ async fn assign_role(
 
 pub fn course_scope() -> actix_web::Scope {
     web::scope("/courses")
+        .configure(crate::api::chapters::config)
+        .configure(crate::api::contents::config)
         .service(list_courses)
         .service(get_course)
         .service(create_course)

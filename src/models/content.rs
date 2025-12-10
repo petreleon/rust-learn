@@ -2,7 +2,7 @@ use crate::db::schema::contents;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Identifiable, Associations, PartialEq, Debug, Serialize)]
+#[derive(Queryable, Identifiable, Associations, PartialEq, Debug, Serialize, Deserialize)]
 #[diesel(belongs_to(crate::models::chapter::Chapter))]
 #[diesel(table_name = contents)]
 pub struct Content {

@@ -38,10 +38,16 @@ async fn list_chapters(
     }
 }
 
+#[derive(Deserialize)]
+pub struct CreateChapterRequest {
+    pub title: String,
+    pub order: i32,
+}
+
 async fn create_chapter(
     path: web::Path<i32>,
     pool: web::Data<DbPool>,
-    req: web::Json<NewChapter>, // Note: API consumer needs to send course_id in body match/redundant or we override it.
+    req: web::Json<CreateChapterRequest>,
 ) -> impl Responder {
     let course_id_val = path.into_inner();
     let mut conn = match pool.get() {
@@ -121,52 +127,39 @@ async fn delete_chapter(
     }
 }
 
-pub fn chapter_scope() -> actix_web::Scope {
-    web::scope("")
-        // Scoped under /courses/{id}/chapters for LIST
-        // But for Create we wanted /courses/{id}/chapters
-        // Actually actix scope composition:
-        // We will mount this scope probably under root.
-        
-        // 1. List Chapters (Under /courses/{id})
-        .service(
-             web::resource("/courses/{id}/chapters")
-                .route(web::get().to(list_chapters)
-                    .wrap(CoursePermissionMiddleware::new(
-                        Permissions::VIEW_COURSE.to_string(), // Student can view
+pub fn config(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::resource("/{id}/chapters")
+            .route(web::get().to(list_chapters)
+                .wrap(CoursePermissionMiddleware::new(
+                    Permissions::VIEW_COURSE.to_string(), // Student can view
+                    ParamType::Path,
+                    "id".to_string()
+                ))
+            )
+            .route(web::post().to(create_chapter)
+                .wrap(CoursePermissionMiddleware::new(
+                        Permissions::MANAGE_COURSE_SETTINGS.to_string(), // Teacher+
                         ParamType::Path,
                         "id".to_string()
-                    ))
-                )
-                .route(web::post().to(create_chapter)
-                    .wrap(CoursePermissionMiddleware::new(
-                         Permissions::MANAGE_COURSE_SETTINGS.to_string(), // Teacher+
-                         ParamType::Path,
-                         "id".to_string()
-                    ))
-                )
-        )
-        // 2. Manage Specific Chapter (Under /chapters/{id}) -> WE NEED TO LOOKUP COURSE_ID for permission check...
-        // This is tricky. If we just have /chapters/{id}, the CoursePermissionMiddleware needs to know course_id.
-        // Option A: Pass course_id in query or load it.
-        // Option B: Nest everything under /courses/{course_id}/chapters/{chapter_id}
-        // Let's use Option B for simplicity and security alignment with Middleware.
-        
-        .service(
-            web::resource("/courses/{course_id}/chapters/{id}")
-                .route(web::put().to(update_chapter)
-                    .wrap(CoursePermissionMiddleware::new(
-                        Permissions::MANAGE_COURSE_SETTINGS.to_string(),
-                        ParamType::Path,
-                        "course_id".to_string()
-                    ))
-                )
-                .route(web::delete().to(delete_chapter)
-                    .wrap(CoursePermissionMiddleware::new(
-                        Permissions::MANAGE_COURSE_SETTINGS.to_string(),
-                        ParamType::Path,
-                        "course_id".to_string()
-                    ))
-                )
-        )
+                ))
+            )
+    )
+    .service(
+        web::resource("/{course_id}/chapters/{id}")
+            .route(web::put().to(update_chapter)
+                .wrap(CoursePermissionMiddleware::new(
+                    Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                    ParamType::Path,
+                    "course_id".to_string()
+                ))
+            )
+            .route(web::delete().to(delete_chapter)
+                .wrap(CoursePermissionMiddleware::new(
+                    Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                    ParamType::Path,
+                    "course_id".to_string()
+                ))
+            )
+    );
 }

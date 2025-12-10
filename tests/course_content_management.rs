@@ -73,8 +73,7 @@ async fn test_course_content_lifecycle() {
              // But app_scope tries to inject it in main.rs. Here we are initializing specific scopes.
              // We need to mirror api_scope's usage of scopes.
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::chapters::chapter_scope())
-            .service(rust_learn::api::contents::content_scope())
+            .service(rust_learn::api::courses::course_scope())
     ).await;
 
     // 1. Teacher CREATES Chapter (/courses/{id}/chapters)
@@ -148,4 +147,12 @@ async fn test_course_content_lifecycle() {
     assert!(resp.status().is_success());
     let updated_content: Content = test::read_body_json(resp).await;
     assert_eq!(updated_content.data.unwrap(), "Updated Text");
+
+    // 6. Teacher Triggers Processing
+    let req = test::TestRequest::post()
+        .uri(&format!("/courses/{}/chapters/{}/contents/{}/process", course.id, chapter.id, content.id))
+        .insert_header(("Authorization", format!("Bearer {}", teacher_token)))
+        .to_request();
+    let resp = app.call(req).await.unwrap();
+    assert_eq!(resp.status(), actix_web::http::StatusCode::ACCEPTED);
 }

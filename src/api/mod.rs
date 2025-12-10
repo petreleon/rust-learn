@@ -22,8 +22,6 @@ pub fn api_scope() -> Scope<impl ServiceFactory<ServiceRequest, Config = (), Res
         .service(users::user_scope())
         .service(authentication::auth_scope())
         .service(courses::course_scope())
-        .service(chapters::chapter_scope())
-        .service(contents::content_scope())
         .service(organizations::organization_scope())
         .service(roles::roles_scope())
 }
