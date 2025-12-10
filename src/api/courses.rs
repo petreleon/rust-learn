@@ -1,9 +1,17 @@
-use actix_web::{get, post, put, delete, web, HttpResponse, Responder};
+use actix_web::{get, post, put, delete, web, HttpResponse, Responder, HttpRequest};
 use diesel::prelude::*;
 use serde::Deserialize;
 use crate::db;
 use crate::models::course::{Course, NewCourse, UpdateCourse};
 use crate::db::schema::courses;
+use crate::utils::jwt_utils::decode_jwt;
+use crate::models::user_role_course::UserRoleCourse;
+use crate::utils::db_utils::course::assign_role_to_user_in_course;
+
+#[derive(Deserialize)]
+pub struct AssignRoleRequest {
+    pub role_name: String,
+}
 
 #[get("")]
 async fn list_courses(pool: web::Data<db::DbPool>) -> impl Responder {

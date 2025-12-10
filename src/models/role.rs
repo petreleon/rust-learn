@@ -20,7 +20,7 @@ impl PlatformRole {
     }
 }
 
-#[derive(Queryable, Insertable)]
+#[derive(Queryable, Insertable, Serialize)]
 #[diesel(table_name = organization_roles)]
 pub struct OrganizationRole {
     pub id: i32,
@@ -38,7 +38,7 @@ impl OrganizationRole {
     }
 }
 
-#[derive(Queryable, Insertable)]
+#[derive(Queryable, Insertable, Serialize)]
 #[diesel(table_name = course_roles)]
 pub struct CourseRole {
     pub id: i32,

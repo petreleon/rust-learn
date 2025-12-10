@@ -4,7 +4,6 @@ use std::cmp::Ordering;
 use crate::models::user_role_course::UserRoleCourse;
 use crate::models::role_course_hierarchy::RoleCourseHierarchy;
 use crate::models::role::CourseRole;
-use crate::config::constants::roles::Roles;
 
 /// Checks if a user has a specific permission in a course
 pub fn user_permission_course_request(
@@ -41,22 +40,38 @@ pub fn user_hierarchy_compare_course(
 /// Assigns a course role to a user for a specific course
 pub fn assign_role_to_user_in_course(
     conn: &mut PgConnection,
+    assigner_id: i32,
     p_user_id: i32,
     p_course_id: i32,
-    role: Roles,
+    role_name: &str,
 ) -> QueryResult<usize> {
-    // Map enum to the expected role name in course_roles
-    // Assumption: course_roles.name stores simple names like "TEACHER" and "STUDENT".
-    let role_name: String = match role {
-        Roles::TEACHER | Roles::TEACHER_COURSE => "TEACHER".to_string(),
-        Roles::STUDENT | Roles::STUDENT_COURSE => "STUDENT".to_string(),
-        // Fallback to enum's string for other values if present in course context
-        other => other.to_string(),
-    };
+    // 1. Get Assigner's Hierarchy Level
+    let assigner_level = RoleCourseHierarchy::get_min_level(conn, assigner_id, p_course_id)?
+        .ok_or(diesel::result::Error::NotFound)?; // Assigner must have a role in the course
 
-    // Lookup the course_role_id by name
-    let course_role_id_value = CourseRole::find_by_name(&role_name, conn)?;
+    // 2. Get Assignee's (Target User) Hierarchy Level
+    let assignee_level_opt = RoleCourseHierarchy::get_min_level(conn, p_user_id, p_course_id)?;
+
+    // 3. Lookup the course_role_id by name
+    let role_id = CourseRole::find_by_name(role_name, conn)?;
+
+    // 4. Get Target Role's Hierarchy Level
+    let target_role_level = RoleCourseHierarchy::get_role_level(conn, role_id)?;
+
+    // 5. Enforce Hierarchy Rules: Lower value means higher rank (0 is highest)
+    
+    // Rule A: Assigner must be higher rank than the role they are assigning
+    if assigner_level >= target_role_level {
+        return Err(diesel::result::Error::RollbackTransaction);
+    }
+
+    // Rule B: Assigner must be higher rank than the user they are assigning to (if user already has a role)
+    if let Some(assignee_level) = assignee_level_opt {
+        if assigner_level >= assignee_level {
+             return Err(diesel::result::Error::RollbackTransaction);
+        }
+    }
 
     // Insert the user-role assignment into the user_role_course table
-    UserRoleCourse::assign(conn, p_user_id, p_course_id, course_role_id_value)
+    UserRoleCourse::assign(conn, p_user_id, p_course_id, role_id)
 }
