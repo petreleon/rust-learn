@@ -3,6 +3,7 @@ pub mod users;
 pub mod authentication;
 pub mod courses;
 pub mod organizations;
+pub mod roles;
 use actix_service::ServiceFactory;
 use actix_web::{Scope, dev::ServiceRequest, dev::ServiceResponse, Error};
 
@@ -20,5 +21,6 @@ pub fn api_scope() -> Scope<impl ServiceFactory<ServiceRequest, Config = (), Res
         .service(authentication::auth_scope())
         .service(courses::course_scope())
         .service(organizations::organization_scope())
+        .service(roles::roles_scope())
 }
 

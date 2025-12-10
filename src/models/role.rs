@@ -1,7 +1,8 @@
 use diesel::prelude::*;
 use crate::db::schema::{platform_roles, organization_roles, course_roles};
+use serde::Serialize;
 
-#[derive(Queryable, Insertable)]
+#[derive(Queryable, Insertable, Serialize)]
 #[diesel(table_name = platform_roles)]
 pub struct PlatformRole {
     pub id: i32,

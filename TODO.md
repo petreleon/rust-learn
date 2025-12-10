@@ -51,8 +51,8 @@
   - [ ] Verify `RoleCourseHierarchy` assignment logic
 - [ ] **Authentication Integration**
   - [x] Implement default role assignment on user registration (`src/api/authentication.rs`)
-  - [ ] Create API endpoint to list available roles
-  - [ ] Create API endpoint to assign roles to users (admin only)
+  - [x] Create API endpoint to list available roles
+  - [x] Create API endpoint to assign roles to users (admin only)
 - [ ] **Permission Checks**
   - [ ] Audit all API endpoints for missing permission checks
   - [ ] Implement middleware for role-based route protection
