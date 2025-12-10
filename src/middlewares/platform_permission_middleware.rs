@@ -1,100 +1,55 @@
-use actix_service::{forward_ready, Service, Transform};
-use actix_web::{dev::{ServiceRequest, ServiceResponse}, Error, web};
-use futures::future::{self, Ready, LocalBoxFuture};
-use std::marker::PhantomData;
-use futures::FutureExt;
-use actix_web::HttpMessage;
+use actix_web::{dev::ServiceRequest, Error};
+use diesel::PgConnection;
 
-use crate::{db::DbPool, models::user_jwt::UserJWT, utils::db_utils::platform::user_permission_platform_request};
+use crate::utils::db_utils::platform::user_permission_platform_request;
+use super::permission_middleware::{PermissionMiddleware, PermissionCheckStrategy};
 
-pub struct PlatformPermissionMiddleware<S> {
-    _service: PhantomData<S>,
+#[derive(Clone)]
+pub struct PlatformStrategy {
     permission_name: String,
 }
 
-impl<S> PlatformPermissionMiddleware<S> {
-    pub fn new(permission_name: String) -> Self {
-        PlatformPermissionMiddleware {
-            _service: PhantomData,
-            permission_name,
+pub struct PlatformExtractedData {
+    permission_name: String,
+}
+
+impl Clone for PlatformExtractedData {
+    fn clone(&self) -> Self {
+        PlatformExtractedData {
+            permission_name: self.permission_name.clone(),
         }
     }
 }
 
-impl<S, B> Transform<S, ServiceRequest> for PlatformPermissionMiddleware<S>
-where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
-    S::Future: 'static,
-    B: 'static,
-{
-    type Response = ServiceResponse<B>;
-    type Error = Error;
-    type InitError = ();
-    type Transform = PlatformPermissionMiddlewareService<S>;
-    type Future = Ready<Result<Self::Transform, Self::InitError>>;
+impl PermissionCheckStrategy for PlatformStrategy {
+    type ExtractedData = PlatformExtractedData;
 
-    fn new_transform(&self, service: S) -> Self::Future {
-        future::ready(Ok(PlatformPermissionMiddlewareService {
-            service,
+    fn extract(&self, _req: &ServiceRequest) -> Result<Self::ExtractedData, Error> {
+        // Platform permissions don't need extracted ID currently
+        Ok(PlatformExtractedData {
             permission_name: self.permission_name.clone(),
-        }))
+        })
+    }
+
+    fn check(&self, conn: &mut PgConnection, user_id: i32, data: Self::ExtractedData) -> Result<(), Error> {
+        match user_permission_platform_request(conn, user_id, &data.permission_name) {
+            Ok(has_permission) => {
+                if !has_permission {
+                    return Err(actix_web::error::ErrorForbidden("User does not have the required permission"));
+                }
+                Ok(())
+            },
+            Err(_) => Err(actix_web::error::ErrorInternalServerError("Failed to check user permission")),
+        }
     }
 }
 
-pub struct PlatformPermissionMiddlewareService<S> {
-    service: S,
-    permission_name: String,
-}
+pub type PlatformPermissionMiddleware<S> = PermissionMiddleware<S, PlatformStrategy>;
 
-impl<S, B> Service<ServiceRequest> for PlatformPermissionMiddlewareService<S>
-where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
-    S::Future: 'static,
-    B: 'static,
-{
-    type Response = ServiceResponse<B>;
-    type Error = Error;
-    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
-
-    forward_ready!(service);
-
-    fn call(&self, req: ServiceRequest) -> Self::Future {
-        let db_pool = match req.app_data::<web::Data<DbPool>>() {
-            Some(pool) => pool.clone(),
-            None => {
-                let error = actix_web::error::ErrorInternalServerError("Failed to access database pool");
-                return future::ready(Err(error)).boxed_local();
-            },
-        };
-
-    let permission_name = self.permission_name.clone();
-    // Capture UserJWT from request extensions before moving `req`
-    let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
-
-    // Now `req` can be moved without issues
-    let fut = self.service.call(req);
-
-        async move {
-            let user_jwt = match user_jwt_opt {
-                Some(u) => u,
-                None => return Err(actix_web::error::ErrorUnauthorized("Unauthorized access")),
-            };
-
-            let mut conn = match db_pool.get() {
-                Ok(conn) => conn,
-                Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to get database connection")),
-            };
-
-            match user_permission_platform_request(&mut conn, user_jwt.user_id, &permission_name) {
-                Ok(has_permission) => {
-                    if !has_permission {
-                        return Err(actix_web::error::ErrorForbidden("User does not have the required permission"));
-                    }
-                },
-                Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to check user permission")),
-            }
-
-            fut.await
-        }.boxed_local()
+impl<S> PlatformPermissionMiddleware<S> {
+    pub fn new(permission_name: String) -> Self {
+        PermissionMiddleware::from_strategy(PlatformStrategy {
+            permission_name,
+        })
     }
 }

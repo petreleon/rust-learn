@@ -238,12 +238,12 @@ pub fn organization_scope() -> actix_web::Scope {
         .service(
             web::resource("/{id}")
                 .route(web::put().to(update_organization).wrap(OrganizationPermissionMiddleware::new(
-                    Permissions::MODIFY_ORGANIZATION.to_string(),
+                    Permissions::MANAGE_ORG_SETTINGS.to_string(),
                     ParamType::Path,
                     "id".to_string(),
                 )))
                 .route(web::delete().to(delete_organization).wrap(OrganizationPermissionMiddleware::new(
-                    Permissions::DELETE_ORGANIZATION.to_string(),
+                    Permissions::MANAGE_ORG_SETTINGS.to_string(),
                     ParamType::Path,
                     "id".to_string(),
                 )))

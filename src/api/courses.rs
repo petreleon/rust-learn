@@ -214,7 +214,7 @@ pub fn course_scope() -> actix_web::Scope {
         .service(
              web::resource("/{id}")
                 .route(web::put().to(update_course).wrap(CoursePermissionMiddleware::new(
-                    Permissions::MODIFY_COURSE.to_string(),
+                    Permissions::MANAGE_COURSE_SETTINGS.to_string(),
                     ParamType::Path,
                     "id".to_string(),
                 )))
