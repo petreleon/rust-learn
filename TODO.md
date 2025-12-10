@@ -55,7 +55,7 @@
   - [x] Create API endpoint to assign roles to users (admin only)
 - [ ] **Permission Checks**
   - [ ] Audit all API endpoints for missing permission checks
-  - [ ] Implement middleware for role-based route protection
+  - [ ] Implement middleware for permission-based route protection
 - [ ] **Testing**
   - [ ] Add unit tests for `UserRolePlatform::has_permission`
   - [ ] Add unit tests for `UserRoleOrganization::has_permission`
