@@ -9,6 +9,8 @@ use crate::models::user_role_platform::UserRolePlatform;
 use crate::models::role::PlatformRole;
 use crate::models::role_platform_hierarchy::RolePlatformHierarchy;
 use crate::utils::jwt_utils::decode_jwt;
+use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
+use crate::config::constants::permissions::Permissions;
 
 #[derive(Deserialize)]
 pub struct AssignRoleRequest {
@@ -75,7 +77,6 @@ async fn get_user(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Res
 }
 
 // POST /user/{id}/role -> assign role to user
-#[post("/{id}/role")]
 async fn assign_role(
     req: HttpRequest,
     path: web::Path<i32>,
@@ -108,12 +109,8 @@ async fn assign_role(
         Err(_) => return HttpResponse::Unauthorized().body("Invalid token"),
     };
 
-    // 3. Permission Check: ASSIGN_ROLES_TO_USER
-    match UserRolePlatform::has_permission(&mut conn, requester_id, "ASSIGN_ROLES_TO_USER") {
-        Ok(true) => (), // Allowed
-        Ok(false) => return HttpResponse::Forbidden().body("Missing permission: ASSIGN_ROLES_TO_USER"),
-        Err(_) => return HttpResponse::InternalServerError().body("Error checking permissions"),
-    }
+    // 3. Permission Check: Handled by Middleware
+    // Middleware "ASSIGN_ROLES_TO_USER" required.
 
     // 4. Hierarchy Checks
     // 4a. Get Requester Rank (lower is better, 0 is best)
@@ -174,5 +171,10 @@ pub fn user_scope() -> actix_web::Scope {
     web::scope("/user")
         .service(list_users)
         .service(get_user)
-        .service(assign_role)
+        .service(
+            web::resource("/{id}/role")
+                .route(web::post().to(assign_role).wrap(PlatformPermissionMiddleware::new(
+                    Permissions::ASSIGN_ROLES_TO_USER.to_string()
+                )))
+        )
 }

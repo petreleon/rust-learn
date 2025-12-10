@@ -13,7 +13,7 @@
 
 ## 2. Authentication & User Management
 - [ ] **Registration Flow**
-  - [ ] Add initial role assignment functionality `src/api/authentication.rs`
+  - [x] Add initial role assignment functionality `src/api/authentication.rs`
   - [ ] Implement email confirmation trigger upon registration `src/api/authentication.rs`
   - [ ] Validate password strength constraints
 - [ ] **Security**
@@ -45,10 +45,10 @@
   - [ ] Add unit tests for worker job definitions
 
 ## 6. Permissions & Role-Based Access Control (RBAC)
-- [ ] **Core Logic Implementation**
-  - [ ] Verify `RolePlatformHierarchy` assignment logic
-  - [ ] Verify `RoleOrganizationHierarchy` assignment logic
-  - [ ] Verify `RoleCourseHierarchy` assignment logic
+- [x] **Core Logic Implementation**
+  - [x] Verify `RolePlatformHierarchy` assignment logic
+  - [x] Verify `RoleOrganizationHierarchy` assignment logic
+  - [x] Verify `RoleCourseHierarchy` assignment logic
 - [ ] **Authentication Integration**
   - [x] Implement default role assignment on user registration (`src/api/authentication.rs`)
   - [x] Create API endpoint to list available roles
@@ -56,7 +56,7 @@
 - [ ] **Permission Checks**
   - [ ] Audit all API endpoints for missing permission checks
   - [ ] Implement middleware for permission-based route protection
-- [ ] **Testing**
-  - [ ] Add unit tests for `UserRolePlatform::has_permission`
-  - [ ] Add unit tests for `UserRoleOrganization::has_permission`
-  - [ ] Add unit tests for `UserRoleCourse::has_permission`
+- [x] **Testing**
+  - [x] Add unit tests for `UserRolePlatform::has_permission`
+  - [x] Add unit tests for `UserRoleOrganization::has_permission`
+  - [x] Add unit tests for `UserRoleCourse::has_permission`

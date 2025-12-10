@@ -7,6 +7,9 @@ use crate::db::schema::organizations;
 use crate::utils::jwt_utils::decode_jwt;
 use crate::models::user_role_organization::UserRoleOrganization;
 use crate::utils::db_utils::organization::assign_role_to_user_in_organization;
+use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
+use crate::models::param_type::ParamType;
+use crate::config::constants::permissions::Permissions;
 
 #[derive(Deserialize)]
 pub struct AssignRoleRequest {
@@ -105,7 +108,6 @@ async fn create_organization(pool: web::Data<db::DbPool>, req: web::Json<CreateO
     }
 }
 
-#[put("/{id}")]
 async fn update_organization(
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
@@ -131,7 +133,6 @@ async fn update_organization(
     }
 }
 
-#[delete("/{id}")]
 async fn delete_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let org_id = path.into_inner();
     let mut conn = match pool.get() {
@@ -182,12 +183,78 @@ async fn get_organization_courses(path: web::Path<i32>, pool: web::Data<db::DbPo
     }
 }
 
+async fn assign_role(
+    req: HttpRequest,
+    path: web::Path<(i32, i32)>,
+    body: web::Json<AssignRoleRequest>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    let (org_id, target_user_id) = path.into_inner();
+    let role_name = &body.role_name;
+
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    // Identify Requester from JWT
+    let auth_header = match req.headers().get("Authorization") {
+        Some(h) => h.to_str().unwrap_or(""),
+        None => return HttpResponse::Unauthorized().body("Missing Authorization header"),
+    };
+    
+    let token = if auth_header.starts_with("Bearer ") {
+        &auth_header["Bearer ".len()..]
+    } else {
+        return HttpResponse::Unauthorized().body("Invalid Authorization header format");
+    };
+
+    let requester_id = match decode_jwt(token) {
+        Ok(data) => data.claims.user_id,
+        Err(_) => return HttpResponse::Unauthorized().body("Invalid token"),
+    };
+
+    // Permission Check: Handled by Middleware
+    // However, if we didn't use middleware, we would check "ASSIGN_ROLES_TO_ORG_USERS" here.
+    // The middleware ensures that the requester has this permission.
+
+    // Perform Assignment with Hierarchy Check
+    match assign_role_to_user_in_organization(&mut conn, requester_id, target_user_id, org_id, role_name) {
+        Ok(_) => HttpResponse::Ok().body("Role assigned successfully"),
+        Err(diesel::result::Error::RollbackTransaction) => HttpResponse::Forbidden().body("Hierarchy check failed: Cannot assign role higher than or equal to your own, or modify user with higher/equal rank."),
+        Err(diesel::result::Error::NotFound) => HttpResponse::BadRequest().body("Role or User not found"),
+        Err(e) => {
+            eprintln!("Error assigning role: {}", e);
+            HttpResponse::InternalServerError().body("Failed to assign role")
+        }
+    }
+}
+
 pub fn organization_scope() -> actix_web::Scope {
     web::scope("/organizations")
         .service(list_organizations)
         .service(get_organization)
         .service(create_organization)
-        .service(update_organization)
-        .service(delete_organization)
         .service(get_organization_courses)
+        .service(
+            web::resource("/{id}")
+                .route(web::put().to(update_organization).wrap(OrganizationPermissionMiddleware::new(
+                    Permissions::MODIFY_ORGANIZATION.to_string(),
+                    ParamType::Path,
+                    "id".to_string(),
+                )))
+                .route(web::delete().to(delete_organization).wrap(OrganizationPermissionMiddleware::new(
+                    Permissions::DELETE_ORGANIZATION.to_string(),
+                    ParamType::Path,
+                    "id".to_string(),
+                )))
+        )
+        .service(
+            web::resource("/{id}/users/{user_id}/roles")
+                .route(web::post().to(assign_role).wrap(OrganizationPermissionMiddleware::new(
+                    Permissions::ASSIGN_ROLES_TO_ORG_USERS.to_string(),
+                    ParamType::Path,
+                    "id".to_string(),
+                )))
+        )
 }

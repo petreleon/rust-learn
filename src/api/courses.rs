@@ -7,6 +7,9 @@ use crate::db::schema::courses;
 use crate::utils::jwt_utils::decode_jwt;
 use crate::models::user_role_course::UserRoleCourse;
 use crate::utils::db_utils::course::assign_role_to_user_in_course;
+use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
+use crate::models::param_type::ParamType;
+use crate::config::constants::permissions::Permissions;
 
 #[derive(Deserialize)]
 pub struct AssignRoleRequest {
@@ -82,7 +85,6 @@ async fn create_course(pool: web::Data<db::DbPool>, req: web::Json<CreateCourseR
     }
 }
 
-#[put("/{id}")]
 async fn update_course(
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
@@ -108,7 +110,6 @@ async fn update_course(
     }
 }
 
-#[delete("/{id}")]
 async fn delete_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let course_id = path.into_inner();
     let mut conn = match pool.get() {
@@ -159,12 +160,77 @@ async fn get_course_organizations(path: web::Path<i32>, pool: web::Data<db::DbPo
     }
 }
 
+async fn assign_role(
+    req: HttpRequest,
+    path: web::Path<(i32, i32)>,
+    body: web::Json<AssignRoleRequest>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    let (course_id, target_user_id) = path.into_inner();
+    let role_name = &body.role_name;
+
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    // Identify Requester from JWT
+    let auth_header = match req.headers().get("Authorization") {
+        Some(h) => h.to_str().unwrap_or(""),
+        None => return HttpResponse::Unauthorized().body("Missing Authorization header"),
+    };
+    
+    let token = if auth_header.starts_with("Bearer ") {
+        &auth_header["Bearer ".len()..]
+    } else {
+        return HttpResponse::Unauthorized().body("Invalid Authorization header format");
+    };
+
+    let requester_id = match decode_jwt(token) {
+        Ok(data) => data.claims.user_id,
+        Err(_) => return HttpResponse::Unauthorized().body("Invalid token"),
+    };
+
+    // Permission Check: Handled by Middleware
+    // Middleware "MANAGE_COURSE_ENROLLMENTS" required.
+
+    // Perform Assignment with Hierarchy Check
+    match assign_role_to_user_in_course(&mut conn, requester_id, target_user_id, course_id, role_name) {
+        Ok(_) => HttpResponse::Ok().body("Role assigned successfully"),
+        Err(diesel::result::Error::RollbackTransaction) => HttpResponse::Forbidden().body("Hierarchy check failed: Cannot assign role higher than or equal to your own, or modify user with higher/equal rank."),
+        Err(diesel::result::Error::NotFound) => HttpResponse::BadRequest().body("Role or User not found"),
+        Err(e) => {
+            eprintln!("Error assigning role: {}", e);
+            HttpResponse::InternalServerError().body("Failed to assign role")
+        }
+    }
+}
+
 pub fn course_scope() -> actix_web::Scope {
     web::scope("/courses")
         .service(list_courses)
         .service(get_course)
         .service(create_course)
-        .service(update_course)
-        .service(delete_course)
         .service(get_course_organizations)
+        .service(
+             web::resource("/{id}")
+                .route(web::put().to(update_course).wrap(CoursePermissionMiddleware::new(
+                    Permissions::MODIFY_COURSE.to_string(),
+                    ParamType::Path,
+                    "id".to_string(),
+                )))
+                .route(web::delete().to(delete_course).wrap(CoursePermissionMiddleware::new(
+                    Permissions::DELETE_COURSE.to_string(),
+                    ParamType::Path,
+                    "id".to_string(),
+                )))
+        )
+        .service(
+            web::resource("/{id}/users/{user_id}/roles")
+                .route(web::post().to(assign_role).wrap(CoursePermissionMiddleware::new(
+                    Permissions::MANAGE_COURSE_ENROLLMENTS.to_string(),
+                    ParamType::Path,
+                    "id".to_string(),
+                )))
+        )
 }
