@@ -4,4 +4,5 @@
 pub enum ParamType {
     Header,
     Query,
+    Path,
 }

@@ -9,5 +9,6 @@ pub fn extract_param(req: &ServiceRequest, param_name: &str, param_type: ParamTy
         ParamType::Query => {
             req.uri().query().and_then(|query| from_str::<std::collections::HashMap<String, String>>(query).ok()).and_then(|params| params.get(param_name).cloned())
         },
+        ParamType::Path => req.match_info().get(param_name).map(|s| s.to_string()),
     }
 }

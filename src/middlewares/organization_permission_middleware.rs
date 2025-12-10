@@ -4,7 +4,6 @@ use futures::future::{self, Ready, LocalBoxFuture};
 use futures::FutureExt;
 use std::marker::PhantomData;
 
-// Assuming these modules are defined in your application
 use crate::db::DbPool;
 use crate::models::{user_jwt::UserJWT, param_type::ParamType};
 use crate::utils::{request_utils::extract_param, db_utils::organization::user_permission_organization_request};
@@ -85,9 +84,11 @@ where
             },
         };
 
-    let organization_id_str_opt = extract_param(&req, &name_param_of_organization, type_param_of_organization);
-    // Capture UserJWT from request extensions before moving `req`
-    let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
+        // Capture UserJWT from request extensions before moving `req`
+        let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
+
+        // Extract ID using the helper, but don't move req yet
+        let organization_id_str_opt = extract_param(&req, &name_param_of_organization, type_param_of_organization);
 
         let fut = self.service.call(req);
 
