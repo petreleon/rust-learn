@@ -24,3 +24,5 @@ pub mod user_role_course;
 pub mod role_course_hierarchy;
 pub mod role_permission_course;
 pub mod db_version_control;
+pub mod chapter;
+pub mod content;
