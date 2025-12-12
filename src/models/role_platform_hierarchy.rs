@@ -1,5 +1,6 @@
 use crate::db::schema::role_platform_hierarchy;
 use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::models::role::PlatformRole;
 
 #[derive(Queryable, Identifiable, Associations)]
@@ -12,7 +13,7 @@ pub struct RolePlatformHierarchy {
 }
 
 impl RolePlatformHierarchy {
-    pub fn get_min_level(conn: &mut PgConnection, p_user_id: i32) -> QueryResult<Option<i32>> {
+    pub async fn get_min_level(conn: &mut AsyncPgConnection, p_user_id: i32) -> QueryResult<Option<i32>> {
         use crate::db::schema::{role_platform_hierarchy, user_role_platform};
         use diesel::dsl::min;
 
@@ -23,5 +24,6 @@ impl RolePlatformHierarchy {
             .filter(user_role_platform::user_id.eq(p_user_id))
             .select(min(role_platform_hierarchy::hierarchy_level))
             .first::<Option<i32>>(conn)
+            .await
     }
 }

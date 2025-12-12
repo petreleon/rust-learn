@@ -4,34 +4,27 @@ use futures::future::{self, Ready, LocalBoxFuture};
 use futures::FutureExt;
 use std::marker::PhantomData;
 use std::rc::Rc;
-use diesel::PgConnection;
-
 use crate::db::DbPool;
 use crate::models::user_jwt::UserJWT;
 
 /// A strategy trait to encapsulate the specific logic for extracting data from the request
 /// and checking permissions against the database.
 pub trait PermissionCheckStrategy: 'static {
-    /// The data needed to perform the permission check (e.g., extracted ID, permission name).
+    /// The data needed to perform the permission check.
     type ExtractedData: Clone + 'static;
 
-    /// Extract necessary data from the request (e.g., resource ID from path).
-    /// This happens synchronously before the future is spawned.
+    /// Extract necessary data from the request.
     fn extract(&self, req: &ServiceRequest) -> Result<Self::ExtractedData, Error>;
 
-    /// Perform the actual permission check using the database connection and the authenticated user ID.
+    /// Perform the permission check. Takes DbPool directly to allow async connection acquisition.
     fn check(
         &self,
-        conn: &mut PgConnection,
+        pool: DbPool,
         user_id: i32,
         data: Self::ExtractedData,
-    ) -> Result<(), Error>;
+    ) -> LocalBoxFuture<'static, Result<(), Error>>;
 }
 
-/// A generic middleware that handles the boilerplate of:
-/// 1. Extracting the DB pool.
-/// 2. extracting UserJWT.
-/// 3. Delegating data extraction and key checks to the `Strategy`.
 pub struct PermissionMiddleware<S, Strategy> {
     service: PhantomData<S>,
     strategy: Rc<Strategy>,
@@ -93,14 +86,14 @@ where
 
         // 1. Get DB Pool
         let db_pool = match req.app_data::<web::Data<DbPool>>() {
-            Some(pool) => pool.clone(),
+            Some(pool) => pool.get_ref().clone(), // Clone the inner pool
             None => {
                 let error = actix_web::error::ErrorInternalServerError("Failed to access database pool");
                 return future::ready(Err(error)).boxed_local();
             },
         };
 
-        // 2. Extract Data (Strategy-specific)
+        // 2. Extract Data
         let extracted_data_result = strategy.extract(&req);
         let extracted_data = match extracted_data_result {
             Ok(data) => data,
@@ -113,18 +106,13 @@ where
         let fut = self.service.call(req);
 
         async move {
-            let mut conn = match db_pool.get() {
-                Ok(conn) => conn,
-                Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to get database connection")),
-            };
-
             let user_jwt = match user_jwt_opt {
                 Some(u) => u,
                 None => return Err(actix_web::error::ErrorUnauthorized("Unauthorized access")),
             };
 
-            // 4. Check Permission (Strategy-specific)
-            strategy.check(&mut conn, user_jwt.user_id, extracted_data)?;
+            // 4. Check Permission (passing pool)
+            strategy.check(db_pool, user_jwt.user_id, extracted_data).await?;
 
             fut.await
         }.boxed_local()

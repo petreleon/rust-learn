@@ -44,16 +44,24 @@ impl PermissionCheckStrategy for CourseStrategy {
         })
     }
 
-    fn check(&self, conn: &mut PgConnection, user_id: i32, data: Self::ExtractedData) -> Result<(), Error> {
-        match user_permission_course_request(conn, user_id, data.course_id, &data.permission_name) {
-            Ok(has_permission) => {
-                if !has_permission {
-                    return Err(actix_web::error::ErrorForbidden("User does not have the required permission within the course"));
-                }
-                Ok(())
-            },
-            Err(_) => Err(actix_web::error::ErrorInternalServerError("Failed to check user permission within course")),
-        }
+    fn check(&self, pool: crate::db::DbPool, user_id: i32, data: Self::ExtractedData) -> futures::future::LocalBoxFuture<'static, Result<(), Error>> {
+        use futures::FutureExt;
+
+        let permission_name = data.permission_name.clone();
+
+        async move {
+            let mut conn = pool.get().await.map_err(|_| actix_web::error::ErrorInternalServerError("Failed to get database connection"))?;
+            
+            match user_permission_course_request(&mut conn, user_id, data.course_id, &permission_name).await {
+                Ok(has_permission) => {
+                    if !has_permission {
+                        return Err(actix_web::error::ErrorForbidden("User does not have the required permission within the course"));
+                    }
+                    Ok(())
+                },
+                Err(_) => Err(actix_web::error::ErrorInternalServerError("Failed to check user permission within course")),
+            }
+        }.boxed_local()
     }
 }
 

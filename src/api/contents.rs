@@ -1,5 +1,6 @@
 use actix_web::{get, post, delete, put, web, HttpResponse, Responder};
-use diesel::prelude::*;
+use diesel::{QueryDsl, ExpressionMethods};
+use diesel_async::RunQueryDsl;
 use crate::db::DbPool;
 use crate::models::content::{Content, NewContent, UpdateContent};
 use crate::db::schema::contents;
@@ -18,7 +19,7 @@ async fn list_contents(
     pool: web::Data<DbPool>,
 ) -> impl Responder {
     let (_course_id, chapter_id) = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
@@ -26,7 +27,8 @@ async fn list_contents(
     let result = contents::table
         .filter(contents::chapter_id.eq(chapter_id))
         .order(contents::order.asc())
-        .load::<Content>(&mut conn);
+        .load::<Content>(&mut conn)
+        .await;
 
     match result {
         Ok(list) => HttpResponse::Ok().json(list),
@@ -50,7 +52,7 @@ async fn create_content(
     req: web::Json<CreateContentRequest>,
 ) -> impl Responder {
     let (_course_id, chapter_id) = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
@@ -64,7 +66,8 @@ async fn create_content(
 
     let result = diesel::insert_into(contents::table)
         .values(&new_content)
-        .get_result::<Content>(&mut conn);
+        .get_result::<Content>(&mut conn)
+        .await;
 
     match result {
         Ok(content) => HttpResponse::Created().json(content),
@@ -119,14 +122,15 @@ async fn update_content(
     req: web::Json<UpdateContent>,
 ) -> impl Responder {
     let (_course_id, _chapter_id, content_id) = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
     let result = diesel::update(contents::table.find(content_id))
         .set(&*req)
-        .get_result::<Content>(&mut conn);
+        .get_result::<Content>(&mut conn)
+        .await;
 
     match result {
         Ok(content) => HttpResponse::Ok().json(content),
@@ -143,13 +147,14 @@ async fn delete_content(
     pool: web::Data<DbPool>,
 ) -> impl Responder {
     let (_course_id, _chapter_id, content_id) = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
     let result = diesel::delete(contents::table.find(content_id))
-        .execute(&mut conn);
+        .execute(&mut conn)
+        .await;
 
     match result {
         Ok(count) => {
@@ -167,23 +172,19 @@ async fn delete_content(
 }
 
 
-
-
-
-
 async fn process_content(
     req: actix_web::HttpRequest,
     path: web::Path<(i32, i32, i32)>, // course_id, chapter_id, content_id
     pool: web::Data<DbPool>,
 ) -> impl Responder {
     let (_course_id, _chapter_id, content_id) = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
     // 1. Fetch Content to get the object key
-    let content = match contents::table.find(content_id).first::<Content>(&mut conn) {
+    let content = match contents::table.find(content_id).first::<Content>(&mut conn).await {
         Ok(c) => c,
         Err(diesel::result::Error::NotFound) => return HttpResponse::NotFound().body("Content not found"),
         Err(e) => {
@@ -212,7 +213,8 @@ async fn process_content(
 
     let result = diesel::insert_into(upload_jobs::table)
         .values(&new_job)
-        .execute(&mut conn);
+        .execute(&mut conn)
+        .await;
 
     match result {
         Ok(_) => HttpResponse::Accepted().body("Video processing queued"),

@@ -1,5 +1,6 @@
 use actix_web::{get, post, delete, put, web, HttpResponse, Responder};
-use diesel::prelude::*;
+use diesel::{QueryDsl, ExpressionMethods};
+use diesel_async::RunQueryDsl;
 use crate::db::DbPool;
 use crate::models::chapter::{Chapter, NewChapter, UpdateChapter};
 use crate::db::schema::chapters;
@@ -19,7 +20,7 @@ async fn list_chapters(
     pool: web::Data<DbPool>,
 ) -> impl Responder {
     let course_id_val = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
@@ -27,7 +28,8 @@ async fn list_chapters(
     let result = chapters::table
         .filter(chapters::course_id.eq(course_id_val))
         .order(chapters::order.asc())
-        .load::<Chapter>(&mut conn);
+        .load::<Chapter>(&mut conn)
+        .await;
 
     match result {
         Ok(chap_list) => HttpResponse::Ok().json(chap_list),
@@ -50,7 +52,7 @@ async fn create_chapter(
     req: web::Json<CreateChapterRequest>,
 ) -> impl Responder {
     let course_id_val = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
@@ -63,7 +65,8 @@ async fn create_chapter(
 
     let result = diesel::insert_into(chapters::table)
         .values(&new_chapter)
-        .get_result::<Chapter>(&mut conn);
+        .get_result::<Chapter>(&mut conn)
+        .await;
 
     match result {
         Ok(chapter) => HttpResponse::Created().json(chapter),
@@ -80,14 +83,15 @@ async fn update_chapter(
     req: web::Json<UpdateChapter>,
 ) -> impl Responder {
     let chapter_id = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
     let result = diesel::update(chapters::table.find(chapter_id))
         .set(&*req)
-        .get_result::<Chapter>(&mut conn);
+        .get_result::<Chapter>(&mut conn)
+        .await;
 
     match result {
         Ok(chapter) => HttpResponse::Ok().json(chapter),
@@ -104,13 +108,14 @@ async fn delete_chapter(
     pool: web::Data<DbPool>,
 ) -> impl Responder {
     let chapter_id = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
     let result = diesel::delete(chapters::table.find(chapter_id))
-        .execute(&mut conn);
+        .execute(&mut conn)
+        .await;
 
     match result {
         Ok(count) => {

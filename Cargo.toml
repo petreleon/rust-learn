@@ -11,7 +11,8 @@ actix-web = "4.11"
 actix-service = "2.0.3"
 futures = "0.3"
 infer = "0.19.0"
-diesel = { version = "2.2.12", features = ["postgres", "r2d2", "chrono", "numeric"] }
+diesel = { version = "2.2.12", features = ["postgres", "chrono", "numeric"] }
+diesel-async = { version = "0.5", features = ["postgres", "deadpool"] }
 dotenvy = "0.15"
 diesel_migrations = "2.2.0"
 chrono = { version = "0.4", features = ["serde"] }

@@ -3,7 +3,8 @@
 
 use crate::utils::db_utils::persistent_state::{get_persistent_state, set_persistent_state};
 use diesel::prelude::*;
-use diesel::{PgConnection, QueryResult};
+use diesel::QueryResult;
+use diesel_async::AsyncPgConnection;
 use ethers::prelude::*;
 use ethers::signers::coins_bip39::English;
 use ethers::abi::Abi;
@@ -167,7 +168,7 @@ pub async fn deploy_contract(
 
 /// Deploy LearnToken and store its address in persistent_states under `learn_token_address`
 pub async fn deploy_learn_token_and_save(
-    conn: &mut PgConnection,
+    conn: &mut AsyncPgConnection,
     name: &str,
     symbol: &str,
     decimals: u8,
@@ -189,14 +190,14 @@ pub async fn deploy_learn_token_and_save(
 
     // Persist address as 0x-prefixed hex
     let addr_hex = format!("{:#x}", addr);
-    set_persistent_state(conn, "learn_token_address", &addr_hex)?;
+    set_persistent_state(conn, "learn_token_address", &addr_hex).await?;
 
     Ok(addr)
 }
 
 /// Deploy LearnTokenPresigner and save its address under `learn_token_presigner_address`.
 pub async fn deploy_learn_token_presigner_and_save(
-    conn: &mut PgConnection,
+    conn: &mut AsyncPgConnection,
     learn_token_addr: Address,
 ) -> QueryResult<Address> {
     let wallet = load_wallet_from_env();
@@ -206,13 +207,13 @@ pub async fn deploy_learn_token_presigner_and_save(
     let addr = deploy_contract(wallet, provider, abi, bytecode, (learn_token_addr,)).await;
 
     let addr_hex = format!("{:#x}", addr);
-    set_persistent_state(conn, "learn_token_presigner_address", &addr_hex)?;
+    set_persistent_state(conn, "learn_token_presigner_address", &addr_hex).await?;
     Ok(addr)
 }
 
 /// Deploy PlatformImporter and save its address under `platform_importer_address`.
 pub async fn deploy_platform_importer_and_save(
-    conn: &mut PgConnection,
+    conn: &mut AsyncPgConnection,
     treasury: Address,
 ) -> QueryResult<Address> {
     let wallet = load_wallet_from_env();
@@ -222,28 +223,28 @@ pub async fn deploy_platform_importer_and_save(
     let addr = deploy_contract(wallet, provider, abi, bytecode, (treasury,)).await;
 
     let addr_hex = format!("{:#x}", addr);
-    set_persistent_state(conn, "platform_importer_address", &addr_hex)?;
+    set_persistent_state(conn, "platform_importer_address", &addr_hex).await?;
     Ok(addr)
 }
 
 /// Ensure all required contracts are deployed and persisted. Returns tuple of addresses.
 pub async fn deploy_all_startup(
-    conn: &mut PgConnection,
+    conn: &mut AsyncPgConnection,
     name: &str,
     symbol: &str,
     decimals: u8,
 ) -> QueryResult<(Address, Option<Address>, Option<Address>)> {
     // Deploy LearnToken if missing
-    let token_addr = if let Some(a) = get_persistent_state(conn, "learn_token_address")? {
+    let token_addr = if let Some(a) = get_persistent_state(conn, "learn_token_address").await? {
         Address::from_str(a.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?
     } else {
         deploy_learn_token_and_save(conn, name, symbol, decimals).await?;
-        let s = get_persistent_state(conn, "learn_token_address")?.unwrap();
+        let s = get_persistent_state(conn, "learn_token_address").await?.unwrap();
         Address::from_str(s.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?
     };
 
     // Deploy LearnTokenPresigner if missing
-    let presigner_addr = if let Some(a) = get_persistent_state(conn, "learn_token_presigner_address")? {
+    let presigner_addr = if let Some(a) = get_persistent_state(conn, "learn_token_presigner_address").await? {
         Some(Address::from_str(a.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?)
     } else {
         // deploy using token_addr
@@ -252,7 +253,7 @@ pub async fn deploy_all_startup(
     };
 
     // Deploy PlatformImporter if missing (use PLATFORM_TREASURY env or deployer address)
-    let importer_addr = if let Some(a) = get_persistent_state(conn, "platform_importer_address")? {
+    let importer_addr = if let Some(a) = get_persistent_state(conn, "platform_importer_address").await? {
         Some(Address::from_str(a.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?)
     } else {
         let treasury_addr = if let Ok(t) = env::var("PLATFORM_TREASURY") {
@@ -270,8 +271,8 @@ pub async fn deploy_all_startup(
 }
 
 /// Retrieve the stored LearnToken address if present
-pub fn get_learn_token_address(conn: &mut PgConnection) -> QueryResult<Option<Address>> {
-    if let Some(s) = get_persistent_state(conn, "learn_token_address")? {
+pub async fn get_learn_token_address(conn: &mut AsyncPgConnection) -> QueryResult<Option<Address>> {
+    if let Some(s) = get_persistent_state(conn, "learn_token_address").await? {
         let parsed = Address::from_str(s.trim_start_matches("0x"))
             .map_err(|_| diesel::result::Error::NotFound)?;
         Ok(Some(parsed))
@@ -282,12 +283,12 @@ pub fn get_learn_token_address(conn: &mut PgConnection) -> QueryResult<Option<Ad
 
 /// On startup, ensure LearnToken is deployed. If already stored, reuse it; otherwise deploy and save.
 pub async fn deploy_startup(
-    conn: &mut PgConnection,
+    conn: &mut AsyncPgConnection,
     name: &str,
     symbol: &str,
     decimals: u8,
 ) -> QueryResult<Address> {
-    if let Some(addr) = get_learn_token_address(conn)? {
+    if let Some(addr) = get_learn_token_address(conn).await? {
         Ok(addr)
     } else {
         deploy_learn_token_and_save(conn, name, symbol, decimals).await

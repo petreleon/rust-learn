@@ -1,5 +1,6 @@
 use actix_web::{get, post, web, HttpResponse, Responder, HttpRequest};
 use diesel::prelude::*;
+use diesel_async::{RunQueryDsl, AsyncConnection};
 use serde::Deserialize;
 use crate::db;
 use crate::models::organization::{Organization, NewOrganization, UpdateOrganization};
@@ -17,12 +18,12 @@ pub struct AssignRoleRequest {
 
 #[get("")]
 async fn list_organizations(pool: web::Data<db::DbPool>) -> impl Responder {
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = organizations::table.load::<Organization>(&mut conn);
+    let result = organizations::table.load::<Organization>(&mut conn).await;
 
     match result {
         Ok(org_list) => HttpResponse::Ok().json(org_list),
@@ -36,12 +37,12 @@ async fn list_organizations(pool: web::Data<db::DbPool>) -> impl Responder {
 #[get("/{id}")]
 async fn get_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let org_id = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = organizations::table.find(org_id).first::<Organization>(&mut conn);
+    let result = organizations::table.find(org_id).first::<Organization>(&mut conn).await;
 
     match result {
         Ok(org) => HttpResponse::Ok().json(org),
@@ -66,12 +67,12 @@ pub struct CreateOrganizationRequest {
 
 #[post("")]
 async fn create_organization(pool: web::Data<db::DbPool>, req: web::Json<CreateOrganizationRequest>) -> impl Responder {
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = conn.transaction::<_, diesel::result::Error, _>(|conn| {
+    let result = conn.transaction::<_, diesel::result::Error, _>(|conn| Box::pin(async move {
         let new_org = NewOrganization {
             name: req.name.clone(),
             website_link: req.website_link.clone(),
@@ -80,7 +81,8 @@ async fn create_organization(pool: web::Data<db::DbPool>, req: web::Json<CreateO
 
         let org = diesel::insert_into(organizations::table)
             .values(&new_org)
-            .get_result::<Organization>(conn)?;
+            .get_result::<Organization>(conn)
+            .await?;
 
         if let Some(course_ids) = &req.course_ids {
             for (index, course_id) in course_ids.iter().enumerate() {
@@ -91,12 +93,13 @@ async fn create_organization(pool: web::Data<db::DbPool>, req: web::Json<CreateO
                 };
                 diesel::insert_into(courses_organizations::table)
                     .values(&new_link)
-                    .execute(conn)?;
+                    .execute(conn)
+                    .await?;
             }
         }
 
         Ok(org)
-    });
+    })).await;
 
     match result {
         Ok(org) => HttpResponse::Created().json(org),
@@ -113,14 +116,15 @@ async fn update_organization(
     req: web::Json<UpdateOrganization>,
 ) -> impl Responder {
     let org_id = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
     let result = diesel::update(organizations::table.find(org_id))
         .set(&*req)
-        .get_result::<Organization>(&mut conn);
+        .get_result::<Organization>(&mut conn)
+        .await;
 
     match result {
         Ok(org) => HttpResponse::Ok().json(org),
@@ -134,13 +138,14 @@ async fn update_organization(
 
 async fn delete_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let org_id = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
     let result = diesel::delete(organizations::table.find(org_id))
-        .execute(&mut conn);
+        .execute(&mut conn)
+        .await;
 
     match result {
         Ok(count) => {
@@ -160,7 +165,7 @@ async fn delete_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) 
 #[get("/{id}/courses")]
 async fn get_organization_courses(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let org_id = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
@@ -171,7 +176,8 @@ async fn get_organization_courses(path: web::Path<i32>, pool: web::Data<db::DbPo
         .filter(courses_organizations::organization_id.eq(org_id))
         .inner_join(crate::db::schema::courses::table)
         .select(crate::db::schema::courses::all_columns)
-        .load::<Course>(&mut conn);
+        .load::<Course>(&mut conn)
+        .await;
 
     match result {
         Ok(courses) => HttpResponse::Ok().json(courses),
@@ -191,7 +197,7 @@ async fn assign_role(
     let (org_id, target_user_id) = path.into_inner();
     let role_name = &body.role_name;
 
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
@@ -218,7 +224,7 @@ async fn assign_role(
     // The middleware ensures that the requester has this permission.
 
     // Perform Assignment with Hierarchy Check
-    match assign_role_to_user_in_organization(&mut conn, requester_id, target_user_id, org_id, role_name) {
+    match assign_role_to_user_in_organization(&mut conn, requester_id, target_user_id, org_id, role_name).await {
         Ok(_) => HttpResponse::Ok().body("Role assigned successfully"),
         Err(diesel::result::Error::RollbackTransaction) => HttpResponse::Forbidden().body("Hierarchy check failed: Cannot assign role higher than or equal to your own, or modify user with higher/equal rank."),
         Err(diesel::result::Error::NotFound) => HttpResponse::BadRequest().body("Role or User not found"),

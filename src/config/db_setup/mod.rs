@@ -3,14 +3,15 @@
 pub mod updates;
 
 use crate::models::db_version_control::DbVersionControl;
-use diesel::pg::PgConnection;
 use diesel::QueryResult;
+use diesel_async::AsyncPgConnection;
+use futures::future::BoxFuture;
 use self::updates::{apply_update_v1, apply_update_v2};
 
 // A small alias for update functions stored in the update list.
 // Each update receives a mutable Postgres connection and returns
 // Diesel's `QueryResult<()>` (alias for Result<_, diesel::result::Error>).
-type UpdateFn = fn(&mut PgConnection) -> QueryResult<()>;
+type UpdateFn = fn(&mut AsyncPgConnection) -> BoxFuture<'_, QueryResult<()>>;
 
 /// Returns the list of available updates as pairs of (target_version, function).
 ///
@@ -30,9 +31,9 @@ fn updates() -> Vec<(i32, UpdateFn)> {
 /// - Applies each update whose target version is greater than the current version.
 /// - At the end, sets the stored version to the maximum available update version
 ///   (no change if there are no updates or max <= current).
-pub fn version_updater(conn: &mut PgConnection) -> QueryResult<()> {
+pub async fn version_updater(conn: &mut AsyncPgConnection) -> QueryResult<()> {
     // Query the current version row. If it's missing or null, treat as 0.
-    let current_version = DbVersionControl::get_current_version(conn)?;
+    let current_version = DbVersionControl::get_current_version(conn).await?;
 
     let updates = updates();
 
@@ -45,7 +46,7 @@ pub fn version_updater(conn: &mut PgConnection) -> QueryResult<()> {
     for (target_version, update_fn) in &updates {
         if current_version < *target_version {
             // Each update can return a Diesel error which we propagate up.
-            update_fn(conn)?;
+            update_fn(conn).await?;
         }
     }
 
@@ -54,7 +55,7 @@ pub fn version_updater(conn: &mut PgConnection) -> QueryResult<()> {
 
     // Only write back if we advanced (or if the available max is greater).
     if max_version > current_version {
-        DbVersionControl::update_version(conn, max_version)?;
+        DbVersionControl::update_version(conn, max_version).await?;
     }
 
     Ok(())

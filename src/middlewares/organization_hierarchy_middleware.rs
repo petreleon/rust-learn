@@ -1,16 +1,15 @@
 // Filename: organization_hierarchy_middleware.rs
 
 use actix_service::{forward_ready, Service, Transform};
-use actix_web::{dev::{ServiceRequest, ServiceResponse}, error::{ErrorBadRequest, ErrorForbidden, ErrorInternalServerError, ErrorUnauthorized}, web, Error, HttpMessage};
-use diesel::{connection, r2d2::{ConnectionManager, PooledConnection}, PgConnection};
+use actix_web::{dev::{ServiceRequest, ServiceResponse}, web, Error};
 use futures::future::{self, Ready, LocalBoxFuture};
 use futures::FutureExt;
-use std::{cell::Ref, cmp::Ordering};
+use std::cmp::Ordering;
 use std::marker::PhantomData;
 
 // Assuming these modules are defined in your application
 use crate::db::DbPool;
-use crate::models::{user_jwt::UserJWT, param_type::ParamType};
+use crate::models::param_type::ParamType;
 use crate::utils::{request_utils::extract_param, db_utils::organization::user_hierarchy_compare_organization};
 
 pub struct OrganizationHierarchyMiddleware<S> {
@@ -92,7 +91,7 @@ S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + Clone
         async move {
             // Obtain a DB connection directly from the pool (no request extensions)
             let pool = req.app_data::<web::Data<DbPool>>().ok_or_else(|| actix_web::error::ErrorInternalServerError("Failed to get database pool"))?;
-            let mut conn = pool.get().map_err(|_| actix_web::error::ErrorInternalServerError("Failed to get database connection"))?;
+            let mut conn = pool.get().await.map_err(|_| actix_web::error::ErrorInternalServerError("Failed to get database connection"))?;
 
             let organization_id = organization_id_str_opt
                 .and_then(|id_str| id_str.parse::<i32>().ok())
@@ -122,7 +121,7 @@ S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + Clone
             };
 
             // Now call the compare function with the borrowed connection
-            can_proceed = match user_hierarchy_compare_organization(&mut conn, organization_id, user_jwt.user_id, second_user_id) {
+            can_proceed = match user_hierarchy_compare_organization(&mut conn, organization_id, user_jwt.user_id, second_user_id).await {
                 Ok(ordering) => ordering != Ordering::Less,
                 Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to compare user hierarchy with organization")),
             };

@@ -5,7 +5,7 @@ use bcrypt::{hash, verify, DEFAULT_COST};
 use crate::models::{authentication::Authentication, user_jwt::UserJWT};
 use crate::models::user::{User, NewUser};
 use crate::db;
-use diesel::prelude::*;
+// use diesel::prelude::*; // Not needed directly if using model methods
 use chrono::{NaiveDate, NaiveDateTime};
 use crate::utils::jwt_utils::create_jwt;
 use crate::models::{role::PlatformRole, user_role_platform::UserRolePlatform};
@@ -33,12 +33,12 @@ pub async fn login(
     pool: web::Data<db::DbPool>,
     req: web::Json<LoginRequest>,
 ) -> impl Responder {
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let user_auth_result = User::find_with_password_auth(&req.email, &mut conn);
+    let user_auth_result = User::find_with_password_auth(&req.email, &mut conn).await;
 
     match user_auth_result {
         Ok((user, info_auth)) => {
@@ -71,7 +71,7 @@ pub async fn register(
     pool: web::Data<db::DbPool>,
     req: web::Json<RegisterRequest>,
 ) -> impl Responder {
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
@@ -86,13 +86,16 @@ pub async fn register(
     };
 
     let inserted_user = User::create(new_user_data, &mut conn)
+        .await
         .expect("Error saving new user");
 
     // Assign default role (STUDENT)
     let role_id = PlatformRole::find_by_name("STUDENT", &mut conn)
+        .await
         .expect("Error finding STUDENT role");
     
     UserRolePlatform::assign(&mut conn, inserted_user.id(), role_id)
+        .await
         .expect("Error assigning default role to user");
 
     // Hash password and create authentication
@@ -104,6 +107,7 @@ pub async fn register(
     };
 
     Authentication::create(new_auth, &mut conn)
+        .await
         .expect("Error saving new authentication");
 
     HttpResponse::Ok().body("Registration successful")

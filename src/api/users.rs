@@ -1,7 +1,8 @@
 use actix_web::{Responder, HttpResponse, get, post};
 use actix_web::{web, HttpRequest};
 use serde_json::json;
-use diesel::prelude::*;
+use diesel::{QueryDsl, ExpressionMethods};
+use diesel_async::RunQueryDsl;
 use crate::db;
 use crate::models::user::User;
 use serde::Deserialize;
@@ -20,12 +21,12 @@ pub struct AssignRoleRequest {
 // GET /user -> list users (placeholder implementation)
 #[get("")]
 async fn list_users(pool: web::Data<db::DbPool>) -> impl Responder {
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = User::find_all(&mut conn);
+    let result = User::find_all(&mut conn).await;
 
     match result {
         Ok(user_list) => {
@@ -52,12 +53,12 @@ async fn list_users(pool: web::Data<db::DbPool>) -> impl Responder {
 #[get("/{id}")]
 async fn get_user(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let user_id = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = User::find_by_id(user_id, &mut conn);
+    let result = User::find_by_id(user_id, &mut conn).await;
 
     match result {
         Ok(u) => HttpResponse::Ok().json(json!({
@@ -87,7 +88,7 @@ async fn assign_role(
     let role_name = &body.role_name;
 
     // 1. Get DB connection
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
@@ -114,14 +115,14 @@ async fn assign_role(
 
     // 4. Hierarchy Checks
     // 4a. Get Requester Rank (lower is better, 0 is best)
-    let requester_level = match RolePlatformHierarchy::get_min_level(&mut conn, requester_id) {
+    let requester_level = match RolePlatformHierarchy::get_min_level(&mut conn, requester_id).await {
         Ok(Some(lvl)) => lvl,
         Ok(None) => return HttpResponse::Forbidden().body("Requester has no hierarchical rank"),
         Err(_) => return HttpResponse::InternalServerError().body("Error fetching requester rank"),
     };
 
     // 4b. Get Target User Rank (if any)
-    let target_level = match RolePlatformHierarchy::get_min_level(&mut conn, target_user_id) {
+    let target_level = match RolePlatformHierarchy::get_min_level(&mut conn, target_user_id).await {
         Ok(Some(lvl)) => lvl,
         // If target has no roles, they are level "infinity" (e.g. max i32) effectively, 
         // so they are definitely lower rank than requester. We permit modification.
@@ -137,7 +138,7 @@ async fn assign_role(
 
     // 4c. Get New Role Rank
     // Find role ID first
-    let role_id = match PlatformRole::find_by_name(role_name, &mut conn) {
+    let role_id = match PlatformRole::find_by_name(role_name, &mut conn).await {
         Ok(id) => id,
         Err(_) => return HttpResponse::BadRequest().body(format!("Role '{}' not found", role_name)),
     };
@@ -150,6 +151,7 @@ async fn assign_role(
             .filter(platform_role_id.eq(Some(role_id)))
             .select(hierarchy_level)
             .first::<i32>(&mut conn)
+            .await
             .unwrap_or(i32::MAX) // If role has no hierarchy entry, assume lowest rank? Or forbidden?
                                  // Let's assume strict: if not in hierarchy, maybe safe, but safer to treat as high or error?
                                  // Given migration 2025-08-12, all roles have hierarchy. If missing, something is wrong.
@@ -161,7 +163,7 @@ async fn assign_role(
     }
 
     // 5. Perform Assignment
-    match UserRolePlatform::assign(&mut conn, target_user_id, role_id) {
+    match UserRolePlatform::assign(&mut conn, target_user_id, role_id).await {
         Ok(_) => HttpResponse::Ok().body("Role assigned successfully"),
         Err(_) => HttpResponse::InternalServerError().body("Failed to assign role"),
     }

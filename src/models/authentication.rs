@@ -1,6 +1,7 @@
 use diesel::prelude::*;
 use crate::db::schema::authentications;
 use crate::models::user::User;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 #[derive(Queryable, Insertable, Associations)]
 #[diesel(belongs_to(User))]
@@ -12,9 +13,10 @@ pub struct Authentication {
 }
 
 impl Authentication {
-    pub fn create(new_auth: Authentication, conn: &mut PgConnection) -> QueryResult<usize> {
+    pub async fn create(new_auth: Authentication, conn: &mut AsyncPgConnection) -> QueryResult<usize> {
         diesel::insert_into(authentications::table)
             .values(&new_auth)
             .execute(conn)
+            .await
     }
 }

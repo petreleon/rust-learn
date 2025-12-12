@@ -1,4 +1,5 @@
 use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::db::schema::user_role_course;
 use crate::models::user::User;
 use crate::models::role::CourseRole;
@@ -17,7 +18,7 @@ pub struct UserRoleCourse {
 }
 
 impl UserRoleCourse {
-    pub fn has_permission(conn: &mut PgConnection, p_user_id: i32, p_course_id: i32, p_permission: &str) -> QueryResult<bool> {
+    pub async fn has_permission(conn: &mut AsyncPgConnection, p_user_id: i32, p_course_id: i32, p_permission: &str) -> QueryResult<bool> {
         use crate::db::schema::{course_roles, role_permission_course, user_role_course};
         
         let has_permission = diesel::select(diesel::dsl::exists(
@@ -34,12 +35,13 @@ impl UserRoleCourse {
                 .filter(user_role_course::course_id.eq(p_course_id))
                 .filter(role_permission_course::permission.eq(p_permission)),
         ))
-        .get_result(conn)?;
+        .get_result(conn)
+        .await?;
 
         Ok(has_permission)
     }
 
-    pub fn assign(conn: &mut PgConnection, p_user_id: i32, p_course_id: i32, p_course_role_id: i32) -> QueryResult<usize> {
+    pub async fn assign(conn: &mut AsyncPgConnection, p_user_id: i32, p_course_id: i32, p_course_role_id: i32) -> QueryResult<usize> {
         use crate::db::schema::user_role_course::dsl::*;
         
         let new_user_role = (
@@ -51,5 +53,6 @@ impl UserRoleCourse {
         diesel::insert_into(user_role_course)
             .values(&new_user_role)
             .execute(conn)
+            .await
     }
 }

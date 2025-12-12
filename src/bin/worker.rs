@@ -3,9 +3,8 @@ use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use anyhow::Result;
 use dotenvy::dotenv;
 use diesel::prelude::*;
-use diesel::RunQueryDsl;
-use diesel::query_dsl::methods::LockingDsl;
-// DbPool import not needed in this binary
+// use diesel_async::RunQueryDsl; // Not needed explicitly if using model methods
+
 use tokio::sync::Semaphore;
 use tokio::fs as tokio_fs;
 use tokio::signal::unix::{signal, SignalKind};
@@ -71,7 +70,7 @@ async fn main() -> Result<()> {
             break;
         }
         // Try to atomically claim a job and return it
-        let mut conn = match pool.get() {
+        let mut conn = match pool.get().await {
             Ok(c) => c,
             Err(e) => {
                 eprintln!("Failed to get DB connection: {:?}", e);
@@ -88,7 +87,7 @@ async fn main() -> Result<()> {
         // Stamp alive for healthcheck
         let _ = tokio_fs::write("/tmp/worker_alive", format!("{}", chrono::Utc::now().timestamp())).await;
 
-        let job_opt: Option<rust_learn::models::upload_job::UploadJob> = match rust_learn::models::upload_job::UploadJob::claim_job(&mut conn) {
+        let job_opt: Option<rust_learn::models::upload_job::UploadJob> = match rust_learn::models::upload_job::UploadJob::claim_job(&mut conn).await {
             Ok(j) => j,
             Err(e) => {
                 eprintln!("Failed to claim job: {:?}", e);
@@ -119,7 +118,7 @@ async fn main() -> Result<()> {
         // Clone handles for the spawned task
         let minio_cloned = minio.clone();
         let notifications_cloned = notifications.clone();
-        let mut conn_for_task = match pool.get() {
+        let mut conn_for_task = match pool.get().await {
             Ok(c) => c,
             Err(e) => {
                 eprintln!("Failed to get DB connection for task: {:?}", e);
@@ -142,7 +141,7 @@ async fn main() -> Result<()> {
             let res = minio_cloned.process_uploaded_video(&bucket, &object, uid, notifications_cloned).await;
 
             if res.is_ok() {
-                if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_done(job_id, &mut *conn_for_task) {
+                if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_done(job_id, &mut *conn_for_task).await {
                     eprintln!("Failed to mark job done {}: {:?}", job_id, e);
                 }
             } else {
@@ -152,7 +151,7 @@ async fn main() -> Result<()> {
 
                 if new_attempts >= max_attempts {
                     // mark as permanently failed
-                    if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_failed(job_id, new_attempts as i32, err_text.clone(), &mut *conn_for_task) {
+                    if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_failed(job_id, new_attempts as i32, err_text.clone(), &mut *conn_for_task).await {
                         eprintln!("Failed to mark job failed {}: {:?}", job_id, e);
                     }
                 } else {
@@ -163,7 +162,7 @@ async fn main() -> Result<()> {
                         .checked_add_signed(chrono::Duration::seconds(backoff as i64))
                         .unwrap_or_else(chrono::Utc::now);
 
-                    if let Err(e) = rust_learn::models::upload_job::UploadJob::schedule_retry(job_id, new_attempts as i32, err_text.clone(), future_time, &mut *conn_for_task) {
+                    if let Err(e) = rust_learn::models::upload_job::UploadJob::schedule_retry(job_id, new_attempts as i32, err_text.clone(), future_time, &mut *conn_for_task).await {
                         eprintln!("Failed to schedule retry for job {}: {:?}", job_id, e);
                     }
                 }

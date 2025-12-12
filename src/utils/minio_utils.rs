@@ -204,7 +204,7 @@ impl MinioState {
             .await?;
 
         if !status.success() {
-            let _ = notifications.send_notification(user_id, "video:processing_failed", format!("Failed to transcode {}", object));
+            let _ = notifications.send_notification(user_id, "video:processing_failed", format!("Failed to transcode {}", object)).await;
             return Err(anyhow::anyhow!("ffmpeg transcode failed"));
         }
 
@@ -224,7 +224,7 @@ impl MinioState {
             .await?;
 
         if !status2.success() {
-            let _ = notifications.send_notification(user_id, "video:audio_extraction_failed", format!("Failed to extract audio for {}", object));
+            let _ = notifications.send_notification(user_id, "video:audio_extraction_failed", format!("Failed to extract audio for {}", object)).await;
             return Err(anyhow::anyhow!("ffmpeg audio extraction failed"));
         }
 
@@ -236,7 +236,7 @@ impl MinioState {
         self.put_object_from_path(bucket, &audio_object, extracted_audio.clone()).await?;
 
         // notify user
-        notifications.send_notification(user_id, "video:processed", format!("Your video '{}' has been processed. Video: {} Audio: {}", object, processed_object, audio_object))?;
+        notifications.send_notification(user_id, "video:processed", format!("Your video '{}' has been processed. Video: {} Audio: {}", object, processed_object, audio_object)).await?;
 
         // cleanup
         let _ = tokio_fs::remove_dir_all(&tmp_dir).await;

@@ -1,16 +1,15 @@
 // src/utils/db_utils/authentication_registration.rs
 
-use bcrypt::verify;
 use diesel::prelude::*;
-use diesel::PgConnection;
+use diesel_async::AsyncPgConnection;
 
 use crate::models::user::{User, NewUser};
 use crate::models::authentication::Authentication;
 use bcrypt::{hash, DEFAULT_COST};
 use chrono::NaiveDate;
 
-pub fn create_user(
-    conn: &mut PgConnection,
+pub async fn create_user(
+    conn: &mut AsyncPgConnection,
     name: &str,
     email: &str,
     date_of_birth: Option<NaiveDate>,
@@ -24,7 +23,7 @@ pub fn create_user(
         kyc_verified: false,
     };
 
-    let inserted_user = User::create(new_user, conn)?;
+    let inserted_user = User::create(new_user, conn).await?;
 
     let hashed_password = hash(password, DEFAULT_COST).expect("Error hashing password");
     let new_auth = Authentication {
@@ -33,7 +32,7 @@ pub fn create_user(
         info_auth: hashed_password,
     };
 
-    Authentication::create(new_auth, conn)?;
+    Authentication::create(new_auth, conn).await?;
 
     Ok(inserted_user)
 }

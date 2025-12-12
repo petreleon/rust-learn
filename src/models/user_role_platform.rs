@@ -1,5 +1,6 @@
 use crate::db::schema::user_role_platform;
 use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::models::user::User;
 use crate::models::role::PlatformRole;
 
@@ -14,7 +15,7 @@ pub struct UserRolePlatform {
 }
 
 impl UserRolePlatform {
-    pub fn has_permission(conn: &mut PgConnection, p_user_id: i32, p_permission: &str) -> QueryResult<bool> {
+    pub async fn has_permission(conn: &mut AsyncPgConnection, p_user_id: i32, p_permission: &str) -> QueryResult<bool> {
         use crate::db::schema::{platform_roles, role_permission_platform, user_role_platform};
         
         let has_permission = diesel::select(diesel::dsl::exists(
@@ -25,12 +26,13 @@ impl UserRolePlatform {
                 .filter(user_role_platform::user_id.eq(p_user_id))
                 .filter(role_permission_platform::permission.eq(p_permission))
         ))
-        .get_result(conn)?;
+        .get_result(conn)
+        .await?;
 
         Ok(has_permission)
     }
 
-    pub fn assign(conn: &mut PgConnection, p_user_id: i32, p_platform_role_id: i32) -> QueryResult<usize> {
+    pub async fn assign(conn: &mut AsyncPgConnection, p_user_id: i32, p_platform_role_id: i32) -> QueryResult<usize> {
         use crate::db::schema::user_role_platform::dsl::*;
         
         let new_user_role = (
@@ -41,5 +43,6 @@ impl UserRolePlatform {
         diesel::insert_into(user_role_platform)
             .values(&new_user_role)
             .execute(conn)
+            .await
     }
 }

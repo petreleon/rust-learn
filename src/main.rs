@@ -59,8 +59,8 @@ async fn main() -> std::io::Result<()> {
     // Initialize notifications state (DB-backed using the pool)
     let notifications_state = crate::utils::notifications::NotificationsState::new(pool.clone());
     {
-        let mut conn = pool.get().expect("Failed to get DB connection from pool");
-        version_updater(&mut *conn).expect("Failed to update database version");
+        let mut conn = pool.get().await.expect("Failed to get DB connection from pool");
+        version_updater(&mut conn).await.expect("Failed to update database version");
 
         // Ensure LearnToken is deployed (idempotent: uses persistent state)
         match crate::utils::eth_utils::deploy_startup(&mut conn, "LearnToken", "LRN", 18).await {

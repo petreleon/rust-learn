@@ -1,10 +1,10 @@
 use actix_web::{test, App, web};
 use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager, PooledConnection};
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::utils::db_utils::authentication_registration::create_user;
 use rust_learn::models::user::User;
 use rust_learn::utils::jwt_utils::create_jwt;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::course::{NewCourse, Course};
@@ -21,13 +21,11 @@ fn unique_string(prefix: &str) -> String {
     format!("{}_{}", prefix, ts)
 }
 
-fn setup_conn() -> PooledConnection<ConnectionManager<PgConnection>> {
-    let _ = dotenvy::dotenv();
-    let pool = establish_connection();
-    pool.get().expect("failed to get DB connection from pool")
+async fn setup_conn(pool: &DbPool) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
+    pool.get().await.expect("failed to get DB connection from pool")
 }
 
-fn create_test_user(conn: &mut PgConnection, name: &str) -> User {
+async fn create_test_user(conn: &mut AsyncPgConnection, name: &str) -> User {
     let email = unique_string(name) + "@example.com";
     create_user(
         conn,
@@ -36,6 +34,7 @@ fn create_test_user(conn: &mut PgConnection, name: &str) -> User {
         Some(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()),
         "password",
     )
+    .await
     .expect("failed to create user")
 }
 
@@ -43,19 +42,19 @@ fn generate_token(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to generate token")
 }
 
-fn force_assign_platform_role(conn: &mut PgConnection, user_id: i32, role_name: &str) {
-    let role_id = PlatformRole::find_by_name(role_name, conn).expect("role not found");
-    UserRolePlatform::assign(conn, user_id, role_id).expect("assign failed");
+async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
+    let role_id = PlatformRole::find_by_name(role_name, conn).await.expect("role not found");
+    UserRolePlatform::assign(conn, user_id, role_id).await.expect("assign failed");
 }
 
-fn force_assign_org_role(conn: &mut PgConnection, user_id: i32, org_id: i32, role_name: &str) {
-    let role_id = OrganizationRole::find_by_name(role_name, conn).expect("role not found");
-    UserRoleOrganization::assign(conn, user_id, org_id, role_id).expect("assign failed");
+async fn force_assign_org_role(conn: &mut AsyncPgConnection, user_id: i32, org_id: i32, role_name: &str) {
+    let role_id = OrganizationRole::find_by_name(role_name, conn).await.expect("role not found");
+    UserRoleOrganization::assign(conn, user_id, org_id, role_id).await.expect("assign failed");
 }
 
-fn force_assign_course_role(conn: &mut PgConnection, user_id: i32, course_id: i32, role_name: &str) {
-    let role_id = CourseRole::find_by_name(role_name, conn).expect("role not found");
-    UserRoleCourse::assign(conn, user_id, course_id, role_id).expect("assign failed");
+async fn force_assign_course_role(conn: &mut AsyncPgConnection, user_id: i32, course_id: i32, role_name: &str) {
+    let role_id = CourseRole::find_by_name(role_name, conn).await.expect("role not found");
+    UserRoleCourse::assign(conn, user_id, course_id, role_id).await.expect("assign failed");
 }
 
 #[actix_web::test]
@@ -64,13 +63,13 @@ async fn test_platform_permission_middleware() {
     let pool = establish_connection();
 
     // Setup Users
-    let mut conn = setup_conn();
-    let admin = create_test_user(&mut conn, "superadmin");
-    let target_user = create_test_user(&mut conn, "target");
-    let unprivileged = create_test_user(&mut conn, "unpriv");
+    let mut conn = setup_conn(&pool).await;
+    let admin = create_test_user(&mut conn, "superadmin").await;
+    let target_user = create_test_user(&mut conn, "target").await;
+    let unprivileged = create_test_user(&mut conn, "unpriv").await;
 
     // Assign SUPER_ADMIN role (which has all perms)
-    force_assign_platform_role(&mut conn, admin.id(), "SUPER_ADMIN");
+    force_assign_platform_role(&mut conn, admin.id(), "SUPER_ADMIN").await;
 
     let admin_token = generate_token(admin.id());
     let unprivileged_token = generate_token(unprivileged.id());
@@ -131,15 +130,19 @@ async fn test_organization_permission_middleware() {
     let pool = establish_connection();
     
     // Setup Data
-    let mut conn = setup_conn();
-    let owner = create_test_user(&mut conn, "org_superadmin");
-    let stranger = create_test_user(&mut conn, "stranger");
+    let mut conn = setup_conn(&pool).await;
+    let owner = create_test_user(&mut conn, "org_superadmin").await;
+    let stranger = create_test_user(&mut conn, "stranger").await;
     
     let new_org = NewOrganization { name: unique_string("TestOrg"), website_link: None, profile_url: None };
-    let org = diesel::insert_into(organizations::table).values(&new_org).get_result::<Organization>(&mut conn).unwrap();
+    let org = diesel::insert_into(organizations::table)
+        .values(&new_org)
+        .get_result::<Organization>(&mut conn)
+        .await
+        .unwrap();
 
     // Assign ADMIN (Org scope) - Note: SUPERADMIN has permission sync issues in current migrations
-    force_assign_org_role(&mut conn, owner.id(), org.id, "ADMIN"); 
+    force_assign_org_role(&mut conn, owner.id(), org.id, "ADMIN").await;
 
     let owner_token = generate_token(owner.id());
     let stranger_token = generate_token(stranger.id());
@@ -187,15 +190,19 @@ async fn test_course_permission_middleware() {
     let pool = establish_connection();
     
     // Setup Data
-    let mut conn = setup_conn();
-    let teacher = create_test_user(&mut conn, "teacher");
-    let student = create_test_user(&mut conn, "student");
+    let mut conn = setup_conn(&pool).await;
+    let teacher = create_test_user(&mut conn, "teacher").await;
+    let student = create_test_user(&mut conn, "student").await;
     
     let new_course = NewCourse { title: unique_string("TestCourse") };
-    let course = diesel::insert_into(courses::table).values(&new_course).get_result::<Course>(&mut conn).unwrap();
+    let course = diesel::insert_into(courses::table)
+        .values(&new_course)
+        .get_result::<Course>(&mut conn)
+        .await
+        .unwrap();
 
-    force_assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER");
-    force_assign_course_role(&mut conn, student.id(), course.id, "STUDENT");
+    force_assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER").await;
+    force_assign_course_role(&mut conn, student.id(), course.id, "STUDENT").await;
 
     let teacher_token = generate_token(teacher.id());
     let student_token = generate_token(student.id());

@@ -1,6 +1,5 @@
 use actix_web::{test, App, web};
 use diesel::prelude::*;
-use diesel::r2d2::{ConnectionManager, PooledConnection};
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::utils::db_utils::authentication_registration::create_user;
 use rust_learn::models::user::User;
@@ -13,19 +12,18 @@ use rust_learn::models::role::CourseRole;
 use rust_learn::models::user_role_course::UserRoleCourse;
 use chrono::NaiveDate;
 use actix_service::Service;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
 }
 
-fn setup_conn() -> PooledConnection<ConnectionManager<PgConnection>> {
-    let _ = dotenvy::dotenv();
-    let pool = establish_connection();
-    pool.get().expect("failed to get DB connection from pool")
+async fn setup_conn(pool: &DbPool) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
+    pool.get().await.expect("failed to get DB connection from pool")
 }
 
-fn create_test_user(conn: &mut PgConnection, name: &str) -> User {
+async fn create_test_user(conn: &mut AsyncPgConnection, name: &str) -> User {
     let email = unique_string(name) + "@example.com";
     create_user(
         conn,
@@ -34,6 +32,7 @@ fn create_test_user(conn: &mut PgConnection, name: &str) -> User {
         Some(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()),
         "password",
     )
+    .await
     .expect("failed to create user")
 }
 
@@ -41,9 +40,9 @@ fn generate_token(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to generate token")
 }
 
-fn force_assign_course_role(conn: &mut PgConnection, user_id: i32, course_id: i32, role_name: &str) {
-    let role_id = CourseRole::find_by_name(role_name, conn).expect("role not found");
-    UserRoleCourse::assign(conn, user_id, course_id, role_id).expect("assign failed");
+async fn force_assign_course_role(conn: &mut AsyncPgConnection, user_id: i32, course_id: i32, role_name: &str) {
+    let role_id = CourseRole::find_by_name(role_name, conn).await.expect("role not found");
+    UserRoleCourse::assign(conn, user_id, course_id, role_id).await.expect("assign failed");
 }
 
 #[actix_web::test]
@@ -52,15 +51,19 @@ async fn test_course_content_lifecycle() {
     let pool = establish_connection();
     
     // Setup Data
-    let mut conn = setup_conn();
-    let teacher = create_test_user(&mut conn, "teacher_content");
-    let student = create_test_user(&mut conn, "student_content");
+    let mut conn = setup_conn(&pool).await;
+    let teacher = create_test_user(&mut conn, "teacher_content").await;
+    let student = create_test_user(&mut conn, "student_content").await;
     
     let new_course = NewCourse { title: unique_string("CourseWithContent") };
-    let course = diesel::insert_into(courses::table).values(&new_course).get_result::<Course>(&mut conn).unwrap();
+    let course = diesel::insert_into(courses::table)
+        .values(&new_course)
+        .get_result::<Course>(&mut conn)
+        .await
+        .unwrap();
 
-    force_assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER");
-    force_assign_course_role(&mut conn, student.id(), course.id, "STUDENT");
+    force_assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER").await;
+    force_assign_course_role(&mut conn, student.id(), course.id, "STUDENT").await;
 
     let teacher_token = generate_token(teacher.id());
     let student_token = generate_token(student.id());

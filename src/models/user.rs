@@ -2,6 +2,7 @@ use diesel::prelude::*;
 use crate::db::schema::users;
 use chrono::NaiveDate;
 use chrono::NaiveDateTime;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 #[derive(Queryable, Insertable)]
 #[diesel(table_name = users)]
@@ -30,25 +31,26 @@ impl User {
         self.id
     }
 
-    pub fn find_all(conn: &mut PgConnection) -> QueryResult<Vec<User>> {
-        users::table.load::<User>(conn)
+    pub async fn find_all(conn: &mut AsyncPgConnection) -> QueryResult<Vec<User>> {
+        users::table.load::<User>(conn).await
     }
 
-    pub fn find_by_id(id: i32, conn: &mut PgConnection) -> QueryResult<User> {
-        users::table.find(id).first(conn)
+    pub async fn find_by_id(id: i32, conn: &mut AsyncPgConnection) -> QueryResult<User> {
+        users::table.find(id).first(conn).await
     }
 
-    pub fn find_by_email(email: &str, conn: &mut PgConnection) -> QueryResult<User> {
-        users::table.filter(users::email.eq(email)).first(conn)
+    pub async fn find_by_email(email: &str, conn: &mut AsyncPgConnection) -> QueryResult<User> {
+        users::table.filter(users::email.eq(email)).first(conn).await
     }
 
-    pub fn create(new_user: NewUser, conn: &mut PgConnection) -> QueryResult<User> {
+    pub async fn create(new_user: NewUser, conn: &mut AsyncPgConnection) -> QueryResult<User> {
         diesel::insert_into(users::table)
             .values(&new_user)
             .get_result(conn)
+            .await
     }
 
-    pub fn find_with_password_auth(email: &str, conn: &mut PgConnection) -> QueryResult<(User, Option<String>)> {
+    pub async fn find_with_password_auth(email: &str, conn: &mut AsyncPgConnection) -> QueryResult<(User, Option<String>)> {
         use crate::db::schema::authentications;
         users::table
             .filter(users::email.eq(email))
@@ -56,5 +58,6 @@ impl User {
             .filter(authentications::type_authentication.eq("password"))
             .select((users::all_columns, authentications::info_auth.nullable()))
             .first(conn)
+            .await
     }
 }

@@ -1,4 +1,5 @@
 use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::db::schema::{platform_roles, organization_roles, course_roles};
 use serde::Serialize;
 
@@ -11,12 +12,13 @@ pub struct PlatformRole {
 }
 
 impl PlatformRole {
-    pub fn find_by_name(role_name: &str, conn: &mut PgConnection) -> QueryResult<i32> {
+    pub async fn find_by_name(role_name: &str, conn: &mut AsyncPgConnection) -> QueryResult<i32> {
         use crate::db::schema::platform_roles::dsl::*;
         platform_roles
             .filter(name.eq(role_name))
             .select(id)
             .first::<i32>(conn)
+            .await
     }
 }
 
@@ -29,12 +31,13 @@ pub struct OrganizationRole {
 }
 
 impl OrganizationRole {
-    pub fn find_by_name(role_name: &str, conn: &mut PgConnection) -> QueryResult<i32> {
+    pub async fn find_by_name(role_name: &str, conn: &mut AsyncPgConnection) -> QueryResult<i32> {
         use crate::db::schema::organization_roles::dsl::*;
         organization_roles
             .filter(name.eq(role_name))
             .select(id)
             .first::<i32>(conn)
+            .await
     }
 }
 
@@ -47,11 +50,12 @@ pub struct CourseRole {
 }
 
 impl CourseRole {
-    pub fn find_by_name(role_name: &str, conn: &mut PgConnection) -> QueryResult<i32> {
+    pub async fn find_by_name(role_name: &str, conn: &mut AsyncPgConnection) -> QueryResult<i32> {
         use crate::db::schema::course_roles::dsl::*;
         course_roles
             .filter(name.eq(role_name))
             .select(id)
             .first::<i32>(conn)
+            .await
     }
 }

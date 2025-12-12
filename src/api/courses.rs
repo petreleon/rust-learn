@@ -1,5 +1,6 @@
 use actix_web::{get, post, web, HttpResponse, Responder, HttpRequest};
 use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
 use serde::Deserialize;
 use crate::db;
 use crate::models::course::{Course, NewCourse, UpdateCourse};
@@ -17,12 +18,12 @@ pub struct AssignRoleRequest {
 
 #[get("")]
 async fn list_courses(pool: web::Data<db::DbPool>) -> impl Responder {
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = courses::table.load::<Course>(&mut conn);
+    let result = courses::table.load::<Course>(&mut conn).await;
 
     match result {
         Ok(course_list) => HttpResponse::Ok().json(course_list),
@@ -36,12 +37,12 @@ async fn list_courses(pool: web::Data<db::DbPool>) -> impl Responder {
 #[get("/{id}")]
 async fn get_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let course_id = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = courses::table.find(course_id).first::<Course>(&mut conn);
+    let result = courses::table.find(course_id).first::<Course>(&mut conn).await;
 
     match result {
         Ok(course) => HttpResponse::Ok().json(course),
@@ -64,7 +65,7 @@ pub struct CreateCourseRequest {
 
 #[post("")]
 async fn create_course(pool: web::Data<db::DbPool>, req: web::Json<CreateCourseRequest>) -> impl Responder {
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
@@ -73,7 +74,7 @@ async fn create_course(pool: web::Data<db::DbPool>, req: web::Json<CreateCourseR
         &mut conn,
         req.title.clone(),
         req.organization_ids.clone(),
-    );
+    ).await;
 
     match result {
         Ok(course) => HttpResponse::Created().json(course),
@@ -90,14 +91,15 @@ async fn update_course(
     req: web::Json<UpdateCourse>,
 ) -> impl Responder {
     let course_id = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
     let result = diesel::update(courses::table.find(course_id))
         .set(&*req)
-        .get_result::<Course>(&mut conn);
+        .get_result::<Course>(&mut conn)
+        .await;
 
     match result {
         Ok(course) => HttpResponse::Ok().json(course),
@@ -111,13 +113,14 @@ async fn update_course(
 
 async fn delete_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let course_id = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
     let result = diesel::delete(courses::table.find(course_id))
-        .execute(&mut conn);
+        .execute(&mut conn)
+        .await;
 
     match result {
         Ok(count) => {
@@ -137,7 +140,7 @@ async fn delete_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> imp
 #[get("/{id}/organizations")]
 async fn get_course_organizations(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let course_id = path.into_inner();
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
@@ -148,7 +151,8 @@ async fn get_course_organizations(path: web::Path<i32>, pool: web::Data<db::DbPo
         .filter(courses_organizations::course_id.eq(course_id))
         .inner_join(crate::db::schema::organizations::table)
         .select(crate::db::schema::organizations::all_columns)
-        .load::<Organization>(&mut conn);
+        .load::<Organization>(&mut conn)
+        .await;
 
     match result {
         Ok(orgs) => HttpResponse::Ok().json(orgs),
@@ -168,7 +172,7 @@ async fn assign_role(
     let (course_id, target_user_id) = path.into_inner();
     let role_name = &body.role_name;
 
-    let mut conn = match pool.get() {
+    let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
@@ -194,7 +198,7 @@ async fn assign_role(
     // Middleware "MANAGE_COURSE_ENROLLMENTS" required.
 
     // Perform Assignment with Hierarchy Check
-    match assign_role_to_user_in_course(&mut conn, requester_id, target_user_id, course_id, role_name) {
+    match assign_role_to_user_in_course(&mut conn, requester_id, target_user_id, course_id, role_name).await {
         Ok(_) => HttpResponse::Ok().body("Role assigned successfully"),
         Err(diesel::result::Error::RollbackTransaction) => HttpResponse::Forbidden().body("Hierarchy check failed: Cannot assign role higher than or equal to your own, or modify user with higher/equal rank."),
         Err(diesel::result::Error::NotFound) => HttpResponse::BadRequest().body("Role or User not found"),

@@ -97,7 +97,7 @@ where
                 Err(_) => return Err(actix_web::error::ErrorBadRequest("Invalid or missing parameter")),
             };
     
-            let mut conn = match db_pool.get() {
+            let mut conn = match db_pool.get().await {
                 Ok(conn) => conn,
                 Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to get database connection")),
             };
@@ -106,7 +106,7 @@ where
                 None => return Err(actix_web::error::ErrorUnauthorized("Unauthorized access")),
             };
     
-            match user_hierarchy_compare_platform(&mut conn, user_jwt.user_id, second_user_id) {
+            match user_hierarchy_compare_platform(&mut conn, user_jwt.user_id, second_user_id).await {
                 Ok(ordering) => {
                     if ordering == Ordering::Less {
                         return Err(actix_web::error::ErrorForbidden("Modification not permitted: second user has a greater hierarchy level"));
