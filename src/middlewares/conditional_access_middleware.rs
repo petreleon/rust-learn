@@ -8,14 +8,14 @@ use futures::FutureExt;
 // Middleware definition
 pub struct ConditionalAccessMiddleware<S> {
     _service: PhantomData<S>,
-    permitting_function: Arc<dyn Fn(&ServiceRequest) -> bool + Send + Sync>,
+    permitting_function: Arc<dyn Fn(&ServiceRequest) -> LocalBoxFuture<'static, Result<bool, Error>> + Send + Sync>,
     denial_error: Arc<dyn Fn() -> Error + Send + Sync>,
 }
 
 impl<S> ConditionalAccessMiddleware<S> {
     pub fn new<F, E>(permitting_function: F, denial_error: E) -> Self
     where
-        F: Fn(&ServiceRequest) -> bool + 'static + Send + Sync,
+        F: Fn(&ServiceRequest) -> LocalBoxFuture<'static, Result<bool, Error>> + 'static + Send + Sync,
         E: Fn() -> Error + 'static + Send + Sync,
     {
         ConditionalAccessMiddleware {
@@ -49,7 +49,7 @@ where
 
 pub struct ConditionalAccessMiddlewareService<S> {
     service: S,
-    permitting_function: Arc<dyn Fn(&ServiceRequest) -> bool + Send + Sync>,
+    permitting_function: Arc<dyn Fn(&ServiceRequest) -> LocalBoxFuture<'static, Result<bool, Error>> + Send + Sync>,
     denial_error: Arc<dyn Fn() -> Error + Send + Sync>,
 }
 
@@ -66,10 +66,16 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        if (self.permitting_function)(&req) {
-            self.service.call(req).boxed_local()
-        } else {
-            future::ready(Err((self.denial_error)())).boxed_local()
-        }
+        let check_fut = (self.permitting_function)(&req);
+        let svc_fut = self.service.call(req);
+        let denial_error = self.denial_error.clone();
+
+        async move {
+            match check_fut.await {
+                Ok(true) => svc_fut.await,
+                Ok(false) => Err((denial_error)()),
+                Err(e) => Err(e),
+            }
+        }.boxed_local()
     }
 }

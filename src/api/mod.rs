@@ -16,7 +16,7 @@ pub fn api_scope() -> Scope<impl ServiceFactory<ServiceRequest, Config = (), Res
     web::scope("/api")
         .wrap(JwtMiddleware)
         .wrap(ConditionalAccessMiddleware::new(
-            |_req: &ServiceRequest| true,
+            |_req: &ServiceRequest| Box::pin(futures::future::ready(Ok(true))),
             || actix_web::error::ErrorUnauthorized("Denied by conditional middleware"),
         ))
         .service(users::user_scope())
