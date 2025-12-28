@@ -1,15 +1,12 @@
 use actix_web::{get, post, web, HttpResponse, Responder, HttpRequest};
-use diesel::prelude::*;
-use diesel_async::{RunQueryDsl, AsyncConnection};
 use serde::Deserialize;
 use crate::db;
-use crate::models::organization::{Organization, NewOrganization, UpdateOrganization};
-use crate::db::schema::organizations;
+use crate::models::organization::UpdateOrganization;
 use crate::utils::jwt_utils::decode_jwt;
-use crate::utils::db_utils::organization::assign_role_to_user_in_organization;
 use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
 use crate::models::param_type::ParamType;
 use crate::config::constants::permissions::Permissions;
+use crate::services::organization_service;
 
 #[derive(Deserialize)]
 pub struct AssignRoleRequest {
@@ -18,17 +15,10 @@ pub struct AssignRoleRequest {
 
 #[get("")]
 async fn list_organizations(pool: web::Data<db::DbPool>) -> impl Responder {
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    let result = organizations::table.load::<Organization>(&mut conn).await;
-
-    match result {
+    match organization_service::list_organizations(&pool).await {
         Ok(org_list) => HttpResponse::Ok().json(org_list),
         Err(e) => {
-            eprintln!("DB error listing organizations: {}", e);
+            eprintln!("{}", e);
             HttpResponse::InternalServerError().body("Failed to load organizations")
         }
     }
@@ -37,14 +27,7 @@ async fn list_organizations(pool: web::Data<db::DbPool>) -> impl Responder {
 #[get("/{id}")]
 async fn get_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let org_id = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    let result = organizations::table.find(org_id).first::<Organization>(&mut conn).await;
-
-    match result {
+    match organization_service::get_organization(&pool, org_id).await {
         Ok(org) => HttpResponse::Ok().json(org),
         Err(diesel::result::Error::NotFound) => HttpResponse::NotFound().body("Organization not found"),
         Err(e) => {
@@ -53,9 +36,6 @@ async fn get_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> 
         }
     }
 }
-
-use crate::models::courses_organizations::NewCourseOrganization;
-use crate::db::schema::courses_organizations;
 
 #[derive(Deserialize)]
 pub struct CreateOrganizationRequest {
@@ -67,44 +47,17 @@ pub struct CreateOrganizationRequest {
 
 #[post("")]
 async fn create_organization(pool: web::Data<db::DbPool>, req: web::Json<CreateOrganizationRequest>) -> impl Responder {
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    let dto = organization_service::CreateOrganizationDto {
+        name: req.name.clone(),
+        website_link: req.website_link.clone(),
+        profile_url: req.profile_url.clone(),
+        course_ids: req.course_ids.clone(),
     };
 
-    let result = conn.transaction::<_, diesel::result::Error, _>(|conn| Box::pin(async move {
-        let new_org = NewOrganization {
-            name: req.name.clone(),
-            website_link: req.website_link.clone(),
-            profile_url: req.profile_url.clone(),
-        };
-
-        let org = diesel::insert_into(organizations::table)
-            .values(&new_org)
-            .get_result::<Organization>(conn)
-            .await?;
-
-        if let Some(course_ids) = &req.course_ids {
-            for (index, course_id) in course_ids.iter().enumerate() {
-                let new_link = NewCourseOrganization {
-                    course_id: *course_id,
-                    organization_id: org.id,
-                    order: index as i32,
-                };
-                diesel::insert_into(courses_organizations::table)
-                    .values(&new_link)
-                    .execute(conn)
-                    .await?;
-            }
-        }
-
-        Ok(org)
-    })).await;
-
-    match result {
+    match organization_service::create_organization(&pool, dto).await {
         Ok(org) => HttpResponse::Created().json(org),
         Err(e) => {
-            eprintln!("DB error creating organization: {}", e);
+            eprintln!("{}", e);
             HttpResponse::InternalServerError().body("Failed to create organization")
         }
     }
@@ -116,17 +69,10 @@ async fn update_organization(
     req: web::Json<UpdateOrganization>,
 ) -> impl Responder {
     let org_id = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    let result = diesel::update(organizations::table.find(org_id))
-        .set(&*req)
-        .get_result::<Organization>(&mut conn)
-        .await;
-
-    match result {
+    // Using into_inner() on Json wrapper to get the inner struct
+    let update_data = req.into_inner(); 
+    
+    match organization_service::update_organization(&pool, org_id, update_data).await {
         Ok(org) => HttpResponse::Ok().json(org),
         Err(diesel::result::Error::NotFound) => HttpResponse::NotFound().body("Organization not found"),
         Err(e) => {
@@ -138,16 +84,7 @@ async fn update_organization(
 
 async fn delete_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let org_id = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    let result = diesel::delete(organizations::table.find(org_id))
-        .execute(&mut conn)
-        .await;
-
-    match result {
+    match organization_service::delete_organization(&pool, org_id).await {
         Ok(count) => {
             if count > 0 {
                 HttpResponse::Ok().body("Organization deleted")
@@ -156,7 +93,7 @@ async fn delete_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) 
             }
         }
         Err(e) => {
-            eprintln!("DB error deleting organization {}: {}", org_id, e);
+            eprintln!("{}", e);
             HttpResponse::InternalServerError().body("Failed to delete organization")
         }
     }
@@ -165,24 +102,10 @@ async fn delete_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) 
 #[get("/{id}/courses")]
 async fn get_organization_courses(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let org_id = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    use crate::models::course::Course;
-    
-    let result = courses_organizations::table
-        .filter(courses_organizations::organization_id.eq(org_id))
-        .inner_join(crate::db::schema::courses::table)
-        .select(crate::db::schema::courses::all_columns)
-        .load::<Course>(&mut conn)
-        .await;
-
-    match result {
+    match organization_service::get_organization_courses(&pool, org_id).await {
         Ok(courses) => HttpResponse::Ok().json(courses),
         Err(e) => {
-            eprintln!("DB error fetching organization courses: {}", e);
+            eprintln!("{}", e);
             HttpResponse::InternalServerError().body("Failed to fetch organization courses")
         }
     }
@@ -196,11 +119,6 @@ async fn assign_role(
 ) -> impl Responder {
     let (org_id, target_user_id) = path.into_inner();
     let role_name = &body.role_name;
-
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
 
     // Identify Requester from JWT
     let auth_header = match req.headers().get("Authorization") {
@@ -219,18 +137,17 @@ async fn assign_role(
         Err(_) => return HttpResponse::Unauthorized().body("Invalid token"),
     };
 
-    // Permission Check: Handled by Middleware
-    // However, if we didn't use middleware, we would check "ASSIGN_ROLES_TO_ORG_USERS" here.
-    // The middleware ensures that the requester has this permission.
-
-    // Perform Assignment with Hierarchy Check
-    match assign_role_to_user_in_organization(&mut conn, requester_id, target_user_id, org_id, role_name).await {
+    match organization_service::assign_role(&pool, requester_id, target_user_id, org_id, role_name).await {
         Ok(_) => HttpResponse::Ok().body("Role assigned successfully"),
-        Err(diesel::result::Error::RollbackTransaction) => HttpResponse::Forbidden().body("Hierarchy check failed: Cannot assign role higher than or equal to your own, or modify user with higher/equal rank."),
-        Err(diesel::result::Error::NotFound) => HttpResponse::BadRequest().body("Role or User not found"),
-        Err(e) => {
-            eprintln!("Error assigning role: {}", e);
-            HttpResponse::InternalServerError().body("Failed to assign role")
+        Err(msg) => {
+             if msg.contains("Hierarchy check failed") {
+                 HttpResponse::Forbidden().body("Hierarchy check failed: Cannot assign role higher than or equal to your own, or modify user with higher/equal rank.")
+             } else if msg.contains("Role or User not found") {
+                 HttpResponse::BadRequest().body(msg)
+             } else {
+                 eprintln!("{}", msg);
+                 HttpResponse::InternalServerError().body("Failed to assign role")
+             }
         }
     }
 }
