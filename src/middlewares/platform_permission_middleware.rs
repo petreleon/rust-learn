@@ -1,63 +1,38 @@
-use actix_web::{dev::ServiceRequest, Error};
-use diesel::PgConnection;
+use actix_web::{dev::ServiceRequest, web, HttpMessage};
+use futures::FutureExt;
 
 use crate::utils::db_utils::platform::user_permission_platform_request;
-use super::permission_middleware::{PermissionMiddleware, PermissionCheckStrategy};
+use crate::models::user_jwt::UserJWT;
+use crate::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
 
-#[derive(Clone)]
-pub struct PlatformStrategy {
-    permission_name: String,
-}
+pub struct PlatformPermissionMiddleware;
 
-pub struct PlatformExtractedData {
-    permission_name: String,
-}
+impl PlatformPermissionMiddleware {
+    pub fn new<S>(permission_name: String) -> ConditionalAccessMiddleware<S> {
+        ConditionalAccessMiddleware::new(
+            move |req: &ServiceRequest| {
+                let permission_name = permission_name.clone();
+                
+                let db_pool = match req.app_data::<web::Data<crate::db::DbPool>>() {
+                    Some(pool) => pool.get_ref().clone(),
+                    None => return Box::pin(futures::future::ready(Err(actix_web::error::ErrorInternalServerError("Failed to access database pool")))),
+                };
 
-impl Clone for PlatformExtractedData {
-    fn clone(&self) -> Self {
-        PlatformExtractedData {
-            permission_name: self.permission_name.clone(),
-        }
-    }
-}
+                let user_jwt = match req.extensions().get::<UserJWT>().cloned() {
+                    Some(u) => u,
+                    None => return Box::pin(futures::future::ready(Err(actix_web::error::ErrorUnauthorized("Unauthorized access")))),
+                };
 
-impl PermissionCheckStrategy for PlatformStrategy {
-    type ExtractedData = PlatformExtractedData;
-
-    fn extract(&self, _req: &ServiceRequest) -> Result<Self::ExtractedData, Error> {
-        // Platform permissions don't need extracted ID currently
-        Ok(PlatformExtractedData {
-            permission_name: self.permission_name.clone(),
-        })
-    }
-
-    fn check(&self, pool: crate::db::DbPool, user_id: i32, data: Self::ExtractedData) -> futures::future::LocalBoxFuture<'static, Result<(), Error>> {
-        use futures::FutureExt;
-        
-        let permission_name = data.permission_name.clone();
-
-        async move {
-            let mut conn = pool.get().await.map_err(|_| actix_web::error::ErrorInternalServerError("Failed to get database connection"))?;
-            
-            match user_permission_platform_request(&mut conn, user_id, &permission_name).await {
-                Ok(has_permission) => {
-                    if !has_permission {
-                        return Err(actix_web::error::ErrorForbidden("User does not have the required permission"));
+                async move {
+                    let mut conn = db_pool.get().await.map_err(|_| actix_web::error::ErrorInternalServerError("Failed to get database connection"))?;
+                    
+                    match user_permission_platform_request(&mut conn, user_jwt.user_id, &permission_name).await {
+                        Ok(has_permission) => Ok(has_permission),
+                        Err(_) => Err(actix_web::error::ErrorInternalServerError("Failed to check user permission")),
                     }
-                    Ok(())
-                },
-                Err(_) => Err(actix_web::error::ErrorInternalServerError("Failed to check user permission")),
-            }
-        }.boxed_local()
-    }
-}
-
-pub type PlatformPermissionMiddleware<S> = PermissionMiddleware<S, PlatformStrategy>;
-
-impl<S> PlatformPermissionMiddleware<S> {
-    pub fn new(permission_name: String) -> Self {
-        PermissionMiddleware::from_strategy(PlatformStrategy {
-            permission_name,
-        })
+                }.boxed_local()
+            },
+            || actix_web::error::ErrorForbidden("User does not have the required permission")
+        )
     }
 }
