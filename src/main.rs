@@ -5,6 +5,8 @@ pub mod utils;
 pub mod middlewares;
 pub mod config;
 pub mod services;
+pub mod repositories;
+
 
 use crate::config::db_setup::version_updater;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};

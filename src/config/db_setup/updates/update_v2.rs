@@ -4,8 +4,8 @@ use diesel::QueryResult;
 use diesel_async::AsyncPgConnection;
 use std::env;
 use crate::config::constants::roles::Roles;
-use crate::utils::db_utils::authentication_registration::create_user;
-use crate::utils::db_utils::platform::assign_role_to_user;
+use crate::repositories::user_repository::create_user;
+use crate::repositories::platform_repository::assign_role_to_user;
 use chrono::NaiveDate;
 use futures::future::{BoxFuture, FutureExt};
 

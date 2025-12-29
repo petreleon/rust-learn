@@ -6,7 +6,7 @@ use crate::models::organization::{Organization, NewOrganization, UpdateOrganizat
 use crate::db::schema::{organizations, courses_organizations};
 use crate::models::courses_organizations::NewCourseOrganization;
 use crate::models::course::Course;
-use crate::utils::db_utils::organization::assign_role_to_user_in_organization;
+use crate::repositories::organization_repository::assign_role_to_user_in_organization;
 
 pub async fn list_organizations(pool: &DbPool) -> Result<Vec<Organization>, String> {
     let mut conn = pool.get().await.map_err(|_| "Failed to get DB connection")?;

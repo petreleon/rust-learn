@@ -2,7 +2,8 @@ use actix_web::{dev::ServiceRequest, web, HttpMessage};
 use futures::FutureExt;
 
 use crate::models::param_type::ParamType;
-use crate::utils::{request_utils::extract_param, db_utils::organization::user_permission_organization_request};
+use crate::utils::request_utils::extract_param;
+use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::models::user_jwt::UserJWT;
 use crate::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
 

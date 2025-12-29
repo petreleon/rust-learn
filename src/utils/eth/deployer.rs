@@ -6,7 +6,7 @@ use diesel_async::AsyncPgConnection;
 use std::env;
 use std::str::FromStr;
 
-use crate::utils::db_utils::persistent_state::{get_persistent_state, set_persistent_state};
+use crate::repositories::persistent_state_repository::{get_persistent_state, set_persistent_state};
 use super::wallet::load_wallet_from_env;
 use super::provider::get_provider;
 use super::compiler::compile_contract;

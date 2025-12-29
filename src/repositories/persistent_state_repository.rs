@@ -1,6 +1,5 @@
-// src/utils/db_utils/persistent_state.rs
 use diesel::prelude::*;
-use diesel::{upsert::excluded, QueryResult};
+use diesel::QueryResult;
 use diesel_async::AsyncPgConnection;
 
 use crate::models::persistent_state::PersistentState;

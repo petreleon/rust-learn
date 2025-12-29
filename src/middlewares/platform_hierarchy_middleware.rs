@@ -8,7 +8,7 @@ use actix_web::HttpMessage;
 
 use crate::{db::DbPool, utils::request_utils::extract_param};
 use crate::models::{user_jwt::UserJWT, param_type::ParamType};
-use crate::utils::db_utils::platform::user_hierarchy_compare_platform;
+use crate::repositories::platform_repository::user_hierarchy_compare_platform;
 
 pub struct PlatformHierarchyMiddleware<S> {
     _service: PhantomData<S>,

@@ -1,4 +1,3 @@
-// src/utils/db_utils/platform.rs
 use diesel::prelude::*;
 use diesel::{dsl::min, QueryResult};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};

@@ -1,12 +1,10 @@
-// src/utils/db_utils/authentication_registration.rs
-
 use diesel::prelude::*;
 use diesel_async::AsyncPgConnection;
+use bcrypt::{hash, DEFAULT_COST};
+use chrono::NaiveDate;
 
 use crate::models::user::{User, NewUser};
 use crate::models::authentication::Authentication;
-use bcrypt::{hash, DEFAULT_COST};
-use chrono::NaiveDate;
 
 pub async fn create_user(
     conn: &mut AsyncPgConnection,
@@ -36,6 +34,3 @@ pub async fn create_user(
 
     Ok(inserted_user)
 }
-
-
-// You might also include additional utility functions as needed for authentication, such as checking if an email already exists, etc.

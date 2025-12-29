@@ -10,7 +10,8 @@ use std::marker::PhantomData;
 // Assuming these modules are defined in your application
 use crate::db::DbPool;
 use crate::models::param_type::ParamType;
-use crate::utils::{request_utils::extract_param, db_utils::organization::user_hierarchy_compare_organization};
+use crate::utils::request_utils::extract_param;
+use crate::repositories::organization_repository::user_hierarchy_compare_organization;
 
 pub struct OrganizationHierarchyMiddleware<S> {
     _service: PhantomData<S>,

@@ -1,7 +1,7 @@
 use actix_web::{dev::ServiceRequest, web, HttpMessage};
 use futures::FutureExt;
 
-use crate::utils::db_utils::platform::user_permission_platform_request;
+use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::models::user_jwt::UserJWT;
 use crate::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
 

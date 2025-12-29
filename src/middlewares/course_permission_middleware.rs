@@ -3,7 +3,8 @@ use futures::FutureExt;
 
 
 use crate::models::param_type::ParamType;
-use crate::utils::{request_utils::extract_param, db_utils::course::user_permission_course_request};
+use crate::utils::request_utils::extract_param;
+use crate::repositories::course_repository::user_permission_course_request;
 use crate::models::user_jwt::UserJWT;
 use crate::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
 

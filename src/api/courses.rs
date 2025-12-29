@@ -6,7 +6,7 @@ use crate::db;
 use crate::models::course::{Course, NewCourse, UpdateCourse};
 use crate::db::schema::courses;
 use crate::utils::jwt_utils::decode_jwt;
-use crate::utils::db_utils::course::assign_role_to_user_in_course;
+use crate::repositories::course_repository::assign_role_to_user_in_course;
 use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
 use crate::models::param_type::ParamType;
 use crate::config::constants::permissions::Permissions;
@@ -70,7 +70,7 @@ async fn create_course(pool: web::Data<db::DbPool>, req: web::Json<CreateCourseR
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = crate::utils::course_utils::create_course_with_invites(
+    let result = crate::services::course_service::create_course_with_invites(
         &mut conn,
         req.title.clone(),
         req.organization_ids.clone(),
