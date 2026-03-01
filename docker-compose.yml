@@ -14,7 +14,7 @@ services:
     depends_on:
       - db
       - anvil
-      - minio
+      - rustfs
     # Use the app entrypoint script which:
     # - initializes git submodules
     # - if PROD_MODE=TRUE runs diesel migrations and starts the app
@@ -30,18 +30,22 @@ services:
     ports:
       - "5433:5432"
 
-  minio:
-    build:
-      context: .
-      dockerfile: docker/minio.Dockerfile
-    command: server /data --console-address ":9001"
-    env_file:
-      - .env
-    volumes:
-      - minio_data:/data
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: rustfs-server
     ports:
       - "9000:9000"
       - "9001:9001"
+    environment:
+      - RUSTFS_VOLUMES=/data/rustfs{0..3}
+      - RUSTFS_ADDRESS=0.0.0.0:9000
+      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
+      - RUSTFS_CONSOLE_ENABLE=true
+      - RUSTFS_ACCESS_KEY=${S3_ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${S3_SECRET_KEY}
+    volumes:
+      - rustfs_data:/data
+    restart: unless-stopped
 
   anvil:
     image: ghcr.io/foundry-rs/foundry:nightly
@@ -76,7 +80,7 @@ services:
       - cargo_disk:/usr/local/cargo
     depends_on:
       - db
-      - minio
+      - rustfs
     # Run the prebuilt worker binary in the image (avoid building in the container)
     command: /usr/local/bin/worker
     restart: unless-stopped
@@ -98,5 +102,5 @@ services:
 volumes:
   postgres_data:
   cargo_disk:
-  minio_data:
+  rustfs_data:
   anvil_state:

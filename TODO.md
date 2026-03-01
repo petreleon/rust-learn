@@ -10,6 +10,7 @@
 - [ ] **Docker & Deployment**
   - [ ] Verify `docker-compose` builds on target platforms (Linux/ARM64)
   - [ ] Optimize Worker service build time (cache dependencies)
+  - [x] **Migrate S3 Storage:** Replace `minio` image with `rustfs` in `docker-compose.yml` to avoid AGPLv3 licensing issues.
 
 ## 2. Authentication & User Management
 - [ ] **Registration Flow**
