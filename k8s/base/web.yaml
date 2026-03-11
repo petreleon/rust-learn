@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: rust-learn
+  labels:
+    app: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: web:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          env:
+            - name: API_URL
+              value: "http://rust-app:8080"
+            - name: NEXT_PUBLIC_API_URL
+              value: "/api"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: rust-learn
+spec:
+  selector:
+    app: web
+  ports:
+    - port: 3000
+      targetPort: 3000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-external
+  namespace: rust-learn
+  labels:
+    app: web
+spec:
+  selector:
+    app: web
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30030
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-lb
+  namespace: rust-learn
+  labels:
+    app: web
+spec:
+  selector:
+    app: web
+  ports:
+    - port: 80
+      targetPort: 3000
+  type: LoadBalancer

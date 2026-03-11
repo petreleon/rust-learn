@@ -24,8 +24,8 @@ if [[ "${PROD_MODE:-}" == "TRUE" ]]; then
     sleep 2
   done
 
-  # Start the Rust app (use release mode in production)
-  exec cargo run --release
+  # Start the Rust app (using the pre-built binary)
+  exec /usr/local/bin/rust-learn
 else
   echo "[entrypoint] PROD_MODE is not TRUE (got: '${PROD_MODE:-unset}'). Not launching app; sleeping indefinitely."
   exec sleep infinity

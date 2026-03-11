@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rust-learn-ingress
+  namespace: rust-learn
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # API routes
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: rust-app
+                port:
+                  number: 8080
+          # Static assets
+          - path: /_next
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 3000
+          # Everything else goes to web
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 3000

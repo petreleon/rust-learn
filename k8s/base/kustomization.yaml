@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: rust-learn
+
+resources:
+  - namespace.yaml
+  - secrets.yaml
+  - configmap.yaml
+  - postgres.yaml
+  - rustfs.yaml
+  - anvil.yaml
+  - app.yaml
+  - worker.yaml
+  - web.yaml
+  - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: rust-learn
+  app.kubernetes.io/managed-by: kustomize

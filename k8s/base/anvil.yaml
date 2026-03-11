@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: anvil-data
+  namespace: rust-learn
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anvil
+  namespace: rust-learn
+  labels:
+    app: anvil
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: anvil
+  template:
+    metadata:
+      labels:
+        app: anvil
+    spec:
+      containers:
+        - name: anvil
+          image: ghcr.io/foundry-rs/foundry:nightly
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              if [ -f /anvil/state.json ] && [ ! -s /anvil/state.json ]; then
+                rm /anvil/state.json
+              fi
+              anvil --host 0.0.0.0 --port 8545 --mnemonic "$ETH_MNEMONIC" --state /anvil/state.json --chain-id 31337
+          ports:
+            - containerPort: 8545
+          env:
+            - name: ANVIL_IP_ADDR
+              value: "0.0.0.0"
+          envFrom:
+            - secretRef:
+                name: app-secrets
+          volumeMounts:
+            - name: anvil-storage
+              mountPath: /anvil
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+      volumes:
+        - name: anvil-storage
+          persistentVolumeClaim:
+            claimName: anvil-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: anvil
+  namespace: rust-learn
+spec:
+  selector:
+    app: anvil
+  ports:
+    - port: 8545
+      targetPort: 8545
+  type: ClusterIP

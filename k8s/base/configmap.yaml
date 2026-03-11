@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: rust-learn
+data:
+  ETH_HOST: "anvil"
+  ETH_PORT: "8545"
+  ETH_RPC_URL: "http://anvil:8545"
+  ETH_CHAIN_ID: "31337"
+  PROD_MODE: "TRUE"
+  GANACHE_NETWORK_ID: "5777"
+  S3_INTERNAL_DOMAIN: "rustfs"
+  S3_INTERNAL_PORT: "9000"
+  S3_EXTERNAL_DOMAIN: "localhost"
+  S3_EXTERNAL_PORT: "9000"
+  S3_INTERNAL_SCHEME: "http"
+  S3_EXTERNAL_SCHEME: "http"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: worker-config
+  namespace: rust-learn
+data:
+  WORKER_CONCURRENCY: "1"
+  WORKER_MAX_ATTEMPTS: "5"
+  WORKER_BASE_BACKOFF_SECONDS: "60"

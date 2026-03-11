@@ -69,5 +69,7 @@ COPY . .
 # Build with a single job to reduce memory pressure during linking. Fail if worker cannot be built.
 ENV CARGO_BUILD_JOBS=1
 RUN cargo build -j1 --release --bin worker
-# Copy it to a stable path in the image
+RUN cargo build -j1 --release --bin rust-learn
+# Copy them to a stable path in the image
 RUN test -x target/release/worker && cp target/release/worker /usr/local/bin/worker
+RUN test -x target/release/rust-learn && cp target/release/rust-learn /usr/local/bin/rust-learn

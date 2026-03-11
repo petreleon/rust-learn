@@ -13,12 +13,14 @@ use super::compiler::compile_contract;
 
 /// Deploys the LearnToken contract
 pub async fn deploy_contract(
-    wallet: Wallet<k256::ecdsa::SigningKey>,
+    mut wallet: Wallet<k256::ecdsa::SigningKey>,
     provider: Provider<Http>,
     abi: Abi,
     bytecode: Bytes,
     deploy_args: impl ethers::core::abi::Tokenize,
 ) -> Address {
+    let chain_id = provider.get_chainid().await.expect("Failed to get chain id");
+    wallet = wallet.with_chain_id(chain_id.as_u64());
     let client = std::sync::Arc::new(SignerMiddleware::new(provider, wallet));
     let factory = ContractFactory::new(abi, bytecode, client);
     let deployer = factory.deploy(deploy_args).unwrap();
