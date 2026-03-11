@@ -8,6 +8,9 @@ services:
     environment:
       ETH_HOST: anvil
       ETH_PORT: "8545"
+      PROD_MODE: "TRUE"
+    ports:
+      - "8080:8080"
     volumes:
       - .:/usr/src/app
       - cargo_disk:/usr/local/cargo
@@ -20,6 +23,21 @@ services:
     # - if PROD_MODE=TRUE runs diesel migrations and starts the app
     # - otherwise sleeps indefinitely to keep the container alive
     command: /usr/src/app/scripts/app-entrypoint.sh
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - API_URL=http://app:8080
+    depends_on:
+      - app
 
   db:
     image: postgres:latest
