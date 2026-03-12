@@ -16,41 +16,56 @@ async function getHello() {
 
 export default async function Home() {
   const message = await getHello();
+  const isError = message === "Could not connect to API";
 
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <h1>Rust-Learn Platform</h1>
-        <p>Your journey into learning Rust starts here.</p>
+    <div className={styles.container}>
+      <header className={styles.hero}>
+        <h1 className={styles.gradientText}>Rust-Learn Platform</h1>
+        <p>Your journey into learning Rust starts here. A modern backend paired with a dynamic frontend experience.</p>
       </header>
 
       <main className={styles.main}>
-        <section className={styles.apiStatus}>
-          <h2>API Connection Status</h2>
-          <div className={styles.card}>
-            <p><strong>Message from API:</strong> {message}</p>
-          </div>
-        </section>
+        <div className={styles.grid}>
+          <section className={styles.card}>
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              API Status
+            </h2>
+            <div className={styles.apiStatusContent}>
+              <div className={`${styles.statusIndicator} ${isError ? styles.error : ''}`}></div>
+              <div className={styles.messageBox}>
+                <p>Latest Message</p>
+                <strong>{message}</strong>
+              </div>
+            </div>
+          </section>
 
-        <section className={styles.links}>
-          <h2>Useful Resources</h2>
-          <ul>
-            <li>
-              <a href="https://nextjs.org/docs" target="_blank" rel="noopener noreferrer">
-                Next.js Documentation
-              </a>
-            </li>
-            <li>
-              <a href="https://rust-lang.org" target="_blank" rel="noopener noreferrer">
-                Rust Language
-              </a>
-            </li>
-          </ul>
-        </section>
+          <section className={styles.card}>
+            <h2>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+              Resources
+            </h2>
+            <ul className={styles.linksList}>
+              <li className={styles.linkItem}>
+                <a href="https://nextjs.org/docs" target="_blank" rel="noopener noreferrer">
+                  Next.js Documentation
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </a>
+              </li>
+              <li className={styles.linkItem}>
+                <a href="https://rust-lang.org" target="_blank" rel="noopener noreferrer">
+                  Rust Language
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </a>
+              </li>
+            </ul>
+          </section>
+        </div>
       </main>
 
       <footer className={styles.footer}>
-        <p>&copy; 2026 Rust-Learn Placeholder</p>
+        <p>&copy; {new Date().getFullYear()} Rust-Learn Platform. All rights reserved.</p>
       </footer>
     </div>
   );
