@@ -1,7 +1,7 @@
 ## Getting started (Docker-only)
 
 - Always run commands via `docker compose exec app ...` to ensure a consistent toolchain and environment.
-- Bring up infra and the app container: `docker compose up -d db minio anvil app`
+- Bring up infra and the app container: `docker compose up -d db rustfs anvil app`
 - Open a shell inside the app container: `docker compose exec app bash`
 
 ## Quick context for code-generating agents
@@ -10,15 +10,15 @@
 - Smart contracts live under `ethereum/contracts/` and are compiled/deployed via `src/utils/eth_utils.rs` (functions: `compile_contract`, `deploy_contract`, `get_provider`, `load_wallet_from_env`, `deploy_startup`). Prefer using these helpers instead of invoking solc directly.
 - On startup (`src/main.rs`) the app:
   - loads `.env`, establishes the DB pool (`db::establish_connection()`),
-  - initializes MinIO state (`utils::minio_utils::MinioState::new_from_env()`),
+  - initializes S3 state (`utils::s3_utils::S3State::new_from_env()`),
   - runs `version_updater` to migrate DB versioning,
-  - ensures the LearnToken contracts are deployed via `deploy_startup`, then launches the Actix server with DB pool and MinIO in `App::data()`.
+  - ensures the LearnToken contracts are deployed via `deploy_startup`, then launches the Actix server with DB pool and S3 in `App::data()`.
 
 ## Useful developer workflows (Docker Compose only)
 
-- Start services (Postgres, MinIO, Anvil, App container shellable):
+- Start services (Postgres, rus3fs, Anvil, App container shellable):
 
-  - Bring up infra: `docker compose up -d db minio anvil app`
+  - Bring up infra: `docker compose up -d db rustfs anvil app`
   - The `app` service initializes git submodules and stays running; you exec into it to run commands.
 
 - Run commands inside the app container (preferred for all dev work):
@@ -62,7 +62,7 @@
 
 - src/utils/eth_utils.rs — compile/deploy helpers (use these when adding or testing contracts).
 - src/bin/abi_export.rs — shows how to export ABI/bytecode with `cargo run --bin abi_export -- ethereum/contracts/LearnToken.sol LearnToken ethereum/artifacts`.
-- src/main.rs — app startup: DB pool, MinIO init, deploy_startup call, Actix server wiring.
+- src/main.rs — app startup: DB pool, S3 init, deploy_startup call, Actix server wiring.
 - src/config/db_setup.rs — DB version updater called on startup (keep migrations/`migrations/` in sync).
 - docker-compose.yml & Dockerfile — development infra and how `solc`/Z3 are produced; heavy builds exist in the Dockerfile (use cautiously).
 

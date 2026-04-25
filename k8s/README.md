@@ -116,7 +116,7 @@ Edit `base/secrets.yaml` and update the values:
 - JWT keys (PRIVATE_KEY, PUBLIC_KEY)
 - Ethereum mnemonic (ETH_MNEMONIC)
 - Admin credentials (ADMIN_NAME, ADMIN_EMAIL, ADMIN_PASSWORD)
-- MinIO credentials (S3_ACCESS_KEY, S3_SECRET_KEY)
+- S3 credentials (S3_ACCESS_KEY, S3_SECRET_KEY)
 
 ### 2. Build Docker Images
 

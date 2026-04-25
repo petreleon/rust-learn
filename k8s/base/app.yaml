@@ -46,7 +46,7 @@ spec:
             - secretRef:
                 name: app-secrets
             - secretRef:
-                name: minio-secret
+                name: s3-secret
           env:
             - name: DATABASE_URL
               valueFrom:

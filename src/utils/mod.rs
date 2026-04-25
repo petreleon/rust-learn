@@ -6,6 +6,6 @@ pub mod request_utils;
 pub mod course_utils;
 pub mod eth;
 pub use eth as eth_utils;
-pub mod minio_utils;
+pub mod s3_utils;
 pub mod centralized_wallets;
 pub mod notifications;

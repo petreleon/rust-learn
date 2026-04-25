@@ -7,7 +7,7 @@ use crate::db::schema::contents;
 use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
 use crate::models::param_type::ParamType;
 use crate::config::constants::permissions::Permissions;
-use crate::utils::minio_utils::MinioState;
+use crate::utils::s3_utils::S3State;
 use crate::models::upload_job::NewUploadJob;
 use crate::db::schema::upload_jobs;
 use crate::utils::jwt_utils::decode_jwt;
@@ -94,22 +94,22 @@ async fn get_upload_url(
     // Construct object path: courses/{course_id}/chapters/{chapter_id}/{filename}
     let object_path = format!("courses/{}/chapters/{}/{}", course_id, chapter_id, req.filename);
     
-    match MinioState::new_from_env().await {
-        Ok(minio) => {
+    match S3State::new_from_env().await {
+        Ok(s3) => {
              // 1 hour expiry
-             match minio.presign_put("course-materials", &object_path, 3600).await {
+             match s3.presign_put("course-materials", &object_path, 3600).await {
                  Ok(url) => HttpResponse::Ok().json(serde_json::json!({
                      "upload_url": url,
                      "object_key": object_path
                  })),
                  Err(e) => {
-                     eprintln!("MinIO error: {}", e);
+                     eprintln!("S3 error: {}", e);
                      HttpResponse::InternalServerError().body("Failed to generate upload URL")
                  }
              }
         },
         Err(e) => {
-            eprintln!("MinIO client init error: {}", e);
+            eprintln!("S3 client init error: {}", e);
             HttpResponse::InternalServerError().body("Failed to init storage client")
         }
     }

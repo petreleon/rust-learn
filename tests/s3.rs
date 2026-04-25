@@ -1,6 +1,6 @@
 use std::env;
 
-use rust_learn::utils::minio_utils::MinioState;
+use rust_learn::utils::s3_utils::S3State;
 
 fn require_s3_external() -> String {
     let mut ext = env::var("S3_EXTERNAL_DOMAIN").ok();
@@ -18,7 +18,7 @@ async fn presign_external_get_works() {
     dotenvy::dotenv().ok();
     let _ext = require_s3_external();
 
-    let minio = MinioState::new_from_env().await.expect("init s3");
+    let s3 = S3State::new_from_env().await.expect("init s3");
     // Ensure the test bucket exists by uploading a small temporary file.
     let tmp = std::env::temp_dir().join(format!(
         "s3_test_{}.txt",
@@ -28,13 +28,13 @@ async fn presign_external_get_works() {
             .as_nanos()
     ));
     std::fs::write(&tmp, b"test").expect("write tmp");
-    minio
+    s3
         .put_object_from_path("test-bucket", "test-object.txt", tmp.clone())
         .await
         .expect("ensure bucket/upload");
     let _ = std::fs::remove_file(&tmp);
 
-    let url = minio
+    let url = s3
         .presign_external_get("test-bucket", "test-object.txt", 60)
         .await;
     assert!(url.is_ok(), "presign_external_get failed: {:?}", url.err());
@@ -45,17 +45,7 @@ async fn presign_external_post_form_data_works() {
     dotenvy::dotenv().ok();
     let _ext = require_s3_external();
 
-    // Build a minimal PostPolicy programmatically (use minio types)
-    use minio::s3::builders::PostPolicy;
-    use minio::s3::utils::utc_now;
-
-    let expiration = utc_now() + chrono::Duration::seconds(300);
-    let mut policy = PostPolicy::new("test-bucket", expiration).expect("policy");
-    policy
-        .add_equals_condition("key", "test-object.txt")
-        .expect("add cond");
-
-    let minio = MinioState::new_from_env().await.expect("init s3");
+    let s3 = S3State::new_from_env().await.expect("init s3");
     // Ensure bucket exists by uploading a small object.
     let tmp = std::env::temp_dir().join(format!(
         "s3_test_{}.txt",
@@ -65,12 +55,12 @@ async fn presign_external_post_form_data_works() {
             .as_nanos()
     ));
     std::fs::write(&tmp, b"test").expect("write tmp");
-    minio
+    s3
         .put_object_from_path("test-bucket", "test-object.txt", tmp.clone())
         .await
         .expect("ensure bucket/upload");
     let _ = std::fs::remove_file(&tmp);
 
-    let res = minio.presign_external_post_form_data(policy).await;
+    let res = s3.presign_external_post_form_data("test-bucket", "test-object.txt", 300).await;
     assert!(res.is_ok(), "presign POST failed: {:?}", res.err());
 }

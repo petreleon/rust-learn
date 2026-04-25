@@ -95,7 +95,7 @@ To get RustLearn up and running on your machine, you'll have to set up your envi
     3. Start infra and the worker:
 
         ```bash
-        docker compose up -d db minio
+        docker compose up -d db rustfs
         docker compose up -d worker
         ```
 

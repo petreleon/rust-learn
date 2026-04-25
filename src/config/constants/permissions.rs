@@ -121,7 +121,7 @@ pub enum Permissions {
 
     // Integrations / Blockchain / Storage
     MANAGE_SMART_CONTRACTS,
-    MANAGE_MINIO_OBJECTS,
+    MANAGE_S3_OBJECTS,
     MANAGE_ETHEREUM_ACCOUNTS,
 
     // Data & Reporting

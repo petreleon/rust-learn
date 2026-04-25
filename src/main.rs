@@ -11,7 +11,7 @@ pub mod repositories;
 use crate::config::db_setup::version_updater;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use infer::Infer;
-use crate::utils::minio_utils::MinioState;
+use crate::utils::s3_utils::S3State;
 
 
 #[get("/")]
@@ -52,12 +52,12 @@ async fn main() -> std::io::Result<()> {
 
     // Use the establish_connection function from the db module
     let pool = db::establish_connection();
-    // Initialize MinIO client state and put into app data
-    let minio_state = match MinioState::new_from_env().await {
+    // Initialize S3 client state and put into app data
+    let s3_state = match S3State::new_from_env().await {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("Failed to initialize MinIO client: {:?}", e);
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, "MinIO init failed"));
+            eprintln!("Failed to initialize S3 client: {:?}", e);
+            return Err(std::io::Error::new(std::io::ErrorKind::Other, "S3 init failed"));
         }
     };
     // Initialize notifications state (DB-backed using the pool)
@@ -75,7 +75,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone())) // Use the created pool
-            .app_data(web::Data::new(minio_state.clone())) // MinIO client shared state
+            .app_data(web::Data::new(s3_state.clone())) // S3 client shared state
             .app_data(web::Data::new(notifications_state.clone())) // Notifications shared state
             .route("/hey", web::get().to(manual_hello))
             .service(api::api_scope())

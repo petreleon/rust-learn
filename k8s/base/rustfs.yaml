@@ -47,12 +47,12 @@ spec:
             - name: RUSTFS_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
-                  name: minio-secret
+                  name: s3-secret
                   key: S3_ACCESS_KEY
             - name: RUSTFS_SECRET_KEY
               valueFrom:
                 secretKeyRef:
-                  name: minio-secret
+                  name: s3-secret
                   key: S3_SECRET_KEY
           volumeMounts:
             - name: rustfs-storage

@@ -71,8 +71,8 @@ async fn test_course_content_lifecycle() {
     let app = test::init_service(
          App::new()
             .app_data(web::Data::new(pool.clone()))
-             // Mock MinIO state or rely on it failing gracefully if not needed for metadata tests?
-             // Since upload creates separate endpoint, strictly metadata operations don't need MinIO.
+             // Mock S3 state or rely on it failing gracefully if not needed for metadata tests?
+             // But app_scope tries to inject it in main.rs. Here we are initializing specific scopes.
              // But app_scope tries to inject it in main.rs. Here we are initializing specific scopes.
              // We need to mirror api_scope's usage of scopes.
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)

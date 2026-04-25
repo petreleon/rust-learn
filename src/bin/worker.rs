@@ -13,14 +13,14 @@ use tokio::signal::unix::{signal, SignalKind};
 /// concurrent ffmpeg processing tasks (controlled via WORKER_CONCURRENCY).
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize environment, DB pool, MinIO and notifications state
+    // Initialize environment, DB pool, S3 and notifications state
     dotenv().ok();
     let pool = rust_learn::db::establish_connection();
 
-    let minio = match rust_learn::utils::minio_utils::MinioState::new_from_env().await {
+    let s3 = match rust_learn::utils::s3_utils::S3State::new_from_env().await {
         Ok(m) => m,
         Err(e) => {
-            eprintln!("Failed to init MinIO: {:?}", e);
+            eprintln!("Failed to init S3: {:?}", e);
             return Err(e);
         }
     };
@@ -116,7 +116,7 @@ async fn main() -> Result<()> {
         };
 
         // Clone handles for the spawned task
-        let minio_cloned = minio.clone();
+        let s3_cloned = s3.clone();
         let notifications_cloned = notifications.clone();
         let mut conn_for_task = match pool.get().await {
             Ok(c) => c,
@@ -138,7 +138,7 @@ async fn main() -> Result<()> {
         tokio::spawn(async move {
             // Run the processing (use 0 for missing user_id handling inside process_uploaded_video if needed)
             let uid = user_id.unwrap_or(0);
-            let res = minio_cloned.process_uploaded_video(&bucket, &object, uid, notifications_cloned).await;
+            let res = s3_cloned.process_uploaded_video(&bucket, &object, uid, notifications_cloned).await;
 
             if res.is_ok() {
                 if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_done(job_id, &mut *conn_for_task).await {

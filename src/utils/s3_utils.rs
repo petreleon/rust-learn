@@ -1,19 +1,12 @@
 use anyhow::Result;
-use dotenvy::dotenv;
+use aws_config::{self, BehaviorVersion};
+use aws_sdk_s3::config::{Credentials, Region};
+use aws_sdk_s3::presigning::PresigningConfig;
+use aws_sdk_s3::Client;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-
-use http::Method;
-use minio::s3::builders::GetPresignedPolicyFormData;
-use minio::s3::types::S3Api;
-use minio::s3::{
-    builders::{ObjectContent, PostPolicy},
-    client::ClientBuilder,
-    creds::StaticProvider,
-    Client,
-};
-use std::collections::HashMap;
+use std::time::Duration;
 
 use crate::utils::notifications::NotificationsState;
 use chrono::Utc;
@@ -23,14 +16,13 @@ use tokio::fs as tokio_fs;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command as TokioCommand;
 
-/// Async MinIO client wrapper (thin). Uses the async ClientBuilder API from minio v0.3 examples.
+/// Async S3 client wrapper. Works with any S3-compatible service (AWS S3, rus3fs, etc.).
 #[derive(Clone)]
-pub struct MinioState(Arc<Client>);
+pub struct S3State(Arc<Client>);
 
-impl MinioState {
+impl S3State {
     /// Build a configured async Client from environment variables.
     pub async fn new_from_env() -> Result<Self> {
-        dotenv().ok();
         let user = env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "rustfsadmin".into());
         let pass = env::var("S3_SECRET_KEY").unwrap_or_else(|_| "rustfsadmin".into());
         let host = env::var("S3_INTERNAL_DOMAIN").unwrap_or_else(|_| "rustfs".into());
@@ -38,151 +30,197 @@ impl MinioState {
         let scheme = env::var("S3_INTERNAL_SCHEME").unwrap_or_else(|_| "http".into());
         let endpoint = format!("{}://{}:{}", scheme, host, port);
 
-        let provider = StaticProvider::new(&user, &pass, None);
-        let client: Client = ClientBuilder::new(endpoint.parse()?)
-            .provider(Some(Box::new(provider)))
-            .build()?;
+        let creds = Credentials::new(user, pass, None, None, "env");
+        let config = aws_config::defaults(BehaviorVersion::latest())
+            .credentials_provider(creds)
+            .endpoint_url(endpoint)
+            .load()
+            .await;
 
-        Ok(MinioState(Arc::new(client)))
+        let client = Client::new(&config);
+        Ok(S3State(Arc::new(client)))
     }
 
-    /// Upload a file from disk to the given bucket/object using ObjectContent (example pattern).
+    /// Ensure a bucket exists, creating it if necessary.
+    async fn ensure_bucket(&self, bucket: &str) -> Result<()> {
+        let exists = self
+            .0
+            .head_bucket()
+            .bucket(bucket)
+            .send()
+            .await
+            .is_ok();
+
+        if !exists {
+            self.0
+                .create_bucket()
+                .bucket(bucket)
+                .send()
+                .await?;
+        }
+        Ok(())
+    }
+
+    /// Upload a file from disk to the given bucket/object.
     pub async fn put_object_from_path<P: AsRef<Path> + Send + 'static>(
         &self,
         bucket: &str,
         object: &str,
         path: P,
     ) -> Result<()> {
-        // Ensure bucket exists and create if not.
-        let resp = self.0.bucket_exists(bucket).send().await?;
-        if !resp.exists {
-            // Try to create the bucket; if it's already owned by us (or was
-            // created concurrently) treat that as success.
-            match self.0.create_bucket(bucket).send().await {
-                Ok(_) => {}
-                Err(e) => {
-                    let s = e.to_string();
-                    if s.contains("BucketAlreadyOwnedByYou") {
-                        // ignore
-                    } else {
-                        return Err(e.into());
-                    }
-                }
-            }
-        }
+        self.ensure_bucket(bucket).await?;
 
-        let content = ObjectContent::from(path.as_ref());
+        let body = aws_sdk_s3::primitives::ByteStream::from_path(path.as_ref()).await?;
         self.0
-            .put_object_content(bucket, object, content)
+            .put_object()
+            .bucket(bucket)
+            .key(object)
+            .body(body)
             .send()
             .await?;
         Ok(())
     }
 
-    /// Presign GET - if minio crate exposes presign functionality upstream you can implement it here.
-    /// Returns a presigned URL for the given bucket/object using HTTP GET.
-    /// `expires_seconds` is mapped to the builder if supported by the upstream API.
+    /// Generate a presigned GET URL for the given bucket/object.
     pub async fn presign_get(
         &self,
         bucket: &str,
         object: &str,
         expires_seconds: u64,
     ) -> Result<String> {
-        let mut builder = self.0.get_presigned_object_url(bucket, object, Method::GET);
-        if expires_seconds > 0 {
-            let s: u32 = std::cmp::min(expires_seconds, u64::from(u32::MAX)) as u32;
-            builder = builder.expiry_seconds(s);
-        }
-
-        let resp = builder.send().await?;
-        Ok(resp.url)
-    }
-
-    /// Create presigned POST form data from a PostPolicy. Returns a map of form
-    /// fields that must be included in an HTML form or multipart upload.
-    pub async fn presign_post_form_data(
-        &self,
-        policy: PostPolicy,
-    ) -> Result<HashMap<String, String>> {
-        let builder: GetPresignedPolicyFormData = self.0.get_presigned_post_form_data(policy);
-        let resp: HashMap<String, String> = builder.send().await?;
-        Ok(resp)
-    }
-
-    /// Generate a presigned GET URL using the external endpoint configured
-    /// in env: MINIO_EXTERNAL_{SCHEME,DOMAIN,PORT} so the returned URL is
-    /// signed for the host clients (browser) will use.
-    pub async fn presign_external_get(
-        &self,
-        bucket: &str,
-        object: &str,
-        expires_seconds: u64,
-    ) -> Result<String> {
-        dotenv().ok();
-        let user = env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "rustfsadmin".into());
-        let pass = env::var("S3_SECRET_KEY").unwrap_or_else(|_| "rustfsadmin".into());
-        let host = env::var("S3_EXTERNAL_DOMAIN").unwrap_or_else(|_| "localhost".into());
-        let port = env::var("S3_EXTERNAL_PORT").unwrap_or_else(|_| "9000".into());
-        let scheme = env::var("S3_EXTERNAL_SCHEME").unwrap_or_else(|_| "http".into());
-        let endpoint = format!("{}://{}:{}", scheme, host, port);
-
-        let provider = StaticProvider::new(&user, &pass, None);
-        let signer_client: Client = ClientBuilder::new(endpoint.parse()?)
-            .provider(Some(Box::new(provider)))
+        let config = PresigningConfig::builder()
+            .expires_in(Duration::from_secs(expires_seconds))
             .build()?;
 
-        let mut builder = signer_client.get_presigned_object_url(bucket, object, Method::GET);
-        if expires_seconds > 0 {
-            let s: u32 = std::cmp::min(expires_seconds, u64::from(u32::MAX)) as u32;
-            builder = builder.expiry_seconds(s);
-        }
-
-        let resp = builder.send().await?;
-        Ok(resp.url)
+        let url = self
+            .0
+            .get_object()
+            .bucket(bucket)
+            .key(object)
+            .presigned(config)
+            .await?;
+        Ok(url.uri().to_string())
     }
 
-    /// Generate presigned POST form data using the external endpoint configured
-    /// in env: MINIO_EXTERNAL_{SCHEME,DOMAIN,PORT}. Caller must construct a
-    /// `PostPolicy` (with expiration and conditions) and pass it here.
-    pub async fn presign_external_post_form_data(
-        &self,
-        policy: PostPolicy,
-    ) -> Result<HashMap<String, String>> {
-        dotenv().ok();
-        let user = env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "rustfsadmin".into());
-        let pass = env::var("S3_SECRET_KEY").unwrap_or_else(|_| "rustfsadmin".into());
-        let host = env::var("S3_EXTERNAL_DOMAIN").unwrap_or_else(|_| "localhost".into());
-        let port = env::var("S3_EXTERNAL_PORT").unwrap_or_else(|_| "9000".into());
-        let scheme = env::var("S3_EXTERNAL_SCHEME").unwrap_or_else(|_| "http".into());
-        let endpoint = format!("{}://{}:{}", scheme, host, port);
-
-        let provider = StaticProvider::new(&user, &pass, None);
-        let signer_client: Client = ClientBuilder::new(endpoint.parse()?)
-            .provider(Some(Box::new(provider)))
-            .build()?;
-
-        let builder: GetPresignedPolicyFormData =
-            signer_client.get_presigned_post_form_data(policy);
-        let resp: HashMap<String, String> = builder.send().await?;
-        Ok(resp)
-    }
-
-    /// Generate a presigned PUT URL for uploading an object. This returns a URL
-    /// the client can PUT to with the file bytes (or use a browser XHR/Fetch).
+    /// Generate a presigned PUT URL for uploading an object.
     pub async fn presign_put(
         &self,
         bucket: &str,
         object: &str,
         expires_seconds: u64,
     ) -> Result<String> {
-        let mut builder = self.0.get_presigned_object_url(bucket, object, Method::PUT);
-        if expires_seconds > 0 {
-            let s: u32 = std::cmp::min(expires_seconds, u64::from(u32::MAX)) as u32;
-            builder = builder.expiry_seconds(s);
-        }
+        let config = PresigningConfig::builder()
+            .expires_in(Duration::from_secs(expires_seconds))
+            .build()?;
 
-        let resp = builder.send().await?;
-        Ok(resp.url)
+        let url = self
+            .0
+            .put_object()
+            .bucket(bucket)
+            .key(object)
+            .presigned(config)
+            .await?;
+        Ok(url.uri().to_string())
+    }
+
+    /// Generate a presigned POST policy for direct browser uploads.
+    pub async fn presign_post_form_data(
+        &self,
+        bucket: &str,
+        object: &str,
+        expires_seconds: u64,
+    ) -> Result<std::collections::HashMap<String, String>> {
+        // AWS SDK for Rust doesn't have a direct PostPolicy equivalent.
+        // Use presigned PUT as a workaround for now.
+        let url = self.presign_put(bucket, object, expires_seconds).await?;
+        let mut map = std::collections::HashMap::new();
+        map.insert("url".to_string(), url);
+        map.insert("key".to_string(), object.to_string());
+        Ok(map)
+    }
+
+    /// Generate a presigned GET URL using the external endpoint.
+    pub async fn presign_external_get(
+        &self,
+        bucket: &str,
+        object: &str,
+        expires_seconds: u64,
+    ) -> Result<String> {
+        let user = env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "rustfsadmin".into());
+        let pass = env::var("S3_SECRET_KEY").unwrap_or_else(|_| "rustfsadmin".into());
+        let host = env::var("S3_EXTERNAL_DOMAIN").unwrap_or_else(|_| "localhost".into());
+        let port = env::var("S3_EXTERNAL_PORT").unwrap_or_else(|_| "9000".into());
+        let scheme = env::var("S3_EXTERNAL_SCHEME").unwrap_or_else(|_| "http".into());
+        let endpoint = format!("{}://{}:{}", scheme, host, port);
+
+        let creds = Credentials::new(user, pass, None, None, "env");
+        let config = aws_config::defaults(BehaviorVersion::latest())
+            .credentials_provider(creds)
+            .endpoint_url(endpoint)
+            .load()
+            .await;
+
+        let client = Client::new(&config);
+        let presign_config = PresigningConfig::builder()
+            .expires_in(Duration::from_secs(expires_seconds))
+            .build()?;
+
+        let url = client
+            .get_object()
+            .bucket(bucket)
+            .key(object)
+            .presigned(presign_config)
+            .await?;
+        Ok(url.uri().to_string())
+    }
+
+    /// Generate presigned POST form data using the external endpoint.
+    pub async fn presign_external_post_form_data(
+        &self,
+        bucket: &str,
+        object: &str,
+        expires_seconds: u64,
+    ) -> Result<std::collections::HashMap<String, String>> {
+        let url = self.presign_external_put(bucket, object, expires_seconds).await?;
+        let mut map = std::collections::HashMap::new();
+        map.insert("url".to_string(), url);
+        map.insert("key".to_string(), object.to_string());
+        Ok(map)
+    }
+
+    /// Generate a presigned PUT URL using the external endpoint.
+    pub async fn presign_external_put(
+        &self,
+        bucket: &str,
+        object: &str,
+        expires_seconds: u64,
+    ) -> Result<String> {
+        let user = env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "rustfsadmin".into());
+        let pass = env::var("S3_SECRET_KEY").unwrap_or_else(|_| "rustfsadmin".into());
+        let host = env::var("S3_EXTERNAL_DOMAIN").unwrap_or_else(|_| "localhost".into());
+        let port = env::var("S3_EXTERNAL_PORT").unwrap_or_else(|_| "9000".into());
+        let scheme = env::var("S3_EXTERNAL_SCHEME").unwrap_or_else(|_| "http".into());
+        let endpoint = format!("{}://{}:{}", scheme, host, port);
+
+        let creds = Credentials::new(user, pass, None, None, "env");
+        let config = aws_config::defaults(BehaviorVersion::latest())
+            .credentials_provider(creds)
+            .endpoint_url(endpoint)
+            .load()
+            .await;
+
+        let client = Client::new(&config);
+        let presign_config = PresigningConfig::builder()
+            .expires_in(Duration::from_secs(expires_seconds))
+            .build()?;
+
+        let url = client
+            .put_object()
+            .bucket(bucket)
+            .key(object)
+            .presigned(presign_config)
+            .await?;
+        Ok(url.uri().to_string())
     }
 
     /// Download an object via a presigned GET URL into a local path.
@@ -202,11 +240,6 @@ impl MinioState {
     /// Process a freshly uploaded video: download it, run ffmpeg to transcode
     /// and extract audio, upload the resulting files back to the same bucket
     /// under a `processed/` prefix, and notify the user via `notifications`.
-    ///
-    /// Notes:
-    /// - This function assumes `ffmpeg` is available on the PATH.
-    /// - It uses `reqwest` to download the uploaded object via a presigned URL
-    ///   and then re-uploads results with `put_object_from_path`.
     pub async fn process_uploaded_video(
         &self,
         bucket: &str,
@@ -214,7 +247,6 @@ impl MinioState {
         user_id: i32,
         notifications: NotificationsState,
     ) -> Result<()> {
-        // prepare temp directory
         let tmp_dir = std::env::temp_dir().join(format!(
             "video_process_{}_{}",
             user_id,
@@ -223,15 +255,12 @@ impl MinioState {
         tokio_fs::create_dir_all(&tmp_dir).await?;
 
         let src_path = tmp_dir.join("uploaded_input");
-        // download
         self.download_via_presigned(bucket, object, src_path.clone())
             .await?;
 
-        // build output paths
         let processed_video = tmp_dir.join("processed.mp4");
         let extracted_audio = tmp_dir.join("audio.mp3");
 
-        // run ffmpeg to transcode and extract audio. Use tokio::process to avoid blocking.
         // transcode to mp4
         let status = TokioCommand::new("ffmpeg")
             .arg("-y")
@@ -286,7 +315,6 @@ impl MinioState {
             return Err(anyhow::anyhow!("ffmpeg audio extraction failed"));
         }
 
-        // upload processed files back to bucket under processed/{object}
         let processed_object = format!("processed/{}", object);
         let audio_object = format!("processed/audio/{}.mp3", object.replace('/', "_"));
 
@@ -295,7 +323,6 @@ impl MinioState {
         self.put_object_from_path(bucket, &audio_object, extracted_audio.clone())
             .await?;
 
-        // notify user
         notifications
             .send_notification(
                 user_id,
@@ -307,9 +334,7 @@ impl MinioState {
             )
             .await?;
 
-        // cleanup
         let _ = tokio_fs::remove_dir_all(&tmp_dir).await;
-
         Ok(())
     }
 }
