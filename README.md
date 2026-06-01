@@ -253,7 +253,7 @@ WORKER_BASE_BACKOFF_SECONDS=60
 Recommended worker build/start flow:
 
 ```bash
-docker compose build worker
+make worker-build
 docker compose up -d db rustfs worker
 ```
 
@@ -303,8 +303,11 @@ npm run build
 Makefile shortcuts:
 
 ```bash
+make fmt
 make test
 make test-integration
+make web-lint
+make web-build
 make health
 ```
 
