@@ -50,11 +50,9 @@ pub async fn create_course_organization_invite(
     course_id: i32,
     organization_id: i32,
 ) -> QueryResult<usize> {
-    use diesel::dsl::max as diesel_max;
-
     let max_order_active: Option<i32> = courses_organizations::table
         .filter(courses_organizations::course_id.eq(course_id))
-        .select(diesel_max(courses_organizations::order))
+        .select(diesel::dsl::max(courses_organizations::order))
         .first(conn)
         .await
         .optional()?
@@ -62,7 +60,7 @@ pub async fn create_course_organization_invite(
 
     let max_order_pending: Option<i32> = pending_course_organization_invites::table
         .filter(pending_course_organization_invites::course_id.eq(course_id))
-        .select(diesel_max(pending_course_organization_invites::order))
+        .select(diesel::dsl::max(pending_course_organization_invites::order))
         .first(conn)
         .await
         .optional()?

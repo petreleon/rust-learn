@@ -11,10 +11,8 @@ pub struct DbVersionControl {
 
 impl DbVersionControl {
     pub async fn get_current_version(conn: &mut AsyncPgConnection) -> QueryResult<i32> {
-        use diesel::dsl::max as diesel_max;
-
         let current_version_opt: Option<i32> = db_version_control::table
-            .select(diesel_max(db_version_control::version))
+            .select(diesel::dsl::max(db_version_control::version))
             .first(conn)
             .await?;
 
