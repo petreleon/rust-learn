@@ -26,7 +26,7 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 ## Priority 2 — Developer experience and setup
 
 - [x] Add a setup script to generate RSA keys and create a safe local `.env` from placeholders.
-- [ ] Improve `.env.example` comments for PostgreSQL, S3/RustFS, Ethereum provider, admin bootstrap, and worker variables.
+- [x] Improve `.env.example` comments for PostgreSQL, S3/RustFS, Ethereum provider, admin bootstrap, and worker variables.
 - [ ] Add a quickstart path for running only the API dependencies with Docker Compose.
 - [ ] Add troubleshooting notes for Diesel migration failures, S3 connectivity, Ethereum RPC startup, and worker memory limits.
 - [ ] Keep `Makefile` targets aligned with README examples.
