@@ -8,7 +8,7 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 - [ ] Audit all API read endpoints for missing authorization checks, especially user, course, organization, role, wallet, transaction, notification, and reporting data.
 - [x] Add password strength validation to registration.
 - [ ] Add email confirmation or account-verification flow after registration.
-- [ ] Review JWT expiration, refresh/session strategy, and logout/revocation expectations.
+- [x] Review JWT expiration, refresh/session strategy, and logout/revocation expectations.
 - [ ] Add a JWKS or `.well-known/jwks.json` endpoint for external JWT verification.
 - [ ] Confirm every role assignment path enforces hierarchy and scope constraints.
 - [ ] Add structured logging for authentication failures, permission denials, worker failures, and blockchain operations.
