@@ -1,7 +1,7 @@
 .PHONY: help build run stop test clean docker-build docker-up docker-down setup health \
   k8s-build k8s-apply k8s-delete k8s-status k8s-logs k8s-forward \
-  dev-build dev-deps dev-run dev-worker migrate migrate-redo \
-  test-integration
+  dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
+  test-integration fmt web-lint web-build
 
 # Variables
 PROJECT_NAME := rust-learn
@@ -105,12 +105,24 @@ dev-run: ## Run application locally (without container)
 dev-worker: ## Run worker locally (without container)
 	cargo run --bin worker
 
+worker-build: ## Build only the worker Docker image
+	docker-compose build worker
+
 # Tests
 test: ## Run tests
 	cargo test
 
 test-integration: ## Run integration tests
 	cargo test --test blockchain_integration_tests
+
+fmt: ## Check Rust formatting
+	cargo fmt --all --check
+
+web-lint: ## Run frontend lint checks
+	cd web && npm run lint
+
+web-build: ## Build the frontend
+	cd web && npm run build
 
 # DB Migrations
 migrate: ## Run Diesel migrations
