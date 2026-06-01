@@ -20,6 +20,10 @@ use tokio::process::Command as TokioCommand;
 #[derive(Clone)]
 pub struct S3State(Arc<Client>);
 
+fn configured_region() -> Region {
+    Region::new(env::var("AWS_REGION").unwrap_or_else(|_| "us-east-1".into()))
+}
+
 impl S3State {
     /// Build a configured async Client from environment variables.
     pub async fn new_from_env() -> Result<Self> {
@@ -33,6 +37,7 @@ impl S3State {
         let creds = Credentials::new(user, pass, None, None, "env");
         let config = aws_config::defaults(BehaviorVersion::latest())
             .credentials_provider(creds)
+            .region(configured_region())
             .endpoint_url(endpoint)
             .load()
             .await;
@@ -146,6 +151,7 @@ impl S3State {
         let creds = Credentials::new(user, pass, None, None, "env");
         let config = aws_config::defaults(BehaviorVersion::latest())
             .credentials_provider(creds)
+            .region(configured_region())
             .endpoint_url(endpoint)
             .load()
             .await;
@@ -197,6 +203,7 @@ impl S3State {
         let creds = Credentials::new(user, pass, None, None, "env");
         let config = aws_config::defaults(BehaviorVersion::latest())
             .credentials_provider(creds)
+            .region(configured_region())
             .endpoint_url(endpoint)
             .load()
             .await;
