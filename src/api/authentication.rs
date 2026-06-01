@@ -274,11 +274,16 @@ pub fn auth_scope() -> actix_web::Scope {
 
 #[cfg(test)]
 mod tests {
-    use super::validate_password_strength;
+    use super::{email_log_hash, validate_password_strength};
 
     #[test]
     fn accepts_strong_password() {
         assert!(validate_password_strength("CorrectHorse1!").is_ok());
+    }
+
+    #[test]
+    fn accepts_minimum_length_password_with_required_character_classes() {
+        assert!(validate_password_strength("Aa1!aaaaaaaa").is_ok());
     }
 
     #[test]
@@ -290,10 +295,38 @@ mod tests {
     }
 
     #[test]
-    fn rejects_password_missing_required_character_classes() {
-        assert_eq!(
-            validate_password_strength("correcthorse1").unwrap_err(),
-            "Password must include lowercase, uppercase, numeric, and symbol characters"
+    fn rejects_passwords_missing_required_character_classes() {
+        let cases = [
+            "CORRECTHORSE1!",
+            "correcthorse1!",
+            "CorrectHorse!!",
+            "CorrectHorse12",
+        ];
+
+        for password in cases {
+            assert_eq!(
+                validate_password_strength(password).unwrap_err(),
+                "Password must include lowercase, uppercase, numeric, and symbol characters"
+            );
+        }
+    }
+
+    #[test]
+    fn email_log_hash_normalizes_case_and_redacts_raw_email() {
+        let first = email_log_hash(" Learner@Example.COM ");
+        let second = email_log_hash("learner@example.com");
+
+        assert_eq!(first, second);
+        assert_eq!(first.len(), 16);
+        assert!(!first.contains("learner"));
+        assert!(!first.contains('@'));
+    }
+
+    #[test]
+    fn email_log_hash_distinguishes_different_addresses() {
+        assert_ne!(
+            email_log_hash("learner@example.com"),
+            email_log_hash("teacher@example.com")
         );
     }
 }
