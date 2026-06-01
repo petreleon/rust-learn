@@ -1,6 +1,7 @@
 // src/utils/mod.rs
 
 pub mod jwt_utils;
+pub mod logging;
 // pub mod db_utils;
 pub mod course_utils;
 pub mod email;

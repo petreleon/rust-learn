@@ -47,6 +47,7 @@ async fn manual_hello() -> impl Responder {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();
+    crate::utils::logging::init_logging("api");
 
     // Use the establish_connection function from the db module
     let pool = db::establish_connection();
@@ -54,7 +55,7 @@ async fn main() -> std::io::Result<()> {
     let s3_state = match S3State::new_from_env().await {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("Failed to initialize S3 client: {:?}", e);
+            log::error!("event=s3_init_failed error={:?}", e);
             return Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 "S3 init failed",
@@ -74,8 +75,14 @@ async fn main() -> std::io::Result<()> {
 
         // Ensure LearnToken is deployed (idempotent: uses persistent state)
         match crate::utils::eth_utils::deploy_startup(&mut conn, "LearnToken", "LRN", 18).await {
-            Ok(addr) => eprintln!("LearnToken available at {}", format!("{:#x}", addr)),
-            Err(err) => eprintln!("deploy_startup failed: {:?}", err),
+            Ok(addr) => log::info!(
+                "event=eth_startup_deploy_ready contract=LearnToken address={:#x}",
+                addr
+            ),
+            Err(err) => log::error!(
+                "event=eth_startup_deploy_failed contract=LearnToken error={:?}",
+                err
+            ),
         }
     }
     HttpServer::new(move || {

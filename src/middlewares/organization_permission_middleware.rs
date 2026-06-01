@@ -24,20 +24,28 @@ impl OrganizationPermissionMiddleware {
                 let db_pool = match req.app_data::<web::Data<crate::db::DbPool>>() {
                     Some(pool) => pool.get_ref().clone(),
                     None => {
+                        log::error!(
+                            "event=permission_check_failed scope=organization reason=missing_db_pool permission={}",
+                            permission_name
+                        );
                         return Box::pin(futures::future::ready(Err(
                             actix_web::error::ErrorInternalServerError(
                                 "Failed to access database pool",
                             ),
-                        )))
+                        )));
                     }
                 };
 
                 let user_jwt = match req.extensions().get::<UserJWT>().cloned() {
                     Some(u) => u,
                     None => {
+                        log::warn!(
+                            "event=permission_denied scope=organization reason=missing_jwt permission={}",
+                            permission_name
+                        );
                         return Box::pin(futures::future::ready(Err(
                             actix_web::error::ErrorUnauthorized("Unauthorized access"),
-                        )))
+                        )));
                     }
                 };
 
@@ -47,20 +55,35 @@ impl OrganizationPermissionMiddleware {
                     Some(id_str) => match id_str.parse::<i32>() {
                         Ok(id) => id,
                         Err(_) => {
+                            log::warn!(
+                                "event=permission_denied scope=organization reason=invalid_scope_id permission={} raw_scope_id={}",
+                                permission_name,
+                                id_str
+                            );
                             return Box::pin(futures::future::ready(Err(
                                 actix_web::error::ErrorBadRequest("Invalid organization ID format"),
-                            )))
+                            )));
                         }
                     },
                     None => {
+                        log::warn!(
+                            "event=permission_denied scope=organization reason=missing_scope_id permission={}",
+                            permission_name
+                        );
                         return Box::pin(futures::future::ready(Err(
                             actix_web::error::ErrorBadRequest("Missing organization parameter"),
-                        )))
+                        )));
                     }
                 };
 
                 async move {
                     let mut conn = db_pool.get().await.map_err(|_| {
+                        log::error!(
+                            "event=permission_check_failed scope=organization reason=db_connection permission={} user_id={} organization_id={}",
+                            permission_name,
+                            user_jwt.user_id,
+                            organization_id
+                        );
                         actix_web::error::ErrorInternalServerError(
                             "Failed to get database connection",
                         )
@@ -74,10 +97,28 @@ impl OrganizationPermissionMiddleware {
                     )
                     .await
                     {
-                        Ok(has_permission) => Ok(has_permission),
-                        Err(_) => Err(actix_web::error::ErrorInternalServerError(
-                            "Failed to check user permission within organization",
-                        )),
+                        Ok(true) => Ok(true),
+                        Ok(false) => {
+                            log::warn!(
+                                "event=permission_denied scope=organization reason=missing_permission permission={} user_id={} organization_id={}",
+                                permission_name,
+                                user_jwt.user_id,
+                                organization_id
+                            );
+                            Ok(false)
+                        }
+                        Err(err) => {
+                            log::error!(
+                                "event=permission_check_failed scope=organization reason=query permission={} user_id={} organization_id={} error={}",
+                                permission_name,
+                                user_jwt.user_id,
+                                organization_id,
+                                err
+                            );
+                            Err(actix_web::error::ErrorInternalServerError(
+                                "Failed to check user permission within organization",
+                            ))
+                        }
                     }
                 }
                 .boxed_local()

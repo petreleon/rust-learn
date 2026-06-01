@@ -53,6 +53,13 @@ fn validate_password_strength(password: &str) -> Result<(), &'static str> {
     Ok(())
 }
 
+fn email_log_hash(email: &str) -> String {
+    verification_token_hash(&email.trim().to_ascii_lowercase())
+        .chars()
+        .take(16)
+        .collect()
+}
+
 #[post("/login")]
 pub async fn login(pool: web::Data<db::DbPool>, req: web::Json<LoginRequest>) -> impl Responder {
     let mut conn = match pool.get().await {
@@ -67,6 +74,11 @@ pub async fn login(pool: web::Data<db::DbPool>, req: web::Json<LoginRequest>) ->
             if let Some(hash) = info_auth {
                 if verify(&req.password, &hash).unwrap_or(false) {
                     if !user.email_verified {
+                        log::warn!(
+                            "event=auth_login_denied reason=email_unverified user_id={} email_hash={}",
+                            user.id(),
+                            email_log_hash(&user.email)
+                        );
                         return HttpResponse::Forbidden().body("Email verification required");
                     }
 
@@ -74,16 +86,37 @@ pub async fn login(pool: web::Data<db::DbPool>, req: web::Json<LoginRequest>) ->
                         Ok(user_jwt) => {
                             HttpResponse::Ok().json(user_jwt) // Return JWT token in response
                         }
-                        Err(_) => HttpResponse::InternalServerError().body("Failed to create JWT"),
+                        Err(err) => {
+                            log::error!(
+                                "event=auth_jwt_create_failed user_id={} error={}",
+                                user.id(),
+                                err
+                            );
+                            HttpResponse::InternalServerError().body("Failed to create JWT")
+                        }
                     }
                 } else {
+                    log::warn!(
+                        "event=auth_login_failed reason=invalid_credentials email_hash={}",
+                        email_log_hash(&req.email)
+                    );
                     HttpResponse::Unauthorized().body("Invalid credentials")
                 }
             } else {
+                log::warn!(
+                    "event=auth_login_failed reason=missing_password_auth email_hash={}",
+                    email_log_hash(&req.email)
+                );
                 HttpResponse::Unauthorized().body("Invalid credentials")
             }
         }
-        Err(_) => HttpResponse::Unauthorized().body("Invalid credentials"),
+        Err(_) => {
+            log::warn!(
+                "event=auth_login_failed reason=invalid_credentials email_hash={}",
+                email_log_hash(&req.email)
+            );
+            HttpResponse::Unauthorized().body("Invalid credentials")
+        }
     }
 }
 
@@ -139,7 +172,10 @@ pub async fn register(
     let verification_token = match generate_verification_token() {
         Ok(token) => token,
         Err(err) => {
-            eprintln!("Failed to generate email verification token: {}", err);
+            log::error!(
+                "event=email_verification_token_generate_failed error={}",
+                err
+            );
             return HttpResponse::InternalServerError()
                 .body("Failed to create email verification token");
         }
@@ -149,8 +185,8 @@ pub async fn register(
     if let Err(err) =
         EmailVerificationToken::create_for_user(&mut conn, inserted_user.id(), token_hash).await
     {
-        eprintln!(
-            "Failed to save email verification token for user {}: {}",
+        log::error!(
+            "event=email_verification_token_save_failed user_id={} error={}",
             inserted_user.id(),
             err
         );
@@ -186,7 +222,7 @@ pub async fn verify_email(
         Ok(true) => HttpResponse::Ok().body("Email verified successfully"),
         Ok(false) => HttpResponse::BadRequest().body("Invalid or expired verification token"),
         Err(err) => {
-            eprintln!("Failed to verify email token: {}", err);
+            log::error!("event=email_verification_failed error={}", err);
             HttpResponse::InternalServerError().body("Failed to verify email token")
         }
     }
@@ -220,7 +256,7 @@ pub async fn jwks() -> impl Responder {
     match public_jwks_from_env() {
         Ok(jwks) => HttpResponse::Ok().json(jwks),
         Err(err) => {
-            eprintln!("Failed to build JWKS response: {}", err);
+            log::error!("event=jwks_build_failed error={}", err);
             HttpResponse::InternalServerError().body("Failed to build JWKS response")
         }
     }

@@ -25,11 +25,13 @@ pub async fn deploy_contract(
         .get_chainid()
         .await
         .expect("Failed to get chain id");
+    log::info!("event=eth_deploy_start chain_id={}", chain_id);
     wallet = wallet.with_chain_id(chain_id.as_u64());
     let client = std::sync::Arc::new(SignerMiddleware::new(provider, wallet));
     let factory = ContractFactory::new(abi, bytecode, client);
     let deployer = factory.deploy(deploy_args).unwrap();
     let contract = deployer.send().await.unwrap();
+    log::info!("event=eth_deploy_success address={:#x}", contract.address());
     contract.address()
 }
 
@@ -54,6 +56,10 @@ pub async fn deploy_learn_token_and_save(
 
     let addr_hex = format!("{:#x}", addr);
     set_persistent_state(conn, "learn_token_address", &addr_hex).await?;
+    log::info!(
+        "event=eth_contract_saved contract=LearnToken address={}",
+        addr_hex
+    );
 
     Ok(addr)
 }
@@ -70,6 +76,10 @@ pub async fn deploy_learn_token_presigner_and_save(
 
     let addr_hex = format!("{:#x}", addr);
     set_persistent_state(conn, "learn_token_presigner_address", &addr_hex).await?;
+    log::info!(
+        "event=eth_contract_saved contract=LearnTokenPresigner address={}",
+        addr_hex
+    );
     Ok(addr)
 }
 
@@ -85,6 +95,10 @@ pub async fn deploy_platform_importer_and_save(
 
     let addr_hex = format!("{:#x}", addr);
     set_persistent_state(conn, "platform_importer_address", &addr_hex).await?;
+    log::info!(
+        "event=eth_contract_saved contract=PlatformImporter address={}",
+        addr_hex
+    );
     Ok(addr)
 }
 
@@ -155,8 +169,13 @@ pub async fn deploy_startup(
     decimals: u8,
 ) -> QueryResult<Address> {
     if let Some(addr) = get_learn_token_address(conn).await? {
+        log::info!(
+            "event=eth_contract_reused contract=LearnToken address={:#x}",
+            addr
+        );
         Ok(addr)
     } else {
+        log::info!("event=eth_contract_missing contract=LearnToken action=deploy");
         deploy_learn_token_and_save(conn, name, symbol, decimals).await
     }
 }

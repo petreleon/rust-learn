@@ -145,6 +145,13 @@ rollout or multiple environments.
 
 Do not commit `.env`, real private keys, or production secrets.
 
+### Structured logging
+
+The API and worker initialize structured terminal logging at startup. Logs use
+the `RUST_LOG` filter and default to `info`; set values such as
+`RUST_LOG=rust_learn=debug,info` when you need more detail from application code
+without enabling verbose logs for every dependency.
+
 ### Mock email preview
 
 Registration creates an email-verification token and prints a local-development

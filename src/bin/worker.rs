@@ -1,12 +1,10 @@
 use anyhow::Result;
-use diesel::prelude::*;
 use dotenvy::dotenv;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
 use std::time::Duration;
-// use diesel_async::RunQueryDsl; // Not needed explicitly if using model methods
 
 use tokio::fs as tokio_fs;
 use tokio::signal::unix::{signal, SignalKind};
@@ -18,12 +16,13 @@ use tokio::sync::Semaphore;
 async fn main() -> Result<()> {
     // Initialize environment, DB pool, S3 and notifications state
     dotenv().ok();
+    rust_learn::utils::logging::init_logging("worker");
     let pool = rust_learn::db::establish_connection();
 
     let s3 = match rust_learn::utils::s3_utils::S3State::new_from_env().await {
         Ok(m) => m,
         Err(e) => {
-            eprintln!("Failed to init S3: {:?}", e);
+            log::error!("event=worker_s3_init_failed error={:?}", e);
             return Err(e);
         }
     };
@@ -41,7 +40,7 @@ async fn main() -> Result<()> {
         }
         // Also listen for Ctrl-C as fallback
         let _ = tokio::signal::ctrl_c().await;
-        eprintln!("Received shutdown signal, stopping worker claims...");
+        log::info!("event=worker_shutdown_signal action=stop_claiming");
         shutdown_handle.store(true, Ordering::SeqCst);
     });
 
@@ -76,16 +75,17 @@ async fn main() -> Result<()> {
     loop {
         // if shutdown requested, stop claiming new jobs
         if shutdown.load(Ordering::SeqCst) {
-            eprintln!(
-                "Shutdown requested: stopping job claims and waiting for in-flight tasks to finish"
-            );
+            log::info!("event=worker_shutdown_requested action=wait_for_in_flight");
             break;
         }
         // Try to atomically claim a job and return it
         let mut conn = match pool.get().await {
             Ok(c) => c,
             Err(e) => {
-                eprintln!("Failed to get DB connection: {:?}", e);
+                log::error!(
+                    "event=worker_db_connection_failed phase=claim error={:?}",
+                    e
+                );
                 tokio::time::sleep(Duration::from_secs(5)).await;
                 continue;
             }
@@ -106,7 +106,7 @@ async fn main() -> Result<()> {
             match rust_learn::models::upload_job::UploadJob::claim_job(&mut conn).await {
                 Ok(j) => j,
                 Err(e) => {
-                    eprintln!("Failed to claim job: {:?}", e);
+                    log::error!("event=worker_job_claim_failed error={:?}", e);
                     tokio::time::sleep(Duration::from_secs(2)).await;
                     continue;
                 }
@@ -126,7 +126,7 @@ async fn main() -> Result<()> {
             Ok(p) => p,
             Err(_) => {
                 // semaphore closed; graceful exit
-                eprintln!("Semaphore closed, exiting worker loop");
+                log::info!("event=worker_semaphore_closed action=exit");
                 return Ok(());
             }
         };
@@ -137,7 +137,7 @@ async fn main() -> Result<()> {
         let mut conn_for_task = match pool.get().await {
             Ok(c) => c,
             Err(e) => {
-                eprintln!("Failed to get DB connection for task: {:?}", e);
+                log::error!("event=worker_db_connection_failed phase=task error={:?}", e);
                 // release permit by dropping it and continue
                 drop(permit);
                 tokio::time::sleep(Duration::from_secs(2)).await;
@@ -165,12 +165,25 @@ async fn main() -> Result<()> {
                 )
                 .await
                 {
-                    eprintln!("Failed to mark job done {}: {:?}", job_id, e);
+                    log::error!(
+                        "event=worker_job_mark_done_failed job_id={} error={:?}",
+                        job_id,
+                        e
+                    );
                 }
             } else {
                 let err_text = format!("{}", res.err().unwrap());
                 let current_attempts = job.attempts as i64;
                 let new_attempts = current_attempts + 1;
+                log::warn!(
+                    "event=worker_job_processing_failed job_id={} bucket={} object={} attempts={} max_attempts={} error={}",
+                    job_id,
+                    bucket,
+                    object,
+                    new_attempts,
+                    max_attempts,
+                    err_text
+                );
 
                 if new_attempts >= max_attempts {
                     // mark as permanently failed
@@ -182,7 +195,12 @@ async fn main() -> Result<()> {
                     )
                     .await
                     {
-                        eprintln!("Failed to mark job failed {}: {:?}", job_id, e);
+                        log::error!(
+                            "event=worker_job_mark_failed_failed job_id={} attempts={} error={:?}",
+                            job_id,
+                            new_attempts,
+                            e
+                        );
                     }
                 } else {
                     // exponential backoff (base * 2^attempts)
@@ -202,7 +220,12 @@ async fn main() -> Result<()> {
                     )
                     .await
                     {
-                        eprintln!("Failed to schedule retry for job {}: {:?}", job_id, e);
+                        log::error!(
+                            "event=worker_job_schedule_retry_failed job_id={} attempts={} error={:?}",
+                            job_id,
+                            new_attempts,
+                            e
+                        );
                     }
                 }
             }
@@ -216,11 +239,11 @@ async fn main() -> Result<()> {
     loop {
         let available = sem.available_permits();
         if available >= concurrency {
-            eprintln!("All in-flight tasks finished, worker exiting");
+            log::info!("event=worker_exit reason=in_flight_finished");
             break;
         }
-        eprintln!(
-            "Waiting for {} in-flight tasks to finish...",
+        log::info!(
+            "event=worker_waiting_for_in_flight remaining_tasks={}",
             concurrency - available
         );
         tokio::time::sleep(Duration::from_secs(1)).await;

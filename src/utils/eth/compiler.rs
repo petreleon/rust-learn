@@ -58,8 +58,8 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
     }
 
     // Fallback: use solc CLI
-    eprintln!(
-        "[eth_utils] ethers_solc output did not contain {}; falling back to solc CLI",
+    log::warn!(
+        "event=eth_compile_fallback reason=missing_contract_in_ethers_solc contract={}",
         contract_name
     );
 
