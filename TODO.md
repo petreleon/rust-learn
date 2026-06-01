@@ -30,7 +30,7 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 - [x] Add a quickstart path for running only the API dependencies with Docker Compose.
 - [x] Add troubleshooting notes for Diesel migration failures, S3 connectivity, Ethereum RPC startup, and worker memory limits.
 - [x] Keep `Makefile` targets aligned with README examples.
-- [ ] Add a short architecture diagram or request-flow diagram to the docs.
+- [x] Add a short architecture diagram or request-flow diagram to the docs.
 
 ## Priority 3 — Product features
 
