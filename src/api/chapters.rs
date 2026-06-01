@@ -1,12 +1,12 @@
-use actix_web::{get, post, delete, put, web, HttpResponse, Responder};
-use diesel::{QueryDsl, ExpressionMethods};
-use diesel_async::RunQueryDsl;
-use crate::db::DbPool;
-use crate::models::chapter::{Chapter, NewChapter, UpdateChapter};
-use crate::db::schema::chapters;
-use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
-use crate::models::param_type::ParamType;
 use crate::config::constants::permissions::Permissions;
+use crate::db::schema::chapters;
+use crate::db::DbPool;
+use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
+use crate::models::chapter::{Chapter, NewChapter, UpdateChapter};
+use crate::models::param_type::ParamType;
+use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
+use diesel::{ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -15,10 +15,7 @@ pub struct ReorderRequest {
 }
 
 // #[get("/courses/{id}/chapters")]
-async fn list_chapters(
-    path: web::Path<i32>,
-    pool: web::Data<DbPool>,
-) -> impl Responder {
+async fn list_chapters(path: web::Path<i32>, pool: web::Data<DbPool>) -> impl Responder {
     let course_id_val = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(c) => c,
@@ -103,10 +100,7 @@ async fn update_chapter(
     }
 }
 
-async fn delete_chapter(
-    path: web::Path<i32>,
-    pool: web::Data<DbPool>,
-) -> impl Responder {
+async fn delete_chapter(path: web::Path<i32>, pool: web::Data<DbPool>) -> impl Responder {
     let chapter_id = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(c) => c,
@@ -135,36 +129,44 @@ async fn delete_chapter(
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::resource("/{id}/chapters")
-            .route(web::get().to(list_chapters)
-                .wrap(CoursePermissionMiddleware::new(
-                    Permissions::VIEW_COURSE.to_string(), // Student can view
-                    ParamType::Path,
-                    "id".to_string()
-                ))
+            .route(
+                web::get()
+                    .to(list_chapters)
+                    .wrap(CoursePermissionMiddleware::new(
+                        Permissions::VIEW_COURSE.to_string(), // Student can view
+                        ParamType::Path,
+                        "id".to_string(),
+                    )),
             )
-            .route(web::post().to(create_chapter)
-                .wrap(CoursePermissionMiddleware::new(
+            .route(
+                web::post()
+                    .to(create_chapter)
+                    .wrap(CoursePermissionMiddleware::new(
                         Permissions::MANAGE_COURSE_SETTINGS.to_string(), // Teacher+
                         ParamType::Path,
-                        "id".to_string()
-                ))
-            )
+                        "id".to_string(),
+                    )),
+            ),
     )
     .service(
         web::resource("/{course_id}/chapters/{id}")
-            .route(web::put().to(update_chapter)
-                .wrap(CoursePermissionMiddleware::new(
-                    Permissions::MANAGE_COURSE_SETTINGS.to_string(),
-                    ParamType::Path,
-                    "course_id".to_string()
-                ))
+            .route(
+                web::put()
+                    .to(update_chapter)
+                    .wrap(CoursePermissionMiddleware::new(
+                        Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                        ParamType::Path,
+                        "course_id".to_string(),
+                    )),
             )
-            .route(web::delete().to(delete_chapter)
-                .wrap(CoursePermissionMiddleware::new(
-                    Permissions::MANAGE_COURSE_SETTINGS.to_string(),
-                    ParamType::Path,
-                    "course_id".to_string()
-                ))
-            )
+            .route(
+                web::delete()
+                    .to(delete_chapter)
+                    .wrap(CoursePermissionMiddleware::new(
+                        Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                        ParamType::Path,
+                        "course_id".to_string(),
+                    )),
+            ),
     );
 }

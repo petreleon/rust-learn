@@ -1,7 +1,7 @@
-use diesel::prelude::*;
 use crate::db::schema::users;
 use chrono::NaiveDate;
 use chrono::NaiveDateTime;
+use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 #[derive(Queryable, Insertable)]
@@ -40,7 +40,10 @@ impl User {
     }
 
     pub async fn find_by_email(email: &str, conn: &mut AsyncPgConnection) -> QueryResult<User> {
-        users::table.filter(users::email.eq(email)).first(conn).await
+        users::table
+            .filter(users::email.eq(email))
+            .first(conn)
+            .await
     }
 
     pub async fn create(new_user: NewUser, conn: &mut AsyncPgConnection) -> QueryResult<User> {
@@ -50,7 +53,10 @@ impl User {
             .await
     }
 
-    pub async fn find_with_password_auth(email: &str, conn: &mut AsyncPgConnection) -> QueryResult<(User, Option<String>)> {
+    pub async fn find_with_password_auth(
+        email: &str,
+        conn: &mut AsyncPgConnection,
+    ) -> QueryResult<(User, Option<String>)> {
         use crate::db::schema::authentications;
         users::table
             .filter(users::email.eq(email))

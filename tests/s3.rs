@@ -28,8 +28,7 @@ async fn presign_external_get_works() {
             .as_nanos()
     ));
     std::fs::write(&tmp, b"test").expect("write tmp");
-    s3
-        .put_object_from_path("test-bucket", "test-object.txt", tmp.clone())
+    s3.put_object_from_path("test-bucket", "test-object.txt", tmp.clone())
         .await
         .expect("ensure bucket/upload");
     let _ = std::fs::remove_file(&tmp);
@@ -55,12 +54,13 @@ async fn presign_external_post_form_data_works() {
             .as_nanos()
     ));
     std::fs::write(&tmp, b"test").expect("write tmp");
-    s3
-        .put_object_from_path("test-bucket", "test-object.txt", tmp.clone())
+    s3.put_object_from_path("test-bucket", "test-object.txt", tmp.clone())
         .await
         .expect("ensure bucket/upload");
     let _ = std::fs::remove_file(&tmp);
 
-    let res = s3.presign_external_post_form_data("test-bucket", "test-object.txt", 300).await;
+    let res = s3
+        .presign_external_post_form_data("test-bucket", "test-object.txt", 300)
+        .await;
     assert!(res.is_ok(), "presign POST failed: {:?}", res.err());
 }

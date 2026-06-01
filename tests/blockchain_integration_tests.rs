@@ -1,9 +1,11 @@
-use rust_learn::utils::eth_utils::{compile_contract, deploy_contract, get_provider, load_wallet_from_env};
-use ethers::prelude::*;
-use ethers::signers::MnemonicBuilder;
-use ethers::signers::coins_bip39::English;
 use bip39::Mnemonic;
+use ethers::prelude::*;
+use ethers::signers::coins_bip39::English;
+use ethers::signers::MnemonicBuilder;
 use getrandom::getrandom;
+use rust_learn::utils::eth_utils::{
+    compile_contract, deploy_contract, get_provider, load_wallet_from_env,
+};
 
 // This test requires a running Anvil node accessible via the .env configuration.
 // It is ignored by default.
@@ -46,11 +48,17 @@ async fn test_deploy_and_mint() {
     let _ = pending.await.expect("mint confirm").unwrap();
 
     // Verify minted balance
-    let balance: U256 = token.method::<_, U256>("balanceOf", my_addr).unwrap().call().await.expect("balanceOf");
+    let balance: U256 = token
+        .method::<_, U256>("balanceOf", my_addr)
+        .unwrap()
+        .call()
+        .await
+        .expect("balanceOf");
     assert_eq!(balance, amount_to_mint);
 
     // Deploy LearnTokenPresigner
-    let (presigner_abi, presigner_bytecode) = compile_contract("LearnTokenPresigner.sol", "LearnTokenPresigner");
+    let (presigner_abi, presigner_bytecode) =
+        compile_contract("LearnTokenPresigner.sol", "LearnTokenPresigner");
     let presigner_addr = deploy_contract(
         wallet.clone(),
         provider.clone(),
@@ -62,22 +70,29 @@ async fn test_deploy_and_mint() {
     let presigner = Contract::new(presigner_addr, presigner_abi.clone(), client.clone());
 
     // Approve presigner to transfer tokens and deposit
-    let approve_call = token.method::<_, bool>("approve", (presigner_addr, amount_to_mint)).unwrap();
+    let approve_call = token
+        .method::<_, bool>("approve", (presigner_addr, amount_to_mint))
+        .unwrap();
     let p = approve_call.send().await.expect("approve send");
     let _ = p.await.expect("approve confirm").unwrap();
 
     // Deposit into presigner
-    let deposit_call = presigner.method::<_, ()>("deposit", amount_to_mint).unwrap();
+    let deposit_call = presigner
+        .method::<_, ()>("deposit", amount_to_mint)
+        .unwrap();
     let d = deposit_call.send().await.expect("deposit send");
     let _ = d.await.expect("deposit confirm").unwrap();
 
     // Withdraw back
-    let withdraw_call = presigner.method::<_, ()>("withdraw", amount_to_mint).unwrap();
+    let withdraw_call = presigner
+        .method::<_, ()>("withdraw", amount_to_mint)
+        .unwrap();
     let w = withdraw_call.send().await.expect("withdraw send");
     let _ = w.await.expect("withdraw confirm").unwrap();
 
     // Deploy PlatformImporter (we won't test permit here)
-    let (importer_abi, importer_bytecode) = compile_contract("PlatformImporter.sol", "PlatformImporter");
+    let (importer_abi, importer_bytecode) =
+        compile_contract("PlatformImporter.sol", "PlatformImporter");
     let treasury = my_addr; // use self as treasury for test
     let importer_addr = deploy_contract(
         wallet.clone(),
@@ -101,15 +116,23 @@ async fn test_permit_import() {
     // Generate distinct mnemonics for deployer and owner
     let mut entropy_deployer = [0u8; 16];
     getrandom(&mut entropy_deployer).expect("failed to get randomness for deployer");
-    let mnemonic_deployer = Mnemonic::from_entropy(&entropy_deployer).expect("failed to build deployer mnemonic");
+    let mnemonic_deployer =
+        Mnemonic::from_entropy(&entropy_deployer).expect("failed to build deployer mnemonic");
     let phrase_deployer = mnemonic_deployer.to_string();
-    eprintln!("[test_permit_import] generated deployer mnemonic: {}", phrase_deployer);
+    eprintln!(
+        "[test_permit_import] generated deployer mnemonic: {}",
+        phrase_deployer
+    );
 
     let mut entropy_owner = [0u8; 16];
     getrandom(&mut entropy_owner).expect("failed to get randomness for owner");
-    let mnemonic_owner = Mnemonic::from_entropy(&entropy_owner).expect("failed to build owner mnemonic");
+    let mnemonic_owner =
+        Mnemonic::from_entropy(&entropy_owner).expect("failed to build owner mnemonic");
     let phrase_owner = mnemonic_owner.to_string();
-    eprintln!("[test_permit_import] generated owner mnemonic: {}", phrase_owner);
+    eprintln!(
+        "[test_permit_import] generated owner mnemonic: {}",
+        phrase_owner
+    );
 
     // Deployer and owner come from different mnemonics (both at index 0)
     let deployer_wallet = MnemonicBuilder::<English>::default()
@@ -143,7 +166,10 @@ async fn test_permit_import() {
     )
     .await;
 
-    let client = std::sync::Arc::new(SignerMiddleware::new(provider.clone(), deployer_wallet.clone()));
+    let client = std::sync::Arc::new(SignerMiddleware::new(
+        provider.clone(),
+        deployer_wallet.clone(),
+    ));
     let token = Contract::new(token_addr, abi.clone(), client.clone());
 
     // Derive a separate owner wallet from the same mnemonic at index 1 (this wallet will sign the permit)
@@ -157,10 +183,18 @@ async fn test_permit_import() {
 
     // Mint tokens to owner
     let amount = U256::from(50) * U256::from(10).pow(U256::from(18));
-    let _ = token.method::<_, ()>("mint", (owner, amount)).unwrap().send().await.unwrap().await.unwrap();
+    let _ = token
+        .method::<_, ()>("mint", (owner, amount))
+        .unwrap()
+        .send()
+        .await
+        .unwrap()
+        .await
+        .unwrap();
 
     // Deploy importer with treasury = random address
-    let (importer_abi, importer_bytecode) = compile_contract("PlatformImporter.sol", "PlatformImporter");
+    let (importer_abi, importer_bytecode) =
+        compile_contract("PlatformImporter.sol", "PlatformImporter");
     let treasury = Address::random();
     let importer_addr = deploy_contract(
         deployer_wallet.clone(),
@@ -173,15 +207,28 @@ async fn test_permit_import() {
     let importer = Contract::new(importer_addr, importer_abi.clone(), client.clone());
 
     // Build permit signature following EIP-2612
-    use ethers::utils::keccak256;
     use ethers::core::types::H256;
+    use ethers::utils::keccak256;
 
     // typehash
-    let typehash = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)".as_bytes());
+    let typehash = keccak256(
+        "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+            .as_bytes(),
+    );
 
     // fetch nonce and domain separator from token
-    let nonce: U256 = token.method::<_, U256>("nonces", owner).unwrap().call().await.unwrap();
-    let domain_separator: H256 = token.method::<_, H256>("DOMAIN_SEPARATOR", ()).unwrap().call().await.unwrap();
+    let nonce: U256 = token
+        .method::<_, U256>("nonces", owner)
+        .unwrap()
+        .call()
+        .await
+        .unwrap();
+    let domain_separator: H256 = token
+        .method::<_, H256>("DOMAIN_SEPARATOR", ())
+        .unwrap()
+        .call()
+        .await
+        .unwrap();
 
     // deadline
     let deadline = U256::from(9999999999u64);
@@ -229,7 +276,18 @@ async fn test_permit_import() {
 
     // Call importWithPermit
     let tx = importer
-        .method::<_, ()>("importWithPermit", (token_addr, owner, amount, U256::from(9999999999u64), v, r_bytes, s_bytes))
+        .method::<_, ()>(
+            "importWithPermit",
+            (
+                token_addr,
+                owner,
+                amount,
+                U256::from(9999999999u64),
+                v,
+                r_bytes,
+                s_bytes,
+            ),
+        )
         .unwrap()
         .send()
         .await
@@ -238,6 +296,11 @@ async fn test_permit_import() {
         .expect("import tx confirm");
 
     // Check treasury balance increased
-    let bal: U256 = token.method::<_, U256>("balanceOf", treasury).unwrap().call().await.unwrap();
+    let bal: U256 = token
+        .method::<_, U256>("balanceOf", treasury)
+        .unwrap()
+        .call()
+        .await
+        .unwrap();
     assert_eq!(bal, amount);
 }

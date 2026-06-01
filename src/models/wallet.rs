@@ -1,6 +1,6 @@
-use diesel::prelude::*;
 use crate::db::schema::wallets;
 use bigdecimal::BigDecimal;
+use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Debug, Clone)]
 #[diesel(table_name = wallets)]
@@ -23,15 +23,26 @@ impl Wallet {
     pub fn find_by_user_id(user_id: i32, conn: &mut PgConnection) -> QueryResult<Option<i32>> {
         wallets::table
             .select(wallets::id)
-            .filter(wallets::user_id.eq(user_id).and(wallets::organization_id.is_null()))
+            .filter(
+                wallets::user_id
+                    .eq(user_id)
+                    .and(wallets::organization_id.is_null()),
+            )
             .first(conn)
             .optional()
     }
 
-    pub fn find_by_organization_id(org_id: i32, conn: &mut PgConnection) -> QueryResult<Option<i32>> {
+    pub fn find_by_organization_id(
+        org_id: i32,
+        conn: &mut PgConnection,
+    ) -> QueryResult<Option<i32>> {
         wallets::table
             .select(wallets::id)
-            .filter(wallets::organization_id.eq(org_id).and(wallets::user_id.is_null()))
+            .filter(
+                wallets::organization_id
+                    .eq(org_id)
+                    .and(wallets::user_id.is_null()),
+            )
             .first(conn)
             .optional()
     }
@@ -43,7 +54,11 @@ impl Wallet {
             .get_result(conn)
     }
 
-    pub fn update_balance_guarded(wallet_id: i32, amount: BigDecimal, conn: &mut PgConnection) -> QueryResult<usize> {
+    pub fn update_balance_guarded(
+        wallet_id: i32,
+        amount: BigDecimal,
+        conn: &mut PgConnection,
+    ) -> QueryResult<usize> {
         let zero = BigDecimal::from(0);
         diesel::update(
             wallets::table.filter(
@@ -56,7 +71,10 @@ impl Wallet {
         .execute(conn)
     }
 
-    pub fn lock_wallets(ids: Vec<i32>, conn: &mut PgConnection) -> QueryResult<Vec<(i32, BigDecimal)>> {
+    pub fn lock_wallets(
+        ids: Vec<i32>,
+        conn: &mut PgConnection,
+    ) -> QueryResult<Vec<(i32, BigDecimal)>> {
         wallets::table
             .select((wallets::id, wallets::value))
             .filter(wallets::id.eq_any(ids))

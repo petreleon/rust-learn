@@ -1,17 +1,16 @@
-use actix_web::{get, post, delete, put, web, HttpResponse, Responder};
-use diesel::{QueryDsl, ExpressionMethods};
-use diesel_async::RunQueryDsl;
-use crate::db::DbPool;
-use crate::models::content::{Content, NewContent, UpdateContent};
-use crate::db::schema::contents;
-use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
-use crate::models::param_type::ParamType;
 use crate::config::constants::permissions::Permissions;
-use crate::utils::s3_utils::S3State;
-use crate::models::upload_job::NewUploadJob;
+use crate::db::schema::contents;
 use crate::db::schema::upload_jobs;
+use crate::db::DbPool;
+use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
+use crate::models::content::{Content, NewContent, UpdateContent};
+use crate::models::param_type::ParamType;
+use crate::models::upload_job::NewUploadJob;
 use crate::utils::jwt_utils::decode_jwt;
-
+use crate::utils::s3_utils::S3State;
+use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
+use diesel::{ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 
 // #[get("/chapters/{id}/contents")]
 async fn list_contents(
@@ -90,31 +89,33 @@ async fn get_upload_url(
     req: web::Json<UploadRequest>,
 ) -> impl Responder {
     let (course_id, chapter_id) = path.into_inner();
-    
+
     // Construct object path: courses/{course_id}/chapters/{chapter_id}/{filename}
-    let object_path = format!("courses/{}/chapters/{}/{}", course_id, chapter_id, req.filename);
-    
+    let object_path = format!(
+        "courses/{}/chapters/{}/{}",
+        course_id, chapter_id, req.filename
+    );
+
     match S3State::new_from_env().await {
         Ok(s3) => {
-             // 1 hour expiry
-             match s3.presign_put("course-materials", &object_path, 3600).await {
-                 Ok(url) => HttpResponse::Ok().json(serde_json::json!({
-                     "upload_url": url,
-                     "object_key": object_path
-                 })),
-                 Err(e) => {
-                     eprintln!("S3 error: {}", e);
-                     HttpResponse::InternalServerError().body("Failed to generate upload URL")
-                 }
-             }
-        },
+            // 1 hour expiry
+            match s3.presign_put("course-materials", &object_path, 3600).await {
+                Ok(url) => HttpResponse::Ok().json(serde_json::json!({
+                    "upload_url": url,
+                    "object_key": object_path
+                })),
+                Err(e) => {
+                    eprintln!("S3 error: {}", e);
+                    HttpResponse::InternalServerError().body("Failed to generate upload URL")
+                }
+            }
+        }
         Err(e) => {
             eprintln!("S3 client init error: {}", e);
             HttpResponse::InternalServerError().body("Failed to init storage client")
         }
     }
 }
-
 
 async fn update_content(
     path: web::Path<(i32, i32, i32)>, // course_id, chapter_id, content_id
@@ -171,7 +172,6 @@ async fn delete_content(
     }
 }
 
-
 async fn process_content(
     req: actix_web::HttpRequest,
     path: web::Path<(i32, i32, i32)>, // course_id, chapter_id, content_id
@@ -184,9 +184,15 @@ async fn process_content(
     };
 
     // 1. Fetch Content to get the object key
-    let content = match contents::table.find(content_id).first::<Content>(&mut conn).await {
+    let content = match contents::table
+        .find(content_id)
+        .first::<Content>(&mut conn)
+        .await
+    {
         Ok(c) => c,
-        Err(diesel::result::Error::NotFound) => return HttpResponse::NotFound().body("Content not found"),
+        Err(diesel::result::Error::NotFound) => {
+            return HttpResponse::NotFound().body("Content not found")
+        }
         Err(e) => {
             eprintln!("DB error fetching content: {}", e);
             return HttpResponse::InternalServerError().body("Failed to fetch content");
@@ -200,8 +206,16 @@ async fn process_content(
     };
 
     // 3. Identify User (Optional, for notifications)
-    let auth_header = req.headers().get("Authorization").and_then(|h| h.to_str().ok()).unwrap_or("");
-    let token = if auth_header.starts_with("Bearer ") { &auth_header[7..] } else { "" };
+    let auth_header = req
+        .headers()
+        .get("Authorization")
+        .and_then(|h| h.to_str().ok())
+        .unwrap_or("");
+    let token = if auth_header.starts_with("Bearer ") {
+        &auth_header[7..]
+    } else {
+        ""
+    };
     let user_id = decode_jwt(token).ok().map(|d| d.claims.user_id);
 
     // 4. Enqueue Job
@@ -228,56 +242,66 @@ async fn process_content(
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::resource("/{course_id}/chapters/{chapter_id}/contents")
-            .route(web::get().to(list_contents)
-                .wrap(CoursePermissionMiddleware::new(
-                    Permissions::VIEW_COURSE.to_string(), 
-                    ParamType::Path,
-                    "course_id".to_string()
-                ))
+            .route(
+                web::get()
+                    .to(list_contents)
+                    .wrap(CoursePermissionMiddleware::new(
+                        Permissions::VIEW_COURSE.to_string(),
+                        ParamType::Path,
+                        "course_id".to_string(),
+                    )),
             )
-            .route(web::post().to(create_content)
-                .wrap(CoursePermissionMiddleware::new(
+            .route(
+                web::post()
+                    .to(create_content)
+                    .wrap(CoursePermissionMiddleware::new(
                         Permissions::MANAGE_COURSE_SETTINGS.to_string(), // Or CREATE_CONTENT
                         ParamType::Path,
-                        "course_id".to_string()
-                ))
-            )
+                        "course_id".to_string(),
+                    )),
+            ),
     )
     .service(
-        web::resource("/{course_id}/chapters/{chapter_id}/contents/upload_url")
-            .route(web::post().to(get_upload_url)
+        web::resource("/{course_id}/chapters/{chapter_id}/contents/upload_url").route(
+            web::post()
+                .to(get_upload_url)
                 .wrap(CoursePermissionMiddleware::new(
-                        Permissions::MANAGE_COURSE_SETTINGS.to_string(),
-                        ParamType::Path,
-                        "course_id".to_string()
-                ))
-            )
+                    Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                    ParamType::Path,
+                    "course_id".to_string(),
+                )),
+        ),
     )
     .service(
         web::resource("/{course_id}/chapters/{chapter_id}/contents/{id}")
-            .route(web::put().to(update_content)
-                .wrap(CoursePermissionMiddleware::new(
-                    Permissions::MANAGE_COURSE_SETTINGS.to_string(),
-                    ParamType::Path,
-                    "course_id".to_string()
-                ))
+            .route(
+                web::put()
+                    .to(update_content)
+                    .wrap(CoursePermissionMiddleware::new(
+                        Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                        ParamType::Path,
+                        "course_id".to_string(),
+                    )),
             )
-            .route(web::delete().to(delete_content)
-                .wrap(CoursePermissionMiddleware::new(
-                    Permissions::MANAGE_COURSE_SETTINGS.to_string(),
-                    ParamType::Path,
-                    "course_id".to_string()
-                ))
-            )
+            .route(
+                web::delete()
+                    .to(delete_content)
+                    .wrap(CoursePermissionMiddleware::new(
+                        Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                        ParamType::Path,
+                        "course_id".to_string(),
+                    )),
+            ),
     )
     .service(
-        web::resource("/{course_id}/chapters/{chapter_id}/contents/{id}/process")
-            .route(web::post().to(process_content)
+        web::resource("/{course_id}/chapters/{chapter_id}/contents/{id}/process").route(
+            web::post()
+                .to(process_content)
                 .wrap(CoursePermissionMiddleware::new(
                     Permissions::MANAGE_COURSE_SETTINGS.to_string(),
                     ParamType::Path,
-                    "course_id".to_string()
-                ))
-            )
+                    "course_id".to_string(),
+                )),
+        ),
     );
 }

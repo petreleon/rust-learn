@@ -2,11 +2,11 @@
 
 pub mod updates;
 
+use self::updates::{apply_update_v1, apply_update_v2};
 use crate::models::db_version_control::DbVersionControl;
 use diesel::QueryResult;
 use diesel_async::AsyncPgConnection;
 use futures::future::BoxFuture;
-use self::updates::{apply_update_v1, apply_update_v2};
 
 // A small alias for update functions stored in the update list.
 // Each update receives a mutable Postgres connection and returns
@@ -18,10 +18,7 @@ type UpdateFn = fn(&mut AsyncPgConnection) -> BoxFuture<'_, QueryResult<()>>;
 /// Important: the list should be ordered by ascending version so updates are
 /// applied incrementally. If you add more updates, keep them in ascending order.
 fn updates() -> Vec<(i32, UpdateFn)> {
-    vec![
-        (1, apply_update_v1),
-        (2, apply_update_v2),
-    ]
+    vec![(1, apply_update_v1), (2, apply_update_v2)]
 }
 
 /// Ensure the database has the latest version applied.
@@ -51,7 +48,11 @@ pub async fn version_updater(conn: &mut AsyncPgConnection) -> QueryResult<()> {
     }
 
     // Determine the highest available version from the list.
-    let max_version = updates.iter().map(|(v, _)| *v).max().unwrap_or(current_version);
+    let max_version = updates
+        .iter()
+        .map(|(v, _)| *v)
+        .max()
+        .unwrap_or(current_version);
 
     // Only write back if we advanced (or if the available max is greater).
     if max_version > current_version {

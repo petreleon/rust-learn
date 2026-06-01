@@ -1,6 +1,6 @@
+use crate::db::schema::{course_roles, organization_roles, platform_roles};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use crate::db::schema::{platform_roles, organization_roles, course_roles};
 use serde::Serialize;
 
 #[derive(Queryable, Insertable, Serialize)]

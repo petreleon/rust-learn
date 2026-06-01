@@ -3,10 +3,10 @@ use diesel::{dsl::min, QueryResult};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use std::cmp::Ordering;
 
-use crate::models::user_role_platform::UserRolePlatform;
-use crate::models::role_platform_hierarchy::RolePlatformHierarchy;
-use crate::models::role::PlatformRole;
 use crate::config::constants::roles::Roles;
+use crate::models::role::PlatformRole;
+use crate::models::role_platform_hierarchy::RolePlatformHierarchy;
+use crate::models::user_role_platform::UserRolePlatform;
 
 // Checks if a user has a specific permission on the platform
 pub async fn user_permission_platform_request(
@@ -23,7 +23,6 @@ pub async fn user_hierarchy_compare_platform(
     user1_id: i32,
     user2_id: i32,
 ) -> QueryResult<Ordering> {
-
     let user1_max_level = RolePlatformHierarchy::get_min_level(conn, user1_id).await?;
     let user2_max_level = RolePlatformHierarchy::get_min_level(conn, user2_id).await?;
 

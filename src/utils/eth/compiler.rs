@@ -1,15 +1,15 @@
 use ethers::abi::Abi;
 use ethers::core::types::Bytes;
 use std::env;
-use std::str::FromStr;
 use std::path::Path;
+use std::str::FromStr;
 
 /// Compile a specific contract file+name using ethers-solc. Returns (Abi, Bytecode).
 pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes) {
-    use ethers_solc::{Project, ProjectPathsConfig, remappings::Remapping};
-    use std::process::Command;
+    use ethers_solc::{remappings::Remapping, Project, ProjectPathsConfig};
     use std::fs;
-    
+    use std::process::Command;
+
     // Configure remappings for OpenZeppelin
     let mut remappings: Vec<Remapping> = Vec::new();
     if let Ok(oz_env) = env::var("OZ_PATH") {
@@ -18,9 +18,7 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
             Ok(p) => p.display().to_string(),
             Err(_) => oz_env_path.display().to_string(),
         };
-        remappings.push(
-            Remapping::from_str(&format!("@openzeppelin/={}/", oz_env_str)).unwrap(),
-        );
+        remappings.push(Remapping::from_str(&format!("@openzeppelin/={}/", oz_env_str)).unwrap());
     } else {
         let oz_path = Path::new("./ethereum/contracts").join("lib/openzeppelin-contracts");
         if oz_path.exists() {
@@ -28,9 +26,8 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
                 Ok(p) => p.display().to_string(),
                 Err(_) => oz_path.display().to_string(),
             };
-            remappings.push(
-                Remapping::from_str(&format!("@openzeppelin/={}/", oz_path_str)).unwrap(),
-            );
+            remappings
+                .push(Remapping::from_str(&format!("@openzeppelin/={}/", oz_path_str)).unwrap());
         }
     }
 
@@ -41,7 +38,10 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
         .remappings(remappings)
         .build()
         .expect("Failed to build project paths");
-    let project = Project::builder().paths(paths).build().expect("Failed to build project");
+    let project = Project::builder()
+        .paths(paths)
+        .build()
+        .expect("Failed to build project");
     let output = project.compile().expect("Failed to compile project");
 
     if let Some(contract) = output.find(contract_name, contract_file) {
@@ -58,7 +58,10 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
     }
 
     // Fallback: use solc CLI
-    eprintln!("[eth_utils] ethers_solc output did not contain {}; falling back to solc CLI", contract_name);
+    eprintln!(
+        "[eth_utils] ethers_solc output did not contain {}; falling back to solc CLI",
+        contract_name
+    );
 
     let mut solc_args: Vec<String> = Vec::new();
     if let Ok(oz_env) = env::var("OZ_PATH") {
@@ -85,7 +88,11 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
     }
 
     let mut cmd = Command::new("solc");
-    cmd.arg("--abi").arg("--bin").arg("--overwrite").arg("-o").arg(out_dir);
+    cmd.arg("--abi")
+        .arg("--bin")
+        .arg("--overwrite")
+        .arg("-o")
+        .arg(out_dir);
     for arg in &solc_args {
         cmd.arg(arg);
     }

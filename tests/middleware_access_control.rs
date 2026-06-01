@@ -1,28 +1,32 @@
-use actix_web::{test, App, web};
+use actix_web::{test, web, App};
 use diesel::prelude::*;
-use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::utils::db_utils::authentication_registration::create_user;
-use rust_learn::models::user::User;
-use rust_learn::utils::jwt_utils::create_jwt;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::models::user::User;
+use rust_learn::utils::db_utils::authentication_registration::create_user;
+use rust_learn::utils::jwt_utils::create_jwt;
 
-use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::course::{NewCourse, Course};
-use rust_learn::db::schema::{organizations, courses};
-use rust_learn::models::role::{PlatformRole, OrganizationRole, CourseRole};
-use rust_learn::models::user_role_platform::UserRolePlatform;
-use rust_learn::models::user_role_organization::UserRoleOrganization;
-use rust_learn::models::user_role_course::UserRoleCourse;
+use actix_service::Service;
 use chrono::NaiveDate;
-use actix_service::Service; // Import Service trait for .call()
+use rust_learn::db::schema::{courses, organizations};
+use rust_learn::models::course::{Course, NewCourse};
+use rust_learn::models::organization::{NewOrganization, Organization};
+use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
+use rust_learn::models::user_role_course::UserRoleCourse;
+use rust_learn::models::user_role_organization::UserRoleOrganization;
+use rust_learn::models::user_role_platform::UserRolePlatform; // Import Service trait for .call()
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
 }
 
-async fn setup_conn(pool: &DbPool) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
-    pool.get().await.expect("failed to get DB connection from pool")
+async fn setup_conn(
+    pool: &DbPool,
+) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
+    pool.get()
+        .await
+        .expect("failed to get DB connection from pool")
 }
 
 async fn create_test_user(conn: &mut AsyncPgConnection, name: &str) -> User {
@@ -43,18 +47,40 @@ fn generate_token(user_id: i32) -> String {
 }
 
 async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
-    let role_id = PlatformRole::find_by_name(role_name, conn).await.expect("role not found");
-    UserRolePlatform::assign(conn, user_id, role_id).await.expect("assign failed");
+    let role_id = PlatformRole::find_by_name(role_name, conn)
+        .await
+        .expect("role not found");
+    UserRolePlatform::assign(conn, user_id, role_id)
+        .await
+        .expect("assign failed");
 }
 
-async fn force_assign_org_role(conn: &mut AsyncPgConnection, user_id: i32, org_id: i32, role_name: &str) {
-    let role_id = OrganizationRole::find_by_name(role_name, conn).await.expect("role not found");
-    UserRoleOrganization::assign(conn, user_id, org_id, role_id).await.expect("assign failed");
+async fn force_assign_org_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    org_id: i32,
+    role_name: &str,
+) {
+    let role_id = OrganizationRole::find_by_name(role_name, conn)
+        .await
+        .expect("role not found");
+    UserRoleOrganization::assign(conn, user_id, org_id, role_id)
+        .await
+        .expect("assign failed");
 }
 
-async fn force_assign_course_role(conn: &mut AsyncPgConnection, user_id: i32, course_id: i32, role_name: &str) {
-    let role_id = CourseRole::find_by_name(role_name, conn).await.expect("role not found");
-    UserRoleCourse::assign(conn, user_id, course_id, role_id).await.expect("assign failed");
+async fn force_assign_course_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    course_id: i32,
+    role_name: &str,
+) {
+    let role_id = CourseRole::find_by_name(role_name, conn)
+        .await
+        .expect("role not found");
+    UserRoleCourse::assign(conn, user_id, course_id, role_id)
+        .await
+        .expect("assign failed");
 }
 
 #[actix_web::test]
@@ -78,8 +104,9 @@ async fn test_platform_permission_middleware() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::users::user_scope())
-    ).await;
+            .service(rust_learn::api::users::user_scope()),
+    )
+    .await;
 
     // 1. Unprivileged user tries to assign role -> Should Fail
     let req = test::TestRequest::post()
@@ -87,21 +114,21 @@ async fn test_platform_permission_middleware() {
         .insert_header(("Authorization", format!("Bearer {}", unprivileged_token)))
         .set_json(serde_json::json!({ "role_name": "STUDENT" }))
         .to_request();
-    
+
     // middleware returns Err, so app.call() returns Err
     let result = app.call(req).await;
     match result {
         Ok(resp) => {
             // It might pass if logic changes, but we expect error or 403
             if resp.status().is_success() {
-                 panic!("Unprivileged user access succeeded unexpectedly");
+                panic!("Unprivileged user access succeeded unexpectedly");
             }
             assert_eq!(resp.status(), actix_web::http::StatusCode::FORBIDDEN);
-        },
+        }
         Err(e) => {
-             // Middleware error is returned here
-             let resp = e.error_response();
-             assert_eq!(resp.status(), actix_web::http::StatusCode::FORBIDDEN);
+            // Middleware error is returned here
+            let resp = e.error_response();
+            assert_eq!(resp.status(), actix_web::http::StatusCode::FORBIDDEN);
         }
     }
 
@@ -109,17 +136,21 @@ async fn test_platform_permission_middleware() {
     let req = test::TestRequest::post()
         .uri(&format!("/user/{}/role", target_user.id()))
         .insert_header(("Authorization", format!("Bearer {}", admin_token)))
-        .set_json(serde_json::json!({ "role_name": "USER" })) 
+        .set_json(serde_json::json!({ "role_name": "USER" }))
         .to_request();
 
     let result = app.call(req).await;
     match result {
         Ok(resp) => {
-             // Admin > User, so assignment might succeed (200) or fail on logic details, but OK is expected
-             assert!(resp.status().is_success(), "Admin request failed: status {}", resp.status());
-        },
+            // Admin > User, so assignment might succeed (200) or fail on logic details, but OK is expected
+            assert!(
+                resp.status().is_success(),
+                "Admin request failed: status {}",
+                resp.status()
+            );
+        }
         Err(e) => {
-             panic!("Admin request returned error: {}", e);
+            panic!("Admin request returned error: {}", e);
         }
     }
 }
@@ -128,13 +159,17 @@ async fn test_platform_permission_middleware() {
 async fn test_organization_permission_middleware() {
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
-    
+
     // Setup Data
     let mut conn = setup_conn(&pool).await;
     let owner = create_test_user(&mut conn, "org_superadmin").await;
     let stranger = create_test_user(&mut conn, "stranger").await;
-    
-    let new_org = NewOrganization { name: unique_string("TestOrg"), website_link: None, profile_url: None };
+
+    let new_org = NewOrganization {
+        name: unique_string("TestOrg"),
+        website_link: None,
+        profile_url: None,
+    };
     let org = diesel::insert_into(organizations::table)
         .values(&new_org)
         .get_result::<Organization>(&mut conn)
@@ -151,8 +186,9 @@ async fn test_organization_permission_middleware() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::organizations::organization_scope())
-    ).await;
+            .service(rust_learn::api::organizations::organization_scope()),
+    )
+    .await;
 
     // 1. Stranger (no role) tries to UPDATE organization -> 403
     let req = test::TestRequest::put()
@@ -160,7 +196,7 @@ async fn test_organization_permission_middleware() {
         .insert_header(("Authorization", format!("Bearer {}", stranger_token)))
         .set_json(serde_json::json!({ "name": "Hacked Org" }))
         .to_request();
-    
+
     let result = app.call(req).await;
     match result {
         Ok(resp) => assert_eq!(resp.status(), actix_web::http::StatusCode::FORBIDDEN),
@@ -178,7 +214,7 @@ async fn test_organization_permission_middleware() {
         .to_request();
 
     let result = app.call(req).await;
-     match result {
+    match result {
         Ok(resp) => assert!(resp.status().is_success(), "Owner request failed"),
         Err(e) => panic!("Owner request returned error: {}", e),
     }
@@ -188,13 +224,15 @@ async fn test_organization_permission_middleware() {
 async fn test_course_permission_middleware() {
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
-    
+
     // Setup Data
     let mut conn = setup_conn(&pool).await;
     let teacher = create_test_user(&mut conn, "teacher").await;
     let student = create_test_user(&mut conn, "student").await;
-    
-    let new_course = NewCourse { title: unique_string("TestCourse") };
+
+    let new_course = NewCourse {
+        title: unique_string("TestCourse"),
+    };
     let course = diesel::insert_into(courses::table)
         .values(&new_course)
         .get_result::<Course>(&mut conn)
@@ -211,8 +249,9 @@ async fn test_course_permission_middleware() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope())
-    ).await;
+            .service(rust_learn::api::courses::course_scope()),
+    )
+    .await;
 
     // 1. Student tries to UPDATE course -> 403 (MANAGE_COURSE_SETTINGS required)
     // STUDENT does NOT have MANAGE_COURSE_SETTINGS.
@@ -221,13 +260,13 @@ async fn test_course_permission_middleware() {
         .insert_header(("Authorization", format!("Bearer {}", student_token)))
         .set_json(serde_json::json!({ "title": "Hacked Title" }))
         .to_request();
-    
+
     let result = app.call(req).await;
     match result {
         Ok(resp) => assert_eq!(resp.status(), actix_web::http::StatusCode::FORBIDDEN),
         Err(e) => {
-             let resp = e.error_response();
-             assert_eq!(resp.status(), actix_web::http::StatusCode::FORBIDDEN);
+            let resp = e.error_response();
+            assert_eq!(resp.status(), actix_web::http::StatusCode::FORBIDDEN);
         }
     }
 
@@ -238,9 +277,9 @@ async fn test_course_permission_middleware() {
         .insert_header(("Authorization", format!("Bearer {}", teacher_token)))
         .set_json(serde_json::json!({ "title": "Updated Title" }))
         .to_request();
-    
+
     let result = app.call(req).await;
-     match result {
+    match result {
         Ok(resp) => assert!(resp.status().is_success(), "Teacher request failed"),
         Err(e) => panic!("Teacher request returned error: {}", e),
     }

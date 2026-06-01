@@ -4,9 +4,13 @@
 // Example:
 //   cargo run --bin abi_export -- ethereum/contracts/LearnToken.sol LearnToken ethereum/artifacts
 
-use std::{env, fs, path::{Path, PathBuf}, process::Command};
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
-use ethers_solc::{Project, ProjectPathsConfig, remappings::Remapping};
+use ethers_solc::{remappings::Remapping, Project, ProjectPathsConfig};
 
 fn main() {
     let args = env::args().skip(1).collect::<Vec<_>>();

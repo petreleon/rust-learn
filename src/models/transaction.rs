@@ -1,7 +1,7 @@
-use diesel::prelude::*;
-use crate::db::schema::{transactions, internal_transactions, transactions_internal_transactions};
+use crate::db::schema::{internal_transactions, transactions, transactions_internal_transactions};
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Debug, Clone)]
 #[diesel(table_name = transactions)]
@@ -62,9 +62,16 @@ impl InternalTransaction {
 pub struct TransactionLink;
 
 impl TransactionLink {
-    pub fn create(transaction_id: i64, internal_transaction_id: i64, conn: &mut PgConnection) -> QueryResult<usize> {
+    pub fn create(
+        transaction_id: i64,
+        internal_transaction_id: i64,
+        conn: &mut PgConnection,
+    ) -> QueryResult<usize> {
         diesel::insert_into(transactions_internal_transactions::table)
-            .values(NewTransactionInternalTransactionLink { transaction_id, internal_transaction_id })
+            .values(NewTransactionInternalTransactionLink {
+                transaction_id,
+                internal_transaction_id,
+            })
             .execute(conn)
     }
 }

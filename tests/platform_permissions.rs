@@ -1,22 +1,27 @@
 use chrono::NaiveDate;
+use diesel_async::AsyncPgConnection;
+use rust_learn::config::constants::permissions::Permissions;
+use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::establish_connection;
 use rust_learn::utils::db_utils::authentication_registration::create_user;
-use rust_learn::utils::db_utils::platform::{assign_role_to_user, user_permission_platform_request};
+use rust_learn::utils::db_utils::platform::{
+    assign_role_to_user, user_permission_platform_request,
+};
 use rust_learn::utils::db_utils::platform_permission_utils::assign_permission_to_role_platform;
-use rust_learn::config::constants::roles::Roles;
-use rust_learn::config::constants::permissions::Permissions;
-use diesel_async::AsyncPgConnection;
 
 fn unique_email(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}+{}@example.com", prefix, ts)
 }
 
-async fn setup_conn() -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
+async fn setup_conn(
+) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
     // Load .env so DATABASE_URL and other envs are available in tests
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
-    pool.get().await.expect("failed to get DB connection from pool")
+    pool.get()
+        .await
+        .expect("failed to get DB connection from pool")
 }
 
 #[actix_web::test]
@@ -96,8 +101,8 @@ async fn platform_admin_has_curated_permissions_but_not_all() {
 
     // Negative cases (not granted to ADMIN in seed)
     let denied = [
-        Permissions::IMPERSONATE_USER,         // explicitly excluded
-        Permissions::MANAGE_SMART_CONTRACTS,   // not in ADMIN seed list
+        Permissions::IMPERSONATE_USER,       // explicitly excluded
+        Permissions::MANAGE_SMART_CONTRACTS, // not in ADMIN seed list
     ];
 
     for p in denied {
@@ -116,9 +121,10 @@ async fn assign_permission_to_admin_and_verify_user_gets_it() {
     // Choose a permission that ADMIN does not have by default
     // Note: we'll reuse the enum value by referring to the constant again later to avoid move issues.
     // Assign it to ADMIN role (idempotent: insert or 0 rows if already exists)
-    let rows = assign_permission_to_role_platform(&mut conn, Roles::ADMIN, Permissions::MANAGE_S3_OBJECTS)
-        .await
-        .expect("failed to assign permission to ADMIN");
+    let rows =
+        assign_permission_to_role_platform(&mut conn, Roles::ADMIN, Permissions::MANAGE_S3_OBJECTS)
+            .await
+            .expect("failed to assign permission to ADMIN");
     assert!(rows == 0 || rows == 1, "unexpected rows affected: {}", rows);
 
     // Create a fresh user and assign ADMIN role
@@ -138,8 +144,15 @@ async fn assign_permission_to_admin_and_verify_user_gets_it() {
         .expect("failed to assign ADMIN role");
 
     // Now the permission should be granted to ADMIN users
-    let ok = user_permission_platform_request(&mut conn, user.id(), &Permissions::MANAGE_S3_OBJECTS.to_string())
-        .await
-        .expect("permission query failed");
-    assert!(ok, "ADMIN user should have MANAGE_S3_OBJECTS after assignment");
+    let ok = user_permission_platform_request(
+        &mut conn,
+        user.id(),
+        &Permissions::MANAGE_S3_OBJECTS.to_string(),
+    )
+    .await
+    .expect("permission query failed");
+    assert!(
+        ok,
+        "ADMIN user should have MANAGE_S3_OBJECTS after assignment"
+    );
 }

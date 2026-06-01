@@ -1,10 +1,9 @@
+use crate::models::transaction::{InternalTransaction, Transaction, TransactionLink};
+use crate::models::wallet::{NewWallet, Wallet};
 use anyhow::{anyhow, Result};
 use bigdecimal::BigDecimal;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use crate::models::wallet::{Wallet, NewWallet};
-use crate::models::transaction::{Transaction, InternalTransaction, TransactionLink};
-
 
 /// Owner type for locating a wallet
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,7 +17,10 @@ impl OwnerType {
         match s.to_ascii_lowercase().as_str() {
             "user" | "users" => Ok(OwnerType::User),
             "organization" | "org" | "organizations" => Ok(OwnerType::Organization),
-            other => Err(anyhow!("unknown owner type: {} (expected 'user' or 'organization')", other)),
+            other => Err(anyhow!(
+                "unknown owner type: {} (expected 'user' or 'organization')",
+                other
+            )),
         }
     }
 }
@@ -57,7 +59,6 @@ pub fn wallet_locator(conn: &mut PgConnection, owner_type: &str, owner_id: i32) 
             Ok(new_id)
         }
     }
-
 }
 
 #[derive(Debug)]
@@ -147,7 +148,11 @@ pub fn transfers_between_wallets(
             TransactionLink::create(tx_id, debit_id, txn)?;
             TransactionLink::create(tx_id, credit_id, txn)?;
 
-            Ok(TransferResult { transaction_id: tx_id, debit_internal_id: debit_id, credit_internal_id: credit_id })
+            Ok(TransferResult {
+                transaction_id: tx_id,
+                debit_internal_id: debit_id,
+                credit_internal_id: credit_id,
+            })
         });
 
         match result {
@@ -157,7 +162,8 @@ pub fn transfers_between_wallets(
                 // retry the whole transaction a few times with backoff.
                 let should_retry = match e.downcast_ref::<DieselError>() {
                     Some(DieselError::DatabaseError(kind, info)) => {
-                        matches!(kind, DatabaseErrorKind::SerializationFailure) || info.message().contains("deadlock")
+                        matches!(kind, DatabaseErrorKind::SerializationFailure)
+                            || info.message().contains("deadlock")
                     }
                     _ => false,
                 };

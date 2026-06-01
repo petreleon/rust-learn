@@ -1,6 +1,9 @@
 use crate::db::schema::role_permission_platform;
-use diesel::{QueryDsl, ExpressionMethods, Queryable, Identifiable, Associations, Insertable, NullableExpressionMethods, QueryResult};
 use crate::models::role::PlatformRole;
+use diesel::{
+    Associations, ExpressionMethods, Identifiable, Insertable, NullableExpressionMethods, QueryDsl,
+    QueryResult, Queryable,
+};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 #[derive(Queryable, Identifiable, Associations)]
@@ -13,15 +16,23 @@ pub struct RolePermissionPlatform {
 }
 
 impl RolePermissionPlatform {
-    pub async fn assign(conn: &mut AsyncPgConnection, p_platform_role_id: i32, p_permission: &str) -> QueryResult<usize> {
+    pub async fn assign(
+        conn: &mut AsyncPgConnection,
+        p_platform_role_id: i32,
+        p_permission: &str,
+    ) -> QueryResult<usize> {
         use crate::db::schema::role_permission_platform;
         use diesel::dsl::{exists, select};
-        
+
         // Check if the permission is already assigned to this role.
         let permission_exists = select(exists(
             role_permission_platform::table
-                .filter(role_permission_platform::platform_role_id.nullable().eq(Some(p_platform_role_id)))
-                .filter(role_permission_platform::permission.eq(p_permission))
+                .filter(
+                    role_permission_platform::platform_role_id
+                        .nullable()
+                        .eq(Some(p_platform_role_id)),
+                )
+                .filter(role_permission_platform::permission.eq(p_permission)),
         ))
         .get_result(conn)
         .await?;

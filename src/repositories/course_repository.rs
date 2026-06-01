@@ -2,9 +2,9 @@ use diesel::{dsl::min, prelude::*};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use std::cmp::Ordering;
 
-use crate::models::user_role_course::UserRoleCourse;
-use crate::models::role_course_hierarchy::RoleCourseHierarchy;
 use crate::models::role::CourseRole;
+use crate::models::role_course_hierarchy::RoleCourseHierarchy;
+use crate::models::user_role_course::UserRoleCourse;
 
 /// Checks if a user has a specific permission in a course
 pub async fn user_permission_course_request(
@@ -47,11 +47,13 @@ pub async fn assign_role_to_user_in_course(
     role_name: &str,
 ) -> QueryResult<usize> {
     // 1. Get Assigner's Hierarchy Level
-    let assigner_level = RoleCourseHierarchy::get_min_level(conn, assigner_id, p_course_id).await?
+    let assigner_level = RoleCourseHierarchy::get_min_level(conn, assigner_id, p_course_id)
+        .await?
         .ok_or(diesel::result::Error::NotFound)?; // Assigner must have a role in the course
 
     // 2. Get Assignee's (Target User) Hierarchy Level
-    let assignee_level_opt = RoleCourseHierarchy::get_min_level(conn, p_user_id, p_course_id).await?;
+    let assignee_level_opt =
+        RoleCourseHierarchy::get_min_level(conn, p_user_id, p_course_id).await?;
 
     // 3. Lookup the course_role_id by name
     let role_id = CourseRole::find_by_name(role_name, conn).await?;
@@ -60,7 +62,7 @@ pub async fn assign_role_to_user_in_course(
     let target_role_level = RoleCourseHierarchy::get_role_level(conn, role_id).await?;
 
     // 5. Enforce Hierarchy Rules: Lower value means higher rank (0 is highest)
-    
+
     // Rule A: Assigner must be higher rank than the role they are assigning
     if assigner_level >= target_role_level {
         return Err(diesel::result::Error::RollbackTransaction);
@@ -69,7 +71,7 @@ pub async fn assign_role_to_user_in_course(
     // Rule B: Assigner must be higher rank than the user they are assigning to (if user already has a role)
     if let Some(assignee_level) = assignee_level_opt {
         if assigner_level >= assignee_level {
-             return Err(diesel::result::Error::RollbackTransaction);
+            return Err(diesel::result::Error::RollbackTransaction);
         }
     }
 

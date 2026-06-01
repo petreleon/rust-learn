@@ -1,13 +1,16 @@
-use std::time::Duration;
-use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use anyhow::Result;
-use dotenvy::dotenv;
 use diesel::prelude::*;
+use dotenvy::dotenv;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use std::time::Duration;
 // use diesel_async::RunQueryDsl; // Not needed explicitly if using model methods
 
-use tokio::sync::Semaphore;
 use tokio::fs as tokio_fs;
 use tokio::signal::unix::{signal, SignalKind};
+use tokio::sync::Semaphore;
 
 /// Worker entrypoint. Uses a tokio Semaphore to limit the number of
 /// concurrent ffmpeg processing tasks (controlled via WORKER_CONCURRENCY).
@@ -43,7 +46,8 @@ async fn main() -> Result<()> {
     });
 
     // determine concurrency from env (default = 1)
-    let concurrency: usize = std::env::var("WORKER_CONCURRENCY").ok()
+    let concurrency: usize = std::env::var("WORKER_CONCURRENCY")
+        .ok()
         .and_then(|s| s.parse::<usize>().ok())
         .filter(|&v| v > 0)
         .unwrap_or(1);
@@ -51,14 +55,20 @@ async fn main() -> Result<()> {
     let sem = Arc::new(Semaphore::new(concurrency));
 
     // Write an initial alive stamp for healthcheck
-    let _ = tokio_fs::write("/tmp/worker_alive", format!("{}", chrono::Utc::now().timestamp())).await;
+    let _ = tokio_fs::write(
+        "/tmp/worker_alive",
+        format!("{}", chrono::Utc::now().timestamp()),
+    )
+    .await;
 
     // Configure retry/backoff behaviour
-    let max_attempts: i64 = std::env::var("WORKER_MAX_ATTEMPTS").ok()
+    let max_attempts: i64 = std::env::var("WORKER_MAX_ATTEMPTS")
+        .ok()
         .and_then(|s| s.parse::<i64>().ok())
         .filter(|&v| v > 0)
         .unwrap_or(5);
-    let base_backoff_seconds: u64 = std::env::var("WORKER_BASE_BACKOFF_SECONDS").ok()
+    let base_backoff_seconds: u64 = std::env::var("WORKER_BASE_BACKOFF_SECONDS")
+        .ok()
         .and_then(|s| s.parse::<u64>().ok())
         .filter(|&v| v > 0)
         .unwrap_or(60);
@@ -66,7 +76,9 @@ async fn main() -> Result<()> {
     loop {
         // if shutdown requested, stop claiming new jobs
         if shutdown.load(Ordering::SeqCst) {
-            eprintln!("Shutdown requested: stopping job claims and waiting for in-flight tasks to finish");
+            eprintln!(
+                "Shutdown requested: stopping job claims and waiting for in-flight tasks to finish"
+            );
             break;
         }
         // Try to atomically claim a job and return it
@@ -83,18 +95,22 @@ async fn main() -> Result<()> {
         // Select only queued jobs whose updated_at (used as available_at for retries)
         // is either NULL or <= now() so backoff delays are respected.
 
-
         // Stamp alive for healthcheck
-        let _ = tokio_fs::write("/tmp/worker_alive", format!("{}", chrono::Utc::now().timestamp())).await;
+        let _ = tokio_fs::write(
+            "/tmp/worker_alive",
+            format!("{}", chrono::Utc::now().timestamp()),
+        )
+        .await;
 
-        let job_opt: Option<rust_learn::models::upload_job::UploadJob> = match rust_learn::models::upload_job::UploadJob::claim_job(&mut conn).await {
-            Ok(j) => j,
-            Err(e) => {
-                eprintln!("Failed to claim job: {:?}", e);
-                tokio::time::sleep(Duration::from_secs(2)).await;
-                continue;
-            }
-        };
+        let job_opt: Option<rust_learn::models::upload_job::UploadJob> =
+            match rust_learn::models::upload_job::UploadJob::claim_job(&mut conn).await {
+                Ok(j) => j,
+                Err(e) => {
+                    eprintln!("Failed to claim job: {:?}", e);
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                    continue;
+                }
+            };
 
         let job = match job_opt {
             Some(j) => j,
@@ -134,14 +150,21 @@ async fn main() -> Result<()> {
         let object = job.object.clone();
         let user_id = job.user_id;
 
-    // Spawn a detached task to process the job so loop can continue claiming jobs
+        // Spawn a detached task to process the job so loop can continue claiming jobs
         tokio::spawn(async move {
             // Run the processing (use 0 for missing user_id handling inside process_uploaded_video if needed)
             let uid = user_id.unwrap_or(0);
-            let res = s3_cloned.process_uploaded_video(&bucket, &object, uid, notifications_cloned).await;
+            let res = s3_cloned
+                .process_uploaded_video(&bucket, &object, uid, notifications_cloned)
+                .await;
 
             if res.is_ok() {
-                if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_done(job_id, &mut *conn_for_task).await {
+                if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_done(
+                    job_id,
+                    &mut *conn_for_task,
+                )
+                .await
+                {
                     eprintln!("Failed to mark job done {}: {:?}", job_id, e);
                 }
             } else {
@@ -151,18 +174,34 @@ async fn main() -> Result<()> {
 
                 if new_attempts >= max_attempts {
                     // mark as permanently failed
-                    if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_failed(job_id, new_attempts as i32, err_text.clone(), &mut *conn_for_task).await {
+                    if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_failed(
+                        job_id,
+                        new_attempts as i32,
+                        err_text.clone(),
+                        &mut *conn_for_task,
+                    )
+                    .await
+                    {
                         eprintln!("Failed to mark job failed {}: {:?}", job_id, e);
                     }
                 } else {
                     // exponential backoff (base * 2^attempts)
-                    let backoff = base_backoff_seconds.saturating_mul(2u64.saturating_pow(current_attempts as u32));
+                    let backoff = base_backoff_seconds
+                        .saturating_mul(2u64.saturating_pow(current_attempts as u32));
                     // set updated_at to future time so claim SQL skips it until backoff expires
                     let future_time = chrono::Utc::now()
                         .checked_add_signed(chrono::Duration::seconds(backoff as i64))
                         .unwrap_or_else(chrono::Utc::now);
 
-                    if let Err(e) = rust_learn::models::upload_job::UploadJob::schedule_retry(job_id, new_attempts as i32, err_text.clone(), future_time, &mut *conn_for_task).await {
+                    if let Err(e) = rust_learn::models::upload_job::UploadJob::schedule_retry(
+                        job_id,
+                        new_attempts as i32,
+                        err_text.clone(),
+                        future_time,
+                        &mut *conn_for_task,
+                    )
+                    .await
+                    {
                         eprintln!("Failed to schedule retry for job {}: {:?}", job_id, e);
                     }
                 }
@@ -180,7 +219,10 @@ async fn main() -> Result<()> {
             eprintln!("All in-flight tasks finished, worker exiting");
             break;
         }
-        eprintln!("Waiting for {} in-flight tasks to finish...", concurrency - available);
+        eprintln!(
+            "Waiting for {} in-flight tasks to finish...",
+            concurrency - available
+        );
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
 

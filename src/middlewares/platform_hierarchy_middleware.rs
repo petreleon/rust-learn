@@ -1,14 +1,17 @@
 use actix_service::{forward_ready, Service, Transform};
-use actix_web::{dev::{ServiceRequest, ServiceResponse}, Error, web};
-use futures::future::{self, Ready, LocalBoxFuture};
-use std::marker::PhantomData;
-use std::cmp::Ordering;
-use futures::FutureExt;
 use actix_web::HttpMessage;
+use actix_web::{
+    dev::{ServiceRequest, ServiceResponse},
+    web, Error,
+};
+use futures::future::{self, LocalBoxFuture, Ready};
+use futures::FutureExt;
+use std::cmp::Ordering;
+use std::marker::PhantomData;
 
-use crate::{db::DbPool, utils::request_utils::extract_param};
-use crate::models::{user_jwt::UserJWT, param_type::ParamType};
+use crate::models::{param_type::ParamType, user_jwt::UserJWT};
 use crate::repositories::platform_repository::user_hierarchy_compare_platform;
+use crate::{db::DbPool, utils::request_utils::extract_param};
 
 pub struct PlatformHierarchyMiddleware<S> {
     _service: PhantomData<S>,
@@ -69,54 +72,75 @@ where
         let db_pool = match req.app_data::<web::Data<DbPool>>() {
             Some(pool) => pool.clone(),
             None => {
-                let error = actix_web::error::ErrorInternalServerError("Failed to access database pool");
+                let error =
+                    actix_web::error::ErrorInternalServerError("Failed to access database pool");
                 return future::ready(Err(error)).boxed_local();
-            },
+            }
         };
-    
-    let type_param_of_id_user = self.type_param_of_id_user;
-    let name_param_of_id_user = self.name_param_of_id_user.clone();
 
-    // Extract necessary data from `req` before it's moved
-    let second_user_id_str_opt = extract_param(&req, &name_param_of_id_user, type_param_of_id_user);
-    // Capture UserJWT (if present) from request extensions before moving `req`
-    let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
+        let type_param_of_id_user = self.type_param_of_id_user;
+        let name_param_of_id_user = self.name_param_of_id_user.clone();
 
-    // Now `req` can be moved without issues
-    let fut = self.service.call(req);
-    
+        // Extract necessary data from `req` before it's moved
+        let second_user_id_str_opt =
+            extract_param(&req, &name_param_of_id_user, type_param_of_id_user);
+        // Capture UserJWT (if present) from request extensions before moving `req`
+        let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
+
+        // Now `req` can be moved without issues
+        let fut = self.service.call(req);
+
         async move {
             // Use the extracted data instead of accessing `req` directly
             let second_user_id_str = match second_user_id_str_opt {
                 Some(id_str) => id_str,
-                None => return Err(actix_web::error::ErrorBadRequest("Invalid or missing parameter")),
+                None => {
+                    return Err(actix_web::error::ErrorBadRequest(
+                        "Invalid or missing parameter",
+                    ))
+                }
             };
-    
+
             let second_user_id = match second_user_id_str.parse::<i32>() {
                 Ok(id) => id,
-                Err(_) => return Err(actix_web::error::ErrorBadRequest("Invalid or missing parameter")),
+                Err(_) => {
+                    return Err(actix_web::error::ErrorBadRequest(
+                        "Invalid or missing parameter",
+                    ))
+                }
             };
-    
+
             let mut conn = match db_pool.get().await {
                 Ok(conn) => conn,
-                Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to get database connection")),
+                Err(_) => {
+                    return Err(actix_web::error::ErrorInternalServerError(
+                        "Failed to get database connection",
+                    ))
+                }
             };
             let user_jwt = match user_jwt_opt {
                 Some(u) => u,
                 None => return Err(actix_web::error::ErrorUnauthorized("Unauthorized access")),
             };
-    
-            match user_hierarchy_compare_platform(&mut conn, user_jwt.user_id, second_user_id).await {
+
+            match user_hierarchy_compare_platform(&mut conn, user_jwt.user_id, second_user_id).await
+            {
                 Ok(ordering) => {
                     if ordering == Ordering::Less {
-                        return Err(actix_web::error::ErrorForbidden("Modification not permitted: second user has a greater hierarchy level"));
+                        return Err(actix_web::error::ErrorForbidden(
+                            "Modification not permitted: second user has a greater hierarchy level",
+                        ));
                     }
-                },
-                Err(_) => return Err(actix_web::error::ErrorInternalServerError("Failed to compare user hierarchy")),
+                }
+                Err(_) => {
+                    return Err(actix_web::error::ErrorInternalServerError(
+                        "Failed to compare user hierarchy",
+                    ))
+                }
             }
-    
+
             fut.await
-        }.boxed_local()
+        }
+        .boxed_local()
     }
-    
 }

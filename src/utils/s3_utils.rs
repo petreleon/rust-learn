@@ -43,20 +43,10 @@ impl S3State {
 
     /// Ensure a bucket exists, creating it if necessary.
     async fn ensure_bucket(&self, bucket: &str) -> Result<()> {
-        let exists = self
-            .0
-            .head_bucket()
-            .bucket(bucket)
-            .send()
-            .await
-            .is_ok();
+        let exists = self.0.head_bucket().bucket(bucket).send().await.is_ok();
 
         if !exists {
-            self.0
-                .create_bucket()
-                .bucket(bucket)
-                .send()
-                .await?;
+            self.0.create_bucket().bucket(bucket).send().await?;
         }
         Ok(())
     }
@@ -181,7 +171,9 @@ impl S3State {
         object: &str,
         expires_seconds: u64,
     ) -> Result<std::collections::HashMap<String, String>> {
-        let url = self.presign_external_put(bucket, object, expires_seconds).await?;
+        let url = self
+            .presign_external_put(bucket, object, expires_seconds)
+            .await?;
         let mut map = std::collections::HashMap::new();
         map.insert("url".to_string(), url);
         map.insert("key".to_string(), object.to_string());

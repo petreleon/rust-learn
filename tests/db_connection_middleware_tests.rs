@@ -4,6 +4,6 @@
 
 #[test]
 fn placeholder_db_connection_middleware_test() {
-	// Intentionally empty — original middleware tests removed.
-	assert!(true);
+    // Intentionally empty — original middleware tests removed.
+    assert!(true);
 }

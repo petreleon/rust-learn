@@ -9,5 +9,6 @@ pub fn get_provider() -> Provider<Http> {
         let port = std::env::var("ETH_PORT").unwrap_or_else(|_| "8545".to_string());
         format!("http://{}:{}", host, port)
     });
-    Provider::<Http>::try_from(url).expect("Could not create provider from ETH_RPC_URL/ETH_HOST/ETH_PORT")
+    Provider::<Http>::try_from(url)
+        .expect("Could not create provider from ETH_RPC_URL/ETH_HOST/ETH_PORT")
 }

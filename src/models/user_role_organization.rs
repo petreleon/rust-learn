@@ -1,9 +1,9 @@
 use crate::db::schema::user_role_organization;
+use crate::models::organization::Organization;
+use crate::models::role::OrganizationRole;
+use crate::models::user::User;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use crate::models::user::User;
-use crate::models::role::OrganizationRole;
-use crate::models::organization::Organization;
 
 #[derive(Queryable, Identifiable, Associations)]
 #[diesel(belongs_to(User))]
@@ -18,29 +18,44 @@ pub struct UserRoleOrganization {
 }
 
 impl UserRoleOrganization {
-    pub async fn has_permission(conn: &mut AsyncPgConnection, p_user_id: i32, p_org_id: i32, p_permission: &str) -> QueryResult<bool> {
-        use crate::db::schema::{organization_roles, role_permission_organization, user_role_organization};
-        
+    pub async fn has_permission(
+        conn: &mut AsyncPgConnection,
+        p_user_id: i32,
+        p_org_id: i32,
+        p_permission: &str,
+    ) -> QueryResult<bool> {
+        use crate::db::schema::{
+            organization_roles, role_permission_organization, user_role_organization,
+        };
+
         let has_permission = diesel::select(diesel::dsl::exists(
             user_role_organization::table
-                .inner_join(organization_roles::table.on(
-                    user_role_organization::organization_role_id.eq(organization_roles::id.nullable())
-                ))
-                .inner_join(role_permission_organization::table.on(
-                    organization_roles::id.nullable().eq(role_permission_organization::organization_role_id)
-                ))
+                .inner_join(
+                    organization_roles::table.on(user_role_organization::organization_role_id
+                        .eq(organization_roles::id.nullable())),
+                )
+                .inner_join(
+                    role_permission_organization::table.on(organization_roles::id
+                        .nullable()
+                        .eq(role_permission_organization::organization_role_id)),
+                )
                 .filter(user_role_organization::user_id.eq(p_user_id))
                 .filter(user_role_organization::organization_id.eq(p_org_id))
-                .filter(role_permission_organization::permission.eq(p_permission))
+                .filter(role_permission_organization::permission.eq(p_permission)),
         ))
         .get_result(conn)
         .await?;
 
         Ok(has_permission)
     }
-    pub async fn assign(conn: &mut AsyncPgConnection, p_user_id: i32, p_organization_id: i32, p_organization_role_id: i32) -> QueryResult<usize> {
+    pub async fn assign(
+        conn: &mut AsyncPgConnection,
+        p_user_id: i32,
+        p_organization_id: i32,
+        p_organization_role_id: i32,
+    ) -> QueryResult<usize> {
         use crate::db::schema::user_role_organization::dsl::*;
-        
+
         let new_user_role = (
             user_id.eq(p_user_id),
             organization_role_id.eq(p_organization_role_id),
