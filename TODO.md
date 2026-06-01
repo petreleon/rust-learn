@@ -15,7 +15,7 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 
 ## Priority 1 — Tests and quality gates
 
-- [ ] Add API integration tests for `POST /api/auth/login` and `POST /api/auth/register`.
+- [x] Add API integration tests for `POST /api/auth/login` and `POST /api/auth/register`.
 - [x] Add endpoint-level authorization tests for user, course, organization, and role scopes.
 - [ ] Add unit tests for authentication helper logic and edge cases.
 - [ ] Add worker tests for retry state transitions, terminal failures, and heartbeat behavior.
