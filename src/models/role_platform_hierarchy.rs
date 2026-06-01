@@ -28,4 +28,14 @@ impl RolePlatformHierarchy {
             .first::<Option<i32>>(conn)
             .await
     }
+
+    pub async fn get_role_level(conn: &mut AsyncPgConnection, p_role_id: i32) -> QueryResult<i32> {
+        use crate::db::schema::role_platform_hierarchy::dsl::*;
+
+        role_platform_hierarchy
+            .filter(platform_role_id.eq(p_role_id))
+            .select(hierarchy_level)
+            .first::<i32>(conn)
+            .await
+    }
 }

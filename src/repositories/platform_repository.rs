@@ -1,6 +1,5 @@
-use diesel::prelude::*;
 use diesel::QueryResult;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::AsyncPgConnection;
 use std::cmp::Ordering;
 
 use crate::config::constants::roles::Roles;
@@ -45,4 +44,32 @@ pub async fn assign_role_to_user(
 
     // Insert the user-role assignment into the user_role_platform table
     UserRolePlatform::assign(conn, p_user_id, platform_role_id_value).await
+}
+
+pub async fn assign_role_to_user_with_hierarchy(
+    conn: &mut AsyncPgConnection,
+    assigner_id: i32,
+    target_user_id: i32,
+    role_name: &str,
+) -> QueryResult<usize> {
+    let assigner_level = RolePlatformHierarchy::get_min_level(conn, assigner_id)
+        .await?
+        .ok_or(diesel::result::Error::NotFound)?;
+
+    let target_level_opt = RolePlatformHierarchy::get_min_level(conn, target_user_id).await?;
+
+    let role_id = PlatformRole::find_by_name(role_name, conn).await?;
+    let target_role_level = RolePlatformHierarchy::get_role_level(conn, role_id).await?;
+
+    if assigner_level >= target_role_level {
+        return Err(diesel::result::Error::RollbackTransaction);
+    }
+
+    if let Some(target_level) = target_level_opt {
+        if assigner_level >= target_level {
+            return Err(diesel::result::Error::RollbackTransaction);
+        }
+    }
+
+    UserRolePlatform::assign(conn, target_user_id, role_id).await
 }

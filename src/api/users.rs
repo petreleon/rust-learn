@@ -1,17 +1,14 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db;
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
-use crate::models::role::PlatformRole;
-use crate::models::role_platform_hierarchy::RolePlatformHierarchy;
 use crate::models::user::User;
 use crate::models::user_jwt::UserJWT;
-use crate::models::user_role_platform::UserRolePlatform;
-use crate::repositories::platform_repository::user_permission_platform_request;
+use crate::repositories::platform_repository::{
+    assign_role_to_user_with_hierarchy, user_permission_platform_request,
+};
 use crate::utils::jwt_utils::decode_jwt;
 use actix_web::{web, HttpRequest};
 use actix_web::{HttpMessage, HttpResponse, Responder};
-use diesel::{ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
 use serde::Deserialize;
 use serde_json::json;
 
@@ -142,66 +139,18 @@ async fn assign_role(
         Err(_) => return HttpResponse::Unauthorized().body("Invalid token"),
     };
 
-    // 3. Permission Check: Handled by Middleware
-    // Middleware "ASSIGN_ROLES_TO_USER" required.
-
-    // 4. Hierarchy Checks
-    // 4a. Get Requester Rank (lower is better, 0 is best)
-    let requester_level = match RolePlatformHierarchy::get_min_level(&mut conn, requester_id).await
+    match assign_role_to_user_with_hierarchy(&mut conn, requester_id, target_user_id, role_name)
+        .await
     {
-        Ok(Some(lvl)) => lvl,
-        Ok(None) => return HttpResponse::Forbidden().body("Requester has no hierarchical rank"),
-        Err(_) => return HttpResponse::InternalServerError().body("Error fetching requester rank"),
-    };
-
-    // 4b. Get Target User Rank (if any)
-    let target_level = match RolePlatformHierarchy::get_min_level(&mut conn, target_user_id).await {
-        Ok(Some(lvl)) => lvl,
-        // If target has no roles, they are level "infinity" (e.g. max i32) effectively,
-        // so they are definitely lower rank than requester. We permit modification.
-        Ok(None) => i32::MAX,
-        Err(_) => return HttpResponse::InternalServerError().body("Error fetching target rank"),
-    };
-
-    // Rule 1: Cannot modify someone ranked higher or equal to you
-    // Note: If target_level == requester_level, strictly preventing modification avoids infighting.
-    if target_level <= requester_level {
-        return HttpResponse::Forbidden().body("Cannot modify a user with equal or higher rank");
-    }
-
-    // 4c. Get New Role Rank
-    // Find role ID first
-    let role_id = match PlatformRole::find_by_name(role_name, &mut conn).await {
-        Ok(id) => id,
-        Err(_) => {
-            return HttpResponse::BadRequest().body(format!("Role '{}' not found", role_name))
-        }
-    };
-
-    // Get rank of this new specific role
-    // Using RolePlatformHierarchy table directly for this role
-    let new_role_level = {
-        use crate::db::schema::role_platform_hierarchy::dsl::*;
-        role_platform_hierarchy
-            .filter(platform_role_id.eq(Some(role_id)))
-            .select(hierarchy_level)
-            .first::<i32>(&mut conn)
-            .await
-            .unwrap_or(i32::MAX) // If role has no hierarchy entry, assume lowest rank? Or forbidden?
-                                 // Let's assume strict: if not in hierarchy, maybe safe, but safer to treat as high or error?
-                                 // Given migration 2025-08-12, all roles have hierarchy. If missing, something is wrong.
-    };
-
-    // Rule 2: Cannot assign a role ranked higher or equal to yourself
-    if new_role_level <= requester_level {
-        return HttpResponse::Forbidden()
-            .body("Cannot assign a role with equal or higher rank than yourself");
-    }
-
-    // 5. Perform Assignment
-    match UserRolePlatform::assign(&mut conn, target_user_id, role_id).await {
         Ok(_) => HttpResponse::Ok().body("Role assigned successfully"),
-        Err(_) => HttpResponse::InternalServerError().body("Failed to assign role"),
+        Err(diesel::result::Error::RollbackTransaction) => HttpResponse::Forbidden().body("Hierarchy check failed: Cannot assign role higher than or equal to your own, or modify user with higher/equal rank."),
+        Err(diesel::result::Error::NotFound) => {
+            HttpResponse::BadRequest().body(format!("Role '{}' not found", role_name))
+        }
+        Err(e) => {
+            eprintln!("Error assigning platform role: {}", e);
+            HttpResponse::InternalServerError().body("Failed to assign role")
+        }
     }
 }
 

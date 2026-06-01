@@ -164,6 +164,44 @@ async fn test_platform_permission_middleware() {
 }
 
 #[actix_web::test]
+async fn platform_role_assignment_enforces_hierarchy() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+
+    let mut conn = setup_conn(&pool).await;
+    let super_admin = create_test_user(&mut conn, "platform_assigner_super").await;
+    let equal_target = create_test_user(&mut conn, "platform_equal_target").await;
+    let fresh_target = create_test_user(&mut conn, "platform_fresh_target").await;
+
+    force_assign_platform_role(&mut conn, super_admin.id(), "SUPER_ADMIN").await;
+    force_assign_platform_role(&mut conn, equal_target.id(), "SUPER_ADMIN").await;
+
+    let super_admin_token = generate_token(super_admin.id());
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .service(rust_learn::api::users::user_scope()),
+    )
+    .await;
+
+    let req = test::TestRequest::post()
+        .uri(&format!("/user/{}/role", fresh_target.id()))
+        .insert_header(("Authorization", format!("Bearer {}", super_admin_token)))
+        .set_json(serde_json::json!({ "role_name": "SUPER_ADMIN" }))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::FORBIDDEN);
+
+    let req = test::TestRequest::post()
+        .uri(&format!("/user/{}/role", equal_target.id()))
+        .insert_header(("Authorization", format!("Bearer {}", super_admin_token)))
+        .set_json(serde_json::json!({ "role_name": "USER" }))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::FORBIDDEN);
+}
+
+#[actix_web::test]
 async fn test_organization_permission_middleware() {
     let _ = dotenvy::dotenv();
     let pool = establish_connection();

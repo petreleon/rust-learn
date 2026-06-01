@@ -10,7 +10,7 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 - [x] Add email confirmation or account-verification flow after registration. Local registration prints a mock verification email with a real account-verification token.
 - [x] Review JWT expiration, refresh/session strategy, and logout/revocation expectations.
 - [x] Add a JWKS or `.well-known/jwks.json` endpoint for external JWT verification.
-- [ ] Confirm every role assignment path enforces hierarchy and scope constraints.
+- [x] Confirm every role assignment path enforces hierarchy and scope constraints.
 - [ ] Add structured logging for authentication failures, permission denials, worker failures, and blockchain operations.
 
 ## Priority 1 — Tests and quality gates
