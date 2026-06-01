@@ -97,11 +97,11 @@ Create a local `.env` file from the example:
 make setup
 ```
 
-Then edit `.env` for your environment.
+`make setup` copies `.env.example` to `.env` and, when OpenSSL and Python 3 are available, replaces the committed JWT placeholders with a freshly generated local RSA key pair. Then edit `.env` for your environment-specific database, object-storage, Ethereum, and bootstrap-admin values.
 
 ### RSA keys for JWT signing
 
-Generate a private/public RSA key pair:
+`.env.example` intentionally contains only non-secret JWT key placeholders. Use `make setup` for local development, or generate a private/public RSA key pair manually:
 
 ```bash
 openssl genpkey -algorithm RSA -out private.key -pkeyopt rsa_keygen_bits:2048
@@ -120,7 +120,7 @@ PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
 -----END PUBLIC KEY-----"
 ```
 
-Do not commit real private keys or production secrets.
+Do not commit `.env`, real private keys, or production secrets.
 
 ### PostgreSQL
 
