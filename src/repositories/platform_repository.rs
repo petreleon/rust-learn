@@ -1,5 +1,5 @@
 use diesel::prelude::*;
-use diesel::{dsl::min, QueryResult};
+use diesel::QueryResult;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use std::cmp::Ordering;
 

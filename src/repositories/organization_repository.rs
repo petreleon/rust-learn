@@ -1,6 +1,6 @@
 use crate::models::role_organization_hierarchy::RoleOrganizationHierarchy;
 use crate::models::user_role_organization::UserRoleOrganization;
-use diesel::{dsl::min, prelude::*};
+use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use std::cmp::Ordering;
 

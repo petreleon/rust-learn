@@ -19,7 +19,7 @@ impl RoleOrganizationHierarchy {
         p_org_id: i32,
     ) -> QueryResult<Option<i32>> {
         use crate::db::schema::{role_organization_hierarchy, user_role_organization};
-        use diesel::dsl::min;
+        use diesel::dsl::min as diesel_min;
 
         role_organization_hierarchy::table
             .inner_join(
@@ -28,7 +28,7 @@ impl RoleOrganizationHierarchy {
             )
             .filter(user_role_organization::user_id.eq(p_user_id))
             .filter(user_role_organization::organization_id.eq(p_org_id))
-            .select(min(role_organization_hierarchy::hierarchy_level))
+            .select(diesel_min(role_organization_hierarchy::hierarchy_level))
             .first::<Option<i32>>(conn)
             .await
     }
