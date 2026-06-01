@@ -119,20 +119,12 @@ async fn test_permit_import() {
     let mnemonic_deployer =
         Mnemonic::from_entropy(&entropy_deployer).expect("failed to build deployer mnemonic");
     let phrase_deployer = mnemonic_deployer.to_string();
-    eprintln!(
-        "[test_permit_import] generated deployer mnemonic: {}",
-        phrase_deployer
-    );
 
     let mut entropy_owner = [0u8; 16];
     getrandom(&mut entropy_owner).expect("failed to get randomness for owner");
     let mnemonic_owner =
         Mnemonic::from_entropy(&entropy_owner).expect("failed to build owner mnemonic");
     let phrase_owner = mnemonic_owner.to_string();
-    eprintln!(
-        "[test_permit_import] generated owner mnemonic: {}",
-        phrase_owner
-    );
 
     // Deployer and owner come from different mnemonics (both at index 0)
     let deployer_wallet = MnemonicBuilder::<English>::default()
@@ -275,7 +267,7 @@ async fn test_permit_import() {
     let s_bytes: [u8; 32] = pad_u256(s);
 
     // Call importWithPermit
-    let tx = importer
+    let _receipt = importer
         .method::<_, ()>(
             "importWithPermit",
             (
