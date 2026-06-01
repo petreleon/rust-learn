@@ -6,9 +6,10 @@ use std::sync::{
 };
 use std::time::Duration;
 
-use tokio::fs as tokio_fs;
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::Semaphore;
+
+use rust_learn::utils::worker as worker_utils;
 
 /// Worker entrypoint. Uses a tokio Semaphore to limit the number of
 /// concurrent ffmpeg processing tasks (controlled via WORKER_CONCURRENCY).
@@ -45,32 +46,25 @@ async fn main() -> Result<()> {
     });
 
     // determine concurrency from env (default = 1)
-    let concurrency: usize = std::env::var("WORKER_CONCURRENCY")
-        .ok()
-        .and_then(|s| s.parse::<usize>().ok())
-        .filter(|&v| v > 0)
-        .unwrap_or(1);
+    let concurrency: usize = worker_utils::positive_usize_from_env_value(
+        std::env::var("WORKER_CONCURRENCY").ok().as_deref(),
+        1,
+    );
 
     let sem = Arc::new(Semaphore::new(concurrency));
 
     // Write an initial alive stamp for healthcheck
-    let _ = tokio_fs::write(
-        "/tmp/worker_alive",
-        format!("{}", chrono::Utc::now().timestamp()),
-    )
-    .await;
+    let _ = worker_utils::write_heartbeat(worker_utils::DEFAULT_WORKER_HEARTBEAT_PATH).await;
 
     // Configure retry/backoff behaviour
-    let max_attempts: i64 = std::env::var("WORKER_MAX_ATTEMPTS")
-        .ok()
-        .and_then(|s| s.parse::<i64>().ok())
-        .filter(|&v| v > 0)
-        .unwrap_or(5);
-    let base_backoff_seconds: u64 = std::env::var("WORKER_BASE_BACKOFF_SECONDS")
-        .ok()
-        .and_then(|s| s.parse::<u64>().ok())
-        .filter(|&v| v > 0)
-        .unwrap_or(60);
+    let max_attempts: i64 = worker_utils::positive_i64_from_env_value(
+        std::env::var("WORKER_MAX_ATTEMPTS").ok().as_deref(),
+        5,
+    );
+    let base_backoff_seconds: u64 = worker_utils::positive_u64_from_env_value(
+        std::env::var("WORKER_BASE_BACKOFF_SECONDS").ok().as_deref(),
+        60,
+    );
 
     loop {
         // if shutdown requested, stop claiming new jobs
@@ -96,11 +90,7 @@ async fn main() -> Result<()> {
         // is either NULL or <= now() so backoff delays are respected.
 
         // Stamp alive for healthcheck
-        let _ = tokio_fs::write(
-            "/tmp/worker_alive",
-            format!("{}", chrono::Utc::now().timestamp()),
-        )
-        .await;
+        let _ = worker_utils::write_heartbeat(worker_utils::DEFAULT_WORKER_HEARTBEAT_PATH).await;
 
         let job_opt: Option<rust_learn::models::upload_job::UploadJob> =
             match rust_learn::models::upload_job::UploadJob::claim_job(&mut conn).await {
@@ -204,12 +194,12 @@ async fn main() -> Result<()> {
                     }
                 } else {
                     // exponential backoff (base * 2^attempts)
-                    let backoff = base_backoff_seconds
-                        .saturating_mul(2u64.saturating_pow(current_attempts as u32));
                     // set updated_at to future time so claim SQL skips it until backoff expires
-                    let future_time = chrono::Utc::now()
-                        .checked_add_signed(chrono::Duration::seconds(backoff as i64))
-                        .unwrap_or_else(chrono::Utc::now);
+                    let future_time = worker_utils::retry_available_at(
+                        chrono::Utc::now(),
+                        base_backoff_seconds,
+                        current_attempts,
+                    );
 
                     if let Err(e) = rust_learn::models::upload_job::UploadJob::schedule_retry(
                         job_id,

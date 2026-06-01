@@ -18,7 +18,7 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 - [x] Add API integration tests for `POST /api/auth/login` and `POST /api/auth/register`.
 - [x] Add endpoint-level authorization tests for user, course, organization, and role scopes.
 - [x] Add unit tests for authentication helper logic and edge cases.
-- [ ] Add worker tests for retry state transitions, terminal failures, and heartbeat behavior.
+- [x] Add worker tests for retry state transitions, terminal failures, and heartbeat behavior.
 - [ ] Keep blockchain integration tests covering deploy, mint, presigner, and EIP-2612 permit behavior.
 - [x] Add CI steps for `cargo fmt --all --check`, `cargo test`, and frontend lint/build checks.
 - [x] Document any tests that require Docker, PostgreSQL, Anvil/Geth, RustFS, or ffmpeg.
