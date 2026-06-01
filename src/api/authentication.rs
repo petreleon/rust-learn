@@ -1,14 +1,17 @@
 // src/api/authentication.rs
-use actix_web::{get, post, web, HttpResponse, Responder, HttpRequest};
-use serde::Deserialize;
+use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use bcrypt::{hash, verify, DEFAULT_COST};
-use crate::models::{authentication::Authentication, user_jwt::UserJWT};
-use crate::models::user::{User, NewUser};
+use chrono::NaiveDate;
+use serde::Deserialize;
+
 use crate::db;
-// use diesel::prelude::*; // Not needed directly if using model methods
-use chrono::{NaiveDate, NaiveDateTime};
+use crate::models::authentication::Authentication;
+use crate::models::role::PlatformRole;
+use crate::models::user::{NewUser, User};
+use crate::models::user_role_platform::UserRolePlatform;
 use crate::utils::jwt_utils::create_jwt;
-use crate::models::{role::PlatformRole, user_role_platform::UserRolePlatform};
+
+const MIN_PASSWORD_LENGTH: usize = 12;
 
 // TODO Add confirmation email on registration
 
@@ -26,13 +29,25 @@ pub struct RegisterRequest {
     pub date_of_birth: Option<NaiveDate>,
 }
 
+fn validate_password_strength(password: &str) -> Result<(), &'static str> {
+    if password.len() < MIN_PASSWORD_LENGTH {
+        return Err("Password must be at least 12 characters long");
+    }
 
+    let has_lowercase = password.chars().any(char::is_lowercase);
+    let has_uppercase = password.chars().any(char::is_uppercase);
+    let has_digit = password.chars().any(|c| c.is_ascii_digit());
+    let has_symbol = password.chars().any(|c| !c.is_alphanumeric());
+
+    if !(has_lowercase && has_uppercase && has_digit && has_symbol) {
+        return Err("Password must include lowercase, uppercase, numeric, and symbol characters");
+    }
+
+    Ok(())
+}
 
 #[post("/login")]
-pub async fn login(
-    pool: web::Data<db::DbPool>,
-    req: web::Json<LoginRequest>,
-) -> impl Responder {
+pub async fn login(pool: web::Data<db::DbPool>, req: web::Json<LoginRequest>) -> impl Responder {
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
@@ -48,9 +63,7 @@ pub async fn login(
                         Ok(user_jwt) => {
                             HttpResponse::Ok().json(user_jwt) // Return JWT token in response
                         }
-                        Err(_) => {
-                            HttpResponse::InternalServerError().body("Failed to create JWT")
-                        }
+                        Err(_) => HttpResponse::InternalServerError().body("Failed to create JWT"),
                     }
                 } else {
                     HttpResponse::Unauthorized().body("Invalid credentials")
@@ -63,14 +76,15 @@ pub async fn login(
     }
 }
 
-
-
-
 #[post("/register")]
 pub async fn register(
     pool: web::Data<db::DbPool>,
     req: web::Json<RegisterRequest>,
 ) -> impl Responder {
+    if let Err(message) = validate_password_strength(&req.password) {
+        return HttpResponse::BadRequest().body(message);
+    }
+
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
@@ -93,7 +107,7 @@ pub async fn register(
     let role_id = PlatformRole::find_by_name("STUDENT", &mut conn)
         .await
         .expect("Error finding STUDENT role");
-    
+
     UserRolePlatform::assign(&mut conn, inserted_user.id(), role_id)
         .await
         .expect("Error assigning default role to user");
@@ -113,7 +127,7 @@ pub async fn register(
     HttpResponse::Ok().body("Registration successful")
 }
 
-// hello 
+// hello
 #[get("/hello")]
 pub async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world!")
@@ -124,11 +138,11 @@ pub async fn user_id(req: HttpRequest) -> impl Responder {
     // Try to decode the Authorization header to extract the user ID instead of reading request extensions
     if let Some(auth_header) = req.headers().get("Authorization") {
         if let Ok(auth_str) = auth_header.to_str() {
-            if auth_str.starts_with("Bearer ") {
-                let token = &auth_str["Bearer ".len()..];
+            if let Some(token) = auth_str.strip_prefix("Bearer ") {
                 if let Ok(token_data) = crate::utils::jwt_utils::decode_jwt(token) {
                     let user_jwt = token_data.claims;
-                    return HttpResponse::Ok().body(format!("Hello! Your ID is {}", user_jwt.user_id));
+                    return HttpResponse::Ok()
+                        .body(format!("Hello! Your ID is {}", user_jwt.user_id));
                 }
             }
         }
@@ -140,8 +154,34 @@ pub async fn user_id(req: HttpRequest) -> impl Responder {
 // Define the scope for authentication-related routes
 pub fn auth_scope() -> actix_web::Scope {
     web::scope("/auth")
-    .service(login)
-    .service(register)
-    .service(hello)
-    .service(user_id)
+        .service(login)
+        .service(register)
+        .service(hello)
+        .service(user_id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_password_strength;
+
+    #[test]
+    fn accepts_strong_password() {
+        assert!(validate_password_strength("CorrectHorse1!").is_ok());
+    }
+
+    #[test]
+    fn rejects_short_password() {
+        assert_eq!(
+            validate_password_strength("Aa1!").unwrap_err(),
+            "Password must be at least 12 characters long"
+        );
+    }
+
+    #[test]
+    fn rejects_password_missing_required_character_classes() {
+        assert_eq!(
+            validate_password_strength("correcthorse1").unwrap_err(),
+            "Password must include lowercase, uppercase, numeric, and symbol characters"
+        );
+    }
 }
