@@ -15,6 +15,8 @@ The long-term goal is to provide a trustworthy platform where:
 - blockchain-backed reward flows can be tested and audited before broader deployment.
 
 See [`VISION.md`](VISION.md) for the product and architecture direction, and [`TODO.md`](TODO.md) for the current roadmap.
+The target LearnToken reward flow is defined in
+[`REWARD_LIFECYCLE.md`](REWARD_LIFECYCLE.md).
 
 ## Repository layout
 
