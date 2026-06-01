@@ -204,11 +204,24 @@ The API container runs `scripts/app-entrypoint.sh`, which initializes submodules
 
 ## Running locally without containers
 
-Start dependencies with Docker Compose, then run the Rust API locally if desired:
+Start only the API dependencies with Docker Compose:
+
+```bash
+make dev-deps
+```
+
+This starts PostgreSQL, RustFS, and Anvil without starting the API, web app, or
+worker containers. It is the quickest path when you want to run the Rust API on
+the host with Cargo:
+
+```bash
+cargo run --bin rust-learn
+```
+
+The equivalent raw Docker Compose command is:
 
 ```bash
 docker-compose up -d db rustfs anvil
-cargo run --bin rust-learn
 ```
 
 Run the worker locally:

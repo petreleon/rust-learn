@@ -1,6 +1,6 @@
 .PHONY: help build run stop test clean docker-build docker-up docker-down setup health \
   k8s-build k8s-apply k8s-delete k8s-status k8s-logs k8s-forward \
-  dev-build dev-run dev-worker migrate migrate-redo \
+  dev-build dev-deps dev-run dev-worker migrate migrate-redo \
   test-integration
 
 # Variables
@@ -95,6 +95,9 @@ k8s-forward: ## Start port-forward (use: make k8s-forward SERVICE=web PORT=3000)
 # Development
 dev-build: ## Build only the Rust application (without container)
 	cargo build --release
+
+dev-deps: ## Start only API dependencies (Postgres, RustFS, Anvil)
+	docker-compose up -d db rustfs anvil
 
 dev-run: ## Run application locally (without container)
 	cargo run --bin rust-learn
