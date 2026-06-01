@@ -4,11 +4,11 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 
 ## Priority 0 — Security, correctness, and contributor safety
 
-- [ ] Replace example RSA private/public keys in `.env.example` with non-secret placeholders and document local key generation only.
+- [x] Replace example RSA private/public keys in `.env.example` with non-secret placeholders and document local key generation only.
 - [ ] Audit all API read endpoints for missing authorization checks, especially user, course, organization, role, wallet, transaction, notification, and reporting data.
-- [ ] Add password strength validation to registration.
+- [x] Add password strength validation to registration.
 - [ ] Add email confirmation or account-verification flow after registration.
-- [ ] Review JWT expiration, refresh/session strategy, and logout/revocation expectations.
+- [x] Review JWT expiration, refresh/session strategy, and logout/revocation expectations.
 - [ ] Add a JWKS or `.well-known/jwks.json` endpoint for external JWT verification.
 - [ ] Confirm every role assignment path enforces hierarchy and scope constraints.
 - [ ] Add structured logging for authentication failures, permission denials, worker failures, and blockchain operations.
@@ -25,7 +25,7 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 
 ## Priority 2 — Developer experience and setup
 
-- [ ] Add a setup script to generate RSA keys and create a safe local `.env` from placeholders.
+- [x] Add a setup script to generate RSA keys and create a safe local `.env` from placeholders.
 - [ ] Improve `.env.example` comments for PostgreSQL, S3/RustFS, Ethereum provider, admin bootstrap, and worker variables.
 - [ ] Add a quickstart path for running only the API dependencies with Docker Compose.
 - [ ] Add troubleshooting notes for Diesel migration failures, S3 connectivity, Ethereum RPC startup, and worker memory limits.

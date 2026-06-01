@@ -140,14 +140,9 @@ shell: ## Enter container shell (use: make shell SERVICE=app)
 	docker-compose exec $(SERVICE) /bin/sh
 
 # Setup
-setup: ## Initial setup - create .env file
-	@if [ ! -f .env ]; then \
-		cp .env.example .env; \
-		echo "$(GREEN).env file created from .env.example$(NC)"; \
-		echo "$(YELLOW)Edit .env and configure necessary values!$(NC)"; \
-	else \
-		echo "$(YELLOW).env file already exists$(NC)"; \
-	fi
+setup: ## Initial setup - create .env file and local JWT keys
+	@./scripts/setup-env.sh
+	@echo "$(YELLOW)Edit .env and configure environment-specific values!$(NC)"
 
 # Health check
 health: ## Check services health status
