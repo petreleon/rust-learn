@@ -11,7 +11,7 @@ use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::role::CourseRole;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
-use rust_learn::utils::db_utils::authentication_registration::create_user;
+use rust_learn::repositories::user_repository::create_user;
 use rust_learn::utils::jwt_utils::create_jwt;
 
 fn unique_string(prefix: &str) -> String {

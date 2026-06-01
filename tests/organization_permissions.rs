@@ -4,10 +4,10 @@ use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::organizations;
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::utils::db_utils::authentication_registration::create_user;
-use rust_learn::utils::db_utils::organization::{
+use rust_learn::repositories::organization_repository::{
     assign_role_to_user_in_organization, user_permission_organization_request,
 };
+use rust_learn::repositories::user_repository::create_user;
 // We need to bypass the helper to setup the initial super-user/assigner
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::models::role::OrganizationRole;

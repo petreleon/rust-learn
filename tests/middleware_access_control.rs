@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::user::User;
-use rust_learn::utils::db_utils::authentication_registration::create_user;
+use rust_learn::repositories::user_repository::create_user;
 use rust_learn::utils::jwt_utils::create_jwt;
 
 use actix_service::Service;

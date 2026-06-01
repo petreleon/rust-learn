@@ -7,10 +7,10 @@ use rust_learn::db::schema::courses;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::role::CourseRole;
 use rust_learn::models::user_role_course::UserRoleCourse;
-use rust_learn::utils::db_utils::authentication_registration::create_user;
-use rust_learn::utils::db_utils::course::{
+use rust_learn::repositories::course_repository::{
     assign_role_to_user_in_course, user_permission_course_request,
 };
+use rust_learn::repositories::user_repository::create_user;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -58,7 +58,7 @@ async fn create_user_helper(
 ) -> rust_learn::models::user::User {
     let suffix = unique_string(name_suffix);
     let email = format!("user_{}@example.com", suffix);
-    rust_learn::utils::db_utils::authentication_registration::create_user(
+    rust_learn::repositories::user_repository::create_user(
         conn,
         &format!("User {}", suffix),
         &email,

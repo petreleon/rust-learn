@@ -3,11 +3,11 @@ use diesel_async::AsyncPgConnection;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::establish_connection;
-use rust_learn::utils::db_utils::authentication_registration::create_user;
-use rust_learn::utils::db_utils::platform::{
+use rust_learn::repositories::platform_permission_repository::assign_permission_to_role_platform;
+use rust_learn::repositories::platform_repository::{
     assign_role_to_user, user_permission_platform_request,
 };
-use rust_learn::utils::db_utils::platform_permission_utils::assign_permission_to_role_platform;
+use rust_learn::repositories::user_repository::create_user;
 
 fn unique_email(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
