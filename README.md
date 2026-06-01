@@ -326,6 +326,63 @@ diesel migration redo
 
 When adding migrations, include reversible `up.sql` and `down.sql` files whenever possible and update/check `src/db/schema.rs` when schema changes require it.
 
+## Troubleshooting
+
+Diesel migration failures usually mean the API cannot reach PostgreSQL, the
+database credentials in `.env` do not match the Compose container, or a migration
+failed partway through. Check the database service first:
+
+```bash
+docker-compose ps db
+docker-compose logs -f db
+```
+
+When running the API on the host, `DATABASE_URL` should point at
+`localhost:5433`; inside Compose it should point at `db:5432`. After fixing the
+connection string or database state, rerun:
+
+```bash
+diesel migration run
+```
+
+S3 or RustFS connectivity errors usually come from using container-only hostnames
+from the host, mismatched credentials, or RustFS not being ready. Check the
+service and console:
+
+```bash
+docker-compose ps rustfs
+docker-compose logs -f rustfs
+```
+
+Containers should use `S3_INTERNAL_DOMAIN=rustfs`. A host-run API or worker
+should use `S3_INTERNAL_DOMAIN=localhost` with `S3_INTERNAL_PORT=9000` unless it
+is attached to the Compose network.
+
+Ethereum RPC startup issues usually mean Anvil is still starting, the wrong host
+name is configured, or an old local state volume is being reused. Check Anvil and
+query the chain ID:
+
+```bash
+docker-compose ps anvil
+docker-compose logs -f anvil
+curl -s -X POST -H 'Content-Type: application/json' \
+  --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+  http://localhost:8545
+```
+
+Containers should use `ETH_HOST=anvil` or `ETH_RPC_URL=http://anvil:8545`. A
+host-run API should prefer `ETH_RPC_URL=http://localhost:8545`.
+
+Worker builds and ffmpeg processing can be memory-heavy. Keep
+`WORKER_CONCURRENCY=1` on small machines, increase the Docker VM memory when
+release builds fail, and inspect worker logs before raising concurrency:
+
+```bash
+docker compose logs -f worker
+colima start --memory 8192
+docker compose build worker
+```
+
 ## Kubernetes
 
 Kubernetes manifests live under `k8s/`. Common commands:
