@@ -1,10 +1,10 @@
+use crate::config::constants::permissions::Permissions;
+use crate::config::constants::roles::Roles;
+use crate::models::role::PlatformRole;
+use crate::models::role_permission_platform::RolePermissionPlatform;
 use diesel::prelude::*;
 use diesel::QueryResult;
 use diesel_async::AsyncPgConnection;
-use crate::models::role_permission_platform::RolePermissionPlatform;
-use crate::models::role::PlatformRole;
-use crate::config::constants::roles::Roles;
-use crate::config::constants::permissions::Permissions;
 
 /// Assigns a permission to a platform role after checking if it already exists.
 pub async fn assign_permission_to_role_platform(

@@ -1,21 +1,28 @@
 use actix_service::{forward_ready, Service, Transform};
-use actix_web::{dev::{ServiceRequest, ServiceResponse}, Error};
-use futures::future::{self, Ready, LocalBoxFuture};
+use actix_web::{
+    dev::{ServiceRequest, ServiceResponse},
+    Error,
+};
+use futures::future::{self, LocalBoxFuture, Ready};
+use futures::FutureExt;
 use std::marker::PhantomData;
 use std::sync::Arc;
-use futures::FutureExt;
 
 // Middleware definition
 pub struct ConditionalAccessMiddleware<S> {
     _service: PhantomData<S>,
-    permitting_function: Arc<dyn Fn(&ServiceRequest) -> LocalBoxFuture<'static, Result<bool, Error>> + Send + Sync>,
+    permitting_function:
+        Arc<dyn Fn(&ServiceRequest) -> LocalBoxFuture<'static, Result<bool, Error>> + Send + Sync>,
     denial_error: Arc<dyn Fn() -> Error + Send + Sync>,
 }
 
 impl<S> ConditionalAccessMiddleware<S> {
     pub fn new<F, E>(permitting_function: F, denial_error: E) -> Self
     where
-        F: Fn(&ServiceRequest) -> LocalBoxFuture<'static, Result<bool, Error>> + 'static + Send + Sync,
+        F: Fn(&ServiceRequest) -> LocalBoxFuture<'static, Result<bool, Error>>
+            + 'static
+            + Send
+            + Sync,
         E: Fn() -> Error + 'static + Send + Sync,
     {
         ConditionalAccessMiddleware {
@@ -49,7 +56,8 @@ where
 
 pub struct ConditionalAccessMiddlewareService<S> {
     service: S,
-    permitting_function: Arc<dyn Fn(&ServiceRequest) -> LocalBoxFuture<'static, Result<bool, Error>> + Send + Sync>,
+    permitting_function:
+        Arc<dyn Fn(&ServiceRequest) -> LocalBoxFuture<'static, Result<bool, Error>> + Send + Sync>,
     denial_error: Arc<dyn Fn() -> Error + Send + Sync>,
 }
 
@@ -76,6 +84,7 @@ where
                 Ok(false) => Err((denial_error)()),
                 Err(e) => Err(e),
             }
-        }.boxed_local()
+        }
+        .boxed_local()
     }
 }

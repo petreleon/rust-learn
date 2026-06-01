@@ -1,8 +1,8 @@
-use diesel::prelude::*;
-use serde::{Deserialize, Serialize};
 use crate::db::schema::pending_course_organization_invites;
 use crate::models::course::Course;
 use crate::models::organization::Organization;
+use diesel::prelude::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Selectable, Identifiable, Associations, Debug, Serialize, Deserialize)]
 #[diesel(belongs_to(Course))]

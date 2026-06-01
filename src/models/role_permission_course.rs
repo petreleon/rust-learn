@@ -1,7 +1,7 @@
-use diesel::prelude::*;
 use crate::db::schema::role_permission_course;
-use crate::models::role::CourseRole;
 use crate::models::course::Course;
+use crate::models::role::CourseRole;
+use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Associations)]
 #[diesel(belongs_to(CourseRole))]

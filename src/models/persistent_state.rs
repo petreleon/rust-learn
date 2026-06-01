@@ -1,5 +1,5 @@
-use diesel::prelude::*;
 use crate::db::schema::persistent_states;
+use diesel::prelude::*;
 use diesel::upsert::excluded;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 

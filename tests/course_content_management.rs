@@ -1,26 +1,30 @@
-use actix_web::{test, App, web};
+use actix_service::Service;
+use actix_web::{test, web, App};
+use chrono::NaiveDate;
 use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::db::schema::{chapters, contents, courses};
 use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::utils::db_utils::authentication_registration::create_user;
-use rust_learn::models::user::User;
-use rust_learn::utils::jwt_utils::create_jwt;
-use rust_learn::models::course::{NewCourse, Course};
-use rust_learn::db::schema::{courses, chapters, contents};
 use rust_learn::models::chapter::{Chapter, NewChapter};
 use rust_learn::models::content::{Content, NewContent};
+use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::role::CourseRole;
+use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
-use chrono::NaiveDate;
-use actix_service::Service;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::repositories::user_repository::create_user;
+use rust_learn::utils::jwt_utils::create_jwt;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
 }
 
-async fn setup_conn(pool: &DbPool) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
-    pool.get().await.expect("failed to get DB connection from pool")
+async fn setup_conn(
+    pool: &DbPool,
+) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
+    pool.get()
+        .await
+        .expect("failed to get DB connection from pool")
 }
 
 async fn create_test_user(conn: &mut AsyncPgConnection, name: &str) -> User {
@@ -40,22 +44,33 @@ fn generate_token(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to generate token")
 }
 
-async fn force_assign_course_role(conn: &mut AsyncPgConnection, user_id: i32, course_id: i32, role_name: &str) {
-    let role_id = CourseRole::find_by_name(role_name, conn).await.expect("role not found");
-    UserRoleCourse::assign(conn, user_id, course_id, role_id).await.expect("assign failed");
+async fn force_assign_course_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    course_id: i32,
+    role_name: &str,
+) {
+    let role_id = CourseRole::find_by_name(role_name, conn)
+        .await
+        .expect("role not found");
+    UserRoleCourse::assign(conn, user_id, course_id, role_id)
+        .await
+        .expect("assign failed");
 }
 
 #[actix_web::test]
 async fn test_course_content_lifecycle() {
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
-    
+
     // Setup Data
     let mut conn = setup_conn(&pool).await;
     let teacher = create_test_user(&mut conn, "teacher_content").await;
     let student = create_test_user(&mut conn, "student_content").await;
-    
-    let new_course = NewCourse { title: unique_string("CourseWithContent") };
+
+    let new_course = NewCourse {
+        title: unique_string("CourseWithContent"),
+    };
     let course = diesel::insert_into(courses::table)
         .values(&new_course)
         .get_result::<Course>(&mut conn)
@@ -69,15 +84,16 @@ async fn test_course_content_lifecycle() {
     let student_token = generate_token(student.id());
 
     let app = test::init_service(
-         App::new()
+        App::new()
             .app_data(web::Data::new(pool.clone()))
-             // Mock S3 state or rely on it failing gracefully if not needed for metadata tests?
-             // But app_scope tries to inject it in main.rs. Here we are initializing specific scopes.
-             // But app_scope tries to inject it in main.rs. Here we are initializing specific scopes.
-             // We need to mirror api_scope's usage of scopes.
+            // Mock S3 state or rely on it failing gracefully if not needed for metadata tests?
+            // But app_scope tries to inject it in main.rs. Here we are initializing specific scopes.
+            // But app_scope tries to inject it in main.rs. Here we are initializing specific scopes.
+            // We need to mirror api_scope's usage of scopes.
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope())
-    ).await;
+            .service(rust_learn::api::courses::course_scope()),
+    )
+    .await;
 
     // 1. Teacher CREATES Chapter (/courses/{id}/chapters)
     let req = test::TestRequest::post()
@@ -86,8 +102,12 @@ async fn test_course_content_lifecycle() {
         .set_json(serde_json::json!({ "title": "Intro", "order": 1 }))
         .to_request();
     let resp = app.call(req).await.unwrap();
-    assert!(resp.status().is_success(), "Create Chapter failed: {}", resp.status());
-    
+    assert!(
+        resp.status().is_success(),
+        "Create Chapter failed: {}",
+        resp.status()
+    );
+
     let chapter: Chapter = test::read_body_json(resp).await;
     assert_eq!(chapter.title, "Intro");
 
@@ -103,36 +123,48 @@ async fn test_course_content_lifecycle() {
 
     // 3. Teacher CREATES Content (/courses/{id}/chapters/{cid}/contents)
     let req = test::TestRequest::post()
-        .uri(&format!("/courses/{}/chapters/{}/contents", course.id, chapter.id))
+        .uri(&format!(
+            "/courses/{}/chapters/{}/contents",
+            course.id, chapter.id
+        ))
         .insert_header(("Authorization", format!("Bearer {}", teacher_token)))
-        .set_json(serde_json::json!({ 
-            "order": 1, 
-            "content_type": "text", 
-            "data": "Welcome to the course" 
+        .set_json(serde_json::json!({
+            "order": 1,
+            "content_type": "text",
+            "data": "Welcome to the course"
         }))
         .to_request();
     let resp = app.call(req).await.unwrap();
-    assert!(resp.status().is_success(), "Create Content failed: {}", resp.status());
+    assert!(
+        resp.status().is_success(),
+        "Create Content failed: {}",
+        resp.status()
+    );
     let content: Content = test::read_body_json(resp).await;
     assert_eq!(content.data.unwrap(), "Welcome to the course");
 
-     // 4. Student Cannot Create Content -> 403
+    // 4. Student Cannot Create Content -> 403
     let req = test::TestRequest::post()
-        .uri(&format!("/courses/{}/chapters/{}/contents", course.id, chapter.id))
+        .uri(&format!(
+            "/courses/{}/chapters/{}/contents",
+            course.id, chapter.id
+        ))
         .insert_header(("Authorization", format!("Bearer {}", student_token)))
-        .set_json(serde_json::json!({ 
-            "order": 2, 
-            "content_type": "video", 
-            "data": "hack" 
+        .set_json(serde_json::json!({
+            "order": 2,
+            "content_type": "video",
+            "data": "hack"
         }))
         .to_request();
     // Use try_call check logic manually or app.call
     let resp = app.call(req).await;
     match resp {
         Ok(r) => {
-             // Expect 403
-             if r.status().is_success() { panic!("Student created content!"); }
-             assert_eq!(r.status(), actix_web::http::StatusCode::FORBIDDEN);
+            // Expect 403
+            if r.status().is_success() {
+                panic!("Student created content!");
+            }
+            assert_eq!(r.status(), actix_web::http::StatusCode::FORBIDDEN);
         }
         Err(e) => {
             let r = e.error_response();
@@ -142,7 +174,10 @@ async fn test_course_content_lifecycle() {
 
     // 5. Update Content (Teacher)
     let req = test::TestRequest::put()
-        .uri(&format!("/courses/{}/chapters/{}/contents/{}", course.id, chapter.id, content.id))
+        .uri(&format!(
+            "/courses/{}/chapters/{}/contents/{}",
+            course.id, chapter.id, content.id
+        ))
         .insert_header(("Authorization", format!("Bearer {}", teacher_token)))
         .set_json(serde_json::json!({ "data": "Updated Text" }))
         .to_request();
@@ -153,7 +188,10 @@ async fn test_course_content_lifecycle() {
 
     // 6. Teacher Triggers Processing
     let req = test::TestRequest::post()
-        .uri(&format!("/courses/{}/chapters/{}/contents/{}/process", course.id, chapter.id, content.id))
+        .uri(&format!(
+            "/courses/{}/chapters/{}/contents/{}/process",
+            course.id, chapter.id, content.id
+        ))
         .insert_header(("Authorization", format!("Bearer {}", teacher_token)))
         .to_request();
     let resp = app.call(req).await.unwrap();

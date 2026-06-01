@@ -1,12 +1,10 @@
-pub mod db;
 pub mod api;
-pub mod utils;
-pub mod middlewares;
 pub mod config;
+pub mod db;
+pub mod middlewares;
 pub mod models;
-pub mod services;
 pub mod repositories;
-
-
+pub mod services;
+pub mod utils;
 
 // Keep lib lightweight; main.rs remains the binary entrypoint.

@@ -1,15 +1,15 @@
-use actix_web::{get, post, web, HttpResponse, Responder, HttpRequest};
+use crate::config::constants::permissions::Permissions;
+use crate::db;
+use crate::db::schema::courses;
+use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
+use crate::models::course::{Course, NewCourse, UpdateCourse};
+use crate::models::param_type::ParamType;
+use crate::repositories::course_repository::assign_role_to_user_in_course;
+use crate::utils::jwt_utils::decode_jwt;
+use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use serde::Deserialize;
-use crate::db;
-use crate::models::course::{Course, NewCourse, UpdateCourse};
-use crate::db::schema::courses;
-use crate::utils::jwt_utils::decode_jwt;
-use crate::repositories::course_repository::assign_role_to_user_in_course;
-use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
-use crate::models::param_type::ParamType;
-use crate::config::constants::permissions::Permissions;
 
 #[derive(Deserialize)]
 pub struct AssignRoleRequest {
@@ -42,7 +42,10 @@ async fn get_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl R
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = courses::table.find(course_id).first::<Course>(&mut conn).await;
+    let result = courses::table
+        .find(course_id)
+        .first::<Course>(&mut conn)
+        .await;
 
     match result {
         Ok(course) => HttpResponse::Ok().json(course),
@@ -54,8 +57,8 @@ async fn get_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl R
     }
 }
 
-use crate::models::courses_organizations::NewCourseOrganization;
 use crate::db::schema::courses_organizations;
+use crate::models::courses_organizations::NewCourseOrganization;
 
 #[derive(Deserialize)]
 pub struct CreateCourseRequest {
@@ -64,7 +67,10 @@ pub struct CreateCourseRequest {
 }
 
 #[post("")]
-async fn create_course(pool: web::Data<db::DbPool>, req: web::Json<CreateCourseRequest>) -> impl Responder {
+async fn create_course(
+    pool: web::Data<db::DbPool>,
+    req: web::Json<CreateCourseRequest>,
+) -> impl Responder {
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
@@ -74,7 +80,8 @@ async fn create_course(pool: web::Data<db::DbPool>, req: web::Json<CreateCourseR
         &mut conn,
         req.title.clone(),
         req.organization_ids.clone(),
-    ).await;
+    )
+    .await;
 
     match result {
         Ok(course) => HttpResponse::Created().json(course),
@@ -138,7 +145,10 @@ async fn delete_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> imp
 }
 
 #[get("/{id}/organizations")]
-async fn get_course_organizations(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
+async fn get_course_organizations(
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
     let course_id = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(c) => c,
@@ -146,7 +156,7 @@ async fn get_course_organizations(path: web::Path<i32>, pool: web::Data<db::DbPo
     };
 
     use crate::models::organization::Organization;
-    
+
     let result = courses_organizations::table
         .filter(courses_organizations::course_id.eq(course_id))
         .inner_join(crate::db::schema::organizations::table)
@@ -182,7 +192,7 @@ async fn assign_role(
         Some(h) => h.to_str().unwrap_or(""),
         None => return HttpResponse::Unauthorized().body("Missing Authorization header"),
     };
-    
+
     let token = if auth_header.starts_with("Bearer ") {
         &auth_header["Bearer ".len()..]
     } else {
@@ -218,24 +228,33 @@ pub fn course_scope() -> actix_web::Scope {
         .service(create_course)
         .service(get_course_organizations)
         .service(
-             web::resource("/{id}")
-                .route(web::put().to(update_course).wrap(CoursePermissionMiddleware::new(
-                    Permissions::MANAGE_COURSE_SETTINGS.to_string(),
-                    ParamType::Path,
-                    "id".to_string(),
-                )))
-                .route(web::delete().to(delete_course).wrap(CoursePermissionMiddleware::new(
-                    Permissions::DELETE_COURSE.to_string(),
-                    ParamType::Path,
-                    "id".to_string(),
-                )))
+            web::resource("/{id}")
+                .route(
+                    web::put()
+                        .to(update_course)
+                        .wrap(CoursePermissionMiddleware::new(
+                            Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                            ParamType::Path,
+                            "id".to_string(),
+                        )),
+                )
+                .route(
+                    web::delete()
+                        .to(delete_course)
+                        .wrap(CoursePermissionMiddleware::new(
+                            Permissions::DELETE_COURSE.to_string(),
+                            ParamType::Path,
+                            "id".to_string(),
+                        )),
+                ),
         )
         .service(
-            web::resource("/{id}/users/{user_id}/roles")
-                .route(web::post().to(assign_role).wrap(CoursePermissionMiddleware::new(
+            web::resource("/{id}/users/{user_id}/roles").route(web::post().to(assign_role).wrap(
+                CoursePermissionMiddleware::new(
                     Permissions::MANAGE_COURSE_ENROLLMENTS.to_string(),
                     ParamType::Path,
                     "id".to_string(),
-                )))
+                ),
+            )),
         )
 }

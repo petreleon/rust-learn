@@ -1,7 +1,7 @@
 use crate::db::schema::role_permission_organization;
-use diesel::prelude::*;
-use crate::models::role::OrganizationRole;
 use crate::models::organization::Organization;
+use crate::models::role::OrganizationRole;
+use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Associations)]
 #[diesel(belongs_to(OrganizationRole))]

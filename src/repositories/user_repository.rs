@@ -1,10 +1,10 @@
-use diesel::prelude::*;
-use diesel_async::AsyncPgConnection;
 use bcrypt::{hash, DEFAULT_COST};
 use chrono::NaiveDate;
+use diesel::prelude::*;
+use diesel_async::AsyncPgConnection;
 
-use crate::models::user::{User, NewUser};
 use crate::models::authentication::Authentication;
+use crate::models::user::{NewUser, User};
 
 pub async fn create_user(
     conn: &mut AsyncPgConnection,

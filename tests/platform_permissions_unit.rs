@@ -1,22 +1,25 @@
-use diesel::prelude::*;
-use rust_learn::db::establish_connection;
-use rust_learn::utils::db_utils::authentication_registration::create_user;
-use rust_learn::utils::db_utils::platform::assign_role_to_user;
-use rust_learn::config::constants::roles::Roles;
-use rust_learn::config::constants::permissions::Permissions;
 use chrono::NaiveDate;
-use rust_learn::models::user_role_platform::UserRolePlatform;
+use diesel::prelude::*;
 use diesel_async::AsyncPgConnection;
+use rust_learn::config::constants::permissions::Permissions;
+use rust_learn::config::constants::roles::Roles;
+use rust_learn::db::establish_connection;
+use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::repositories::platform_repository::assign_role_to_user;
+use rust_learn::repositories::user_repository::create_user;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
 }
 
-async fn setup_conn() -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
+async fn setup_conn(
+) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
-    pool.get().await.expect("failed to get DB connection from pool")
+    pool.get()
+        .await
+        .expect("failed to get DB connection from pool")
 }
 
 #[actix_web::test]
@@ -39,9 +42,16 @@ async fn test_platform_direct_has_permission_call() {
         .expect("failed to assign SUPER_ADMIN role");
 
     // Test calling UserRolePlatform::has_permission directly as requested
-    let has_perm = UserRolePlatform::has_permission(&mut conn, user.id(), &Permissions::MANAGE_PLATFORM_SETTINGS.to_string())
-        .await
-        .expect("query failed");
-    
-    assert!(has_perm, "SUPER_ADMIN should have MANAGE_PLATFORM_SETTINGS (direct call)");
+    let has_perm = UserRolePlatform::has_permission(
+        &mut conn,
+        user.id(),
+        &Permissions::MANAGE_PLATFORM_SETTINGS.to_string(),
+    )
+    .await
+    .expect("query failed");
+
+    assert!(
+        has_perm,
+        "SUPER_ADMIN should have MANAGE_PLATFORM_SETTINGS (direct call)"
+    );
 }

@@ -1,12 +1,11 @@
-use actix_web::{get, web, HttpResponse, Responder};
-use crate::models::role::{PlatformRole, OrganizationRole, CourseRole};
 use crate::db;
-
+use crate::models::role::{CourseRole, OrganizationRole, PlatformRole};
+use actix_web::{get, web, HttpResponse, Responder};
 
 #[get("")]
 async fn list_platform_roles(pool: web::Data<db::DbPool>) -> impl Responder {
-    use diesel_async::RunQueryDsl;
     use crate::db::schema::platform_roles::dsl::*;
+    use diesel_async::RunQueryDsl;
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
@@ -22,8 +21,8 @@ async fn list_platform_roles(pool: web::Data<db::DbPool>) -> impl Responder {
 
 #[get("/organization")]
 async fn list_organization_roles(pool: web::Data<db::DbPool>) -> impl Responder {
-    use diesel_async::RunQueryDsl;
     use crate::db::schema::organization_roles::dsl::*;
+    use diesel_async::RunQueryDsl;
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
@@ -39,8 +38,8 @@ async fn list_organization_roles(pool: web::Data<db::DbPool>) -> impl Responder 
 
 #[get("/course")]
 async fn list_course_roles(pool: web::Data<db::DbPool>) -> impl Responder {
-    use diesel_async::RunQueryDsl;
     use crate::db::schema::course_roles::dsl::*;
+    use diesel_async::RunQueryDsl;
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),

@@ -20,43 +20,45 @@ use tokio::process::Command as TokioCommand;
 #[derive(Clone)]
 pub struct S3State(Arc<Client>);
 
+fn configured_region() -> Region {
+    Region::new(env::var("AWS_REGION").unwrap_or_else(|_| "us-east-1".into()))
+}
+
+async fn configured_client(endpoint: String) -> Client {
+    let user = env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "rustfsadmin".into());
+    let pass = env::var("S3_SECRET_KEY").unwrap_or_else(|_| "rustfsadmin".into());
+    let creds = Credentials::new(user, pass, None, None, "env");
+    let config = aws_config::defaults(BehaviorVersion::latest())
+        .credentials_provider(creds)
+        .region(configured_region())
+        .endpoint_url(endpoint)
+        .load()
+        .await;
+    let s3_config = aws_sdk_s3::config::Builder::from(&config)
+        .force_path_style(true)
+        .build();
+
+    Client::from_conf(s3_config)
+}
+
 impl S3State {
     /// Build a configured async Client from environment variables.
     pub async fn new_from_env() -> Result<Self> {
-        let user = env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "rustfsadmin".into());
-        let pass = env::var("S3_SECRET_KEY").unwrap_or_else(|_| "rustfsadmin".into());
         let host = env::var("S3_INTERNAL_DOMAIN").unwrap_or_else(|_| "rustfs".into());
         let port = env::var("S3_INTERNAL_PORT").unwrap_or_else(|_| "9000".into());
         let scheme = env::var("S3_INTERNAL_SCHEME").unwrap_or_else(|_| "http".into());
         let endpoint = format!("{}://{}:{}", scheme, host, port);
 
-        let creds = Credentials::new(user, pass, None, None, "env");
-        let config = aws_config::defaults(BehaviorVersion::latest())
-            .credentials_provider(creds)
-            .endpoint_url(endpoint)
-            .load()
-            .await;
-
-        let client = Client::new(&config);
+        let client = configured_client(endpoint).await;
         Ok(S3State(Arc::new(client)))
     }
 
     /// Ensure a bucket exists, creating it if necessary.
     async fn ensure_bucket(&self, bucket: &str) -> Result<()> {
-        let exists = self
-            .0
-            .head_bucket()
-            .bucket(bucket)
-            .send()
-            .await
-            .is_ok();
+        let exists = self.0.head_bucket().bucket(bucket).send().await.is_ok();
 
         if !exists {
-            self.0
-                .create_bucket()
-                .bucket(bucket)
-                .send()
-                .await?;
+            self.0.create_bucket().bucket(bucket).send().await?;
         }
         Ok(())
     }
@@ -146,21 +148,12 @@ impl S3State {
         object: &str,
         expires_seconds: u64,
     ) -> Result<String> {
-        let user = env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "rustfsadmin".into());
-        let pass = env::var("S3_SECRET_KEY").unwrap_or_else(|_| "rustfsadmin".into());
         let host = env::var("S3_EXTERNAL_DOMAIN").unwrap_or_else(|_| "localhost".into());
         let port = env::var("S3_EXTERNAL_PORT").unwrap_or_else(|_| "9000".into());
         let scheme = env::var("S3_EXTERNAL_SCHEME").unwrap_or_else(|_| "http".into());
         let endpoint = format!("{}://{}:{}", scheme, host, port);
 
-        let creds = Credentials::new(user, pass, None, None, "env");
-        let config = aws_config::defaults(BehaviorVersion::latest())
-            .credentials_provider(creds)
-            .endpoint_url(endpoint)
-            .load()
-            .await;
-
-        let client = Client::new(&config);
+        let client = configured_client(endpoint).await;
         let presign_config = PresigningConfig::builder()
             .expires_in(Duration::from_secs(expires_seconds))
             .build()?;
@@ -181,7 +174,9 @@ impl S3State {
         object: &str,
         expires_seconds: u64,
     ) -> Result<std::collections::HashMap<String, String>> {
-        let url = self.presign_external_put(bucket, object, expires_seconds).await?;
+        let url = self
+            .presign_external_put(bucket, object, expires_seconds)
+            .await?;
         let mut map = std::collections::HashMap::new();
         map.insert("url".to_string(), url);
         map.insert("key".to_string(), object.to_string());
@@ -195,21 +190,12 @@ impl S3State {
         object: &str,
         expires_seconds: u64,
     ) -> Result<String> {
-        let user = env::var("S3_ACCESS_KEY").unwrap_or_else(|_| "rustfsadmin".into());
-        let pass = env::var("S3_SECRET_KEY").unwrap_or_else(|_| "rustfsadmin".into());
         let host = env::var("S3_EXTERNAL_DOMAIN").unwrap_or_else(|_| "localhost".into());
         let port = env::var("S3_EXTERNAL_PORT").unwrap_or_else(|_| "9000".into());
         let scheme = env::var("S3_EXTERNAL_SCHEME").unwrap_or_else(|_| "http".into());
         let endpoint = format!("{}://{}:{}", scheme, host, port);
 
-        let creds = Credentials::new(user, pass, None, None, "env");
-        let config = aws_config::defaults(BehaviorVersion::latest())
-            .credentials_provider(creds)
-            .endpoint_url(endpoint)
-            .load()
-            .await;
-
-        let client = Client::new(&config);
+        let client = configured_client(endpoint).await;
         let presign_config = PresigningConfig::builder()
             .expires_in(Duration::from_secs(expires_seconds))
             .build()?;

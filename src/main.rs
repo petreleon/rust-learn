@@ -1,18 +1,16 @@
-mod models;
-pub mod db;
 pub mod api;
-pub mod utils;
-pub mod middlewares;
 pub mod config;
-pub mod services;
+pub mod db;
+pub mod middlewares;
+mod models;
 pub mod repositories;
-
+pub mod services;
+pub mod utils;
 
 use crate::config::db_setup::version_updater;
+use crate::utils::s3_utils::S3State;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use infer::Infer;
-use crate::utils::s3_utils::S3State;
-
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -57,14 +55,22 @@ async fn main() -> std::io::Result<()> {
         Ok(s) => s,
         Err(e) => {
             eprintln!("Failed to initialize S3 client: {:?}", e);
-            return Err(std::io::Error::new(std::io::ErrorKind::Other, "S3 init failed"));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "S3 init failed",
+            ));
         }
     };
     // Initialize notifications state (DB-backed using the pool)
     let notifications_state = crate::utils::notifications::NotificationsState::new(pool.clone());
     {
-        let mut conn = pool.get().await.expect("Failed to get DB connection from pool");
-        version_updater(&mut conn).await.expect("Failed to update database version");
+        let mut conn = pool
+            .get()
+            .await
+            .expect("Failed to get DB connection from pool");
+        version_updater(&mut conn)
+            .await
+            .expect("Failed to update database version");
 
         // Ensure LearnToken is deployed (idempotent: uses persistent state)
         match crate::utils::eth_utils::deploy_startup(&mut conn, "LearnToken", "LRN", 18).await {

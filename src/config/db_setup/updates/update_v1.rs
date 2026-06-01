@@ -8,5 +8,6 @@ pub fn apply_update_v1(_conn: &mut AsyncPgConnection) -> BoxFuture<'_, QueryResu
     async move {
         println!("Applying update v1...");
         Ok(())
-    }.boxed()
+    }
+    .boxed()
 }

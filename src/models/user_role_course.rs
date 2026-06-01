@@ -1,9 +1,9 @@
+use crate::db::schema::user_role_course;
+use crate::models::course::Course;
+use crate::models::role::CourseRole;
+use crate::models::user::User;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use crate::db::schema::user_role_course;
-use crate::models::user::User;
-use crate::models::role::CourseRole;
-use crate::models::course::Course;
 
 #[derive(Queryable, Identifiable, Associations, Insertable)]
 #[diesel(belongs_to(User))]
@@ -18,19 +18,25 @@ pub struct UserRoleCourse {
 }
 
 impl UserRoleCourse {
-    pub async fn has_permission(conn: &mut AsyncPgConnection, p_user_id: i32, p_course_id: i32, p_permission: &str) -> QueryResult<bool> {
+    pub async fn has_permission(
+        conn: &mut AsyncPgConnection,
+        p_user_id: i32,
+        p_course_id: i32,
+        p_permission: &str,
+    ) -> QueryResult<bool> {
         use crate::db::schema::{course_roles, role_permission_course, user_role_course};
-        
+
         let has_permission = diesel::select(diesel::dsl::exists(
             user_role_course::table
-                .inner_join(course_roles::table.on(
-                    user_role_course::course_role_id.eq(course_roles::id.nullable()),
-                ))
-                .inner_join(role_permission_course::table.on(
-                    course_roles::id
+                .inner_join(
+                    course_roles::table
+                        .on(user_role_course::course_role_id.eq(course_roles::id.nullable())),
+                )
+                .inner_join(
+                    role_permission_course::table.on(course_roles::id
                         .nullable()
-                        .eq(role_permission_course::course_role_id),
-                ))
+                        .eq(role_permission_course::course_role_id)),
+                )
                 .filter(user_role_course::user_id.eq(p_user_id))
                 .filter(user_role_course::course_id.eq(p_course_id))
                 .filter(role_permission_course::permission.eq(p_permission)),
@@ -41,9 +47,14 @@ impl UserRoleCourse {
         Ok(has_permission)
     }
 
-    pub async fn assign(conn: &mut AsyncPgConnection, p_user_id: i32, p_course_id: i32, p_course_role_id: i32) -> QueryResult<usize> {
+    pub async fn assign(
+        conn: &mut AsyncPgConnection,
+        p_user_id: i32,
+        p_course_id: i32,
+        p_course_role_id: i32,
+    ) -> QueryResult<usize> {
         use crate::db::schema::user_role_course::dsl::*;
-        
+
         let new_user_role = (
             user_id.eq(p_user_id),
             course_role_id.eq(p_course_role_id),

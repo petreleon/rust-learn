@@ -1,15 +1,17 @@
-use ethers::prelude::*;
-use ethers::abi::Abi;
-use ethers::core::types::Bytes;
 use diesel::QueryResult;
 use diesel_async::AsyncPgConnection;
+use ethers::abi::Abi;
+use ethers::core::types::Bytes;
+use ethers::prelude::*;
 use std::env;
 use std::str::FromStr;
 
-use crate::repositories::persistent_state_repository::{get_persistent_state, set_persistent_state};
-use super::wallet::load_wallet_from_env;
-use super::provider::get_provider;
 use super::compiler::compile_contract;
+use super::provider::get_provider;
+use super::wallet::load_wallet_from_env;
+use crate::repositories::persistent_state_repository::{
+    get_persistent_state, set_persistent_state,
+};
 
 /// Deploys the LearnToken contract
 pub async fn deploy_contract(
@@ -19,7 +21,10 @@ pub async fn deploy_contract(
     bytecode: Bytes,
     deploy_args: impl ethers::core::abi::Tokenize,
 ) -> Address {
-    let chain_id = provider.get_chainid().await.expect("Failed to get chain id");
+    let chain_id = provider
+        .get_chainid()
+        .await
+        .expect("Failed to get chain id");
     wallet = wallet.with_chain_id(chain_id.as_u64());
     let client = std::sync::Arc::new(SignerMiddleware::new(provider, wallet));
     let factory = ContractFactory::new(abi, bytecode, client);
@@ -100,32 +105,45 @@ pub async fn deploy_all_startup(
     decimals: u8,
 ) -> QueryResult<(Address, Option<Address>, Option<Address>)> {
     let token_addr = if let Some(a) = get_persistent_state(conn, "learn_token_address").await? {
-        Address::from_str(a.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?
+        Address::from_str(a.trim_start_matches("0x"))
+            .map_err(|_| diesel::result::Error::NotFound)?
     } else {
         deploy_learn_token_and_save(conn, name, symbol, decimals).await?;
-        let s = get_persistent_state(conn, "learn_token_address").await?.unwrap();
-        Address::from_str(s.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?
+        let s = get_persistent_state(conn, "learn_token_address")
+            .await?
+            .unwrap();
+        Address::from_str(s.trim_start_matches("0x"))
+            .map_err(|_| diesel::result::Error::NotFound)?
     };
 
-    let presigner_addr = if let Some(a) = get_persistent_state(conn, "learn_token_presigner_address").await? {
-        Some(Address::from_str(a.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?)
-    } else {
-        let addr = deploy_learn_token_presigner_and_save(conn, token_addr).await?;
-        Some(addr)
-    };
-
-    let importer_addr = if let Some(a) = get_persistent_state(conn, "platform_importer_address").await? {
-        Some(Address::from_str(a.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?)
-    } else {
-        let treasury_addr = if let Ok(t) = env::var("PLATFORM_TREASURY") {
-            Address::from_str(t.trim_start_matches("0x")).map_err(|_| diesel::result::Error::NotFound)?
+    let presigner_addr =
+        if let Some(a) = get_persistent_state(conn, "learn_token_presigner_address").await? {
+            Some(
+                Address::from_str(a.trim_start_matches("0x"))
+                    .map_err(|_| diesel::result::Error::NotFound)?,
+            )
         } else {
-            let wallet = load_wallet_from_env();
-            wallet.address()
+            let addr = deploy_learn_token_presigner_and_save(conn, token_addr).await?;
+            Some(addr)
         };
-        let addr = deploy_platform_importer_and_save(conn, treasury_addr).await?;
-        Some(addr)
-    };
+
+    let importer_addr =
+        if let Some(a) = get_persistent_state(conn, "platform_importer_address").await? {
+            Some(
+                Address::from_str(a.trim_start_matches("0x"))
+                    .map_err(|_| diesel::result::Error::NotFound)?,
+            )
+        } else {
+            let treasury_addr = if let Ok(t) = env::var("PLATFORM_TREASURY") {
+                Address::from_str(t.trim_start_matches("0x"))
+                    .map_err(|_| diesel::result::Error::NotFound)?
+            } else {
+                let wallet = load_wallet_from_env();
+                wallet.address()
+            };
+            let addr = deploy_platform_importer_and_save(conn, treasury_addr).await?;
+            Some(addr)
+        };
 
     Ok((token_addr, presigner_addr, importer_addr))
 }

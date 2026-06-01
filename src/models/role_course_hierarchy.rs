@@ -1,7 +1,7 @@
-use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::db::schema::role_course_hierarchy;
 use crate::models::role::CourseRole;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 #[derive(Queryable, Identifiable, Associations)]
 #[diesel(belongs_to(CourseRole))]
@@ -13,17 +13,21 @@ pub struct RoleCourseHierarchy {
 }
 
 impl RoleCourseHierarchy {
-    pub async fn get_min_level(conn: &mut AsyncPgConnection, p_user_id: i32, p_course_id: i32) -> QueryResult<Option<i32>> {
+    pub async fn get_min_level(
+        conn: &mut AsyncPgConnection,
+        p_user_id: i32,
+        p_course_id: i32,
+    ) -> QueryResult<Option<i32>> {
         use crate::db::schema::{role_course_hierarchy, user_role_course};
-        use diesel::dsl::min;
 
         role_course_hierarchy::table
-            .inner_join(user_role_course::table.on(
-                role_course_hierarchy::course_role_id.eq(user_role_course::course_role_id),
-            ))
+            .inner_join(
+                user_role_course::table
+                    .on(role_course_hierarchy::course_role_id.eq(user_role_course::course_role_id)),
+            )
             .filter(user_role_course::user_id.eq(p_user_id))
             .filter(user_role_course::course_id.eq(p_course_id))
-            .select(min(role_course_hierarchy::hierarchy_level))
+            .select(diesel::dsl::min(role_course_hierarchy::hierarchy_level))
             .first::<Option<i32>>(conn)
             .await
     }

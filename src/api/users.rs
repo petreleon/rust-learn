@@ -1,17 +1,17 @@
-use actix_web::{Responder, HttpResponse, get, post};
-use actix_web::{web, HttpRequest};
-use serde_json::json;
-use diesel::{QueryDsl, ExpressionMethods};
-use diesel_async::RunQueryDsl;
+use crate::config::constants::permissions::Permissions;
 use crate::db;
-use crate::models::user::User;
-use serde::Deserialize;
-use crate::models::user_role_platform::UserRolePlatform;
+use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 use crate::models::role::PlatformRole;
 use crate::models::role_platform_hierarchy::RolePlatformHierarchy;
+use crate::models::user::User;
+use crate::models::user_role_platform::UserRolePlatform;
 use crate::utils::jwt_utils::decode_jwt;
-use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
-use crate::config::constants::permissions::Permissions;
+use actix_web::{get, post, HttpResponse, Responder};
+use actix_web::{web, HttpRequest};
+use diesel::{ExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
+use serde::Deserialize;
+use serde_json::json;
 
 #[derive(Deserialize)]
 pub struct AssignRoleRequest {
@@ -30,16 +30,19 @@ async fn list_users(pool: web::Data<db::DbPool>) -> impl Responder {
 
     match result {
         Ok(user_list) => {
-            let users_json: Vec<_> = user_list.iter().map(|u| {
-                json!({
-                    "id": u.id,
-                    "name": u.name,
-                    "email": u.email,
-                    "date_of_birth": u.date_of_birth.map(|d| d.to_string()),
-                    "created_at": u.created_at.to_string(),
-                    "kyc_verified": u.kyc_verified,
+            let users_json: Vec<_> = user_list
+                .iter()
+                .map(|u| {
+                    json!({
+                        "id": u.id,
+                        "name": u.name,
+                        "email": u.email,
+                        "date_of_birth": u.date_of_birth.map(|d| d.to_string()),
+                        "created_at": u.created_at.to_string(),
+                        "kyc_verified": u.kyc_verified,
+                    })
                 })
-            }).collect();
+                .collect();
             HttpResponse::Ok().json(json!({ "users": users_json }))
         }
         Err(e) => {
@@ -98,7 +101,7 @@ async fn assign_role(
         Some(h) => h.to_str().unwrap_or(""),
         None => return HttpResponse::Unauthorized().body("Missing Authorization header"),
     };
-    
+
     let token = if auth_header.starts_with("Bearer ") {
         &auth_header["Bearer ".len()..]
     } else {
@@ -115,7 +118,8 @@ async fn assign_role(
 
     // 4. Hierarchy Checks
     // 4a. Get Requester Rank (lower is better, 0 is best)
-    let requester_level = match RolePlatformHierarchy::get_min_level(&mut conn, requester_id).await {
+    let requester_level = match RolePlatformHierarchy::get_min_level(&mut conn, requester_id).await
+    {
         Ok(Some(lvl)) => lvl,
         Ok(None) => return HttpResponse::Forbidden().body("Requester has no hierarchical rank"),
         Err(_) => return HttpResponse::InternalServerError().body("Error fetching requester rank"),
@@ -124,9 +128,9 @@ async fn assign_role(
     // 4b. Get Target User Rank (if any)
     let target_level = match RolePlatformHierarchy::get_min_level(&mut conn, target_user_id).await {
         Ok(Some(lvl)) => lvl,
-        // If target has no roles, they are level "infinity" (e.g. max i32) effectively, 
+        // If target has no roles, they are level "infinity" (e.g. max i32) effectively,
         // so they are definitely lower rank than requester. We permit modification.
-        Ok(None) => i32::MAX, 
+        Ok(None) => i32::MAX,
         Err(_) => return HttpResponse::InternalServerError().body("Error fetching target rank"),
     };
 
@@ -140,7 +144,9 @@ async fn assign_role(
     // Find role ID first
     let role_id = match PlatformRole::find_by_name(role_name, &mut conn).await {
         Ok(id) => id,
-        Err(_) => return HttpResponse::BadRequest().body(format!("Role '{}' not found", role_name)),
+        Err(_) => {
+            return HttpResponse::BadRequest().body(format!("Role '{}' not found", role_name))
+        }
     };
 
     // Get rank of this new specific role
@@ -159,7 +165,8 @@ async fn assign_role(
 
     // Rule 2: Cannot assign a role ranked higher or equal to yourself
     if new_role_level <= requester_level {
-        return HttpResponse::Forbidden().body("Cannot assign a role with equal or higher rank than yourself");
+        return HttpResponse::Forbidden()
+            .body("Cannot assign a role with equal or higher rank than yourself");
     }
 
     // 5. Perform Assignment
@@ -174,9 +181,8 @@ pub fn user_scope() -> actix_web::Scope {
         .service(list_users)
         .service(get_user)
         .service(
-            web::resource("/{id}/role")
-                .route(web::post().to(assign_role).wrap(PlatformPermissionMiddleware::new(
-                    Permissions::ASSIGN_ROLES_TO_USER.to_string()
-                )))
+            web::resource("/{id}/role").route(web::post().to(assign_role).wrap(
+                PlatformPermissionMiddleware::new(Permissions::ASSIGN_ROLES_TO_USER.to_string()),
+            )),
         )
 }
