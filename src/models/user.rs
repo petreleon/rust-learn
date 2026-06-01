@@ -13,6 +13,7 @@ pub struct User {
     pub date_of_birth: Option<NaiveDate>, // Use Option if the field can be null
     pub created_at: NaiveDateTime,
     pub kyc_verified: bool,
+    pub email_verified: bool,
 }
 
 #[derive(Insertable)]
@@ -23,6 +24,7 @@ pub struct NewUser {
     pub date_of_birth: Option<NaiveDate>,
     pub created_at: NaiveDateTime,
     pub kyc_verified: bool,
+    pub email_verified: bool,
 }
 
 impl User {

@@ -138,7 +138,31 @@ PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
 -----END PUBLIC KEY-----"
 ```
 
+The API publishes the configured public key as JWKS at
+`/.well-known/jwks.json` and `/api/.well-known/jwks.json` for external JWT
+verification. Set `JWT_KEY_ID` when you need a stable `kid` value across key
+rollout or multiple environments.
+
 Do not commit `.env`, real private keys, or production secrets.
+
+### Mock email preview
+
+Registration creates an email-verification token and prints a local-development
+mock verification email to the API terminal or container logs. No email provider
+is called yet. Set `APP_PUBLIC_URL` to control the base URL used in the printed
+link; the Compose default points directly at the API verification endpoint.
+
+Preview the mock email without registering a user:
+
+```bash
+cargo run --bin mock_email -- learner@example.com "Demo Learner" mock-preview-token
+```
+
+Or through Docker Compose:
+
+```bash
+docker compose run --rm --no-deps --entrypoint bash worker -lc 'export PATH=/usr/local/cargo/bin:$PATH; cd /usr/src/app && cargo run --bin mock_email -- learner@example.com "Demo Learner" mock-preview-token'
+```
 
 ### PostgreSQL
 

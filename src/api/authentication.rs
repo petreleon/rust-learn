@@ -6,14 +6,16 @@ use serde::Deserialize;
 
 use crate::db;
 use crate::models::authentication::Authentication;
+use crate::models::email_verification_token::EmailVerificationToken;
 use crate::models::role::PlatformRole;
 use crate::models::user::{NewUser, User};
 use crate::models::user_role_platform::UserRolePlatform;
-use crate::utils::jwt_utils::create_jwt;
+use crate::utils::email::{
+    generate_verification_token, print_mock_verification_email, verification_token_hash,
+};
+use crate::utils::jwt_utils::{create_jwt, public_jwks_from_env};
 
 const MIN_PASSWORD_LENGTH: usize = 12;
-
-// TODO Add confirmation email on registration
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
@@ -27,6 +29,11 @@ pub struct RegisterRequest {
     pub password: String,
     pub name: String,
     pub date_of_birth: Option<NaiveDate>,
+}
+
+#[derive(Deserialize)]
+pub struct VerifyEmailQuery {
+    pub token: String,
 }
 
 fn validate_password_strength(password: &str) -> Result<(), &'static str> {
@@ -59,6 +66,10 @@ pub async fn login(pool: web::Data<db::DbPool>, req: web::Json<LoginRequest>) ->
         Ok((user, info_auth)) => {
             if let Some(hash) = info_auth {
                 if verify(&req.password, &hash).unwrap_or(false) {
+                    if !user.email_verified {
+                        return HttpResponse::Forbidden().body("Email verification required");
+                    }
+
                     match create_jwt(user.id()) {
                         Ok(user_jwt) => {
                             HttpResponse::Ok().json(user_jwt) // Return JWT token in response
@@ -97,6 +108,7 @@ pub async fn register(
         date_of_birth: req.date_of_birth,
         created_at: chrono::Utc::now().naive_utc(),
         kyc_verified: false,
+        email_verified: false,
     };
 
     let inserted_user = User::create(new_user_data, &mut conn)
@@ -124,7 +136,60 @@ pub async fn register(
         .await
         .expect("Error saving new authentication");
 
+    let verification_token = match generate_verification_token() {
+        Ok(token) => token,
+        Err(err) => {
+            eprintln!("Failed to generate email verification token: {}", err);
+            return HttpResponse::InternalServerError()
+                .body("Failed to create email verification token");
+        }
+    };
+
+    let token_hash = verification_token_hash(&verification_token);
+    if let Err(err) =
+        EmailVerificationToken::create_for_user(&mut conn, inserted_user.id(), token_hash).await
+    {
+        eprintln!(
+            "Failed to save email verification token for user {}: {}",
+            inserted_user.id(),
+            err
+        );
+        return HttpResponse::InternalServerError().body("Failed to save email verification token");
+    }
+
+    print_mock_verification_email(
+        &inserted_user.email,
+        &inserted_user.name,
+        &verification_token,
+    );
+
     HttpResponse::Ok().body("Registration successful")
+}
+
+#[get("/verify-email")]
+pub async fn verify_email(
+    pool: web::Data<db::DbPool>,
+    query: web::Query<VerifyEmailQuery>,
+) -> impl Responder {
+    let token = query.token.trim();
+    if token.is_empty() {
+        return HttpResponse::BadRequest().body("Verification token is required");
+    }
+
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    let token_hash = verification_token_hash(token);
+    match EmailVerificationToken::verify(&mut conn, &token_hash).await {
+        Ok(true) => HttpResponse::Ok().body("Email verified successfully"),
+        Ok(false) => HttpResponse::BadRequest().body("Invalid or expired verification token"),
+        Err(err) => {
+            eprintln!("Failed to verify email token: {}", err);
+            HttpResponse::InternalServerError().body("Failed to verify email token")
+        }
+    }
 }
 
 // hello
@@ -151,11 +216,22 @@ pub async fn user_id(req: HttpRequest) -> impl Responder {
     HttpResponse::Ok().body("You didn't provide any ID")
 }
 
+pub async fn jwks() -> impl Responder {
+    match public_jwks_from_env() {
+        Ok(jwks) => HttpResponse::Ok().json(jwks),
+        Err(err) => {
+            eprintln!("Failed to build JWKS response: {}", err);
+            HttpResponse::InternalServerError().body("Failed to build JWKS response")
+        }
+    }
+}
+
 // Define the scope for authentication-related routes
 pub fn auth_scope() -> actix_web::Scope {
     web::scope("/auth")
         .service(login)
         .service(register)
+        .service(verify_email)
         .service(hello)
         .service(user_id)
 }

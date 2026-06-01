@@ -5,18 +5,18 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 ## Priority 0 — Security, correctness, and contributor safety
 
 - [x] Replace example RSA private/public keys in `.env.example` with non-secret placeholders and document local key generation only.
-- [ ] Audit all API read endpoints for missing authorization checks, especially user, course, organization, role, wallet, transaction, notification, and reporting data.
+- [x] Audit all API read endpoints for missing authorization checks, especially user, course, organization, role, wallet, transaction, notification, and reporting data.
 - [x] Add password strength validation to registration.
-- [ ] Add email confirmation or account-verification flow after registration.
+- [x] Add email confirmation or account-verification flow after registration. Local registration prints a mock verification email with a real account-verification token.
 - [x] Review JWT expiration, refresh/session strategy, and logout/revocation expectations.
-- [ ] Add a JWKS or `.well-known/jwks.json` endpoint for external JWT verification.
+- [x] Add a JWKS or `.well-known/jwks.json` endpoint for external JWT verification.
 - [ ] Confirm every role assignment path enforces hierarchy and scope constraints.
 - [ ] Add structured logging for authentication failures, permission denials, worker failures, and blockchain operations.
 
 ## Priority 1 — Tests and quality gates
 
 - [ ] Add API integration tests for `POST /api/auth/login` and `POST /api/auth/register`.
-- [ ] Add endpoint-level authorization tests for user, course, organization, and role scopes.
+- [x] Add endpoint-level authorization tests for user, course, organization, and role scopes.
 - [ ] Add unit tests for authentication helper logic and edge cases.
 - [ ] Add worker tests for retry state transitions, terminal failures, and heartbeat behavior.
 - [ ] Keep blockchain integration tests covering deploy, mint, presigner, and EIP-2612 permit behavior.

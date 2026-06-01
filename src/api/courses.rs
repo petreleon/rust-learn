@@ -2,11 +2,12 @@ use crate::config::constants::permissions::Permissions;
 use crate::db;
 use crate::db::schema::courses;
 use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
-use crate::models::course::{Course, NewCourse, UpdateCourse};
+use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
+use crate::models::course::{Course, UpdateCourse};
 use crate::models::param_type::ParamType;
 use crate::repositories::course_repository::assign_role_to_user_in_course;
 use crate::utils::jwt_utils::decode_jwt;
-use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use serde::Deserialize;
@@ -16,7 +17,6 @@ pub struct AssignRoleRequest {
     pub role_name: String,
 }
 
-#[get("")]
 async fn list_courses(pool: web::Data<db::DbPool>) -> impl Responder {
     let mut conn = match pool.get().await {
         Ok(c) => c,
@@ -34,7 +34,6 @@ async fn list_courses(pool: web::Data<db::DbPool>) -> impl Responder {
     }
 }
 
-#[get("/{id}")]
 async fn get_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let course_id = path.into_inner();
     let mut conn = match pool.get().await {
@@ -58,15 +57,12 @@ async fn get_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl R
 }
 
 use crate::db::schema::courses_organizations;
-use crate::models::courses_organizations::NewCourseOrganization;
-
 #[derive(Deserialize)]
 pub struct CreateCourseRequest {
     pub title: String,
     pub organization_ids: Vec<i32>,
 }
 
-#[post("")]
 async fn create_course(
     pool: web::Data<db::DbPool>,
     req: web::Json<CreateCourseRequest>,
@@ -144,7 +140,6 @@ async fn delete_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> imp
     }
 }
 
-#[get("/{id}/organizations")]
 async fn get_course_organizations(
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
@@ -223,12 +218,41 @@ pub fn course_scope() -> actix_web::Scope {
     web::scope("/courses")
         .configure(crate::api::chapters::config)
         .configure(crate::api::contents::config)
-        .service(list_courses)
-        .service(get_course)
-        .service(create_course)
-        .service(get_course_organizations)
+        .service(
+            web::resource("")
+                .route(
+                    web::get()
+                        .to(list_courses)
+                        .wrap(PlatformPermissionMiddleware::new(
+                            Permissions::VIEW_COURSE.to_string(),
+                        )),
+                )
+                .route(
+                    web::post()
+                        .to(create_course)
+                        .wrap(PlatformPermissionMiddleware::new(
+                            Permissions::CREATE_COURSE.to_string(),
+                        )),
+                ),
+        )
+        .service(
+            web::resource("/{id}/organizations").route(
+                web::get()
+                    .to(get_course_organizations)
+                    .wrap(PlatformPermissionMiddleware::new(
+                        Permissions::VIEW_COURSE.to_string(),
+                    )),
+            ),
+        )
         .service(
             web::resource("/{id}")
+                .route(
+                    web::get()
+                        .to(get_course)
+                        .wrap(PlatformPermissionMiddleware::new(
+                            Permissions::VIEW_COURSE.to_string(),
+                        )),
+                )
                 .route(
                     web::put()
                         .to(update_course)

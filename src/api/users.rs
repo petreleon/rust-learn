@@ -4,10 +4,12 @@ use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddle
 use crate::models::role::PlatformRole;
 use crate::models::role_platform_hierarchy::RolePlatformHierarchy;
 use crate::models::user::User;
+use crate::models::user_jwt::UserJWT;
 use crate::models::user_role_platform::UserRolePlatform;
+use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::utils::jwt_utils::decode_jwt;
-use actix_web::{get, post, HttpResponse, Responder};
 use actix_web::{web, HttpRequest};
+use actix_web::{HttpMessage, HttpResponse, Responder};
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use serde::Deserialize;
@@ -19,7 +21,6 @@ pub struct AssignRoleRequest {
 }
 
 // GET /user -> list users (placeholder implementation)
-#[get("")]
 async fn list_users(pool: web::Data<db::DbPool>) -> impl Responder {
     let mut conn = match pool.get().await {
         Ok(c) => c,
@@ -40,6 +41,7 @@ async fn list_users(pool: web::Data<db::DbPool>) -> impl Responder {
                         "date_of_birth": u.date_of_birth.map(|d| d.to_string()),
                         "created_at": u.created_at.to_string(),
                         "kyc_verified": u.kyc_verified,
+                        "email_verified": u.email_verified,
                     })
                 })
                 .collect();
@@ -53,13 +55,39 @@ async fn list_users(pool: web::Data<db::DbPool>) -> impl Responder {
 }
 
 // GET /user/{id} -> get a single user by id (placeholder)
-#[get("/{id}")]
-async fn get_user(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
+async fn get_user(
+    req: HttpRequest,
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
     let user_id = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
+
+    let requester = match req.extensions().get::<UserJWT>().cloned() {
+        Some(user_jwt) => user_jwt,
+        None => return HttpResponse::Unauthorized().body("Unauthorized access"),
+    };
+
+    if requester.user_id != user_id {
+        match user_permission_platform_request(
+            &mut conn,
+            requester.user_id,
+            &Permissions::VIEW_USER.to_string(),
+        )
+        .await
+        {
+            Ok(true) => {}
+            Ok(false) => {
+                return HttpResponse::Forbidden().body("User does not have the required permission")
+            }
+            Err(_) => {
+                return HttpResponse::InternalServerError().body("Failed to check user permission")
+            }
+        }
+    }
 
     let result = User::find_by_id(user_id, &mut conn).await;
 
@@ -71,6 +99,7 @@ async fn get_user(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Res
             "date_of_birth": u.date_of_birth.map(|d| d.to_string()),
             "created_at": u.created_at.to_string(),
             "kyc_verified": u.kyc_verified,
+            "email_verified": u.email_verified,
         })),
         Err(diesel::result::Error::NotFound) => HttpResponse::NotFound().body("User not found"),
         Err(e) => {
@@ -178,8 +207,12 @@ async fn assign_role(
 
 pub fn user_scope() -> actix_web::Scope {
     web::scope("/user")
-        .service(list_users)
-        .service(get_user)
+        .service(
+            web::resource("").route(web::get().to(list_users).wrap(
+                PlatformPermissionMiddleware::new(Permissions::VIEW_USER.to_string()),
+            )),
+        )
+        .service(web::resource("/{id}").route(web::get().to(get_user)))
         .service(
             web::resource("/{id}/role").route(web::post().to(assign_role).wrap(
                 PlatformPermissionMiddleware::new(Permissions::ASSIGN_ROLES_TO_USER.to_string()),

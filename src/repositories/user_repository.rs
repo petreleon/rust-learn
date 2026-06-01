@@ -19,6 +19,7 @@ pub async fn create_user(
         date_of_birth,
         created_at: chrono::Utc::now().naive_utc(),
         kyc_verified: false,
+        email_verified: true,
     };
 
     let inserted_user = User::create(new_user, conn).await?;

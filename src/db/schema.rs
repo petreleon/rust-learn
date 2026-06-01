@@ -60,6 +60,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    email_verification_tokens (id) {
+        id -> Int4,
+        user_id -> Int4,
+        token_hash -> Text,
+        created_at -> Timestamp,
+        expires_at -> Timestamp,
+        used_at -> Nullable<Timestamp>,
+    }
+}
+
+diesel::table! {
     external_transactions (id) {
         id -> Int8,
         amount -> Numeric,
@@ -265,6 +276,7 @@ diesel::table! {
         date_of_birth -> Nullable<Date>,
         created_at -> Timestamp,
         kyc_verified -> Bool,
+        email_verified -> Bool,
     }
 }
 
@@ -282,6 +294,7 @@ diesel::joinable!(chapters -> courses (course_id));
 diesel::joinable!(contents -> chapters (chapter_id));
 diesel::joinable!(courses_organizations -> courses (course_id));
 diesel::joinable!(courses_organizations -> organizations (organization_id));
+diesel::joinable!(email_verification_tokens -> users (user_id));
 diesel::joinable!(internal_transactions -> wallets (wallet_id));
 diesel::joinable!(notifications -> users (user_id));
 diesel::joinable!(paths_courses -> courses (course_id));
@@ -320,6 +333,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     courses,
     courses_organizations,
     db_version_control,
+    email_verification_tokens,
     external_transactions,
     internal_transactions,
     notifications,

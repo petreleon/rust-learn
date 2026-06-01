@@ -1,11 +1,12 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db;
 use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
+use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 use crate::models::organization::UpdateOrganization;
 use crate::models::param_type::ParamType;
 use crate::services::organization_service;
 use crate::utils::jwt_utils::decode_jwt;
-use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -13,7 +14,6 @@ pub struct AssignRoleRequest {
     pub role_name: String,
 }
 
-#[get("")]
 async fn list_organizations(pool: web::Data<db::DbPool>) -> impl Responder {
     match organization_service::list_organizations(&pool).await {
         Ok(org_list) => HttpResponse::Ok().json(org_list),
@@ -24,7 +24,6 @@ async fn list_organizations(pool: web::Data<db::DbPool>) -> impl Responder {
     }
 }
 
-#[get("/{id}")]
 async fn get_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let org_id = path.into_inner();
     match organization_service::get_organization(&pool, org_id).await {
@@ -47,7 +46,6 @@ pub struct CreateOrganizationRequest {
     pub course_ids: Option<Vec<i32>>,
 }
 
-#[post("")]
 async fn create_organization(
     pool: web::Data<db::DbPool>,
     req: web::Json<CreateOrganizationRequest>,
@@ -106,7 +104,6 @@ async fn delete_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) 
     }
 }
 
-#[get("/{id}/courses")]
 async fn get_organization_courses(
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
@@ -166,12 +163,33 @@ async fn assign_role(
 
 pub fn organization_scope() -> actix_web::Scope {
     web::scope("/organizations")
-        .service(list_organizations)
-        .service(get_organization)
-        .service(create_organization)
-        .service(get_organization_courses)
+        .service(
+            web::resource("")
+                .route(
+                    web::get()
+                        .to(list_organizations)
+                        .wrap(PlatformPermissionMiddleware::new(
+                            Permissions::VIEW_ORGANIZATION.to_string(),
+                        )),
+                )
+                .route(web::post().to(create_organization).wrap(
+                    PlatformPermissionMiddleware::new(Permissions::CREATE_ORGANIZATION.to_string()),
+                )),
+        )
+        .service(
+            web::resource("/{id}/courses").route(web::get().to(get_organization_courses).wrap(
+                PlatformPermissionMiddleware::new(Permissions::VIEW_ORGANIZATION.to_string()),
+            )),
+        )
         .service(
             web::resource("/{id}")
+                .route(
+                    web::get()
+                        .to(get_organization)
+                        .wrap(PlatformPermissionMiddleware::new(
+                            Permissions::VIEW_ORGANIZATION.to_string(),
+                        )),
+                )
                 .route(web::put().to(update_organization).wrap(
                     OrganizationPermissionMiddleware::new(
                         Permissions::MANAGE_ORG_SETTINGS.to_string(),

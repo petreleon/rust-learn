@@ -83,6 +83,10 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(pool.clone())) // Use the created pool
             .app_data(web::Data::new(s3_state.clone())) // S3 client shared state
             .app_data(web::Data::new(notifications_state.clone())) // Notifications shared state
+            .route(
+                "/.well-known/jwks.json",
+                web::get().to(api::authentication::jwks),
+            )
             .route("/hey", web::get().to(manual_hello))
             .service(api::api_scope())
             .service(hello)

@@ -1,5 +1,4 @@
-use actix_web::{test, web, App};
-use diesel::prelude::*;
+use actix_web::{http::StatusCode, test, web, App};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::user::User;
@@ -44,6 +43,15 @@ async fn create_test_user(conn: &mut AsyncPgConnection, name: &str) -> User {
 
 fn generate_token(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to generate token")
+}
+
+fn response_status<B>(
+    result: Result<actix_web::dev::ServiceResponse<B>, actix_web::Error>,
+) -> StatusCode {
+    match result {
+        Ok(resp) => resp.status(),
+        Err(e) => e.error_response().status(),
+    }
 }
 
 async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
@@ -283,4 +291,190 @@ async fn test_course_permission_middleware() {
         Ok(resp) => assert!(resp.status().is_success(), "Teacher request failed"),
         Err(e) => panic!("Teacher request returned error: {}", e),
     }
+}
+
+#[actix_web::test]
+async fn read_user_routes_require_view_user_or_self() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+
+    let mut conn = setup_conn(&pool).await;
+    let admin = create_test_user(&mut conn, "read_user_admin").await;
+    let target = create_test_user(&mut conn, "read_user_target").await;
+    let stranger = create_test_user(&mut conn, "read_user_stranger").await;
+
+    force_assign_platform_role(&mut conn, admin.id(), "SUPER_ADMIN").await;
+
+    let admin_token = generate_token(admin.id());
+    let target_token = generate_token(target.id());
+    let stranger_token = generate_token(stranger.id());
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .service(rust_learn::api::users::user_scope()),
+    )
+    .await;
+
+    let req = test::TestRequest::get()
+        .uri("/user")
+        .insert_header(("Authorization", format!("Bearer {}", stranger_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::FORBIDDEN);
+
+    let req = test::TestRequest::get()
+        .uri("/user")
+        .insert_header(("Authorization", format!("Bearer {}", admin_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::OK);
+
+    let req = test::TestRequest::get()
+        .uri(&format!("/user/{}", target.id()))
+        .insert_header(("Authorization", format!("Bearer {}", target_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::OK);
+
+    let req = test::TestRequest::get()
+        .uri(&format!("/user/{}", target.id()))
+        .insert_header(("Authorization", format!("Bearer {}", stranger_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::FORBIDDEN);
+}
+
+#[actix_web::test]
+async fn course_read_routes_require_view_course_permission() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+
+    let mut conn = setup_conn(&pool).await;
+    let student = create_test_user(&mut conn, "course_reader").await;
+    let stranger = create_test_user(&mut conn, "course_stranger").await;
+
+    force_assign_platform_role(&mut conn, student.id(), "STUDENT").await;
+
+    let new_course = NewCourse {
+        title: unique_string("ReadableCourse"),
+    };
+    let course = diesel::insert_into(courses::table)
+        .values(&new_course)
+        .get_result::<Course>(&mut conn)
+        .await
+        .unwrap();
+
+    let student_token = generate_token(student.id());
+    let stranger_token = generate_token(stranger.id());
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .service(rust_learn::api::courses::course_scope()),
+    )
+    .await;
+
+    let req = test::TestRequest::get()
+        .uri("/courses")
+        .insert_header(("Authorization", format!("Bearer {}", stranger_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::FORBIDDEN);
+
+    let req = test::TestRequest::get()
+        .uri("/courses")
+        .insert_header(("Authorization", format!("Bearer {}", student_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::OK);
+
+    let req = test::TestRequest::get()
+        .uri(&format!("/courses/{}", course.id))
+        .insert_header(("Authorization", format!("Bearer {}", student_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::OK);
+}
+
+#[actix_web::test]
+async fn organization_read_routes_require_view_organization_permission() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+
+    let mut conn = setup_conn(&pool).await;
+    let admin = create_test_user(&mut conn, "org_reader_admin").await;
+    let stranger = create_test_user(&mut conn, "org_reader_stranger").await;
+
+    force_assign_platform_role(&mut conn, admin.id(), "SUPER_ADMIN").await;
+
+    let new_org = NewOrganization {
+        name: unique_string("ReadableOrg"),
+        website_link: None,
+        profile_url: None,
+    };
+    let org = diesel::insert_into(organizations::table)
+        .values(&new_org)
+        .get_result::<Organization>(&mut conn)
+        .await
+        .unwrap();
+
+    let admin_token = generate_token(admin.id());
+    let stranger_token = generate_token(stranger.id());
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .service(rust_learn::api::organizations::organization_scope()),
+    )
+    .await;
+
+    let req = test::TestRequest::get()
+        .uri("/organizations")
+        .insert_header(("Authorization", format!("Bearer {}", stranger_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::FORBIDDEN);
+
+    let req = test::TestRequest::get()
+        .uri("/organizations")
+        .insert_header(("Authorization", format!("Bearer {}", admin_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::OK);
+
+    let req = test::TestRequest::get()
+        .uri(&format!("/organizations/{}", org.id))
+        .insert_header(("Authorization", format!("Bearer {}", admin_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::OK);
+}
+
+#[actix_web::test]
+async fn role_read_routes_require_view_role_assignments_permission() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+
+    let mut conn = setup_conn(&pool).await;
+    let admin = create_test_user(&mut conn, "role_reader_admin").await;
+    let stranger = create_test_user(&mut conn, "role_reader_stranger").await;
+
+    force_assign_platform_role(&mut conn, admin.id(), "SUPER_ADMIN").await;
+
+    let admin_token = generate_token(admin.id());
+    let stranger_token = generate_token(stranger.id());
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .service(rust_learn::api::roles::roles_scope()),
+    )
+    .await;
+
+    let req = test::TestRequest::get()
+        .uri("/roles")
+        .insert_header(("Authorization", format!("Bearer {}", stranger_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::FORBIDDEN);
+
+    let req = test::TestRequest::get()
+        .uri("/roles")
+        .insert_header(("Authorization", format!("Bearer {}", admin_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::OK);
 }

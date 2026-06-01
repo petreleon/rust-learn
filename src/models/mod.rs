@@ -4,6 +4,7 @@ pub mod content;
 pub mod course;
 pub mod courses_organizations;
 pub mod db_version_control;
+pub mod email_verification_token;
 pub mod notification;
 pub mod organization;
 pub mod param_type;

@@ -29,6 +29,7 @@ pub fn api_scope() -> Scope<
             |_req: &ServiceRequest| Box::pin(futures::future::ready(Ok(true))),
             || actix_web::error::ErrorUnauthorized("Denied by conditional middleware"),
         ))
+        .service(web::resource("/.well-known/jwks.json").route(web::get().to(authentication::jwks)))
         .service(users::user_scope())
         .service(authentication::auth_scope())
         .service(courses::course_scope())
