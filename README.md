@@ -123,10 +123,6 @@ PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
 
 Do not commit `.env`, real private keys, or production secrets.
 
-### JWT session policy
-
-JWT access tokens expire after `JWT_EXPIRATION_SECONDS` seconds. The default example value is `86400` (24 hours). For the MVP, authentication is stateless: the API does not issue refresh tokens and does not keep a server-side logout/revocation list. To invalidate a token before it expires, rotate the RSA signing key pair and restart API instances with the new key material.
-
 ### PostgreSQL
 
 Typical Docker Compose values look like:
