@@ -43,6 +43,23 @@ See [`VISION.md`](VISION.md) for the product and architecture direction, and [`T
 └── AGENTS.md               # Contributor/AI-agent guidance
 ```
 
+## Architecture flow
+
+```mermaid
+flowchart LR
+    Browser[Browser] --> Web[Next.js frontend]
+    Web --> API[Actix Web API]
+    API --> Auth[JWT and permission middleware]
+    Auth --> Services[Services and repositories]
+    Services --> Postgres[(PostgreSQL / Diesel)]
+    Services --> RustFS[(RustFS / S3 objects)]
+    Services --> Ethereum[Anvil or Ethereum RPC]
+    API --> Jobs[Upload and video jobs]
+    Jobs --> Worker[Worker binary]
+    Worker --> RustFS
+    Worker --> Postgres
+```
+
 ## Core components
 
 ### Backend API
