@@ -328,7 +328,20 @@ make web-build
 make health
 ```
 
-Some tests and runtime paths require local services such as PostgreSQL, RustFS, Anvil, and ffmpeg.
+Test dependency notes:
+
+| Check | External requirements |
+| --- | --- |
+| `make test` / `cargo test` | A valid `.env`; many integration tests open `DATABASE_URL`, so start PostgreSQL first with `make dev-deps` when running the full suite. |
+| `cargo test --test s3` | RustFS/S3-compatible storage reachable through the `S3_*` settings. With Compose, run from the container network or set `S3_INTERNAL_DOMAIN`/`S3_EXTERNAL_DOMAIN` appropriately for the host. |
+| `make test-integration` / `cargo test --test blockchain_integration_tests -- --ignored` | Anvil or another Ethereum JSON-RPC endpoint plus `ETH_MNEMONIC` and provider settings in `.env`. |
+| Worker/media-processing checks | ffmpeg on `PATH`, PostgreSQL, and RustFS/S3. Keep `WORKER_CONCURRENCY=1` on small Docker VMs. |
+
+Docker is the recommended way to provide PostgreSQL, RustFS, and Anvil for local test runs:
+
+```bash
+make dev-deps
+```
 
 ## Database migrations
 

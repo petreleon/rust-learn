@@ -21,7 +21,7 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 - [ ] Add worker tests for retry state transitions, terminal failures, and heartbeat behavior.
 - [ ] Keep blockchain integration tests covering deploy, mint, presigner, and EIP-2612 permit behavior.
 - [ ] Add CI steps for `cargo fmt --all --check`, `cargo test`, and frontend lint/build checks.
-- [ ] Document any tests that require Docker, PostgreSQL, Anvil/Geth, RustFS, or ffmpeg.
+- [x] Document any tests that require Docker, PostgreSQL, Anvil/Geth, RustFS, or ffmpeg.
 
 ## Priority 2 — Developer experience and setup
 
