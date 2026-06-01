@@ -1,131 +1,345 @@
 # RustLearn
 
-Welcome to RustLearn, an ambitious e-learning platform designed to revolutionize the world of online education. We're here to foster a new era of learning where dedication and achievement are rewarded in the most tangible way – through our own ERC 20 crypto token.
+RustLearn is an incentivized e-learning platform built with Rust. It combines a modular Actix Web API, PostgreSQL/Diesel persistence, S3-compatible media storage, background video processing, Ethereum smart contracts, and a Next.js frontend to support learning experiences where achievement can be rewarded with LearnToken.
 
-## Motivation
+## Why RustLearn?
 
-Why should students be rewarded for learning? Simple – motivation matters. In traditional learning environments, the rewards for learning are often abstract; it's not until far in the future that students reap the benefits of their education. RustLearn changes the game by providing immediate, real-world incentives for educational achievements.
+Traditional learning platforms often make progress feel abstract and delayed. RustLearn is designed around immediate, auditable progress: learners complete coursework, teachers and organizations manage educational programs, and reward workflows can connect learning achievements to token-backed incentives.
 
-Every line of code deciphered, every concept mastered, and every test aced translates into cryptocurrency rewards. This not only gives learners a sense of ownership and accomplishment but also fosters a supportive community where education is valued and celebrated.
+The long-term goal is to provide a trustworthy platform where:
 
-With RustLearn, we're not just investing in knowledge; we're investing in our students' futures, one token at a time.
+- learners can discover courses, consume content, complete assessments, and receive progress notifications;
+- teachers can create and publish content, manage enrollments, and moderate course activity;
+- organizations can manage members, courses, reports, and scoped permissions;
+- platform administrators can operate global roles, permissions, wallets, exports, and integrations;
+- blockchain-backed reward flows can be tested and audited before broader deployment.
+
+See [`VISION.md`](VISION.md) for the product and architecture direction, and [`TODO.md`](TODO.md) for the current roadmap.
+
+## Repository layout
+
+```text
+.
+├── src/                    # Rust API, models, middleware, services, repositories, utilities
+│   ├── api/                # Actix route handlers and route scopes
+│   ├── bin/worker.rs       # Background upload/video-processing worker
+│   ├── config/             # DB setup and role/permission constants
+│   ├── db/                 # Diesel schema and connection setup
+│   ├── middlewares/        # JWT, hierarchy, and permission middleware
+│   ├── models/             # Diesel/domain models
+│   ├── repositories/       # Persistence helpers
+│   ├── services/           # Business workflows
+│   └── utils/              # JWT, S3, notifications, wallets, Ethereum helpers
+├── ethereum/               # Solidity contracts and generated ABI/bin artifacts
+├── migrations/             # Diesel migrations
+├── tests/                  # Integration and permission tests
+├── web/                    # Next.js frontend
+├── k8s/                    # Kubernetes manifests
+├── docker-compose.yml      # Local app, web, Postgres, RustFS, Anvil, worker stack
+├── Makefile                # Common development, Docker, Kubernetes, and test commands
+├── PERMISSIONS.md          # Current role/permission matrix
+├── VISION.md               # Product and architecture vision
+├── TODO.md                 # Prioritized project roadmap
+└── AGENTS.md               # Contributor/AI-agent guidance
+```
+
+## Core components
+
+### Backend API
+
+- Rust 2021 with Actix Web.
+- JWT-protected `/api` scope.
+- Route modules for authentication, users, courses, organizations, and roles.
+- Diesel and Diesel Async with PostgreSQL.
+- Repository and service layers for persistence/business logic.
+
+### Permissions and roles
+
+RustLearn models permissions at three scopes:
+
+- platform roles and permissions;
+- organization roles and permissions;
+- course roles and permissions.
+
+Middleware and hierarchy checks are used to protect sensitive actions. Keep [`PERMISSIONS.md`](PERMISSIONS.md) updated when role capabilities change.
+
+### Storage and media worker
+
+The project uses S3-compatible object storage through the AWS SDK. The Docker Compose stack runs RustFS for local development. A separate `worker` binary processes upload jobs, runs ffmpeg-related work, retries failures, and writes a heartbeat file used by the worker health check.
+
+### Blockchain integration
+
+The `ethereum/` directory contains LearnToken-related Solidity contracts and generated artifacts. Startup code can deploy LearnToken idempotently using persistent state, and integration tests cover important contract behavior.
+
+### Frontend
+
+The `web/` directory contains a Next.js app that can call the Rust API through `NEXT_PUBLIC_API_URL` in browser contexts and `API_URL` for container/server contexts.
+
+## Prerequisites
+
+Recommended local tools:
+
+- Rust stable toolchain and Cargo
+- Docker and Docker Compose
+- PostgreSQL client tooling if running migrations outside containers
+- Diesel CLI if using local migration commands
+- Node.js/npm for frontend development
+- ffmpeg for local worker/media-processing scenarios
+- OpenSSL for RSA key generation
+
+On macOS, Colima or Docker Desktop can provide the Docker VM. The worker release build can be memory-intensive; 8GB+ allocated to the Docker VM is recommended when building worker images.
 
 ## Configuration
 
-Before running RustLearn, you need to set up your environment. Follow these steps to generate your RSA keys for securing our API and configure your PostgreSQL database.
+Create a local `.env` file from the example:
 
-### Generating RSA keys
+```bash
+make setup
+```
 
-Run these commands in your terminal:
+Then edit `.env` for your environment.
+
+### RSA keys for JWT signing
+
+Generate a private/public RSA key pair:
 
 ```bash
 openssl genpkey -algorithm RSA -out private.key -pkeyopt rsa_keygen_bits:2048
 openssl rsa -pubout -in private.key -out public.key
 ```
 
-After you've generated the keys, you'll need to add them to your `.env` file:
+Add the contents to `.env`:
 
-```plaintext
-PRIVATE_KEY="Paste your private key here"
-PUBLIC_KEY="Paste your public key here"
+```text
+PRIVATE_KEY="-----BEGIN PRIVATE KEY-----
+...
+-----END PRIVATE KEY-----"
+
+PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
+...
+-----END PUBLIC KEY-----"
 ```
 
-### Configuring the Database
+Do not commit real private keys or production secrets.
 
-Next, configure your PostgreSQL database connection:
+### PostgreSQL
 
-```plaintext
+Typical Docker Compose values look like:
+
+```text
 DATABASE_URL=postgres://your_username:your_password@db:5432/your_db_name
 POSTGRES_DB=your_db_name
 POSTGRES_USER=your_username
 POSTGRES_PASSWORD=your_password
 ```
 
-Replace `your_username`, `your_password`, and `your_db_name` with your PostgreSQL credentials and database name.
+The Compose stack exposes PostgreSQL on host port `5433` and container port `5432`.
 
-## Installation and Running
+### S3-compatible storage
 
-To get RustLearn up and running on your machine, you'll have to set up your environment correctly.
+Local development uses RustFS through S3-compatible settings:
 
-1. (For Windows Users) Install Windows Subsystem for Linux (WSL 2) by following the instructions [here](https://docs.microsoft.com/en-us/windows/wsl/install).
+```text
+S3_ACCESS_KEY=rustfsadmin
+S3_SECRET_KEY=rustfsadmin
+S3_INTERNAL_DOMAIN=rustfs
+S3_INTERNAL_PORT=9000
+S3_EXTERNAL_DOMAIN=localhost
+S3_EXTERNAL_PORT=9000
+S3_INTERNAL_SCHEME=http
+S3_EXTERNAL_SCHEME=http
+```
 
-2. Once WSL 2 is installed or you have Linux or MacOS, we recommend running the following commands to install Homebrew, a package manager:
+RustFS API is exposed on port `9000`; the console is exposed on port `9001`.
 
-    ```bash
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    ```
+### Ethereum provider
 
-3. Next, install Docker, Docker Compose, and Colima using Homebrew with:
+The Compose stack runs Anvil on port `8545`. The app container defaults to:
 
-    ```bash
-    brew install docker docker-compose colima
-    ```
+```text
+ETH_HOST=anvil
+ETH_PORT=8545
+```
 
-4. Start Colima to handle container virtualization:
-    
-    ```bash
-    colima start
-    ```
+You can also configure `ETH_RPC_URL` if you need an explicit RPC URL.
 
-5. With Colima running, you can now start your containers using Docker Compose:
+### Bootstrap admin
 
-    ```bash
-    docker-compose up
-    ```
+The database setup code reads admin bootstrap values from the environment. Configure these in `.env` before first startup:
 
-    ## Worker service (background video processing)
+```text
+ADMIN_NAME=admin
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=supersecretpassword
+ADMIN_DATE_OF_BIRTH=1990-01-01
+```
 
-    The `worker` service runs the background job processor that dequeues `upload_jobs` and uses ffmpeg via server-side code.
+## Running with Docker Compose
 
-    Build and run notes:
+Start the complete local stack:
 
-    - Building the Rust worker binary can require several GB of RAM during linking. If your Docker VM is low on memory, the linker may be killed (SIGKILL) during image build or `cargo run` inside the container.
-    - To avoid runtime compilation and the associated memory spikes, the image builds the `worker` binary at image build time and installs it to `/usr/local/bin/worker`. The `worker` service runs that binary directly.
-    - If the image build fails while building `worker`, increase Docker VM memory (Docker Desktop → Resources, or `colima start --memory 8192`).
+```bash
+docker-compose up
+```
 
-    Recommended steps:
+Or use the Makefile:
 
-    1. Increase Docker VM memory if needed (8GB+ suggested).
-    2. Build the app image (this also builds the `worker` binary inside the image):
+```bash
+make dev
+```
 
-        ```bash
-        docker compose build app
-        ```
+Default local service ports:
 
-    3. Start infra and the worker:
+| Service | URL/port |
+| --- | --- |
+| Rust API | <http://localhost:8080> |
+| Next.js web app | <http://localhost:3000> |
+| PostgreSQL | `localhost:5433` |
+| RustFS S3 API | <http://localhost:9000> |
+| RustFS console | <http://localhost:9001> |
+| Anvil Ethereum RPC | <http://localhost:8545> |
 
-        ```bash
-        docker compose up -d db rustfs
-        docker compose up -d worker
-        ```
+The API container runs `scripts/app-entrypoint.sh`, which initializes submodules, waits/retries migrations, and starts the app when `PROD_MODE=TRUE`.
 
-    4. Alternatively, prebuild the worker inside the app container and then start the `worker` service:
+## Running locally without containers
 
-        ```bash
-        docker compose run --rm app sh -lc '/usr/local/cargo/bin/cargo build --release --bin worker'
-        docker compose up -d worker
-        ```
+Start dependencies with Docker Compose, then run the Rust API locally if desired:
 
-    Troubleshooting:
+```bash
+docker-compose up -d db rustfs anvil
+cargo run --bin rust-learn
+```
 
-    - If `docker compose up -d worker` errors with `exec: "/usr/local/bin/worker": no such file or directory`, the binary wasn’t baked into the image. Rebuild the `app` image after increasing memory, or prebuild the worker using the alternative step above.
-    - The worker writes a heartbeat file at `/tmp/worker_alive` which is used by the service healthcheck. If the worker becomes unhealthy, check logs:
+Run the worker locally:
 
-      ```bash
-      docker compose logs -f worker
-      ```
+```bash
+cargo run --bin worker
+```
 
-    Tuning:
+Run the frontend locally:
 
-    - Control concurrency: `WORKER_CONCURRENCY` (default 1)
-    - Retry policy: `WORKER_MAX_ATTEMPTS` (default 5), `WORKER_BASE_BACKOFF_SECONDS` (default 60)
+```bash
+cd web
+npm install
+npm run dev
+```
 
-This should spin up all the necessary services for RustLearn to function. You're now ready to jump into the world of incentivized learning!
+## Worker service
 
----
+The `worker` service processes background upload jobs and media transformations. It is built from `docker/worker.Dockerfile` and runs `/usr/local/bin/worker` directly to avoid runtime compilation.
 
-Should you have any questions or need further assistance, please raise an issue in the repository and we'll be happy to help.
+Useful configuration:
 
-## Third-party libraries & software
+```text
+WORKER_CONCURRENCY=1
+WORKER_MAX_ATTEMPTS=5
+WORKER_BASE_BACKOFF_SECONDS=60
+```
 
-See `THIRD_PARTY.md` for a curated list of Rust crates, Docker images, and external tools used by this project (versions and links).
+Recommended worker build/start flow:
+
+```bash
+docker compose build worker
+docker compose up -d db rustfs worker
+```
+
+If the worker build fails with an out-of-memory linker error, increase Docker VM memory and rebuild. With Colima, for example:
+
+```bash
+colima start --memory 8192
+docker compose build worker
+```
+
+Inspect worker logs:
+
+```bash
+docker compose logs -f worker
+```
+
+The worker writes `/tmp/worker_alive`; Docker Compose uses this heartbeat for health checks.
+
+## Testing and quality checks
+
+Run all Rust tests:
+
+```bash
+cargo test
+```
+
+Run blockchain integration tests:
+
+```bash
+cargo test --test blockchain_integration_tests
+```
+
+Check formatting:
+
+```bash
+cargo fmt --all --check
+```
+
+Frontend checks:
+
+```bash
+cd web
+npm run lint
+npm run build
+```
+
+Makefile shortcuts:
+
+```bash
+make test
+make test-integration
+make health
+```
+
+Some tests and runtime paths require local services such as PostgreSQL, RustFS, Anvil, and ffmpeg.
+
+## Database migrations
+
+Run migrations with Diesel CLI:
+
+```bash
+diesel migration run
+```
+
+Redo the latest migration:
+
+```bash
+diesel migration redo
+```
+
+When adding migrations, include reversible `up.sql` and `down.sql` files whenever possible and update/check `src/db/schema.rs` when schema changes require it.
+
+## Kubernetes
+
+Kubernetes manifests live under `k8s/`. Common commands:
+
+```bash
+make k8s-build
+make k8s-apply
+make k8s-status
+make k8s-logs SERVICE=rust-app
+make k8s-forward SERVICE=web PORT=3000
+make k8s-delete
+```
+
+## Documentation
+
+- [`VISION.md`](VISION.md) — mission, architecture direction, strategic pillars, and near-term outcomes.
+- [`TODO.md`](TODO.md) — prioritized implementation roadmap.
+- [`PERMISSIONS.md`](PERMISSIONS.md) — current permissions assigned to platform, organization, and course roles.
+- [`THIRD_PARTY.md`](THIRD_PARTY.md) — third-party Rust crates, Docker images, and external tools.
+- [`AGENTS.md`](AGENTS.md) — repository guidance for AI agents and contributors.
+
+## Contributing notes
+
+Before opening a pull request:
+
+1. Keep patches focused and documented.
+2. Run `cargo fmt --all --check` and relevant tests.
+3. Update README/TODO/PERMISSIONS/environment docs when behavior, setup, or permissions change.
+4. Do not commit `.env`, private keys, `target/`, or `web/node_modules/`.
+
+If you need help or want to propose a larger direction change, open an issue with the problem statement, expected behavior, and any operational constraints.

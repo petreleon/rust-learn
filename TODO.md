@@ -1,65 +1,65 @@
-# Project Tasks
+# RustLearn TODO
 
-## 1. Project Setup & DevOps
-- [x] **Environment Configuration**
-  - [x] Verify `.env` matches `.env.example` keys
-  - [x] Document specific values needed for `PRIVATE_KEY` and `PUBLIC_KEY` (in README.md)
-- [ ] **Automated Setup**
-  - [ ] Create a shell script to generate RSA keys automatically (replacing manual openssl steps)
-  - [x] Add check for PostgreSQL availability in startup scripts (`scripts/app-entrypoint.sh` retries diesel migration up to 30 times)
-- [x] **Docker & Deployment**
-  - [ ] Verify `docker-compose` builds on target platforms (Linux/ARM64)
-  - [x] Optimize Worker service build time: binary prebuilt into Docker image (`docker/worker.Dockerfile`)
-  - [x] **Migrate S3 Storage:** Replace `minio` image with `rustfs` in `docker-compose.yml` to avoid AGPLv3 licensing issues.
-  - [x] Replace `minio` Rust crate with `aws-sdk-s3`. Rename `MinioState` → `S3State` and `MANAGE_MINIO_OBJECTS` → `MANAGE_S3_OBJECTS`.
+This checklist is organized around the current RustLearn architecture: Actix Web API, Diesel/PostgreSQL persistence, S3-compatible storage, a background worker, Ethereum contracts, and a Next.js frontend.
 
-## 2. Authentication & User Management
-- [ ] **Registration Flow**
-  - [x] Add initial role assignment functionality `src/api/authentication.rs`
-  - [ ] Implement email confirmation trigger upon registration
-  - [ ] Validate password strength constraints
-- [ ] **Security**
-  - [ ] Review JWT token expiration settings (currently `1 day`, may be too short for long sessions)
-  - [ ] Expose public keys for external verification (JWKS endpoint or `.well-known/jwks.json`)
+## Priority 0 — Security, correctness, and contributor safety
 
-## 3. Blockchain & Tokenomics
-- [x] **Smart Contracts**
-  - [ ] Review Solidity contracts in `ethereum/contracts` for security/audit
-  - [x] `ethers-solc` compiles latest contract versions successfully (verified via `blockchain_integration_tests.rs`)
-- [ ] **Integration**
-  - [ ] Implement event listeners for token rewards (mint events → user wallet credit)
-  - [ ] Test wallet linkage for users end-to-end
+- [ ] Replace example RSA private/public keys in `.env.example` with non-secret placeholders and document local key generation only.
+- [ ] Audit all API read endpoints for missing authorization checks, especially user, course, organization, role, wallet, transaction, notification, and reporting data.
+- [ ] Add password strength validation to registration.
+- [ ] Add email confirmation or account-verification flow after registration.
+- [ ] Review JWT expiration, refresh/session strategy, and logout/revocation expectations.
+- [ ] Add a JWKS or `.well-known/jwks.json` endpoint for external JWT verification.
+- [ ] Confirm every role assignment path enforces hierarchy and scope constraints.
+- [ ] Add structured logging for authentication failures, permission denials, worker failures, and blockchain operations.
 
-## 4. Video Worker Service
-- [x] **Processing**
-  - [x] Handle `ffmpeg` failures gracefully (retry with exponential backoff, mark failed after max attempts)
-  - [x] Add retries for failed video uploads (configurable via `WORKER_MAX_ATTEMPTS` and `WORKER_BASE_BACKOFF_SECONDS`)
-- [x] **Monitoring**
-  - [x] Ensure `/tmp/worker_alive` is updated reliably (written every loop iteration; healthcheck in compose)
-  - [x] Add logging for specific encoding errors (errors saved to DB; logged via `eprintln!`)
+## Priority 1 — Tests and quality gates
 
-## 5. Testing & Quality Assurance
-- [x] **Integration Tests**
-  - [x] Expand `tests/blockchain_integration_tests.rs` (deploy+mint+presigner+EIP-2612 permit, 243 lines)
-  - [ ] Add API integration tests for Login/Register (`POST /api/auth/login`, `POST /api/auth/register`)
-  - [x] Add middleware access control tests (247 lines in `tests/middleware_access_control.rs`)
-- [ ] **Unit Tests**
-  - [ ] Add unit tests for `api/authentication` logic
-  - [ ] Add unit tests for worker job definitions
+- [ ] Add API integration tests for `POST /api/auth/login` and `POST /api/auth/register`.
+- [ ] Add endpoint-level authorization tests for user, course, organization, and role scopes.
+- [ ] Add unit tests for authentication helper logic and edge cases.
+- [ ] Add worker tests for retry state transitions, terminal failures, and heartbeat behavior.
+- [ ] Keep blockchain integration tests covering deploy, mint, presigner, and EIP-2612 permit behavior.
+- [ ] Add CI steps for `cargo fmt --all --check`, `cargo test`, and frontend lint/build checks.
+- [ ] Document any tests that require Docker, PostgreSQL, Anvil/Geth, RustFS, or ffmpeg.
 
-## 6. Permissions & Role-Based Access Control (RBAC)
-- [x] **Core Logic Implementation**
-  - [x] Verify `RolePlatformHierarchy` assignment logic
-  - [x] Verify `RoleOrganizationHierarchy` assignment logic
-  - [x] Verify `RoleCourseHierarchy` assignment logic
-- [x] **Authentication Integration**
-  - [x] Implement default role assignment on user registration (`src/api/authentication.rs`)
-  - [x] Create API endpoint to list available roles (`src/api/roles.rs` — platform, org, course)
-  - [x] Create API endpoint to assign roles to users (admin only, with hierarchy checks)
-- [ ] **Permission Checks**
-  - [ ] Audit all API endpoints for missing permission checks (many GET endpoints are unprotected)
-  - [x] Implement middleware for permission-based route protection (infrastructure exists; applied on PUT/DELETE courses, PUT/DELETE orgs, assign-role routes)
-- [x] **Testing**
-  - [x] Add unit tests for `UserRolePlatform::has_permission` (`tests/platform_permissions.rs`, `tests/platform_permissions_unit.rs`)
-  - [x] Add unit tests for `UserRoleOrganization::has_permission` (`tests/organization_permissions.rs`)
-  - [x] Add unit tests for `UserRoleCourse::has_permission` (`tests/course_permissions.rs`)
+## Priority 2 — Developer experience and setup
+
+- [ ] Add a setup script to generate RSA keys and create a safe local `.env` from placeholders.
+- [ ] Improve `.env.example` comments for PostgreSQL, S3/RustFS, Ethereum provider, admin bootstrap, and worker variables.
+- [ ] Add a quickstart path for running only the API dependencies with Docker Compose.
+- [ ] Add troubleshooting notes for Diesel migration failures, S3 connectivity, Ethereum RPC startup, and worker memory limits.
+- [ ] Keep `Makefile` targets aligned with README examples.
+- [ ] Add a short architecture diagram or request-flow diagram to the docs.
+
+## Priority 3 — Product features
+
+- [ ] Define the complete learning reward lifecycle: course event, eligibility check, reward calculation, token mint/transfer, wallet credit, notification, and audit record.
+- [ ] Implement event listeners or reconciliation jobs for token mint/transfer events.
+- [ ] Complete wallet-linking flows and end-to-end tests.
+- [ ] Expand notifications for enrollment, content publication, role assignment, worker failures, and reward events.
+- [ ] Build learner and administrator workflows in the Next.js frontend.
+- [ ] Add course search/filtering, pagination, and organization-specific course discovery.
+- [ ] Add reporting/export workflows for organizations and platform administrators.
+
+## Priority 4 — Operations and deployment
+
+- [ ] Verify Docker Compose builds on Linux and ARM64 targets.
+- [ ] Validate Kubernetes manifests against the current service names, health checks, ports, and environment variables.
+- [ ] Add production-oriented health/readiness endpoints for API dependencies.
+- [ ] Add worker metrics for queue depth, attempts, processing duration, and failed jobs.
+- [ ] Define backup/restore expectations for PostgreSQL, S3 objects, and blockchain-related persistent state.
+- [ ] Review release process for Ethereum contract artifact generation and deployment addresses.
+
+## Completed foundation
+
+- [x] Actix Web API with route scopes for authentication, users, courses, organizations, and roles.
+- [x] Diesel/PostgreSQL models, migrations, and async connection pooling.
+- [x] Platform, organization, and course role/permission models with hierarchy-aware middleware infrastructure.
+- [x] Default role assignment on user registration.
+- [x] Role listing and role assignment endpoints.
+- [x] S3-compatible object storage integration through AWS SDK and RustFS-compatible configuration.
+- [x] Background worker binary for upload/video processing with retry configuration and heartbeat health check.
+- [x] LearnToken Solidity contracts, generated artifacts, startup deployment support, and blockchain integration test coverage.
+- [x] Docker Compose, Dockerfiles, Kubernetes manifests, and Makefile commands for common development/deployment tasks.
+- [x] Permission matrix documentation in `PERMISSIONS.md`.
