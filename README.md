@@ -50,6 +50,7 @@ See [`VISION.md`](VISION.md) for the product and architecture direction, and [`T
 - Rust 2021 with Actix Web.
 - JWT-protected `/api` scope.
 - Route modules for authentication, users, courses, organizations, and roles.
+- Registration rejects weak passwords: passwords must be at least 12 characters and include lowercase, uppercase, numeric, and symbol characters.
 - Diesel and Diesel Async with PostgreSQL.
 - Repository and service layers for persistence/business logic.
 

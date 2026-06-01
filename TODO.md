@@ -6,7 +6,7 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 
 - [x] Replace example RSA private/public keys in `.env.example` with non-secret placeholders and document local key generation only.
 - [ ] Audit all API read endpoints for missing authorization checks, especially user, course, organization, role, wallet, transaction, notification, and reporting data.
-- [ ] Add password strength validation to registration.
+- [x] Add password strength validation to registration.
 - [ ] Add email confirmation or account-verification flow after registration.
 - [ ] Review JWT expiration, refresh/session strategy, and logout/revocation expectations.
 - [ ] Add a JWKS or `.well-known/jwks.json` endpoint for external JWT verification.
