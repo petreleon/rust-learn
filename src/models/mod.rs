@@ -18,6 +18,7 @@ pub mod reward_candidate;
 pub mod reward_execution_job;
 pub mod reward_payout_record;
 pub mod reward_policy;
+pub mod reward_wallet_credit_record;
 pub mod role;
 pub mod role_course_hierarchy;
 pub mod role_organization_hierarchy;

@@ -4,14 +4,14 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{
-    courses, external_transactions, internal_transactions, reward_candidates,
-    reward_payout_records, reward_policies, transactions, transactions_external_transactions,
-    transactions_internal_transactions, wallets,
+    courses, external_transactions, internal_transactions, notifications, reward_candidates,
+    reward_payout_records, reward_policies, reward_wallet_credit_records, transactions,
+    transactions_external_transactions, transactions_internal_transactions, wallets,
 };
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::reward_candidate::{
     NewRewardCandidate, RewardCandidate, REWARD_EVENT_COURSE_COMPLETION, REWARD_SOURCE_COURSE,
-    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_NOTIFIED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
     REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_TOKEN_PENDING, REWARD_STATUS_WALLET_CREDITED,
 };
 use rust_learn::models::reward_policy::{
@@ -22,9 +22,10 @@ use rust_learn::models::user::User;
 use rust_learn::repositories::persistent_state_repository::set_persistent_state;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::reward_execution_service::{
-    credit_reward_wallet, plan_reward_payout, record_reward_token_confirmation,
-    RewardExecutionError, RewardTokenConfirmationRequest, REWARD_PAYOUT_METHOD_MINT,
-    REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER, REWARD_TRANSACTION_TYPE_WALLET_CREDIT,
+    credit_reward_wallet, notify_reward_wallet_credit, plan_reward_payout,
+    record_reward_token_confirmation, RewardExecutionError, RewardTokenConfirmationRequest,
+    REWARD_PAYOUT_METHOD_MINT, REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER,
+    REWARD_TRANSACTION_TYPE_WALLET_CREDIT,
 };
 use serde_json::json;
 
@@ -251,6 +252,9 @@ async fn token_confirmed_candidate_credits_wallet_once() {
         .expect("token-confirmed candidate should credit wallet");
     assert!(credited.credited);
     assert_eq!(credited.amount, BigDecimal::from(15));
+    let credit_record_id = credited
+        .credit_record_id
+        .expect("wallet credit should create credit record");
 
     let wallet_value = wallets::table
         .find(credited.wallet_id)
@@ -293,6 +297,22 @@ async fn token_confirmed_candidate_credits_wallet_once() {
         .expect("wallet credit transaction link should be queryable");
     assert_eq!(link_count, 1);
 
+    let credit_record = reward_wallet_credit_records::table
+        .find(credit_record_id)
+        .first::<rust_learn::models::reward_wallet_credit_record::RewardWalletCreditRecord>(
+            &mut conn,
+        )
+        .await
+        .expect("reward wallet credit record should exist");
+    assert_eq!(credit_record.reward_candidate_id, candidate.id);
+    assert_eq!(credit_record.wallet_id, credited.wallet_id);
+    assert_eq!(credit_record.transaction_id, transaction_id);
+    assert_eq!(
+        credit_record.internal_transaction_id,
+        internal_transaction_id
+    );
+    assert_eq!(credit_record.notification_id, None);
+
     let candidate_status = reward_candidates::table
         .find(candidate.id)
         .select(reward_candidates::status)
@@ -305,8 +325,12 @@ async fn token_confirmed_candidate_credits_wallet_once() {
         .await
         .expect("wallet credit should be idempotent after status update");
     assert!(!duplicate.credited);
-    assert_eq!(duplicate.transaction_id, None);
-    assert_eq!(duplicate.internal_transaction_id, None);
+    assert_eq!(duplicate.credit_record_id, credited.credit_record_id);
+    assert_eq!(duplicate.transaction_id, credited.transaction_id);
+    assert_eq!(
+        duplicate.internal_transaction_id,
+        credited.internal_transaction_id
+    );
 
     let wallet_value_after_duplicate = wallets::table
         .find(credited.wallet_id)
@@ -315,6 +339,100 @@ async fn token_confirmed_candidate_credits_wallet_once() {
         .await
         .expect("wallet should still exist");
     assert_eq!(wallet_value_after_duplicate, BigDecimal::from(15));
+}
+
+#[actix_web::test]
+async fn wallet_credit_notification_persists_context_and_is_idempotent() {
+    let mut conn = setup_conn().await;
+    let course = create_course(&mut conn, &unique_string("RewardNotificationCourse")).await;
+    let student = create_user_helper(&mut conn, "reward_notification_student").await;
+    let submitter = create_user_helper(&mut conn, "reward_notification_submitter").await;
+    create_course_reward_policy(&mut conn, course.id, REWARD_PAYMENT_TREASURY_TRANSFER).await;
+
+    let candidate = create_reward_candidate(
+        &mut conn,
+        course.id,
+        student.id(),
+        submitter.id(),
+        REWARD_STATUS_TOKEN_CONFIRMED,
+        Some(BigDecimal::from(21)),
+    )
+    .await;
+
+    let credited = credit_reward_wallet(&mut conn, candidate.id)
+        .await
+        .expect("token-confirmed candidate should credit wallet");
+    let transaction_id = credited
+        .transaction_id
+        .expect("wallet credit should create a transaction");
+
+    let sent = notify_reward_wallet_credit(&mut conn, candidate.id)
+        .await
+        .expect("wallet credited candidate should notify the student");
+    assert!(sent.notified);
+    assert_eq!(sent.wallet_id, credited.wallet_id);
+    assert_eq!(sent.transaction_id, transaction_id);
+    assert_eq!(sent.amount, BigDecimal::from(21));
+
+    let notification_id = sent
+        .notification_id
+        .expect("notification result should include notification id");
+    let notification = notifications::table
+        .find(notification_id)
+        .first::<rust_learn::models::notification::Notification>(&mut conn)
+        .await
+        .expect("reward wallet notification should exist");
+    assert_eq!(notification.user_id, Some(student.id()));
+    assert_eq!(notification.title, "reward:wallet_credited");
+    assert!(notification
+        .body
+        .contains(&format!("course #{}", course.id)));
+    assert!(notification.body.contains(course.title.as_str()));
+    assert!(notification.body.contains("21 LearnToken"));
+    assert!(notification
+        .body
+        .contains(&format!("wallet #{}", credited.wallet_id)));
+    assert!(notification
+        .body
+        .contains(&format!("Transaction #{}", transaction_id)));
+
+    let credit_record = reward_wallet_credit_records::table
+        .find(
+            credited
+                .credit_record_id
+                .expect("wallet credit should create record"),
+        )
+        .first::<rust_learn::models::reward_wallet_credit_record::RewardWalletCreditRecord>(
+            &mut conn,
+        )
+        .await
+        .expect("reward wallet credit record should exist");
+    assert_eq!(credit_record.notification_id, Some(notification_id));
+    assert!(credit_record.notified_at.is_some());
+
+    let candidate_status = reward_candidates::table
+        .find(candidate.id)
+        .select(reward_candidates::status)
+        .first::<String>(&mut conn)
+        .await
+        .expect("candidate status should be queryable");
+    assert_eq!(candidate_status, REWARD_STATUS_NOTIFIED);
+
+    let duplicate = notify_reward_wallet_credit(&mut conn, candidate.id)
+        .await
+        .expect("duplicate wallet credit notification should be idempotent");
+    assert!(!duplicate.notified);
+    assert_eq!(duplicate.notification_id, Some(notification_id));
+    assert_eq!(duplicate.transaction_id, transaction_id);
+
+    let notification_count = notifications::table
+        .filter(notifications::user_id.eq(Some(student.id())))
+        .filter(notifications::title.eq("reward:wallet_credited"))
+        .count()
+        .get_result::<i64>(&mut conn)
+        .await
+        .expect("reward wallet notifications should be countable");
+    assert_eq!(notification_count, 1);
 }
 
 #[actix_web::test]

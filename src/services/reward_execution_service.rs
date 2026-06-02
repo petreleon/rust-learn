@@ -1,17 +1,20 @@
 use crate::db::schema::{
-    courses_organizations, external_transactions, internal_transactions, reward_candidates,
-    reward_policies, transactions, transactions_external_transactions,
+    courses, courses_organizations, external_transactions, internal_transactions,
+    reward_candidates, reward_policies, transactions, transactions_external_transactions,
     transactions_internal_transactions, wallets,
 };
+use crate::models::notification::{NewNotification, Notification};
 use crate::models::reward_candidate::{
-    RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_TOKEN_CONFIRMED,
-    REWARD_STATUS_TOKEN_PENDING, REWARD_STATUS_WALLET_CREDITED,
+    RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_COMPLETED,
+    REWARD_STATUS_NOTIFIED, REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_TOKEN_PENDING,
+    REWARD_STATUS_WALLET_CREDITED,
 };
 use crate::models::reward_payout_record::NewRewardPayoutRecord;
 use crate::models::reward_policy::{
     RewardPolicy, REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN, REWARD_PAYMENT_TREASURY_TRANSFER,
     REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
 };
+use crate::models::reward_wallet_credit_record::NewRewardWalletCreditRecord;
 use crate::models::transaction::{
     ExternalTransaction, NewExternalTransaction, NewInternalTransaction, NewTransaction,
     NewTransactionExternalTransactionLink, NewTransactionInternalTransactionLink,
@@ -20,7 +23,9 @@ use crate::models::wallet::Wallet;
 use crate::repositories::persistent_state_repository::get_persistent_state;
 use crate::repositories::reward_candidate_repository;
 use crate::repositories::reward_payout_record_repository;
+use crate::repositories::reward_wallet_credit_record_repository;
 use crate::services::wallet_service;
+use crate::utils::notifications::reward_wallet_credit_notification;
 use bigdecimal::BigDecimal;
 use diesel::prelude::*;
 use diesel_async::AsyncConnection;
@@ -46,10 +51,21 @@ pub struct RewardPayoutPlan {
 pub struct RewardWalletCreditResult {
     pub candidate_id: i64,
     pub wallet_id: i32,
+    pub credit_record_id: Option<i64>,
     pub transaction_id: Option<i64>,
     pub internal_transaction_id: Option<i64>,
     pub amount: BigDecimal,
     pub credited: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RewardWalletCreditNotificationResult {
+    pub candidate_id: i64,
+    pub wallet_id: i32,
+    pub notification_id: Option<i64>,
+    pub transaction_id: i64,
+    pub amount: BigDecimal,
+    pub notified: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -141,11 +157,20 @@ pub async fn credit_reward_wallet(
                             "wallet credited candidate is missing a user wallet".to_string(),
                         )
                     })?;
+                let credit_record =
+                    reward_wallet_credit_record_repository::find_reward_wallet_credit_record_by_candidate(
+                        conn,
+                        candidate.id,
+                    )
+                    .await?;
                 return Ok(RewardWalletCreditResult {
                     candidate_id: candidate.id,
                     wallet_id: wallet.id,
-                    transaction_id: None,
-                    internal_transaction_id: None,
+                    credit_record_id: credit_record.as_ref().map(|record| record.id),
+                    transaction_id: credit_record.as_ref().map(|record| record.transaction_id),
+                    internal_transaction_id: credit_record
+                        .as_ref()
+                        .map(|record| record.internal_transaction_id),
                     amount,
                     credited: false,
                 });
@@ -161,15 +186,120 @@ pub async fn credit_reward_wallet(
                 create_internal_transaction(conn, wallet.id, amount.clone()).await?;
             let transaction_id =
                 create_wallet_credit_transaction(conn, internal_transaction_id).await?;
+            let credit_record =
+                reward_wallet_credit_record_repository::create_reward_wallet_credit_record(
+                    conn,
+                    NewRewardWalletCreditRecord {
+                        reward_candidate_id: candidate.id,
+                        wallet_id: wallet.id,
+                        transaction_id,
+                        internal_transaction_id,
+                    },
+                )
+                .await?;
             mark_candidate_wallet_credited(conn, candidate.id).await?;
 
             Ok(RewardWalletCreditResult {
                 candidate_id: candidate.id,
                 wallet_id: wallet.id,
+                credit_record_id: Some(credit_record.id),
                 transaction_id: Some(transaction_id),
                 internal_transaction_id: Some(internal_transaction_id),
                 amount,
                 credited: true,
+            })
+        })
+    })
+    .await
+}
+
+pub async fn notify_reward_wallet_credit(
+    conn: &mut AsyncPgConnection,
+    candidate_id: i64,
+) -> Result<RewardWalletCreditNotificationResult, RewardExecutionError> {
+    conn.transaction::<_, RewardExecutionError, _>(|conn| {
+        Box::pin(async move {
+            let candidate = reward_candidate_repository::find_candidate(conn, candidate_id).await?;
+            if ![
+                REWARD_STATUS_WALLET_CREDITED,
+                REWARD_STATUS_NOTIFIED,
+                REWARD_STATUS_COMPLETED,
+            ]
+            .contains(&candidate.status.as_str())
+            {
+                return Err(RewardExecutionError::InvalidStatus(
+                    "reward candidate must be wallet credited before notification".to_string(),
+                ));
+            }
+
+            let amount = approved_positive_amount(&candidate)?;
+            let credit_record =
+                reward_wallet_credit_record_repository::find_reward_wallet_credit_record_by_candidate(
+                    conn,
+                    candidate.id,
+                )
+                .await?
+                .ok_or_else(|| {
+                    RewardExecutionError::InvalidStatus(
+                        "wallet credited candidate is missing a reward wallet credit record"
+                            .to_string(),
+                    )
+                })?;
+
+            if let Some(notification_id) = credit_record.notification_id {
+                return Ok(RewardWalletCreditNotificationResult {
+                    candidate_id: candidate.id,
+                    wallet_id: credit_record.wallet_id,
+                    notification_id: Some(notification_id),
+                    transaction_id: credit_record.transaction_id,
+                    amount,
+                    notified: false,
+                });
+            }
+
+            if candidate.status != REWARD_STATUS_WALLET_CREDITED {
+                return Err(RewardExecutionError::InvalidStatus(
+                    "notified candidate is missing its notification reference".to_string(),
+                ));
+            }
+
+            let course_title = courses::table
+                .find(candidate.course_id)
+                .select(courses::title)
+                .first::<String>(conn)
+                .await?;
+            let message = reward_wallet_credit_notification(
+                candidate.course_id,
+                course_title,
+                amount.to_string(),
+                credit_record.wallet_id,
+                credit_record.transaction_id,
+            );
+            let body = message.body;
+            let notification_id = Notification::create(
+                NewNotification {
+                    user_id: Some(candidate.student_user_id),
+                    title: message.title,
+                    body: body.as_str(),
+                },
+                conn,
+            )
+            .await?;
+            reward_wallet_credit_record_repository::mark_reward_wallet_credit_record_notified(
+                conn,
+                credit_record.id,
+                notification_id,
+            )
+            .await?;
+            mark_candidate_notified(conn, candidate.id).await?;
+
+            Ok(RewardWalletCreditNotificationResult {
+                candidate_id: candidate.id,
+                wallet_id: credit_record.wallet_id,
+                notification_id: Some(notification_id),
+                transaction_id: credit_record.transaction_id,
+                amount,
+                notified: true,
             })
         })
     })
@@ -335,6 +465,19 @@ async fn mark_candidate_wallet_credited(
     diesel::update(reward_candidates::table.find(candidate_id))
         .set((
             reward_candidates::status.eq(REWARD_STATUS_WALLET_CREDITED),
+            reward_candidates::updated_at.eq(chrono::Utc::now()),
+        ))
+        .get_result(conn)
+        .await
+}
+
+async fn mark_candidate_notified(
+    conn: &mut AsyncPgConnection,
+    candidate_id: i64,
+) -> QueryResult<RewardCandidate> {
+    diesel::update(reward_candidates::table.find(candidate_id))
+        .set((
+            reward_candidates::status.eq(REWARD_STATUS_NOTIFIED),
             reward_candidates::updated_at.eq(chrono::Utc::now()),
         ))
         .get_result(conn)

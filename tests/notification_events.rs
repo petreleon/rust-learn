@@ -62,6 +62,10 @@ async fn event_notification_helpers_persist_requested_event_types() {
         .await
         .expect("reward notification should persist");
     notifications
+        .send_reward_wallet_credit_notification(user.id(), 11, "Rust Foundations", "42", 7, 44)
+        .await
+        .expect("reward wallet credit notification should persist");
+    notifications
         .send_teacher_application_notification(
             user.id(),
             55,
@@ -84,5 +88,6 @@ async fn event_notification_helpers_persist_requested_event_types() {
     assert!(titles.contains("role:assigned"));
     assert!(titles.contains("worker:job_failed"));
     assert!(titles.contains("reward:recorded"));
+    assert!(titles.contains("reward:wallet_credited"));
     assert!(titles.contains("teacher_application:updated"));
 }

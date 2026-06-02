@@ -116,6 +116,26 @@ pub fn reward_event_notification(
     }
 }
 
+pub fn reward_wallet_credit_notification(
+    course_id: i32,
+    course_title: impl AsRef<str>,
+    amount: impl AsRef<str>,
+    wallet_id: i32,
+    transaction_id: i64,
+) -> NotificationMessage {
+    NotificationMessage {
+        title: "reward:wallet_credited",
+        body: format!(
+            "Reward for course #{} ({}) was credited: {} LearnToken to wallet #{}. Transaction #{} was recorded.",
+            course_id,
+            compact_text(course_title, 120),
+            compact_text(amount, 80),
+            wallet_id,
+            transaction_id
+        ),
+    }
+}
+
 pub fn teacher_application_notification(
     application_id: i64,
     event_type: impl AsRef<str>,
@@ -243,6 +263,28 @@ impl NotificationsState {
         .await
     }
 
+    pub async fn send_reward_wallet_credit_notification(
+        &self,
+        user_id: i32,
+        course_id: i32,
+        course_title: impl AsRef<str>,
+        amount: impl AsRef<str>,
+        wallet_id: i32,
+        transaction_id: i64,
+    ) -> Result<i64> {
+        self.send_event_notification(
+            user_id,
+            reward_wallet_credit_notification(
+                course_id,
+                course_title,
+                amount,
+                wallet_id,
+                transaction_id,
+            ),
+        )
+        .await
+    }
+
     pub async fn send_teacher_application_notification(
         &self,
         user_id: i32,
@@ -309,8 +351,8 @@ impl From<DbPool> for NotificationsState {
 mod tests {
     use super::{
         content_published_notification, enrollment_notification, reward_event_notification,
-        role_assignment_notification, teacher_application_notification,
-        worker_failure_notification,
+        reward_wallet_credit_notification, role_assignment_notification,
+        teacher_application_notification, worker_failure_notification,
     };
 
     #[test]
@@ -334,6 +376,10 @@ mod tests {
         assert_eq!(
             reward_event_notification("42", "token_transfer", Some(99)).title,
             "reward:recorded"
+        );
+        assert_eq!(
+            reward_wallet_credit_notification(7, "Rust 101", "42", 3, 99).title,
+            "reward:wallet_credited"
         );
         assert_eq!(
             teacher_application_notification(

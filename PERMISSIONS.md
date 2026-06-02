@@ -347,6 +347,10 @@ Reward candidate authorization is intentionally split by scope:
 *   Token confirmation records chain id, contract address, transaction hash,
     log index, recipient address, amount, and event type in an external
     transaction and links that record to the reward candidate.
+*   Wallet credit records link the reward candidate to the destination wallet,
+    internal transaction, generic transaction, and reward notification. The
+    student notification is sent only after wallet credit succeeds and includes
+    course context, approved amount, wallet id, and transaction reference.
 *   Delegated reward permissions are resolved through the same platform,
     organization, and course permission checks as role permissions. A
     delegation is valid only for its exact scope while it is unexpired and not

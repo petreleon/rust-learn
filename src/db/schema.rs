@@ -275,6 +275,19 @@ diesel::table! {
 }
 
 diesel::table! {
+    reward_wallet_credit_records (id) {
+        id -> Int8,
+        reward_candidate_id -> Int8,
+        wallet_id -> Int4,
+        transaction_id -> Int8,
+        internal_transaction_id -> Int8,
+        notification_id -> Nullable<Int8>,
+        notified_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     role_course_hierarchy (id) {
         id -> Int4,
         course_role_id -> Nullable<Int4>,
@@ -470,6 +483,11 @@ diesel::joinable!(reward_payout_records -> transactions (transaction_id));
 diesel::joinable!(reward_policies -> courses (course_id));
 diesel::joinable!(reward_policies -> organizations (organization_id));
 diesel::joinable!(reward_policies -> users (created_by_user_id));
+diesel::joinable!(reward_wallet_credit_records -> internal_transactions (internal_transaction_id));
+diesel::joinable!(reward_wallet_credit_records -> notifications (notification_id));
+diesel::joinable!(reward_wallet_credit_records -> reward_candidates (reward_candidate_id));
+diesel::joinable!(reward_wallet_credit_records -> transactions (transaction_id));
+diesel::joinable!(reward_wallet_credit_records -> wallets (wallet_id));
 diesel::joinable!(role_course_hierarchy -> course_roles (course_role_id));
 diesel::joinable!(role_organization_hierarchy -> organization_roles (organization_role_id));
 diesel::joinable!(role_permission_course -> course_roles (course_role_id));
@@ -522,6 +540,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     reward_execution_jobs,
     reward_payout_records,
     reward_policies,
+    reward_wallet_credit_records,
     role_course_hierarchy,
     role_organization_hierarchy,
     role_permission_course,

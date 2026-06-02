@@ -133,7 +133,7 @@ business logic must ask "does this user have this permission in this scope?"
       deployment is explicitly configured for off-chain-only rewards.
 - [x] Record external transaction hash, chain id, contract address, log index,
       recipient address, amount, and event type for every reward payout.
-- [ ] Send reward notifications after wallet credit succeeds, including course
+- [x] Send reward notifications after wallet credit succeeds, including course
       context, approved amount, destination wallet, and transaction reference.
 - [ ] Add reconciliation that repairs missing wallet credits, notifications, or
       transaction links from the last confirmed reward state without creating
