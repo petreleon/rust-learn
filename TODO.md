@@ -129,7 +129,7 @@ business logic must ask "does this user have this permission in this scope?"
       recorded.
 - [x] Prefer treasury/presigner transfer when available; mint LearnToken only
       when policy explicitly allows supply expansion.
-- [ ] Credit the internal wallet only after token confirmation unless the
+- [x] Credit the internal wallet only after token confirmation unless the
       deployment is explicitly configured for off-chain-only rewards.
 - [ ] Record external transaction hash, chain id, contract address, log index,
       recipient address, amount, and event type for every reward payout.

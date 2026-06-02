@@ -1,19 +1,32 @@
-use crate::db::schema::{courses_organizations, reward_policies};
-use crate::models::reward_candidate::{RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED};
+use crate::db::schema::{
+    courses_organizations, internal_transactions, reward_candidates, reward_policies, transactions,
+    transactions_internal_transactions, wallets,
+};
+use crate::models::reward_candidate::{
+    RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_TOKEN_CONFIRMED,
+    REWARD_STATUS_WALLET_CREDITED,
+};
 use crate::models::reward_policy::{
     RewardPolicy, REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN, REWARD_PAYMENT_TREASURY_TRANSFER,
     REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
 };
+use crate::models::transaction::{
+    NewInternalTransaction, NewTransaction, NewTransactionInternalTransactionLink,
+};
+use crate::models::wallet::Wallet;
 use crate::repositories::persistent_state_repository::get_persistent_state;
 use crate::repositories::reward_candidate_repository;
+use crate::services::wallet_service;
 use bigdecimal::BigDecimal;
 use diesel::prelude::*;
+use diesel_async::AsyncConnection;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 pub const REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER: &str = "presigner_transfer";
 pub const REWARD_PAYOUT_METHOD_TREASURY_TRANSFER: &str = "treasury_transfer";
 pub const REWARD_PAYOUT_METHOD_MINT: &str = "mint";
 pub const REWARD_PAYOUT_METHOD_OFF_CHAIN: &str = "off_chain";
+pub const REWARD_TRANSACTION_TYPE_WALLET_CREDIT: &str = "reward_wallet_credit";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RewardPayoutPlan {
@@ -23,6 +36,16 @@ pub struct RewardPayoutPlan {
     pub payment_strategy: String,
     pub payout_method: String,
     pub requires_token_confirmation: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RewardWalletCreditResult {
+    pub candidate_id: i64,
+    pub wallet_id: i32,
+    pub transaction_id: Option<i64>,
+    pub internal_transaction_id: Option<i64>,
+    pub amount: BigDecimal,
+    pub credited: bool,
 }
 
 #[derive(Debug, PartialEq)]
@@ -76,6 +99,58 @@ pub async fn plan_reward_payout(
     })
 }
 
+pub async fn credit_reward_wallet(
+    conn: &mut AsyncPgConnection,
+    candidate_id: i64,
+) -> Result<RewardWalletCreditResult, RewardExecutionError> {
+    conn.transaction::<_, RewardExecutionError, _>(|conn| {
+        Box::pin(async move {
+            let candidate = reward_candidate_repository::find_candidate(conn, candidate_id).await?;
+            let amount = approved_positive_amount(&candidate)?;
+
+            if candidate.status == REWARD_STATUS_WALLET_CREDITED {
+                let wallet = wallet_service::find_user_wallet(conn, candidate.student_user_id)
+                    .await?
+                    .ok_or_else(|| {
+                        RewardExecutionError::InvalidStatus(
+                            "wallet credited candidate is missing a user wallet".to_string(),
+                        )
+                    })?;
+                return Ok(RewardWalletCreditResult {
+                    candidate_id: candidate.id,
+                    wallet_id: wallet.id,
+                    transaction_id: None,
+                    internal_transaction_id: None,
+                    amount,
+                    credited: false,
+                });
+            }
+
+            ensure_wallet_credit_allowed(conn, &candidate).await?;
+
+            let wallet = wallet_service::link_user_wallet(conn, candidate.student_user_id)
+                .await?
+                .wallet;
+            let wallet = credit_wallet_balance(conn, wallet.id, amount.clone()).await?;
+            let internal_transaction_id =
+                create_internal_transaction(conn, wallet.id, amount.clone()).await?;
+            let transaction_id =
+                create_wallet_credit_transaction(conn, internal_transaction_id).await?;
+            mark_candidate_wallet_credited(conn, candidate.id).await?;
+
+            Ok(RewardWalletCreditResult {
+                candidate_id: candidate.id,
+                wallet_id: wallet.id,
+                transaction_id: Some(transaction_id),
+                internal_transaction_id: Some(internal_transaction_id),
+                amount,
+                credited: true,
+            })
+        })
+    })
+    .await
+}
+
 fn ensure_candidate_ready_for_payout(
     candidate: &RewardCandidate,
 ) -> Result<(), RewardExecutionError> {
@@ -86,6 +161,102 @@ fn ensure_candidate_ready_for_payout(
             "reward candidate must be amount approved before payout planning".to_string(),
         ))
     }
+}
+
+fn approved_positive_amount(
+    candidate: &RewardCandidate,
+) -> Result<BigDecimal, RewardExecutionError> {
+    let amount = candidate.approved_amount.clone().ok_or_else(|| {
+        RewardExecutionError::InvalidInput(
+            "reward candidate must have an approved amount".to_string(),
+        )
+    })?;
+    if amount <= BigDecimal::from(0) {
+        return Err(RewardExecutionError::InvalidInput(
+            "approved reward amount must be positive".to_string(),
+        ));
+    }
+    Ok(amount)
+}
+
+async fn ensure_wallet_credit_allowed(
+    conn: &mut AsyncPgConnection,
+    candidate: &RewardCandidate,
+) -> Result<(), RewardExecutionError> {
+    if candidate.status == REWARD_STATUS_TOKEN_CONFIRMED {
+        return Ok(());
+    }
+
+    if candidate.status == REWARD_STATUS_AMOUNT_APPROVED {
+        let plan = plan_reward_payout(conn, candidate.id).await?;
+        if plan.payout_method == REWARD_PAYOUT_METHOD_OFF_CHAIN {
+            return Ok(());
+        }
+    }
+
+    Err(RewardExecutionError::InvalidStatus(
+        "wallet credit requires token confirmation unless the reward policy is off-chain"
+            .to_string(),
+    ))
+}
+
+async fn credit_wallet_balance(
+    conn: &mut AsyncPgConnection,
+    wallet_id: i32,
+    amount: BigDecimal,
+) -> QueryResult<Wallet> {
+    diesel::update(wallets::table.find(wallet_id))
+        .set(wallets::value.eq(wallets::value + amount))
+        .get_result(conn)
+        .await
+}
+
+async fn create_internal_transaction(
+    conn: &mut AsyncPgConnection,
+    wallet_id: i32,
+    amount: BigDecimal,
+) -> QueryResult<i64> {
+    diesel::insert_into(internal_transactions::table)
+        .values(NewInternalTransaction { wallet_id, amount })
+        .returning(internal_transactions::id)
+        .get_result(conn)
+        .await
+}
+
+async fn create_wallet_credit_transaction(
+    conn: &mut AsyncPgConnection,
+    internal_transaction_id: i64,
+) -> QueryResult<i64> {
+    let transaction_id = diesel::insert_into(transactions::table)
+        .values(NewTransaction {
+            type_: REWARD_TRANSACTION_TYPE_WALLET_CREDIT,
+        })
+        .returning(transactions::id)
+        .get_result(conn)
+        .await?;
+
+    diesel::insert_into(transactions_internal_transactions::table)
+        .values(NewTransactionInternalTransactionLink {
+            transaction_id,
+            internal_transaction_id,
+        })
+        .execute(conn)
+        .await?;
+
+    Ok(transaction_id)
+}
+
+async fn mark_candidate_wallet_credited(
+    conn: &mut AsyncPgConnection,
+    candidate_id: i64,
+) -> QueryResult<RewardCandidate> {
+    diesel::update(reward_candidates::table.find(candidate_id))
+        .set((
+            reward_candidates::status.eq(REWARD_STATUS_WALLET_CREDITED),
+            reward_candidates::updated_at.eq(chrono::Utc::now()),
+        ))
+        .get_result(conn)
+        .await
 }
 
 async fn select_payout_method(

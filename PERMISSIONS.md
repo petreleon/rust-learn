@@ -341,6 +341,9 @@ Reward candidate authorization is intentionally split by scope:
     course event. Treasury transfer prefers the deployed presigner contract
     when available; minting is selected only for policies whose payment
     strategy is `mint`.
+*   Internal wallet credit is recorded only after `token_confirmed`, except
+    for explicitly off-chain reward policies, which can be credited after
+    amount approval.
 *   Delegated reward permissions are resolved through the same platform,
     organization, and course permission checks as role permissions. A
     delegation is valid only for its exact scope while it is unexpired and not

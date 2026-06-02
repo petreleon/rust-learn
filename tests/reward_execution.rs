@@ -3,22 +3,26 @@ use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::establish_connection;
-use rust_learn::db::schema::{courses, reward_candidates, reward_policies};
+use rust_learn::db::schema::{
+    courses, internal_transactions, reward_candidates, reward_policies, transactions,
+    transactions_internal_transactions, wallets,
+};
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::reward_candidate::{
     NewRewardCandidate, RewardCandidate, REWARD_EVENT_COURSE_COMPLETION, REWARD_SOURCE_COURSE,
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+    REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_WALLET_CREDITED,
 };
 use rust_learn::models::reward_policy::{
-    NewRewardPolicy, REWARD_PAYMENT_MINT, REWARD_PAYMENT_TREASURY_TRANSFER,
-    REWARD_POLICY_SCOPE_COURSE,
+    NewRewardPolicy, REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN,
+    REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
 use rust_learn::models::user::User;
 use rust_learn::repositories::persistent_state_repository::set_persistent_state;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::reward_execution_service::{
-    plan_reward_payout, RewardExecutionError, REWARD_PAYOUT_METHOD_MINT,
-    REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER,
+    credit_reward_wallet, plan_reward_payout, RewardExecutionError, REWARD_PAYOUT_METHOD_MINT,
+    REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER, REWARD_TRANSACTION_TYPE_WALLET_CREDIT,
 };
 use serde_json::json;
 
@@ -211,4 +215,142 @@ async fn candidate_must_be_amount_approved_before_payout_planning() {
         .expect_err("candidate must be amount approved before payout planning");
 
     assert!(matches!(denied, RewardExecutionError::InvalidStatus(_)));
+}
+
+#[actix_web::test]
+async fn token_confirmed_candidate_credits_wallet_once() {
+    let mut conn = setup_conn().await;
+    let course = create_course(&mut conn, &unique_string("TokenConfirmedCreditCourse")).await;
+    let student = create_user_helper(&mut conn, "token_confirmed_credit_student").await;
+    let submitter = create_user_helper(&mut conn, "token_confirmed_credit_submitter").await;
+    create_course_reward_policy(&mut conn, course.id, REWARD_PAYMENT_TREASURY_TRANSFER).await;
+
+    let candidate = create_reward_candidate(
+        &mut conn,
+        course.id,
+        student.id(),
+        submitter.id(),
+        REWARD_STATUS_TOKEN_CONFIRMED,
+        Some(BigDecimal::from(15)),
+    )
+    .await;
+
+    let credited = credit_reward_wallet(&mut conn, candidate.id)
+        .await
+        .expect("token-confirmed candidate should credit wallet");
+    assert!(credited.credited);
+    assert_eq!(credited.amount, BigDecimal::from(15));
+
+    let wallet_value = wallets::table
+        .find(credited.wallet_id)
+        .select(wallets::value)
+        .first::<BigDecimal>(&mut conn)
+        .await
+        .expect("wallet should exist");
+    assert_eq!(wallet_value, BigDecimal::from(15));
+
+    let transaction_id = credited
+        .transaction_id
+        .expect("wallet credit should create transaction");
+    let internal_transaction_id = credited
+        .internal_transaction_id
+        .expect("wallet credit should create internal transaction");
+    let transaction_type = transactions::table
+        .find(transaction_id)
+        .select(transactions::type_)
+        .first::<String>(&mut conn)
+        .await
+        .expect("wallet credit transaction should exist");
+    assert_eq!(transaction_type, REWARD_TRANSACTION_TYPE_WALLET_CREDIT);
+
+    let internal_amount = internal_transactions::table
+        .find(internal_transaction_id)
+        .select(internal_transactions::amount)
+        .first::<BigDecimal>(&mut conn)
+        .await
+        .expect("wallet credit internal transaction should exist");
+    assert_eq!(internal_amount, BigDecimal::from(15));
+
+    let link_count = transactions_internal_transactions::table
+        .filter(transactions_internal_transactions::transaction_id.eq(transaction_id))
+        .filter(
+            transactions_internal_transactions::internal_transaction_id.eq(internal_transaction_id),
+        )
+        .count()
+        .get_result::<i64>(&mut conn)
+        .await
+        .expect("wallet credit transaction link should be queryable");
+    assert_eq!(link_count, 1);
+
+    let candidate_status = reward_candidates::table
+        .find(candidate.id)
+        .select(reward_candidates::status)
+        .first::<String>(&mut conn)
+        .await
+        .expect("candidate status should be queryable");
+    assert_eq!(candidate_status, REWARD_STATUS_WALLET_CREDITED);
+
+    let duplicate = credit_reward_wallet(&mut conn, candidate.id)
+        .await
+        .expect("wallet credit should be idempotent after status update");
+    assert!(!duplicate.credited);
+    assert_eq!(duplicate.transaction_id, None);
+    assert_eq!(duplicate.internal_transaction_id, None);
+
+    let wallet_value_after_duplicate = wallets::table
+        .find(credited.wallet_id)
+        .select(wallets::value)
+        .first::<BigDecimal>(&mut conn)
+        .await
+        .expect("wallet should still exist");
+    assert_eq!(wallet_value_after_duplicate, BigDecimal::from(15));
+}
+
+#[actix_web::test]
+async fn token_policy_cannot_credit_wallet_before_token_confirmation() {
+    let mut conn = setup_conn().await;
+    let course = create_course(&mut conn, &unique_string("BlockedCreditCourse")).await;
+    let student = create_user_helper(&mut conn, "blocked_credit_student").await;
+    let submitter = create_user_helper(&mut conn, "blocked_credit_submitter").await;
+    create_course_reward_policy(&mut conn, course.id, REWARD_PAYMENT_TREASURY_TRANSFER).await;
+
+    let candidate = create_reward_candidate(
+        &mut conn,
+        course.id,
+        student.id(),
+        submitter.id(),
+        REWARD_STATUS_AMOUNT_APPROVED,
+        Some(BigDecimal::from(11)),
+    )
+    .await;
+
+    let denied = credit_reward_wallet(&mut conn, candidate.id)
+        .await
+        .expect_err("token payout should not credit wallet before token confirmation");
+    assert!(matches!(denied, RewardExecutionError::InvalidStatus(_)));
+}
+
+#[actix_web::test]
+async fn off_chain_policy_can_credit_wallet_after_amount_approval() {
+    let mut conn = setup_conn().await;
+    let course = create_course(&mut conn, &unique_string("OffChainCreditCourse")).await;
+    let student = create_user_helper(&mut conn, "off_chain_credit_student").await;
+    let submitter = create_user_helper(&mut conn, "off_chain_credit_submitter").await;
+    create_course_reward_policy(&mut conn, course.id, REWARD_PAYMENT_OFF_CHAIN).await;
+
+    let candidate = create_reward_candidate(
+        &mut conn,
+        course.id,
+        student.id(),
+        submitter.id(),
+        REWARD_STATUS_AMOUNT_APPROVED,
+        Some(BigDecimal::from(9)),
+    )
+    .await;
+
+    let credited = credit_reward_wallet(&mut conn, candidate.id)
+        .await
+        .expect("off-chain policy should credit wallet after amount approval");
+    assert!(credited.credited);
+    assert_eq!(credited.amount, BigDecimal::from(9));
 }
