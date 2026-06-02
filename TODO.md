@@ -197,7 +197,7 @@ business logic must ask "does this user have this permission in this scope?"
       and reward-policy reward blocks.
 - [x] Add organization dashboards for sponsored teacher applications, course
       reward volume, approved amounts, and wallet balances.
-- [ ] Add student-facing reward history with candidate status, approved amount,
+- [x] Add student-facing reward history with candidate status, approved amount,
       wallet credit, and token transaction reference.
 - [ ] Export CSV reports for teacher applications, reward approvals, token
       payouts, wallet credits, and delegated permission activity.

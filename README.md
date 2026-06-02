@@ -198,6 +198,14 @@ Organization wallet managers can link and read organization wallets with
 `/api/wallets/organizations/{id}` routes. Link endpoints are idempotent and
 return the existing wallet on repeated calls.
 
+### Student reward history API
+
+Authenticated students can read `GET /api/reward-candidates/me/history` for
+their own reward candidate timeline. The response includes candidate status,
+approved amount, wallet credit details, and token transaction references when
+available. Rows are included only for courses where the requester has
+`VIEW_COURSE_REWARD_STATUS`.
+
 ### Course discovery API
 
 `GET /api/courses` supports `search`, `organization_id`, `limit`, and `offset`

@@ -4,6 +4,9 @@ use crate::services::reward_candidate_service::{
     self, ListRewardCandidatesRequest, RewardAmountDecisionRequest, RewardCandidateError,
     SubmitRewardCandidateRequest, TeacherRewardCandidateDecisionRequest,
 };
+use crate::services::reward_history_service::{
+    self, StudentRewardHistoryError, StudentRewardHistoryRequest,
+};
 use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
 
 fn current_user(req: &HttpRequest) -> Result<UserJWT, HttpResponse> {
@@ -26,6 +29,18 @@ fn reward_candidate_error_response(error: RewardCandidateError) -> HttpResponse 
         RewardCandidateError::Database(message) => {
             log::error!("event=reward_candidate_api_failed error={}", message);
             HttpResponse::InternalServerError().body("Failed to process reward candidate")
+        }
+    }
+}
+
+fn reward_history_error_response(error: StudentRewardHistoryError) -> HttpResponse {
+    match error {
+        StudentRewardHistoryError::InvalidInput(message) => {
+            HttpResponse::BadRequest().body(message)
+        }
+        StudentRewardHistoryError::Database(message) => {
+            log::error!("event=student_reward_history_api_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to load reward history")
         }
     }
 }
@@ -146,6 +161,32 @@ async fn decide_reward_amount(
     }
 }
 
+async fn list_my_reward_history(
+    req: HttpRequest,
+    pool: web::Data<db::DbPool>,
+    query: web::Query<StudentRewardHistoryRequest>,
+) -> impl Responder {
+    let requester = match current_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match reward_history_service::list_student_reward_history(
+        &mut conn,
+        requester.user_id,
+        query.into_inner(),
+    )
+    .await
+    {
+        Ok(history) => HttpResponse::Ok().json(history),
+        Err(error) => reward_history_error_response(error),
+    }
+}
+
 async fn list_course_reward_candidates(
     req: HttpRequest,
     path: web::Path<i32>,
@@ -176,6 +217,10 @@ async fn list_course_reward_candidates(
 
 pub fn reward_candidate_scope() -> actix_web::Scope {
     web::scope("")
+        .service(
+            web::resource("/reward-candidates/me/history")
+                .route(web::get().to(list_my_reward_history)),
+        )
         .service(
             web::resource("/courses/{course_id}/reward-candidates")
                 .route(web::post().to(submit_course_reward_candidate))

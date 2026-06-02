@@ -359,6 +359,11 @@ Reward candidate authorization is intentionally split by scope:
     organization-scoped `VIEW_ORG_REWARD_REPORTS`. They summarize sponsored
     teacher applications, reward candidate volume and approved amounts for
     courses attached to that organization, and organization wallet balances.
+*   Student reward history is available through the authenticated user's own
+    reward history endpoint. Each row is returned only when the user has
+    `VIEW_COURSE_REWARD_STATUS` in that row's exact course scope, and includes
+    candidate status, approved amount, wallet credit, and token transaction
+    reference when those records exist.
 *   Reward candidate eligibility requires a verified recipient, course reward
     status permission for that recipient, a covering active reward policy, and
     event evidence such as completion percentage or passing score. Activity
