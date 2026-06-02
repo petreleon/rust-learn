@@ -250,7 +250,7 @@ business logic must ask "does this user have this permission in this scope?"
 - [x] Add tests proving reward candidates cannot enter amount review until a
       user with `APPROVE_STUDENT_REWARD_CANDIDATE` in the course scope approves
       the student reward candidate.
-- [ ] Add tests proving only platform permission `APPROVE_REWARD_AMOUNT`, or a
+- [x] Add tests proving only platform permission `APPROVE_REWARD_AMOUNT`, or a
       valid platform-scoped delegated equivalent, can set the payout amount.
 - [ ] Add tests proving `APPROVE_REWARD_AMOUNT` cannot approve, reject, create,
       or submit reward candidates.
