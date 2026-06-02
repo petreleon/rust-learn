@@ -242,6 +242,26 @@ diesel::table! {
 }
 
 diesel::table! {
+    reward_fraud_blocks (id) {
+        id -> Int8,
+        #[max_length = 32]
+        scope_type -> Varchar,
+        teacher_user_id -> Nullable<Int4>,
+        organization_id -> Nullable<Int4>,
+        course_id -> Nullable<Int4>,
+        reward_policy_id -> Nullable<Int8>,
+        reason -> Text,
+        evidence_reference -> Nullable<Text>,
+        created_by_user_id -> Int4,
+        expires_at -> Nullable<Timestamptz>,
+        revoked_by_user_id -> Nullable<Int4>,
+        revoked_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     reward_payout_records (id) {
         id -> Int8,
         reward_candidate_id -> Int8,
@@ -477,6 +497,9 @@ diesel::joinable!(pending_course_organization_invites -> organizations (organiza
 diesel::joinable!(reward_candidates -> courses (course_id));
 diesel::joinable!(reward_candidates -> organizations (source_organization_id));
 diesel::joinable!(reward_execution_jobs -> reward_candidates (reward_candidate_id));
+diesel::joinable!(reward_fraud_blocks -> courses (course_id));
+diesel::joinable!(reward_fraud_blocks -> organizations (organization_id));
+diesel::joinable!(reward_fraud_blocks -> reward_policies (reward_policy_id));
 diesel::joinable!(reward_payout_records -> external_transactions (external_transaction_id));
 diesel::joinable!(reward_payout_records -> reward_candidates (reward_candidate_id));
 diesel::joinable!(reward_payout_records -> transactions (transaction_id));
@@ -538,6 +561,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     platform_roles,
     reward_candidates,
     reward_execution_jobs,
+    reward_fraud_blocks,
     reward_payout_records,
     reward_policies,
     reward_wallet_credit_records,

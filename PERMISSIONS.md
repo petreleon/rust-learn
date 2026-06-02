@@ -354,6 +354,12 @@ Reward candidate authorization is intentionally split by scope:
 *   Reward reconciliation resumes from the last confirmed reward state and
     repairs missing payout links, wallet credits, or notifications without
     creating duplicate wallet payouts or duplicate student notifications.
+*   Reward fraud blocks are platform-governed records scoped to teacher,
+    organization, course, or reward policy targets. Teacher blocks require
+    `BLOCK_REWARD_TEACHER` or `MANAGE_REWARD_FRAUD_BLOCKS`; organization
+    blocks require `BLOCK_REWARD_ORGANIZATION` or
+    `MANAGE_REWARD_FRAUD_BLOCKS`; course and reward-policy blocks require
+    `MANAGE_REWARD_FRAUD_BLOCKS`.
 *   Delegated reward permissions are resolved through the same platform,
     organization, and course permission checks as role permissions. A
     delegation is valid only for its exact scope while it is unexpired and not

@@ -141,12 +141,12 @@ business logic must ask "does this user have this permission in this scope?"
 
 ## Fraud And Reward Blocking
 
-- [ ] Add a reward fraud/block model for platform-level intervention against a
+- [x] Add a reward fraud/block model for platform-level intervention against a
       teacher, organization, course, or reward policy scope.
-- [ ] Allow platform operators to block a teacher from reward submission or
+- [x] Allow platform operators to block a teacher from reward submission or
       candidate approval only through `BLOCK_REWARD_TEACHER` or
       `MANAGE_REWARD_FRAUD_BLOCKS`.
-- [ ] Allow platform operators to block an organization from reward submissions
+- [x] Allow platform operators to block an organization from reward submissions
       only through `BLOCK_REWARD_ORGANIZATION` or
       `MANAGE_REWARD_FRAUD_BLOCKS`.
 - [ ] A fraud block must prevent new reward candidate submissions, teacher
@@ -155,7 +155,7 @@ business logic must ask "does this user have this permission in this scope?"
 - [ ] A fraud block must not itself approve or reject a student reward
       candidate. It only pauses or blocks reward activity until an explicit
       permitted reviewer handles the candidate.
-- [ ] Store block reason, evidence reference, blocked scope, created_by,
+- [x] Store block reason, evidence reference, blocked scope, created_by,
       expiration when present, revoked_by, revoked_at, and audit timestamps.
 - [ ] Notify affected teachers, organization operators, and platform reviewers
       when a block is created or revoked.
