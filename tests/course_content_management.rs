@@ -1,12 +1,11 @@
 use actix_service::Service;
 use actix_web::{test, web, App};
 use chrono::NaiveDate;
-use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::db::schema::{chapters, contents, courses};
+use rust_learn::db::schema::courses;
 use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::models::chapter::{Chapter, NewChapter};
-use rust_learn::models::content::{Content, NewContent};
+use rust_learn::models::chapter::Chapter;
+use rust_learn::models::content::Content;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::role::CourseRole;
 use rust_learn::models::user::User;
@@ -67,6 +66,7 @@ async fn test_course_content_lifecycle() {
     let mut conn = setup_conn(&pool).await;
     let teacher = create_test_user(&mut conn, "teacher_content").await;
     let student = create_test_user(&mut conn, "student_content").await;
+    let outsider = create_test_user(&mut conn, "outsider_content").await;
 
     let new_course = NewCourse {
         title: unique_string("CourseWithContent"),
@@ -82,6 +82,7 @@ async fn test_course_content_lifecycle() {
 
     let teacher_token = generate_token(teacher.id());
     let student_token = generate_token(student.id());
+    let outsider_token = generate_token(outsider.id());
 
     let app = test::init_service(
         App::new()
@@ -143,7 +144,42 @@ async fn test_course_content_lifecycle() {
     let content: Content = test::read_body_json(resp).await;
     assert_eq!(content.data.unwrap(), "Welcome to the course");
 
-    // 4. Student Cannot Create Content -> 403
+    // 4. Student lists content through VIEW_CONTENT
+    let req = test::TestRequest::get()
+        .uri(&format!(
+            "/courses/{}/chapters/{}/contents",
+            course.id, chapter.id
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", student_token)))
+        .to_request();
+    let resp = app.call(req).await.unwrap();
+    assert!(resp.status().is_success());
+    let listed_content: Vec<Content> = test::read_body_json(resp).await;
+    assert_eq!(listed_content.len(), 1);
+
+    // 5. User without course content permission cannot list content
+    let req = test::TestRequest::get()
+        .uri(&format!(
+            "/courses/{}/chapters/{}/contents",
+            course.id, chapter.id
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", outsider_token)))
+        .to_request();
+    let resp = app.call(req).await;
+    match resp {
+        Ok(r) => {
+            if r.status().is_success() {
+                panic!("Outsider listed content!");
+            }
+            assert_eq!(r.status(), actix_web::http::StatusCode::FORBIDDEN);
+        }
+        Err(e) => {
+            let r = e.error_response();
+            assert_eq!(r.status(), actix_web::http::StatusCode::FORBIDDEN);
+        }
+    }
+
+    // 6. Student Cannot Create Content -> 403
     let req = test::TestRequest::post()
         .uri(&format!(
             "/courses/{}/chapters/{}/contents",
@@ -172,7 +208,7 @@ async fn test_course_content_lifecycle() {
         }
     }
 
-    // 5. Update Content (Teacher)
+    // 7. Update Content (Teacher)
     let req = test::TestRequest::put()
         .uri(&format!(
             "/courses/{}/chapters/{}/contents/{}",
@@ -186,7 +222,7 @@ async fn test_course_content_lifecycle() {
     let updated_content: Content = test::read_body_json(resp).await;
     assert_eq!(updated_content.data.unwrap(), "Updated Text");
 
-    // 6. Teacher Triggers Processing
+    // 8. Teacher Triggers Processing
     let req = test::TestRequest::post()
         .uri(&format!(
             "/courses/{}/chapters/{}/contents/{}/process",

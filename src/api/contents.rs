@@ -289,7 +289,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
                 web::get()
                     .to(list_contents)
                     .wrap(CoursePermissionMiddleware::new(
-                        Permissions::VIEW_COURSE.to_string(),
+                        Permissions::VIEW_CONTENT.to_string(),
                         ParamType::Path,
                         "course_id".to_string(),
                     )),
@@ -298,7 +298,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
                 web::post()
                     .to(create_content)
                     .wrap(CoursePermissionMiddleware::new(
-                        Permissions::MANAGE_COURSE_SETTINGS.to_string(), // Or CREATE_CONTENT
+                        Permissions::CREATE_CONTENT.to_string(),
                         ParamType::Path,
                         "course_id".to_string(),
                     )),
@@ -309,7 +309,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             web::post()
                 .to(get_upload_url)
                 .wrap(CoursePermissionMiddleware::new(
-                    Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                    Permissions::CREATE_CONTENT.to_string(),
                     ParamType::Path,
                     "course_id".to_string(),
                 )),
@@ -321,7 +321,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
                 web::put()
                     .to(update_content)
                     .wrap(CoursePermissionMiddleware::new(
-                        Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                        Permissions::MODIFY_CONTENT.to_string(),
                         ParamType::Path,
                         "course_id".to_string(),
                     )),
@@ -330,7 +330,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
                 web::delete()
                     .to(delete_content)
                     .wrap(CoursePermissionMiddleware::new(
-                        Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                        Permissions::DELETE_CONTENT.to_string(),
                         ParamType::Path,
                         "course_id".to_string(),
                     )),
@@ -341,7 +341,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             web::post()
                 .to(process_content)
                 .wrap(CoursePermissionMiddleware::new(
-                    Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                    Permissions::MODIFY_CONTENT.to_string(),
                     ParamType::Path,
                     "course_id".to_string(),
                 )),

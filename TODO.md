@@ -70,9 +70,11 @@ business logic must ask "does this user have this permission in this scope?"
       `MANAGE_COURSE_ENROLLMENTS`.
 - [x] Gate enrollment removal and waitlist behavior with platform,
       organization, and course permissions.
-- [ ] Keep content visibility and assessment access permission-based with
-      `VIEW_CONTENT`, `VIEW_ASSESSMENT`, `TAKE_TESTS`, and related course
-      permissions.
+- [x] Keep content visibility permission-based with `VIEW_CONTENT` and
+      related course permissions.
+- [ ] Keep assessment access permission-based with `VIEW_ASSESSMENT`,
+      `TAKE_TESTS`, and related course permissions when assessment endpoints
+      are implemented.
 
 ## Student Reward Flow
 
