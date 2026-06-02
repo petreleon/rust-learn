@@ -259,7 +259,7 @@ business logic must ask "does this user have this permission in this scope?"
 - [x] Add tests proving active teacher, organization, course, or policy fraud
       blocks prevent new reward candidate submissions, teacher candidate
       approvals, and amount approvals for the blocked scope.
-- [ ] Add tests proving fraud-block permissions can block or unblock reward
+- [x] Add tests proving fraud-block permissions can block or unblock reward
       activity but cannot approve candidates or set payout amounts.
 - [x] Add tests proving users with different role names but the same permission
       can perform the same business action.
