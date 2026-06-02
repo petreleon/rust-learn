@@ -38,7 +38,7 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 - [x] Implement event listeners or reconciliation jobs for token mint/transfer events.
 - [x] Complete wallet-linking flows and end-to-end tests.
 - [x] Expand notifications for enrollment, content publication, role assignment, worker failures, and reward events.
-- [ ] Build learner and administrator workflows in the Next.js frontend.
+- [x] Build learner and administrator workflows in the Next.js frontend.
 - [ ] Add course search/filtering, pagination, and organization-specific course discovery.
 - [ ] Add reporting/export workflows for organizations and platform administrators.
 
