@@ -335,3 +335,5 @@ Reward candidate authorization is intentionally split by scope:
     status permission for that recipient, a covering active reward policy, and
     event evidence such as completion percentage or passing score. Activity
     evidence does not authorize the student to submit the candidate.
+*   Reward execution is queued only after a candidate has course-scoped
+    approval and a platform-approved amount.

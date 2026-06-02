@@ -14,6 +14,7 @@ use rust_learn::models::reward_candidate::{
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
     REWARD_STATUS_TEACHER_APPROVED,
 };
+use rust_learn::models::reward_execution_job::REWARD_EXECUTION_STATUS_QUEUED;
 use rust_learn::models::reward_policy::{
     NewRewardPolicy, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
@@ -22,6 +23,7 @@ use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::repositories::reward_execution_job_repository::find_job_by_candidate;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::reward_candidate_service::{
     decide_reward_amount, decide_reward_candidate_by_teacher, submit_course_reward_candidate,
@@ -257,6 +259,12 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     assert_eq!(amount_approved.status, REWARD_STATUS_AMOUNT_APPROVED);
     assert_eq!(amount_approved.amount_reviewer_user_id, Some(reviewer.id()));
     assert_eq!(amount_approved.approved_amount, Some(amount));
+
+    let execution_job = find_job_by_candidate(&mut conn, candidate.id)
+        .await
+        .expect("execution job lookup should succeed")
+        .expect("amount approval should enqueue execution job");
+    assert_eq!(execution_job.status, REWARD_EXECUTION_STATUS_QUEUED);
 }
 
 #[actix_web::test]

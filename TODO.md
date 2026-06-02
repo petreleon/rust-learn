@@ -125,7 +125,7 @@ business logic must ask "does this user have this permission in this scope?"
 - [x] Persist approved, rejected, adjusted, token pending, token confirmed,
       wallet credited, notified, completed, needs reconciliation, and failed
       reward states.
-- [ ] Enqueue token execution only after eligibility and approved amount are
+- [x] Enqueue token execution only after eligibility and approved amount are
       recorded.
 - [ ] Prefer treasury/presigner transfer when available; mint LearnToken only
       when policy explicitly allows supply expansion.

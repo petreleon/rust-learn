@@ -207,6 +207,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    reward_execution_jobs (id) {
+        id -> Int8,
+        reward_candidate_id -> Int8,
+        #[max_length = 32]
+        status -> Varchar,
+        attempts -> Int4,
+        run_after -> Timestamptz,
+        last_error -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     reward_policies (id) {
         id -> Int8,
         #[max_length = 32]
@@ -416,6 +430,7 @@ diesel::joinable!(pending_course_organization_invites -> courses (course_id));
 diesel::joinable!(pending_course_organization_invites -> organizations (organization_id));
 diesel::joinable!(reward_candidates -> courses (course_id));
 diesel::joinable!(reward_candidates -> organizations (source_organization_id));
+diesel::joinable!(reward_execution_jobs -> reward_candidates (reward_candidate_id));
 diesel::joinable!(reward_policies -> courses (course_id));
 diesel::joinable!(reward_policies -> organizations (organization_id));
 diesel::joinable!(reward_policies -> users (created_by_user_id));
@@ -467,6 +482,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     persistent_states,
     platform_roles,
     reward_candidates,
+    reward_execution_jobs,
     reward_policies,
     role_course_hierarchy,
     role_organization_hierarchy,

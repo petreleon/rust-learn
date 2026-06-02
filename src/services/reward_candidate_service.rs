@@ -19,6 +19,7 @@ use crate::repositories::course_repository::user_permission_course_request;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::repositories::reward_candidate_repository::{self, RewardCandidateFilter};
+use crate::repositories::reward_execution_job_repository;
 use bigdecimal::BigDecimal;
 use chrono::Utc;
 use diesel::dsl::exists;
@@ -202,7 +203,7 @@ pub async fn decide_reward_amount(
                 ));
             }
 
-            reward_candidate_repository::update_amount_decision(
+            let updated = reward_candidate_repository::update_amount_decision(
                 conn,
                 candidate_id,
                 actor_user_id,
@@ -212,7 +213,14 @@ pub async fn decide_reward_amount(
                 Utc::now(),
             )
             .await
-            .map_err(RewardCandidateError::from)
+            .map_err(RewardCandidateError::from)?;
+
+            if target_status == REWARD_STATUS_AMOUNT_APPROVED {
+                reward_execution_job_repository::enqueue_reward_execution_job(conn, candidate_id)
+                    .await?;
+            }
+
+            Ok(updated)
         })
     })
     .await
