@@ -6,6 +6,7 @@ pub mod platform_permission_repository;
 pub mod platform_repository;
 pub mod reward_candidate_repository;
 pub mod reward_execution_job_repository;
+pub mod reward_payout_record_repository;
 pub mod reward_policy_repository;
 pub mod teacher_application_repository;
 pub mod user_repository;

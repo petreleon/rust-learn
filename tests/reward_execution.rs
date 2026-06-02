@@ -4,14 +4,15 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{
-    courses, internal_transactions, reward_candidates, reward_policies, transactions,
+    courses, external_transactions, internal_transactions, reward_candidates,
+    reward_payout_records, reward_policies, transactions, transactions_external_transactions,
     transactions_internal_transactions, wallets,
 };
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::reward_candidate::{
     NewRewardCandidate, RewardCandidate, REWARD_EVENT_COURSE_COMPLETION, REWARD_SOURCE_COURSE,
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
-    REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_WALLET_CREDITED,
+    REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_TOKEN_PENDING, REWARD_STATUS_WALLET_CREDITED,
 };
 use rust_learn::models::reward_policy::{
     NewRewardPolicy, REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN,
@@ -21,7 +22,8 @@ use rust_learn::models::user::User;
 use rust_learn::repositories::persistent_state_repository::set_persistent_state;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::reward_execution_service::{
-    credit_reward_wallet, plan_reward_payout, RewardExecutionError, REWARD_PAYOUT_METHOD_MINT,
+    credit_reward_wallet, plan_reward_payout, record_reward_token_confirmation,
+    RewardExecutionError, RewardTokenConfirmationRequest, REWARD_PAYOUT_METHOD_MINT,
     REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER, REWARD_TRANSACTION_TYPE_WALLET_CREDIT,
 };
 use serde_json::json;
@@ -29,6 +31,15 @@ use serde_json::json;
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
+}
+
+fn unique_hash(prefix: &str) -> String {
+    format!(
+        "0x{}{:x}{:x}",
+        prefix,
+        std::process::id(),
+        chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
+    )
 }
 
 async fn setup_conn(
@@ -353,4 +364,108 @@ async fn off_chain_policy_can_credit_wallet_after_amount_approval() {
         .expect("off-chain policy should credit wallet after amount approval");
     assert!(credited.credited);
     assert_eq!(credited.amount, BigDecimal::from(9));
+}
+
+#[actix_web::test]
+async fn token_confirmation_records_external_transaction_and_candidate_link() {
+    let mut conn = setup_conn().await;
+    let course = create_course(&mut conn, &unique_string("TokenConfirmationCourse")).await;
+    let student = create_user_helper(&mut conn, "token_confirmation_student").await;
+    let submitter = create_user_helper(&mut conn, "token_confirmation_submitter").await;
+    create_course_reward_policy(&mut conn, course.id, REWARD_PAYMENT_TREASURY_TRANSFER).await;
+
+    let candidate = create_reward_candidate(
+        &mut conn,
+        course.id,
+        student.id(),
+        submitter.id(),
+        REWARD_STATUS_TOKEN_PENDING,
+        Some(BigDecimal::from(17)),
+    )
+    .await;
+
+    let request = RewardTokenConfirmationRequest {
+        chain_id: 31337,
+        contract_address: "0x00000000000000000000000000000000000000cc".to_string(),
+        transaction_hash: unique_hash("reward"),
+        log_index: 3,
+        event_type: "transfer".to_string(),
+        from_address: Some("0x00000000000000000000000000000000000000dd".to_string()),
+        to_address: "0x00000000000000000000000000000000000000ee".to_string(),
+        amount: BigDecimal::from(17),
+    };
+
+    let confirmation = record_reward_token_confirmation(&mut conn, candidate.id, request.clone())
+        .await
+        .expect("token-pending candidate should record token confirmation");
+    assert!(confirmation.inserted_external_transaction);
+
+    let external = external_transactions::table
+        .find(confirmation.external_transaction_id)
+        .first::<rust_learn::models::transaction::ExternalTransaction>(&mut conn)
+        .await
+        .expect("external transaction should exist");
+    assert_eq!(external.chain_id, Some(request.chain_id));
+    assert_eq!(
+        external.contract_address.as_deref(),
+        Some(request.contract_address.as_str())
+    );
+    assert_eq!(
+        external.transaction_hash.as_deref(),
+        Some(request.transaction_hash.as_str())
+    );
+    assert_eq!(external.log_index, Some(request.log_index));
+    assert_eq!(external.event_type.as_deref(), Some("transfer"));
+    assert_eq!(
+        external.from_address.as_deref(),
+        request.from_address.as_deref()
+    );
+    assert_eq!(
+        external.to_address.as_deref(),
+        Some(request.to_address.as_str())
+    );
+    assert_eq!(external.amount, request.amount);
+
+    let payout_record = reward_payout_records::table
+        .find(confirmation.payout_record_id)
+        .first::<rust_learn::models::reward_payout_record::RewardPayoutRecord>(&mut conn)
+        .await
+        .expect("reward payout record should exist");
+    assert_eq!(payout_record.reward_candidate_id, candidate.id);
+    assert_eq!(
+        payout_record.external_transaction_id,
+        confirmation.external_transaction_id
+    );
+    assert_eq!(payout_record.transaction_id, confirmation.transaction_id);
+
+    let transaction_link_count = transactions_external_transactions::table
+        .filter(transactions_external_transactions::transaction_id.eq(confirmation.transaction_id))
+        .filter(
+            transactions_external_transactions::external_transaction_id
+                .eq(confirmation.external_transaction_id),
+        )
+        .count()
+        .get_result::<i64>(&mut conn)
+        .await
+        .expect("external transaction link should be queryable");
+    assert_eq!(transaction_link_count, 1);
+
+    let candidate_status = reward_candidates::table
+        .find(candidate.id)
+        .select(reward_candidates::status)
+        .first::<String>(&mut conn)
+        .await
+        .expect("candidate status should be queryable");
+    assert_eq!(candidate_status, REWARD_STATUS_TOKEN_CONFIRMED);
+
+    let duplicate = record_reward_token_confirmation(&mut conn, candidate.id, request)
+        .await
+        .expect("duplicate token confirmation should be idempotent");
+    assert!(!duplicate.inserted_external_transaction);
+    assert_eq!(duplicate.transaction_id, confirmation.transaction_id);
+    assert_eq!(
+        duplicate.external_transaction_id,
+        confirmation.external_transaction_id
+    );
+    assert_eq!(duplicate.payout_record_id, confirmation.payout_record_id);
 }

@@ -1,21 +1,25 @@
 use crate::db::schema::{
-    courses_organizations, internal_transactions, reward_candidates, reward_policies, transactions,
+    courses_organizations, external_transactions, internal_transactions, reward_candidates,
+    reward_policies, transactions, transactions_external_transactions,
     transactions_internal_transactions, wallets,
 };
 use crate::models::reward_candidate::{
     RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_TOKEN_CONFIRMED,
-    REWARD_STATUS_WALLET_CREDITED,
+    REWARD_STATUS_TOKEN_PENDING, REWARD_STATUS_WALLET_CREDITED,
 };
+use crate::models::reward_payout_record::NewRewardPayoutRecord;
 use crate::models::reward_policy::{
     RewardPolicy, REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN, REWARD_PAYMENT_TREASURY_TRANSFER,
     REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
 };
 use crate::models::transaction::{
-    NewInternalTransaction, NewTransaction, NewTransactionInternalTransactionLink,
+    ExternalTransaction, NewExternalTransaction, NewInternalTransaction, NewTransaction,
+    NewTransactionExternalTransactionLink, NewTransactionInternalTransactionLink,
 };
 use crate::models::wallet::Wallet;
 use crate::repositories::persistent_state_repository::get_persistent_state;
 use crate::repositories::reward_candidate_repository;
+use crate::repositories::reward_payout_record_repository;
 use crate::services::wallet_service;
 use bigdecimal::BigDecimal;
 use diesel::prelude::*;
@@ -46,6 +50,27 @@ pub struct RewardWalletCreditResult {
     pub internal_transaction_id: Option<i64>,
     pub amount: BigDecimal,
     pub credited: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RewardTokenConfirmationRequest {
+    pub chain_id: i64,
+    pub contract_address: String,
+    pub transaction_hash: String,
+    pub log_index: i64,
+    pub event_type: String,
+    pub from_address: Option<String>,
+    pub to_address: String,
+    pub amount: BigDecimal,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RewardTokenConfirmationResult {
+    pub candidate_id: i64,
+    pub transaction_id: i64,
+    pub external_transaction_id: i64,
+    pub payout_record_id: i64,
+    pub inserted_external_transaction: bool,
 }
 
 #[derive(Debug, PartialEq)]
@@ -145,6 +170,63 @@ pub async fn credit_reward_wallet(
                 internal_transaction_id: Some(internal_transaction_id),
                 amount,
                 credited: true,
+            })
+        })
+    })
+    .await
+}
+
+pub async fn record_reward_token_confirmation(
+    conn: &mut AsyncPgConnection,
+    candidate_id: i64,
+    request: RewardTokenConfirmationRequest,
+) -> Result<RewardTokenConfirmationResult, RewardExecutionError> {
+    validate_token_confirmation_request(&request)?;
+
+    conn.transaction::<_, RewardExecutionError, _>(|conn| {
+        Box::pin(async move {
+            if let Some(existing_record) =
+                reward_payout_record_repository::find_reward_payout_record_by_candidate(
+                    conn,
+                    candidate_id,
+                )
+                .await?
+            {
+                return Ok(RewardTokenConfirmationResult {
+                    candidate_id,
+                    transaction_id: existing_record.transaction_id,
+                    external_transaction_id: existing_record.external_transaction_id,
+                    payout_record_id: existing_record.id,
+                    inserted_external_transaction: false,
+                });
+            }
+
+            let candidate = reward_candidate_repository::find_candidate(conn, candidate_id).await?;
+            if candidate.status != REWARD_STATUS_TOKEN_PENDING {
+                return Err(RewardExecutionError::InvalidStatus(
+                    "reward candidate must be token pending before token confirmation".to_string(),
+                ));
+            }
+
+            let (transaction_id, external_transaction_id, inserted_external_transaction) =
+                record_external_reward_transaction(conn, &request).await?;
+            let payout_record = reward_payout_record_repository::create_reward_payout_record(
+                conn,
+                NewRewardPayoutRecord {
+                    reward_candidate_id: candidate.id,
+                    transaction_id,
+                    external_transaction_id,
+                },
+            )
+            .await?;
+            mark_candidate_token_confirmed(conn, candidate.id).await?;
+
+            Ok(RewardTokenConfirmationResult {
+                candidate_id: candidate.id,
+                transaction_id,
+                external_transaction_id,
+                payout_record_id: payout_record.id,
+                inserted_external_transaction,
             })
         })
     })
@@ -257,6 +339,175 @@ async fn mark_candidate_wallet_credited(
         ))
         .get_result(conn)
         .await
+}
+
+fn validate_token_confirmation_request(
+    request: &RewardTokenConfirmationRequest,
+) -> Result<(), RewardExecutionError> {
+    if request.chain_id <= 0 {
+        return Err(RewardExecutionError::InvalidInput(
+            "chain_id must be positive".to_string(),
+        ));
+    }
+    if request.contract_address.trim().is_empty() {
+        return Err(RewardExecutionError::InvalidInput(
+            "contract_address is required".to_string(),
+        ));
+    }
+    if request.transaction_hash.trim().is_empty() {
+        return Err(RewardExecutionError::InvalidInput(
+            "transaction_hash is required".to_string(),
+        ));
+    }
+    if request.log_index < 0 {
+        return Err(RewardExecutionError::InvalidInput(
+            "log_index cannot be negative".to_string(),
+        ));
+    }
+    if request.to_address.trim().is_empty() {
+        return Err(RewardExecutionError::InvalidInput(
+            "to_address is required".to_string(),
+        ));
+    }
+    if request.amount <= BigDecimal::from(0) {
+        return Err(RewardExecutionError::InvalidInput(
+            "amount must be positive".to_string(),
+        ));
+    }
+    transaction_type_for_event(&request.event_type)?;
+
+    Ok(())
+}
+
+async fn record_external_reward_transaction(
+    conn: &mut AsyncPgConnection,
+    request: &RewardTokenConfirmationRequest,
+) -> Result<(i64, i64, bool), RewardExecutionError> {
+    if let Some(existing) = find_external_transaction_by_chain_tx_log(
+        conn,
+        request.chain_id,
+        &request.transaction_hash,
+        request.log_index,
+    )
+    .await?
+    {
+        let transaction_id = match find_transaction_for_external(conn, existing.id).await? {
+            Some(transaction_id) => transaction_id,
+            None => create_transaction_for_external(conn, existing.id, &request.event_type).await?,
+        };
+        return Ok((transaction_id, existing.id, false));
+    }
+
+    let transaction_id =
+        create_transaction(conn, transaction_type_for_event(&request.event_type)?).await?;
+    let external_transaction_id = diesel::insert_into(external_transactions::table)
+        .values(NewExternalTransaction {
+            amount: request.amount.clone(),
+            blockchain_address: &request.to_address,
+            chain_id: Some(request.chain_id),
+            contract_address: Some(&request.contract_address),
+            transaction_hash: Some(&request.transaction_hash),
+            log_index: Some(request.log_index),
+            event_type: Some(request.event_type.as_str()),
+            from_address: request.from_address.as_deref(),
+            to_address: Some(&request.to_address),
+        })
+        .returning(external_transactions::id)
+        .get_result(conn)
+        .await?;
+    link_transaction_external(conn, transaction_id, external_transaction_id).await?;
+
+    Ok((transaction_id, external_transaction_id, true))
+}
+
+async fn find_external_transaction_by_chain_tx_log(
+    conn: &mut AsyncPgConnection,
+    chain_id: i64,
+    transaction_hash: &str,
+    log_index: i64,
+) -> QueryResult<Option<ExternalTransaction>> {
+    external_transactions::table
+        .filter(external_transactions::chain_id.eq(chain_id))
+        .filter(external_transactions::transaction_hash.eq(transaction_hash))
+        .filter(external_transactions::log_index.eq(log_index))
+        .first(conn)
+        .await
+        .optional()
+}
+
+async fn find_transaction_for_external(
+    conn: &mut AsyncPgConnection,
+    external_transaction_id: i64,
+) -> QueryResult<Option<i64>> {
+    transactions_external_transactions::table
+        .filter(
+            transactions_external_transactions::external_transaction_id.eq(external_transaction_id),
+        )
+        .select(transactions_external_transactions::transaction_id)
+        .first(conn)
+        .await
+        .optional()
+}
+
+async fn create_transaction_for_external(
+    conn: &mut AsyncPgConnection,
+    external_transaction_id: i64,
+    event_type: &str,
+) -> Result<i64, RewardExecutionError> {
+    let transaction_id = create_transaction(conn, transaction_type_for_event(event_type)?).await?;
+    link_transaction_external(conn, transaction_id, external_transaction_id).await?;
+    Ok(transaction_id)
+}
+
+async fn create_transaction(
+    conn: &mut AsyncPgConnection,
+    transaction_type: &str,
+) -> QueryResult<i64> {
+    diesel::insert_into(transactions::table)
+        .values(NewTransaction {
+            type_: transaction_type,
+        })
+        .returning(transactions::id)
+        .get_result(conn)
+        .await
+}
+
+async fn link_transaction_external(
+    conn: &mut AsyncPgConnection,
+    transaction_id: i64,
+    external_transaction_id: i64,
+) -> QueryResult<usize> {
+    diesel::insert_into(transactions_external_transactions::table)
+        .values(NewTransactionExternalTransactionLink {
+            transaction_id,
+            external_transaction_id,
+        })
+        .execute(conn)
+        .await
+}
+
+async fn mark_candidate_token_confirmed(
+    conn: &mut AsyncPgConnection,
+    candidate_id: i64,
+) -> QueryResult<RewardCandidate> {
+    diesel::update(reward_candidates::table.find(candidate_id))
+        .set((
+            reward_candidates::status.eq(REWARD_STATUS_TOKEN_CONFIRMED),
+            reward_candidates::updated_at.eq(chrono::Utc::now()),
+        ))
+        .get_result(conn)
+        .await
+}
+
+fn transaction_type_for_event(event_type: &str) -> Result<&'static str, RewardExecutionError> {
+    match event_type {
+        "mint" => Ok("token_mint"),
+        "transfer" => Ok("token_transfer"),
+        "import" => Ok("token_import"),
+        _ => Err(RewardExecutionError::InvalidInput(
+            "unsupported token event type".to_string(),
+        )),
+    }
 }
 
 async fn select_payout_method(

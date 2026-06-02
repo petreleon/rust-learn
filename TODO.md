@@ -131,7 +131,7 @@ business logic must ask "does this user have this permission in this scope?"
       when policy explicitly allows supply expansion.
 - [x] Credit the internal wallet only after token confirmation unless the
       deployment is explicitly configured for off-chain-only rewards.
-- [ ] Record external transaction hash, chain id, contract address, log index,
+- [x] Record external transaction hash, chain id, contract address, log index,
       recipient address, amount, and event type for every reward payout.
 - [ ] Send reward notifications after wallet credit succeeds, including course
       context, approved amount, destination wallet, and transaction reference.

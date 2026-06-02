@@ -344,6 +344,9 @@ Reward candidate authorization is intentionally split by scope:
 *   Internal wallet credit is recorded only after `token_confirmed`, except
     for explicitly off-chain reward policies, which can be credited after
     amount approval.
+*   Token confirmation records chain id, contract address, transaction hash,
+    log index, recipient address, amount, and event type in an external
+    transaction and links that record to the reward candidate.
 *   Delegated reward permissions are resolved through the same platform,
     organization, and course permission checks as role permissions. A
     delegation is valid only for its exact scope while it is unexpired and not

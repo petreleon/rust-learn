@@ -242,6 +242,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    reward_payout_records (id) {
+        id -> Int8,
+        reward_candidate_id -> Int8,
+        transaction_id -> Int8,
+        external_transaction_id -> Int8,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     reward_policies (id) {
         id -> Int8,
         #[max_length = 32]
@@ -454,6 +464,9 @@ diesel::joinable!(pending_course_organization_invites -> organizations (organiza
 diesel::joinable!(reward_candidates -> courses (course_id));
 diesel::joinable!(reward_candidates -> organizations (source_organization_id));
 diesel::joinable!(reward_execution_jobs -> reward_candidates (reward_candidate_id));
+diesel::joinable!(reward_payout_records -> external_transactions (external_transaction_id));
+diesel::joinable!(reward_payout_records -> reward_candidates (reward_candidate_id));
+diesel::joinable!(reward_payout_records -> transactions (transaction_id));
 diesel::joinable!(reward_policies -> courses (course_id));
 diesel::joinable!(reward_policies -> organizations (organization_id));
 diesel::joinable!(reward_policies -> users (created_by_user_id));
@@ -507,6 +520,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     platform_roles,
     reward_candidates,
     reward_execution_jobs,
+    reward_payout_records,
     reward_policies,
     role_course_hierarchy,
     role_organization_hierarchy,
