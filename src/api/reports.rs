@@ -5,7 +5,7 @@ use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddle
 use crate::models::param_type::ParamType;
 use crate::services::reporting_service::{
     organization_report_csv, organization_report_summary, platform_report_csv,
-    platform_report_summary,
+    platform_report_summary, platform_reward_dashboard, platform_reward_dashboard_csv,
 };
 use actix_web::{web, HttpResponse, Responder};
 
@@ -45,6 +45,45 @@ async fn export_platform_summary(pool: web::Data<db::DbPool>) -> impl Responder 
         Err(err) => {
             log::error!("event=report_export_failed scope=platform error={:?}", err);
             HttpResponse::InternalServerError().body("Failed to export platform report")
+        }
+    }
+}
+
+async fn get_platform_reward_dashboard(pool: web::Data<db::DbPool>) -> impl Responder {
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match platform_reward_dashboard(&mut conn).await {
+        Ok(dashboard) => HttpResponse::Ok().json(dashboard),
+        Err(err) => {
+            log::error!(
+                "event=report_load_failed scope=platform report=reward_dashboard error={:?}",
+                err
+            );
+            HttpResponse::InternalServerError().body("Failed to load reward dashboard")
+        }
+    }
+}
+
+async fn export_platform_reward_dashboard(pool: web::Data<db::DbPool>) -> impl Responder {
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match platform_reward_dashboard(&mut conn).await {
+        Ok(dashboard) => csv_response(
+            "platform-reward-dashboard.csv",
+            platform_reward_dashboard_csv(&dashboard),
+        ),
+        Err(err) => {
+            log::error!(
+                "event=report_export_failed scope=platform report=reward_dashboard error={:?}",
+                err
+            );
+            HttpResponse::InternalServerError().body("Failed to export reward dashboard")
         }
     }
 }
@@ -120,6 +159,18 @@ pub fn reports_scope() -> actix_web::Scope {
                     )),
             ),
         )
+        .service(
+            web::resource("/platform/reward-dashboard").route(
+                web::get().to(get_platform_reward_dashboard).wrap(
+                    PlatformPermissionMiddleware::new(Permissions::VIEW_REWARD_AUDIT.to_string()),
+                ),
+            ),
+        )
+        .service(web::resource("/platform/reward-dashboard.csv").route(
+            web::get().to(export_platform_reward_dashboard).wrap(
+                PlatformPermissionMiddleware::new(Permissions::EXPORT_DATA.to_string()),
+            ),
+        ))
         .service(
             web::resource("/organizations/{id}/summary").route(
                 web::get().to(get_organization_summary).wrap(

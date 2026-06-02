@@ -190,7 +190,7 @@ business logic must ask "does this user have this permission in this scope?"
 
 ## Reporting And Audit
 
-- [ ] Add central administration dashboards for teacher applications, reward
+- [x] Add central administration dashboards for teacher applications, reward
       candidates, pending approval amounts, payout failures, and reconciliation
       mismatches.
 - [ ] Add platform fraud dashboards for active teacher, organization, course,

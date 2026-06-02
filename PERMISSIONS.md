@@ -347,6 +347,10 @@ Reward candidate authorization is intentionally split by scope:
     own internal wallet transaction. They require platform `RECONCILE_WALLETS`
     or `MANAGE_WALLETS` and do not mutate the original reward candidate
     status, approved amount, or decision timestamps.
+*   The central reward dashboard requires platform `VIEW_REWARD_AUDIT` and
+    summarizes teacher applications, reward candidate states, pending amount
+    approvals, failed payout jobs, and reconciliation mismatches. Its CSV
+    export additionally requires platform `EXPORT_DATA`.
 *   Reward candidate eligibility requires a verified recipient, course reward
     status permission for that recipient, a covering active reward policy, and
     event evidence such as completion percentage or passing score. Activity
