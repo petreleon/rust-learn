@@ -4,6 +4,18 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
+#[derive(Debug, Default)]
+pub struct RewardFraudBlockFilter {
+    pub scope_type: Option<String>,
+    pub teacher_user_id: Option<i32>,
+    pub organization_id: Option<i32>,
+    pub course_id: Option<i32>,
+    pub reward_policy_id: Option<i64>,
+    pub active: Option<bool>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
 pub async fn create_reward_fraud_block(
     conn: &mut AsyncPgConnection,
     new_block: NewRewardFraudBlock,
@@ -19,6 +31,54 @@ pub async fn find_reward_fraud_block(
     block_id: i64,
 ) -> QueryResult<RewardFraudBlock> {
     reward_fraud_blocks::table.find(block_id).first(conn).await
+}
+
+pub async fn list_reward_fraud_blocks(
+    conn: &mut AsyncPgConnection,
+    filter: RewardFraudBlockFilter,
+) -> QueryResult<Vec<RewardFraudBlock>> {
+    let now = Utc::now();
+    let mut query = reward_fraud_blocks::table.into_boxed();
+
+    if let Some(scope_type) = filter.scope_type {
+        query = query.filter(reward_fraud_blocks::scope_type.eq(scope_type));
+    }
+    if let Some(teacher_user_id) = filter.teacher_user_id {
+        query = query.filter(reward_fraud_blocks::teacher_user_id.eq(Some(teacher_user_id)));
+    }
+    if let Some(organization_id) = filter.organization_id {
+        query = query.filter(reward_fraud_blocks::organization_id.eq(Some(organization_id)));
+    }
+    if let Some(course_id) = filter.course_id {
+        query = query.filter(reward_fraud_blocks::course_id.eq(Some(course_id)));
+    }
+    if let Some(reward_policy_id) = filter.reward_policy_id {
+        query = query.filter(reward_fraud_blocks::reward_policy_id.eq(Some(reward_policy_id)));
+    }
+    if let Some(active) = filter.active {
+        if active {
+            query = query
+                .filter(reward_fraud_blocks::revoked_at.is_null())
+                .filter(
+                    reward_fraud_blocks::expires_at
+                        .is_null()
+                        .or(reward_fraud_blocks::expires_at.gt(now)),
+                );
+        } else {
+            query = query.filter(
+                reward_fraud_blocks::revoked_at
+                    .is_not_null()
+                    .or(reward_fraud_blocks::expires_at.le(now)),
+            );
+        }
+    }
+
+    query
+        .order(reward_fraud_blocks::created_at.desc())
+        .limit(filter.limit.unwrap_or(100).clamp(1, 500))
+        .offset(filter.offset.unwrap_or(0).max(0))
+        .load(conn)
+        .await
 }
 
 pub async fn revoke_reward_fraud_block(

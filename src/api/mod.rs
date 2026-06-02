@@ -3,10 +3,12 @@ pub mod authentication;
 pub mod chapters;
 pub mod contents;
 pub mod courses;
+pub mod delegated_permissions;
 pub mod health;
 pub mod organizations;
 pub mod reports;
 pub mod reward_candidates;
+pub mod reward_fraud_blocks;
 pub mod reward_policies;
 pub mod roles;
 pub mod teacher_applications;
@@ -41,7 +43,9 @@ pub fn api_scope() -> Scope<
         .service(courses::course_scope())
         .service(organizations::organization_scope())
         .service(reports::reports_scope())
+        .service(delegated_permissions::delegated_permission_scope())
         .service(reward_candidates::reward_candidate_scope())
+        .service(reward_fraud_blocks::reward_fraud_block_scope())
         .service(reward_policies::reward_policy_scope())
         .service(roles::roles_scope())
         .service(teacher_applications::teacher_application_scope())

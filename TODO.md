@@ -211,10 +211,10 @@ business logic must ask "does this user have this permission in this scope?"
       reward fraud blocks, and delegated permissions.
 - [ ] Add repository/service layers for each business workflow. Keep complex
       business decisions out of Actix handlers.
-- [ ] Add API endpoints for teacher applications, review decisions, reward
+- [x] Add API endpoints for teacher applications, review decisions, reward
       policy management, reward amount approval, reward status, and delegated
       permission management.
-- [ ] Add API endpoints for platform fraud-block creation, revocation, listing,
+- [x] Add API endpoints for platform fraud-block creation, revocation, listing,
       and audit history. These endpoints must not share handlers with reward
       candidate approval or amount approval.
 - [ ] Add idempotency keys and unique constraints wherever a business event can

@@ -206,6 +206,22 @@ approved amount, wallet credit details, and token transaction references when
 available. Rows are included only for courses where the requester has
 `VIEW_COURSE_REWARD_STATUS`.
 
+### Reward fraud and delegation APIs
+
+Platform reward-fraud operators can manage reward blocks through
+`POST /api/reward-fraud-blocks`, `GET /api/reward-fraud-blocks`,
+`PUT /api/reward-fraud-blocks/{id}/revoke`, and
+`GET /api/reward-fraud-blocks/{id}/audit`. Teacher blocks require
+`BLOCK_REWARD_TEACHER` or `MANAGE_REWARD_FRAUD_BLOCKS`; organization blocks
+require `BLOCK_REWARD_ORGANIZATION` or `MANAGE_REWARD_FRAUD_BLOCKS`; course
+and reward-policy blocks require `MANAGE_REWARD_FRAUD_BLOCKS`. Listing and
+audit history require `VIEW_REWARD_AUDIT` or `MANAGE_REWARD_FRAUD_BLOCKS`.
+
+Central administrators with `DELEGATE_REWARD_APPROVAL` can grant, list, and
+revoke delegated reward permissions with `POST /api/delegated-permissions`,
+`GET /api/delegated-permissions`, and
+`PUT /api/delegated-permissions/{id}/revoke`.
+
 ### Course discovery API
 
 `GET /api/courses` supports `search`, `organization_id`, `limit`, and `offset`

@@ -15,7 +15,7 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::AsyncPgConnection;
 use diesel_async::RunQueryDsl;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -28,6 +28,33 @@ pub struct RewardFraudBlockRequest {
     pub reason: String,
     pub evidence_reference: Option<String>,
     pub expires_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct ListRewardFraudBlocksRequest {
+    pub scope_type: Option<String>,
+    pub teacher_user_id: Option<i32>,
+    pub organization_id: Option<i32>,
+    pub course_id: Option<i32>,
+    pub reward_policy_id: Option<i64>,
+    pub active: Option<bool>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct RewardFraudBlockAuditEvent {
+    pub fraud_block_id: i64,
+    pub event_type: String,
+    pub actor_user_id: i32,
+    pub scope_type: String,
+    pub teacher_user_id: Option<i32>,
+    pub organization_id: Option<i32>,
+    pub course_id: Option<i32>,
+    pub reward_policy_id: Option<i64>,
+    pub reason: String,
+    pub evidence_reference: Option<String>,
+    pub occurred_at: DateTime<Utc>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -97,6 +124,79 @@ pub async fn revoke_reward_fraud_block(
     .map_err(RewardFraudBlockError::from)?;
     notify_reward_fraud_block_transition(conn, &revoked, "revoked").await?;
     Ok(revoked)
+}
+
+pub async fn list_reward_fraud_blocks(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    request: ListRewardFraudBlocksRequest,
+) -> Result<Vec<RewardFraudBlock>, RewardFraudBlockError> {
+    ensure_reward_fraud_report_permission(conn, actor_user_id).await?;
+
+    let scope_type = request
+        .scope_type
+        .as_deref()
+        .map(normalize_scope_type)
+        .transpose()?;
+
+    reward_fraud_block_repository::list_reward_fraud_blocks(
+        conn,
+        reward_fraud_block_repository::RewardFraudBlockFilter {
+            scope_type,
+            teacher_user_id: request.teacher_user_id,
+            organization_id: request.organization_id,
+            course_id: request.course_id,
+            reward_policy_id: request.reward_policy_id,
+            active: request.active,
+            limit: request.limit,
+            offset: request.offset,
+        },
+    )
+    .await
+    .map_err(RewardFraudBlockError::from)
+}
+
+pub async fn reward_fraud_block_audit_history(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    block_id: i64,
+) -> Result<Vec<RewardFraudBlockAuditEvent>, RewardFraudBlockError> {
+    ensure_reward_fraud_report_permission(conn, actor_user_id).await?;
+    let block = reward_fraud_block_repository::find_reward_fraud_block(conn, block_id).await?;
+
+    let mut events = vec![RewardFraudBlockAuditEvent {
+        fraud_block_id: block.id,
+        event_type: "created".to_string(),
+        actor_user_id: block.created_by_user_id,
+        scope_type: block.scope_type.clone(),
+        teacher_user_id: block.teacher_user_id,
+        organization_id: block.organization_id,
+        course_id: block.course_id,
+        reward_policy_id: block.reward_policy_id,
+        reason: block.reason.clone(),
+        evidence_reference: block.evidence_reference.clone(),
+        occurred_at: block.created_at,
+    }];
+
+    if let (Some(revoked_by_user_id), Some(revoked_at)) =
+        (block.revoked_by_user_id, block.revoked_at)
+    {
+        events.push(RewardFraudBlockAuditEvent {
+            fraud_block_id: block.id,
+            event_type: "revoked".to_string(),
+            actor_user_id: revoked_by_user_id,
+            scope_type: block.scope_type,
+            teacher_user_id: block.teacher_user_id,
+            organization_id: block.organization_id,
+            course_id: block.course_id,
+            reward_policy_id: block.reward_policy_id,
+            reason: block.reason,
+            evidence_reference: block.evidence_reference,
+            occurred_at: revoked_at,
+        });
+    }
+
+    Ok(events)
 }
 
 async fn notify_reward_fraud_block_transition(
@@ -355,6 +455,26 @@ async fn ensure_scope_permission(
             .collect::<Vec<_>>()
             .join(" or "),
     ))
+}
+
+async fn ensure_reward_fraud_report_permission(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+) -> Result<(), RewardFraudBlockError> {
+    for permission in [
+        Permissions::VIEW_REWARD_AUDIT,
+        Permissions::MANAGE_REWARD_FRAUD_BLOCKS,
+    ] {
+        if user_permission_platform_request(conn, actor_user_id, &permission.to_string()).await? {
+            return Ok(());
+        }
+    }
+
+    Err(RewardFraudBlockError::PermissionDenied(format!(
+        "{} or {}",
+        Permissions::VIEW_REWARD_AUDIT,
+        Permissions::MANAGE_REWARD_FRAUD_BLOCKS
+    )))
 }
 
 fn required_permissions_for_scope(

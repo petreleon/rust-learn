@@ -403,7 +403,17 @@ Reward candidate authorization is intentionally split by scope:
     affected teacher, organization reward operators, and platform reward
     reviewers resolved from explicit reward reporting, audit, or fraud-block
     permissions.
+*   Reward fraud-block APIs are separated from reward candidate approval APIs:
+    `POST /api/reward-fraud-blocks`, `GET /api/reward-fraud-blocks`,
+    `PUT /api/reward-fraud-blocks/{id}/revoke`, and
+    `GET /api/reward-fraud-blocks/{id}/audit`. Listing and audit history
+    require platform `VIEW_REWARD_AUDIT` or `MANAGE_REWARD_FRAUD_BLOCKS`;
+    create/revoke use the target-specific fraud-block permissions above.
 *   Delegated reward permissions are resolved through the same platform,
     organization, and course permission checks as role permissions. A
     delegation is valid only for its exact scope while it is unexpired and not
     revoked.
+*   Delegated reward permission management uses
+    `POST /api/delegated-permissions`, `GET /api/delegated-permissions`, and
+    `PUT /api/delegated-permissions/{id}/revoke`, all gated by platform
+    `DELEGATE_REWARD_APPROVAL`.

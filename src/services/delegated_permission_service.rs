@@ -10,6 +10,7 @@ use chrono::Utc;
 use diesel::dsl::{exists, select};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use serde::Deserialize;
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq)]
@@ -18,6 +19,19 @@ pub enum DelegatedPermissionError {
     InvalidInput(String),
     NotFound,
     Database(String),
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct ListDelegatedPermissionsRequest {
+    pub grantor_user_id: Option<i32>,
+    pub grantee_user_id: Option<i32>,
+    pub permission: Option<String>,
+    pub scope_type: Option<String>,
+    pub organization_id: Option<i32>,
+    pub course_id: Option<i32>,
+    pub active: Option<bool>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
 }
 
 impl From<diesel::result::Error> for DelegatedPermissionError {
@@ -107,6 +121,42 @@ pub async fn revoke_delegated_permission(
     );
 
     Ok(delegation)
+}
+
+pub async fn list_delegated_permissions(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    request: ListDelegatedPermissionsRequest,
+) -> Result<Vec<DelegatedPermission>, DelegatedPermissionError> {
+    ensure_can_delegate_reward_permissions(conn, actor_user_id).await?;
+
+    let permission = request
+        .permission
+        .as_deref()
+        .map(normalize_permission)
+        .transpose()?;
+    let scope_type = request
+        .scope_type
+        .as_deref()
+        .map(normalize_scope_type)
+        .transpose()?;
+
+    delegated_permission_repository::list_delegated_permissions(
+        conn,
+        delegated_permission_repository::DelegatedPermissionFilter {
+            grantor_user_id: request.grantor_user_id,
+            grantee_user_id: request.grantee_user_id,
+            permission,
+            scope_type,
+            organization_id: request.organization_id,
+            course_id: request.course_id,
+            active: request.active,
+            limit: request.limit,
+            offset: request.offset,
+        },
+    )
+    .await
+    .map_err(DelegatedPermissionError::from)
 }
 
 async fn ensure_can_delegate_reward_permissions(
