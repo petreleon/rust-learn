@@ -20,7 +20,7 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 - [x] Add unit tests for authentication helper logic and edge cases.
 - [x] Add worker tests for retry state transitions, terminal failures, and heartbeat behavior.
 - [x] Keep blockchain integration tests covering deploy, mint, presigner, and EIP-2612 permit behavior.
-- [x] Add CI steps for `cargo fmt --all --check`, `cargo test`, and frontend lint/build checks.
+- [x] Keep quality gates runnable locally with Docker Compose for `cargo fmt --all --check`, `cargo test`, and frontend lint/build checks. Hosted GitHub CI is disabled to avoid Actions usage.
 - [x] Document any tests that require Docker, PostgreSQL, Anvil/Geth, RustFS, or ffmpeg.
 
 ## Priority 2 — Developer experience and setup
@@ -44,7 +44,7 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 
 ## Priority 4 — Operations and deployment
 
-- [ ] Verify Docker Compose builds on Linux and ARM64 targets.
+- [x] Verify Docker Compose builds on Linux and ARM64 targets.
 - [x] Validate Kubernetes manifests against the current service names, health checks, ports, and environment variables.
 - [x] Add production-oriented health/readiness endpoints for API dependencies.
 - [ ] Add worker metrics for queue depth, attempts, processing duration, and failed jobs.

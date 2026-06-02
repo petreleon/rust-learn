@@ -361,10 +361,19 @@ The worker writes `/tmp/worker_alive`; Docker Compose uses this heartbeat for he
 
 ## Testing and quality checks
 
+Hosted GitHub Actions CI is intentionally disabled. Run the quality gates
+locally, preferably through Docker Compose, to avoid spending hosted CI minutes.
+
 Run all Rust tests:
 
 ```bash
 cargo test
+```
+
+Docker Compose equivalent:
+
+```bash
+docker compose run --rm --no-deps --entrypoint bash worker -lc 'export PATH=/usr/local/cargo/bin:$PATH; cd /usr/src/app; cargo test'
 ```
 
 Run blockchain integration tests:
@@ -379,6 +388,12 @@ Check formatting:
 cargo fmt --all --check
 ```
 
+Docker Compose equivalent:
+
+```bash
+docker compose run --rm --no-deps --entrypoint bash worker -lc 'export PATH=/usr/local/cargo/bin:$PATH; cd /usr/src/app; cargo fmt --all --check'
+```
+
 Frontend checks:
 
 ```bash
@@ -386,6 +401,23 @@ cd web
 npm run lint
 npm run build
 ```
+
+Docker Compose equivalent:
+
+```bash
+docker compose run --rm --no-deps web npm run lint
+docker compose run --rm --no-deps web npm run build
+```
+
+Build the Linux ARM64 Compose images:
+
+```bash
+DOCKER_DEFAULT_PLATFORM=linux/arm64 docker compose build app web worker
+```
+
+This build was last verified locally for `rust-learn-app`, `rust-learn-web`,
+and `rust-learn-worker`. The web image may report `npm audit` advisories during
+dependency installation; those advisories do not fail the image build.
 
 Makefile shortcuts:
 
