@@ -337,3 +337,7 @@ Reward candidate authorization is intentionally split by scope:
     evidence does not authorize the student to submit the candidate.
 *   Reward execution is queued only after a candidate has course-scoped
     approval and a platform-approved amount.
+*   Delegated reward permissions are resolved through the same platform,
+    organization, and course permission checks as role permissions. A
+    delegation is valid only for its exact scope while it is unexpired and not
+    revoked.

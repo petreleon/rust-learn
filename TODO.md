@@ -94,7 +94,7 @@ business logic must ask "does this user have this permission in this scope?"
       organization only through `SUBMIT_ORG_COURSE_REWARD_EVENT`; organization
       submission creates a pending candidate and must still receive course
       teacher approval before platform amount approval.
-- [ ] Allow delegated moderators or operators to submit reward candidates only
+- [x] Allow delegated moderators or operators to submit reward candidates only
       when they have a valid delegated permission covering the exact course or
       organization scope. Do not check the moderator role name.
 - [x] Treat student course activity as completion evidence, not as authority to
@@ -119,7 +119,7 @@ business logic must ask "does this user have this permission in this scope?"
 - [x] Do not allow course-scoped teacher approval to set or change the token
       amount. Teacher approval confirms the reward candidate; platform amount
       approval controls payout value.
-- [ ] Support delegated reward approval so central administration can grant a
+- [x] Support delegated reward approval so central administration can grant a
       platform moderator or another operator permission to review reward
       amounts without changing reward service logic.
 - [x] Persist approved, rejected, adjusted, token pending, token confirmed,
@@ -175,18 +175,18 @@ business logic must ask "does this user have this permission in this scope?"
 
 ## Administration And Delegation
 
-- [ ] Add a permission-delegation model that lets central administration grant
+- [x] Add a permission-delegation model that lets central administration grant
       a scoped permission to another user for a limited scope and optional
       expiration.
-- [ ] Require `DELEGATE_REWARD_APPROVAL` or another explicit platform
+- [x] Require `DELEGATE_REWARD_APPROVAL` or another explicit platform
       permission before a user can delegate reward approval ability.
-- [ ] Store delegation reason, scope, expiration, grantor, grantee, and revoked
+- [x] Store delegation reason, scope, expiration, grantor, grantee, and revoked
       status.
-- [ ] Revoke delegated permissions without deleting the historical delegation
+- [x] Revoke delegated permissions without deleting the historical delegation
       record.
-- [ ] Include delegated permissions in middleware authorization checks only
+- [x] Include delegated permissions in middleware authorization checks only
       when scope, expiration, and revocation state are valid.
-- [ ] Log every delegated permission grant, use, and revocation.
+- [x] Log every delegated permission grant, use, and revocation.
 
 ## Reporting And Audit
 

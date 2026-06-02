@@ -1,5 +1,6 @@
 use crate::models::role_organization_hierarchy::RoleOrganizationHierarchy;
 use crate::models::user_role_organization::UserRoleOrganization;
+use crate::repositories::delegated_permission_repository;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use std::cmp::Ordering;
@@ -11,7 +12,27 @@ pub async fn user_permission_organization_request(
     organization_id: i32,
     permission: &str,
 ) -> QueryResult<bool> {
-    UserRoleOrganization::has_permission(conn, user_id, organization_id, permission).await
+    if UserRoleOrganization::has_permission(conn, user_id, organization_id, permission).await? {
+        return Ok(true);
+    }
+
+    let has_delegation = delegated_permission_repository::has_active_organization_delegation(
+        conn,
+        user_id,
+        organization_id,
+        permission,
+    )
+    .await?;
+    if has_delegation {
+        log::info!(
+            "event=delegated_permission_used scope=organization user_id={} organization_id={} permission={}",
+            user_id,
+            organization_id,
+            permission
+        );
+    }
+
+    Ok(has_delegation)
 }
 
 /// Compares the hierarchy of two users in an organization

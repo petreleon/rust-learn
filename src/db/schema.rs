@@ -77,6 +77,27 @@ diesel::table! {
 }
 
 diesel::table! {
+    delegated_permissions (id) {
+        id -> Int8,
+        grantor_user_id -> Int4,
+        grantee_user_id -> Int4,
+        #[max_length = 128]
+        permission -> Varchar,
+        #[max_length = 32]
+        scope_type -> Varchar,
+        organization_id -> Nullable<Int4>,
+        course_id -> Nullable<Int4>,
+        reason -> Nullable<Text>,
+        expires_at -> Nullable<Timestamptz>,
+        revoked_at -> Nullable<Timestamptz>,
+        revoked_by_user_id -> Nullable<Int4>,
+        revoke_reason -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     email_verification_tokens (id) {
         id -> Int4,
         user_id -> Int4,
@@ -421,6 +442,8 @@ diesel::joinable!(contents -> chapters (chapter_id));
 diesel::joinable!(course_join_requests -> courses (course_id));
 diesel::joinable!(courses_organizations -> courses (course_id));
 diesel::joinable!(courses_organizations -> organizations (organization_id));
+diesel::joinable!(delegated_permissions -> courses (course_id));
+diesel::joinable!(delegated_permissions -> organizations (organization_id));
 diesel::joinable!(email_verification_tokens -> users (user_id));
 diesel::joinable!(internal_transactions -> wallets (wallet_id));
 diesel::joinable!(notifications -> users (user_id));
@@ -470,6 +493,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     courses,
     courses_organizations,
     db_version_control,
+    delegated_permissions,
     email_verification_tokens,
     external_transactions,
     internal_transactions,
