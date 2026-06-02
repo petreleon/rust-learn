@@ -18,7 +18,9 @@ business logic must ask "does this user have this permission in this scope?"
       `REVIEW_TEACHER_APPLICATIONS`, `APPROVE_TEACHER_APPLICATION`,
       `REJECT_TEACHER_APPLICATION`, `DELEGATE_REWARD_APPROVAL`,
       `SET_REWARD_POLICY`, `APPROVE_REWARD_AMOUNT`,
-      `EXECUTE_REWARD_PAYOUT`, and `VIEW_REWARD_AUDIT`.
+      `EXECUTE_REWARD_PAYOUT`, `VIEW_REWARD_AUDIT`,
+      `MANAGE_REWARD_FRAUD_BLOCKS`, `BLOCK_REWARD_TEACHER`, and
+      `BLOCK_REWARD_ORGANIZATION`.
 - [ ] Define suggested organization permissions:
       `NOMINATE_TEACHER_FOR_PLATFORM_REVIEW`,
       `VIEW_ORG_TEACHER_APPLICATIONS`, `SUBMIT_ORG_COURSE_REWARD_EVENT`,
@@ -76,7 +78,7 @@ business logic must ask "does this user have this permission in this scope?"
       completion, manually approved completion, and administrative adjustment.
 - [ ] Use a two-step reward decision: course-scoped teacher approval confirms
       that the student should receive a reward for the course, and
-      platform-scoped amount approval decides the exact token amount.
+      platform-scoped amount approval decides only the exact token amount.
 - [ ] Restrict manual reward candidate submission for a course to users with
       `SUBMIT_COURSE_REWARD_EVENT` or `CREATE_REWARDABLE_COURSE_EVENT` in that
       exact course scope. This is the permission that should normally be
@@ -107,6 +109,9 @@ business logic must ask "does this user have this permission in this scope?"
       permission. This permission should normally be assigned to platform admin
       or platform moderator permission bundles, but the code must check only
       the permission.
+- [ ] Do not let `APPROVE_REWARD_AMOUNT` approve, reject, create, or submit
+      reward candidates. Platform amount approval can set payout value only
+      after course-scoped teacher approval has already confirmed the candidate.
 - [ ] Do not allow course-scoped teacher approval to set or change the token
       amount. Teacher approval confirms the reward candidate; platform amount
       approval controls payout value.
@@ -129,6 +134,27 @@ business logic must ask "does this user have this permission in this scope?"
 - [ ] Add reconciliation that repairs missing wallet credits, notifications, or
       transaction links from the last confirmed reward state without creating
       duplicate payouts.
+
+## Fraud And Reward Blocking
+
+- [ ] Add a reward fraud/block model for platform-level intervention against a
+      teacher, organization, course, or reward policy scope.
+- [ ] Allow platform operators to block a teacher from reward submission or
+      candidate approval only through `BLOCK_REWARD_TEACHER` or
+      `MANAGE_REWARD_FRAUD_BLOCKS`.
+- [ ] Allow platform operators to block an organization from reward submissions
+      only through `BLOCK_REWARD_ORGANIZATION` or
+      `MANAGE_REWARD_FRAUD_BLOCKS`.
+- [ ] A fraud block must prevent new reward candidate submissions, teacher
+      candidate approvals, and amount approvals for the blocked scope while the
+      block is active.
+- [ ] A fraud block must not itself approve or reject a student reward
+      candidate. It only pauses or blocks reward activity until an explicit
+      permitted reviewer handles the candidate.
+- [ ] Store block reason, evidence reference, blocked scope, created_by,
+      expiration when present, revoked_by, revoked_at, and audit timestamps.
+- [ ] Notify affected teachers, organization operators, and platform reviewers
+      when a block is created or revoked.
 
 ## Wallet And Payment Business Flow
 
@@ -163,6 +189,8 @@ business logic must ask "does this user have this permission in this scope?"
 - [ ] Add central administration dashboards for teacher applications, reward
       candidates, pending approval amounts, payout failures, and reconciliation
       mismatches.
+- [ ] Add platform fraud dashboards for active teacher, organization, course,
+      and reward-policy reward blocks.
 - [ ] Add organization dashboards for sponsored teacher applications, course
       reward volume, approved amounts, and wallet balances.
 - [ ] Add student-facing reward history with candidate status, approved amount,
@@ -176,12 +204,15 @@ business logic must ask "does this user have this permission in this scope?"
 
 - [ ] Add migrations for teacher applications, reward policies, reward
       candidates, reward decisions, reward execution jobs, reward audit events,
-      and delegated permissions.
+      reward fraud blocks, and delegated permissions.
 - [ ] Add repository/service layers for each business workflow. Keep complex
       business decisions out of Actix handlers.
 - [ ] Add API endpoints for teacher applications, review decisions, reward
       policy management, reward amount approval, reward status, and delegated
       permission management.
+- [ ] Add API endpoints for platform fraud-block creation, revocation, listing,
+      and audit history. These endpoints must not share handlers with reward
+      candidate approval or amount approval.
 - [ ] Add idempotency keys and unique constraints wherever a business event can
       be retried.
 - [ ] Add structured logs for teacher application transitions, reward decisions,
@@ -196,6 +227,8 @@ business logic must ask "does this user have this permission in this scope?"
       platform reviewers.
 - [ ] Build student reward status/history screens.
 - [ ] Build organization reward reporting screens.
+- [ ] Build platform fraud-block screens for blocking or unblocking a teacher,
+      organization, course, or reward-policy scope.
 - [ ] Build delegated-permission management screens for central administration.
 - [ ] Keep UI affordances permission-driven. Hide or disable actions by
       resolved permissions, not by role labels.
@@ -215,8 +248,15 @@ business logic must ask "does this user have this permission in this scope?"
       the student reward candidate.
 - [ ] Add tests proving only platform permission `APPROVE_REWARD_AMOUNT`, or a
       valid platform-scoped delegated equivalent, can set the payout amount.
+- [ ] Add tests proving `APPROVE_REWARD_AMOUNT` cannot approve, reject, create,
+      or submit reward candidates.
 - [ ] Add tests proving course-scoped teacher permissions can approve the
       student reward candidate but cannot set or change the token amount.
+- [ ] Add tests proving active teacher, organization, course, or policy fraud
+      blocks prevent new reward candidate submissions, teacher candidate
+      approvals, and amount approvals for the blocked scope.
+- [ ] Add tests proving fraud-block permissions can block or unblock reward
+      activity but cannot approve candidates or set payout amounts.
 - [ ] Add tests proving users with different role names but the same permission
       can perform the same business action.
 - [ ] Add tests proving users with privileged role names but missing the
