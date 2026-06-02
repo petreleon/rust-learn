@@ -2,15 +2,17 @@ use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::establish_connection;
-use rust_learn::db::schema::{courses, organizations, reward_fraud_blocks};
+use rust_learn::db::schema::{courses, notifications, organizations, reward_fraud_blocks};
 use rust_learn::models::course::{Course, NewCourse};
+use rust_learn::models::notification::Notification;
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_fraud_block::{
     RewardFraudBlock, REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
     REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
 };
-use rust_learn::models::role::PlatformRole;
+use rust_learn::models::role::{OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;
+use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::reward_fraud_block_service::{
@@ -75,6 +77,20 @@ async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, 
         .expect("failed to assign platform role");
 }
 
+async fn force_assign_organization_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    organization_id: i32,
+    role_name: &str,
+) {
+    let role_id = OrganizationRole::find_by_name(role_name, conn)
+        .await
+        .expect("organization role not found");
+    UserRoleOrganization::assign(conn, user_id, organization_id, role_id)
+        .await
+        .expect("failed to assign organization role");
+}
+
 fn teacher_block_request(teacher_user_id: i32) -> RewardFraudBlockRequest {
     RewardFraudBlockRequest {
         scope_type: REWARD_FRAUD_BLOCK_SCOPE_TEACHER.to_string(),
@@ -94,10 +110,12 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
     let admin = create_user_helper(&mut conn, "fraud_block_admin").await;
     let moderator = create_user_helper(&mut conn, "fraud_block_moderator").await;
     let teacher = create_user_helper(&mut conn, "fraud_block_teacher").await;
+    let org_operator = create_user_helper(&mut conn, "fraud_block_org_operator").await;
     let organization = create_organization(&mut conn, &unique_string("FraudBlockOrg")).await;
     let course = create_course(&mut conn, &unique_string("FraudBlockCourse")).await;
     force_assign_platform_role(&mut conn, admin.id(), "ADMIN").await;
     force_assign_platform_role(&mut conn, moderator.id(), "MODERATOR").await;
+    force_assign_organization_role(&mut conn, org_operator.id(), organization.id, "ADMIN").await;
 
     let denied = create_reward_fraud_block(
         &mut conn,
@@ -121,12 +139,39 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
         Some("case://teacher-block")
     );
     assert!(teacher_block.revoked_at.is_none());
+    let teacher_notification_count = notifications::table
+        .filter(notifications::user_id.eq(Some(teacher.id())))
+        .filter(notifications::title.eq("reward_fraud_block:created"))
+        .count()
+        .get_result::<i64>(&mut conn)
+        .await
+        .expect("teacher fraud block notifications should be countable");
+    assert_eq!(teacher_notification_count, 1);
+
+    let admin_notifications = notifications::table
+        .filter(notifications::user_id.eq(Some(admin.id())))
+        .filter(notifications::title.eq("reward_fraud_block:created"))
+        .load::<Notification>(&mut conn)
+        .await
+        .expect("platform reviewer fraud block notifications should load");
+    assert_eq!(admin_notifications.len(), 1);
+    assert!(admin_notifications[0]
+        .body
+        .contains("suspicious reward approvals"));
 
     let revoked = revoke_reward_fraud_block(&mut conn, admin.id(), teacher_block.id)
         .await
         .expect("admin should revoke teacher reward fraud block");
     assert_eq!(revoked.revoked_by_user_id, Some(admin.id()));
     assert!(revoked.revoked_at.is_some());
+    let teacher_revoked_notification_count = notifications::table
+        .filter(notifications::user_id.eq(Some(teacher.id())))
+        .filter(notifications::title.eq("reward_fraud_block:revoked"))
+        .count()
+        .get_result::<i64>(&mut conn)
+        .await
+        .expect("teacher revoked fraud block notifications should be countable");
+    assert_eq!(teacher_revoked_notification_count, 1);
 
     let organization_block = create_reward_fraud_block(
         &mut conn,
@@ -149,6 +194,14 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
         REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION
     );
     assert_eq!(organization_block.organization_id, Some(organization.id));
+    let organization_operator_notification_count = notifications::table
+        .filter(notifications::user_id.eq(Some(org_operator.id())))
+        .filter(notifications::title.eq("reward_fraud_block:created"))
+        .count()
+        .get_result::<i64>(&mut conn)
+        .await
+        .expect("organization operator fraud block notifications should be countable");
+    assert_eq!(organization_operator_notification_count, 1);
 
     let course_block = create_reward_fraud_block(
         &mut conn,

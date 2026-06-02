@@ -157,7 +157,7 @@ business logic must ask "does this user have this permission in this scope?"
       permitted reviewer handles the candidate.
 - [x] Store block reason, evidence reference, blocked scope, created_by,
       expiration when present, revoked_by, revoked_at, and audit timestamps.
-- [ ] Notify affected teachers, organization operators, and platform reviewers
+- [x] Notify affected teachers, organization operators, and platform reviewers
       when a block is created or revoked.
 
 ## Wallet And Payment Business Flow
