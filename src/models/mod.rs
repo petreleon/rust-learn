@@ -2,6 +2,7 @@ pub mod authentication;
 pub mod chapter;
 pub mod content;
 pub mod course;
+pub mod course_join_request;
 pub mod courses_organizations;
 pub mod db_version_control;
 pub mod email_verification_token;

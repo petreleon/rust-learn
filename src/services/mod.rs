@@ -1,3 +1,4 @@
+pub mod course_enrollment_service;
 pub mod course_service;
 pub mod organization_service;
 pub mod reporting_service;

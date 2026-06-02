@@ -29,6 +29,21 @@ diesel::table! {
 }
 
 diesel::table! {
+    course_join_requests (id) {
+        id -> Int8,
+        course_id -> Int4,
+        requester_user_id -> Int4,
+        #[max_length = 32]
+        status -> Varchar,
+        reviewer_user_id -> Nullable<Int4>,
+        decision_reason -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        decided_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     course_roles (id) {
         id -> Int4,
         name -> Varchar,
@@ -339,6 +354,7 @@ diesel::table! {
 diesel::joinable!(authentications -> users (user_id));
 diesel::joinable!(chapters -> courses (course_id));
 diesel::joinable!(contents -> chapters (chapter_id));
+diesel::joinable!(course_join_requests -> courses (course_id));
 diesel::joinable!(courses_organizations -> courses (course_id));
 diesel::joinable!(courses_organizations -> organizations (organization_id));
 diesel::joinable!(email_verification_tokens -> users (user_id));
@@ -379,6 +395,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     authentications,
     chapters,
     contents,
+    course_join_requests,
     course_roles,
     courses,
     courses_organizations,

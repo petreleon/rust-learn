@@ -7,6 +7,11 @@ use crate::models::course::{Course, UpdateCourse};
 use crate::models::param_type::ParamType;
 use crate::models::user_jwt::UserJWT;
 use crate::repositories::course_repository::assign_role_to_user_in_course;
+use crate::services::course_enrollment_service::{
+    decide_course_join_request as decide_course_join_request_for_actor,
+    request_course_join as request_course_join_for_actor, CourseEnrollmentError,
+    CourseJoinDecisionRequest,
+};
 use crate::services::course_service::{
     create_course_with_invites_for_actor, discover_courses, update_course_for_actor,
     update_course_lifecycle as update_course_lifecycle_status, CourseCreationError,
@@ -74,6 +79,22 @@ fn course_update_error_response(error: CourseUpdateError) -> HttpResponse {
         CourseUpdateError::Database(message) => {
             log::error!("event=course_update_failed error={}", message);
             HttpResponse::InternalServerError().body("Failed to update course")
+        }
+    }
+}
+
+fn course_enrollment_error_response(error: CourseEnrollmentError) -> HttpResponse {
+    match error {
+        CourseEnrollmentError::PermissionDenied(_) => {
+            HttpResponse::Forbidden().body("User does not have permission to manage enrollment")
+        }
+        CourseEnrollmentError::InvalidStatus(message) => HttpResponse::BadRequest().body(message),
+        CourseEnrollmentError::NotFound => {
+            HttpResponse::NotFound().body("Course join request not found")
+        }
+        CourseEnrollmentError::Database(message) => {
+            log::error!("event=course_enrollment_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to manage course enrollment")
         }
     }
 }
@@ -211,6 +232,56 @@ async fn update_course_lifecycle(
     {
         Ok(course) => HttpResponse::Ok().json(course),
         Err(error) => lifecycle_error_response(error),
+    }
+}
+
+async fn request_course_join(
+    req: HttpRequest,
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    let requester = match current_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match request_course_join_for_actor(&mut conn, requester.user_id, path.into_inner()).await {
+        Ok(join_request) => HttpResponse::Created().json(join_request),
+        Err(error) => course_enrollment_error_response(error),
+    }
+}
+
+async fn decide_course_join_request(
+    req: HttpRequest,
+    path: web::Path<(i32, i64)>,
+    pool: web::Data<db::DbPool>,
+    body: web::Json<CourseJoinDecisionRequest>,
+) -> impl Responder {
+    let reviewer = match current_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let (course_id, request_id) = path.into_inner();
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match decide_course_join_request_for_actor(
+        &mut conn,
+        reviewer.user_id,
+        course_id,
+        request_id,
+        body.into_inner(),
+    )
+    .await
+    {
+        Ok(join_request) => HttpResponse::Ok().json(join_request),
+        Err(error) => course_enrollment_error_response(error),
     }
 }
 
@@ -381,6 +452,11 @@ pub fn course_scope() -> actix_web::Scope {
             ),
         )
         .service(web::resource("/{id}/lifecycle").route(web::put().to(update_course_lifecycle)))
+        .service(web::resource("/{id}/join-requests").route(web::post().to(request_course_join)))
+        .service(
+            web::resource("/{id}/join-requests/{request_id}/decision")
+                .route(web::put().to(decide_course_join_request)),
+        )
         .service(
             web::resource("/{id}")
                 .route(

@@ -65,9 +65,11 @@ business logic must ask "does this user have this permission in this scope?"
       the course scope.
 - [x] Gate course publication by `PUBLISH_CONTENT` or a dedicated
       `APPROVE_COURSE_PUBLICATION` permission, not by role name.
-- [ ] Gate enrollment request, approval, removal, and waitlist behavior with
-      `JOIN_COURSE`, `REQUEST_JOIN_COURSE`,
-      `APPROVE_COURSE_JOIN_REQUESTS`, and `MANAGE_COURSE_ENROLLMENTS`.
+- [x] Gate enrollment request and approval behavior with `JOIN_COURSE`,
+      `REQUEST_JOIN_COURSE`, `APPROVE_COURSE_JOIN_REQUESTS`, and
+      `MANAGE_COURSE_ENROLLMENTS`.
+- [ ] Gate enrollment removal and waitlist behavior with platform,
+      organization, and course permissions.
 - [ ] Keep content visibility and assessment access permission-based with
       `VIEW_CONTENT`, `VIEW_ASSESSMENT`, `TAKE_TESTS`, and related course
       permissions.
