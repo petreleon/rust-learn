@@ -21,11 +21,11 @@ business logic must ask "does this user have this permission in this scope?"
       `EXECUTE_REWARD_PAYOUT`, and `VIEW_REWARD_AUDIT`.
 - [ ] Define suggested organization permissions:
       `NOMINATE_TEACHER_FOR_PLATFORM_REVIEW`,
-      `VIEW_ORG_TEACHER_APPLICATIONS`, `VIEW_ORG_REWARD_REPORTS`, and
-      `MANAGE_ORG_REWARD_BUDGET`.
+      `VIEW_ORG_TEACHER_APPLICATIONS`, `SUBMIT_ORG_COURSE_REWARD_EVENT`,
+      `VIEW_ORG_REWARD_REPORTS`, and `MANAGE_ORG_REWARD_BUDGET`.
 - [ ] Define suggested course permissions:
       `CREATE_REWARDABLE_COURSE_EVENT`, `VIEW_COURSE_REWARD_STATUS`,
-      `SUBMIT_COMPLETION_FOR_REWARD`, `GRADE_REWARDABLE_ASSESSMENT`, and
+      `SUBMIT_COURSE_REWARD_EVENT`, `GRADE_REWARDABLE_ASSESSMENT`, and
       `MANAGE_COURSE_REWARD_RULES`.
 - [ ] Update `PERMISSIONS.md`, permission constants, seed data, and tests
       whenever a business permission is added or renamed.
@@ -74,6 +74,20 @@ business logic must ask "does this user have this permission in this scope?"
 
 - [ ] Add rewardable course events for assessment completion, course
       completion, manually approved completion, and administrative adjustment.
+- [ ] Restrict manual reward candidate submission for a course to users with
+      `SUBMIT_COURSE_REWARD_EVENT` or `CREATE_REWARDABLE_COURSE_EVENT` in that
+      exact course scope. This is the permission that should normally be
+      granted to the course teacher permission bundle.
+- [ ] Allow organization-level submission for courses attached to that
+      organization only through `SUBMIT_ORG_COURSE_REWARD_EVENT`. This is the
+      permission that should normally be granted to the organization admin
+      permission bundle.
+- [ ] Allow delegated moderators or operators to submit reward candidates only
+      when they have a valid delegated permission covering the exact course or
+      organization scope. Do not check the moderator role name.
+- [ ] Treat student course activity as completion evidence, not as authority to
+      submit a reward candidate. A student should receive rewards through an
+      authorized course, organization, or delegated submission path.
 - [ ] Store each reward candidate with a stable idempotency key such as
       `course_completion:{course_id}:{user_id}:{attempt_id}`.
 - [ ] Add eligibility checks for enrollment, email verification, course policy,
@@ -180,6 +194,11 @@ business logic must ask "does this user have this permission in this scope?"
 - [ ] Add permission-focused tests proving teacher application, reward amount
       approval, token execution, and wallet credit are allowed by permission and
       denied without permission.
+- [ ] Add tests proving reward candidate submission succeeds for a user with
+      `SUBMIT_COURSE_REWARD_EVENT` on the course, succeeds for a user with
+      `SUBMIT_ORG_COURSE_REWARD_EVENT` on an organization attached to the
+      course, succeeds for a user with a valid delegated scoped permission, and
+      fails for everyone else.
 - [ ] Add tests proving users with different role names but the same permission
       can perform the same business action.
 - [ ] Add tests proving users with privileged role names but missing the
