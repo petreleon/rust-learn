@@ -201,7 +201,7 @@ business logic must ask "does this user have this permission in this scope?"
       wallet credit, and token transaction reference.
 - [x] Export CSV reports for teacher applications, reward approvals, token
       payouts, wallet credits, and delegated permission activity.
-- [ ] Ensure every report is protected by explicit platform, organization, or
+- [x] Ensure every report is protected by explicit platform, organization, or
       course reporting permissions.
 
 ## Data Model And API Work
