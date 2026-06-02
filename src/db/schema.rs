@@ -75,6 +75,14 @@ diesel::table! {
         id -> Int8,
         amount -> Numeric,
         blockchain_address -> Text,
+        chain_id -> Nullable<Int8>,
+        contract_address -> Nullable<Text>,
+        transaction_hash -> Nullable<Text>,
+        log_index -> Nullable<Int8>,
+        #[max_length = 50]
+        event_type -> Nullable<Varchar>,
+        from_address -> Nullable<Text>,
+        to_address -> Nullable<Text>,
     }
 }
 
