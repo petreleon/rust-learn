@@ -252,7 +252,7 @@ business logic must ask "does this user have this permission in this scope?"
       the student reward candidate.
 - [x] Add tests proving only platform permission `APPROVE_REWARD_AMOUNT`, or a
       valid platform-scoped delegated equivalent, can set the payout amount.
-- [ ] Add tests proving `APPROVE_REWARD_AMOUNT` cannot approve, reject, create,
+- [x] Add tests proving `APPROVE_REWARD_AMOUNT` cannot approve, reject, create,
       or submit reward candidates.
 - [x] Add tests proving course-scoped teacher permissions can approve the
       student reward candidate but cannot set or change the token amount.
