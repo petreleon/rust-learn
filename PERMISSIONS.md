@@ -351,6 +351,10 @@ Reward candidate authorization is intentionally split by scope:
     summarizes teacher applications, reward candidate states, pending amount
     approvals, failed payout jobs, and reconciliation mismatches. Its CSV
     export additionally requires platform `EXPORT_DATA`.
+*   The platform fraud dashboard requires platform `VIEW_REWARD_AUDIT` and
+    lists active teacher, organization, course, and reward-policy fraud
+    blocks. Expired or revoked blocks are excluded from the active view. Its
+    CSV export additionally requires platform `EXPORT_DATA`.
 *   Reward candidate eligibility requires a verified recipient, course reward
     status permission for that recipient, a covering active reward policy, and
     event evidence such as completion percentage or passing score. Activity

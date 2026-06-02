@@ -1,7 +1,8 @@
 use crate::db::schema::{
     courses, courses_organizations, notifications, organizations, reward_candidates,
-    reward_execution_jobs, reward_payout_records, reward_wallet_credit_records,
-    teacher_applications, user_role_course, user_role_organization, users, wallets,
+    reward_execution_jobs, reward_fraud_blocks, reward_payout_records,
+    reward_wallet_credit_records, teacher_applications, user_role_course, user_role_organization,
+    users, wallets,
 };
 use crate::models::reward_candidate::{
     RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED,
@@ -11,6 +12,10 @@ use crate::models::reward_candidate::{
     REWARD_STATUS_WALLET_CREDITED,
 };
 use crate::models::reward_execution_job::RewardExecutionJob;
+use crate::models::reward_fraud_block::{
+    RewardFraudBlock, REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
+    REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
+};
 use crate::models::teacher_application::{
     TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
     TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
@@ -49,6 +54,37 @@ pub struct PlatformRewardDashboard {
     pub payout_failures: Vec<RewardExecutionFailureRow>,
     pub reconciliation_mismatch_count: i64,
     pub reconciliation_mismatches: Vec<RewardReconciliationMismatchRow>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PlatformFraudDashboard {
+    pub active_total: i64,
+    pub active_by_scope: FraudBlockScopeSummary,
+    pub active_blocks: Vec<FraudBlockDashboardRow>,
+}
+
+#[derive(Debug, Default, Serialize)]
+pub struct FraudBlockScopeSummary {
+    pub teacher: i64,
+    pub organization: i64,
+    pub course: i64,
+    pub reward_policy: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FraudBlockDashboardRow {
+    pub id: i64,
+    pub scope_type: String,
+    pub teacher_user_id: Option<i32>,
+    pub organization_id: Option<i32>,
+    pub course_id: Option<i32>,
+    pub reward_policy_id: Option<i64>,
+    pub reason: String,
+    pub evidence_reference: Option<String>,
+    pub created_by_user_id: i32,
+    pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Default, Serialize)]
@@ -168,6 +204,43 @@ pub async fn platform_reward_dashboard(
         payout_failures,
         reconciliation_mismatch_count,
         reconciliation_mismatches,
+    })
+}
+
+pub async fn platform_fraud_dashboard(
+    conn: &mut AsyncPgConnection,
+) -> QueryResult<PlatformFraudDashboard> {
+    let now = chrono::Utc::now();
+    let active_blocks = reward_fraud_blocks::table
+        .filter(reward_fraud_blocks::revoked_at.is_null())
+        .filter(
+            reward_fraud_blocks::expires_at
+                .is_null()
+                .or(reward_fraud_blocks::expires_at.gt(now)),
+        )
+        .order(reward_fraud_blocks::created_at.desc())
+        .limit(100)
+        .load::<RewardFraudBlock>(conn)
+        .await?;
+
+    let mut active_by_scope = FraudBlockScopeSummary::default();
+    for block in &active_blocks {
+        match block.scope_type.as_str() {
+            REWARD_FRAUD_BLOCK_SCOPE_TEACHER => active_by_scope.teacher += 1,
+            REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION => active_by_scope.organization += 1,
+            REWARD_FRAUD_BLOCK_SCOPE_COURSE => active_by_scope.course += 1,
+            REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY => active_by_scope.reward_policy += 1,
+            _ => {}
+        }
+    }
+
+    Ok(PlatformFraudDashboard {
+        active_total: active_blocks.len() as i64,
+        active_by_scope,
+        active_blocks: active_blocks
+            .into_iter()
+            .map(FraudBlockDashboardRow::from)
+            .collect(),
     })
 }
 
@@ -351,6 +424,25 @@ impl From<RewardExecutionJob> for RewardExecutionFailureRow {
     }
 }
 
+impl From<RewardFraudBlock> for FraudBlockDashboardRow {
+    fn from(block: RewardFraudBlock) -> Self {
+        FraudBlockDashboardRow {
+            id: block.id,
+            scope_type: block.scope_type,
+            teacher_user_id: block.teacher_user_id,
+            organization_id: block.organization_id,
+            course_id: block.course_id,
+            reward_policy_id: block.reward_policy_id,
+            reason: block.reason,
+            evidence_reference: block.evidence_reference,
+            created_by_user_id: block.created_by_user_id,
+            expires_at: block.expires_at,
+            created_at: block.created_at,
+            updated_at: block.updated_at,
+        }
+    }
+}
+
 pub async fn organization_report_summary(
     conn: &mut AsyncPgConnection,
     organization_id: i32,
@@ -490,6 +582,60 @@ pub fn platform_reward_dashboard_csv(dashboard: &PlatformRewardDashboard) -> Str
             csv_value(&row.mismatch_type),
             csv_value(row.approved_amount.as_deref().unwrap_or("")),
             row.updated_at
+        ));
+    }
+
+    csv
+}
+
+pub fn platform_fraud_dashboard_csv(dashboard: &PlatformFraudDashboard) -> String {
+    let mut csv = String::from("section,metric,value\n");
+    csv.push_str(&format!(
+        "fraud_blocks,active_total,{}\n",
+        dashboard.active_total
+    ));
+    csv.push_str(&format!(
+        "fraud_blocks,teacher,{}\n",
+        dashboard.active_by_scope.teacher
+    ));
+    csv.push_str(&format!(
+        "fraud_blocks,organization,{}\n",
+        dashboard.active_by_scope.organization
+    ));
+    csv.push_str(&format!(
+        "fraud_blocks,course,{}\n",
+        dashboard.active_by_scope.course
+    ));
+    csv.push_str(&format!(
+        "fraud_blocks,reward_policy,{}\n",
+        dashboard.active_by_scope.reward_policy
+    ));
+
+    csv.push_str("\nactive_fraud_blocks,id,scope_type,teacher_user_id,organization_id,course_id,reward_policy_id,reason,evidence_reference,created_by_user_id,expires_at,created_at\n");
+    for row in &dashboard.active_blocks {
+        csv.push_str(&format!(
+            "active_fraud_blocks,{},{},{},{},{},{},{},{},{},{},{}\n",
+            row.id,
+            csv_value(&row.scope_type),
+            row.teacher_user_id
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
+            row.organization_id
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
+            row.course_id
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
+            row.reward_policy_id
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
+            csv_value(&row.reason),
+            csv_value(row.evidence_reference.as_deref().unwrap_or("")),
+            row.created_by_user_id,
+            row.expires_at
+                .map(|value| value.to_string())
+                .unwrap_or_default(),
+            row.created_at
         ));
     }
 

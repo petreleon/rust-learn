@@ -2,11 +2,12 @@ use actix_service::Service;
 use actix_web::{http::StatusCode, test, web, App};
 use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
+use chrono::{Duration, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::schema::{
     courses, courses_organizations, organizations, reward_candidates, reward_execution_jobs,
-    teacher_applications, wallets,
+    reward_fraud_blocks, reward_policies, teacher_applications, wallets,
 };
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::course::{Course, NewCourse};
@@ -15,6 +16,13 @@ use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_candidate::{
     NewRewardCandidate, REWARD_EVENT_COURSE_COMPLETION, REWARD_SOURCE_COURSE,
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_TEACHER_APPROVED, REWARD_STATUS_TOKEN_CONFIRMED,
+};
+use rust_learn::models::reward_fraud_block::{
+    NewRewardFraudBlock, REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
+    REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
+};
+use rust_learn::models::reward_policy::{
+    NewRewardPolicy, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
 use rust_learn::models::role::{OrganizationRole, PlatformRole};
 use rust_learn::models::teacher_application::{
@@ -186,6 +194,61 @@ async fn create_failed_reward_execution_job(conn: &mut AsyncPgConnection, candid
         .execute(conn)
         .await
         .expect("failed to create failed reward execution job");
+}
+
+async fn create_course_reward_policy(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    creator_user_id: i32,
+) -> i64 {
+    diesel::insert_into(reward_policies::table)
+        .values(NewRewardPolicy {
+            scope_type: REWARD_POLICY_SCOPE_COURSE.to_string(),
+            organization_id: None,
+            course_id: Some(course_id),
+            event_type: REWARD_EVENT_COURSE_COMPLETION.to_string(),
+            version: 1,
+            token_amount: BigDecimal::from(10),
+            multiplier: BigDecimal::from(1),
+            max_payout: Some(BigDecimal::from(100)),
+            cooldown_seconds: 0,
+            payment_strategy: REWARD_PAYMENT_TREASURY_TRANSFER.to_string(),
+            active: true,
+            created_by_user_id: Some(creator_user_id),
+        })
+        .returning(reward_policies::id)
+        .get_result(conn)
+        .await
+        .expect("failed to create reward policy")
+}
+
+async fn create_fraud_block(
+    conn: &mut AsyncPgConnection,
+    created_by_user_id: i32,
+    scope_type: &str,
+    teacher_user_id: Option<i32>,
+    organization_id: Option<i32>,
+    course_id: Option<i32>,
+    reward_policy_id: Option<i64>,
+    reason: &str,
+    expires_at: Option<chrono::DateTime<Utc>>,
+) -> i64 {
+    diesel::insert_into(reward_fraud_blocks::table)
+        .values(NewRewardFraudBlock {
+            scope_type: scope_type.to_string(),
+            teacher_user_id,
+            organization_id,
+            course_id,
+            reward_policy_id,
+            reason: reason.to_string(),
+            evidence_reference: Some(format!("case://{}", unique_string("fraud_report"))),
+            created_by_user_id,
+            expires_at,
+        })
+        .returning(reward_fraud_blocks::id)
+        .get_result(conn)
+        .await
+        .expect("failed to create fraud block")
 }
 
 fn token_for(user_id: i32) -> String {
@@ -384,6 +447,195 @@ async fn platform_reward_dashboard_reports_actionable_reward_audit_work() {
     assert!(csv.contains("payout_failures,"));
     assert!(csv.contains("reconciliation_mismatches,"));
     assert!(csv.contains("needs_payout_record"));
+}
+
+#[actix_web::test]
+async fn platform_fraud_dashboard_reports_active_blocks_by_scope() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+    let mut conn = setup_conn(&pool).await;
+    let platform_admin = create_test_user(&mut conn, "report_fraud_admin").await;
+    let platform_moderator = create_test_user(&mut conn, "report_fraud_moderator").await;
+    let stranger = create_test_user(&mut conn, "report_fraud_stranger").await;
+    let teacher = create_test_user(&mut conn, "report_fraud_teacher").await;
+    let expired_teacher = create_test_user(&mut conn, "report_fraud_expired_teacher").await;
+    assign_platform_role(&mut conn, platform_admin.id(), "ADMIN").await;
+    assign_platform_role(&mut conn, platform_moderator.id(), "MODERATOR").await;
+    let org = create_organization(&mut conn).await;
+    let course = create_course(&mut conn).await;
+    let policy_id = create_course_reward_policy(&mut conn, course.id, platform_admin.id()).await;
+
+    let teacher_block_id = create_fraud_block(
+        &mut conn,
+        platform_admin.id(),
+        REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
+        Some(teacher.id()),
+        None,
+        None,
+        None,
+        "teacher approvals paused for review",
+        None,
+    )
+    .await;
+    let organization_block_id = create_fraud_block(
+        &mut conn,
+        platform_admin.id(),
+        REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
+        None,
+        Some(org.id),
+        None,
+        None,
+        "organization reward activity paused",
+        None,
+    )
+    .await;
+    let course_block_id = create_fraud_block(
+        &mut conn,
+        platform_admin.id(),
+        REWARD_FRAUD_BLOCK_SCOPE_COURSE,
+        None,
+        None,
+        Some(course.id),
+        None,
+        "course rewards under review",
+        None,
+    )
+    .await;
+    let policy_block_id = create_fraud_block(
+        &mut conn,
+        platform_admin.id(),
+        REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY,
+        None,
+        None,
+        None,
+        Some(policy_id),
+        "policy payouts paused",
+        None,
+    )
+    .await;
+    let expired_block_id = create_fraud_block(
+        &mut conn,
+        platform_admin.id(),
+        REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
+        Some(expired_teacher.id()),
+        None,
+        None,
+        None,
+        "expired teacher block",
+        Some(Utc::now() - Duration::minutes(5)),
+    )
+    .await;
+    drop(conn);
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .service(rust_learn::api::reports::reports_scope()),
+    )
+    .await;
+
+    let forbidden_req = test::TestRequest::get()
+        .uri("/reports/platform/fraud-dashboard")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(stranger.id())),
+        ))
+        .to_request();
+    let forbidden_status = match app.call(forbidden_req).await {
+        Ok(resp) => resp.status(),
+        Err(err) => err.error_response().status(),
+    };
+    assert_eq!(forbidden_status, StatusCode::FORBIDDEN);
+
+    let req = test::TestRequest::get()
+        .uri("/reports/platform/fraud-dashboard")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(platform_moderator.id())),
+        ))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body: Value = test::read_body_json(resp).await;
+    assert!(body["active_total"].as_i64().unwrap_or_default() >= 4);
+    assert!(
+        body["active_by_scope"]["teacher"]
+            .as_i64()
+            .unwrap_or_default()
+            >= 1
+    );
+    assert!(
+        body["active_by_scope"]["organization"]
+            .as_i64()
+            .unwrap_or_default()
+            >= 1
+    );
+    assert!(
+        body["active_by_scope"]["course"]
+            .as_i64()
+            .unwrap_or_default()
+            >= 1
+    );
+    assert!(
+        body["active_by_scope"]["reward_policy"]
+            .as_i64()
+            .unwrap_or_default()
+            >= 1
+    );
+
+    let active_blocks = body["active_blocks"]
+        .as_array()
+        .expect("active fraud block rows");
+    for block_id in [
+        teacher_block_id,
+        organization_block_id,
+        course_block_id,
+        policy_block_id,
+    ] {
+        assert!(
+            active_blocks
+                .iter()
+                .any(|row| row["id"].as_i64() == Some(block_id)),
+            "active fraud dashboard should include block {block_id}"
+        );
+    }
+    assert!(
+        !active_blocks
+            .iter()
+            .any(|row| row["id"].as_i64() == Some(expired_block_id)),
+        "expired fraud block must not appear in active fraud dashboard"
+    );
+
+    let denied_export_req = test::TestRequest::get()
+        .uri("/reports/platform/fraud-dashboard.csv")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(platform_moderator.id())),
+        ))
+        .to_request();
+    let denied_export_status = match app.call(denied_export_req).await {
+        Ok(resp) => resp.status(),
+        Err(err) => err.error_response().status(),
+    };
+    assert_eq!(denied_export_status, StatusCode::FORBIDDEN);
+
+    let export_req = test::TestRequest::get()
+        .uri("/reports/platform/fraud-dashboard.csv")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(platform_admin.id())),
+        ))
+        .to_request();
+    let export_resp = test::call_service(&app, export_req).await;
+    assert_eq!(export_resp.status(), StatusCode::OK);
+    let csv =
+        String::from_utf8(test::read_body(export_resp).await.to_vec()).expect("valid utf8 csv");
+    assert!(csv.starts_with("section,metric,value"));
+    assert!(csv.contains("fraud_blocks,active_total,"));
+    assert!(csv.contains("active_fraud_blocks,"));
+    assert!(csv.contains("teacher approvals paused for review"));
+    assert!(!csv.contains("expired teacher block"));
 }
 
 #[actix_web::test]

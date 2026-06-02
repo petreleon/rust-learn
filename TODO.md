@@ -193,7 +193,7 @@ business logic must ask "does this user have this permission in this scope?"
 - [x] Add central administration dashboards for teacher applications, reward
       candidates, pending approval amounts, payout failures, and reconciliation
       mismatches.
-- [ ] Add platform fraud dashboards for active teacher, organization, course,
+- [x] Add platform fraud dashboards for active teacher, organization, course,
       and reward-policy reward blocks.
 - [ ] Add organization dashboards for sponsored teacher applications, course
       reward volume, approved amounts, and wallet balances.
