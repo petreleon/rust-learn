@@ -5,11 +5,15 @@ use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 use crate::models::course::{Course, UpdateCourse};
 use crate::models::param_type::ParamType;
+use crate::models::user_jwt::UserJWT;
 use crate::repositories::course_repository::assign_role_to_user_in_course;
-use crate::services::course_service::{discover_courses, CourseDiscoveryQuery};
+use crate::services::course_service::{
+    discover_courses, update_course_lifecycle as update_course_lifecycle_status,
+    CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest,
+};
 use crate::utils::jwt_utils::decode_jwt;
 use crate::utils::notifications::NotificationsState;
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use serde::Deserialize;
@@ -25,6 +29,27 @@ pub struct CourseDiscoveryParams {
     pub organization_id: Option<i32>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
+}
+
+fn current_user(req: &HttpRequest) -> Result<UserJWT, HttpResponse> {
+    req.extensions()
+        .get::<UserJWT>()
+        .cloned()
+        .ok_or_else(|| HttpResponse::Unauthorized().body("Unauthorized access"))
+}
+
+fn lifecycle_error_response(error: CourseLifecycleError) -> HttpResponse {
+    match error {
+        CourseLifecycleError::PermissionDenied(_) => {
+            HttpResponse::Forbidden().body("User does not have permission to update course status")
+        }
+        CourseLifecycleError::InvalidStatus(message) => HttpResponse::BadRequest().body(message),
+        CourseLifecycleError::NotFound => HttpResponse::NotFound().body("Course not found"),
+        CourseLifecycleError::Database(message) => {
+            log::error!("event=course_lifecycle_update_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to update course status")
+        }
+    }
 }
 
 async fn list_courses(
@@ -130,6 +155,34 @@ async fn update_course(
             eprintln!("DB error updating course {}: {}", course_id, e);
             HttpResponse::InternalServerError().body("Failed to update course")
         }
+    }
+}
+
+async fn update_course_lifecycle(
+    req: HttpRequest,
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+    body: web::Json<CourseLifecycleUpdateRequest>,
+) -> impl Responder {
+    let requester = match current_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match update_course_lifecycle_status(
+        &mut conn,
+        requester.user_id,
+        path.into_inner(),
+        body.into_inner(),
+    )
+    .await
+    {
+        Ok(course) => HttpResponse::Ok().json(course),
+        Err(error) => lifecycle_error_response(error),
     }
 }
 
@@ -305,6 +358,7 @@ pub fn course_scope() -> actix_web::Scope {
                     )),
             ),
         )
+        .service(web::resource("/{id}/lifecycle").route(web::put().to(update_course_lifecycle)))
         .service(
             web::resource("/{id}")
                 .route(

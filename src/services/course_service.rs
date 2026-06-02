@@ -1,12 +1,20 @@
+use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{courses, courses_organizations, pending_course_organization_invites};
-use crate::models::course::{Course, NewCourse};
+use crate::models::course::{
+    Course, NewCourse, COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED, COURSE_STATUS_DRAFT,
+    COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
+    COURSE_STATUS_SUSPENDED,
+};
 use crate::models::courses_organizations::NewCourseOrganization;
 use crate::models::pending_course_organization_invites::{
     NewPendingCourseOrganizationInvite, PendingCourseOrganizationInvite,
 };
+use crate::repositories::course_repository::user_permission_course_request;
+use crate::repositories::platform_repository::user_permission_platform_request;
 use diesel::prelude::*;
 use diesel::PgTextExpressionMethods;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+use serde::Deserialize;
 use serde::Serialize;
 
 const DEFAULT_COURSE_LIMIT: i64 = 25;
@@ -28,6 +36,28 @@ pub struct CourseDiscoveryResponse {
     pub offset: i64,
     pub search: Option<String>,
     pub organization_id: Option<i32>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CourseLifecycleUpdateRequest {
+    pub status: String,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum CourseLifecycleError {
+    PermissionDenied(String),
+    InvalidStatus(String),
+    NotFound,
+    Database(String),
+}
+
+impl From<diesel::result::Error> for CourseLifecycleError {
+    fn from(error: diesel::result::Error) -> Self {
+        match error {
+            diesel::result::Error::NotFound => CourseLifecycleError::NotFound,
+            other => CourseLifecycleError::Database(other.to_string()),
+        }
+    }
 }
 
 impl CourseDiscoveryQuery {
@@ -133,6 +163,73 @@ pub async fn create_course_with_invites(
         })
     })
     .await
+}
+
+pub async fn update_course_lifecycle(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    course_id: i32,
+    request: CourseLifecycleUpdateRequest,
+) -> Result<Course, CourseLifecycleError> {
+    let target_status = normalize_course_status(&request.status)?;
+    ensure_lifecycle_permission(conn, actor_user_id, course_id, &target_status).await?;
+
+    diesel::update(courses::table.find(course_id))
+        .set(courses::lifecycle_status.eq(target_status))
+        .get_result::<Course>(conn)
+        .await
+        .map_err(CourseLifecycleError::from)
+}
+
+async fn ensure_lifecycle_permission(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    course_id: i32,
+    target_status: &str,
+) -> Result<(), CourseLifecycleError> {
+    let required_course_permission = match target_status {
+        COURSE_STATUS_DRAFT
+        | COURSE_STATUS_SUBMITTED
+        | COURSE_STATUS_ARCHIVED
+        | COURSE_STATUS_SUSPENDED => Permissions::MANAGE_COURSE_SETTINGS,
+        COURSE_STATUS_NEEDS_CHANGES | COURSE_STATUS_APPROVED => Permissions::APPROVE_COURSE_CONTENT,
+        COURSE_STATUS_PUBLISHED => Permissions::PUBLISH_CONTENT,
+        _ => {
+            return Err(CourseLifecycleError::InvalidStatus(
+                "unsupported course lifecycle status".to_string(),
+            ))
+        }
+    };
+
+    let course_permission_name = required_course_permission.to_string();
+    if user_permission_course_request(conn, user_id, course_id, &course_permission_name).await? {
+        return Ok(());
+    }
+
+    let platform_permission_name = Permissions::MODIFY_COURSE.to_string();
+    if user_permission_platform_request(conn, user_id, &platform_permission_name).await? {
+        return Ok(());
+    }
+
+    Err(CourseLifecycleError::PermissionDenied(
+        course_permission_name,
+    ))
+}
+
+fn normalize_course_status(status: &str) -> Result<String, CourseLifecycleError> {
+    let normalized = status.trim().to_ascii_lowercase();
+    match normalized.as_str() {
+        COURSE_STATUS_DRAFT
+        | COURSE_STATUS_SUBMITTED
+        | COURSE_STATUS_NEEDS_CHANGES
+        | COURSE_STATUS_APPROVED
+        | COURSE_STATUS_PUBLISHED
+        | COURSE_STATUS_ARCHIVED
+        | COURSE_STATUS_SUSPENDED => Ok(normalized),
+        _ => Err(CourseLifecycleError::InvalidStatus(
+            "unsupported course lifecycle status".to_string(),
+        )),
+    }
 }
 
 pub async fn create_course_organization_invite(

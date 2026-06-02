@@ -40,6 +40,8 @@ diesel::table! {
     courses (id) {
         id -> Int4,
         title -> Varchar,
+        #[max_length = 32]
+        lifecycle_status -> Varchar,
     }
 }
 

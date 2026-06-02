@@ -57,13 +57,13 @@ business logic must ask "does this user have this permission in this scope?"
 
 ## Course Business Flow
 
-- [ ] Model course lifecycle states: draft, submitted, needs changes,
+- [x] Model course lifecycle states: draft, submitted, needs changes,
       approved, published, archived, and suspended.
 - [ ] Gate course creation by `CREATE_COURSE` at platform or organization
       scope, depending on where the course is owned.
 - [ ] Gate course editing by `MODIFY_COURSE` or `MANAGE_COURSE_SETTINGS` in
       the course scope.
-- [ ] Gate course publication by `PUBLISH_CONTENT` or a dedicated
+- [x] Gate course publication by `PUBLISH_CONTENT` or a dedicated
       `APPROVE_COURSE_PUBLICATION` permission, not by role name.
 - [ ] Gate enrollment request, approval, removal, and waitlist behavior with
       `JOIN_COURSE`, `REQUEST_JOIN_COURSE`,
