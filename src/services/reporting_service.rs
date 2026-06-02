@@ -1,9 +1,10 @@
 use crate::db::schema::{
-    courses, courses_organizations, notifications, organizations, reward_candidates,
-    reward_execution_jobs, reward_fraud_blocks, reward_payout_records,
-    reward_wallet_credit_records, teacher_applications, user_role_course, user_role_organization,
-    users, wallets,
+    courses, courses_organizations, delegated_permissions, external_transactions,
+    internal_transactions, notifications, organizations, reward_candidates, reward_execution_jobs,
+    reward_fraud_blocks, reward_payout_records, reward_wallet_credit_records, teacher_applications,
+    user_role_course, user_role_organization, users, wallets,
 };
+use crate::models::delegated_permission::DelegatedPermission;
 use crate::models::reward_candidate::{
     RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED,
     REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_NEEDS_RECONCILIATION,
@@ -16,9 +17,12 @@ use crate::models::reward_fraud_block::{
     RewardFraudBlock, REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
     REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
 };
+use crate::models::reward_payout_record::RewardPayoutRecord;
+use crate::models::reward_wallet_credit_record::RewardWalletCreditRecord;
 use crate::models::teacher_application::{
-    TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
-    TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
+    TeacherApplication, TEACHER_APPLICATION_STATUS_APPROVED,
+    TEACHER_APPLICATION_STATUS_NEEDS_CHANGES, TEACHER_APPLICATION_STATUS_REJECTED,
+    TEACHER_APPLICATION_STATUS_SUBMITTED,
 };
 use bigdecimal::BigDecimal;
 use diesel::prelude::*;
@@ -193,6 +197,10 @@ fn csv_value(value: impl AsRef<str>) -> String {
     } else {
         value.to_string()
     }
+}
+
+fn csv_optional(value: Option<impl ToString>) -> String {
+    value.map(|value| value.to_string()).unwrap_or_default()
 }
 
 pub async fn platform_reward_dashboard(
@@ -683,6 +691,245 @@ pub fn platform_report_csv(summary: &PlatformReportSummary) -> String {
         summary.total_wallets,
         summary.total_notifications
     )
+}
+
+pub async fn platform_teacher_applications_csv(
+    conn: &mut AsyncPgConnection,
+) -> QueryResult<String> {
+    let applications = teacher_applications::table
+        .order(teacher_applications::created_at.desc())
+        .limit(1000)
+        .load::<TeacherApplication>(conn)
+        .await?;
+
+    let mut csv = String::from(
+        "application_id,applicant_user_id,requested_scope,requested_organization_id,requested_course_id,organization_sponsor_id,status,reviewer_id,decision_reason,portfolio_links,created_at,updated_at,decided_at\n",
+    );
+    for application in applications {
+        csv.push_str(&format!(
+            "{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+            application.id,
+            application.applicant_user_id,
+            csv_value(&application.requested_scope),
+            csv_optional(application.requested_organization_id),
+            csv_optional(application.requested_course_id),
+            csv_optional(application.organization_sponsor_id),
+            csv_value(&application.status),
+            csv_optional(application.reviewer_id),
+            csv_value(application.decision_reason.as_deref().unwrap_or("")),
+            csv_value(application.portfolio_links.to_string()),
+            application.created_at,
+            application.updated_at,
+            csv_optional(application.decided_at)
+        ));
+    }
+
+    Ok(csv)
+}
+
+pub async fn platform_reward_approvals_csv(conn: &mut AsyncPgConnection) -> QueryResult<String> {
+    let candidates = reward_candidates::table
+        .filter(
+            reward_candidates::teacher_decided_at
+                .is_not_null()
+                .or(reward_candidates::amount_decided_at.is_not_null()),
+        )
+        .order(reward_candidates::updated_at.desc())
+        .limit(1000)
+        .load::<RewardCandidate>(conn)
+        .await?;
+
+    let mut csv = String::from(
+        "reward_candidate_id,course_id,student_user_id,submitter_user_id,source_scope,source_organization_id,event_type,status,teacher_approver_user_id,teacher_decision_reason,teacher_decided_at,amount_reviewer_user_id,approved_amount,amount_decision_reason,amount_decided_at,created_at,updated_at\n",
+    );
+    for candidate in candidates {
+        csv.push_str(&format!(
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+            candidate.id,
+            candidate.course_id,
+            candidate.student_user_id,
+            candidate.submitter_user_id,
+            csv_value(&candidate.source_scope),
+            csv_optional(candidate.source_organization_id),
+            csv_value(&candidate.event_type),
+            csv_value(&candidate.status),
+            csv_optional(candidate.teacher_approver_user_id),
+            csv_value(candidate.teacher_decision_reason.as_deref().unwrap_or("")),
+            csv_optional(candidate.teacher_decided_at),
+            csv_optional(candidate.amount_reviewer_user_id),
+            csv_value(
+                candidate
+                    .approved_amount
+                    .as_ref()
+                    .map(ToString::to_string)
+                    .as_deref()
+                    .unwrap_or("")
+            ),
+            csv_value(candidate.amount_decision_reason.as_deref().unwrap_or("")),
+            csv_optional(candidate.amount_decided_at),
+            candidate.created_at,
+            candidate.updated_at
+        ));
+    }
+
+    Ok(csv)
+}
+
+pub async fn platform_token_payouts_csv(conn: &mut AsyncPgConnection) -> QueryResult<String> {
+    type ExternalTransactionRow = (
+        BigDecimal,
+        String,
+        Option<i64>,
+        Option<String>,
+        Option<String>,
+        Option<i64>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    );
+
+    let payout_records = reward_payout_records::table
+        .order(reward_payout_records::created_at.desc())
+        .limit(1000)
+        .load::<RewardPayoutRecord>(conn)
+        .await?;
+
+    let mut csv = String::from(
+        "reward_payout_record_id,reward_candidate_id,course_id,student_user_id,payout_transaction_id,external_transaction_id,amount,blockchain_address,chain_id,contract_address,transaction_hash,log_index,event_type,from_address,to_address,created_at\n",
+    );
+    for record in payout_records {
+        let candidate = reward_candidates::table
+            .find(record.reward_candidate_id)
+            .first::<RewardCandidate>(conn)
+            .await?;
+        let external = external_transactions::table
+            .find(record.external_transaction_id)
+            .select((
+                external_transactions::amount,
+                external_transactions::blockchain_address,
+                external_transactions::chain_id,
+                external_transactions::contract_address,
+                external_transactions::transaction_hash,
+                external_transactions::log_index,
+                external_transactions::event_type,
+                external_transactions::from_address,
+                external_transactions::to_address,
+            ))
+            .first::<ExternalTransactionRow>(conn)
+            .await?;
+
+        csv.push_str(&format!(
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+            record.id,
+            record.reward_candidate_id,
+            candidate.course_id,
+            candidate.student_user_id,
+            record.transaction_id,
+            record.external_transaction_id,
+            csv_value(external.0.to_string()),
+            csv_value(external.1),
+            csv_optional(external.2),
+            csv_value(external.3.as_deref().unwrap_or("")),
+            csv_value(external.4.as_deref().unwrap_or("")),
+            csv_optional(external.5),
+            csv_value(external.6.as_deref().unwrap_or("")),
+            csv_value(external.7.as_deref().unwrap_or("")),
+            csv_value(external.8.as_deref().unwrap_or("")),
+            record.created_at
+        ));
+    }
+
+    Ok(csv)
+}
+
+pub async fn platform_wallet_credits_csv(conn: &mut AsyncPgConnection) -> QueryResult<String> {
+    let credit_records = reward_wallet_credit_records::table
+        .order(reward_wallet_credit_records::created_at.desc())
+        .limit(1000)
+        .load::<RewardWalletCreditRecord>(conn)
+        .await?;
+
+    let mut csv = String::from(
+        "reward_wallet_credit_record_id,reward_candidate_id,course_id,student_user_id,wallet_id,transaction_id,internal_transaction_id,amount,notification_id,notified_at,created_at\n",
+    );
+    for record in credit_records {
+        let candidate = reward_candidates::table
+            .find(record.reward_candidate_id)
+            .first::<RewardCandidate>(conn)
+            .await?;
+        let amount = internal_transactions::table
+            .find(record.internal_transaction_id)
+            .select(internal_transactions::amount)
+            .first::<BigDecimal>(conn)
+            .await?;
+
+        csv.push_str(&format!(
+            "{},{},{},{},{},{},{},{},{},{},{}\n",
+            record.id,
+            record.reward_candidate_id,
+            candidate.course_id,
+            candidate.student_user_id,
+            record.wallet_id,
+            record.transaction_id,
+            record.internal_transaction_id,
+            csv_value(amount.to_string()),
+            csv_optional(record.notification_id),
+            csv_optional(record.notified_at),
+            record.created_at
+        ));
+    }
+
+    Ok(csv)
+}
+
+pub async fn platform_delegated_permissions_csv(
+    conn: &mut AsyncPgConnection,
+) -> QueryResult<String> {
+    let now = chrono::Utc::now();
+    let delegations = delegated_permissions::table
+        .order(delegated_permissions::created_at.desc())
+        .limit(1000)
+        .load::<DelegatedPermission>(conn)
+        .await?;
+
+    let mut csv = String::from(
+        "delegated_permission_id,grantor_user_id,grantee_user_id,permission,scope_type,organization_id,course_id,state,reason,expires_at,revoked_at,revoked_by_user_id,revoke_reason,created_at,updated_at\n",
+    );
+    for delegation in delegations {
+        let state = if delegation.revoked_at.is_some() {
+            "revoked"
+        } else if delegation
+            .expires_at
+            .as_ref()
+            .map(|expires_at| *expires_at <= now)
+            .unwrap_or(false)
+        {
+            "expired"
+        } else {
+            "active"
+        };
+
+        csv.push_str(&format!(
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
+            delegation.id,
+            delegation.grantor_user_id,
+            delegation.grantee_user_id,
+            csv_value(&delegation.permission),
+            csv_value(&delegation.scope_type),
+            csv_optional(delegation.organization_id),
+            csv_optional(delegation.course_id),
+            state,
+            csv_value(delegation.reason.as_deref().unwrap_or("")),
+            csv_optional(delegation.expires_at),
+            csv_optional(delegation.revoked_at),
+            csv_optional(delegation.revoked_by_user_id),
+            csv_value(delegation.revoke_reason.as_deref().unwrap_or("")),
+            delegation.created_at,
+            delegation.updated_at
+        ));
+    }
+
+    Ok(csv)
 }
 
 pub fn platform_reward_dashboard_csv(dashboard: &PlatformRewardDashboard) -> String {

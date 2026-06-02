@@ -225,6 +225,12 @@ Platform administrators can read `GET /api/reports/platform/summary` and export
 `GET /api/reports/organizations/{id}/reward-dashboard.csv` for sponsored
 teacher applications, course reward volume, approved amounts, and organization
 wallet balances.
+Additional platform exports require `EXPORT_DATA`:
+`GET /api/reports/platform/teacher-applications.csv`,
+`GET /api/reports/platform/reward-approvals.csv`,
+`GET /api/reports/platform/token-payouts.csv`,
+`GET /api/reports/platform/wallet-credits.csv`, and
+`GET /api/reports/platform/delegated-permissions.csv`.
 
 ### Notification events
 

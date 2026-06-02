@@ -199,7 +199,7 @@ business logic must ask "does this user have this permission in this scope?"
       reward volume, approved amounts, and wallet balances.
 - [x] Add student-facing reward history with candidate status, approved amount,
       wallet credit, and token transaction reference.
-- [ ] Export CSV reports for teacher applications, reward approvals, token
+- [x] Export CSV reports for teacher applications, reward approvals, token
       payouts, wallet credits, and delegated permission activity.
 - [ ] Ensure every report is protected by explicit platform, organization, or
       course reporting permissions.
