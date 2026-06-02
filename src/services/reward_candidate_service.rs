@@ -1,6 +1,6 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{
-    courses, courses_organizations, reward_candidates, reward_policies, users,
+    courses, courses_organizations, reward_candidates, reward_fraud_blocks, reward_policies, users,
 };
 use crate::models::reward_candidate::{
     NewRewardCandidate, RewardCandidate, REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT,
@@ -11,6 +11,10 @@ use crate::models::reward_candidate::{
     REWARD_STATUS_NOTIFIED, REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
     REWARD_STATUS_TEACHER_REJECTED, REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_TOKEN_PENDING,
     REWARD_STATUS_WALLET_CREDITED,
+};
+use crate::models::reward_fraud_block::{
+    REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
+    REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
 };
 use crate::models::reward_policy::{
     REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
@@ -148,6 +152,15 @@ pub async fn decide_reward_candidate_by_teacher(
                 ));
             }
 
+            ensure_no_active_reward_fraud_block(
+                conn,
+                &[actor_user_id],
+                existing.course_id,
+                &existing.event_type,
+                existing.source_organization_id,
+            )
+            .await?;
+
             reward_candidate_repository::update_teacher_decision(
                 conn,
                 candidate_id,
@@ -202,6 +215,16 @@ pub async fn decide_reward_amount(
                     "reward amount can be decided only after teacher approval".to_string(),
                 ));
             }
+
+            let teacher_user_ids = candidate_teacher_user_ids(&existing);
+            ensure_no_active_reward_fraud_block(
+                conn,
+                teacher_user_ids.as_slice(),
+                existing.course_id,
+                &existing.event_type,
+                existing.source_organization_id,
+            )
+            .await?;
 
             let updated = reward_candidate_repository::update_amount_decision(
                 conn,
@@ -316,6 +339,14 @@ async fn create_reward_candidate(
         ));
     }
 
+    ensure_no_active_reward_fraud_block(
+        conn,
+        &[actor_user_id],
+        course_id,
+        &event_type,
+        source_organization_id,
+    )
+    .await?;
     ensure_reward_target_eligible(conn, request.student_user_id, course_id, &event_type).await?;
     ensure_reward_evidence_is_eligible(&event_type, &evidence)?;
     ensure_no_prior_active_reward_candidate(conn, request.student_user_id, course_id, &event_type)
@@ -336,6 +367,61 @@ async fn create_reward_candidate(
     reward_candidate_repository::create_candidate(conn, new_candidate)
         .await
         .map_err(RewardCandidateError::from)
+}
+
+fn candidate_teacher_user_ids(candidate: &RewardCandidate) -> Vec<i32> {
+    let mut user_ids = vec![candidate.submitter_user_id];
+    if let Some(teacher_approver_user_id) = candidate.teacher_approver_user_id {
+        if !user_ids.contains(&teacher_approver_user_id) {
+            user_ids.push(teacher_approver_user_id);
+        }
+    }
+    user_ids
+}
+
+async fn ensure_no_active_reward_fraud_block(
+    conn: &mut AsyncPgConnection,
+    teacher_user_ids: &[i32],
+    course_id: i32,
+    event_type: &str,
+    source_organization_id: Option<i32>,
+) -> Result<(), RewardCandidateError> {
+    if !teacher_user_ids.is_empty()
+        && has_active_teacher_reward_fraud_block(conn, teacher_user_ids).await?
+    {
+        return Err(RewardCandidateError::InvalidStatus(
+            "teacher reward activity is blocked by platform fraud controls".to_string(),
+        ));
+    }
+
+    if has_active_course_reward_fraud_block(conn, course_id).await? {
+        return Err(RewardCandidateError::InvalidStatus(
+            "course reward activity is blocked by platform fraud controls".to_string(),
+        ));
+    }
+
+    let organization_ids =
+        course_organization_ids_with_source(conn, course_id, source_organization_id).await?;
+    if !organization_ids.is_empty()
+        && has_active_organization_reward_fraud_block(conn, organization_ids.as_slice()).await?
+    {
+        return Err(RewardCandidateError::InvalidStatus(
+            "organization reward activity is blocked by platform fraud controls".to_string(),
+        ));
+    }
+
+    let active_policy_ids = active_reward_policy_ids_for_course_event(conn, course_id, event_type)
+        .await
+        .map_err(RewardCandidateError::from)?;
+    if !active_policy_ids.is_empty()
+        && has_active_reward_policy_fraud_block(conn, active_policy_ids.as_slice()).await?
+    {
+        return Err(RewardCandidateError::InvalidStatus(
+            "reward policy activity is blocked by platform fraud controls".to_string(),
+        ));
+    }
+
+    Ok(())
 }
 
 async fn ensure_course_exists(
@@ -370,6 +456,106 @@ async fn ensure_course_attached_to_organization(
             "course is not attached to the organization".to_string(),
         ))
     }
+}
+
+async fn course_organization_ids_with_source(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    source_organization_id: Option<i32>,
+) -> Result<Vec<i32>, RewardCandidateError> {
+    let mut organization_ids = courses_organizations::table
+        .filter(courses_organizations::course_id.eq(course_id))
+        .select(courses_organizations::organization_id)
+        .load::<i32>(conn)
+        .await?;
+
+    if let Some(source_organization_id) = source_organization_id {
+        if !organization_ids.contains(&source_organization_id) {
+            organization_ids.push(source_organization_id);
+        }
+    }
+
+    Ok(organization_ids)
+}
+
+async fn has_active_teacher_reward_fraud_block(
+    conn: &mut AsyncPgConnection,
+    teacher_user_ids: &[i32],
+) -> Result<bool, RewardCandidateError> {
+    diesel::select(exists(
+        reward_fraud_blocks::table
+            .filter(reward_fraud_blocks::scope_type.eq(REWARD_FRAUD_BLOCK_SCOPE_TEACHER))
+            .filter(reward_fraud_blocks::revoked_at.is_null())
+            .filter(
+                reward_fraud_blocks::expires_at
+                    .is_null()
+                    .or(reward_fraud_blocks::expires_at.gt(Utc::now())),
+            )
+            .filter(reward_fraud_blocks::teacher_user_id.eq_any(teacher_user_ids)),
+    ))
+    .get_result(conn)
+    .await
+    .map_err(RewardCandidateError::from)
+}
+
+async fn has_active_course_reward_fraud_block(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+) -> Result<bool, RewardCandidateError> {
+    diesel::select(exists(
+        reward_fraud_blocks::table
+            .filter(reward_fraud_blocks::scope_type.eq(REWARD_FRAUD_BLOCK_SCOPE_COURSE))
+            .filter(reward_fraud_blocks::revoked_at.is_null())
+            .filter(
+                reward_fraud_blocks::expires_at
+                    .is_null()
+                    .or(reward_fraud_blocks::expires_at.gt(Utc::now())),
+            )
+            .filter(reward_fraud_blocks::course_id.eq(course_id)),
+    ))
+    .get_result(conn)
+    .await
+    .map_err(RewardCandidateError::from)
+}
+
+async fn has_active_organization_reward_fraud_block(
+    conn: &mut AsyncPgConnection,
+    organization_ids: &[i32],
+) -> Result<bool, RewardCandidateError> {
+    diesel::select(exists(
+        reward_fraud_blocks::table
+            .filter(reward_fraud_blocks::scope_type.eq(REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION))
+            .filter(reward_fraud_blocks::revoked_at.is_null())
+            .filter(
+                reward_fraud_blocks::expires_at
+                    .is_null()
+                    .or(reward_fraud_blocks::expires_at.gt(Utc::now())),
+            )
+            .filter(reward_fraud_blocks::organization_id.eq_any(organization_ids)),
+    ))
+    .get_result(conn)
+    .await
+    .map_err(RewardCandidateError::from)
+}
+
+async fn has_active_reward_policy_fraud_block(
+    conn: &mut AsyncPgConnection,
+    reward_policy_ids: &[i64],
+) -> Result<bool, RewardCandidateError> {
+    diesel::select(exists(
+        reward_fraud_blocks::table
+            .filter(reward_fraud_blocks::scope_type.eq(REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY))
+            .filter(reward_fraud_blocks::revoked_at.is_null())
+            .filter(
+                reward_fraud_blocks::expires_at
+                    .is_null()
+                    .or(reward_fraud_blocks::expires_at.gt(Utc::now())),
+            )
+            .filter(reward_fraud_blocks::reward_policy_id.eq_any(reward_policy_ids)),
+    ))
+    .get_result(conn)
+    .await
+    .map_err(RewardCandidateError::from)
 }
 
 async fn ensure_reward_target_eligible(
@@ -407,6 +593,54 @@ async fn ensure_reward_target_eligible(
     }?;
 
     ensure_active_reward_policy(conn, course_id, event_type).await
+}
+
+async fn active_reward_policy_ids_for_course_event(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    event_type: &str,
+) -> QueryResult<Vec<i64>> {
+    let mut policy_ids = reward_policies::table
+        .filter(reward_policies::scope_type.eq(REWARD_POLICY_SCOPE_COURSE))
+        .filter(reward_policies::course_id.eq(Some(course_id)))
+        .filter(reward_policies::event_type.eq(event_type))
+        .filter(reward_policies::active.eq(true))
+        .select(reward_policies::id)
+        .load::<i64>(conn)
+        .await?;
+
+    let organization_ids = courses_organizations::table
+        .filter(courses_organizations::course_id.eq(course_id))
+        .select(courses_organizations::organization_id)
+        .load::<i32>(conn)
+        .await?;
+    if !organization_ids.is_empty() {
+        policy_ids.extend(
+            reward_policies::table
+                .filter(reward_policies::scope_type.eq(REWARD_POLICY_SCOPE_ORGANIZATION))
+                .filter(reward_policies::organization_id.eq_any(organization_ids))
+                .filter(reward_policies::course_id.is_null())
+                .filter(reward_policies::event_type.eq(event_type))
+                .filter(reward_policies::active.eq(true))
+                .select(reward_policies::id)
+                .load::<i64>(conn)
+                .await?,
+        );
+    }
+
+    policy_ids.extend(
+        reward_policies::table
+            .filter(reward_policies::scope_type.eq(REWARD_POLICY_SCOPE_PLATFORM))
+            .filter(reward_policies::organization_id.is_null())
+            .filter(reward_policies::course_id.is_null())
+            .filter(reward_policies::event_type.eq(event_type))
+            .filter(reward_policies::active.eq(true))
+            .select(reward_policies::id)
+            .load::<i64>(conn)
+            .await?,
+    );
+
+    Ok(policy_ids)
 }
 
 async fn ensure_active_reward_policy(

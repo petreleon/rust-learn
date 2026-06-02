@@ -360,6 +360,9 @@ Reward candidate authorization is intentionally split by scope:
     blocks require `BLOCK_REWARD_ORGANIZATION` or
     `MANAGE_REWARD_FRAUD_BLOCKS`; course and reward-policy blocks require
     `MANAGE_REWARD_FRAUD_BLOCKS`.
+*   Active reward fraud blocks pause new reward candidate submissions,
+    course-scoped teacher approvals, and platform amount approvals for covered
+    teacher, organization, course, or reward-policy scope.
 *   Delegated reward permissions are resolved through the same platform,
     organization, and course permission checks as role permissions. A
     delegation is valid only for its exact scope while it is unexpired and not

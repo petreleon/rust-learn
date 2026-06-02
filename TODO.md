@@ -149,7 +149,7 @@ business logic must ask "does this user have this permission in this scope?"
 - [x] Allow platform operators to block an organization from reward submissions
       only through `BLOCK_REWARD_ORGANIZATION` or
       `MANAGE_REWARD_FRAUD_BLOCKS`.
-- [ ] A fraud block must prevent new reward candidate submissions, teacher
+- [x] A fraud block must prevent new reward candidate submissions, teacher
       candidate approvals, and amount approvals for the blocked scope while the
       block is active.
 - [ ] A fraud block must not itself approve or reject a student reward
