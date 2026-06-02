@@ -1,8 +1,11 @@
 use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
+use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::establish_connection;
-use rust_learn::db::schema::{courses, courses_organizations, organizations};
+use rust_learn::db::schema::{
+    courses, courses_organizations, organizations, reward_policies, users,
+};
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};
@@ -10,6 +13,9 @@ use rust_learn::models::reward_candidate::{
     REWARD_EVENT_COURSE_COMPLETION, REWARD_EVENT_MANUAL_COMPLETION, REWARD_SOURCE_ORGANIZATION,
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
     REWARD_STATUS_TEACHER_APPROVED,
+};
+use rust_learn::models::reward_policy::{
+    NewRewardPolicy, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;
@@ -40,7 +46,7 @@ async fn setup_conn(
 }
 
 async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {
-    create_user(
+    let user = create_user(
         conn,
         &format!("{} Test", prefix),
         &(unique_string(prefix) + "@example.com"),
@@ -48,7 +54,13 @@ async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User 
         "password123",
     )
     .await
-    .expect("failed to create user")
+    .expect("failed to create user");
+    diesel::update(users::table.find(user.id()))
+        .set(users::email_verified.eq(true))
+        .execute(conn)
+        .await
+        .expect("failed to verify user email");
+    user
 }
 
 async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
@@ -126,6 +138,31 @@ async fn force_assign_organization_role(
         .expect("failed to assign organization role");
 }
 
+async fn create_active_course_reward_policy(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    event_type: &str,
+) {
+    diesel::insert_into(reward_policies::table)
+        .values(NewRewardPolicy {
+            scope_type: REWARD_POLICY_SCOPE_COURSE.to_string(),
+            organization_id: None,
+            course_id: Some(course_id),
+            event_type: event_type.to_string(),
+            version: 1,
+            token_amount: BigDecimal::from(10),
+            multiplier: BigDecimal::from(1),
+            max_payout: Some(BigDecimal::from(100)),
+            cooldown_seconds: 0,
+            payment_strategy: REWARD_PAYMENT_TREASURY_TRANSFER.to_string(),
+            active: true,
+            created_by_user_id: None,
+        })
+        .execute(conn)
+        .await
+        .expect("failed to create reward policy");
+}
+
 fn reward_request(student_user_id: i32, idempotency_key: &str) -> SubmitRewardCandidateRequest {
     SubmitRewardCandidateRequest {
         student_user_id,
@@ -145,6 +182,7 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     force_assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER").await;
     force_assign_course_role(&mut conn, student.id(), course.id, "STUDENT").await;
     force_assign_platform_role(&mut conn, reviewer.id(), "MODERATOR").await;
+    create_active_course_reward_policy(&mut conn, course.id, REWARD_EVENT_COURSE_COMPLETION).await;
 
     let idempotency_key = unique_string("course_completion");
     let candidate = submit_course_reward_candidate(
@@ -231,6 +269,7 @@ async fn platform_amount_permission_cannot_submit_or_approve_candidate() {
     force_assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER").await;
     force_assign_course_role(&mut conn, student.id(), course.id, "STUDENT").await;
     force_assign_platform_role(&mut conn, reviewer.id(), "MODERATOR").await;
+    create_active_course_reward_policy(&mut conn, course.id, REWARD_EVENT_COURSE_COMPLETION).await;
 
     let denied_submit = submit_course_reward_candidate(
         &mut conn,
@@ -242,6 +281,19 @@ async fn platform_amount_permission_cannot_submit_or_approve_candidate() {
     .expect_err("platform amount reviewer must not submit course reward candidates");
     assert!(matches!(
         denied_submit,
+        RewardCandidateError::PermissionDenied(_)
+    ));
+
+    let denied_student_submit = submit_course_reward_candidate(
+        &mut conn,
+        student.id(),
+        course.id,
+        reward_request(student.id(), &unique_string("student_self_reward")),
+    )
+    .await
+    .expect_err("student activity evidence must not authorize self-submission");
+    assert!(matches!(
+        denied_student_submit,
         RewardCandidateError::PermissionDenied(_)
     ));
 
@@ -316,6 +368,7 @@ async fn organization_submission_requires_linked_course_and_still_waits_for_teac
     force_assign_organization_role(&mut conn, org_admin.id(), organization.id, "ADMIN").await;
     force_assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER").await;
     force_assign_course_role(&mut conn, student.id(), course.id, "STUDENT").await;
+    create_active_course_reward_policy(&mut conn, course.id, REWARD_EVENT_MANUAL_COMPLETION).await;
 
     let denied_unlinked = submit_organization_reward_candidate(
         &mut conn,
@@ -362,4 +415,31 @@ async fn organization_submission_requires_linked_course_and_still_waits_for_teac
     .await
     .expect("teacher approval should still be required after organization submission");
     assert_eq!(approved.status, REWARD_STATUS_TEACHER_APPROVED);
+}
+
+#[actix_web::test]
+async fn reward_candidate_requires_completion_evidence_threshold() {
+    let mut conn = setup_conn().await;
+    let course = create_course(&mut conn, &unique_string("RewardEvidenceCourse")).await;
+    let teacher = create_user_helper(&mut conn, "reward_evidence_teacher").await;
+    let student = create_user_helper(&mut conn, "reward_evidence_student").await;
+    force_assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER").await;
+    force_assign_course_role(&mut conn, student.id(), course.id, "STUDENT").await;
+    create_active_course_reward_policy(&mut conn, course.id, REWARD_EVENT_COURSE_COMPLETION).await;
+
+    let denied = submit_course_reward_candidate(
+        &mut conn,
+        teacher.id(),
+        course.id,
+        SubmitRewardCandidateRequest {
+            student_user_id: student.id(),
+            event_type: REWARD_EVENT_COURSE_COMPLETION.to_string(),
+            idempotency_key: Some(unique_string("low_completion_reward")),
+            evidence: Some(json!({ "completion_percentage": 80 })),
+        },
+    )
+    .await
+    .expect_err("course completion rewards should require full completion evidence");
+
+    assert!(matches!(denied, RewardCandidateError::InvalidInput(_)));
 }

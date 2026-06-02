@@ -97,12 +97,12 @@ business logic must ask "does this user have this permission in this scope?"
 - [ ] Allow delegated moderators or operators to submit reward candidates only
       when they have a valid delegated permission covering the exact course or
       organization scope. Do not check the moderator role name.
-- [ ] Treat student course activity as completion evidence, not as authority to
+- [x] Treat student course activity as completion evidence, not as authority to
       submit a reward candidate. A student should receive rewards through an
       authorized course, organization, or delegated submission path.
 - [x] Store each reward candidate with a stable idempotency key such as
       `course_completion:{course_id}:{user_id}:{attempt_id}`.
-- [ ] Add eligibility checks for enrollment, email verification, course policy,
+- [x] Add eligibility checks for enrollment, email verification, course policy,
       organization policy, anti-abuse limits, prior rewards, passing score, and
       completion percentage.
 - [x] Add versioned reward policies that define token amounts, multipliers,

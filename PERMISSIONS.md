@@ -331,3 +331,7 @@ Reward candidate authorization is intentionally split by scope:
     `SET_REWARD_POLICY`. Policies are versioned per scope and event type, and
     minting is allowed only when the active policy uses the `mint` payment
     strategy.
+*   Reward candidate eligibility requires a verified recipient, course reward
+    status permission for that recipient, a covering active reward policy, and
+    event evidence such as completion percentage or passing score. Activity
+    evidence does not authorize the student to submit the candidate.

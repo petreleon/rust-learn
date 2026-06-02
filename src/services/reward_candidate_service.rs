@@ -1,5 +1,7 @@
 use crate::config::constants::permissions::Permissions;
-use crate::db::schema::{courses, courses_organizations, users};
+use crate::db::schema::{
+    courses, courses_organizations, reward_candidates, reward_policies, users,
+};
 use crate::models::reward_candidate::{
     NewRewardCandidate, RewardCandidate, REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT,
     REWARD_EVENT_ASSESSMENT_COMPLETION, REWARD_EVENT_COURSE_COMPLETION,
@@ -9,6 +11,9 @@ use crate::models::reward_candidate::{
     REWARD_STATUS_NOTIFIED, REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
     REWARD_STATUS_TEACHER_REJECTED, REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_TOKEN_PENDING,
     REWARD_STATUS_WALLET_CREDITED,
+};
+use crate::models::reward_policy::{
+    REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
 };
 use crate::repositories::course_repository::user_permission_course_request;
 use crate::repositories::organization_repository::user_permission_organization_request;
@@ -278,7 +283,6 @@ async fn create_reward_candidate(
     source_scope: &str,
     request: SubmitRewardCandidateRequest,
 ) -> Result<RewardCandidate, RewardCandidateError> {
-    ensure_reward_target_eligible(conn, request.student_user_id, course_id).await?;
     let event_type = normalize_reward_event_type(&request.event_type)?;
     let idempotency_key = normalize_idempotency_key(
         request.idempotency_key,
@@ -303,6 +307,11 @@ async fn create_reward_candidate(
             "idempotency key is already used by another reward candidate".to_string(),
         ));
     }
+
+    ensure_reward_target_eligible(conn, request.student_user_id, course_id, &event_type).await?;
+    ensure_reward_evidence_is_eligible(&event_type, &evidence)?;
+    ensure_no_prior_active_reward_candidate(conn, request.student_user_id, course_id, &event_type)
+        .await?;
 
     let new_candidate = NewRewardCandidate {
         course_id,
@@ -359,12 +368,19 @@ async fn ensure_reward_target_eligible(
     conn: &mut AsyncPgConnection,
     student_user_id: i32,
     course_id: i32,
+    event_type: &str,
 ) -> Result<(), RewardCandidateError> {
-    users::table
+    let (_user_id, email_verified) = users::table
         .find(student_user_id)
-        .select(users::id)
-        .first::<i32>(conn)
+        .select((users::id, users::email_verified))
+        .first::<(i32, bool)>(conn)
         .await?;
+
+    if !email_verified {
+        return Err(RewardCandidateError::InvalidInput(
+            "reward recipient must have a verified email".to_string(),
+        ));
+    }
 
     let can_view_reward_status = user_permission_course_request(
         conn,
@@ -380,6 +396,129 @@ async fn ensure_reward_target_eligible(
         Err(RewardCandidateError::InvalidInput(
             "reward recipient is not eligible for this course".to_string(),
         ))
+    }?;
+
+    ensure_active_reward_policy(conn, course_id, event_type).await
+}
+
+async fn ensure_active_reward_policy(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    event_type: &str,
+) -> Result<(), RewardCandidateError> {
+    let has_course_policy = diesel::select(exists(
+        reward_policies::table
+            .filter(reward_policies::scope_type.eq(REWARD_POLICY_SCOPE_COURSE))
+            .filter(reward_policies::course_id.eq(Some(course_id)))
+            .filter(reward_policies::event_type.eq(event_type))
+            .filter(reward_policies::active.eq(true)),
+    ))
+    .get_result(conn)
+    .await?;
+    if has_course_policy {
+        return Ok(());
+    }
+
+    let organization_ids = courses_organizations::table
+        .filter(courses_organizations::course_id.eq(course_id))
+        .select(courses_organizations::organization_id)
+        .load::<i32>(conn)
+        .await?;
+    if !organization_ids.is_empty() {
+        let has_organization_policy = diesel::select(exists(
+            reward_policies::table
+                .filter(reward_policies::scope_type.eq(REWARD_POLICY_SCOPE_ORGANIZATION))
+                .filter(reward_policies::organization_id.eq_any(organization_ids))
+                .filter(reward_policies::course_id.is_null())
+                .filter(reward_policies::event_type.eq(event_type))
+                .filter(reward_policies::active.eq(true)),
+        ))
+        .get_result(conn)
+        .await?;
+        if has_organization_policy {
+            return Ok(());
+        }
+    }
+
+    let has_platform_policy = diesel::select(exists(
+        reward_policies::table
+            .filter(reward_policies::scope_type.eq(REWARD_POLICY_SCOPE_PLATFORM))
+            .filter(reward_policies::organization_id.is_null())
+            .filter(reward_policies::course_id.is_null())
+            .filter(reward_policies::event_type.eq(event_type))
+            .filter(reward_policies::active.eq(true)),
+    ))
+    .get_result(conn)
+    .await?;
+
+    if has_platform_policy {
+        Ok(())
+    } else {
+        Err(RewardCandidateError::InvalidInput(
+            "no active reward policy covers this course event".to_string(),
+        ))
+    }
+}
+
+async fn ensure_no_prior_active_reward_candidate(
+    conn: &mut AsyncPgConnection,
+    student_user_id: i32,
+    course_id: i32,
+    event_type: &str,
+) -> Result<(), RewardCandidateError> {
+    let already_exists = diesel::select(exists(
+        reward_candidates::table
+            .filter(reward_candidates::student_user_id.eq(student_user_id))
+            .filter(reward_candidates::course_id.eq(course_id))
+            .filter(reward_candidates::event_type.eq(event_type))
+            .filter(reward_candidates::status.ne(REWARD_STATUS_TEACHER_REJECTED))
+            .filter(reward_candidates::status.ne(REWARD_STATUS_AMOUNT_REJECTED))
+            .filter(reward_candidates::status.ne(REWARD_STATUS_FAILED)),
+    ))
+    .get_result(conn)
+    .await?;
+
+    if already_exists {
+        Err(RewardCandidateError::InvalidInput(
+            "an active reward candidate already exists for this course event".to_string(),
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+fn ensure_reward_evidence_is_eligible(
+    event_type: &str,
+    evidence: &Value,
+) -> Result<(), RewardCandidateError> {
+    match event_type {
+        REWARD_EVENT_COURSE_COMPLETION => {
+            ensure_evidence_number_at_least(evidence, "completion_percentage", 100.0)
+        }
+        REWARD_EVENT_ASSESSMENT_COMPLETION => {
+            ensure_evidence_number_at_least(evidence, "passing_score", 70.0)
+        }
+        REWARD_EVENT_MANUAL_COMPLETION | REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT => Ok(()),
+        _ => unreachable!("event type was normalized before evidence validation"),
+    }
+}
+
+fn ensure_evidence_number_at_least(
+    evidence: &Value,
+    key: &str,
+    minimum: f64,
+) -> Result<(), RewardCandidateError> {
+    let value = evidence.get(key).and_then(Value::as_f64).ok_or_else(|| {
+        RewardCandidateError::InvalidInput(format!("{} evidence is required", key))
+    })?;
+
+    if value >= minimum {
+        Ok(())
+    } else {
+        Err(RewardCandidateError::InvalidInput(format!(
+            "{} evidence is below the reward threshold",
+            key
+        )))
     }
 }
 
