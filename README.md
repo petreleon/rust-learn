@@ -182,6 +182,13 @@ Organization wallet managers can link and read organization wallets with
 `/api/wallets/organizations/{id}` routes. Link endpoints are idempotent and
 return the existing wallet on repeated calls.
 
+### Course discovery API
+
+`GET /api/courses` supports `search`, `organization_id`, `limit`, and `offset`
+query parameters. The response includes `courses`, `total`, `limit`, `offset`,
+`search`, and `organization_id` so learners and organization views can paginate
+and filter discovery results consistently.
+
 ### Notification events
 
 Notifications are persisted for key product events: course enrollment, content

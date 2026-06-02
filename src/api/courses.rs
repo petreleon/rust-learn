@@ -6,6 +6,7 @@ use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddle
 use crate::models::course::{Course, UpdateCourse};
 use crate::models::param_type::ParamType;
 use crate::repositories::course_repository::assign_role_to_user_in_course;
+use crate::services::course_service::{discover_courses, CourseDiscoveryQuery};
 use crate::utils::jwt_utils::decode_jwt;
 use crate::utils::notifications::NotificationsState;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
@@ -18,13 +19,30 @@ pub struct AssignRoleRequest {
     pub role_name: String,
 }
 
-async fn list_courses(pool: web::Data<db::DbPool>) -> impl Responder {
+#[derive(Deserialize)]
+pub struct CourseDiscoveryParams {
+    pub search: Option<String>,
+    pub organization_id: Option<i32>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+async fn list_courses(
+    pool: web::Data<db::DbPool>,
+    query: web::Query<CourseDiscoveryParams>,
+) -> impl Responder {
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = courses::table.load::<Course>(&mut conn).await;
+    let discovery = CourseDiscoveryQuery::new(
+        query.search.clone(),
+        query.organization_id,
+        query.limit,
+        query.offset,
+    );
+    let result = discover_courses(&mut conn, discovery).await;
 
     match result {
         Ok(course_list) => HttpResponse::Ok().json(course_list),
