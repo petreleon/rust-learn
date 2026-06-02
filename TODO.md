@@ -195,7 +195,7 @@ business logic must ask "does this user have this permission in this scope?"
       mismatches.
 - [x] Add platform fraud dashboards for active teacher, organization, course,
       and reward-policy reward blocks.
-- [ ] Add organization dashboards for sponsored teacher applications, course
+- [x] Add organization dashboards for sponsored teacher applications, course
       reward volume, approved amounts, and wallet balances.
 - [ ] Add student-facing reward history with candidate status, approved amount,
       wallet credit, and token transaction reference.

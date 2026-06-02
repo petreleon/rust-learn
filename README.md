@@ -211,7 +211,12 @@ Platform administrators can read `GET /api/reports/platform/summary` and export
 `GET /api/reports/platform/summary.csv`. Organization administrators can read
 `GET /api/reports/organizations/{id}/summary` and export
 `GET /api/reports/organizations/{id}/summary.csv`. CSV endpoints return
-`text/csv` with attachment filenames.
+`text/csv` with attachment filenames. Organization reward operators with
+`VIEW_ORG_REWARD_REPORTS` can read and export
+`GET /api/reports/organizations/{id}/reward-dashboard` and
+`GET /api/reports/organizations/{id}/reward-dashboard.csv` for sponsored
+teacher applications, course reward volume, approved amounts, and organization
+wallet balances.
 
 ### Notification events
 

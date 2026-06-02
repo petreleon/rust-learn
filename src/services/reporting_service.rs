@@ -20,6 +20,7 @@ use crate::models::teacher_application::{
     TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
     TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
 };
+use bigdecimal::BigDecimal;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use serde::Serialize;
@@ -42,6 +43,44 @@ pub struct OrganizationReportSummary {
     pub member_count: i64,
     pub wallet_count: i64,
     pub course_role_assignment_count: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationRewardDashboard {
+    pub organization_id: i32,
+    pub organization_name: String,
+    pub sponsored_teacher_applications: TeacherApplicationDashboardSummary,
+    pub course_reward_count: i64,
+    pub approved_reward_count: i64,
+    pub approved_amount_total: String,
+    pub courses: Vec<OrganizationCourseRewardDashboardRow>,
+    pub wallets: Vec<OrganizationWalletBalanceRow>,
+    pub wallet_balance_total: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationCourseRewardDashboardRow {
+    pub course_id: i32,
+    pub course_title: String,
+    pub reward_candidate_count: i64,
+    pub approved_reward_count: i64,
+    pub approved_amount_total: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationWalletBalanceRow {
+    pub wallet_id: i32,
+    pub balance: String,
+}
+
+struct OrganizationCourseRewardDashboardData {
+    row: OrganizationCourseRewardDashboardRow,
+    approved_amount_total: BigDecimal,
+}
+
+struct OrganizationWalletBalanceData {
+    row: OrganizationWalletBalanceRow,
+    balance: BigDecimal,
 }
 
 #[derive(Debug, Serialize)]
@@ -494,6 +533,147 @@ pub async fn organization_report_summary(
     })
 }
 
+pub async fn organization_reward_dashboard(
+    conn: &mut AsyncPgConnection,
+    organization_id: i32,
+) -> QueryResult<OrganizationRewardDashboard> {
+    let organization_name = organizations::table
+        .find(organization_id)
+        .select(organizations::name)
+        .first::<String>(conn)
+        .await?;
+
+    let sponsored_teacher_applications =
+        sponsored_teacher_application_summary(conn, organization_id).await?;
+    let course_data = organization_course_reward_rows(conn, organization_id).await?;
+
+    let course_reward_count = course_data
+        .iter()
+        .map(|data| data.row.reward_candidate_count)
+        .sum::<i64>();
+    let approved_reward_count = course_data
+        .iter()
+        .map(|data| data.row.approved_reward_count)
+        .sum::<i64>();
+    let approved_amount_total = course_data.iter().fold(BigDecimal::from(0), |total, data| {
+        total + data.approved_amount_total.clone()
+    });
+    let courses = course_data.into_iter().map(|data| data.row).collect();
+
+    let wallet_data = organization_wallet_balance_rows(conn, organization_id).await?;
+    let wallet_balance_total = wallet_data.iter().fold(BigDecimal::from(0), |total, data| {
+        total + data.balance.clone()
+    });
+    let wallets = wallet_data.into_iter().map(|data| data.row).collect();
+
+    Ok(OrganizationRewardDashboard {
+        organization_id,
+        organization_name,
+        sponsored_teacher_applications,
+        course_reward_count,
+        approved_reward_count,
+        approved_amount_total: approved_amount_total.to_string(),
+        courses,
+        wallets,
+        wallet_balance_total: wallet_balance_total.to_string(),
+    })
+}
+
+async fn sponsored_teacher_application_summary(
+    conn: &mut AsyncPgConnection,
+    organization_id: i32,
+) -> QueryResult<TeacherApplicationDashboardSummary> {
+    let statuses = teacher_applications::table
+        .filter(
+            teacher_applications::organization_sponsor_id
+                .eq(Some(organization_id))
+                .or(teacher_applications::requested_organization_id.eq(Some(organization_id))),
+        )
+        .select(teacher_applications::status)
+        .load::<String>(conn)
+        .await?;
+
+    let mut summary = TeacherApplicationDashboardSummary::default();
+    for status in statuses {
+        summary.total += 1;
+        match status.as_str() {
+            TEACHER_APPLICATION_STATUS_SUBMITTED => summary.submitted += 1,
+            TEACHER_APPLICATION_STATUS_NEEDS_CHANGES => summary.needs_changes += 1,
+            TEACHER_APPLICATION_STATUS_APPROVED => summary.approved += 1,
+            TEACHER_APPLICATION_STATUS_REJECTED => summary.rejected += 1,
+            _ => {}
+        }
+    }
+
+    Ok(summary)
+}
+
+async fn organization_course_reward_rows(
+    conn: &mut AsyncPgConnection,
+    organization_id: i32,
+) -> QueryResult<Vec<OrganizationCourseRewardDashboardData>> {
+    let courses = courses_organizations::table
+        .inner_join(courses::table.on(courses_organizations::course_id.eq(courses::id)))
+        .filter(courses_organizations::organization_id.eq(organization_id))
+        .select((courses::id, courses::title))
+        .order(courses::title.asc())
+        .load::<(i32, String)>(conn)
+        .await?;
+
+    let mut rows = Vec::new();
+    for (course_id, course_title) in courses {
+        let amounts = reward_candidates::table
+            .filter(reward_candidates::course_id.eq(course_id))
+            .select(reward_candidates::approved_amount)
+            .load::<Option<BigDecimal>>(conn)
+            .await?;
+
+        let reward_candidate_count = amounts.len() as i64;
+        let approved_amounts = amounts.into_iter().flatten().collect::<Vec<_>>();
+        let approved_reward_count = approved_amounts.len() as i64;
+        let approved_amount_total = approved_amounts
+            .into_iter()
+            .fold(BigDecimal::from(0), |total, amount| total + amount);
+
+        rows.push(OrganizationCourseRewardDashboardData {
+            row: OrganizationCourseRewardDashboardRow {
+                course_id,
+                course_title,
+                reward_candidate_count,
+                approved_reward_count,
+                approved_amount_total: approved_amount_total.to_string(),
+            },
+            approved_amount_total,
+        });
+    }
+
+    Ok(rows)
+}
+
+async fn organization_wallet_balance_rows(
+    conn: &mut AsyncPgConnection,
+    organization_id: i32,
+) -> QueryResult<Vec<OrganizationWalletBalanceData>> {
+    wallets::table
+        .filter(wallets::organization_id.eq(Some(organization_id)))
+        .filter(wallets::user_id.is_null())
+        .select((wallets::id, wallets::value))
+        .order(wallets::id.asc())
+        .load::<(i32, BigDecimal)>(conn)
+        .await
+        .map(|rows| {
+            rows.into_iter()
+                .map(|(wallet_id, balance)| OrganizationWalletBalanceData {
+                    row: OrganizationWalletBalanceRow {
+                        wallet_id,
+                        balance: balance.to_string(),
+                    },
+                    balance,
+                })
+                .collect()
+        })
+}
+
 pub fn platform_report_csv(summary: &PlatformReportSummary) -> String {
     format!(
         "metric,value\nusers,{}\norganizations,{}\ncourses,{}\nwallets,{}\nnotifications,{}\n",
@@ -636,6 +816,69 @@ pub fn platform_fraud_dashboard_csv(dashboard: &PlatformFraudDashboard) -> Strin
                 .map(|value| value.to_string())
                 .unwrap_or_default(),
             row.created_at
+        ));
+    }
+
+    csv
+}
+
+pub fn organization_reward_dashboard_csv(dashboard: &OrganizationRewardDashboard) -> String {
+    let mut csv = String::from("section,metric,value\n");
+    csv.push_str(&format!(
+        "organization,organization_id,{}\n",
+        dashboard.organization_id
+    ));
+    csv.push_str(&format!(
+        "organization,organization_name,{}\n",
+        csv_value(&dashboard.organization_name)
+    ));
+    csv.push_str(&format!(
+        "teacher_applications,total,{}\n",
+        dashboard.sponsored_teacher_applications.total
+    ));
+    csv.push_str(&format!(
+        "teacher_applications,submitted,{}\n",
+        dashboard.sponsored_teacher_applications.submitted
+    ));
+    csv.push_str(&format!(
+        "teacher_applications,approved,{}\n",
+        dashboard.sponsored_teacher_applications.approved
+    ));
+    csv.push_str(&format!(
+        "reward_candidates,total,{}\n",
+        dashboard.course_reward_count
+    ));
+    csv.push_str(&format!(
+        "reward_candidates,approved,{}\n",
+        dashboard.approved_reward_count
+    ));
+    csv.push_str(&format!(
+        "reward_candidates,approved_amount_total,{}\n",
+        csv_value(&dashboard.approved_amount_total)
+    ));
+    csv.push_str(&format!(
+        "wallets,balance_total,{}\n",
+        csv_value(&dashboard.wallet_balance_total)
+    ));
+
+    csv.push_str("\ncourses,course_id,course_title,reward_candidate_count,approved_reward_count,approved_amount_total\n");
+    for row in &dashboard.courses {
+        csv.push_str(&format!(
+            "courses,{},{},{},{},{}\n",
+            row.course_id,
+            csv_value(&row.course_title),
+            row.reward_candidate_count,
+            row.approved_reward_count,
+            csv_value(&row.approved_amount_total)
+        ));
+    }
+
+    csv.push_str("\nwallets,wallet_id,balance\n");
+    for row in &dashboard.wallets {
+        csv.push_str(&format!(
+            "wallets,{},{}\n",
+            row.wallet_id,
+            csv_value(&row.balance)
         ));
     }
 
