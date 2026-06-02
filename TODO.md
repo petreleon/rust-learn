@@ -152,7 +152,7 @@ business logic must ask "does this user have this permission in this scope?"
 - [x] A fraud block must prevent new reward candidate submissions, teacher
       candidate approvals, and amount approvals for the blocked scope while the
       block is active.
-- [ ] A fraud block must not itself approve or reject a student reward
+- [x] A fraud block must not itself approve or reject a student reward
       candidate. It only pauses or blocks reward activity until an explicit
       permitted reviewer handles the candidate.
 - [x] Store block reason, evidence reference, blocked scope, created_by,
@@ -162,11 +162,11 @@ business logic must ask "does this user have this permission in this scope?"
 
 ## Wallet And Payment Business Flow
 
-- [ ] Keep user and organization wallet linking idempotent and permission-based.
-- [ ] Gate platform wallet operations with `MANAGE_WALLETS`,
+- [x] Keep user and organization wallet linking idempotent and permission-based.
+- [x] Gate platform wallet operations with `MANAGE_WALLETS`,
       `VIEW_WALLET`, `VIEW_TRANSACTIONS`, `RECONCILE_WALLETS`, and related
       platform permissions.
-- [ ] Gate organization wallet operations with `MANAGE_ORG_WALLETS`,
+- [x] Gate organization wallet operations with `MANAGE_ORG_WALLETS`,
       `VIEW_ORG_REWARD_REPORTS`, and `MANAGE_ORG_REWARD_BUDGET`.
 - [ ] Add wallet audit views that show internal transactions, external
       blockchain events, reward records, and reconciliation status.

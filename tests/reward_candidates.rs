@@ -24,6 +24,7 @@ use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::repositories::reward_candidate_repository::find_candidate;
 use rust_learn::repositories::reward_execution_job_repository::find_job_by_candidate;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::reward_candidate_service::{
@@ -351,12 +352,17 @@ async fn teacher_fraud_block_pauses_submission_teacher_approval_and_amount_appro
         RewardCandidateError::InvalidStatus(message)
             if message.contains("teacher reward activity is blocked")
     ));
+    let still_pending = find_candidate(&mut conn, candidate.id)
+        .await
+        .expect("candidate should remain readable after blocked teacher decision");
+    assert_eq!(still_pending.status, REWARD_STATUS_PENDING_TEACHER_APPROVAL);
+    assert!(still_pending.teacher_approver_user_id.is_none());
 
     revoke_reward_fraud_block(&mut conn, admin.id(), teacher_block.id)
         .await
         .expect("admin should revoke teacher fraud block");
 
-    decide_reward_candidate_by_teacher(
+    let teacher_approved = decide_reward_candidate_by_teacher(
         &mut conn,
         teacher.id(),
         course.id,
@@ -368,6 +374,7 @@ async fn teacher_fraud_block_pauses_submission_teacher_approval_and_amount_appro
     )
     .await
     .expect("teacher approval should resume after revocation");
+    assert_eq!(teacher_approved.status, REWARD_STATUS_TEACHER_APPROVED);
 
     create_reward_fraud_block(
         &mut conn,
@@ -394,6 +401,23 @@ async fn teacher_fraud_block_pauses_submission_teacher_approval_and_amount_appro
         RewardCandidateError::InvalidStatus(message)
             if message.contains("teacher reward activity is blocked")
     ));
+    let still_teacher_approved = find_candidate(&mut conn, candidate.id)
+        .await
+        .expect("candidate should remain readable after blocked amount decision");
+    assert_eq!(
+        still_teacher_approved.status,
+        REWARD_STATUS_TEACHER_APPROVED
+    );
+    assert!(still_teacher_approved.amount_reviewer_user_id.is_none());
+    assert!(still_teacher_approved.approved_amount.is_none());
+
+    let execution_job = find_job_by_candidate(&mut conn, candidate.id)
+        .await
+        .expect("execution job lookup should succeed");
+    assert!(
+        execution_job.is_none(),
+        "fraud block must not enqueue reward execution by deciding a candidate"
+    );
 }
 
 #[actix_web::test]

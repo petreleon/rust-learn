@@ -2,7 +2,11 @@ use actix_web::{http::StatusCode, test, web, App};
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::db::schema::{organizations, wallets};
+use rust_learn::config::constants::permissions::Permissions;
+use rust_learn::db::schema::{
+    organization_roles, organizations, platform_roles, role_permission_organization,
+    role_permission_platform, wallets,
+};
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::{OrganizationRole, PlatformRole};
@@ -62,6 +66,35 @@ async fn assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_n
         .expect("failed to assign platform role");
 }
 
+async fn assign_platform_permission_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    permission: Permissions,
+) {
+    let role_id: i32 = diesel::insert_into(platform_roles::table)
+        .values((
+            platform_roles::name.eq(unique_string("wallet_platform_permission")),
+            platform_roles::description.eq(Some("wallet permission test role")),
+        ))
+        .returning(platform_roles::id)
+        .get_result(conn)
+        .await
+        .expect("failed to create platform permission test role");
+
+    diesel::insert_into(role_permission_platform::table)
+        .values((
+            role_permission_platform::platform_role_id.eq(Some(role_id)),
+            role_permission_platform::permission.eq(permission.to_string()),
+        ))
+        .execute(conn)
+        .await
+        .expect("failed to assign platform permission to test role");
+
+    UserRolePlatform::assign(conn, user_id, role_id)
+        .await
+        .expect("failed to assign platform permission test role");
+}
+
 async fn assign_organization_role(
     conn: &mut AsyncPgConnection,
     user_id: i32,
@@ -74,6 +107,37 @@ async fn assign_organization_role(
     UserRoleOrganization::assign(conn, user_id, organization_id, role_id)
         .await
         .expect("failed to assign organization role");
+}
+
+async fn assign_organization_permission_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    organization_id: i32,
+    permission: Permissions,
+) {
+    let role_id: i32 = diesel::insert_into(organization_roles::table)
+        .values((
+            organization_roles::name.eq(unique_string("wallet_org_permission")),
+            organization_roles::description.eq(Some("wallet organization permission test role")),
+        ))
+        .returning(organization_roles::id)
+        .get_result(conn)
+        .await
+        .expect("failed to create organization permission test role");
+
+    diesel::insert_into(role_permission_organization::table)
+        .values((
+            role_permission_organization::organization_id.eq(None::<i32>),
+            role_permission_organization::organization_role_id.eq(Some(role_id)),
+            role_permission_organization::permission.eq(permission.to_string()),
+        ))
+        .execute(conn)
+        .await
+        .expect("failed to assign organization permission to test role");
+
+    UserRoleOrganization::assign(conn, user_id, organization_id, role_id)
+        .await
+        .expect("failed to assign organization permission test role");
 }
 
 fn token_for(user_id: i32) -> String {
@@ -150,8 +214,12 @@ async fn platform_wallet_manager_can_link_another_user_wallet() {
     let mut conn = setup_conn(&pool).await;
     let manager = create_test_user(&mut conn, "wallet_manager").await;
     let stranger = create_test_user(&mut conn, "wallet_stranger").await;
+    let auditor = create_test_user(&mut conn, "wallet_auditor").await;
     let target = create_test_user(&mut conn, "wallet_target").await;
+    let second_target = create_test_user(&mut conn, "wallet_target_two").await;
     assign_platform_role(&mut conn, manager.id(), "ADMIN").await;
+    assign_platform_role(&mut conn, stranger.id(), "MODERATOR").await;
+    assign_platform_permission_role(&mut conn, auditor.id(), Permissions::VIEW_TRANSACTIONS).await;
     drop(conn);
 
     let app = test::init_service(wallet_test_app(pool.clone())).await;
@@ -165,6 +233,16 @@ async fn platform_wallet_manager_can_link_another_user_wallet() {
         .to_request();
     let forbidden_resp = test::call_service(&app, forbidden_req).await;
     assert_eq!(forbidden_resp.status(), StatusCode::FORBIDDEN);
+
+    let forbidden_get_req = test::TestRequest::get()
+        .uri(&format!("/api/wallets/users/{}", target.id()))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(stranger.id())),
+        ))
+        .to_request();
+    let forbidden_get_resp = test::call_service(&app, forbidden_get_req).await;
+    assert_eq!(forbidden_get_resp.status(), StatusCode::FORBIDDEN);
 
     let manager_req = test::TestRequest::post()
         .uri(&format!("/api/wallets/users/{}/link", target.id()))
@@ -178,6 +256,28 @@ async fn platform_wallet_manager_can_link_another_user_wallet() {
     let linked: Value = test::read_body_json(manager_resp).await;
     assert_eq!(linked["created"], true);
     assert_eq!(linked["wallet"]["user_id"], target.id());
+
+    let auditor_get_req = test::TestRequest::get()
+        .uri(&format!("/api/wallets/users/{}", target.id()))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(auditor.id())),
+        ))
+        .to_request();
+    let auditor_get_resp = test::call_service(&app, auditor_get_req).await;
+    assert_eq!(auditor_get_resp.status(), StatusCode::OK);
+    let audited: Value = test::read_body_json(auditor_get_resp).await;
+    assert_eq!(audited["user_id"], target.id());
+
+    let auditor_link_req = test::TestRequest::post()
+        .uri(&format!("/api/wallets/users/{}/link", second_target.id()))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(auditor.id())),
+        ))
+        .to_request();
+    let auditor_link_resp = test::call_service(&app, auditor_link_req).await;
+    assert_eq!(auditor_link_resp.status(), StatusCode::FORBIDDEN);
 }
 
 #[actix_web::test]
@@ -186,9 +286,19 @@ async fn organization_wallet_manager_can_link_and_read_org_wallet() {
     let pool = establish_connection();
     let mut conn = setup_conn(&pool).await;
     let org_admin = create_test_user(&mut conn, "wallet_org_admin").await;
+    let org_moderator = create_test_user(&mut conn, "wallet_org_moderator").await;
+    let org_reporter = create_test_user(&mut conn, "wallet_org_reporter").await;
     let stranger = create_test_user(&mut conn, "wallet_org_stranger").await;
     let org = create_test_organization(&mut conn).await;
     assign_organization_role(&mut conn, org_admin.id(), org.id, "ADMIN").await;
+    assign_organization_role(&mut conn, org_moderator.id(), org.id, "MODERATOR").await;
+    assign_organization_permission_role(
+        &mut conn,
+        org_reporter.id(),
+        org.id,
+        Permissions::VIEW_ORG_REWARD_REPORTS,
+    )
+    .await;
     drop(conn);
 
     let app = test::init_service(wallet_test_app(pool.clone())).await;
@@ -202,6 +312,26 @@ async fn organization_wallet_manager_can_link_and_read_org_wallet() {
         .to_request();
     let forbidden_resp = test::call_service(&app, forbidden_req).await;
     assert_eq!(forbidden_resp.status(), StatusCode::FORBIDDEN);
+
+    let moderator_req = test::TestRequest::post()
+        .uri(&format!("/api/wallets/organizations/{}/link", org.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(org_moderator.id())),
+        ))
+        .to_request();
+    let moderator_resp = test::call_service(&app, moderator_req).await;
+    assert_eq!(moderator_resp.status(), StatusCode::FORBIDDEN);
+
+    let reporter_link_req = test::TestRequest::post()
+        .uri(&format!("/api/wallets/organizations/{}/link", org.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(org_reporter.id())),
+        ))
+        .to_request();
+    let reporter_link_resp = test::call_service(&app, reporter_link_req).await;
+    assert_eq!(reporter_link_resp.status(), StatusCode::FORBIDDEN);
 
     let link_req = test::TestRequest::post()
         .uri(&format!("/api/wallets/organizations/{}/link", org.id))
@@ -244,6 +374,28 @@ async fn organization_wallet_manager_can_link_and_read_org_wallet() {
     let fetched: Value = test::read_body_json(get_resp).await;
     assert_eq!(fetched["id"], wallet_id);
     assert_eq!(fetched["organization_id"], org.id);
+
+    let reporter_get_req = test::TestRequest::get()
+        .uri(&format!("/api/wallets/organizations/{}", org.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(org_reporter.id())),
+        ))
+        .to_request();
+    let reporter_get_resp = test::call_service(&app, reporter_get_req).await;
+    assert_eq!(reporter_get_resp.status(), StatusCode::OK);
+    let reporter_fetched: Value = test::read_body_json(reporter_get_resp).await;
+    assert_eq!(reporter_fetched["id"], wallet_id);
+
+    let moderator_get_req = test::TestRequest::get()
+        .uri(&format!("/api/wallets/organizations/{}", org.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(org_moderator.id())),
+        ))
+        .to_request();
+    let moderator_get_resp = test::call_service(&app, moderator_get_req).await;
+    assert_eq!(moderator_get_resp.status(), StatusCode::FORBIDDEN);
 
     let mut conn = setup_conn(&pool).await;
     let count: i64 = wallets::table

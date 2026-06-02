@@ -331,6 +331,14 @@ Reward candidate authorization is intentionally split by scope:
     `SET_REWARD_POLICY`. Policies are versioned per scope and event type, and
     minting is allowed only when the active policy uses the `mint` payment
     strategy.
+*   Cross-user wallet reads require platform-scoped `VIEW_WALLET`,
+    `VIEW_TRANSACTIONS`, `RECONCILE_WALLETS`, or `MANAGE_WALLETS`.
+    Cross-user wallet linking requires `CREATE_WALLET` or `MANAGE_WALLETS`.
+*   Organization wallet reads require platform wallet visibility or
+    organization-scoped `MANAGE_ORG_WALLETS`, `VIEW_ORG_REWARD_REPORTS`, or
+    `MANAGE_ORG_REWARD_BUDGET`. Organization wallet linking requires
+    platform `CREATE_WALLET` or `MANAGE_WALLETS`, or organization-scoped
+    `MANAGE_ORG_WALLETS`.
 *   Reward candidate eligibility requires a verified recipient, course reward
     status permission for that recipient, a covering active reward policy, and
     event evidence such as completion percentage or passing score. Activity

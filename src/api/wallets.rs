@@ -53,6 +53,12 @@ impl From<LinkedWallet> for WalletLinkResponse {
     }
 }
 
+#[derive(Clone, Copy)]
+enum WalletOperation {
+    View,
+    Link,
+}
+
 fn current_user(req: &HttpRequest) -> Result<UserJWT, HttpResponse> {
     req.extensions()
         .get::<UserJWT>()
@@ -96,18 +102,30 @@ async fn ensure_organization_exists(
     }
 }
 
-async fn has_any_platform_wallet_permission(
+async fn has_any_platform_permission(
     conn: &mut AsyncPgConnection,
     requester_id: i32,
+    permissions: &[String],
 ) -> diesel::QueryResult<bool> {
-    let permissions = [
-        Permissions::VIEW_WALLET.to_string(),
-        Permissions::CREATE_WALLET.to_string(),
-        Permissions::MANAGE_WALLETS.to_string(),
-    ];
-
     for permission in permissions {
-        if user_permission_platform_request(conn, requester_id, &permission).await? {
+        if user_permission_platform_request(conn, requester_id, permission).await? {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
+async fn has_any_organization_permission(
+    conn: &mut AsyncPgConnection,
+    requester_id: i32,
+    organization_id: i32,
+    permissions: &[String],
+) -> diesel::QueryResult<bool> {
+    for permission in permissions {
+        if user_permission_organization_request(conn, requester_id, organization_id, permission)
+            .await?
+        {
             return Ok(true);
         }
     }
@@ -119,12 +137,26 @@ async fn ensure_user_wallet_access(
     conn: &mut AsyncPgConnection,
     requester_id: i32,
     target_user_id: i32,
+    operation: WalletOperation,
 ) -> Result<(), HttpResponse> {
     if requester_id == target_user_id {
         return Ok(());
     }
 
-    match has_any_platform_wallet_permission(conn, requester_id).await {
+    let permissions = match operation {
+        WalletOperation::View => vec![
+            Permissions::VIEW_WALLET.to_string(),
+            Permissions::VIEW_TRANSACTIONS.to_string(),
+            Permissions::RECONCILE_WALLETS.to_string(),
+            Permissions::MANAGE_WALLETS.to_string(),
+        ],
+        WalletOperation::Link => vec![
+            Permissions::CREATE_WALLET.to_string(),
+            Permissions::MANAGE_WALLETS.to_string(),
+        ],
+    };
+
+    match has_any_platform_permission(conn, requester_id, permissions.as_slice()).await {
         Ok(true) => Ok(()),
         Ok(false) => Err(HttpResponse::Forbidden().body("User does not have wallet access")),
         Err(_) => Err(HttpResponse::InternalServerError().body("Failed to check wallet access")),
@@ -135,8 +167,22 @@ async fn ensure_organization_wallet_access(
     conn: &mut AsyncPgConnection,
     requester_id: i32,
     organization_id: i32,
+    operation: WalletOperation,
 ) -> Result<(), HttpResponse> {
-    match has_any_platform_wallet_permission(conn, requester_id).await {
+    let platform_permissions = match operation {
+        WalletOperation::View => vec![
+            Permissions::VIEW_WALLET.to_string(),
+            Permissions::VIEW_TRANSACTIONS.to_string(),
+            Permissions::RECONCILE_WALLETS.to_string(),
+            Permissions::MANAGE_WALLETS.to_string(),
+        ],
+        WalletOperation::Link => vec![
+            Permissions::CREATE_WALLET.to_string(),
+            Permissions::MANAGE_WALLETS.to_string(),
+        ],
+    };
+
+    match has_any_platform_permission(conn, requester_id, platform_permissions.as_slice()).await {
         Ok(true) => return Ok(()),
         Ok(false) => {}
         Err(_) => {
@@ -144,9 +190,22 @@ async fn ensure_organization_wallet_access(
         }
     }
 
-    let permission = Permissions::MANAGE_ORG_WALLETS.to_string();
-    match user_permission_organization_request(conn, requester_id, organization_id, &permission)
-        .await
+    let organization_permissions = match operation {
+        WalletOperation::View => vec![
+            Permissions::MANAGE_ORG_WALLETS.to_string(),
+            Permissions::VIEW_ORG_REWARD_REPORTS.to_string(),
+            Permissions::MANAGE_ORG_REWARD_BUDGET.to_string(),
+        ],
+        WalletOperation::Link => vec![Permissions::MANAGE_ORG_WALLETS.to_string()],
+    };
+
+    match has_any_organization_permission(
+        conn,
+        requester_id,
+        organization_id,
+        organization_permissions.as_slice(),
+    )
+    .await
     {
         Ok(true) => Ok(()),
         Ok(false) => {
@@ -228,7 +287,13 @@ async fn get_user_wallet_by_id(
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    if let Err(response) = ensure_user_wallet_access(&mut conn, requester_id, target_user_id).await
+    if let Err(response) = ensure_user_wallet_access(
+        &mut conn,
+        requester_id,
+        target_user_id,
+        WalletOperation::View,
+    )
+    .await
     {
         return response;
     }
@@ -253,7 +318,13 @@ async fn link_user_wallet_by_id(
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    if let Err(response) = ensure_user_wallet_access(&mut conn, requester_id, target_user_id).await
+    if let Err(response) = ensure_user_wallet_access(
+        &mut conn,
+        requester_id,
+        target_user_id,
+        WalletOperation::Link,
+    )
+    .await
     {
         return response;
     }
@@ -306,8 +377,13 @@ async fn get_organization_wallet_by_id(
     if let Err(response) = ensure_organization_exists(&mut conn, organization_id).await {
         return response;
     }
-    if let Err(response) =
-        ensure_organization_wallet_access(&mut conn, requester_id, organization_id).await
+    if let Err(response) = ensure_organization_wallet_access(
+        &mut conn,
+        requester_id,
+        organization_id,
+        WalletOperation::View,
+    )
+    .await
     {
         return response;
     }
@@ -332,8 +408,13 @@ async fn link_organization_wallet_by_id(
     if let Err(response) = ensure_organization_exists(&mut conn, organization_id).await {
         return response;
     }
-    if let Err(response) =
-        ensure_organization_wallet_access(&mut conn, requester_id, organization_id).await
+    if let Err(response) = ensure_organization_wallet_access(
+        &mut conn,
+        requester_id,
+        organization_id,
+        WalletOperation::Link,
+    )
+    .await
     {
         return response;
     }
