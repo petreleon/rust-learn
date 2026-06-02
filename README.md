@@ -97,6 +97,11 @@ process are documented in [docs/operations.md](docs/operations.md).
 ### Frontend
 
 The `web/` directory contains a Next.js app that can call the Rust API through `NEXT_PUBLIC_API_URL` in browser contexts and `API_URL` for container/server contexts.
+The first screen is a reward operations console for teacher applications,
+course reward candidate decisions, platform amount review, student reward
+history, organization reward reports, reward fraud blocks, delegated reward
+permissions, and CSV exports. UI actions are shown or disabled from resolved
+platform, organization, and course permission strings rather than role labels.
 
 ## Prerequisites
 

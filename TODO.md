@@ -225,16 +225,16 @@ business logic must ask "does this user have this permission in this scope?"
 
 ## Frontend Workflows
 
-- [ ] Build the teacher application form and central review queue.
-- [ ] Build course reward candidate approval screens for permitted course
+- [x] Build the teacher application form and central review queue.
+- [x] Build course reward candidate approval screens for permitted course
       approvers and separate platform amount approval screens for permitted
       platform reviewers.
-- [ ] Build student reward status/history screens.
-- [ ] Build organization reward reporting screens.
-- [ ] Build platform fraud-block screens for blocking or unblocking a teacher,
+- [x] Build student reward status/history screens.
+- [x] Build organization reward reporting screens.
+- [x] Build platform fraud-block screens for blocking or unblocking a teacher,
       organization, course, or reward-policy scope.
-- [ ] Build delegated-permission management screens for central administration.
-- [ ] Keep UI affordances permission-driven. Hide or disable actions by
+- [x] Build delegated-permission management screens for central administration.
+- [x] Keep UI affordances permission-driven. Hide or disable actions by
       resolved permissions, not by role labels.
 
 ## Tests And Verification

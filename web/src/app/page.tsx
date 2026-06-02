@@ -1,363 +1,1142 @@
 "use client";
 
+import {
+  Ban,
+  CheckCircle2,
+  ClipboardList,
+  Download,
+  FileCheck,
+  GraduationCap,
+  History,
+  KeyRound,
+  RefreshCw,
+  Send,
+  ShieldAlert,
+  WalletCards,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 
 type ApiState = "checking" | "online" | "offline";
+type HttpMethod = "GET" | "POST" | "PUT";
 
-type CourseProgress = {
-  title: string;
-  organization: string;
-  nextStep: string;
-  progress: number;
-  reward: string;
-  status: "active" | "review" | "completed";
-};
-
-type LearnerTask = {
+type ApiResult = {
   label: string;
-  course: string;
-  due: string;
-  status: "ready" | "locked" | "submitted";
+  status: string;
+  body: string;
+  ok: boolean;
 };
 
-type AdminWorkItem = {
+type PermissionOption = {
+  key: string;
   label: string;
-  owner: string;
-  state: "attention" | "queued" | "healthy";
-  metric: string;
+  scope: "platform" | "organization" | "course";
 };
 
-const learnerCourses: CourseProgress[] = [
+const PERMISSIONS: PermissionOption[] = [
+  { key: "SUBMIT_TEACHER_APPLICATION", label: "Submit application", scope: "platform" },
+  { key: "REVIEW_TEACHER_APPLICATIONS", label: "Review applications", scope: "platform" },
+  { key: "APPROVE_TEACHER_APPLICATION", label: "Approve teachers", scope: "platform" },
+  { key: "REJECT_TEACHER_APPLICATION", label: "Reject teachers", scope: "platform" },
+  { key: "SUBMIT_COURSE_REWARD_EVENT", label: "Submit course reward", scope: "course" },
+  { key: "VIEW_COURSE_REWARD_STATUS", label: "View course rewards", scope: "course" },
   {
-    title: "Rust ownership foundations",
-    organization: "Core Systems Guild",
-    nextStep: "Borrowing checkpoint",
-    progress: 68,
-    reward: "42 LRN pending",
-    status: "active",
+    key: "APPROVE_STUDENT_REWARD_CANDIDATE",
+    label: "Approve student reward",
+    scope: "course",
   },
-  {
-    title: "Async service design",
-    organization: "Backend Academy",
-    nextStep: "Worker retry lab",
-    progress: 36,
-    reward: "18 LRN available",
-    status: "review",
-  },
-  {
-    title: "Smart-contract rewards",
-    organization: "Token Lab",
-    nextStep: "Permit signing quiz",
-    progress: 100,
-    reward: "100 LRN recorded",
-    status: "completed",
-  },
+  { key: "APPROVE_REWARD_AMOUNT", label: "Approve amount", scope: "platform" },
+  { key: "VIEW_ORG_REWARD_REPORTS", label: "View org rewards", scope: "organization" },
+  { key: "VIEW_REWARD_AUDIT", label: "View reward audit", scope: "platform" },
+  { key: "MANAGE_REWARD_FRAUD_BLOCKS", label: "Manage fraud blocks", scope: "platform" },
+  { key: "BLOCK_REWARD_TEACHER", label: "Block teacher rewards", scope: "platform" },
+  { key: "BLOCK_REWARD_ORGANIZATION", label: "Block org rewards", scope: "platform" },
+  { key: "DELEGATE_REWARD_APPROVAL", label: "Delegate reward approval", scope: "platform" },
+  { key: "EXPORT_DATA", label: "Export platform data", scope: "platform" },
 ];
 
-const learnerTasks: LearnerTask[] = [
-  {
-    label: "Submit ownership quiz",
-    course: "Rust ownership foundations",
-    due: "Today",
-    status: "ready",
-  },
-  {
-    label: "Watch retry-state walkthrough",
-    course: "Async service design",
-    due: "Jun 4",
-    status: "ready",
-  },
-  {
-    label: "Claim reward after audit",
-    course: "Smart-contract rewards",
-    due: "Ready",
-    status: "submitted",
-  },
+const DEFAULT_PERMISSION_KEYS = [
+  "SUBMIT_TEACHER_APPLICATION",
+  "REVIEW_TEACHER_APPLICATIONS",
+  "APPROVE_TEACHER_APPLICATION",
+  "SUBMIT_COURSE_REWARD_EVENT",
+  "VIEW_COURSE_REWARD_STATUS",
+  "APPROVE_STUDENT_REWARD_CANDIDATE",
+  "APPROVE_REWARD_AMOUNT",
+  "VIEW_ORG_REWARD_REPORTS",
+  "VIEW_REWARD_AUDIT",
+  "MANAGE_REWARD_FRAUD_BLOCKS",
+  "DELEGATE_REWARD_APPROVAL",
+  "EXPORT_DATA",
 ];
 
-const adminWork: AdminWorkItem[] = [
-  {
-    label: "Review pending course publication",
-    owner: "Core Systems Guild",
-    state: "attention",
-    metric: "3 chapters",
-  },
-  {
-    label: "Approve role assignment",
-    owner: "Backend Academy",
-    state: "queued",
-    metric: "2 users",
-  },
-  {
-    label: "Reconcile reward events",
-    owner: "Token Lab",
-    state: "healthy",
-    metric: "12 events",
-  },
+const rewardStatuses = [
+  "pending_teacher_approval",
+  "teacher_approved",
+  "teacher_rejected",
+  "amount_approved",
+  "amount_rejected",
+  "token_pending",
+  "token_confirmed",
+  "wallet_credited",
+  "completed",
+  "needs_reconciliation",
+  "failed",
 ];
 
-const notifications = [
-  "New content was published in Async service design.",
-  "You were assigned STUDENT in Token Lab.",
-  "Reward transfer recorded for Smart-contract rewards.",
-];
+const teacherApplicationStatuses = ["submitted", "needs_changes", "approved", "rejected"];
+
+function normalizeRoot(root: string) {
+  const trimmed = root.trim();
+  return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
+}
+
+function optionalNumber(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function splitLinks(value: string) {
+  const links = value
+    .split(/[\n,]/)
+    .map((link) => link.trim())
+    .filter(Boolean);
+  return links.length > 0 ? links : undefined;
+}
+
+function buildQuery(params: Record<string, string | boolean | number | undefined>) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") {
+      query.set(key, String(value));
+    }
+  });
+  const serialized = query.toString();
+  return serialized ? `?${serialized}` : "";
+}
+
+function prettyBody(value: string) {
+  if (!value) {
+    return "";
+  }
+  try {
+    return JSON.stringify(JSON.parse(value), null, 2);
+  } catch {
+    return value;
+  }
+}
 
 function statusLabel(status: ApiState) {
   if (status === "online") {
-    return "API online";
+    return "Online";
   }
   if (status === "offline") {
-    return "API offline";
+    return "Offline";
   }
-  return "Checking API";
+  return "Checking";
 }
 
-function useApiStatus() {
-  const [state, setState] = useState<ApiState>("checking");
-  const [message, setMessage] = useState("Connecting to RustLearn API");
+export default function Home() {
+  const [apiRoot, setApiRoot] = useState(process.env.NEXT_PUBLIC_API_URL || "/api");
+  const [token, setToken] = useState("");
+  const [healthCheckTick, setHealthCheckTick] = useState(0);
+  const [apiState, setApiState] = useState<ApiState>("checking");
+  const [apiMessage, setApiMessage] = useState("Checking API");
+  const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(
+    () => new Set(DEFAULT_PERMISSION_KEYS)
+  );
+  const [result, setResult] = useState<ApiResult>({
+    label: "Result",
+    status: "Idle",
+    body: "No request sent.",
+    ok: true,
+  });
+
+  const [teacherForm, setTeacherForm] = useState({
+    requested_scope: "platform",
+    requested_organization_id: "",
+    requested_course_id: "",
+    experience_summary: "",
+    organization_sponsor_id: "",
+    portfolio_links: "",
+  });
+  const [teacherStatus, setTeacherStatus] = useState("submitted");
+  const [teacherDecision, setTeacherDecision] = useState({
+    application_id: "",
+    status: "approved",
+    decision_reason: "",
+  });
+
+  const [rewardCourseId, setRewardCourseId] = useState("");
+  const [rewardCandidateId, setRewardCandidateId] = useState("");
+  const [rewardStudentId, setRewardStudentId] = useState("");
+  const [rewardStatus, setRewardStatus] = useState("pending_teacher_approval");
+  const [teacherRewardDecision, setTeacherRewardDecision] = useState({
+    status: "approved",
+    decision_reason: "",
+  });
+  const [amountDecision, setAmountDecision] = useState({
+    status: "approved",
+    approved_amount: "10",
+    decision_reason: "",
+  });
+
+  const [historyStatus, setHistoryStatus] = useState("");
+  const [organizationId, setOrganizationId] = useState("");
+
+  const [fraudBlock, setFraudBlock] = useState({
+    scope_type: "teacher",
+    teacher_user_id: "",
+    organization_id: "",
+    course_id: "",
+    reward_policy_id: "",
+    reason: "",
+    evidence_reference: "",
+  });
+  const [fraudBlockId, setFraudBlockId] = useState("");
+
+  const [delegation, setDelegation] = useState({
+    grantee_user_id: "",
+    permission: "APPROVE_REWARD_AMOUNT",
+    scope_type: "platform",
+    organization_id: "",
+    course_id: "",
+    reason: "",
+    expires_at: "",
+  });
+  const [delegationId, setDelegationId] = useState("");
+  const [revokeReason, setRevokeReason] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
-    const apiRoot = process.env.NEXT_PUBLIC_API_URL || "/api";
-    const target = apiRoot.endsWith("/") ? apiRoot : `${apiRoot}/`;
+    const root = normalizeRoot(apiRoot);
+    const healthRoot = root.endsWith("/api") ? root.slice(0, -4) : root;
 
-    fetch(target, { signal: controller.signal })
+    fetch(`${healthRoot || ""}/health`, { signal: controller.signal })
       .then(async (response) => {
+        const body = await response.text();
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
-        const body = await response.text();
-        setState("online");
-        setMessage(body || "API responded");
+        setApiState("online");
+        setApiMessage(body || "API responded");
       })
       .catch((error: Error) => {
         if (controller.signal.aborted) {
           return;
         }
-        setState("offline");
-        setMessage(error.message || "Connection failed");
+        setApiState("offline");
+        setApiMessage(error.message || "Connection failed");
       });
 
     return () => controller.abort();
-  }, []);
+  }, [apiRoot, healthCheckTick]);
 
-  return { state, message };
-}
-
-export default function Home() {
-  const api = useApiStatus();
-  const activeCourses = useMemo(
-    () => learnerCourses.filter((course) => course.status !== "completed").length,
+  const permissionGroups = useMemo(
+    () =>
+      PERMISSIONS.reduce<Record<PermissionOption["scope"], PermissionOption[]>>(
+        (groups, permission) => {
+          groups[permission.scope].push(permission);
+          return groups;
+        },
+        { platform: [], organization: [], course: [] }
+      ),
     []
   );
-  const pendingRewards = learnerCourses
-    .filter((course) => course.reward.includes("pending"))
-    .map((course) => course.reward)
-    .join(", ");
+
+  const hasPermission = (permission: string) => selectedPermissions.has(permission);
+  const canTeacherApply = hasPermission("SUBMIT_TEACHER_APPLICATION");
+  const canReviewTeachers = hasPermission("REVIEW_TEACHER_APPLICATIONS");
+  const canDecideTeachers =
+    hasPermission("APPROVE_TEACHER_APPLICATION") || hasPermission("REJECT_TEACHER_APPLICATION");
+  const canSubmitReward = hasPermission("SUBMIT_COURSE_REWARD_EVENT");
+  const canViewCourseRewards = hasPermission("VIEW_COURSE_REWARD_STATUS");
+  const canTeacherApproveReward = hasPermission("APPROVE_STUDENT_REWARD_CANDIDATE");
+  const canApproveAmount = hasPermission("APPROVE_REWARD_AMOUNT");
+  const canViewOrgReports = hasPermission("VIEW_ORG_REWARD_REPORTS");
+  const canViewFraud = hasPermission("VIEW_REWARD_AUDIT") || hasPermission("MANAGE_REWARD_FRAUD_BLOCKS");
+  const canManageFraud =
+    hasPermission("MANAGE_REWARD_FRAUD_BLOCKS") ||
+    hasPermission("BLOCK_REWARD_TEACHER") ||
+    hasPermission("BLOCK_REWARD_ORGANIZATION");
+  const canDelegate = hasPermission("DELEGATE_REWARD_APPROVAL");
+  const canExport = hasPermission("EXPORT_DATA");
+
+  function togglePermission(permission: string) {
+    setSelectedPermissions((current) => {
+      const next = new Set(current);
+      if (next.has(permission)) {
+        next.delete(permission);
+      } else {
+        next.add(permission);
+      }
+      return next;
+    });
+  }
+
+  async function sendApi(label: string, path: string, method: HttpMethod = "GET", body?: unknown) {
+    const root = normalizeRoot(apiRoot);
+    const headers = new Headers();
+    headers.set("Accept", "application/json, text/csv, text/plain");
+    if (body !== undefined) {
+      headers.set("Content-Type", "application/json");
+    }
+    if (token.trim()) {
+      headers.set("Authorization", `Bearer ${token.trim()}`);
+    }
+
+    setResult({ label, status: "Pending", body: "Waiting for API response.", ok: true });
+
+    try {
+      const response = await fetch(`${root}${path}`, {
+        method,
+        headers,
+        body: body === undefined ? undefined : JSON.stringify(body),
+      });
+      const text = await response.text();
+      setResult({
+        label,
+        status: `HTTP ${response.status}`,
+        body: prettyBody(text),
+        ok: response.ok,
+      });
+    } catch (error) {
+      setResult({
+        label,
+        status: "Request failed",
+        body: error instanceof Error ? error.message : "Unknown request failure",
+        ok: false,
+      });
+    }
+  }
+
+  function submitTeacherApplication() {
+    void sendApi("Submit teacher application", "/teacher-applications", "POST", {
+      requested_scope: teacherForm.requested_scope,
+      requested_organization_id: optionalNumber(teacherForm.requested_organization_id),
+      requested_course_id: optionalNumber(teacherForm.requested_course_id),
+      experience_summary: teacherForm.experience_summary,
+      organization_sponsor_id: optionalNumber(teacherForm.organization_sponsor_id),
+      portfolio_links: splitLinks(teacherForm.portfolio_links),
+    });
+  }
+
+  function loadTeacherApplications() {
+    void sendApi(
+      "Teacher application queue",
+      `/teacher-applications${buildQuery({ status: teacherStatus, limit: 25 })}`
+    );
+  }
+
+  function decideTeacherApplication() {
+    void sendApi(
+      "Teacher application decision",
+      `/teacher-applications/${teacherDecision.application_id}/decision`,
+      "PUT",
+      {
+        status: teacherDecision.status,
+        decision_reason: teacherDecision.decision_reason || undefined,
+      }
+    );
+  }
+
+  function submitRewardCandidate() {
+    void sendApi("Submit reward candidate", `/courses/${rewardCourseId}/reward-candidates`, "POST", {
+      student_user_id: optionalNumber(rewardStudentId),
+      event_type: "course_completion",
+      evidence: { completion_percentage: 100 },
+    });
+  }
+
+  function loadRewardCandidates() {
+    void sendApi(
+      "Course reward candidates",
+      `/courses/${rewardCourseId}/reward-candidates${buildQuery({
+        status: rewardStatus,
+        limit: 25,
+      })}`
+    );
+  }
+
+  function decideStudentReward() {
+    void sendApi(
+      "Course reward decision",
+      `/courses/${rewardCourseId}/reward-candidates/${rewardCandidateId}/teacher-decision`,
+      "PUT",
+      {
+        status: teacherRewardDecision.status,
+        decision_reason: teacherRewardDecision.decision_reason || undefined,
+      }
+    );
+  }
+
+  function decideRewardAmount() {
+    void sendApi("Reward amount decision", `/reward-candidates/${rewardCandidateId}/amount-decision`, "PUT", {
+      status: amountDecision.status,
+      approved_amount:
+        amountDecision.status === "approved" ? optionalNumber(amountDecision.approved_amount) : undefined,
+      decision_reason: amountDecision.decision_reason || undefined,
+    });
+  }
+
+  function loadStudentHistory() {
+    void sendApi(
+      "Student reward history",
+      `/reward-candidates/me/history${buildQuery({ status: historyStatus, limit: 25 })}`
+    );
+  }
+
+  function loadOrganizationReport(csv = false) {
+    void sendApi(
+      csv ? "Organization reward CSV" : "Organization reward report",
+      `/reports/organizations/${organizationId}/reward-dashboard${csv ? ".csv" : ""}`
+    );
+  }
+
+  function loadPlatformExport(path: string, label: string) {
+    void sendApi(label, path);
+  }
+
+  function createFraudBlock() {
+    void sendApi("Create reward fraud block", "/reward-fraud-blocks", "POST", {
+      scope_type: fraudBlock.scope_type,
+      teacher_user_id:
+        fraudBlock.scope_type === "teacher" ? optionalNumber(fraudBlock.teacher_user_id) : undefined,
+      organization_id:
+        fraudBlock.scope_type === "organization"
+          ? optionalNumber(fraudBlock.organization_id)
+          : undefined,
+      course_id: fraudBlock.scope_type === "course" ? optionalNumber(fraudBlock.course_id) : undefined,
+      reward_policy_id:
+        fraudBlock.scope_type === "reward_policy"
+          ? optionalNumber(fraudBlock.reward_policy_id)
+          : undefined,
+      reason: fraudBlock.reason,
+      evidence_reference: fraudBlock.evidence_reference || undefined,
+    });
+  }
+
+  function listFraudBlocks() {
+    void sendApi("Reward fraud blocks", "/reward-fraud-blocks?active=true&limit=25");
+  }
+
+  function revokeFraudBlock() {
+    void sendApi("Revoke reward fraud block", `/reward-fraud-blocks/${fraudBlockId}/revoke`, "PUT");
+  }
+
+  function loadFraudAudit() {
+    void sendApi("Reward fraud audit", `/reward-fraud-blocks/${fraudBlockId}/audit`);
+  }
+
+  function grantDelegation() {
+    void sendApi("Grant delegated permission", "/delegated-permissions", "POST", {
+      grantee_user_id: optionalNumber(delegation.grantee_user_id),
+      permission: delegation.permission,
+      scope_type: delegation.scope_type,
+      organization_id:
+        delegation.scope_type === "organization" ? optionalNumber(delegation.organization_id) : undefined,
+      course_id: delegation.scope_type === "course" ? optionalNumber(delegation.course_id) : undefined,
+      reason: delegation.reason || undefined,
+      expires_at: delegation.expires_at || undefined,
+    });
+  }
+
+  function listDelegations() {
+    void sendApi("Delegated permissions", "/delegated-permissions?active=true&limit=25");
+  }
+
+  function revokeDelegation() {
+    void sendApi("Revoke delegated permission", `/delegated-permissions/${delegationId}/revoke`, "PUT", {
+      revoke_reason: revokeReason || undefined,
+    });
+  }
 
   return (
     <main className={styles.shell}>
-      <aside className={styles.sidebar} aria-label="Workspace navigation">
+      <aside className={styles.sidebar} aria-label="Workspace controls">
         <div className={styles.brand}>
           <span className={styles.brandMark}>RL</span>
           <div>
             <p className={styles.brandName}>RustLearn</p>
-            <p className={styles.brandMeta}>Learning operations</p>
+            <p className={styles.brandMeta}>Reward operations</p>
           </div>
         </div>
-        <nav className={styles.navList}>
-          <a className={styles.navItemActive} href="#learner">
-            Learner
-          </a>
-          <a className={styles.navItem} href="#administrator">
-            Administrator
-          </a>
-          <a className={styles.navItem} href="#activity">
-            Activity
-          </a>
-        </nav>
-        <div className={styles.sidebarStatus}>
-          <span className={`${styles.statusDot} ${styles[api.state]}`} />
-          <div>
-            <p>{statusLabel(api.state)}</p>
-            <span>{api.message}</span>
+
+        <section className={styles.sidebarSection} aria-labelledby="api-session-title">
+          <div className={styles.sectionHeaderCompact}>
+            <h2 id="api-session-title">Session</h2>
+            <span className={`${styles.statusPill} ${styles[apiState]}`}>{statusLabel(apiState)}</span>
           </div>
-        </div>
+          <label className={styles.fieldLabel}>
+            API root
+            <input
+              value={apiRoot}
+              onChange={(event) => {
+                setApiState("checking");
+                setApiMessage("Checking API");
+                setApiRoot(event.target.value);
+              }}
+            />
+          </label>
+          <label className={styles.fieldLabel}>
+            JWT
+            <textarea
+              rows={4}
+              value={token}
+              onChange={(event) => setToken(event.target.value)}
+              spellCheck={false}
+            />
+          </label>
+          <p className={styles.statusMessage}>{apiMessage}</p>
+        </section>
+
+        <section className={styles.sidebarSection} aria-labelledby="permissions-title">
+          <div className={styles.sectionHeaderCompact}>
+            <h2 id="permissions-title">Permissions</h2>
+            <span className={styles.countPill}>{selectedPermissions.size}</span>
+          </div>
+          {Object.entries(permissionGroups).map(([scope, permissions]) => (
+            <div key={scope} className={styles.permissionGroup}>
+              <p>{scope}</p>
+              {permissions.map((permission) => (
+                <label key={permission.key} className={styles.checkboxRow}>
+                  <input
+                    type="checkbox"
+                    checked={selectedPermissions.has(permission.key)}
+                    onChange={() => togglePermission(permission.key)}
+                  />
+                  <span>{permission.label}</span>
+                </label>
+              ))}
+            </div>
+          ))}
+        </section>
       </aside>
 
       <section className={styles.workspace}>
         <header className={styles.topbar}>
           <div>
-            <p className={styles.eyebrow}>Workspace</p>
-            <h1>Learning and administration</h1>
+            <p className={styles.eyebrow}>Business console</p>
+            <h1>Reward and teaching workflows</h1>
           </div>
-          <div className={styles.topbarActions}>
-            <button type="button" className={styles.secondaryButton}>
-              Export
-            </button>
-            <button type="button" className={styles.primaryButton}>
-              Create course
-            </button>
-          </div>
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={() => {
+              setApiState("checking");
+              setApiMessage("Checking API");
+              setHealthCheckTick((current) => current + 1);
+            }}
+          >
+            <RefreshCw size={18} aria-hidden />
+            <span>Refresh</span>
+          </button>
         </header>
 
-        <section className={styles.metrics} aria-label="Workspace metrics">
+        <section className={styles.metrics} aria-label="Workflow access">
           <div className={styles.metric}>
-            <span>Active courses</span>
-            <strong>{activeCourses}</strong>
+            <span>Teacher flow</span>
+            <strong>{canTeacherApply || canReviewTeachers ? "Open" : "Locked"}</strong>
           </div>
           <div className={styles.metric}>
-            <span>Pending rewards</span>
-            <strong>{pendingRewards || "None"}</strong>
+            <span>Reward flow</span>
+            <strong>{canSubmitReward || canTeacherApproveReward || canApproveAmount ? "Open" : "Locked"}</strong>
           </div>
           <div className={styles.metric}>
-            <span>Admin queue</span>
-            <strong>{adminWork.length} items</strong>
+            <span>Audit flow</span>
+            <strong>{canViewFraud || canDelegate || canExport ? "Open" : "Locked"}</strong>
           </div>
         </section>
 
-        <div className={styles.columns}>
-          <section id="learner" className={styles.panel} aria-labelledby="learner-title">
+        <div className={styles.grid}>
+          <section className={styles.panel} aria-labelledby="teacher-title">
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.eyebrow}>Learner</p>
-                <h2 id="learner-title">My learning path</h2>
+                <p className={styles.eyebrow}>Teacher applications</p>
+                <h2 id="teacher-title">Application and review</h2>
               </div>
-              <button type="button" className={styles.ghostButton}>
-                View all
-              </button>
+              <GraduationCap size={22} aria-hidden />
             </div>
 
-            <div className={styles.courseList}>
-              {learnerCourses.map((course) => (
-                <article key={course.title} className={styles.courseRow}>
-                  <div className={styles.courseMain}>
-                    <div>
-                      <h3>{course.title}</h3>
-                      <p>{course.organization}</p>
-                    </div>
-                    <span className={`${styles.pill} ${styles[course.status]}`}>
-                      {course.status}
-                    </span>
-                  </div>
-                  <div className={styles.progressTrack} aria-label={`${course.progress}% complete`}>
-                    <span style={{ width: `${course.progress}%` }} />
-                  </div>
-                  <div className={styles.courseFooter}>
-                    <span>{course.nextStep}</span>
-                    <strong>{course.reward}</strong>
-                  </div>
-                </article>
-              ))}
+            {canTeacherApply && (
+              <div className={styles.formGrid}>
+                <label className={styles.fieldLabel}>
+                  Scope
+                  <select
+                    value={teacherForm.requested_scope}
+                    onChange={(event) =>
+                      setTeacherForm((current) => ({ ...current, requested_scope: event.target.value }))
+                    }
+                  >
+                    <option value="platform">platform</option>
+                    <option value="organization">organization</option>
+                    <option value="course">course</option>
+                  </select>
+                </label>
+                <label className={styles.fieldLabel}>
+                  Organization id
+                  <input
+                    value={teacherForm.requested_organization_id}
+                    onChange={(event) =>
+                      setTeacherForm((current) => ({
+                        ...current,
+                        requested_organization_id: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label className={styles.fieldLabel}>
+                  Course id
+                  <input
+                    value={teacherForm.requested_course_id}
+                    onChange={(event) =>
+                      setTeacherForm((current) => ({
+                        ...current,
+                        requested_course_id: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label className={styles.fieldLabel}>
+                  Sponsor org id
+                  <input
+                    value={teacherForm.organization_sponsor_id}
+                    onChange={(event) =>
+                      setTeacherForm((current) => ({
+                        ...current,
+                        organization_sponsor_id: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label className={`${styles.fieldLabel} ${styles.fullWidth}`}>
+                  Experience summary
+                  <textarea
+                    rows={3}
+                    value={teacherForm.experience_summary}
+                    onChange={(event) =>
+                      setTeacherForm((current) => ({
+                        ...current,
+                        experience_summary: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label className={`${styles.fieldLabel} ${styles.fullWidth}`}>
+                  Portfolio links
+                  <textarea
+                    rows={2}
+                    value={teacherForm.portfolio_links}
+                    onChange={(event) =>
+                      setTeacherForm((current) => ({
+                        ...current,
+                        portfolio_links: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <button type="button" className={styles.primaryButton} onClick={submitTeacherApplication}>
+                  <Send size={17} aria-hidden />
+                  <span>Submit</span>
+                </button>
+              </div>
+            )}
+
+            {canReviewTeachers && (
+              <div className={styles.actionStrip}>
+                <select value={teacherStatus} onChange={(event) => setTeacherStatus(event.target.value)}>
+                  {teacherApplicationStatuses.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+                <button type="button" className={styles.secondaryButton} onClick={loadTeacherApplications}>
+                  <ClipboardList size={17} aria-hidden />
+                  <span>Load queue</span>
+                </button>
+              </div>
+            )}
+
+            {canDecideTeachers && (
+              <div className={styles.actionStrip}>
+                <input
+                  placeholder="Application id"
+                  value={teacherDecision.application_id}
+                  onChange={(event) =>
+                    setTeacherDecision((current) => ({ ...current, application_id: event.target.value }))
+                  }
+                />
+                <select
+                  value={teacherDecision.status}
+                  onChange={(event) =>
+                    setTeacherDecision((current) => ({ ...current, status: event.target.value }))
+                  }
+                >
+                  <option value="approved">approved</option>
+                  <option value="rejected">rejected</option>
+                  <option value="needs_changes">needs_changes</option>
+                </select>
+                <input
+                  placeholder="Reason"
+                  value={teacherDecision.decision_reason}
+                  onChange={(event) =>
+                    setTeacherDecision((current) => ({
+                      ...current,
+                      decision_reason: event.target.value,
+                    }))
+                  }
+                />
+                <button type="button" className={styles.secondaryButton} onClick={decideTeacherApplication}>
+                  <CheckCircle2 size={17} aria-hidden />
+                  <span>Decide</span>
+                </button>
+              </div>
+            )}
+          </section>
+
+          <section className={styles.panel} aria-labelledby="reward-title">
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.eyebrow}>Course rewards</p>
+                <h2 id="reward-title">Candidate approval</h2>
+              </div>
+              <FileCheck size={22} aria-hidden />
+            </div>
+
+            <div className={styles.actionStrip}>
+              <input
+                placeholder="Course id"
+                value={rewardCourseId}
+                onChange={(event) => setRewardCourseId(event.target.value)}
+              />
+              <input
+                placeholder="Candidate id"
+                value={rewardCandidateId}
+                onChange={(event) => setRewardCandidateId(event.target.value)}
+              />
+              <select value={rewardStatus} onChange={(event) => setRewardStatus(event.target.value)}>
+                {rewardStatuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {canSubmitReward && (
+              <div className={styles.actionStrip}>
+                <input
+                  placeholder="Student user id"
+                  value={rewardStudentId}
+                  onChange={(event) => setRewardStudentId(event.target.value)}
+                />
+                <button type="button" className={styles.primaryButton} onClick={submitRewardCandidate}>
+                  <Send size={17} aria-hidden />
+                  <span>Submit candidate</span>
+                </button>
+              </div>
+            )}
+
+            {canViewCourseRewards && (
+              <button type="button" className={styles.secondaryButton} onClick={loadRewardCandidates}>
+                <ClipboardList size={17} aria-hidden />
+                <span>Load candidates</span>
+              </button>
+            )}
+
+            {canTeacherApproveReward && (
+              <div className={styles.actionStrip}>
+                <select
+                  value={teacherRewardDecision.status}
+                  onChange={(event) =>
+                    setTeacherRewardDecision((current) => ({ ...current, status: event.target.value }))
+                  }
+                >
+                  <option value="approved">approved</option>
+                  <option value="rejected">rejected</option>
+                </select>
+                <input
+                  placeholder="Teacher reason"
+                  value={teacherRewardDecision.decision_reason}
+                  onChange={(event) =>
+                    setTeacherRewardDecision((current) => ({
+                      ...current,
+                      decision_reason: event.target.value,
+                    }))
+                  }
+                />
+                <button type="button" className={styles.secondaryButton} onClick={decideStudentReward}>
+                  <CheckCircle2 size={17} aria-hidden />
+                  <span>Teacher decision</span>
+                </button>
+              </div>
+            )}
+
+            {canApproveAmount && (
+              <div className={styles.actionStrip}>
+                <select
+                  value={amountDecision.status}
+                  onChange={(event) =>
+                    setAmountDecision((current) => ({ ...current, status: event.target.value }))
+                  }
+                >
+                  <option value="approved">approved</option>
+                  <option value="rejected">rejected</option>
+                </select>
+                <input
+                  placeholder="Amount"
+                  value={amountDecision.approved_amount}
+                  onChange={(event) =>
+                    setAmountDecision((current) => ({
+                      ...current,
+                      approved_amount: event.target.value,
+                    }))
+                  }
+                />
+                <input
+                  placeholder="Amount reason"
+                  value={amountDecision.decision_reason}
+                  onChange={(event) =>
+                    setAmountDecision((current) => ({
+                      ...current,
+                      decision_reason: event.target.value,
+                    }))
+                  }
+                />
+                <button type="button" className={styles.secondaryButton} onClick={decideRewardAmount}>
+                  <WalletCards size={17} aria-hidden />
+                  <span>Set amount</span>
+                </button>
+              </div>
+            )}
+          </section>
+
+          <section className={styles.panel} aria-labelledby="history-title">
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.eyebrow}>Student</p>
+                <h2 id="history-title">Reward history</h2>
+              </div>
+              <History size={22} aria-hidden />
+            </div>
+            <div className={styles.actionStrip}>
+              <select value={historyStatus} onChange={(event) => setHistoryStatus(event.target.value)}>
+                <option value="">all statuses</option>
+                {rewardStatuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={loadStudentHistory}
+                disabled={!canViewCourseRewards}
+              >
+                <History size={17} aria-hidden />
+                <span>Load history</span>
+              </button>
             </div>
           </section>
 
-          <section className={styles.panel} aria-labelledby="tasks-title">
+          <section className={styles.panel} aria-labelledby="report-title">
             <div className={styles.panelHeader}>
               <div>
-                <p className={styles.eyebrow}>Learner</p>
-                <h2 id="tasks-title">Task queue</h2>
+                <p className={styles.eyebrow}>Organization</p>
+                <h2 id="report-title">Reward report</h2>
               </div>
-              <button type="button" className={styles.ghostButton}>
-                Start
+              <Download size={22} aria-hidden />
+            </div>
+            <div className={styles.actionStrip}>
+              <input
+                placeholder="Organization id"
+                value={organizationId}
+                onChange={(event) => setOrganizationId(event.target.value)}
+              />
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => loadOrganizationReport(false)}
+                disabled={!canViewOrgReports}
+              >
+                <ClipboardList size={17} aria-hidden />
+                <span>Load</span>
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => loadOrganizationReport(true)}
+                disabled={!canViewOrgReports}
+              >
+                <Download size={17} aria-hidden />
+                <span>CSV</span>
               </button>
             </div>
-            <ul className={styles.taskList}>
-              {learnerTasks.map((task) => (
-                <li key={task.label} className={styles.taskItem}>
-                  <span className={`${styles.statusDot} ${styles[task.status]}`} />
-                  <div>
-                    <strong>{task.label}</strong>
-                    <p>{task.course}</p>
-                  </div>
-                  <time>{task.due}</time>
-                </li>
-              ))}
-            </ul>
+            {canExport && (
+              <div className={styles.reportLinks}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    loadPlatformExport(
+                      "/reports/platform/reward-approvals.csv",
+                      "Platform reward approvals CSV"
+                    )
+                  }
+                >
+                  reward approvals
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    loadPlatformExport("/reports/platform/token-payouts.csv", "Platform token payouts CSV")
+                  }
+                >
+                  token payouts
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    loadPlatformExport(
+                      "/reports/platform/delegated-permissions.csv",
+                      "Platform delegated permissions CSV"
+                    )
+                  }
+                >
+                  delegations
+                </button>
+              </div>
+            )}
+          </section>
+
+          <section className={styles.panel} aria-labelledby="fraud-title">
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.eyebrow}>Fraud controls</p>
+                <h2 id="fraud-title">Reward blocks</h2>
+              </div>
+              <ShieldAlert size={22} aria-hidden />
+            </div>
+            {canManageFraud && (
+              <div className={styles.formGrid}>
+                <label className={styles.fieldLabel}>
+                  Scope
+                  <select
+                    value={fraudBlock.scope_type}
+                    onChange={(event) =>
+                      setFraudBlock((current) => ({ ...current, scope_type: event.target.value }))
+                    }
+                  >
+                    <option value="teacher">teacher</option>
+                    <option value="organization">organization</option>
+                    <option value="course">course</option>
+                    <option value="reward_policy">reward_policy</option>
+                  </select>
+                </label>
+                <input
+                  placeholder="Teacher user id"
+                  value={fraudBlock.teacher_user_id}
+                  onChange={(event) =>
+                    setFraudBlock((current) => ({ ...current, teacher_user_id: event.target.value }))
+                  }
+                />
+                <input
+                  placeholder="Organization id"
+                  value={fraudBlock.organization_id}
+                  onChange={(event) =>
+                    setFraudBlock((current) => ({ ...current, organization_id: event.target.value }))
+                  }
+                />
+                <input
+                  placeholder="Course id"
+                  value={fraudBlock.course_id}
+                  onChange={(event) =>
+                    setFraudBlock((current) => ({ ...current, course_id: event.target.value }))
+                  }
+                />
+                <input
+                  placeholder="Policy id"
+                  value={fraudBlock.reward_policy_id}
+                  onChange={(event) =>
+                    setFraudBlock((current) => ({
+                      ...current,
+                      reward_policy_id: event.target.value,
+                    }))
+                  }
+                />
+                <input
+                  placeholder="Evidence reference"
+                  value={fraudBlock.evidence_reference}
+                  onChange={(event) =>
+                    setFraudBlock((current) => ({
+                      ...current,
+                      evidence_reference: event.target.value,
+                    }))
+                  }
+                />
+                <label className={`${styles.fieldLabel} ${styles.fullWidth}`}>
+                  Reason
+                  <textarea
+                    rows={2}
+                    value={fraudBlock.reason}
+                    onChange={(event) =>
+                      setFraudBlock((current) => ({ ...current, reason: event.target.value }))
+                    }
+                  />
+                </label>
+                <button type="button" className={styles.primaryButton} onClick={createFraudBlock}>
+                  <Ban size={17} aria-hidden />
+                  <span>Create block</span>
+                </button>
+              </div>
+            )}
+            {canViewFraud && (
+              <div className={styles.actionStrip}>
+                <button type="button" className={styles.secondaryButton} onClick={listFraudBlocks}>
+                  <ClipboardList size={17} aria-hidden />
+                  <span>Load active</span>
+                </button>
+                <input
+                  placeholder="Block id"
+                  value={fraudBlockId}
+                  onChange={(event) => setFraudBlockId(event.target.value)}
+                />
+                <button type="button" className={styles.secondaryButton} onClick={loadFraudAudit}>
+                  <History size={17} aria-hidden />
+                  <span>Audit</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={revokeFraudBlock}
+                  disabled={!canManageFraud}
+                >
+                  <CheckCircle2 size={17} aria-hidden />
+                  <span>Revoke</span>
+                </button>
+              </div>
+            )}
+          </section>
+
+          <section className={styles.panel} aria-labelledby="delegation-title">
+            <div className={styles.panelHeader}>
+              <div>
+                <p className={styles.eyebrow}>Delegation</p>
+                <h2 id="delegation-title">Reward permissions</h2>
+              </div>
+              <KeyRound size={22} aria-hidden />
+            </div>
+            <fieldset className={styles.formGrid} disabled={!canDelegate}>
+              <input
+                placeholder="Grantee user id"
+                value={delegation.grantee_user_id}
+                onChange={(event) =>
+                  setDelegation((current) => ({ ...current, grantee_user_id: event.target.value }))
+                }
+              />
+              <select
+                value={delegation.permission}
+                onChange={(event) =>
+                  setDelegation((current) => ({ ...current, permission: event.target.value }))
+                }
+              >
+                <option value="APPROVE_REWARD_AMOUNT">APPROVE_REWARD_AMOUNT</option>
+                <option value="VIEW_REWARD_AUDIT">VIEW_REWARD_AUDIT</option>
+                <option value="MANAGE_REWARD_FRAUD_BLOCKS">MANAGE_REWARD_FRAUD_BLOCKS</option>
+                <option value="SUBMIT_COURSE_REWARD_EVENT">SUBMIT_COURSE_REWARD_EVENT</option>
+                <option value="APPROVE_STUDENT_REWARD_CANDIDATE">
+                  APPROVE_STUDENT_REWARD_CANDIDATE
+                </option>
+                <option value="VIEW_ORG_REWARD_REPORTS">VIEW_ORG_REWARD_REPORTS</option>
+              </select>
+              <select
+                value={delegation.scope_type}
+                onChange={(event) =>
+                  setDelegation((current) => ({ ...current, scope_type: event.target.value }))
+                }
+              >
+                <option value="platform">platform</option>
+                <option value="organization">organization</option>
+                <option value="course">course</option>
+              </select>
+              <input
+                placeholder="Organization id"
+                value={delegation.organization_id}
+                onChange={(event) =>
+                  setDelegation((current) => ({ ...current, organization_id: event.target.value }))
+                }
+              />
+              <input
+                placeholder="Course id"
+                value={delegation.course_id}
+                onChange={(event) =>
+                  setDelegation((current) => ({ ...current, course_id: event.target.value }))
+                }
+              />
+              <input
+                placeholder="Expires at"
+                value={delegation.expires_at}
+                onChange={(event) =>
+                  setDelegation((current) => ({ ...current, expires_at: event.target.value }))
+                }
+              />
+              <input
+                className={styles.fullWidth}
+                placeholder="Reason"
+                value={delegation.reason}
+                onChange={(event) =>
+                  setDelegation((current) => ({ ...current, reason: event.target.value }))
+                }
+              />
+              <button type="button" className={styles.primaryButton} onClick={grantDelegation}>
+                <KeyRound size={17} aria-hidden />
+                <span>Grant</span>
+              </button>
+              <button type="button" className={styles.secondaryButton} onClick={listDelegations}>
+                <ClipboardList size={17} aria-hidden />
+                <span>Load</span>
+              </button>
+            </fieldset>
+            <div className={styles.actionStrip}>
+              <input
+                placeholder="Delegation id"
+                value={delegationId}
+                onChange={(event) => setDelegationId(event.target.value)}
+              />
+              <input
+                placeholder="Revoke reason"
+                value={revokeReason}
+                onChange={(event) => setRevokeReason(event.target.value)}
+              />
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={revokeDelegation}
+                disabled={!canDelegate}
+              >
+                <Ban size={17} aria-hidden />
+                <span>Revoke</span>
+              </button>
+            </div>
           </section>
         </div>
 
-        <section
-          id="administrator"
-          className={styles.panel}
-          aria-labelledby="administrator-title"
-        >
+        <section className={styles.resultPanel} aria-labelledby="result-title">
           <div className={styles.panelHeader}>
             <div>
-              <p className={styles.eyebrow}>Administrator</p>
-              <h2 id="administrator-title">Operations board</h2>
+              <p className={styles.eyebrow}>{result.status}</p>
+              <h2 id="result-title">{result.label}</h2>
             </div>
-            <div className={styles.segmented}>
-              <button type="button" className={styles.segmentActive}>
-                Today
-              </button>
-              <button type="button" className={styles.segment}>
-                Week
-              </button>
-            </div>
+            <span className={`${styles.statusPill} ${result.ok ? styles.online : styles.offline}`}>
+              {result.ok ? "OK" : "Error"}
+            </span>
           </div>
-
-          <div className={styles.adminGrid}>
-            {adminWork.map((item) => (
-              <article key={item.label} className={styles.adminItem}>
-                <span className={`${styles.stateBar} ${styles[item.state]}`} />
-                <div>
-                  <h3>{item.label}</h3>
-                  <p>{item.owner}</p>
-                </div>
-                <strong>{item.metric}</strong>
-                <button type="button" className={styles.secondaryButton}>
-                  Open
-                </button>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="activity" className={styles.activityBand} aria-labelledby="activity-title">
-          <div className={styles.activityPanel}>
-            <div className={styles.panelHeader}>
-              <div>
-                <p className={styles.eyebrow}>Activity</p>
-                <h2 id="activity-title">Notifications</h2>
-              </div>
-              <button type="button" className={styles.ghostButton}>
-                Mark read
-              </button>
-            </div>
-            <ul className={styles.notificationList}>
-              {notifications.map((notification) => (
-                <li key={notification}>{notification}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div className={styles.activityPanel}>
-            <div className={styles.panelHeader}>
-              <div>
-                <p className={styles.eyebrow}>Finance</p>
-                <h2>Wallet review</h2>
-              </div>
-              <button type="button" className={styles.ghostButton}>
-                Reconcile
-              </button>
-            </div>
-            <dl className={styles.walletList}>
-              <div>
-                <dt>Learner wallet links</dt>
-                <dd>128 active</dd>
-              </div>
-              <div>
-                <dt>Organization wallets</dt>
-                <dd>14 ready</dd>
-              </div>
-              <div>
-                <dt>Reward audit gap</dt>
-                <dd>0 events</dd>
-              </div>
-            </dl>
-          </div>
+          <pre>{result.body}</pre>
         </section>
       </section>
     </main>
