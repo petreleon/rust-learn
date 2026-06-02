@@ -5,6 +5,7 @@ pub mod persistent_state_repository;
 pub mod platform_permission_repository;
 pub mod platform_repository;
 pub mod reward_candidate_repository;
+pub mod reward_compensation_record_repository;
 pub mod reward_execution_job_repository;
 pub mod reward_fraud_block_repository;
 pub mod reward_payout_record_repository;

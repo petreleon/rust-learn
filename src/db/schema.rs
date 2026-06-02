@@ -228,6 +228,21 @@ diesel::table! {
 }
 
 diesel::table! {
+    reward_compensation_records (id) {
+        id -> Int8,
+        reward_candidate_id -> Int8,
+        wallet_id -> Int4,
+        transaction_id -> Int8,
+        internal_transaction_id -> Int8,
+        amount -> Numeric,
+        reason -> Text,
+        idempotency_key -> Text,
+        created_by_user_id -> Int4,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     reward_execution_jobs (id) {
         id -> Int8,
         reward_candidate_id -> Int8,
@@ -496,6 +511,11 @@ diesel::joinable!(pending_course_organization_invites -> courses (course_id));
 diesel::joinable!(pending_course_organization_invites -> organizations (organization_id));
 diesel::joinable!(reward_candidates -> courses (course_id));
 diesel::joinable!(reward_candidates -> organizations (source_organization_id));
+diesel::joinable!(reward_compensation_records -> internal_transactions (internal_transaction_id));
+diesel::joinable!(reward_compensation_records -> reward_candidates (reward_candidate_id));
+diesel::joinable!(reward_compensation_records -> transactions (transaction_id));
+diesel::joinable!(reward_compensation_records -> users (created_by_user_id));
+diesel::joinable!(reward_compensation_records -> wallets (wallet_id));
 diesel::joinable!(reward_execution_jobs -> reward_candidates (reward_candidate_id));
 diesel::joinable!(reward_fraud_blocks -> courses (course_id));
 diesel::joinable!(reward_fraud_blocks -> organizations (organization_id));
@@ -560,6 +580,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     persistent_states,
     platform_roles,
     reward_candidates,
+    reward_compensation_records,
     reward_execution_jobs,
     reward_fraud_blocks,
     reward_payout_records,

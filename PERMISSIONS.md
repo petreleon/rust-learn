@@ -343,6 +343,10 @@ Reward candidate authorization is intentionally split by scope:
     rows, reward payout blockchain events, reward credit records, and an
     inferred reconciliation status for each related reward candidate. Audit
     access uses the same view permissions as wallet reads.
+*   Manual reward corrections are stored as compensation records with their
+    own internal wallet transaction. They require platform `RECONCILE_WALLETS`
+    or `MANAGE_WALLETS` and do not mutate the original reward candidate
+    status, approved amount, or decision timestamps.
 *   Reward candidate eligibility requires a verified recipient, course reward
     status permission for that recipient, a covering active reward policy, and
     event evidence such as completion percentage or passing score. Activity

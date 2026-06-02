@@ -1,6 +1,7 @@
 use crate::db::schema::{
-    external_transactions, internal_transactions, reward_candidates, reward_payout_records,
-    reward_wallet_credit_records, transactions, transactions_internal_transactions,
+    external_transactions, internal_transactions, reward_candidates, reward_compensation_records,
+    reward_payout_records, reward_wallet_credit_records, transactions,
+    transactions_internal_transactions,
 };
 use crate::models::reward_candidate::{
     RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED,
@@ -9,6 +10,7 @@ use crate::models::reward_candidate::{
     REWARD_STATUS_TEACHER_REJECTED, REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_TOKEN_PENDING,
     REWARD_STATUS_WALLET_CREDITED,
 };
+use crate::models::reward_compensation_record::RewardCompensationRecord;
 use crate::models::reward_payout_record::RewardPayoutRecord;
 use crate::models::reward_wallet_credit_record::RewardWalletCreditRecord;
 use crate::models::wallet::Wallet;
@@ -24,6 +26,7 @@ pub struct WalletAudit {
     pub internal_transactions: Vec<WalletInternalTransactionAudit>,
     pub external_transactions: Vec<WalletExternalTransactionAudit>,
     pub reward_records: Vec<WalletRewardRecordAudit>,
+    pub compensation_records: Vec<WalletCompensationRecordAudit>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -78,6 +81,20 @@ pub struct WalletRewardRecordAudit {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct WalletCompensationRecordAudit {
+    pub id: i64,
+    pub reward_candidate_id: i64,
+    pub wallet_id: i32,
+    pub transaction_id: i64,
+    pub internal_transaction_id: i64,
+    pub amount: String,
+    pub reason: String,
+    pub idempotency_key: String,
+    pub created_by_user_id: i32,
+    pub created_at: DateTime<Utc>,
+}
+
 pub async fn build_wallet_audit(
     conn: &mut AsyncPgConnection,
     wallet: Wallet,
@@ -86,12 +103,14 @@ pub async fn build_wallet_audit(
     let candidate_ids = load_wallet_reward_candidate_ids(conn, &wallet).await?;
     let reward_records = load_reward_records(conn, candidate_ids.as_slice()).await?;
     let external_transactions = load_external_transactions(conn, candidate_ids.as_slice()).await?;
+    let compensation_records = load_compensation_records(conn, wallet.id).await?;
 
     Ok(WalletAudit {
         wallet: WalletAuditWallet::from(&wallet),
         internal_transactions,
         external_transactions,
         reward_records,
+        compensation_records,
     })
 }
 
@@ -327,6 +346,33 @@ async fn load_external_transactions(
                 }
             },
         )
+        .collect())
+}
+
+async fn load_compensation_records(
+    conn: &mut AsyncPgConnection,
+    wallet_id: i32,
+) -> QueryResult<Vec<WalletCompensationRecordAudit>> {
+    let records = reward_compensation_records::table
+        .filter(reward_compensation_records::wallet_id.eq(wallet_id))
+        .order(reward_compensation_records::created_at.desc())
+        .load::<RewardCompensationRecord>(conn)
+        .await?;
+
+    Ok(records
+        .into_iter()
+        .map(|record| WalletCompensationRecordAudit {
+            id: record.id,
+            reward_candidate_id: record.reward_candidate_id,
+            wallet_id: record.wallet_id,
+            transaction_id: record.transaction_id,
+            internal_transaction_id: record.internal_transaction_id,
+            amount: record.amount.to_string(),
+            reason: record.reason,
+            idempotency_key: record.idempotency_key,
+            created_by_user_id: record.created_by_user_id,
+            created_at: record.created_at,
+        })
         .collect())
 }
 
