@@ -1,65 +1,192 @@
-# RustLearn TODO
+# RustLearn Business Logic TODO
 
-This checklist is organized around the current RustLearn architecture: Actix Web API, Diesel/PostgreSQL persistence, S3-compatible storage, a background worker, Ethereum contracts, and a Next.js frontend.
+This TODO focuses on product/business behavior for RustLearn. Implementation
+must use explicit platform, organization, and course permissions for access
+decisions. Do not hard-code behavior by role name such as student, teacher,
+moderator, admin, or super admin. Roles may remain permission bundles, but
+business logic must ask "does this user have this permission in this scope?"
 
-## Priority 0 — Security, correctness, and contributor safety
+## Permission-First Rules
 
-- [x] Replace example RSA private/public keys in `.env.example` with non-secret placeholders and document local key generation only.
-- [x] Audit all API read endpoints for missing authorization checks, especially user, course, organization, role, wallet, transaction, notification, and reporting data.
-- [x] Add password strength validation to registration.
-- [x] Add email confirmation or account-verification flow after registration. Local registration prints a mock verification email with a real account-verification token.
-- [x] Review JWT expiration, refresh/session strategy, and logout/revocation expectations.
-- [x] Add a JWKS or `.well-known/jwks.json` endpoint for external JWT verification.
-- [x] Confirm every role assignment path enforces hierarchy and scope constraints.
-- [x] Add structured logging for authentication failures, permission denials, worker failures, and blockchain operations.
+- [ ] Audit every existing service and endpoint that branches on role names and
+      replace business decisions with platform, organization, or course
+      permission checks.
+- [ ] Keep role hierarchy checks only for role-assignment safety. Do not use
+      hierarchy as a substitute for business authorization.
+- [ ] Define missing business permissions before adding flows. Suggested
+      platform permissions: `SUBMIT_TEACHER_APPLICATION`,
+      `REVIEW_TEACHER_APPLICATIONS`, `APPROVE_TEACHER_APPLICATION`,
+      `REJECT_TEACHER_APPLICATION`, `DELEGATE_REWARD_APPROVAL`,
+      `SET_REWARD_POLICY`, `APPROVE_REWARD_AMOUNT`,
+      `EXECUTE_REWARD_PAYOUT`, and `VIEW_REWARD_AUDIT`.
+- [ ] Define suggested organization permissions:
+      `NOMINATE_TEACHER_FOR_PLATFORM_REVIEW`,
+      `VIEW_ORG_TEACHER_APPLICATIONS`, `VIEW_ORG_REWARD_REPORTS`, and
+      `MANAGE_ORG_REWARD_BUDGET`.
+- [ ] Define suggested course permissions:
+      `CREATE_REWARDABLE_COURSE_EVENT`, `VIEW_COURSE_REWARD_STATUS`,
+      `SUBMIT_COMPLETION_FOR_REWARD`, `GRADE_REWARDABLE_ASSESSMENT`, and
+      `MANAGE_COURSE_REWARD_RULES`.
+- [ ] Update `PERMISSIONS.md`, permission constants, seed data, and tests
+      whenever a business permission is added or renamed.
 
-## Priority 1 — Tests and quality gates
+## Teacher Application Flow
 
-- [x] Add API integration tests for `POST /api/auth/login` and `POST /api/auth/register`.
-- [x] Add endpoint-level authorization tests for user, course, organization, and role scopes.
-- [x] Add unit tests for authentication helper logic and edge cases.
-- [x] Add worker tests for retry state transitions, terminal failures, and heartbeat behavior.
-- [x] Keep blockchain integration tests covering deploy, mint, presigner, and EIP-2612 permit behavior.
-- [x] Keep quality gates runnable locally with Docker Compose for `cargo fmt --all --check`, `cargo test`, and frontend lint/build checks. Hosted GitHub CI is disabled to avoid Actions usage.
-- [x] Document any tests that require Docker, PostgreSQL, Anvil/Geth, RustFS, or ffmpeg.
+- [ ] Add a platform-level teacher application entity with applicant user id,
+      requested teaching scope, experience summary, optional organization
+      sponsor, portfolio links, status, reviewer id, decision reason, and
+      timestamps.
+- [ ] Allow any authenticated user with `SUBMIT_TEACHER_APPLICATION` platform
+      permission to apply to central administration.
+- [ ] Allow organization-scoped nomination only through an organization
+      permission such as `NOMINATE_TEACHER_FOR_PLATFORM_REVIEW`; nomination
+      should create or attach to the same central application queue.
+- [ ] Let central administration reviewers fetch, filter, approve, reject, or
+      request changes only through platform permissions such as
+      `REVIEW_TEACHER_APPLICATIONS`, `APPROVE_TEACHER_APPLICATION`, and
+      `REJECT_TEACHER_APPLICATION`.
+- [ ] On approval, assign the minimum needed platform, organization, or course
+      permission bundle for the approved teaching scope. Do not assume the
+      assignee is a teacher because of a role name.
+- [ ] Record an immutable audit event for every teacher application transition.
+- [ ] Send notifications to the applicant, organization sponsor when present,
+      and central reviewers for submitted, changed, approved, and rejected
+      applications.
 
-## Priority 2 — Developer experience and setup
+## Course Business Flow
 
-- [x] Add a setup script to generate RSA keys and create a safe local `.env` from placeholders.
-- [x] Improve `.env.example` comments for PostgreSQL, S3/RustFS, Ethereum provider, admin bootstrap, and worker variables.
-- [x] Add a quickstart path for running only the API dependencies with Docker Compose.
-- [x] Add troubleshooting notes for Diesel migration failures, S3 connectivity, Ethereum RPC startup, and worker memory limits.
-- [x] Keep `Makefile` targets aligned with README examples.
-- [x] Add a short architecture diagram or request-flow diagram to the docs.
+- [ ] Model course lifecycle states: draft, submitted, needs changes,
+      approved, published, archived, and suspended.
+- [ ] Gate course creation by `CREATE_COURSE` at platform or organization
+      scope, depending on where the course is owned.
+- [ ] Gate course editing by `MODIFY_COURSE` or `MANAGE_COURSE_SETTINGS` in
+      the course scope.
+- [ ] Gate course publication by `PUBLISH_CONTENT` or a dedicated
+      `APPROVE_COURSE_PUBLICATION` permission, not by role name.
+- [ ] Gate enrollment request, approval, removal, and waitlist behavior with
+      `JOIN_COURSE`, `REQUEST_JOIN_COURSE`,
+      `APPROVE_COURSE_JOIN_REQUESTS`, and `MANAGE_COURSE_ENROLLMENTS`.
+- [ ] Keep content visibility and assessment access permission-based with
+      `VIEW_CONTENT`, `VIEW_ASSESSMENT`, `TAKE_TESTS`, and related course
+      permissions.
 
-## Priority 3 — Product features
+## Student Reward Flow
 
-- [x] Define the complete learning reward lifecycle: course event, eligibility check, reward calculation, token mint/transfer, wallet credit, notification, and audit record.
-- [x] Implement event listeners or reconciliation jobs for token mint/transfer events.
-- [x] Complete wallet-linking flows and end-to-end tests.
-- [x] Expand notifications for enrollment, content publication, role assignment, worker failures, and reward events.
-- [x] Build learner and administrator workflows in the Next.js frontend.
-- [x] Add course search/filtering, pagination, and organization-specific course discovery.
-- [x] Add reporting/export workflows for organizations and platform administrators.
+- [ ] Add rewardable course events for assessment completion, course
+      completion, manually approved completion, and administrative adjustment.
+- [ ] Store each reward candidate with a stable idempotency key such as
+      `course_completion:{course_id}:{user_id}:{attempt_id}`.
+- [ ] Add eligibility checks for enrollment, email verification, course policy,
+      organization policy, anti-abuse limits, prior rewards, passing score, and
+      completion percentage.
+- [ ] Add versioned reward policies that define token amounts, multipliers,
+      caps, cooldowns, and whether the policy pays from treasury transfer or
+      token mint.
+- [ ] Let an authorized reviewer decide the amount a student receives through
+      `APPROVE_REWARD_AMOUNT` or equivalent delegated permission. The reviewer
+      may be backed by an admin/moderator role bundle, but the code must check
+      only the permission.
+- [ ] Support delegated reward approval so central administration can grant a
+      moderator or another operator permission to review reward amounts without
+      changing reward service logic.
+- [ ] Persist approved, rejected, adjusted, token pending, token confirmed,
+      wallet credited, notified, completed, needs reconciliation, and failed
+      reward states.
+- [ ] Enqueue token execution only after eligibility and approved amount are
+      recorded.
+- [ ] Prefer treasury/presigner transfer when available; mint LearnToken only
+      when policy explicitly allows supply expansion.
+- [ ] Credit the internal wallet only after token confirmation unless the
+      deployment is explicitly configured for off-chain-only rewards.
+- [ ] Record external transaction hash, chain id, contract address, log index,
+      recipient address, amount, and event type for every reward payout.
+- [ ] Send reward notifications after wallet credit succeeds, including course
+      context, approved amount, destination wallet, and transaction reference.
+- [ ] Add reconciliation that repairs missing wallet credits, notifications, or
+      transaction links from the last confirmed reward state without creating
+      duplicate payouts.
 
-## Priority 4 — Operations and deployment
+## Wallet And Payment Business Flow
 
-- [x] Verify Docker Compose builds on Linux and ARM64 targets.
-- [x] Validate Kubernetes manifests against the current service names, health checks, ports, and environment variables.
-- [x] Add production-oriented health/readiness endpoints for API dependencies.
-- [x] Add worker metrics for queue depth, attempts, processing duration, and failed jobs.
-- [x] Define backup/restore expectations for PostgreSQL, S3 objects, and blockchain-related persistent state.
-- [x] Review release process for Ethereum contract artifact generation and deployment addresses.
+- [ ] Keep user and organization wallet linking idempotent and permission-based.
+- [ ] Gate platform wallet operations with `MANAGE_WALLETS`,
+      `VIEW_WALLET`, `VIEW_TRANSACTIONS`, `RECONCILE_WALLETS`, and related
+      platform permissions.
+- [ ] Gate organization wallet operations with `MANAGE_ORG_WALLETS`,
+      `VIEW_ORG_REWARD_REPORTS`, and `MANAGE_ORG_REWARD_BUDGET`.
+- [ ] Add wallet audit views that show internal transactions, external
+      blockchain events, reward records, and reconciliation status.
+- [ ] Add compensation records for manual reward corrections. Do not mutate
+      historical reward decisions in place.
 
-## Completed foundation
+## Administration And Delegation
 
-- [x] Actix Web API with route scopes for authentication, users, courses, organizations, and roles.
-- [x] Diesel/PostgreSQL models, migrations, and async connection pooling.
-- [x] Platform, organization, and course role/permission models with hierarchy-aware middleware infrastructure.
-- [x] Default role assignment on user registration.
-- [x] Role listing and role assignment endpoints.
-- [x] S3-compatible object storage integration through AWS SDK and RustFS-compatible configuration.
-- [x] Background worker binary for upload/video processing with retry configuration and heartbeat health check.
-- [x] LearnToken Solidity contracts, generated artifacts, startup deployment support, and blockchain integration test coverage.
-- [x] Docker Compose, Dockerfiles, Kubernetes manifests, and Makefile commands for common development/deployment tasks.
-- [x] Permission matrix documentation in `PERMISSIONS.md`.
+- [ ] Add a permission-delegation model that lets central administration grant
+      a scoped permission to another user for a limited scope and optional
+      expiration.
+- [ ] Require `DELEGATE_REWARD_APPROVAL` or another explicit platform
+      permission before a user can delegate reward approval ability.
+- [ ] Store delegation reason, scope, expiration, grantor, grantee, and revoked
+      status.
+- [ ] Revoke delegated permissions without deleting the historical delegation
+      record.
+- [ ] Include delegated permissions in middleware authorization checks only
+      when scope, expiration, and revocation state are valid.
+- [ ] Log every delegated permission grant, use, and revocation.
+
+## Reporting And Audit
+
+- [ ] Add central administration dashboards for teacher applications, reward
+      candidates, pending approval amounts, payout failures, and reconciliation
+      mismatches.
+- [ ] Add organization dashboards for sponsored teacher applications, course
+      reward volume, approved amounts, and wallet balances.
+- [ ] Add student-facing reward history with candidate status, approved amount,
+      wallet credit, and token transaction reference.
+- [ ] Export CSV reports for teacher applications, reward approvals, token
+      payouts, wallet credits, and delegated permission activity.
+- [ ] Ensure every report is protected by explicit platform, organization, or
+      course reporting permissions.
+
+## Data Model And API Work
+
+- [ ] Add migrations for teacher applications, reward policies, reward
+      candidates, reward decisions, reward execution jobs, reward audit events,
+      and delegated permissions.
+- [ ] Add repository/service layers for each business workflow. Keep complex
+      business decisions out of Actix handlers.
+- [ ] Add API endpoints for teacher applications, review decisions, reward
+      policy management, reward amount approval, reward status, and delegated
+      permission management.
+- [ ] Add idempotency keys and unique constraints wherever a business event can
+      be retried.
+- [ ] Add structured logs for teacher application transitions, reward decisions,
+      delegated permission checks, token execution, wallet credit, and
+      reconciliation.
+
+## Frontend Workflows
+
+- [ ] Build the teacher application form and central review queue.
+- [ ] Build reward approval screens that show eligibility evidence and let a
+      permitted reviewer set or adjust the amount.
+- [ ] Build student reward status/history screens.
+- [ ] Build organization reward reporting screens.
+- [ ] Build delegated-permission management screens for central administration.
+- [ ] Keep UI affordances permission-driven. Hide or disable actions by
+      resolved permissions, not by role labels.
+
+## Tests And Verification
+
+- [ ] Add permission-focused tests proving teacher application, reward amount
+      approval, token execution, and wallet credit are allowed by permission and
+      denied without permission.
+- [ ] Add tests proving users with different role names but the same permission
+      can perform the same business action.
+- [ ] Add tests proving users with privileged role names but missing the
+      required permission cannot perform the business action.
+- [ ] Add idempotency tests for teacher applications, reward candidates, reward
+      approval, token execution, wallet credit, and reconciliation.
+- [ ] Add Docker Compose integration tests for PostgreSQL-backed reward flows,
+      wallet credit, notifications, and Anvil token transaction recording.
+- [ ] Keep Docker Compose verification commands documented for every business
+      flow that requires PostgreSQL, RustFS, Anvil, or the worker.
