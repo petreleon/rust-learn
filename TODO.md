@@ -242,28 +242,28 @@ business logic must ask "does this user have this permission in this scope?"
 - [ ] Add permission-focused tests proving teacher application, reward amount
       approval, token execution, and wallet credit are allowed by permission and
       denied without permission.
-- [ ] Add tests proving reward candidate submission succeeds for a user with
+- [x] Add tests proving reward candidate submission succeeds for a user with
       `SUBMIT_COURSE_REWARD_EVENT` on the course, succeeds for a user with
       `SUBMIT_ORG_COURSE_REWARD_EVENT` on an organization attached to the
       course, succeeds for a user with a valid delegated scoped permission, and
       fails for everyone else.
-- [ ] Add tests proving reward candidates cannot enter amount review until a
+- [x] Add tests proving reward candidates cannot enter amount review until a
       user with `APPROVE_STUDENT_REWARD_CANDIDATE` in the course scope approves
       the student reward candidate.
 - [ ] Add tests proving only platform permission `APPROVE_REWARD_AMOUNT`, or a
       valid platform-scoped delegated equivalent, can set the payout amount.
 - [ ] Add tests proving `APPROVE_REWARD_AMOUNT` cannot approve, reject, create,
       or submit reward candidates.
-- [ ] Add tests proving course-scoped teacher permissions can approve the
+- [x] Add tests proving course-scoped teacher permissions can approve the
       student reward candidate but cannot set or change the token amount.
 - [ ] Add tests proving active teacher, organization, course, or policy fraud
       blocks prevent new reward candidate submissions, teacher candidate
       approvals, and amount approvals for the blocked scope.
 - [ ] Add tests proving fraud-block permissions can block or unblock reward
       activity but cannot approve candidates or set payout amounts.
-- [ ] Add tests proving users with different role names but the same permission
+- [x] Add tests proving users with different role names but the same permission
       can perform the same business action.
-- [ ] Add tests proving users with privileged role names but missing the
+- [x] Add tests proving users with privileged role names but missing the
       required permission cannot perform the business action.
 - [ ] Add idempotency tests for teacher applications, reward candidates, reward
       approval, token execution, wallet credit, and reconciliation.

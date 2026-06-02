@@ -2,9 +2,11 @@ use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{
-    courses, courses_organizations, organizations, reward_policies, users,
+    course_roles, courses, courses_organizations, organizations, reward_policies,
+    role_permission_course, users,
 };
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
@@ -122,6 +124,47 @@ async fn force_assign_course_role(
         .expect("failed to assign course role");
 }
 
+async fn create_custom_course_role(
+    conn: &mut AsyncPgConnection,
+    role_name: &str,
+    permissions: &[Permissions],
+) -> i32 {
+    let role_id = diesel::insert_into(course_roles::table)
+        .values((
+            course_roles::name.eq(role_name),
+            course_roles::description.eq(Some("test-only permission bundle".to_string())),
+        ))
+        .returning(course_roles::id)
+        .get_result::<i32>(conn)
+        .await
+        .expect("failed to create custom course role");
+
+    for permission in permissions {
+        diesel::insert_into(role_permission_course::table)
+            .values((
+                role_permission_course::course_id.eq(None::<i32>),
+                role_permission_course::course_role_id.eq(Some(role_id)),
+                role_permission_course::permission.eq(permission.to_string()),
+            ))
+            .execute(conn)
+            .await
+            .expect("failed to assign custom course role permission");
+    }
+
+    role_id
+}
+
+async fn assign_course_role_id(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    course_id: i32,
+    role_id: i32,
+) {
+    UserRoleCourse::assign(conn, user_id, course_id, role_id)
+        .await
+        .expect("failed to assign custom course role");
+}
+
 async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
     let role_id = PlatformRole::find_by_name(role_name, conn)
         .await
@@ -190,6 +233,131 @@ fn teacher_fraud_block_request(teacher_user_id: i32) -> RewardFraudBlockRequest 
         evidence_reference: Some("case://reward-candidate-flow".to_string()),
         expires_at: None,
     }
+}
+
+#[actix_web::test]
+async fn custom_course_roles_with_reward_permissions_can_submit_and_approve_candidates() {
+    let mut conn = setup_conn().await;
+    let course = create_course(&mut conn, &unique_string("CustomRewardRoleCourse")).await;
+    let submitter = create_user_helper(&mut conn, "custom_reward_submitter").await;
+    let approver = create_user_helper(&mut conn, "custom_reward_approver").await;
+    let student = create_user_helper(&mut conn, "custom_reward_student").await;
+
+    let submitter_role_id = create_custom_course_role(
+        &mut conn,
+        &unique_string("CURRICULUM_REWARD_OPERATOR"),
+        &[Permissions::SUBMIT_COURSE_REWARD_EVENT],
+    )
+    .await;
+    let approver_role_id = create_custom_course_role(
+        &mut conn,
+        &unique_string("COURSE_REWARD_CONFIRMER"),
+        &[Permissions::APPROVE_STUDENT_REWARD_CANDIDATE],
+    )
+    .await;
+    assign_course_role_id(&mut conn, submitter.id(), course.id, submitter_role_id).await;
+    assign_course_role_id(&mut conn, approver.id(), course.id, approver_role_id).await;
+    force_assign_course_role(&mut conn, student.id(), course.id, "STUDENT").await;
+    create_active_course_reward_policy(&mut conn, course.id, REWARD_EVENT_COURSE_COMPLETION).await;
+
+    let candidate = submit_course_reward_candidate(
+        &mut conn,
+        submitter.id(),
+        course.id,
+        reward_request(student.id(), &unique_string("custom_role_reward")),
+    )
+    .await
+    .expect("custom role with submit permission should create reward candidate");
+    assert_eq!(candidate.status, REWARD_STATUS_PENDING_TEACHER_APPROVAL);
+    assert_eq!(candidate.submitter_user_id, submitter.id());
+
+    let approved = decide_reward_candidate_by_teacher(
+        &mut conn,
+        approver.id(),
+        course.id,
+        candidate.id,
+        TeacherRewardCandidateDecisionRequest {
+            status: "approved".to_string(),
+            decision_reason: Some("custom permission bundle confirmed reward".to_string()),
+        },
+    )
+    .await
+    .expect("custom role with approval permission should approve reward candidate");
+    assert_eq!(approved.status, REWARD_STATUS_TEACHER_APPROVED);
+    assert_eq!(approved.teacher_approver_user_id, Some(approver.id()));
+}
+
+#[actix_web::test]
+async fn teacher_named_course_role_without_reward_permissions_cannot_submit_or_approve() {
+    let mut conn = setup_conn().await;
+    let course = create_course(&mut conn, &unique_string("TeacherNameNoRewardCourse")).await;
+    let submitter = create_user_helper(&mut conn, "no_reward_submitter").await;
+    let teacher_named_user = create_user_helper(&mut conn, "no_reward_teacher_named").await;
+    let student = create_user_helper(&mut conn, "no_reward_student").await;
+
+    let submitter_role_id = create_custom_course_role(
+        &mut conn,
+        &unique_string("REWARD_SUBMIT_ONLY"),
+        &[Permissions::SUBMIT_COURSE_REWARD_EVENT],
+    )
+    .await;
+    let teacher_named_role_id = create_custom_course_role(
+        &mut conn,
+        &unique_string("TEACHER_WITHOUT_REWARD_PERMISSIONS"),
+        &[],
+    )
+    .await;
+    assign_course_role_id(&mut conn, submitter.id(), course.id, submitter_role_id).await;
+    assign_course_role_id(
+        &mut conn,
+        teacher_named_user.id(),
+        course.id,
+        teacher_named_role_id,
+    )
+    .await;
+    force_assign_course_role(&mut conn, student.id(), course.id, "STUDENT").await;
+    create_active_course_reward_policy(&mut conn, course.id, REWARD_EVENT_COURSE_COMPLETION).await;
+
+    let denied_submit = submit_course_reward_candidate(
+        &mut conn,
+        teacher_named_user.id(),
+        course.id,
+        reward_request(student.id(), &unique_string("teacher_name_denied_submit")),
+    )
+    .await
+    .expect_err("teacher-like role name without submit permission should be denied");
+    assert!(matches!(
+        denied_submit,
+        RewardCandidateError::PermissionDenied(permission)
+            if permission == Permissions::SUBMIT_COURSE_REWARD_EVENT.to_string()
+    ));
+
+    let candidate = submit_course_reward_candidate(
+        &mut conn,
+        submitter.id(),
+        course.id,
+        reward_request(student.id(), &unique_string("submitter_reward")),
+    )
+    .await
+    .expect("submitter permission should create candidate for approval denial test");
+
+    let denied_approval = decide_reward_candidate_by_teacher(
+        &mut conn,
+        teacher_named_user.id(),
+        course.id,
+        candidate.id,
+        TeacherRewardCandidateDecisionRequest {
+            status: "approved".to_string(),
+            decision_reason: None,
+        },
+    )
+    .await
+    .expect_err("teacher-like role name without approval permission should be denied");
+    assert!(matches!(
+        denied_approval,
+        RewardCandidateError::PermissionDenied(permission)
+            if permission == Permissions::APPROVE_STUDENT_REWARD_CANDIDATE.to_string()
+    ));
 }
 
 #[actix_web::test]
