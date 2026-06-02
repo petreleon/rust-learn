@@ -46,6 +46,7 @@ This document lists all permissions assigned to roles across **Course**, **Organ
 ## Organization Roles
 
 ### ADMIN
+*   CREATE_COURSE
 *   GENERATE_REPORT
 *   INVITE_USER_TO_ORGANIZATION
 *   MANAGE_DISCUSSIONS
@@ -82,6 +83,7 @@ This document lists all permissions assigned to roles across **Course**, **Organ
 *   VIEW_ORGANIZATION
 
 ### SUPER_ADMIN
+*   CREATE_COURSE
 *   GENERATE_REPORT
 *   INVITE_USER_TO_ORGANIZATION
 *   MANAGE_DISCUSSIONS

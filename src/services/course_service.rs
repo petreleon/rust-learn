@@ -10,6 +10,7 @@ use crate::models::pending_course_organization_invites::{
     NewPendingCourseOrganizationInvite, PendingCourseOrganizationInvite,
 };
 use crate::repositories::course_repository::user_permission_course_request;
+use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
 use diesel::prelude::*;
 use diesel::PgTextExpressionMethods;
@@ -49,6 +50,18 @@ pub enum CourseLifecycleError {
     InvalidStatus(String),
     NotFound,
     Database(String),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum CourseCreationError {
+    PermissionDenied(String),
+    Database(String),
+}
+
+impl From<diesel::result::Error> for CourseCreationError {
+    fn from(error: diesel::result::Error) -> Self {
+        CourseCreationError::Database(error.to_string())
+    }
 }
 
 impl From<diesel::result::Error> for CourseLifecycleError {
@@ -163,6 +176,48 @@ pub async fn create_course_with_invites(
         })
     })
     .await
+}
+
+pub async fn create_course_with_invites_for_actor(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    title: String,
+    organization_ids: Vec<i32>,
+) -> Result<Course, CourseCreationError> {
+    ensure_course_creation_permission(conn, actor_user_id, organization_ids.as_slice()).await?;
+    create_course_with_invites(conn, title, organization_ids)
+        .await
+        .map_err(CourseCreationError::from)
+}
+
+async fn ensure_course_creation_permission(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    organization_ids: &[i32],
+) -> Result<(), CourseCreationError> {
+    let platform_permission = Permissions::CREATE_COURSE.to_string();
+    match user_permission_platform_request(conn, user_id, &platform_permission).await {
+        Ok(true) => return Ok(()),
+        Ok(false) => {}
+        Err(error) => return Err(CourseCreationError::from(error)),
+    }
+
+    if let Some(owner_organization_id) = organization_ids.first() {
+        match user_permission_organization_request(
+            conn,
+            user_id,
+            *owner_organization_id,
+            &platform_permission,
+        )
+        .await
+        {
+            Ok(true) => return Ok(()),
+            Ok(false) => {}
+            Err(error) => return Err(CourseCreationError::from(error)),
+        }
+    }
+
+    Err(CourseCreationError::PermissionDenied(platform_permission))
 }
 
 pub async fn update_course_lifecycle(

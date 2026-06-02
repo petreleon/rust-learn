@@ -59,7 +59,7 @@ business logic must ask "does this user have this permission in this scope?"
 
 - [x] Model course lifecycle states: draft, submitted, needs changes,
       approved, published, archived, and suspended.
-- [ ] Gate course creation by `CREATE_COURSE` at platform or organization
+- [x] Gate course creation by `CREATE_COURSE` at platform or organization
       scope, depending on where the course is owned.
 - [ ] Gate course editing by `MODIFY_COURSE` or `MANAGE_COURSE_SETTINGS` in
       the course scope.

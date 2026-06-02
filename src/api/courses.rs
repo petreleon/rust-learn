@@ -8,7 +8,8 @@ use crate::models::param_type::ParamType;
 use crate::models::user_jwt::UserJWT;
 use crate::repositories::course_repository::assign_role_to_user_in_course;
 use crate::services::course_service::{
-    discover_courses, update_course_lifecycle as update_course_lifecycle_status,
+    create_course_with_invites_for_actor, discover_courses,
+    update_course_lifecycle as update_course_lifecycle_status, CourseCreationError,
     CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest,
 };
 use crate::utils::jwt_utils::decode_jwt;
@@ -48,6 +49,18 @@ fn lifecycle_error_response(error: CourseLifecycleError) -> HttpResponse {
         CourseLifecycleError::Database(message) => {
             log::error!("event=course_lifecycle_update_failed error={}", message);
             HttpResponse::InternalServerError().body("Failed to update course status")
+        }
+    }
+}
+
+fn course_creation_error_response(error: CourseCreationError) -> HttpResponse {
+    match error {
+        CourseCreationError::PermissionDenied(_) => {
+            HttpResponse::Forbidden().body("User does not have permission to create course")
+        }
+        CourseCreationError::Database(message) => {
+            log::error!("event=course_creation_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to create course")
         }
     }
 }
@@ -108,27 +121,30 @@ pub struct CreateCourseRequest {
 }
 
 async fn create_course(
+    req: HttpRequest,
     pool: web::Data<db::DbPool>,
-    req: web::Json<CreateCourseRequest>,
+    body: web::Json<CreateCourseRequest>,
 ) -> impl Responder {
+    let requester = match current_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = crate::services::course_service::create_course_with_invites(
+    let result = create_course_with_invites_for_actor(
         &mut conn,
-        req.title.clone(),
-        req.organization_ids.clone(),
+        requester.user_id,
+        body.title.clone(),
+        body.organization_ids.clone(),
     )
     .await;
 
     match result {
         Ok(course) => HttpResponse::Created().json(course),
-        Err(e) => {
-            eprintln!("DB error creating course: {}", e);
-            HttpResponse::InternalServerError().body("Failed to create course")
-        }
+        Err(error) => course_creation_error_response(error),
     }
 }
 
@@ -341,13 +357,7 @@ pub fn course_scope() -> actix_web::Scope {
                             Permissions::VIEW_COURSE.to_string(),
                         )),
                 )
-                .route(
-                    web::post()
-                        .to(create_course)
-                        .wrap(PlatformPermissionMiddleware::new(
-                            Permissions::CREATE_COURSE.to_string(),
-                        )),
-                ),
+                .route(web::post().to(create_course)),
         )
         .service(
             web::resource("/{id}/organizations").route(
