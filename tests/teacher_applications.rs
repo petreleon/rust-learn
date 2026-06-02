@@ -1,10 +1,10 @@
 use chrono::NaiveDate;
+use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::establish_connection;
-use rust_learn::db::schema::courses;
-use rust_learn::db::schema::organizations;
+use rust_learn::db::schema::{courses, organizations, platform_roles, role_permission_platform};
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::OrganizationRole;
@@ -13,6 +13,7 @@ use rust_learn::models::teacher_application::{
 };
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
+use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::repositories::course_repository::user_permission_course_request;
 use rust_learn::repositories::organization_repository::user_permission_organization_request;
 use rust_learn::repositories::platform_repository::assign_role_to_user;
@@ -91,6 +92,43 @@ async fn force_assign_organization_role(
         .expect("failed to force assign organization role");
 }
 
+async fn create_custom_platform_role(
+    conn: &mut AsyncPgConnection,
+    role_name: &str,
+    permissions: &[Permissions],
+) -> i32 {
+    let role_id = diesel::insert_into(platform_roles::table)
+        .values((
+            platform_roles::name.eq(role_name),
+            platform_roles::description.eq(Some(
+                "test-only teacher application permission bundle".to_string(),
+            )),
+        ))
+        .returning(platform_roles::id)
+        .get_result::<i32>(conn)
+        .await
+        .expect("failed to create custom platform role");
+
+    for permission in permissions {
+        diesel::insert_into(role_permission_platform::table)
+            .values((
+                role_permission_platform::platform_role_id.eq(Some(role_id)),
+                role_permission_platform::permission.eq(permission.to_string()),
+            ))
+            .execute(conn)
+            .await
+            .expect("failed to assign custom platform role permission");
+    }
+
+    role_id
+}
+
+async fn assign_platform_role_id(conn: &mut AsyncPgConnection, user_id: i32, role_id: i32) {
+    UserRolePlatform::assign(conn, user_id, role_id)
+        .await
+        .expect("failed to assign custom platform role");
+}
+
 fn platform_application_request() -> SubmitTeacherApplicationRequest {
     SubmitTeacherApplicationRequest {
         requested_scope: "platform".to_string(),
@@ -103,6 +141,86 @@ fn platform_application_request() -> SubmitTeacherApplicationRequest {
             "   ".to_string(),
         ]),
     }
+}
+
+#[actix_web::test]
+async fn custom_platform_permissions_drive_teacher_application_flow() {
+    let mut conn = setup_conn().await;
+    let applicant = create_user_helper(&mut conn, "custom_teacher_apply_user").await;
+    let reviewer = create_user_helper(&mut conn, "custom_teacher_reviewer").await;
+    let review_only_user = create_user_helper(&mut conn, "custom_teacher_review_only").await;
+
+    let submit_role_id = create_custom_platform_role(
+        &mut conn,
+        &unique_string("TEACHER_APPLICATION_SUBMITTER"),
+        &[Permissions::SUBMIT_TEACHER_APPLICATION],
+    )
+    .await;
+    let reviewer_role_id = create_custom_platform_role(
+        &mut conn,
+        &unique_string("TEACHER_APPLICATION_APPROVER"),
+        &[
+            Permissions::REVIEW_TEACHER_APPLICATIONS,
+            Permissions::APPROVE_TEACHER_APPLICATION,
+        ],
+    )
+    .await;
+    let review_only_role_id = create_custom_platform_role(
+        &mut conn,
+        &unique_string("TEACHER_APPLICATION_REVIEW_ONLY"),
+        &[Permissions::REVIEW_TEACHER_APPLICATIONS],
+    )
+    .await;
+    assign_platform_role_id(&mut conn, applicant.id(), submit_role_id).await;
+    assign_platform_role_id(&mut conn, reviewer.id(), reviewer_role_id).await;
+    assign_platform_role_id(&mut conn, review_only_user.id(), review_only_role_id).await;
+
+    let application = submit_application(&mut conn, applicant.id(), platform_application_request())
+        .await
+        .expect("submit permission should create teacher application");
+
+    let visible = list_applications(
+        &mut conn,
+        reviewer.id(),
+        ListTeacherApplicationsRequest {
+            applicant_user_id: Some(applicant.id()),
+            ..Default::default()
+        },
+    )
+    .await
+    .expect("review permission should list teacher applications");
+    assert!(visible.iter().any(|item| item.id == application.id));
+
+    let denied_approval = decide_application(
+        &mut conn,
+        review_only_user.id(),
+        application.id,
+        TeacherApplicationDecisionRequest {
+            status: "approved".to_string(),
+            decision_reason: Some("review-only user attempted approval".to_string()),
+        },
+    )
+    .await
+    .expect_err("review-only permission must not approve teacher applications");
+    assert!(matches!(
+        denied_approval,
+        TeacherApplicationError::PermissionDenied(permission)
+            if permission == Permissions::APPROVE_TEACHER_APPLICATION.to_string()
+    ));
+
+    let approved = decide_application(
+        &mut conn,
+        reviewer.id(),
+        application.id,
+        TeacherApplicationDecisionRequest {
+            status: "approved".to_string(),
+            decision_reason: Some("custom permission reviewer approved".to_string()),
+        },
+    )
+    .await
+    .expect("approve permission should approve teacher application");
+    assert_eq!(approved.status, TEACHER_APPLICATION_STATUS_APPROVED);
+    assert_eq!(approved.reviewer_id, Some(reviewer.id()));
 }
 
 #[actix_web::test]
