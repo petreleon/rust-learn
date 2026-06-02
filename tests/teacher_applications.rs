@@ -1,8 +1,11 @@
 use chrono::NaiveDate;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::establish_connection;
+use rust_learn::db::schema::courses;
 use rust_learn::db::schema::organizations;
+use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::OrganizationRole;
 use rust_learn::models::teacher_application::{
@@ -10,7 +13,10 @@ use rust_learn::models::teacher_application::{
 };
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
+use rust_learn::repositories::course_repository::user_permission_course_request;
+use rust_learn::repositories::organization_repository::user_permission_organization_request;
 use rust_learn::repositories::platform_repository::assign_role_to_user;
+use rust_learn::repositories::platform_repository::user_permission_platform_request;
 use rust_learn::repositories::teacher_application_repository::list_audit_events;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::teacher_application_service::{
@@ -57,6 +63,18 @@ async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organi
         .get_result(conn)
         .await
         .expect("failed to create organization")
+}
+
+async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
+    let new_course = NewCourse {
+        title: title.to_string(),
+    };
+
+    diesel::insert_into(courses::table)
+        .values(&new_course)
+        .get_result(conn)
+        .await
+        .expect("failed to create course")
 }
 
 async fn force_assign_organization_role(
@@ -126,7 +144,11 @@ async fn organization_admin_can_nominate_teacher_to_central_queue() {
     let organization = create_organization(&mut conn, &unique_string("teacher_sponsor")).await;
     let nominator = create_user_helper(&mut conn, "teacher_nominator").await;
     let applicant = create_user_helper(&mut conn, "teacher_nominee").await;
+    let platform_admin = create_user_helper(&mut conn, "teacher_nomination_reviewer").await;
     force_assign_organization_role(&mut conn, nominator.id(), organization.id, "ADMIN").await;
+    assign_role_to_user(&mut conn, platform_admin.id(), Roles::ADMIN)
+        .await
+        .expect("failed to assign ADMIN role");
 
     let application = nominate_application(
         &mut conn,
@@ -152,6 +174,31 @@ async fn organization_admin_can_nominate_teacher_to_central_queue() {
         .expect("audit events should load");
     assert_eq!(audit.len(), 1);
     assert_eq!(audit[0].event_type, "organization_nominated");
+
+    decide_application(
+        &mut conn,
+        platform_admin.id(),
+        application.id,
+        TeacherApplicationDecisionRequest {
+            status: "approved".to_string(),
+            decision_reason: Some("approved for sponsored organization".to_string()),
+        },
+    )
+    .await
+    .expect("platform admin should approve organization nomination");
+
+    let applicant_has_org_teacher_permission = user_permission_organization_request(
+        &mut conn,
+        applicant.id(),
+        organization.id,
+        &Permissions::GENERATE_REPORT.to_string(),
+    )
+    .await
+    .expect("permission query failed");
+    assert!(
+        applicant_has_org_teacher_permission,
+        "approved organization-scope applicant should receive the organization teaching bundle"
+    );
 }
 
 #[actix_web::test]
@@ -217,10 +264,77 @@ async fn platform_admin_reviews_and_approves_while_moderator_is_denied() {
     assert_eq!(approved.status, TEACHER_APPLICATION_STATUS_APPROVED);
     assert_eq!(approved.reviewer_id, Some(admin.id()));
 
+    let applicant_has_teacher_bundle_permission = user_permission_platform_request(
+        &mut conn,
+        applicant.id(),
+        &Permissions::GENERATE_REPORT.to_string(),
+    )
+    .await
+    .expect("permission query failed");
+    assert!(
+        applicant_has_teacher_bundle_permission,
+        "approved platform-scope applicant should receive the platform teaching bundle"
+    );
+
     let audit = list_audit_events(&mut conn, application.id)
         .await
         .expect("audit events should load");
     assert_eq!(audit.len(), 2);
     assert_eq!(audit[0].to_status, TEACHER_APPLICATION_STATUS_SUBMITTED);
     assert_eq!(audit[1].to_status, TEACHER_APPLICATION_STATUS_APPROVED);
+}
+
+#[actix_web::test]
+async fn course_scope_approval_assigns_course_teacher_permission_bundle() {
+    let mut conn = setup_conn().await;
+    let course = create_course(&mut conn, &unique_string("teacher_scope_course")).await;
+    let applicant = create_user_helper(&mut conn, "teacher_course_applicant").await;
+    let admin = create_user_helper(&mut conn, "teacher_course_admin").await;
+
+    assign_role_to_user(&mut conn, applicant.id(), Roles::USER)
+        .await
+        .expect("failed to assign USER role");
+    assign_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
+        .await
+        .expect("failed to assign ADMIN role");
+
+    let application = submit_application(
+        &mut conn,
+        applicant.id(),
+        SubmitTeacherApplicationRequest {
+            requested_scope: "course".to_string(),
+            requested_organization_id: None,
+            requested_course_id: Some(course.id),
+            experience_summary: "Course-specific Rust instructor.".to_string(),
+            organization_sponsor_id: None,
+            portfolio_links: None,
+        },
+    )
+    .await
+    .expect("course-scope application should be created");
+
+    decide_application(
+        &mut conn,
+        admin.id(),
+        application.id,
+        TeacherApplicationDecisionRequest {
+            status: "approved".to_string(),
+            decision_reason: Some("approved for this course".to_string()),
+        },
+    )
+    .await
+    .expect("admin should approve course-scope teacher application");
+
+    let applicant_can_manage_course_settings = user_permission_course_request(
+        &mut conn,
+        applicant.id(),
+        course.id,
+        &Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+    )
+    .await
+    .expect("permission query failed");
+    assert!(
+        applicant_can_manage_course_settings,
+        "approved course-scope applicant should receive the course teaching bundle"
+    );
 }

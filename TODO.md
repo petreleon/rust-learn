@@ -47,7 +47,7 @@ business logic must ask "does this user have this permission in this scope?"
       request changes only through platform permissions such as
       `REVIEW_TEACHER_APPLICATIONS`, `APPROVE_TEACHER_APPLICATION`, and
       `REJECT_TEACHER_APPLICATION`.
-- [ ] On approval, assign the minimum needed platform, organization, or course
+- [x] On approval, assign the minimum needed platform, organization, or course
       permission bundle for the approved teaching scope. Do not assume the
       assignee is a teacher because of a role name.
 - [x] Record an immutable audit event for every teacher application transition.
