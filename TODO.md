@@ -135,7 +135,7 @@ business logic must ask "does this user have this permission in this scope?"
       recipient address, amount, and event type for every reward payout.
 - [x] Send reward notifications after wallet credit succeeds, including course
       context, approved amount, destination wallet, and transaction reference.
-- [ ] Add reconciliation that repairs missing wallet credits, notifications, or
+- [x] Add reconciliation that repairs missing wallet credits, notifications, or
       transaction links from the last confirmed reward state without creating
       duplicate payouts.
 

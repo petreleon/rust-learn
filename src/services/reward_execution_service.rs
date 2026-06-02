@@ -6,8 +6,8 @@ use crate::db::schema::{
 use crate::models::notification::{NewNotification, Notification};
 use crate::models::reward_candidate::{
     RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_COMPLETED,
-    REWARD_STATUS_NOTIFIED, REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_TOKEN_PENDING,
-    REWARD_STATUS_WALLET_CREDITED,
+    REWARD_STATUS_NEEDS_RECONCILIATION, REWARD_STATUS_NOTIFIED, REWARD_STATUS_TOKEN_CONFIRMED,
+    REWARD_STATUS_TOKEN_PENDING, REWARD_STATUS_WALLET_CREDITED,
 };
 use crate::models::reward_payout_record::NewRewardPayoutRecord;
 use crate::models::reward_policy::{
@@ -66,6 +66,16 @@ pub struct RewardWalletCreditNotificationResult {
     pub transaction_id: i64,
     pub amount: BigDecimal,
     pub notified: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RewardReconciliationResult {
+    pub candidate_id: i64,
+    pub wallet_credit_created: bool,
+    pub notification_created: bool,
+    pub external_transaction_link_repaired: bool,
+    pub internal_transaction_link_repaired: bool,
+    pub final_status: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -147,67 +157,7 @@ pub async fn credit_reward_wallet(
     conn.transaction::<_, RewardExecutionError, _>(|conn| {
         Box::pin(async move {
             let candidate = reward_candidate_repository::find_candidate(conn, candidate_id).await?;
-            let amount = approved_positive_amount(&candidate)?;
-
-            if candidate.status == REWARD_STATUS_WALLET_CREDITED {
-                let wallet = wallet_service::find_user_wallet(conn, candidate.student_user_id)
-                    .await?
-                    .ok_or_else(|| {
-                        RewardExecutionError::InvalidStatus(
-                            "wallet credited candidate is missing a user wallet".to_string(),
-                        )
-                    })?;
-                let credit_record =
-                    reward_wallet_credit_record_repository::find_reward_wallet_credit_record_by_candidate(
-                        conn,
-                        candidate.id,
-                    )
-                    .await?;
-                return Ok(RewardWalletCreditResult {
-                    candidate_id: candidate.id,
-                    wallet_id: wallet.id,
-                    credit_record_id: credit_record.as_ref().map(|record| record.id),
-                    transaction_id: credit_record.as_ref().map(|record| record.transaction_id),
-                    internal_transaction_id: credit_record
-                        .as_ref()
-                        .map(|record| record.internal_transaction_id),
-                    amount,
-                    credited: false,
-                });
-            }
-
-            ensure_wallet_credit_allowed(conn, &candidate).await?;
-
-            let wallet = wallet_service::link_user_wallet(conn, candidate.student_user_id)
-                .await?
-                .wallet;
-            let wallet = credit_wallet_balance(conn, wallet.id, amount.clone()).await?;
-            let internal_transaction_id =
-                create_internal_transaction(conn, wallet.id, amount.clone()).await?;
-            let transaction_id =
-                create_wallet_credit_transaction(conn, internal_transaction_id).await?;
-            let credit_record =
-                reward_wallet_credit_record_repository::create_reward_wallet_credit_record(
-                    conn,
-                    NewRewardWalletCreditRecord {
-                        reward_candidate_id: candidate.id,
-                        wallet_id: wallet.id,
-                        transaction_id,
-                        internal_transaction_id,
-                    },
-                )
-                .await?;
-            mark_candidate_wallet_credited(conn, candidate.id).await?;
-
-            Ok(RewardWalletCreditResult {
-                candidate_id: candidate.id,
-                wallet_id: wallet.id,
-                credit_record_id: Some(credit_record.id),
-                transaction_id: Some(transaction_id),
-                internal_transaction_id: Some(internal_transaction_id),
-                amount,
-                credited: true,
-            })
+            credit_reward_wallet_for_candidate(conn, &candidate, false).await
         })
     })
     .await
@@ -220,86 +170,91 @@ pub async fn notify_reward_wallet_credit(
     conn.transaction::<_, RewardExecutionError, _>(|conn| {
         Box::pin(async move {
             let candidate = reward_candidate_repository::find_candidate(conn, candidate_id).await?;
-            if ![
-                REWARD_STATUS_WALLET_CREDITED,
-                REWARD_STATUS_NOTIFIED,
-                REWARD_STATUS_COMPLETED,
-            ]
-            .contains(&candidate.status.as_str())
-            {
-                return Err(RewardExecutionError::InvalidStatus(
-                    "reward candidate must be wallet credited before notification".to_string(),
-                ));
-            }
+            notify_reward_wallet_credit_for_candidate(conn, &candidate, false).await
+        })
+    })
+    .await
+}
 
-            let amount = approved_positive_amount(&candidate)?;
-            let credit_record =
+pub async fn reconcile_reward_candidate(
+    conn: &mut AsyncPgConnection,
+    candidate_id: i64,
+) -> Result<RewardReconciliationResult, RewardExecutionError> {
+    conn.transaction::<_, RewardExecutionError, _>(|conn| {
+        Box::pin(async move {
+            let mut candidate =
+                reward_candidate_repository::find_candidate(conn, candidate_id).await?;
+            ensure_candidate_reconcilable(&candidate)?;
+
+            let payout_record =
+                reward_payout_record_repository::find_reward_payout_record_by_candidate(
+                    conn,
+                    candidate.id,
+                )
+                .await?;
+            let external_transaction_link_repaired = match payout_record.as_ref() {
+                Some(record) => {
+                    ensure_external_transaction_link(
+                        conn,
+                        record.transaction_id,
+                        record.external_transaction_id,
+                    )
+                    .await?
+                }
+                None => false,
+            };
+
+            let mut credit_record =
                 reward_wallet_credit_record_repository::find_reward_wallet_credit_record_by_candidate(
                     conn,
                     candidate.id,
                 )
-                .await?
-                .ok_or_else(|| {
-                    RewardExecutionError::InvalidStatus(
-                        "wallet credited candidate is missing a reward wallet credit record"
-                            .to_string(),
-                    )
-                })?;
-
-            if let Some(notification_id) = credit_record.notification_id {
-                return Ok(RewardWalletCreditNotificationResult {
-                    candidate_id: candidate.id,
-                    wallet_id: credit_record.wallet_id,
-                    notification_id: Some(notification_id),
-                    transaction_id: credit_record.transaction_id,
-                    amount,
-                    notified: false,
-                });
-            }
-
-            if candidate.status != REWARD_STATUS_WALLET_CREDITED {
-                return Err(RewardExecutionError::InvalidStatus(
-                    "notified candidate is missing its notification reference".to_string(),
-                ));
-            }
-
-            let course_title = courses::table
-                .find(candidate.course_id)
-                .select(courses::title)
-                .first::<String>(conn)
                 .await?;
-            let message = reward_wallet_credit_notification(
-                candidate.course_id,
-                course_title,
-                amount.to_string(),
-                credit_record.wallet_id,
-                credit_record.transaction_id,
-            );
-            let body = message.body;
-            let notification_id = Notification::create(
-                NewNotification {
-                    user_id: Some(candidate.student_user_id),
-                    title: message.title,
-                    body: body.as_str(),
-                },
-                conn,
-            )
-            .await?;
-            reward_wallet_credit_record_repository::mark_reward_wallet_credit_record_notified(
-                conn,
-                credit_record.id,
-                notification_id,
-            )
-            .await?;
-            mark_candidate_notified(conn, candidate.id).await?;
+            let mut wallet_credit_created = false;
+            if credit_record.is_none() && should_create_reconciliation_wallet_credit(&candidate) {
+                wallet_credit_created = credit_reward_wallet_for_candidate(
+                    conn,
+                    &candidate,
+                    payout_record.is_some(),
+                )
+                .await?
+                .credited;
+                candidate = reward_candidate_repository::find_candidate(conn, candidate.id).await?;
+                credit_record =
+                    reward_wallet_credit_record_repository::find_reward_wallet_credit_record_by_candidate(
+                        conn,
+                        candidate.id,
+                    )
+                    .await?;
+            }
 
-            Ok(RewardWalletCreditNotificationResult {
+            let internal_transaction_link_repaired = match credit_record.as_ref() {
+                Some(record) => {
+                    ensure_internal_transaction_link(
+                        conn,
+                        record.transaction_id,
+                        record.internal_transaction_id,
+                    )
+                    .await?
+                }
+                None => false,
+            };
+
+            let mut notification_created = false;
+            if credit_record.is_some() {
+                let notification_result =
+                    notify_reward_wallet_credit_for_candidate(conn, &candidate, true).await?;
+                notification_created = notification_result.notified;
+                candidate = reward_candidate_repository::find_candidate(conn, candidate.id).await?;
+            }
+
+            Ok(RewardReconciliationResult {
                 candidate_id: candidate.id,
-                wallet_id: credit_record.wallet_id,
-                notification_id: Some(notification_id),
-                transaction_id: credit_record.transaction_id,
-                amount,
-                notified: true,
+                wallet_credit_created,
+                notification_created,
+                external_transaction_link_repaired,
+                internal_transaction_link_repaired,
+                final_status: candidate.status,
             })
         })
     })
@@ -391,6 +346,217 @@ fn approved_positive_amount(
     Ok(amount)
 }
 
+async fn credit_reward_wallet_for_candidate(
+    conn: &mut AsyncPgConnection,
+    candidate: &RewardCandidate,
+    allow_reconciliation_credit: bool,
+) -> Result<RewardWalletCreditResult, RewardExecutionError> {
+    let amount = approved_positive_amount(candidate)?;
+    let credit_record =
+        reward_wallet_credit_record_repository::find_reward_wallet_credit_record_by_candidate(
+            conn,
+            candidate.id,
+        )
+        .await?;
+
+    if let Some(record) = credit_record.as_ref() {
+        return Ok(RewardWalletCreditResult {
+            candidate_id: candidate.id,
+            wallet_id: record.wallet_id,
+            credit_record_id: Some(record.id),
+            transaction_id: Some(record.transaction_id),
+            internal_transaction_id: Some(record.internal_transaction_id),
+            amount,
+            credited: false,
+        });
+    }
+
+    if [
+        REWARD_STATUS_WALLET_CREDITED,
+        REWARD_STATUS_NOTIFIED,
+        REWARD_STATUS_COMPLETED,
+    ]
+    .contains(&candidate.status.as_str())
+    {
+        return Err(RewardExecutionError::InvalidStatus(
+            "wallet credited candidate is missing a reward wallet credit record".to_string(),
+        ));
+    }
+
+    if candidate.status == REWARD_STATUS_NEEDS_RECONCILIATION {
+        if !allow_reconciliation_credit {
+            return Err(RewardExecutionError::InvalidStatus(
+                "needs reconciliation candidate requires confirmed payout evidence before wallet credit"
+                    .to_string(),
+            ));
+        }
+    } else {
+        ensure_wallet_credit_allowed(conn, candidate).await?;
+    }
+
+    let wallet = wallet_service::link_user_wallet(conn, candidate.student_user_id)
+        .await?
+        .wallet;
+    let wallet = credit_wallet_balance(conn, wallet.id, amount.clone()).await?;
+    let internal_transaction_id =
+        create_internal_transaction(conn, wallet.id, amount.clone()).await?;
+    let transaction_id = create_wallet_credit_transaction(conn, internal_transaction_id).await?;
+    let credit_record = reward_wallet_credit_record_repository::create_reward_wallet_credit_record(
+        conn,
+        NewRewardWalletCreditRecord {
+            reward_candidate_id: candidate.id,
+            wallet_id: wallet.id,
+            transaction_id,
+            internal_transaction_id,
+        },
+    )
+    .await?;
+    mark_candidate_wallet_credited(conn, candidate.id).await?;
+
+    Ok(RewardWalletCreditResult {
+        candidate_id: candidate.id,
+        wallet_id: wallet.id,
+        credit_record_id: Some(credit_record.id),
+        transaction_id: Some(transaction_id),
+        internal_transaction_id: Some(internal_transaction_id),
+        amount,
+        credited: true,
+    })
+}
+
+async fn notify_reward_wallet_credit_for_candidate(
+    conn: &mut AsyncPgConnection,
+    candidate: &RewardCandidate,
+    allow_reconciliation_repair: bool,
+) -> Result<RewardWalletCreditNotificationResult, RewardExecutionError> {
+    let allowed_to_inspect_notification = [
+        REWARD_STATUS_WALLET_CREDITED,
+        REWARD_STATUS_NOTIFIED,
+        REWARD_STATUS_COMPLETED,
+        REWARD_STATUS_NEEDS_RECONCILIATION,
+    ]
+    .contains(&candidate.status.as_str())
+        || (allow_reconciliation_repair
+            && [
+                REWARD_STATUS_AMOUNT_APPROVED,
+                REWARD_STATUS_TOKEN_CONFIRMED,
+                REWARD_STATUS_NEEDS_RECONCILIATION,
+            ]
+            .contains(&candidate.status.as_str()));
+
+    if !allowed_to_inspect_notification {
+        return Err(RewardExecutionError::InvalidStatus(
+            "reward candidate must be wallet credited before notification".to_string(),
+        ));
+    }
+
+    let amount = approved_positive_amount(candidate)?;
+    let credit_record =
+        reward_wallet_credit_record_repository::find_reward_wallet_credit_record_by_candidate(
+            conn,
+            candidate.id,
+        )
+        .await?
+        .ok_or_else(|| {
+            RewardExecutionError::InvalidStatus(
+                "wallet credited candidate is missing a reward wallet credit record".to_string(),
+            )
+        })?;
+
+    if let Some(notification_id) = credit_record.notification_id {
+        return Ok(RewardWalletCreditNotificationResult {
+            candidate_id: candidate.id,
+            wallet_id: credit_record.wallet_id,
+            notification_id: Some(notification_id),
+            transaction_id: credit_record.transaction_id,
+            amount,
+            notified: false,
+        });
+    }
+
+    let can_create_missing_notification = candidate.status == REWARD_STATUS_WALLET_CREDITED
+        || (allow_reconciliation_repair
+            && [
+                REWARD_STATUS_AMOUNT_APPROVED,
+                REWARD_STATUS_TOKEN_CONFIRMED,
+                REWARD_STATUS_NEEDS_RECONCILIATION,
+            ]
+            .contains(&candidate.status.as_str()));
+
+    if !can_create_missing_notification {
+        return Err(RewardExecutionError::InvalidStatus(
+            "notified candidate is missing its notification reference".to_string(),
+        ));
+    }
+
+    let course_title = courses::table
+        .find(candidate.course_id)
+        .select(courses::title)
+        .first::<String>(conn)
+        .await?;
+    let message = reward_wallet_credit_notification(
+        candidate.course_id,
+        course_title,
+        amount.to_string(),
+        credit_record.wallet_id,
+        credit_record.transaction_id,
+    );
+    let body = message.body;
+    let notification_id = Notification::create(
+        NewNotification {
+            user_id: Some(candidate.student_user_id),
+            title: message.title,
+            body: body.as_str(),
+        },
+        conn,
+    )
+    .await?;
+    reward_wallet_credit_record_repository::mark_reward_wallet_credit_record_notified(
+        conn,
+        credit_record.id,
+        notification_id,
+    )
+    .await?;
+    mark_candidate_notified(conn, candidate.id).await?;
+
+    Ok(RewardWalletCreditNotificationResult {
+        candidate_id: candidate.id,
+        wallet_id: credit_record.wallet_id,
+        notification_id: Some(notification_id),
+        transaction_id: credit_record.transaction_id,
+        amount,
+        notified: true,
+    })
+}
+
+fn ensure_candidate_reconcilable(candidate: &RewardCandidate) -> Result<(), RewardExecutionError> {
+    if [
+        REWARD_STATUS_AMOUNT_APPROVED,
+        REWARD_STATUS_TOKEN_CONFIRMED,
+        REWARD_STATUS_WALLET_CREDITED,
+        REWARD_STATUS_NOTIFIED,
+        REWARD_STATUS_COMPLETED,
+        REWARD_STATUS_NEEDS_RECONCILIATION,
+    ]
+    .contains(&candidate.status.as_str())
+    {
+        Ok(())
+    } else {
+        Err(RewardExecutionError::InvalidStatus(
+            "reward candidate has no confirmed state to reconcile".to_string(),
+        ))
+    }
+}
+
+fn should_create_reconciliation_wallet_credit(candidate: &RewardCandidate) -> bool {
+    [
+        REWARD_STATUS_AMOUNT_APPROVED,
+        REWARD_STATUS_TOKEN_CONFIRMED,
+        REWARD_STATUS_NEEDS_RECONCILIATION,
+    ]
+    .contains(&candidate.status.as_str())
+}
+
 async fn ensure_wallet_credit_allowed(
     conn: &mut AsyncPgConnection,
     candidate: &RewardCandidate,
@@ -456,6 +622,26 @@ async fn create_wallet_credit_transaction(
         .await?;
 
     Ok(transaction_id)
+}
+
+async fn ensure_internal_transaction_link(
+    conn: &mut AsyncPgConnection,
+    transaction_id: i64,
+    internal_transaction_id: i64,
+) -> QueryResult<bool> {
+    let inserted = diesel::insert_into(transactions_internal_transactions::table)
+        .values(NewTransactionInternalTransactionLink {
+            transaction_id,
+            internal_transaction_id,
+        })
+        .on_conflict((
+            transactions_internal_transactions::transaction_id,
+            transactions_internal_transactions::internal_transaction_id,
+        ))
+        .do_nothing()
+        .execute(conn)
+        .await?;
+    Ok(inserted > 0)
 }
 
 async fn mark_candidate_wallet_credited(
@@ -627,6 +813,26 @@ async fn link_transaction_external(
         })
         .execute(conn)
         .await
+}
+
+async fn ensure_external_transaction_link(
+    conn: &mut AsyncPgConnection,
+    transaction_id: i64,
+    external_transaction_id: i64,
+) -> QueryResult<bool> {
+    let inserted = diesel::insert_into(transactions_external_transactions::table)
+        .values(NewTransactionExternalTransactionLink {
+            transaction_id,
+            external_transaction_id,
+        })
+        .on_conflict((
+            transactions_external_transactions::transaction_id,
+            transactions_external_transactions::external_transaction_id,
+        ))
+        .do_nothing()
+        .execute(conn)
+        .await?;
+    Ok(inserted > 0)
 }
 
 async fn mark_candidate_token_confirmed(

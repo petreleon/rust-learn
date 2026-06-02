@@ -351,6 +351,9 @@ Reward candidate authorization is intentionally split by scope:
     internal transaction, generic transaction, and reward notification. The
     student notification is sent only after wallet credit succeeds and includes
     course context, approved amount, wallet id, and transaction reference.
+*   Reward reconciliation resumes from the last confirmed reward state and
+    repairs missing payout links, wallet credits, or notifications without
+    creating duplicate wallet payouts or duplicate student notifications.
 *   Delegated reward permissions are resolved through the same platform,
     organization, and course permission checks as role permissions. A
     delegation is valid only for its exact scope while it is unexpired and not
