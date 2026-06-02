@@ -9,6 +9,7 @@ use crate::models::user_jwt::UserJWT;
 use crate::repositories::course_repository::assign_role_to_user_in_course;
 use crate::services::course_enrollment_service::{
     decide_course_join_request as decide_course_join_request_for_actor,
+    remove_course_enrollment as remove_course_enrollment_for_actor,
     request_course_join as request_course_join_for_actor, CourseEnrollmentError,
     CourseJoinDecisionRequest,
 };
@@ -90,7 +91,7 @@ fn course_enrollment_error_response(error: CourseEnrollmentError) -> HttpRespons
         }
         CourseEnrollmentError::InvalidStatus(message) => HttpResponse::BadRequest().body(message),
         CourseEnrollmentError::NotFound => {
-            HttpResponse::NotFound().body("Course join request not found")
+            HttpResponse::NotFound().body("Course enrollment not found")
         }
         CourseEnrollmentError::Database(message) => {
             log::error!("event=course_enrollment_failed error={}", message);
@@ -285,6 +286,29 @@ async fn decide_course_join_request(
     }
 }
 
+async fn remove_course_enrollment(
+    req: HttpRequest,
+    path: web::Path<(i32, i32)>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    let actor = match current_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let (course_id, target_user_id) = path.into_inner();
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match remove_course_enrollment_for_actor(&mut conn, actor.user_id, course_id, target_user_id)
+        .await
+    {
+        Ok(removal) => HttpResponse::Ok().json(removal),
+        Err(error) => course_enrollment_error_response(error),
+    }
+}
+
 async fn delete_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
     let course_id = path.into_inner();
     let mut conn = match pool.get().await {
@@ -456,6 +480,10 @@ pub fn course_scope() -> actix_web::Scope {
         .service(
             web::resource("/{id}/join-requests/{request_id}/decision")
                 .route(web::put().to(decide_course_join_request)),
+        )
+        .service(
+            web::resource("/{id}/enrollments/{user_id}")
+                .route(web::delete().to(remove_course_enrollment)),
         )
         .service(
             web::resource("/{id}")

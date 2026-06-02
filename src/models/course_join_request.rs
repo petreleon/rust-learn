@@ -4,6 +4,7 @@ use diesel::prelude::*;
 use serde::Serialize;
 
 pub const COURSE_JOIN_STATUS_PENDING: &str = "pending";
+pub const COURSE_JOIN_STATUS_WAITLISTED: &str = "waitlisted";
 pub const COURSE_JOIN_STATUS_APPROVED: &str = "approved";
 pub const COURSE_JOIN_STATUS_REJECTED: &str = "rejected";
 

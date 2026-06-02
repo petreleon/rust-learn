@@ -2,7 +2,7 @@ use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{course_join_requests, courses, courses_organizations, user_role_course};
 use crate::models::course_join_request::{
     CourseJoinRequest, NewCourseJoinRequest, COURSE_JOIN_STATUS_APPROVED,
-    COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_REJECTED,
+    COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_REJECTED, COURSE_JOIN_STATUS_WAITLISTED,
 };
 use crate::models::role::CourseRole;
 use crate::models::user_role_course::UserRoleCourse;
@@ -13,12 +13,19 @@ use chrono::Utc;
 use diesel::dsl::exists;
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CourseJoinDecisionRequest {
     pub status: String,
     pub decision_reason: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CourseEnrollmentRemovalResponse {
+    pub course_id: i32,
+    pub user_id: i32,
+    pub removed: bool,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -55,7 +62,10 @@ pub async fn request_course_join(
     if let Some(existing) = course_join_requests::table
         .filter(course_join_requests::course_id.eq(course_id))
         .filter(course_join_requests::requester_user_id.eq(actor_user_id))
-        .filter(course_join_requests::status.eq(COURSE_JOIN_STATUS_PENDING))
+        .filter(
+            course_join_requests::status
+                .eq_any([COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED]),
+        )
         .first::<CourseJoinRequest>(conn)
         .await
         .optional()?
@@ -96,7 +106,14 @@ pub async fn decide_course_join_request(
                 return Err(CourseEnrollmentError::NotFound);
             }
 
-            if existing.status != COURSE_JOIN_STATUS_PENDING {
+            if existing.status == target_status {
+                return Ok(existing);
+            }
+
+            if !matches!(
+                existing.status.as_str(),
+                COURSE_JOIN_STATUS_PENDING | COURSE_JOIN_STATUS_WAITLISTED
+            ) {
                 return Err(CourseEnrollmentError::InvalidStatus(
                     "course join request has already been decided".to_string(),
                 ));
@@ -131,6 +148,36 @@ pub async fn decide_course_join_request(
     .await
 }
 
+pub async fn remove_course_enrollment(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    course_id: i32,
+    target_user_id: i32,
+) -> Result<CourseEnrollmentRemovalResponse, CourseEnrollmentError> {
+    ensure_course_exists(conn, course_id).await?;
+    ensure_enrollment_management_permission(conn, actor_user_id, course_id).await?;
+
+    let student_role_id = CourseRole::find_by_name("STUDENT", conn).await?;
+    let removed_count = diesel::delete(
+        user_role_course::table
+            .filter(user_role_course::user_id.eq(Some(target_user_id)))
+            .filter(user_role_course::course_id.eq(Some(course_id)))
+            .filter(user_role_course::course_role_id.eq(Some(student_role_id))),
+    )
+    .execute(conn)
+    .await?;
+
+    if removed_count == 0 {
+        return Err(CourseEnrollmentError::NotFound);
+    }
+
+    Ok(CourseEnrollmentRemovalResponse {
+        course_id,
+        user_id: target_user_id,
+        removed: true,
+    })
+}
+
 async fn ensure_course_exists(
     conn: &mut AsyncPgConnection,
     course_id: i32,
@@ -141,6 +188,19 @@ async fn ensure_course_exists(
         .first::<i32>(conn)
         .await?;
     Ok(())
+}
+
+async fn ensure_enrollment_management_permission(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    course_id: i32,
+) -> Result<(), CourseEnrollmentError> {
+    let permission = Permissions::MANAGE_COURSE_ENROLLMENTS.to_string();
+    if user_has_permission_for_course_context(conn, user_id, course_id, &permission).await? {
+        return Ok(());
+    }
+
+    Err(CourseEnrollmentError::PermissionDenied(permission))
 }
 
 async fn ensure_join_request_permission(
@@ -244,7 +304,9 @@ async fn assign_student_course_role_if_missing(
 fn normalize_join_decision(status: &str) -> Result<String, CourseEnrollmentError> {
     let normalized = status.trim().to_ascii_lowercase();
     match normalized.as_str() {
-        COURSE_JOIN_STATUS_APPROVED | COURSE_JOIN_STATUS_REJECTED => Ok(normalized),
+        COURSE_JOIN_STATUS_APPROVED
+        | COURSE_JOIN_STATUS_REJECTED
+        | COURSE_JOIN_STATUS_WAITLISTED => Ok(normalized),
         _ => Err(CourseEnrollmentError::InvalidStatus(
             "unsupported course join decision status".to_string(),
         )),

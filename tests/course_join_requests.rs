@@ -5,7 +5,7 @@ use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{courses, courses_organizations, organizations};
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::course_join_request::{
-    COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING,
+    COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
 };
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};
@@ -17,8 +17,8 @@ use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::repositories::course_repository::user_permission_course_request;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::course_enrollment_service::{
-    decide_course_join_request, request_course_join, CourseEnrollmentError,
-    CourseJoinDecisionRequest,
+    decide_course_join_request, remove_course_enrollment, request_course_join,
+    CourseEnrollmentError, CourseJoinDecisionRequest,
 };
 
 fn unique_string(prefix: &str) -> String {
@@ -238,5 +238,143 @@ async fn course_student_cannot_approve_join_request() {
     )
     .await
     .expect_err("course student should not approve join request");
+    assert!(matches!(denied, CourseEnrollmentError::PermissionDenied(_)));
+}
+
+#[actix_web::test]
+async fn course_teacher_can_waitlist_then_approve_join_request() {
+    let mut conn = setup_conn().await;
+    let requester = create_user_helper(&mut conn, "join_waitlist_requester").await;
+    let teacher = create_user_helper(&mut conn, "join_waitlist_teacher").await;
+    let course = create_course(&mut conn, &unique_string("JoinWaitlistCourse")).await;
+    force_assign_platform_role(&mut conn, requester.id(), "USER").await;
+    force_assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER").await;
+
+    let join_request = request_course_join(&mut conn, requester.id(), course.id)
+        .await
+        .expect("requester should create join request");
+
+    let waitlisted = decide_course_join_request(
+        &mut conn,
+        teacher.id(),
+        course.id,
+        join_request.id,
+        CourseJoinDecisionRequest {
+            status: COURSE_JOIN_STATUS_WAITLISTED.to_string(),
+            decision_reason: Some("capacity is full".to_string()),
+        },
+    )
+    .await
+    .expect("course teacher should waitlist join request");
+    assert_eq!(waitlisted.status, COURSE_JOIN_STATUS_WAITLISTED);
+
+    let duplicate = request_course_join(&mut conn, requester.id(), course.id)
+        .await
+        .expect("waitlisted join request should remain open");
+    assert_eq!(duplicate.id, join_request.id);
+    assert_eq!(duplicate.status, COURSE_JOIN_STATUS_WAITLISTED);
+
+    let approved = decide_course_join_request(
+        &mut conn,
+        teacher.id(),
+        course.id,
+        join_request.id,
+        CourseJoinDecisionRequest {
+            status: COURSE_JOIN_STATUS_APPROVED.to_string(),
+            decision_reason: Some("seat opened".to_string()),
+        },
+    )
+    .await
+    .expect("course teacher should approve waitlisted join request");
+    assert_eq!(approved.status, COURSE_JOIN_STATUS_APPROVED);
+
+    let enrolled = user_permission_course_request(
+        &mut conn,
+        requester.id(),
+        course.id,
+        &Permissions::VIEW_COURSE.to_string(),
+    )
+    .await
+    .expect("permission query failed");
+    assert!(enrolled, "approved waitlisted user should be enrolled");
+}
+
+#[actix_web::test]
+async fn organization_admin_can_remove_course_enrollment() {
+    let mut conn = setup_conn().await;
+    let organization = create_organization(&mut conn, &unique_string("RemoveEnrollmentOrg")).await;
+    let course = create_course(&mut conn, &unique_string("RemoveEnrollmentCourse")).await;
+    link_course_to_organization(&mut conn, course.id, organization.id).await;
+
+    let requester = create_user_helper(&mut conn, "remove_enrollment_student").await;
+    let org_admin = create_user_helper(&mut conn, "remove_enrollment_admin").await;
+    force_assign_platform_role(&mut conn, requester.id(), "USER").await;
+    force_assign_organization_role(&mut conn, org_admin.id(), organization.id, "ADMIN").await;
+
+    let join_request = request_course_join(&mut conn, requester.id(), course.id)
+        .await
+        .expect("requester should create join request");
+    decide_course_join_request(
+        &mut conn,
+        org_admin.id(),
+        course.id,
+        join_request.id,
+        CourseJoinDecisionRequest {
+            status: COURSE_JOIN_STATUS_APPROVED.to_string(),
+            decision_reason: None,
+        },
+    )
+    .await
+    .expect("organization admin should approve linked course join request");
+
+    let removal = remove_course_enrollment(&mut conn, org_admin.id(), course.id, requester.id())
+        .await
+        .expect("organization admin should remove course enrollment");
+    assert!(removal.removed);
+
+    let still_enrolled = user_permission_course_request(
+        &mut conn,
+        requester.id(),
+        course.id,
+        &Permissions::VIEW_COURSE.to_string(),
+    )
+    .await
+    .expect("permission query failed");
+    assert!(
+        !still_enrolled,
+        "removed student should lose course-scoped student bundle"
+    );
+}
+
+#[actix_web::test]
+async fn course_student_cannot_remove_course_enrollment() {
+    let mut conn = setup_conn().await;
+    let requester = create_user_helper(&mut conn, "remove_denied_requester").await;
+    let teacher = create_user_helper(&mut conn, "remove_denied_teacher").await;
+    let reviewer = create_user_helper(&mut conn, "remove_denied_student_reviewer").await;
+    let course = create_course(&mut conn, &unique_string("RemoveDeniedCourse")).await;
+    force_assign_platform_role(&mut conn, requester.id(), "USER").await;
+    force_assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER").await;
+    force_assign_course_role(&mut conn, reviewer.id(), course.id, "STUDENT").await;
+
+    let join_request = request_course_join(&mut conn, requester.id(), course.id)
+        .await
+        .expect("requester should create join request");
+    decide_course_join_request(
+        &mut conn,
+        teacher.id(),
+        course.id,
+        join_request.id,
+        CourseJoinDecisionRequest {
+            status: COURSE_JOIN_STATUS_APPROVED.to_string(),
+            decision_reason: None,
+        },
+    )
+    .await
+    .expect("teacher should approve join request");
+
+    let denied = remove_course_enrollment(&mut conn, reviewer.id(), course.id, requester.id())
+        .await
+        .expect_err("course student should not remove enrollments");
     assert!(matches!(denied, CourseEnrollmentError::PermissionDenied(_)));
 }
