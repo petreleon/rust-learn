@@ -269,5 +269,5 @@ business logic must ask "does this user have this permission in this scope?"
       approval, token execution, wallet credit, and reconciliation.
 - [ ] Add Docker Compose integration tests for PostgreSQL-backed reward flows,
       wallet credit, notifications, and Anvil token transaction recording.
-- [ ] Keep Docker Compose verification commands documented for every business
+- [x] Keep Docker Compose verification commands documented for every business
       flow that requires PostgreSQL, RustFS, Anvil, or the worker.

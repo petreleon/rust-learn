@@ -428,6 +428,36 @@ Docker Compose equivalent:
 docker compose run --rm --no-deps --entrypoint bash worker -lc 'export PATH=/usr/local/cargo/bin:$PATH; cd /usr/src/app; cargo test'
 ```
 
+Business-flow verification through Docker Compose:
+
+```bash
+docker compose up -d db rustfs anvil
+
+# Teacher application and central review queue.
+docker compose run --rm app cargo test --test teacher_applications
+
+# Course enrollment and join-request reward prerequisites.
+docker compose run --rm app cargo test --test course_enrollment_api
+docker compose run --rm app cargo test --test course_join_requests
+
+# Reward candidate submission, teacher approval, amount approval, fraud blocks,
+# delegated permissions, student history, and reporting.
+docker compose run --rm app cargo test --test reward_candidates
+docker compose run --rm app cargo test --test reward_fraud_blocks
+docker compose run --rm app cargo test --test reward_management_api
+docker compose run --rm app cargo test --test delegated_permissions
+docker compose run --rm app cargo test --test student_reward_history
+docker compose run --rm app cargo test --test reporting_exports
+
+# Wallet credit, notification idempotency, reconciliation, and transaction links.
+docker compose run --rm app cargo test --test reward_execution
+docker compose run --rm app cargo test --test wallet_linking
+docker compose run --rm app cargo test --test notification_events
+
+# Anvil-backed token contract behavior.
+docker compose run --rm app cargo test --test blockchain_integration_tests
+```
+
 Run blockchain integration tests:
 
 ```bash
