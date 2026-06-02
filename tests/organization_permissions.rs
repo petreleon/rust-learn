@@ -1,5 +1,4 @@
 use chrono::NaiveDate;
-use diesel::prelude::*;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::organizations;
@@ -100,6 +99,44 @@ async fn org_admin_has_permissions() {
         .expect("permission query failed");
         assert!(has_perm, "ADMIN should have permission: {:?}", p);
     }
+}
+
+#[actix_web::test]
+async fn org_admin_can_submit_org_course_rewards_but_student_cannot() {
+    let mut conn = setup_conn().await;
+    let org_name = unique_string("OrgRewardTest");
+    let org = create_organization(&mut conn, &org_name).await;
+
+    let admin = create_user_helper(&mut conn, "reward_org_admin").await;
+    let student = create_user_helper(&mut conn, "reward_org_student").await;
+    force_assign_role(&mut conn, admin.id(), org.id, "ADMIN").await;
+    force_assign_role(&mut conn, student.id(), org.id, "STUDENT").await;
+
+    let admin_can_submit = user_permission_organization_request(
+        &mut conn,
+        admin.id(),
+        org.id,
+        &Permissions::SUBMIT_ORG_COURSE_REWARD_EVENT.to_string(),
+    )
+    .await
+    .expect("permission query failed");
+    assert!(
+        admin_can_submit,
+        "organization ADMIN should submit org reward events"
+    );
+
+    let student_can_submit = user_permission_organization_request(
+        &mut conn,
+        student.id(),
+        org.id,
+        &Permissions::SUBMIT_ORG_COURSE_REWARD_EVENT.to_string(),
+    )
+    .await
+    .expect("permission query failed");
+    assert!(
+        !student_can_submit,
+        "organization STUDENT should not submit org reward events"
+    );
 }
 
 #[actix_web::test]

@@ -13,7 +13,7 @@ business logic must ask "does this user have this permission in this scope?"
       permission checks.
 - [ ] Keep role hierarchy checks only for role-assignment safety. Do not use
       hierarchy as a substitute for business authorization.
-- [ ] Define missing business permissions before adding flows. Suggested
+- [x] Define missing business permissions before adding flows. Suggested
       platform permissions: `SUBMIT_TEACHER_APPLICATION`,
       `REVIEW_TEACHER_APPLICATIONS`, `APPROVE_TEACHER_APPLICATION`,
       `REJECT_TEACHER_APPLICATION`, `DELEGATE_REWARD_APPROVAL`,
@@ -21,15 +21,15 @@ business logic must ask "does this user have this permission in this scope?"
       `EXECUTE_REWARD_PAYOUT`, `VIEW_REWARD_AUDIT`,
       `MANAGE_REWARD_FRAUD_BLOCKS`, `BLOCK_REWARD_TEACHER`, and
       `BLOCK_REWARD_ORGANIZATION`.
-- [ ] Define suggested organization permissions:
+- [x] Define suggested organization permissions:
       `NOMINATE_TEACHER_FOR_PLATFORM_REVIEW`,
       `VIEW_ORG_TEACHER_APPLICATIONS`, `SUBMIT_ORG_COURSE_REWARD_EVENT`,
       `VIEW_ORG_REWARD_REPORTS`, and `MANAGE_ORG_REWARD_BUDGET`.
-- [ ] Define suggested course permissions:
+- [x] Define suggested course permissions:
       `CREATE_REWARDABLE_COURSE_EVENT`, `VIEW_COURSE_REWARD_STATUS`,
       `SUBMIT_COURSE_REWARD_EVENT`, `APPROVE_STUDENT_REWARD_CANDIDATE`,
       `GRADE_REWARDABLE_ASSESSMENT`, and `MANAGE_COURSE_REWARD_RULES`.
-- [ ] Update `PERMISSIONS.md`, permission constants, seed data, and tests
+- [x] Update `PERMISSIONS.md`, permission constants, seed data, and tests
       whenever a business permission is added or renamed.
 
 ## Teacher Application Flow
