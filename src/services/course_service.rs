@@ -1,9 +1,9 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{courses, courses_organizations, pending_course_organization_invites};
 use crate::models::course::{
-    Course, NewCourse, COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED, COURSE_STATUS_DRAFT,
-    COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
-    COURSE_STATUS_SUSPENDED,
+    Course, NewCourse, UpdateCourse, COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED,
+    COURSE_STATUS_DRAFT, COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED,
+    COURSE_STATUS_SUBMITTED, COURSE_STATUS_SUSPENDED,
 };
 use crate::models::courses_organizations::NewCourseOrganization;
 use crate::models::pending_course_organization_invites::{
@@ -56,6 +56,22 @@ pub enum CourseLifecycleError {
 pub enum CourseCreationError {
     PermissionDenied(String),
     Database(String),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum CourseUpdateError {
+    PermissionDenied(String),
+    NotFound,
+    Database(String),
+}
+
+impl From<diesel::result::Error> for CourseUpdateError {
+    fn from(error: diesel::result::Error) -> Self {
+        match error {
+            diesel::result::Error::NotFound => CourseUpdateError::NotFound,
+            other => CourseUpdateError::Database(other.to_string()),
+        }
+    }
 }
 
 impl From<diesel::result::Error> for CourseCreationError {
@@ -188,6 +204,41 @@ pub async fn create_course_with_invites_for_actor(
     create_course_with_invites(conn, title, organization_ids)
         .await
         .map_err(CourseCreationError::from)
+}
+
+pub async fn update_course_for_actor(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    course_id: i32,
+    update: UpdateCourse,
+) -> Result<Course, CourseUpdateError> {
+    ensure_course_update_permission(conn, actor_user_id, course_id).await?;
+
+    diesel::update(courses::table.find(course_id))
+        .set(&update)
+        .get_result::<Course>(conn)
+        .await
+        .map_err(CourseUpdateError::from)
+}
+
+async fn ensure_course_update_permission(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    course_id: i32,
+) -> Result<(), CourseUpdateError> {
+    let course_permission = Permissions::MANAGE_COURSE_SETTINGS.to_string();
+    match user_permission_course_request(conn, user_id, course_id, &course_permission).await {
+        Ok(true) => return Ok(()),
+        Ok(false) => {}
+        Err(error) => return Err(CourseUpdateError::from(error)),
+    }
+
+    let platform_permission = Permissions::MODIFY_COURSE.to_string();
+    match user_permission_platform_request(conn, user_id, &platform_permission).await {
+        Ok(true) => Ok(()),
+        Ok(false) => Err(CourseUpdateError::PermissionDenied(course_permission)),
+        Err(error) => Err(CourseUpdateError::from(error)),
+    }
 }
 
 async fn ensure_course_creation_permission(

@@ -8,9 +8,9 @@ use crate::models::param_type::ParamType;
 use crate::models::user_jwt::UserJWT;
 use crate::repositories::course_repository::assign_role_to_user_in_course;
 use crate::services::course_service::{
-    create_course_with_invites_for_actor, discover_courses,
+    create_course_with_invites_for_actor, discover_courses, update_course_for_actor,
     update_course_lifecycle as update_course_lifecycle_status, CourseCreationError,
-    CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest,
+    CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest, CourseUpdateError,
 };
 use crate::utils::jwt_utils::decode_jwt;
 use crate::utils::notifications::NotificationsState;
@@ -61,6 +61,19 @@ fn course_creation_error_response(error: CourseCreationError) -> HttpResponse {
         CourseCreationError::Database(message) => {
             log::error!("event=course_creation_failed error={}", message);
             HttpResponse::InternalServerError().body("Failed to create course")
+        }
+    }
+}
+
+fn course_update_error_response(error: CourseUpdateError) -> HttpResponse {
+    match error {
+        CourseUpdateError::PermissionDenied(_) => {
+            HttpResponse::Forbidden().body("User does not have permission to update course")
+        }
+        CourseUpdateError::NotFound => HttpResponse::NotFound().body("Course not found"),
+        CourseUpdateError::Database(message) => {
+            log::error!("event=course_update_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to update course")
         }
     }
 }
@@ -149,28 +162,27 @@ async fn create_course(
 }
 
 async fn update_course(
+    req: HttpRequest,
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
-    req: web::Json<UpdateCourse>,
+    body: web::Json<UpdateCourse>,
 ) -> impl Responder {
+    let requester = match current_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
     let course_id = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = diesel::update(courses::table.find(course_id))
-        .set(&*req)
-        .get_result::<Course>(&mut conn)
-        .await;
+    let result =
+        update_course_for_actor(&mut conn, requester.user_id, course_id, body.into_inner()).await;
 
     match result {
         Ok(course) => HttpResponse::Ok().json(course),
-        Err(diesel::result::Error::NotFound) => HttpResponse::NotFound().body("Course not found"),
-        Err(e) => {
-            eprintln!("DB error updating course {}: {}", course_id, e);
-            HttpResponse::InternalServerError().body("Failed to update course")
-        }
+        Err(error) => course_update_error_response(error),
     }
 }
 
@@ -378,15 +390,7 @@ pub fn course_scope() -> actix_web::Scope {
                             Permissions::VIEW_COURSE.to_string(),
                         )),
                 )
-                .route(
-                    web::put()
-                        .to(update_course)
-                        .wrap(CoursePermissionMiddleware::new(
-                            Permissions::MANAGE_COURSE_SETTINGS.to_string(),
-                            ParamType::Path,
-                            "id".to_string(),
-                        )),
-                )
+                .route(web::put().to(update_course))
                 .route(
                     web::delete()
                         .to(delete_course)

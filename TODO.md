@@ -61,7 +61,7 @@ business logic must ask "does this user have this permission in this scope?"
       approved, published, archived, and suspended.
 - [x] Gate course creation by `CREATE_COURSE` at platform or organization
       scope, depending on where the course is owned.
-- [ ] Gate course editing by `MODIFY_COURSE` or `MANAGE_COURSE_SETTINGS` in
+- [x] Gate course editing by `MODIFY_COURSE` or `MANAGE_COURSE_SETTINGS` in
       the course scope.
 - [x] Gate course publication by `PUBLISH_CONTENT` or a dedicated
       `APPROVE_COURSE_PUBLICATION` permission, not by role name.
