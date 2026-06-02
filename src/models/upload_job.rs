@@ -43,6 +43,20 @@ pub struct NewUploadJob<'a> {
     pub user_id: Option<i32>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UploadJobQueueMetrics {
+    pub queued_ready: i64,
+    pub queued_delayed: i64,
+    pub processing: i64,
+    pub failed: i64,
+}
+
+impl UploadJobQueueMetrics {
+    pub fn queue_depth(&self) -> i64 {
+        self.queued_ready + self.queued_delayed
+    }
+}
+
 impl UploadJob {
     pub fn id(&self) -> i64 {
         self.id
@@ -82,6 +96,47 @@ impl UploadJob {
             })
         })
         .await
+    }
+
+    pub async fn queue_metrics(conn: &mut AsyncPgConnection) -> QueryResult<UploadJobQueueMetrics> {
+        let now = Utc::now();
+        let ready_filter = upload_jobs::status.eq("queued").and(
+            upload_jobs::updated_at
+                .is_null()
+                .or(upload_jobs::updated_at.le(now)),
+        );
+
+        let queued_ready = upload_jobs::table
+            .filter(ready_filter)
+            .count()
+            .get_result(conn)
+            .await?;
+        let queued_delayed = upload_jobs::table
+            .filter(
+                upload_jobs::status
+                    .eq("queued")
+                    .and(upload_jobs::updated_at.gt(now)),
+            )
+            .count()
+            .get_result(conn)
+            .await?;
+        let processing = upload_jobs::table
+            .filter(upload_jobs::status.eq("processing"))
+            .count()
+            .get_result(conn)
+            .await?;
+        let failed = upload_jobs::table
+            .filter(upload_jobs::status.eq("failed"))
+            .count()
+            .get_result(conn)
+            .await?;
+
+        Ok(UploadJobQueueMetrics {
+            queued_ready,
+            queued_delayed,
+            processing,
+            failed,
+        })
     }
 
     pub async fn mark_done(id: i64, conn: &mut AsyncPgConnection) -> QueryResult<usize> {

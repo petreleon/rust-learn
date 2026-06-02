@@ -160,6 +160,13 @@ the `RUST_LOG` filter and default to `info`; set values such as
 `RUST_LOG=rust_learn=debug,info` when you need more detail from application code
 without enabling verbose logs for every dependency.
 
+The worker emits operational metric events to the same log stream:
+`worker_queue_metrics` reports queue depth, ready and delayed queued jobs,
+processing jobs, failed jobs, and in-flight tasks. Per-job events include
+`worker_job_claimed`, `worker_job_started`, `worker_job_processed`,
+`worker_job_retry_scheduled`, and `worker_job_terminal_failure` with attempt
+numbers and processing duration in milliseconds.
+
 ### Mock email preview
 
 Registration creates an email-verification token and prints a local-development
@@ -358,6 +365,8 @@ docker compose logs -f worker
 ```
 
 The worker writes `/tmp/worker_alive`; Docker Compose uses this heartbeat for health checks.
+Use `docker compose logs -f worker` to watch heartbeat-adjacent metric events
+for queue depth, attempts, processing duration, retries, and failed jobs.
 
 ## Testing and quality checks
 

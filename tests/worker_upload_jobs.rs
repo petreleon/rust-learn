@@ -41,6 +41,49 @@ async fn fetch_upload_job(conn: &mut AsyncPgConnection, id: i64) -> UploadJob {
 }
 
 #[actix_web::test]
+async fn queue_metrics_counts_ready_delayed_processing_and_failed_jobs() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+    let mut conn = setup_conn(&pool).await;
+    let before = UploadJob::queue_metrics(&mut conn)
+        .await
+        .expect("queue metrics should load before seeded jobs");
+
+    let ready = insert_upload_job(&mut conn, &unique_object("metrics-ready")).await;
+    let delayed = insert_upload_job(&mut conn, &unique_object("metrics-delayed")).await;
+    let processing = insert_upload_job(&mut conn, &unique_object("metrics-processing")).await;
+    let failed = insert_upload_job(&mut conn, &unique_object("metrics-failed")).await;
+
+    diesel::update(upload_jobs::table.find(delayed.id()))
+        .set(upload_jobs::updated_at.eq(Utc::now() + Duration::minutes(10)))
+        .execute(&mut conn)
+        .await
+        .expect("test should delay a queued job");
+    diesel::update(upload_jobs::table.find(processing.id()))
+        .set(upload_jobs::status.eq("processing"))
+        .execute(&mut conn)
+        .await
+        .expect("test should mark a job processing");
+    UploadJob::mark_failed(failed.id(), 3, "metrics failure".to_string(), &mut conn)
+        .await
+        .expect("test should mark a job failed");
+
+    let after = UploadJob::queue_metrics(&mut conn)
+        .await
+        .expect("queue metrics should load after seeded jobs");
+
+    assert!(after.queued_ready >= before.queued_ready + 1);
+    assert!(after.queued_delayed >= before.queued_delayed + 1);
+    assert!(after.processing >= before.processing + 1);
+    assert!(after.failed >= before.failed + 1);
+    assert!(after.queue_depth() >= before.queue_depth() + 2);
+
+    UploadJob::mark_done(ready.id(), &mut conn)
+        .await
+        .expect("test should clean up ready job");
+}
+
+#[actix_web::test]
 async fn schedule_retry_sets_queued_state_attempts_error_and_future_availability() {
     let _ = dotenvy::dotenv();
     let pool = establish_connection();

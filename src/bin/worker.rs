@@ -4,7 +4,7 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::Semaphore;
@@ -92,6 +92,25 @@ async fn main() -> Result<()> {
         // Stamp alive for healthcheck
         let _ = worker_utils::write_heartbeat(worker_utils::DEFAULT_WORKER_HEARTBEAT_PATH).await;
 
+        match rust_learn::models::upload_job::UploadJob::queue_metrics(&mut conn).await {
+            Ok(metrics) => {
+                let in_flight = concurrency.saturating_sub(sem.available_permits());
+                log::info!(
+                    "event=worker_queue_metrics queue_depth={} queued_ready={} queued_delayed={} processing={} failed={} in_flight={} concurrency={}",
+                    metrics.queue_depth(),
+                    metrics.queued_ready,
+                    metrics.queued_delayed,
+                    metrics.processing,
+                    metrics.failed,
+                    in_flight,
+                    concurrency
+                );
+            }
+            Err(e) => {
+                log::warn!("event=worker_queue_metrics_failed error={:?}", e);
+            }
+        }
+
         let job_opt: Option<rust_learn::models::upload_job::UploadJob> =
             match rust_learn::models::upload_job::UploadJob::claim_job(&mut conn).await {
                 Ok(j) => j,
@@ -139,15 +158,36 @@ async fn main() -> Result<()> {
         let bucket = job.bucket.clone();
         let object = job.object.clone();
         let user_id = job.user_id;
+        let current_attempts = job.attempts as i64;
+        let attempt_number = current_attempts + 1;
+
+        log::info!(
+            "event=worker_job_claimed job_id={} bucket={} object={} attempt={} previous_attempts={} max_attempts={}",
+            job_id,
+            bucket,
+            object,
+            attempt_number,
+            current_attempts,
+            max_attempts
+        );
 
         // Spawn a detached task to process the job so loop can continue claiming jobs
         tokio::spawn(async move {
+            let started_at = Instant::now();
+            log::info!(
+                "event=worker_job_started job_id={} attempt={} max_attempts={}",
+                job_id,
+                attempt_number,
+                max_attempts
+            );
+
             // Run the processing (use 0 for missing user_id handling inside process_uploaded_video if needed)
             let uid = user_id.unwrap_or(0);
             let notifications_for_processing = notifications_cloned.clone();
             let res = s3_cloned
                 .process_uploaded_video(&bucket, &object, uid, notifications_for_processing)
                 .await;
+            let duration_ms = started_at.elapsed().as_millis();
 
             if res.is_ok() {
                 if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_done(
@@ -162,15 +202,22 @@ async fn main() -> Result<()> {
                         e
                     );
                 }
+                log::info!(
+                    "event=worker_job_processed job_id={} result=done duration_ms={} attempt={} previous_attempts={}",
+                    job_id,
+                    duration_ms,
+                    attempt_number,
+                    current_attempts
+                );
             } else {
                 let err_text = format!("{}", res.err().unwrap());
-                let current_attempts = job.attempts as i64;
                 let new_attempts = current_attempts + 1;
                 log::warn!(
-                    "event=worker_job_processing_failed job_id={} bucket={} object={} attempts={} max_attempts={} error={}",
+                    "event=worker_job_processing_failed job_id={} bucket={} object={} duration_ms={} attempts={} max_attempts={} error={}",
                     job_id,
                     bucket,
                     object,
+                    duration_ms,
                     new_attempts,
                     max_attempts,
                     err_text
@@ -213,6 +260,13 @@ async fn main() -> Result<()> {
                             e
                         );
                     }
+                    log::warn!(
+                        "event=worker_job_terminal_failure job_id={} duration_ms={} attempts={} max_attempts={} failed_jobs_delta=1",
+                        job_id,
+                        duration_ms,
+                        new_attempts,
+                        max_attempts
+                    );
                 } else {
                     // exponential backoff (base * 2^attempts)
                     // set updated_at to future time so claim SQL skips it until backoff expires
@@ -238,6 +292,14 @@ async fn main() -> Result<()> {
                             e
                         );
                     }
+                    log::info!(
+                        "event=worker_job_retry_scheduled job_id={} duration_ms={} attempts={} max_attempts={} retry_available_at={}",
+                        job_id,
+                        duration_ms,
+                        new_attempts,
+                        max_attempts,
+                        future_time
+                    );
                 }
             }
 
