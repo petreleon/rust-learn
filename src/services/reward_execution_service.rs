@@ -140,47 +140,89 @@ pub async fn plan_reward_payout(
     let payout_method = select_payout_method(conn, &policy).await?;
     let requires_token_confirmation = payout_method != REWARD_PAYOUT_METHOD_OFF_CHAIN;
 
-    Ok(RewardPayoutPlan {
+    let plan = RewardPayoutPlan {
         candidate_id: candidate.id,
         policy_id: policy.id,
         amount,
         payment_strategy: policy.payment_strategy,
         payout_method,
         requires_token_confirmation,
-    })
+    };
+
+    log::info!(
+        "event=reward_payout_planned candidate_id={} policy_id={} amount={} payment_strategy={} payout_method={} requires_token_confirmation={}",
+        plan.candidate_id,
+        plan.policy_id,
+        plan.amount,
+        plan.payment_strategy,
+        plan.payout_method,
+        plan.requires_token_confirmation
+    );
+
+    Ok(plan)
 }
 
 pub async fn credit_reward_wallet(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
 ) -> Result<RewardWalletCreditResult, RewardExecutionError> {
-    conn.transaction::<_, RewardExecutionError, _>(|conn| {
-        Box::pin(async move {
-            let candidate = reward_candidate_repository::find_candidate(conn, candidate_id).await?;
-            credit_reward_wallet_for_candidate(conn, &candidate, false).await
+    let result = conn
+        .transaction::<_, RewardExecutionError, _>(|conn| {
+            Box::pin(async move {
+                let candidate =
+                    reward_candidate_repository::find_candidate(conn, candidate_id).await?;
+                credit_reward_wallet_for_candidate(conn, &candidate, false).await
+            })
         })
-    })
-    .await
+        .await?;
+
+    log::info!(
+        "event=reward_wallet_credit candidate_id={} wallet_id={} amount={} credited={} credit_record_id={:?} transaction_id={:?} internal_transaction_id={:?}",
+        result.candidate_id,
+        result.wallet_id,
+        result.amount,
+        result.credited,
+        result.credit_record_id,
+        result.transaction_id,
+        result.internal_transaction_id
+    );
+
+    Ok(result)
 }
 
 pub async fn notify_reward_wallet_credit(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
 ) -> Result<RewardWalletCreditNotificationResult, RewardExecutionError> {
-    conn.transaction::<_, RewardExecutionError, _>(|conn| {
-        Box::pin(async move {
-            let candidate = reward_candidate_repository::find_candidate(conn, candidate_id).await?;
-            notify_reward_wallet_credit_for_candidate(conn, &candidate, false).await
+    let result = conn
+        .transaction::<_, RewardExecutionError, _>(|conn| {
+            Box::pin(async move {
+                let candidate =
+                    reward_candidate_repository::find_candidate(conn, candidate_id).await?;
+                notify_reward_wallet_credit_for_candidate(conn, &candidate, false).await
+            })
         })
-    })
-    .await
+        .await?;
+
+    log::info!(
+        "event=reward_wallet_credit_notification candidate_id={} wallet_id={} amount={} notified={} notification_id={:?} transaction_id={}",
+        result.candidate_id,
+        result.wallet_id,
+        result.amount,
+        result.notified,
+        result.notification_id,
+        result.transaction_id
+    );
+
+    Ok(result)
 }
 
 pub async fn reconcile_reward_candidate(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
 ) -> Result<RewardReconciliationResult, RewardExecutionError> {
-    conn.transaction::<_, RewardExecutionError, _>(|conn| {
+    let result = conn
+        .transaction::<_, RewardExecutionError, _>(|conn| {
         Box::pin(async move {
             let mut candidate =
                 reward_candidate_repository::find_candidate(conn, candidate_id).await?;
@@ -258,7 +300,19 @@ pub async fn reconcile_reward_candidate(
             })
         })
     })
-    .await
+    .await?;
+
+    log::info!(
+        "event=reward_reconciled candidate_id={} wallet_credit_created={} notification_created={} external_transaction_link_repaired={} internal_transaction_link_repaired={} final_status={}",
+        result.candidate_id,
+        result.wallet_credit_created,
+        result.notification_created,
+        result.external_transaction_link_repaired,
+        result.internal_transaction_link_repaired,
+        result.final_status
+    );
+
+    Ok(result)
 }
 
 pub async fn record_reward_token_confirmation(
@@ -268,54 +322,68 @@ pub async fn record_reward_token_confirmation(
 ) -> Result<RewardTokenConfirmationResult, RewardExecutionError> {
     validate_token_confirmation_request(&request)?;
 
-    conn.transaction::<_, RewardExecutionError, _>(|conn| {
-        Box::pin(async move {
-            if let Some(existing_record) =
-                reward_payout_record_repository::find_reward_payout_record_by_candidate(
+    let result = conn
+        .transaction::<_, RewardExecutionError, _>(|conn| {
+            Box::pin(async move {
+                if let Some(existing_record) =
+                    reward_payout_record_repository::find_reward_payout_record_by_candidate(
+                        conn,
+                        candidate_id,
+                    )
+                    .await?
+                {
+                    return Ok(RewardTokenConfirmationResult {
+                        candidate_id,
+                        transaction_id: existing_record.transaction_id,
+                        external_transaction_id: existing_record.external_transaction_id,
+                        payout_record_id: existing_record.id,
+                        inserted_external_transaction: false,
+                    });
+                }
+
+                let candidate =
+                    reward_candidate_repository::find_candidate(conn, candidate_id).await?;
+                if candidate.status != REWARD_STATUS_TOKEN_PENDING {
+                    return Err(RewardExecutionError::InvalidStatus(
+                        "reward candidate must be token pending before token confirmation"
+                            .to_string(),
+                    ));
+                }
+
+                let (transaction_id, external_transaction_id, inserted_external_transaction) =
+                    record_external_reward_transaction(conn, &request).await?;
+                let payout_record = reward_payout_record_repository::create_reward_payout_record(
                     conn,
-                    candidate_id,
+                    NewRewardPayoutRecord {
+                        reward_candidate_id: candidate.id,
+                        transaction_id,
+                        external_transaction_id,
+                    },
                 )
-                .await?
-            {
-                return Ok(RewardTokenConfirmationResult {
-                    candidate_id,
-                    transaction_id: existing_record.transaction_id,
-                    external_transaction_id: existing_record.external_transaction_id,
-                    payout_record_id: existing_record.id,
-                    inserted_external_transaction: false,
-                });
-            }
+                .await?;
+                mark_candidate_token_confirmed(conn, candidate.id).await?;
 
-            let candidate = reward_candidate_repository::find_candidate(conn, candidate_id).await?;
-            if candidate.status != REWARD_STATUS_TOKEN_PENDING {
-                return Err(RewardExecutionError::InvalidStatus(
-                    "reward candidate must be token pending before token confirmation".to_string(),
-                ));
-            }
-
-            let (transaction_id, external_transaction_id, inserted_external_transaction) =
-                record_external_reward_transaction(conn, &request).await?;
-            let payout_record = reward_payout_record_repository::create_reward_payout_record(
-                conn,
-                NewRewardPayoutRecord {
-                    reward_candidate_id: candidate.id,
+                Ok(RewardTokenConfirmationResult {
+                    candidate_id: candidate.id,
                     transaction_id,
                     external_transaction_id,
-                },
-            )
-            .await?;
-            mark_candidate_token_confirmed(conn, candidate.id).await?;
-
-            Ok(RewardTokenConfirmationResult {
-                candidate_id: candidate.id,
-                transaction_id,
-                external_transaction_id,
-                payout_record_id: payout_record.id,
-                inserted_external_transaction,
+                    payout_record_id: payout_record.id,
+                    inserted_external_transaction,
+                })
             })
         })
-    })
-    .await
+        .await?;
+
+    log::info!(
+        "event=reward_token_confirmed candidate_id={} transaction_id={} external_transaction_id={} payout_record_id={} inserted_external_transaction={}",
+        result.candidate_id,
+        result.transaction_id,
+        result.external_transaction_id,
+        result.payout_record_id,
+        result.inserted_external_transaction
+    );
+
+    Ok(result)
 }
 
 fn ensure_candidate_ready_for_payout(

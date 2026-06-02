@@ -219,7 +219,7 @@ business logic must ask "does this user have this permission in this scope?"
       candidate approval or amount approval.
 - [ ] Add idempotency keys and unique constraints wherever a business event can
       be retried.
-- [ ] Add structured logs for teacher application transitions, reward decisions,
+- [x] Add structured logs for teacher application transitions, reward decisions,
       delegated permission checks, token execution, wallet credit, and
       reconciliation.
 

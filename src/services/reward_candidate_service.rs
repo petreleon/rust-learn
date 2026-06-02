@@ -135,45 +135,61 @@ pub async fn decide_reward_candidate_by_teacher(
     let target_status = normalize_teacher_decision_status(&request.status)?;
     ensure_course_teacher_approval_permission(conn, actor_user_id, course_id).await?;
 
-    conn.transaction::<_, RewardCandidateError, _>(|conn| {
-        Box::pin(async move {
-            let existing = reward_candidate_repository::find_candidate(conn, candidate_id).await?;
-            if existing.course_id != course_id {
-                return Err(RewardCandidateError::NotFound);
-            }
+    let updated = conn
+        .transaction::<_, RewardCandidateError, _>(|conn| {
+            Box::pin(async move {
+                let existing =
+                    reward_candidate_repository::find_candidate(conn, candidate_id).await?;
+                if existing.course_id != course_id {
+                    return Err(RewardCandidateError::NotFound);
+                }
 
-            if existing.status == target_status {
-                return Ok(existing);
-            }
+                if existing.status == target_status {
+                    return Ok(existing);
+                }
 
-            if existing.status != REWARD_STATUS_PENDING_TEACHER_APPROVAL {
-                return Err(RewardCandidateError::InvalidStatus(
-                    "reward candidate has already left teacher approval".to_string(),
-                ));
-            }
+                if existing.status != REWARD_STATUS_PENDING_TEACHER_APPROVAL {
+                    return Err(RewardCandidateError::InvalidStatus(
+                        "reward candidate has already left teacher approval".to_string(),
+                    ));
+                }
 
-            ensure_no_active_reward_fraud_block(
-                conn,
-                &[actor_user_id],
-                existing.course_id,
-                &existing.event_type,
-                existing.source_organization_id,
-            )
-            .await?;
+                ensure_no_active_reward_fraud_block(
+                    conn,
+                    &[actor_user_id],
+                    existing.course_id,
+                    &existing.event_type,
+                    existing.source_organization_id,
+                )
+                .await?;
 
-            reward_candidate_repository::update_teacher_decision(
-                conn,
-                candidate_id,
-                actor_user_id,
-                &target_status,
-                request.decision_reason.as_deref(),
-                Utc::now(),
-            )
-            .await
-            .map_err(RewardCandidateError::from)
+                reward_candidate_repository::update_teacher_decision(
+                    conn,
+                    candidate_id,
+                    actor_user_id,
+                    &target_status,
+                    request.decision_reason.as_deref(),
+                    Utc::now(),
+                )
+                .await
+                .map_err(RewardCandidateError::from)
+            })
         })
-    })
-    .await
+        .await?;
+
+    log::info!(
+        "event=reward_candidate_teacher_decision candidate_id={} actor_user_id={} student_user_id={} course_id={} status={} event_type={} source_scope={} source_organization_id={:?}",
+        updated.id,
+        actor_user_id,
+        updated.student_user_id,
+        updated.course_id,
+        updated.status,
+        updated.event_type,
+        updated.source_scope,
+        updated.source_organization_id
+    );
+
+    Ok(updated)
 }
 
 pub async fn decide_reward_amount(
@@ -203,50 +219,75 @@ pub async fn decide_reward_amount(
         _ => unreachable!("amount status normalization returned unsupported status"),
     };
 
-    conn.transaction::<_, RewardCandidateError, _>(|conn| {
-        Box::pin(async move {
-            let existing = reward_candidate_repository::find_candidate(conn, candidate_id).await?;
-            if existing.status == target_status {
-                return Ok(existing);
-            }
+    let updated = conn
+        .transaction::<_, RewardCandidateError, _>(|conn| {
+            Box::pin(async move {
+                let existing =
+                    reward_candidate_repository::find_candidate(conn, candidate_id).await?;
+                if existing.status == target_status {
+                    return Ok(existing);
+                }
 
-            if existing.status != REWARD_STATUS_TEACHER_APPROVED {
-                return Err(RewardCandidateError::InvalidStatus(
-                    "reward amount can be decided only after teacher approval".to_string(),
-                ));
-            }
+                if existing.status != REWARD_STATUS_TEACHER_APPROVED {
+                    return Err(RewardCandidateError::InvalidStatus(
+                        "reward amount can be decided only after teacher approval".to_string(),
+                    ));
+                }
 
-            let teacher_user_ids = candidate_teacher_user_ids(&existing);
-            ensure_no_active_reward_fraud_block(
-                conn,
-                teacher_user_ids.as_slice(),
-                existing.course_id,
-                &existing.event_type,
-                existing.source_organization_id,
-            )
-            .await?;
+                let teacher_user_ids = candidate_teacher_user_ids(&existing);
+                ensure_no_active_reward_fraud_block(
+                    conn,
+                    teacher_user_ids.as_slice(),
+                    existing.course_id,
+                    &existing.event_type,
+                    existing.source_organization_id,
+                )
+                .await?;
 
-            let updated = reward_candidate_repository::update_amount_decision(
-                conn,
-                candidate_id,
-                actor_user_id,
-                &target_status,
-                approved_amount,
-                request.decision_reason.as_deref(),
-                Utc::now(),
-            )
-            .await
-            .map_err(RewardCandidateError::from)?;
+                let updated = reward_candidate_repository::update_amount_decision(
+                    conn,
+                    candidate_id,
+                    actor_user_id,
+                    &target_status,
+                    approved_amount,
+                    request.decision_reason.as_deref(),
+                    Utc::now(),
+                )
+                .await
+                .map_err(RewardCandidateError::from)?;
 
-            if target_status == REWARD_STATUS_AMOUNT_APPROVED {
-                reward_execution_job_repository::enqueue_reward_execution_job(conn, candidate_id)
+                if target_status == REWARD_STATUS_AMOUNT_APPROVED {
+                    reward_execution_job_repository::enqueue_reward_execution_job(
+                        conn,
+                        candidate_id,
+                    )
                     .await?;
-            }
+                }
 
-            Ok(updated)
+                Ok(updated)
+            })
         })
-    })
-    .await
+        .await?;
+
+    let approved_amount = updated
+        .approved_amount
+        .as_ref()
+        .map(ToString::to_string)
+        .unwrap_or_else(|| "none".to_string());
+    log::info!(
+        "event=reward_candidate_amount_decision candidate_id={} actor_user_id={} student_user_id={} course_id={} status={} approved_amount={} event_type={} source_scope={} source_organization_id={:?}",
+        updated.id,
+        actor_user_id,
+        updated.student_user_id,
+        updated.course_id,
+        updated.status,
+        approved_amount,
+        updated.event_type,
+        updated.source_scope,
+        updated.source_organization_id
+    );
+
+    Ok(updated)
 }
 
 pub async fn list_course_reward_candidates(
@@ -331,6 +372,18 @@ async fn create_reward_candidate(
             && existing.student_user_id == request.student_user_id
             && existing.event_type == event_type
         {
+            log::info!(
+                "event=reward_candidate_idempotent_replay candidate_id={} actor_user_id={} student_user_id={} course_id={} status={} event_type={} source_scope={} source_organization_id={:?} idempotency_key={}",
+                existing.id,
+                actor_user_id,
+                existing.student_user_id,
+                existing.course_id,
+                existing.status,
+                existing.event_type,
+                existing.source_scope,
+                existing.source_organization_id,
+                existing.idempotency_key
+            );
             return Ok(existing);
         }
 
@@ -364,9 +417,24 @@ async fn create_reward_candidate(
         status: REWARD_STATUS_PENDING_TEACHER_APPROVAL.to_string(),
     };
 
-    reward_candidate_repository::create_candidate(conn, new_candidate)
+    let created = reward_candidate_repository::create_candidate(conn, new_candidate)
         .await
-        .map_err(RewardCandidateError::from)
+        .map_err(RewardCandidateError::from)?;
+
+    log::info!(
+        "event=reward_candidate_submitted candidate_id={} actor_user_id={} student_user_id={} course_id={} status={} event_type={} source_scope={} source_organization_id={:?} idempotency_key={}",
+        created.id,
+        actor_user_id,
+        created.student_user_id,
+        created.course_id,
+        created.status,
+        created.event_type,
+        created.source_scope,
+        created.source_organization_id,
+        created.idempotency_key
+    );
+
+    Ok(created)
 }
 
 fn candidate_teacher_user_ids(candidate: &RewardCandidate) -> Vec<i32> {
