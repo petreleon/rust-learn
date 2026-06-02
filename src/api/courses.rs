@@ -7,6 +7,7 @@ use crate::models::course::{Course, UpdateCourse};
 use crate::models::param_type::ParamType;
 use crate::repositories::course_repository::assign_role_to_user_in_course;
 use crate::utils::jwt_utils::decode_jwt;
+use crate::utils::notifications::NotificationsState;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
@@ -204,7 +205,49 @@ async fn assign_role(
 
     // Perform Assignment with Hierarchy Check
     match assign_role_to_user_in_course(&mut conn, requester_id, target_user_id, course_id, role_name).await {
-        Ok(_) => HttpResponse::Ok().body("Role assigned successfully"),
+        Ok(_) => {
+            if let Some(notifications) = req.app_data::<web::Data<NotificationsState>>() {
+                if let Err(err) = notifications
+                    .send_role_assignment_notification(
+                        target_user_id,
+                        "course",
+                        Some(course_id),
+                        role_name,
+                    )
+                    .await
+                {
+                    log::warn!(
+                        "event=notification_send_failed kind=role_assignment scope=course course_id={} target_user_id={} error={:?}",
+                        course_id,
+                        target_user_id,
+                        err
+                    );
+                }
+
+                if role_name.eq_ignore_ascii_case("STUDENT") {
+                    let course_title = courses::table
+                        .find(course_id)
+                        .select(courses::title)
+                        .first::<String>(&mut conn)
+                        .await
+                        .unwrap_or_else(|_| format!("course #{}", course_id));
+
+                    if let Err(err) = notifications
+                        .send_enrollment_notification(target_user_id, course_id, course_title)
+                        .await
+                    {
+                        log::warn!(
+                            "event=notification_send_failed kind=enrollment course_id={} target_user_id={} error={:?}",
+                            course_id,
+                            target_user_id,
+                            err
+                        );
+                    }
+                }
+            }
+
+            HttpResponse::Ok().body("Role assigned successfully")
+        }
         Err(diesel::result::Error::RollbackTransaction) => HttpResponse::Forbidden().body("Hierarchy check failed: Cannot assign role higher than or equal to your own, or modify user with higher/equal rank."),
         Err(diesel::result::Error::NotFound) => HttpResponse::BadRequest().body("Role or User not found"),
         Err(e) => {

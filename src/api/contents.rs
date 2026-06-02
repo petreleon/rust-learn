@@ -1,12 +1,14 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::contents;
 use crate::db::schema::upload_jobs;
+use crate::db::schema::user_role_course;
 use crate::db::DbPool;
 use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
 use crate::models::content::{Content, NewContent, UpdateContent};
 use crate::models::param_type::ParamType;
 use crate::models::upload_job::NewUploadJob;
 use crate::utils::jwt_utils::decode_jwt;
+use crate::utils::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
 use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
 use diesel::{ExpressionMethods, QueryDsl};
@@ -48,9 +50,10 @@ pub struct CreateContentRequest {
 async fn create_content(
     path: web::Path<(i32, i32)>, // course_id, chapter_id
     pool: web::Data<DbPool>,
+    notifications: Option<web::Data<NotificationsState>>,
     req: web::Json<CreateContentRequest>,
 ) -> impl Responder {
-    let (_course_id, chapter_id) = path.into_inner();
+    let (course_id, chapter_id) = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
@@ -69,7 +72,47 @@ async fn create_content(
         .await;
 
     match result {
-        Ok(content) => HttpResponse::Created().json(content),
+        Ok(content) => {
+            if let Some(notifications) = notifications {
+                let recipient_ids = user_role_course::table
+                    .filter(user_role_course::course_id.eq(course_id))
+                    .select(user_role_course::user_id)
+                    .distinct()
+                    .load::<Option<i32>>(&mut conn)
+                    .await
+                    .unwrap_or_else(|err| {
+                        log::warn!(
+                            "event=notification_recipient_query_failed kind=content_published course_id={} content_id={} error={:?}",
+                            course_id,
+                            content.id,
+                            err
+                        );
+                        Vec::new()
+                    });
+
+                for recipient_id in recipient_ids.into_iter().flatten() {
+                    if let Err(err) = notifications
+                        .send_content_published_notification(
+                            recipient_id,
+                            course_id,
+                            content.id,
+                            &content.content_type,
+                        )
+                        .await
+                    {
+                        log::warn!(
+                            "event=notification_send_failed kind=content_published course_id={} content_id={} target_user_id={} error={:?}",
+                            course_id,
+                            content.id,
+                            recipient_id,
+                            err
+                        );
+                    }
+                }
+            }
+
+            HttpResponse::Created().json(content)
+        }
         Err(e) => {
             eprintln!("DB error creating content: {}", e);
             HttpResponse::InternalServerError().body("Failed to create content")

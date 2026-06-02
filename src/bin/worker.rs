@@ -144,8 +144,9 @@ async fn main() -> Result<()> {
         tokio::spawn(async move {
             // Run the processing (use 0 for missing user_id handling inside process_uploaded_video if needed)
             let uid = user_id.unwrap_or(0);
+            let notifications_for_processing = notifications_cloned.clone();
             let res = s3_cloned
-                .process_uploaded_video(&bucket, &object, uid, notifications_cloned)
+                .process_uploaded_video(&bucket, &object, uid, notifications_for_processing)
                 .await;
 
             if res.is_ok() {
@@ -176,6 +177,26 @@ async fn main() -> Result<()> {
                 );
 
                 if new_attempts >= max_attempts {
+                    if let Some(uid) = user_id {
+                        if let Err(e) = notifications_cloned
+                            .send_worker_failure_notification(
+                                uid,
+                                job_id,
+                                &object,
+                                new_attempts as i32,
+                                &err_text,
+                            )
+                            .await
+                        {
+                            log::warn!(
+                                "event=notification_send_failed kind=worker_failure job_id={} user_id={} error={:?}",
+                                job_id,
+                                uid,
+                                e
+                            );
+                        }
+                    }
+
                     // mark as permanently failed
                     if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_failed(
                         job_id,

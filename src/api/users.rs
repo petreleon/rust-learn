@@ -7,6 +7,7 @@ use crate::repositories::platform_repository::{
     assign_role_to_user_with_hierarchy, user_permission_platform_request,
 };
 use crate::utils::jwt_utils::decode_jwt;
+use crate::utils::notifications::NotificationsState;
 use actix_web::{web, HttpRequest};
 use actix_web::{HttpMessage, HttpResponse, Responder};
 use serde::Deserialize;
@@ -142,7 +143,27 @@ async fn assign_role(
     match assign_role_to_user_with_hierarchy(&mut conn, requester_id, target_user_id, role_name)
         .await
     {
-        Ok(_) => HttpResponse::Ok().body("Role assigned successfully"),
+        Ok(_) => {
+            if let Some(notifications) = req.app_data::<web::Data<NotificationsState>>() {
+                if let Err(err) = notifications
+                    .send_role_assignment_notification(
+                        target_user_id,
+                        "platform",
+                        None,
+                        role_name,
+                    )
+                    .await
+                {
+                    log::warn!(
+                        "event=notification_send_failed kind=role_assignment scope=platform target_user_id={} error={:?}",
+                        target_user_id,
+                        err
+                    );
+                }
+            }
+
+            HttpResponse::Ok().body("Role assigned successfully")
+        }
         Err(diesel::result::Error::RollbackTransaction) => HttpResponse::Forbidden().body("Hierarchy check failed: Cannot assign role higher than or equal to your own, or modify user with higher/equal rank."),
         Err(diesel::result::Error::NotFound) => {
             HttpResponse::BadRequest().body(format!("Role '{}' not found", role_name))

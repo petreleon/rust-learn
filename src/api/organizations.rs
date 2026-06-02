@@ -6,6 +6,7 @@ use crate::models::organization::UpdateOrganization;
 use crate::models::param_type::ParamType;
 use crate::services::organization_service;
 use crate::utils::jwt_utils::decode_jwt;
+use crate::utils::notifications::NotificationsState;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use serde::Deserialize;
 
@@ -147,7 +148,28 @@ async fn assign_role(
     match organization_service::assign_role(&pool, requester_id, target_user_id, org_id, role_name)
         .await
     {
-        Ok(_) => HttpResponse::Ok().body("Role assigned successfully"),
+        Ok(_) => {
+            if let Some(notifications) = req.app_data::<web::Data<NotificationsState>>() {
+                if let Err(err) = notifications
+                    .send_role_assignment_notification(
+                        target_user_id,
+                        "organization",
+                        Some(org_id),
+                        role_name,
+                    )
+                    .await
+                {
+                    log::warn!(
+                        "event=notification_send_failed kind=role_assignment scope=organization organization_id={} target_user_id={} error={:?}",
+                        org_id,
+                        target_user_id,
+                        err
+                    );
+                }
+            }
+
+            HttpResponse::Ok().body("Role assigned successfully")
+        }
         Err(msg) => {
             if msg.contains("Hierarchy check failed") {
                 HttpResponse::Forbidden().body("Hierarchy check failed: Cannot assign role higher than or equal to your own, or modify user with higher/equal rank.")

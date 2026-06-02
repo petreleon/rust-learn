@@ -182,6 +182,13 @@ Organization wallet managers can link and read organization wallets with
 `/api/wallets/organizations/{id}` routes. Link endpoints are idempotent and
 return the existing wallet on repeated calls.
 
+### Notification events
+
+Notifications are persisted for key product events: course enrollment, content
+publication, platform/organization/course role assignment, terminal worker job
+failures, and reward records. Existing upload-processing notifications continue
+to use the `video:*` titles.
+
 ### PostgreSQL
 
 Typical Docker Compose values look like:
