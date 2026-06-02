@@ -213,6 +213,43 @@ diesel::table! {
 }
 
 diesel::table! {
+    teacher_application_audit_events (id) {
+        id -> Int8,
+        application_id -> Int8,
+        actor_user_id -> Nullable<Int4>,
+        #[max_length = 64]
+        event_type -> Varchar,
+        #[max_length = 32]
+        from_status -> Nullable<Varchar>,
+        #[max_length = 32]
+        to_status -> Varchar,
+        reason -> Nullable<Text>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    teacher_applications (id) {
+        id -> Int8,
+        applicant_user_id -> Int4,
+        #[max_length = 32]
+        requested_scope -> Varchar,
+        requested_organization_id -> Nullable<Int4>,
+        requested_course_id -> Nullable<Int4>,
+        experience_summary -> Text,
+        organization_sponsor_id -> Nullable<Int4>,
+        portfolio_links -> Jsonb,
+        #[max_length = 32]
+        status -> Varchar,
+        reviewer_id -> Nullable<Int4>,
+        decision_reason -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        decided_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     transactions (id) {
         id -> Int8,
         #[sql_name = "type"]
@@ -317,6 +354,9 @@ diesel::joinable!(role_permission_organization -> organization_roles (organizati
 diesel::joinable!(role_permission_organization -> organizations (organization_id));
 diesel::joinable!(role_permission_platform -> platform_roles (platform_role_id));
 diesel::joinable!(role_platform_hierarchy -> platform_roles (platform_role_id));
+diesel::joinable!(teacher_application_audit_events -> teacher_applications (application_id));
+diesel::joinable!(teacher_application_audit_events -> users (actor_user_id));
+diesel::joinable!(teacher_applications -> courses (requested_course_id));
 diesel::joinable!(transactions_external_transactions -> external_transactions (external_transaction_id));
 diesel::joinable!(transactions_external_transactions -> transactions (transaction_id));
 diesel::joinable!(transactions_internal_transactions -> internal_transactions (internal_transaction_id));
@@ -358,6 +398,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     role_permission_organization,
     role_permission_platform,
     role_platform_hierarchy,
+    teacher_application_audit_events,
+    teacher_applications,
     transactions,
     transactions_external_transactions,
     transactions_internal_transactions,

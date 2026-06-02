@@ -13,7 +13,7 @@ base64 = "0.22"
 futures = "0.3"
 getrandom = "0.2"
 infer = "0.19.0"
-diesel = { version = "2.2.12", features = ["postgres", "chrono", "numeric"] }
+diesel = { version = "2.2.12", features = ["postgres", "chrono", "numeric", "serde_json"] }
 diesel-async = { version = "0.5", features = ["postgres", "deadpool"] }
 dotenvy = "0.15"
 diesel_migrations = "2.2.0"

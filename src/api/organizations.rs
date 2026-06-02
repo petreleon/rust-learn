@@ -236,4 +236,15 @@ pub fn organization_scope() -> actix_web::Scope {
                 ),
             )),
         )
+        .service(
+            web::resource("/{id}/teacher-applications").route(
+                web::post()
+                    .to(crate::api::teacher_applications::nominate_application)
+                    .wrap(OrganizationPermissionMiddleware::new(
+                        Permissions::NOMINATE_TEACHER_FOR_PLATFORM_REVIEW.to_string(),
+                        ParamType::Path,
+                        "id".to_string(),
+                    )),
+            ),
+        )
 }

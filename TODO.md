@@ -34,23 +34,23 @@ business logic must ask "does this user have this permission in this scope?"
 
 ## Teacher Application Flow
 
-- [ ] Add a platform-level teacher application entity with applicant user id,
+- [x] Add a platform-level teacher application entity with applicant user id,
       requested teaching scope, experience summary, optional organization
       sponsor, portfolio links, status, reviewer id, decision reason, and
       timestamps.
-- [ ] Allow any authenticated user with `SUBMIT_TEACHER_APPLICATION` platform
+- [x] Allow any authenticated user with `SUBMIT_TEACHER_APPLICATION` platform
       permission to apply to central administration.
-- [ ] Allow organization-scoped nomination only through an organization
+- [x] Allow organization-scoped nomination only through an organization
       permission such as `NOMINATE_TEACHER_FOR_PLATFORM_REVIEW`; nomination
       should create or attach to the same central application queue.
-- [ ] Let central administration reviewers fetch, filter, approve, reject, or
+- [x] Let central administration reviewers fetch, filter, approve, reject, or
       request changes only through platform permissions such as
       `REVIEW_TEACHER_APPLICATIONS`, `APPROVE_TEACHER_APPLICATION`, and
       `REJECT_TEACHER_APPLICATION`.
 - [ ] On approval, assign the minimum needed platform, organization, or course
       permission bundle for the approved teaching scope. Do not assume the
       assignee is a teacher because of a role name.
-- [ ] Record an immutable audit event for every teacher application transition.
+- [x] Record an immutable audit event for every teacher application transition.
 - [ ] Send notifications to the applicant, organization sponsor when present,
       and central reviewers for submitted, changed, approved, and rejected
       applications.

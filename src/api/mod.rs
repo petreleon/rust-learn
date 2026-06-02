@@ -7,6 +7,7 @@ pub mod health;
 pub mod organizations;
 pub mod reports;
 pub mod roles;
+pub mod teacher_applications;
 pub mod users;
 pub mod wallets;
 use actix_service::ServiceFactory;
@@ -39,5 +40,6 @@ pub fn api_scope() -> Scope<
         .service(organizations::organization_scope())
         .service(reports::reports_scope())
         .service(roles::roles_scope())
+        .service(teacher_applications::teacher_application_scope())
         .service(wallets::wallet_scope())
 }

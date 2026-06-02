@@ -19,6 +19,7 @@ pub mod role_permission_course;
 pub mod role_permission_organization;
 pub mod role_permission_platform;
 pub mod role_platform_hierarchy;
+pub mod teacher_application;
 pub mod transaction;
 pub mod upload_job;
 pub mod user;
