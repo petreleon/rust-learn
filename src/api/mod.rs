@@ -6,6 +6,7 @@ pub mod courses;
 pub mod organizations;
 pub mod roles;
 pub mod users;
+pub mod wallets;
 use actix_service::ServiceFactory;
 use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, Scope};
 
@@ -35,4 +36,5 @@ pub fn api_scope() -> Scope<
         .service(courses::course_scope())
         .service(organizations::organization_scope())
         .service(roles::roles_scope())
+        .service(wallets::wallet_scope())
 }

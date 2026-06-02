@@ -36,7 +36,7 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 
 - [x] Define the complete learning reward lifecycle: course event, eligibility check, reward calculation, token mint/transfer, wallet credit, notification, and audit record.
 - [x] Implement event listeners or reconciliation jobs for token mint/transfer events.
-- [ ] Complete wallet-linking flows and end-to-end tests.
+- [x] Complete wallet-linking flows and end-to-end tests.
 - [ ] Expand notifications for enrollment, content publication, role assignment, worker failures, and reward events.
 - [ ] Build learner and administrator workflows in the Next.js frontend.
 - [ ] Add course search/filtering, pagination, and organization-specific course discovery.

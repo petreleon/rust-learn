@@ -68,7 +68,7 @@ flowchart LR
 
 - Rust 2021 with Actix Web.
 - JWT-protected `/api` scope.
-- Route modules for authentication, users, courses, organizations, and roles.
+- Route modules for authentication, users, wallets, courses, organizations, and roles.
 - Registration rejects weak passwords: passwords must be at least 12 characters and include lowercase, uppercase, numeric, and symbol characters.
 - Diesel and Diesel Async with PostgreSQL.
 - Repository and service layers for persistence/business logic.
@@ -172,6 +172,15 @@ Or through Docker Compose:
 ```bash
 docker compose run --rm --no-deps --entrypoint bash worker -lc 'export PATH=/usr/local/cargo/bin:$PATH; cd /usr/src/app && cargo run --bin mock_email -- learner@example.com "Demo Learner" mock-preview-token'
 ```
+
+### Wallet linking API
+
+Authenticated users can create and read their own internal wallet link with
+`POST /api/wallets/me/link` and `GET /api/wallets/me`. Platform wallet managers
+can link or read another user wallet with `/api/wallets/users/{id}` routes.
+Organization wallet managers can link and read organization wallets with
+`/api/wallets/organizations/{id}` routes. Link endpoints are idempotent and
+return the existing wallet on repeated calls.
 
 ### PostgreSQL
 
