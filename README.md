@@ -91,6 +91,9 @@ The project uses S3-compatible object storage through the AWS SDK. The Docker Co
 
 The `ethereum/` directory contains LearnToken-related Solidity contracts and generated artifacts. Startup code can deploy LearnToken idempotently using persistent state, and integration tests cover important contract behavior.
 
+Operational backup/restore expectations and the Ethereum artifact release
+process are documented in [docs/operations.md](docs/operations.md).
+
 ### Frontend
 
 The `web/` directory contains a Next.js app that can call the Rust API through `NEXT_PUBLIC_API_URL` in browser contexts and `API_URL` for container/server contexts.

@@ -48,8 +48,8 @@ This checklist is organized around the current RustLearn architecture: Actix Web
 - [x] Validate Kubernetes manifests against the current service names, health checks, ports, and environment variables.
 - [x] Add production-oriented health/readiness endpoints for API dependencies.
 - [x] Add worker metrics for queue depth, attempts, processing duration, and failed jobs.
-- [ ] Define backup/restore expectations for PostgreSQL, S3 objects, and blockchain-related persistent state.
-- [ ] Review release process for Ethereum contract artifact generation and deployment addresses.
+- [x] Define backup/restore expectations for PostgreSQL, S3 objects, and blockchain-related persistent state.
+- [x] Review release process for Ethereum contract artifact generation and deployment addresses.
 
 ## Completed foundation
 
