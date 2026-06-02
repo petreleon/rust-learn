@@ -78,19 +78,19 @@ business logic must ask "does this user have this permission in this scope?"
 
 ## Student Reward Flow
 
-- [ ] Add rewardable course events for assessment completion, course
+- [x] Add rewardable course events for assessment completion, course
       completion, manually approved completion, and administrative adjustment.
-- [ ] Use a two-step reward decision: course-scoped teacher approval confirms
+- [x] Use a two-step reward decision: course-scoped teacher approval confirms
       that the student should receive a reward for the course, and
       platform-scoped amount approval decides only the exact token amount.
-- [ ] Restrict manual reward candidate submission for a course to users with
+- [x] Restrict manual reward candidate submission for a course to users with
       `SUBMIT_COURSE_REWARD_EVENT` or `CREATE_REWARDABLE_COURSE_EVENT` in that
       exact course scope. This is the permission that should normally be
       granted to the course teacher permission bundle.
-- [ ] Require `APPROVE_STUDENT_REWARD_CANDIDATE` in the exact course scope
+- [x] Require `APPROVE_STUDENT_REWARD_CANDIDATE` in the exact course scope
       before a submitted reward candidate can move to amount review. This is
       the permission that represents the teacher's course-level approval.
-- [ ] Allow organization-level submission for courses attached to that
+- [x] Allow organization-level submission for courses attached to that
       organization only through `SUBMIT_ORG_COURSE_REWARD_EVENT`; organization
       submission creates a pending candidate and must still receive course
       teacher approval before platform amount approval.
@@ -100,7 +100,7 @@ business logic must ask "does this user have this permission in this scope?"
 - [ ] Treat student course activity as completion evidence, not as authority to
       submit a reward candidate. A student should receive rewards through an
       authorized course, organization, or delegated submission path.
-- [ ] Store each reward candidate with a stable idempotency key such as
+- [x] Store each reward candidate with a stable idempotency key such as
       `course_completion:{course_id}:{user_id}:{attempt_id}`.
 - [ ] Add eligibility checks for enrollment, email verification, course policy,
       organization policy, anti-abuse limits, prior rewards, passing score, and
@@ -108,21 +108,21 @@ business logic must ask "does this user have this permission in this scope?"
 - [ ] Add versioned reward policies that define token amounts, multipliers,
       caps, cooldowns, and whether the policy pays from treasury transfer or
       token mint.
-- [ ] Let only platform-level reviewers decide the amount a student receives
+- [x] Let only platform-level reviewers decide the amount a student receives
       through `APPROVE_REWARD_AMOUNT` or equivalent platform-scoped delegated
       permission. This permission should normally be assigned to platform admin
       or platform moderator permission bundles, but the code must check only
       the permission.
-- [ ] Do not let `APPROVE_REWARD_AMOUNT` approve, reject, create, or submit
+- [x] Do not let `APPROVE_REWARD_AMOUNT` approve, reject, create, or submit
       reward candidates. Platform amount approval can set payout value only
       after course-scoped teacher approval has already confirmed the candidate.
-- [ ] Do not allow course-scoped teacher approval to set or change the token
+- [x] Do not allow course-scoped teacher approval to set or change the token
       amount. Teacher approval confirms the reward candidate; platform amount
       approval controls payout value.
 - [ ] Support delegated reward approval so central administration can grant a
       platform moderator or another operator permission to review reward
       amounts without changing reward service logic.
-- [ ] Persist approved, rejected, adjusted, token pending, token confirmed,
+- [x] Persist approved, rejected, adjusted, token pending, token confirmed,
       wallet credited, notified, completed, needs reconciliation, and failed
       reward states.
 - [ ] Enqueue token execution only after eligibility and approved amount are

@@ -6,6 +6,7 @@ pub mod courses;
 pub mod health;
 pub mod organizations;
 pub mod reports;
+pub mod reward_candidates;
 pub mod roles;
 pub mod teacher_applications;
 pub mod users;
@@ -39,6 +40,7 @@ pub fn api_scope() -> Scope<
         .service(courses::course_scope())
         .service(organizations::organization_scope())
         .service(reports::reports_scope())
+        .service(reward_candidates::reward_candidate_scope())
         .service(roles::roles_scope())
         .service(teacher_applications::teacher_application_scope())
         .service(wallets::wallet_scope())

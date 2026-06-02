@@ -180,6 +180,33 @@ diesel::table! {
 }
 
 diesel::table! {
+    reward_candidates (id) {
+        id -> Int8,
+        course_id -> Int4,
+        student_user_id -> Int4,
+        submitter_user_id -> Int4,
+        #[max_length = 32]
+        source_scope -> Varchar,
+        source_organization_id -> Nullable<Int4>,
+        #[max_length = 64]
+        event_type -> Varchar,
+        idempotency_key -> Text,
+        evidence -> Jsonb,
+        #[max_length = 32]
+        status -> Varchar,
+        teacher_approver_user_id -> Nullable<Int4>,
+        teacher_decision_reason -> Nullable<Text>,
+        teacher_decided_at -> Nullable<Timestamptz>,
+        amount_reviewer_user_id -> Nullable<Int4>,
+        approved_amount -> Nullable<Numeric>,
+        amount_decision_reason -> Nullable<Text>,
+        amount_decided_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     role_course_hierarchy (id) {
         id -> Int4,
         course_role_id -> Nullable<Int4>,
@@ -364,6 +391,8 @@ diesel::joinable!(paths_courses -> courses (course_id));
 diesel::joinable!(paths_courses -> paths (path_id));
 diesel::joinable!(pending_course_organization_invites -> courses (course_id));
 diesel::joinable!(pending_course_organization_invites -> organizations (organization_id));
+diesel::joinable!(reward_candidates -> courses (course_id));
+diesel::joinable!(reward_candidates -> organizations (source_organization_id));
 diesel::joinable!(role_course_hierarchy -> course_roles (course_role_id));
 diesel::joinable!(role_organization_hierarchy -> organization_roles (organization_role_id));
 diesel::joinable!(role_permission_course -> course_roles (course_role_id));
@@ -411,6 +440,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     pending_course_organization_invites,
     persistent_states,
     platform_roles,
+    reward_candidates,
     role_course_hierarchy,
     role_organization_hierarchy,
     role_permission_course,

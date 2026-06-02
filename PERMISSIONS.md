@@ -313,3 +313,17 @@ This document lists all permissions assigned to roles across **Course**, **Organ
 *   VIEW_CONTENT
 *   VIEW_COURSE
 *   VIEW_NOTIFICATION
+
+## Reward Candidate Business Rules
+
+Reward candidate authorization is intentionally split by scope:
+
+*   Course reward candidate submission requires `SUBMIT_COURSE_REWARD_EVENT`
+    or `CREATE_REWARDABLE_COURSE_EVENT` in the exact course scope.
+*   Organization reward candidate submission requires
+    `SUBMIT_ORG_COURSE_REWARD_EVENT` in the organization scope and only works
+    for courses attached to that organization.
+*   Candidate approval requires `APPROVE_STUDENT_REWARD_CANDIDATE` in the
+    exact course scope. Platform amount reviewers cannot approve candidates.
+*   Reward amount approval requires platform-scoped `APPROVE_REWARD_AMOUNT`
+    and can set payout value only after course-scoped candidate approval.
