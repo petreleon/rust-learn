@@ -256,7 +256,7 @@ business logic must ask "does this user have this permission in this scope?"
       or submit reward candidates.
 - [x] Add tests proving course-scoped teacher permissions can approve the
       student reward candidate but cannot set or change the token amount.
-- [ ] Add tests proving active teacher, organization, course, or policy fraud
+- [x] Add tests proving active teacher, organization, course, or policy fraud
       blocks prevent new reward candidate submissions, teacher candidate
       approvals, and amount approvals for the blocked scope.
 - [ ] Add tests proving fraud-block permissions can block or unblock reward
