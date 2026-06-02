@@ -127,7 +127,7 @@ business logic must ask "does this user have this permission in this scope?"
       reward states.
 - [x] Enqueue token execution only after eligibility and approved amount are
       recorded.
-- [ ] Prefer treasury/presigner transfer when available; mint LearnToken only
+- [x] Prefer treasury/presigner transfer when available; mint LearnToken only
       when policy explicitly allows supply expansion.
 - [ ] Credit the internal wallet only after token confirmation unless the
       deployment is explicitly configured for off-chain-only rewards.

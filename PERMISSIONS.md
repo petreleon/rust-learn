@@ -337,6 +337,10 @@ Reward candidate authorization is intentionally split by scope:
     evidence does not authorize the student to submit the candidate.
 *   Reward execution is queued only after a candidate has course-scoped
     approval and a platform-approved amount.
+*   Reward payout planning follows the active reward policy for the candidate's
+    course event. Treasury transfer prefers the deployed presigner contract
+    when available; minting is selected only for policies whose payment
+    strategy is `mint`.
 *   Delegated reward permissions are resolved through the same platform,
     organization, and course permission checks as role permissions. A
     delegation is valid only for its exact scope while it is unexpired and not
