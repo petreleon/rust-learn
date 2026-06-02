@@ -61,6 +61,17 @@ async fn event_notification_helpers_persist_requested_event_types() {
         .send_reward_event_notification(user.id(), "42", "token_transfer", Some(44))
         .await
         .expect("reward notification should persist");
+    notifications
+        .send_teacher_application_notification(
+            user.id(),
+            55,
+            "approved",
+            "approved",
+            "course",
+            Some("approved by central administration"),
+        )
+        .await
+        .expect("teacher application notification should persist");
 
     let rows = notifications
         .get_notifications(user.id())
@@ -73,4 +84,5 @@ async fn event_notification_helpers_persist_requested_event_types() {
     assert!(titles.contains("role:assigned"));
     assert!(titles.contains("worker:job_failed"));
     assert!(titles.contains("reward:recorded"));
+    assert!(titles.contains("teacher_application:updated"));
 }

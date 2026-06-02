@@ -51,7 +51,7 @@ business logic must ask "does this user have this permission in this scope?"
       permission bundle for the approved teaching scope. Do not assume the
       assignee is a teacher because of a role name.
 - [x] Record an immutable audit event for every teacher application transition.
-- [ ] Send notifications to the applicant, organization sponsor when present,
+- [x] Send notifications to the applicant, organization sponsor when present,
       and central reviewers for submitted, changed, approved, and rejected
       applications.
 

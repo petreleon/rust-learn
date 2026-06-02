@@ -116,6 +116,30 @@ pub fn reward_event_notification(
     }
 }
 
+pub fn teacher_application_notification(
+    application_id: i64,
+    event_type: impl AsRef<str>,
+    status: impl AsRef<str>,
+    requested_scope: impl AsRef<str>,
+    reason: Option<impl AsRef<str>>,
+) -> NotificationMessage {
+    let reason_label = reason
+        .map(|value| format!(" Reason: {}", compact_text(value, 160)))
+        .unwrap_or_default();
+
+    NotificationMessage {
+        title: "teacher_application:updated",
+        body: format!(
+            "Teacher application #{} {} with status {} for {} scope.{}",
+            application_id,
+            compact_text(event_type, 80),
+            compact_text(status, 80),
+            compact_text(requested_scope, 80),
+            reason_label
+        ),
+    }
+}
+
 impl NotificationsState {
     /// Create a new NotificationsState from an existing DB pool.
     pub fn new(pool: DbPool) -> Self {
@@ -219,6 +243,28 @@ impl NotificationsState {
         .await
     }
 
+    pub async fn send_teacher_application_notification(
+        &self,
+        user_id: i32,
+        application_id: i64,
+        event_type: impl AsRef<str>,
+        status: impl AsRef<str>,
+        requested_scope: impl AsRef<str>,
+        reason: Option<impl AsRef<str>>,
+    ) -> Result<i64> {
+        self.send_event_notification(
+            user_id,
+            teacher_application_notification(
+                application_id,
+                event_type,
+                status,
+                requested_scope,
+                reason,
+            ),
+        )
+        .await
+    }
+
     /// Get notifications for a user ordered by created_at desc.
     pub async fn get_notifications(&self, user_id: i32) -> Result<Vec<Notification>> {
         let mut conn = self
@@ -263,7 +309,8 @@ impl From<DbPool> for NotificationsState {
 mod tests {
     use super::{
         content_published_notification, enrollment_notification, reward_event_notification,
-        role_assignment_notification, worker_failure_notification,
+        role_assignment_notification, teacher_application_notification,
+        worker_failure_notification,
     };
 
     #[test]
@@ -287,6 +334,17 @@ mod tests {
         assert_eq!(
             reward_event_notification("42", "token_transfer", Some(99)).title,
             "reward:recorded"
+        );
+        assert_eq!(
+            teacher_application_notification(
+                55,
+                "approved",
+                "approved",
+                "course",
+                Some("approved by central administration")
+            )
+            .title,
+            "teacher_application:updated"
         );
     }
 }
