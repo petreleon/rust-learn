@@ -339,6 +339,10 @@ Reward candidate authorization is intentionally split by scope:
     `MANAGE_ORG_REWARD_BUDGET`. Organization wallet linking requires
     platform `CREATE_WALLET` or `MANAGE_WALLETS`, or organization-scoped
     `MANAGE_ORG_WALLETS`.
+*   Wallet audit endpoints expose the wallet summary, internal transaction
+    rows, reward payout blockchain events, reward credit records, and an
+    inferred reconciliation status for each related reward candidate. Audit
+    access uses the same view permissions as wallet reads.
 *   Reward candidate eligibility requires a verified recipient, course reward
     status permission for that recipient, a covering active reward policy, and
     event evidence such as completion percentage or passing score. Activity

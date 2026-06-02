@@ -5,6 +5,7 @@ use crate::models::user_jwt::UserJWT;
 use crate::models::wallet::Wallet;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
+use crate::services::wallet_audit_service;
 use crate::services::wallet_service::{self, LinkedWallet};
 use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use diesel::prelude::*;
@@ -242,6 +243,15 @@ async fn get_my_wallet(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Re
     get_user_wallet_by_id(pool, requester.user_id, requester.user_id).await
 }
 
+async fn get_my_wallet_audit(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
+    let requester = match current_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+
+    get_user_wallet_audit_by_id(pool, requester.user_id, requester.user_id).await
+}
+
 async fn link_my_wallet(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
     let requester = match current_user(&req) {
         Ok(user) => user,
@@ -262,6 +272,19 @@ async fn get_user_wallet(
     };
 
     get_user_wallet_by_id(pool, requester.user_id, path.into_inner()).await
+}
+
+async fn get_user_wallet_audit(
+    req: HttpRequest,
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    let requester = match current_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+
+    get_user_wallet_audit_by_id(pool, requester.user_id, path.into_inner()).await
 }
 
 async fn link_user_wallet(
@@ -303,6 +326,41 @@ async fn get_user_wallet_by_id(
 
     match wallet_service::find_user_wallet(&mut conn, target_user_id).await {
         Ok(Some(wallet)) => HttpResponse::Ok().json(WalletResponse::from(&wallet)),
+        Ok(None) => wallet_not_linked_response(),
+        Err(_) => HttpResponse::InternalServerError().body("Failed to load wallet"),
+    }
+}
+
+async fn get_user_wallet_audit_by_id(
+    pool: web::Data<db::DbPool>,
+    requester_id: i32,
+    target_user_id: i32,
+) -> HttpResponse {
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    if let Err(response) = ensure_user_wallet_access(
+        &mut conn,
+        requester_id,
+        target_user_id,
+        WalletOperation::View,
+    )
+    .await
+    {
+        return response;
+    }
+    if let Err(response) = ensure_user_exists(&mut conn, target_user_id).await {
+        return response;
+    }
+
+    match wallet_service::find_user_wallet(&mut conn, target_user_id).await {
+        Ok(Some(wallet)) => match wallet_audit_service::build_wallet_audit(&mut conn, wallet).await
+        {
+            Ok(audit) => HttpResponse::Ok().json(audit),
+            Err(_) => HttpResponse::InternalServerError().body("Failed to load wallet audit"),
+        },
         Ok(None) => wallet_not_linked_response(),
         Err(_) => HttpResponse::InternalServerError().body("Failed to load wallet"),
     }
@@ -351,6 +409,19 @@ async fn get_organization_wallet(
     get_organization_wallet_by_id(pool, requester.user_id, path.into_inner()).await
 }
 
+async fn get_organization_wallet_audit(
+    req: HttpRequest,
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    let requester = match current_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+
+    get_organization_wallet_audit_by_id(pool, requester.user_id, path.into_inner()).await
+}
+
 async fn link_organization_wallet(
     req: HttpRequest,
     path: web::Path<i32>,
@@ -395,6 +466,41 @@ async fn get_organization_wallet_by_id(
     }
 }
 
+async fn get_organization_wallet_audit_by_id(
+    pool: web::Data<db::DbPool>,
+    requester_id: i32,
+    organization_id: i32,
+) -> HttpResponse {
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    if let Err(response) = ensure_organization_exists(&mut conn, organization_id).await {
+        return response;
+    }
+    if let Err(response) = ensure_organization_wallet_access(
+        &mut conn,
+        requester_id,
+        organization_id,
+        WalletOperation::View,
+    )
+    .await
+    {
+        return response;
+    }
+
+    match wallet_service::find_organization_wallet(&mut conn, organization_id).await {
+        Ok(Some(wallet)) => match wallet_audit_service::build_wallet_audit(&mut conn, wallet).await
+        {
+            Ok(audit) => HttpResponse::Ok().json(audit),
+            Err(_) => HttpResponse::InternalServerError().body("Failed to load wallet audit"),
+        },
+        Ok(None) => wallet_not_linked_response(),
+        Err(_) => HttpResponse::InternalServerError().body("Failed to load wallet"),
+    }
+}
+
 async fn link_organization_wallet_by_id(
     pool: web::Data<db::DbPool>,
     requester_id: i32,
@@ -428,10 +534,16 @@ async fn link_organization_wallet_by_id(
 pub fn wallet_scope() -> actix_web::Scope {
     web::scope("/wallets")
         .service(web::resource("/me").route(web::get().to(get_my_wallet)))
+        .service(web::resource("/me/audit").route(web::get().to(get_my_wallet_audit)))
         .service(web::resource("/me/link").route(web::post().to(link_my_wallet)))
         .service(web::resource("/users/{id}").route(web::get().to(get_user_wallet)))
+        .service(web::resource("/users/{id}/audit").route(web::get().to(get_user_wallet_audit)))
         .service(web::resource("/users/{id}/link").route(web::post().to(link_user_wallet)))
         .service(web::resource("/organizations/{id}").route(web::get().to(get_organization_wallet)))
+        .service(
+            web::resource("/organizations/{id}/audit")
+                .route(web::get().to(get_organization_wallet_audit)),
+        )
         .service(
             web::resource("/organizations/{id}/link")
                 .route(web::post().to(link_organization_wallet)),

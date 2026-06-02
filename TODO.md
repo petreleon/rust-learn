@@ -168,7 +168,7 @@ business logic must ask "does this user have this permission in this scope?"
       platform permissions.
 - [x] Gate organization wallet operations with `MANAGE_ORG_WALLETS`,
       `VIEW_ORG_REWARD_REPORTS`, and `MANAGE_ORG_REWARD_BUDGET`.
-- [ ] Add wallet audit views that show internal transactions, external
+- [x] Add wallet audit views that show internal transactions, external
       blockchain events, reward records, and reconciliation status.
 - [ ] Add compensation records for manual reward corrections. Do not mutate
       historical reward decisions in place.
