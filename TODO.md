@@ -25,8 +25,8 @@ business logic must ask "does this user have this permission in this scope?"
       `VIEW_ORG_REWARD_REPORTS`, and `MANAGE_ORG_REWARD_BUDGET`.
 - [ ] Define suggested course permissions:
       `CREATE_REWARDABLE_COURSE_EVENT`, `VIEW_COURSE_REWARD_STATUS`,
-      `SUBMIT_COURSE_REWARD_EVENT`, `GRADE_REWARDABLE_ASSESSMENT`, and
-      `MANAGE_COURSE_REWARD_RULES`.
+      `SUBMIT_COURSE_REWARD_EVENT`, `APPROVE_STUDENT_REWARD_CANDIDATE`,
+      `GRADE_REWARDABLE_ASSESSMENT`, and `MANAGE_COURSE_REWARD_RULES`.
 - [ ] Update `PERMISSIONS.md`, permission constants, seed data, and tests
       whenever a business permission is added or renamed.
 
@@ -74,14 +74,20 @@ business logic must ask "does this user have this permission in this scope?"
 
 - [ ] Add rewardable course events for assessment completion, course
       completion, manually approved completion, and administrative adjustment.
+- [ ] Use a two-step reward decision: course-scoped teacher approval confirms
+      that the student should receive a reward for the course, and
+      platform-scoped amount approval decides the exact token amount.
 - [ ] Restrict manual reward candidate submission for a course to users with
       `SUBMIT_COURSE_REWARD_EVENT` or `CREATE_REWARDABLE_COURSE_EVENT` in that
       exact course scope. This is the permission that should normally be
       granted to the course teacher permission bundle.
+- [ ] Require `APPROVE_STUDENT_REWARD_CANDIDATE` in the exact course scope
+      before a submitted reward candidate can move to amount review. This is
+      the permission that represents the teacher's course-level approval.
 - [ ] Allow organization-level submission for courses attached to that
-      organization only through `SUBMIT_ORG_COURSE_REWARD_EVENT`. This is the
-      permission that should normally be granted to the organization admin
-      permission bundle.
+      organization only through `SUBMIT_ORG_COURSE_REWARD_EVENT`; organization
+      submission creates a pending candidate and must still receive course
+      teacher approval before platform amount approval.
 - [ ] Allow delegated moderators or operators to submit reward candidates only
       when they have a valid delegated permission covering the exact course or
       organization scope. Do not check the moderator role name.
@@ -96,13 +102,17 @@ business logic must ask "does this user have this permission in this scope?"
 - [ ] Add versioned reward policies that define token amounts, multipliers,
       caps, cooldowns, and whether the policy pays from treasury transfer or
       token mint.
-- [ ] Let an authorized reviewer decide the amount a student receives through
-      `APPROVE_REWARD_AMOUNT` or equivalent delegated permission. The reviewer
-      may be backed by an admin/moderator role bundle, but the code must check
-      only the permission.
+- [ ] Let only platform-level reviewers decide the amount a student receives
+      through `APPROVE_REWARD_AMOUNT` or equivalent platform-scoped delegated
+      permission. This permission should normally be assigned to platform admin
+      or platform moderator permission bundles, but the code must check only
+      the permission.
+- [ ] Do not allow course-scoped teacher approval to set or change the token
+      amount. Teacher approval confirms the reward candidate; platform amount
+      approval controls payout value.
 - [ ] Support delegated reward approval so central administration can grant a
-      moderator or another operator permission to review reward amounts without
-      changing reward service logic.
+      platform moderator or another operator permission to review reward
+      amounts without changing reward service logic.
 - [ ] Persist approved, rejected, adjusted, token pending, token confirmed,
       wallet credited, notified, completed, needs reconciliation, and failed
       reward states.
@@ -181,8 +191,9 @@ business logic must ask "does this user have this permission in this scope?"
 ## Frontend Workflows
 
 - [ ] Build the teacher application form and central review queue.
-- [ ] Build reward approval screens that show eligibility evidence and let a
-      permitted reviewer set or adjust the amount.
+- [ ] Build course reward candidate approval screens for permitted course
+      approvers and separate platform amount approval screens for permitted
+      platform reviewers.
 - [ ] Build student reward status/history screens.
 - [ ] Build organization reward reporting screens.
 - [ ] Build delegated-permission management screens for central administration.
@@ -199,6 +210,13 @@ business logic must ask "does this user have this permission in this scope?"
       `SUBMIT_ORG_COURSE_REWARD_EVENT` on an organization attached to the
       course, succeeds for a user with a valid delegated scoped permission, and
       fails for everyone else.
+- [ ] Add tests proving reward candidates cannot enter amount review until a
+      user with `APPROVE_STUDENT_REWARD_CANDIDATE` in the course scope approves
+      the student reward candidate.
+- [ ] Add tests proving only platform permission `APPROVE_REWARD_AMOUNT`, or a
+      valid platform-scoped delegated equivalent, can set the payout amount.
+- [ ] Add tests proving course-scoped teacher permissions can approve the
+      student reward candidate but cannot set or change the token amount.
 - [ ] Add tests proving users with different role names but the same permission
       can perform the same business action.
 - [ ] Add tests proving users with privileged role names but missing the
