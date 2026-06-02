@@ -14,6 +14,7 @@ pub mod path_course;
 pub mod pending_course_organization_invites;
 pub mod persistent_state;
 pub mod reward_candidate;
+pub mod reward_policy;
 pub mod role;
 pub mod role_course_hierarchy;
 pub mod role_organization_hierarchy;

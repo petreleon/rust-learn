@@ -207,6 +207,29 @@ diesel::table! {
 }
 
 diesel::table! {
+    reward_policies (id) {
+        id -> Int8,
+        #[max_length = 32]
+        scope_type -> Varchar,
+        organization_id -> Nullable<Int4>,
+        course_id -> Nullable<Int4>,
+        #[max_length = 64]
+        event_type -> Varchar,
+        version -> Int4,
+        token_amount -> Numeric,
+        multiplier -> Numeric,
+        max_payout -> Nullable<Numeric>,
+        cooldown_seconds -> Int8,
+        #[max_length = 32]
+        payment_strategy -> Varchar,
+        active -> Bool,
+        created_by_user_id -> Nullable<Int4>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     role_course_hierarchy (id) {
         id -> Int4,
         course_role_id -> Nullable<Int4>,
@@ -393,6 +416,9 @@ diesel::joinable!(pending_course_organization_invites -> courses (course_id));
 diesel::joinable!(pending_course_organization_invites -> organizations (organization_id));
 diesel::joinable!(reward_candidates -> courses (course_id));
 diesel::joinable!(reward_candidates -> organizations (source_organization_id));
+diesel::joinable!(reward_policies -> courses (course_id));
+diesel::joinable!(reward_policies -> organizations (organization_id));
+diesel::joinable!(reward_policies -> users (created_by_user_id));
 diesel::joinable!(role_course_hierarchy -> course_roles (course_role_id));
 diesel::joinable!(role_organization_hierarchy -> organization_roles (organization_role_id));
 diesel::joinable!(role_permission_course -> course_roles (course_role_id));
@@ -441,6 +467,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     persistent_states,
     platform_roles,
     reward_candidates,
+    reward_policies,
     role_course_hierarchy,
     role_organization_hierarchy,
     role_permission_course,

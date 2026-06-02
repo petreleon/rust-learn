@@ -105,7 +105,7 @@ business logic must ask "does this user have this permission in this scope?"
 - [ ] Add eligibility checks for enrollment, email verification, course policy,
       organization policy, anti-abuse limits, prior rewards, passing score, and
       completion percentage.
-- [ ] Add versioned reward policies that define token amounts, multipliers,
+- [x] Add versioned reward policies that define token amounts, multipliers,
       caps, cooldowns, and whether the policy pays from treasury transfer or
       token mint.
 - [x] Let only platform-level reviewers decide the amount a student receives

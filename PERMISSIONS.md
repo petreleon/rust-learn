@@ -327,3 +327,7 @@ Reward candidate authorization is intentionally split by scope:
     exact course scope. Platform amount reviewers cannot approve candidates.
 *   Reward amount approval requires platform-scoped `APPROVE_REWARD_AMOUNT`
     and can set payout value only after course-scoped candidate approval.
+*   Reward policy creation and listing require platform-scoped
+    `SET_REWARD_POLICY`. Policies are versioned per scope and event type, and
+    minting is allowed only when the active policy uses the `mint` payment
+    strategy.
