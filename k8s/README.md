@@ -118,6 +118,10 @@ Edit `base/secrets.yaml` and update the values:
 - Admin credentials (ADMIN_NAME, ADMIN_EMAIL, ADMIN_PASSWORD)
 - S3 credentials (S3_ACCESS_KEY, S3_SECRET_KEY)
 
+The base file intentionally contains placeholders only. Replace these values
+with real secrets before deploying, or generate them from your external secret
+manager in an overlay.
+
 ### 2. Build Docker Images
 
 ```bash
@@ -178,6 +182,16 @@ kubectl apply -f k8s/base/ingress.yaml
 kubectl apply -k k8s/base/
 ```
 
+### Manifest Validation
+
+The base manifests are expected to render with `kubectl kustomize k8s/base`.
+Service names line up with in-cluster DNS values used by the app:
+`postgres:5432`, `rustfs:9000`, `anvil:8545`, `rust-app:8080`, and `web:3000`.
+The API deployment uses `/health` for liveness and `/ready` for readiness; the
+readiness endpoint checks PostgreSQL, RustFS/S3, and Ethereum RPC. The worker
+does not expose HTTP, so it has only the heartbeat exec probe and no Service.
+Its memory limit is `3Gi`, matching the Docker Compose worker limit.
+
 ## Useful Commands
 
 ### Check Status
@@ -225,11 +239,14 @@ make k8s-forward SERVICE=web PORT=3000
 ### Access Services
 
 ```bash
-# Check application health
-curl http://localhost:30030/health
-
-# Check API directly
+# Check API liveness and dependency readiness through the API NodePort
 curl http://localhost:30080/health
+curl http://localhost:30080/ready
+
+# Or after forwarding the API service
+kubectl port-forward -n rust-learn svc/rust-app 8080:8080
+curl http://localhost:8080/health
+curl http://localhost:8080/ready
 ```
 
 ## Troubleshooting

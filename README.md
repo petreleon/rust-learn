@@ -147,6 +147,12 @@ rollout or multiple environments.
 
 Do not commit `.env`, real private keys, or production secrets.
 
+### Health and readiness
+
+The API exposes `GET /health` for shallow liveness and `GET /ready` for
+dependency readiness. Readiness checks PostgreSQL, S3-compatible storage, and
+the configured Ethereum JSON-RPC endpoint before returning `ready`.
+
 ### Structured logging
 
 The API and worker initialize structured terminal logging at startup. Logs use

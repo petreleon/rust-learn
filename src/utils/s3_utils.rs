@@ -53,6 +53,12 @@ impl S3State {
         Ok(S3State(Arc::new(client)))
     }
 
+    /// Probe object storage credentials and network connectivity.
+    pub async fn health_check(&self) -> Result<()> {
+        self.0.list_buckets().send().await?;
+        Ok(())
+    }
+
     /// Ensure a bucket exists, creating it if necessary.
     async fn ensure_bucket(&self, bucket: &str) -> Result<()> {
         let exists = self.0.head_bucket().bucket(bucket).send().await.is_ok();

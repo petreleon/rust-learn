@@ -42,7 +42,7 @@ spec:
               memory: "512Mi"
               cpu: "250m"
             limits:
-              memory: "1Gi"
+              memory: "3Gi"
               cpu: "1000m"
           livenessProbe:
             exec:
@@ -66,16 +66,3 @@ spec:
             periodSeconds: 30
             timeoutSeconds: 5
             failureThreshold: 3
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: worker
-  namespace: rust-learn
-spec:
-  selector:
-    app: worker
-  ports:
-    - port: 8080
-      targetPort: 8080
-  type: ClusterIP

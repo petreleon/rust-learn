@@ -3,6 +3,7 @@ pub mod authentication;
 pub mod chapters;
 pub mod contents;
 pub mod courses;
+pub mod health;
 pub mod organizations;
 pub mod reports;
 pub mod roles;

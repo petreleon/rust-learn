@@ -95,6 +95,7 @@ async fn main() -> std::io::Result<()> {
                 web::get().to(api::authentication::jwks),
             )
             .route("/hey", web::get().to(manual_hello))
+            .service(api::health::health_scope())
             .service(api::api_scope())
             .service(hello)
             .service(hello2)
