@@ -4,6 +4,7 @@ pub mod chapters;
 pub mod contents;
 pub mod courses;
 pub mod organizations;
+pub mod reports;
 pub mod roles;
 pub mod users;
 pub mod wallets;
@@ -35,6 +36,7 @@ pub fn api_scope() -> Scope<
         .service(authentication::auth_scope())
         .service(courses::course_scope())
         .service(organizations::organization_scope())
+        .service(reports::reports_scope())
         .service(roles::roles_scope())
         .service(wallets::wallet_scope())
 }

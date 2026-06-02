@@ -189,6 +189,14 @@ query parameters. The response includes `courses`, `total`, `limit`, `offset`,
 `search`, and `organization_id` so learners and organization views can paginate
 and filter discovery results consistently.
 
+### Reporting exports
+
+Platform administrators can read `GET /api/reports/platform/summary` and export
+`GET /api/reports/platform/summary.csv`. Organization administrators can read
+`GET /api/reports/organizations/{id}/summary` and export
+`GET /api/reports/organizations/{id}/summary.csv`. CSV endpoints return
+`text/csv` with attachment filenames.
+
 ### Notification events
 
 Notifications are persisted for key product events: course enrollment, content
