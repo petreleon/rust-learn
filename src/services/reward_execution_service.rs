@@ -4,6 +4,10 @@ use crate::db::schema::{
     transactions_internal_transactions, wallets,
 };
 use crate::models::notification::{NewNotification, Notification};
+use crate::models::reward_audit_event::{
+    NewRewardAuditEvent, REWARD_AUDIT_EVENT_RECONCILED, REWARD_AUDIT_EVENT_TOKEN_CONFIRMED,
+    REWARD_AUDIT_EVENT_WALLET_CREDITED, REWARD_AUDIT_EVENT_WALLET_CREDIT_NOTIFIED,
+};
 use crate::models::reward_candidate::{
     RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_COMPLETED,
     REWARD_STATUS_NEEDS_RECONCILIATION, REWARD_STATUS_NOTIFIED, REWARD_STATUS_TOKEN_CONFIRMED,
@@ -21,6 +25,7 @@ use crate::models::transaction::{
 };
 use crate::models::wallet::Wallet;
 use crate::repositories::persistent_state_repository::get_persistent_state;
+use crate::repositories::reward_audit_event_repository;
 use crate::repositories::reward_candidate_repository;
 use crate::repositories::reward_payout_record_repository;
 use crate::repositories::reward_wallet_credit_record_repository;
@@ -227,6 +232,7 @@ pub async fn reconcile_reward_candidate(
             let mut candidate =
                 reward_candidate_repository::find_candidate(conn, candidate_id).await?;
             ensure_candidate_reconcilable(&candidate)?;
+            let initial_status = candidate.status.clone();
 
             let payout_record =
                 reward_payout_record_repository::find_reward_payout_record_by_candidate(
@@ -288,6 +294,31 @@ pub async fn reconcile_reward_candidate(
                     notify_reward_wallet_credit_for_candidate(conn, &candidate, true).await?;
                 notification_created = notification_result.notified;
                 candidate = reward_candidate_repository::find_candidate(conn, candidate.id).await?;
+            }
+
+            if wallet_credit_created
+                || notification_created
+                || external_transaction_link_repaired
+                || internal_transaction_link_repaired
+            {
+                reward_audit_event_repository::create_reward_audit_event(
+                    conn,
+                    NewRewardAuditEvent {
+                        reward_candidate_id: candidate.id,
+                        actor_user_id: None,
+                        event_type: REWARD_AUDIT_EVENT_RECONCILED.to_string(),
+                        from_status: Some(initial_status),
+                        to_status: candidate.status.clone(),
+                        reason: None,
+                        metadata: serde_json::json!({
+                            "wallet_credit_created": wallet_credit_created,
+                            "notification_created": notification_created,
+                            "external_transaction_link_repaired": external_transaction_link_repaired,
+                            "internal_transaction_link_repaired": internal_transaction_link_repaired,
+                        }),
+                    },
+                )
+                .await?;
             }
 
             Ok(RewardReconciliationResult {
@@ -361,7 +392,25 @@ pub async fn record_reward_token_confirmation(
                     },
                 )
                 .await?;
-                mark_candidate_token_confirmed(conn, candidate.id).await?;
+                let updated = mark_candidate_token_confirmed(conn, candidate.id).await?;
+                reward_audit_event_repository::create_reward_audit_event(
+                    conn,
+                    NewRewardAuditEvent {
+                        reward_candidate_id: updated.id,
+                        actor_user_id: None,
+                        event_type: REWARD_AUDIT_EVENT_TOKEN_CONFIRMED.to_string(),
+                        from_status: Some(candidate.status.clone()),
+                        to_status: updated.status,
+                        reason: None,
+                        metadata: serde_json::json!({
+                            "transaction_id": transaction_id,
+                            "external_transaction_id": external_transaction_id,
+                            "payout_record_id": payout_record.id,
+                            "inserted_external_transaction": inserted_external_transaction,
+                        }),
+                    },
+                )
+                .await?;
 
                 Ok(RewardTokenConfirmationResult {
                     candidate_id: candidate.id,
@@ -479,7 +528,25 @@ async fn credit_reward_wallet_for_candidate(
         },
     )
     .await?;
-    mark_candidate_wallet_credited(conn, candidate.id).await?;
+    let updated = mark_candidate_wallet_credited(conn, candidate.id).await?;
+    reward_audit_event_repository::create_reward_audit_event(
+        conn,
+        NewRewardAuditEvent {
+            reward_candidate_id: updated.id,
+            actor_user_id: None,
+            event_type: REWARD_AUDIT_EVENT_WALLET_CREDITED.to_string(),
+            from_status: Some(candidate.status.clone()),
+            to_status: updated.status,
+            reason: None,
+            metadata: serde_json::json!({
+                "wallet_id": wallet.id,
+                "credit_record_id": credit_record.id,
+                "transaction_id": transaction_id,
+                "internal_transaction_id": internal_transaction_id,
+            }),
+        },
+    )
+    .await?;
 
     Ok(RewardWalletCreditResult {
         candidate_id: candidate.id,
@@ -585,7 +652,24 @@ async fn notify_reward_wallet_credit_for_candidate(
         notification_id,
     )
     .await?;
-    mark_candidate_notified(conn, candidate.id).await?;
+    let updated = mark_candidate_notified(conn, candidate.id).await?;
+    reward_audit_event_repository::create_reward_audit_event(
+        conn,
+        NewRewardAuditEvent {
+            reward_candidate_id: updated.id,
+            actor_user_id: None,
+            event_type: REWARD_AUDIT_EVENT_WALLET_CREDIT_NOTIFIED.to_string(),
+            from_status: Some(candidate.status.clone()),
+            to_status: updated.status,
+            reason: None,
+            metadata: serde_json::json!({
+                "wallet_id": credit_record.wallet_id,
+                "notification_id": notification_id,
+                "transaction_id": credit_record.transaction_id,
+            }),
+        },
+    )
+    .await?;
 
     Ok(RewardWalletCreditNotificationResult {
         candidate_id: candidate.id,

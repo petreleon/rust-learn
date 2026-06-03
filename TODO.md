@@ -206,7 +206,7 @@ business logic must ask "does this user have this permission in this scope?"
 
 ## Data Model And API Work
 
-- [ ] Add migrations for teacher applications, reward policies, reward
+- [x] Add migrations for teacher applications, reward policies, reward
       candidates, reward decisions, reward execution jobs, reward audit events,
       reward fraud blocks, and delegated permissions.
 - [ ] Add repository/service layers for each business workflow. Keep complex

@@ -9,6 +9,10 @@ use rust_learn::db::schema::{
     transactions_external_transactions, transactions_internal_transactions, wallets,
 };
 use rust_learn::models::course::{Course, NewCourse};
+use rust_learn::models::reward_audit_event::{
+    REWARD_AUDIT_EVENT_TOKEN_CONFIRMED, REWARD_AUDIT_EVENT_WALLET_CREDITED,
+    REWARD_AUDIT_EVENT_WALLET_CREDIT_NOTIFIED,
+};
 use rust_learn::models::reward_candidate::{
     NewRewardCandidate, RewardCandidate, REWARD_EVENT_COURSE_COMPLETION, REWARD_SOURCE_COURSE,
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_NOTIFIED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
@@ -20,6 +24,7 @@ use rust_learn::models::reward_policy::{
 };
 use rust_learn::models::user::User;
 use rust_learn::repositories::persistent_state_repository::set_persistent_state;
+use rust_learn::repositories::reward_audit_event_repository::list_reward_audit_events;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::reward_execution_service::{
     credit_reward_wallet, notify_reward_wallet_credit, plan_reward_payout,
@@ -433,6 +438,26 @@ async fn wallet_credit_notification_persists_context_and_is_idempotent() {
         .await
         .expect("reward wallet notifications should be countable");
     assert_eq!(notification_count, 1);
+
+    let audit = list_reward_audit_events(&mut conn, candidate.id)
+        .await
+        .expect("wallet credit audit events should load");
+    assert_eq!(audit.len(), 2);
+    assert_eq!(audit[0].event_type, REWARD_AUDIT_EVENT_WALLET_CREDITED);
+    assert_eq!(
+        audit[0].from_status.as_deref(),
+        Some(REWARD_STATUS_TOKEN_CONFIRMED)
+    );
+    assert_eq!(audit[0].to_status, REWARD_STATUS_WALLET_CREDITED);
+    assert_eq!(
+        audit[1].event_type,
+        REWARD_AUDIT_EVENT_WALLET_CREDIT_NOTIFIED
+    );
+    assert_eq!(
+        audit[1].from_status.as_deref(),
+        Some(REWARD_STATUS_WALLET_CREDITED)
+    );
+    assert_eq!(audit[1].to_status, REWARD_STATUS_NOTIFIED);
 }
 
 #[actix_web::test]
@@ -586,6 +611,21 @@ async fn token_confirmation_records_external_transaction_and_candidate_link() {
         confirmation.external_transaction_id
     );
     assert_eq!(duplicate.payout_record_id, confirmation.payout_record_id);
+
+    let audit = list_reward_audit_events(&mut conn, candidate.id)
+        .await
+        .expect("token confirmation audit events should load");
+    assert_eq!(
+        audit.len(),
+        1,
+        "duplicate token confirmation must not create a second audit transition"
+    );
+    assert_eq!(audit[0].event_type, REWARD_AUDIT_EVENT_TOKEN_CONFIRMED);
+    assert_eq!(
+        audit[0].from_status.as_deref(),
+        Some(REWARD_STATUS_TOKEN_PENDING)
+    );
+    assert_eq!(audit[0].to_status, REWARD_STATUS_TOKEN_CONFIRMED);
 }
 
 #[actix_web::test]

@@ -201,6 +201,23 @@ diesel::table! {
 }
 
 diesel::table! {
+    reward_audit_events (id) {
+        id -> Int8,
+        reward_candidate_id -> Int8,
+        actor_user_id -> Nullable<Int4>,
+        #[max_length = 64]
+        event_type -> Varchar,
+        #[max_length = 32]
+        from_status -> Nullable<Varchar>,
+        #[max_length = 32]
+        to_status -> Varchar,
+        reason -> Nullable<Text>,
+        metadata -> Jsonb,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     reward_candidates (id) {
         id -> Int8,
         course_id -> Int4,
@@ -510,6 +527,8 @@ diesel::joinable!(paths_courses -> courses (course_id));
 diesel::joinable!(paths_courses -> paths (path_id));
 diesel::joinable!(pending_course_organization_invites -> courses (course_id));
 diesel::joinable!(pending_course_organization_invites -> organizations (organization_id));
+diesel::joinable!(reward_audit_events -> reward_candidates (reward_candidate_id));
+diesel::joinable!(reward_audit_events -> users (actor_user_id));
 diesel::joinable!(reward_candidates -> courses (course_id));
 diesel::joinable!(reward_candidates -> organizations (source_organization_id));
 diesel::joinable!(reward_compensation_records -> internal_transactions (internal_transaction_id));
@@ -580,6 +599,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     pending_course_organization_invites,
     persistent_states,
     platform_roles,
+    reward_audit_events,
     reward_candidates,
     reward_compensation_records,
     reward_execution_jobs,

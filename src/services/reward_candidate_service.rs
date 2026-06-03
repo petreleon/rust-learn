@@ -2,6 +2,10 @@ use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{
     courses, courses_organizations, reward_candidates, reward_fraud_blocks, reward_policies, users,
 };
+use crate::models::reward_audit_event::{
+    NewRewardAuditEvent, REWARD_AUDIT_EVENT_AMOUNT_DECISION,
+    REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED, REWARD_AUDIT_EVENT_TEACHER_DECISION,
+};
 use crate::models::reward_candidate::{
     NewRewardCandidate, RewardCandidate, REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT,
     REWARD_EVENT_ASSESSMENT_COMPLETION, REWARD_EVENT_COURSE_COMPLETION,
@@ -22,6 +26,7 @@ use crate::models::reward_policy::{
 use crate::repositories::course_repository::user_permission_course_request;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
+use crate::repositories::reward_audit_event_repository;
 use crate::repositories::reward_candidate_repository::{self, RewardCandidateFilter};
 use crate::repositories::reward_execution_job_repository;
 use bigdecimal::BigDecimal;
@@ -153,6 +158,7 @@ pub async fn decide_reward_candidate_by_teacher(
                         "reward candidate has already left teacher approval".to_string(),
                     ));
                 }
+                let from_status = existing.status.clone();
 
                 ensure_no_active_reward_fraud_block(
                     conn,
@@ -163,7 +169,7 @@ pub async fn decide_reward_candidate_by_teacher(
                 )
                 .await?;
 
-                reward_candidate_repository::update_teacher_decision(
+                let updated = reward_candidate_repository::update_teacher_decision(
                     conn,
                     candidate_id,
                     actor_user_id,
@@ -172,7 +178,24 @@ pub async fn decide_reward_candidate_by_teacher(
                     Utc::now(),
                 )
                 .await
-                .map_err(RewardCandidateError::from)
+                .map_err(RewardCandidateError::from)?;
+
+                reward_audit_event_repository::create_reward_audit_event(
+                    conn,
+                    NewRewardAuditEvent {
+                        reward_candidate_id: updated.id,
+                        actor_user_id: Some(actor_user_id),
+                        event_type: REWARD_AUDIT_EVENT_TEACHER_DECISION.to_string(),
+                        from_status: Some(from_status),
+                        to_status: updated.status.clone(),
+                        reason: request.decision_reason.clone(),
+                        metadata: json!({}),
+                    },
+                )
+                .await
+                .map_err(RewardCandidateError::from)?;
+
+                Ok(updated)
             })
         })
         .await?;
@@ -233,6 +256,7 @@ pub async fn decide_reward_amount(
                         "reward amount can be decided only after teacher approval".to_string(),
                     ));
                 }
+                let from_status = existing.status.clone();
 
                 let teacher_user_ids = candidate_teacher_user_ids(&existing);
                 ensure_no_active_reward_fraud_block(
@@ -249,9 +273,26 @@ pub async fn decide_reward_amount(
                     candidate_id,
                     actor_user_id,
                     &target_status,
-                    approved_amount,
+                    approved_amount.clone(),
                     request.decision_reason.as_deref(),
                     Utc::now(),
+                )
+                .await
+                .map_err(RewardCandidateError::from)?;
+
+                reward_audit_event_repository::create_reward_audit_event(
+                    conn,
+                    NewRewardAuditEvent {
+                        reward_candidate_id: updated.id,
+                        actor_user_id: Some(actor_user_id),
+                        event_type: REWARD_AUDIT_EVENT_AMOUNT_DECISION.to_string(),
+                        from_status: Some(from_status),
+                        to_status: updated.status.clone(),
+                        reason: request.decision_reason.clone(),
+                        metadata: json!({
+                            "approved_amount": updated.approved_amount.as_ref().map(ToString::to_string),
+                        }),
+                    },
                 )
                 .await
                 .map_err(RewardCandidateError::from)?;
@@ -417,9 +458,38 @@ async fn create_reward_candidate(
         status: REWARD_STATUS_PENDING_TEACHER_APPROVAL.to_string(),
     };
 
-    let created = reward_candidate_repository::create_candidate(conn, new_candidate)
-        .await
-        .map_err(RewardCandidateError::from)?;
+    let created = conn
+        .transaction::<_, RewardCandidateError, _>(|conn| {
+            Box::pin(async move {
+                let created = reward_candidate_repository::create_candidate(conn, new_candidate)
+                    .await
+                    .map_err(RewardCandidateError::from)?;
+                reward_audit_event_repository::create_reward_audit_event(
+                    conn,
+                    NewRewardAuditEvent {
+                        reward_candidate_id: created.id,
+                        actor_user_id: Some(actor_user_id),
+                        event_type: REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED.to_string(),
+                        from_status: None,
+                        to_status: created.status.clone(),
+                        reason: None,
+                        metadata: json!({
+                            "course_id": created.course_id,
+                            "student_user_id": created.student_user_id,
+                            "source_scope": created.source_scope.clone(),
+                            "source_organization_id": created.source_organization_id,
+                            "event_type": created.event_type.clone(),
+                            "idempotency_key": created.idempotency_key.clone(),
+                        }),
+                    },
+                )
+                .await
+                .map_err(RewardCandidateError::from)?;
+
+                Ok(created)
+            })
+        })
+        .await?;
 
     log::info!(
         "event=reward_candidate_submitted candidate_id={} actor_user_id={} student_user_id={} course_id={} status={} event_type={} source_scope={} source_organization_id={:?} idempotency_key={}",

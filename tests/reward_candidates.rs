@@ -12,6 +12,10 @@ use rust_learn::db::schema::{
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};
+use rust_learn::models::reward_audit_event::{
+    REWARD_AUDIT_EVENT_AMOUNT_DECISION, REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED,
+    REWARD_AUDIT_EVENT_TEACHER_DECISION,
+};
 use rust_learn::models::reward_candidate::{
     REWARD_EVENT_COURSE_COMPLETION, REWARD_EVENT_MANUAL_COMPLETION, REWARD_SOURCE_ORGANIZATION,
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
@@ -30,6 +34,7 @@ use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::repositories::reward_audit_event_repository::list_reward_audit_events;
 use rust_learn::repositories::reward_candidate_repository::find_candidate;
 use rust_learn::repositories::reward_execution_job_repository::find_job_by_candidate;
 use rust_learn::repositories::user_repository::create_user;
@@ -690,6 +695,19 @@ async fn custom_course_roles_with_reward_permissions_can_submit_and_approve_cand
     .await
     .expect("custom role with submit permission should create reward candidate");
     assert_eq!(candidate.status, REWARD_STATUS_PENDING_TEACHER_APPROVAL);
+    let submitted_audit = list_reward_audit_events(&mut conn, candidate.id)
+        .await
+        .expect("submitted reward audit events should load");
+    assert_eq!(submitted_audit.len(), 1);
+    assert_eq!(
+        submitted_audit[0].event_type,
+        REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED
+    );
+    assert_eq!(submitted_audit[0].actor_user_id, Some(submitter.id()));
+    assert_eq!(
+        submitted_audit[0].to_status,
+        REWARD_STATUS_PENDING_TEACHER_APPROVAL
+    );
     assert_eq!(candidate.submitter_user_id, submitter.id());
 
     let approved = decide_reward_candidate_by_teacher(
@@ -915,6 +933,32 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
         execution_job_count, 1,
         "idempotent amount approval retry must not enqueue another execution job"
     );
+
+    let audit = list_reward_audit_events(&mut conn, candidate.id)
+        .await
+        .expect("reward audit events should load");
+    assert_eq!(
+        audit.len(),
+        3,
+        "idempotent approval retries must not create duplicate audit transitions"
+    );
+    assert_eq!(audit[0].event_type, REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED);
+    assert_eq!(audit[0].from_status, None);
+    assert_eq!(audit[0].to_status, REWARD_STATUS_PENDING_TEACHER_APPROVAL);
+    assert_eq!(audit[1].event_type, REWARD_AUDIT_EVENT_TEACHER_DECISION);
+    assert_eq!(
+        audit[1].from_status.as_deref(),
+        Some(REWARD_STATUS_PENDING_TEACHER_APPROVAL)
+    );
+    assert_eq!(audit[1].to_status, REWARD_STATUS_TEACHER_APPROVED);
+    assert_eq!(audit[1].actor_user_id, Some(teacher.id()));
+    assert_eq!(audit[2].event_type, REWARD_AUDIT_EVENT_AMOUNT_DECISION);
+    assert_eq!(
+        audit[2].from_status.as_deref(),
+        Some(REWARD_STATUS_TEACHER_APPROVED)
+    );
+    assert_eq!(audit[2].to_status, REWARD_STATUS_AMOUNT_APPROVED);
+    assert_eq!(audit[2].actor_user_id, Some(reviewer.id()));
 }
 
 #[actix_web::test]
