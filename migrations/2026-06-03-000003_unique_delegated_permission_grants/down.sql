@@ -1,0 +1,3 @@
+DROP INDEX IF EXISTS delegated_permissions_unique_course_retry_idx;
+DROP INDEX IF EXISTS delegated_permissions_unique_organization_retry_idx;
+DROP INDEX IF EXISTS delegated_permissions_unique_platform_retry_idx;

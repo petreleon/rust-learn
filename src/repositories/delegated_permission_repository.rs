@@ -22,10 +22,26 @@ pub async fn create_delegated_permission(
     conn: &mut AsyncPgConnection,
     new_delegation: NewDelegatedPermission,
 ) -> QueryResult<DelegatedPermission> {
-    diesel::insert_into(delegated_permissions::table)
+    if let Some(inserted) = diesel::insert_into(delegated_permissions::table)
         .values(&new_delegation)
+        .on_conflict_do_nothing()
         .get_result(conn)
         .await
+        .optional()?
+    {
+        return Ok(inserted);
+    }
+
+    find_active_delegated_permission(
+        conn,
+        new_delegation.grantee_user_id,
+        &new_delegation.permission,
+        &new_delegation.scope_type,
+        new_delegation.organization_id,
+        new_delegation.course_id,
+    )
+    .await?
+    .ok_or(diesel::result::Error::NotFound)
 }
 
 pub async fn find_delegated_permission(

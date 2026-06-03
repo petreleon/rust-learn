@@ -217,7 +217,7 @@ business logic must ask "does this user have this permission in this scope?"
 - [x] Add API endpoints for platform fraud-block creation, revocation, listing,
       and audit history. These endpoints must not share handlers with reward
       candidate approval or amount approval.
-- [ ] Add idempotency keys and unique constraints wherever a business event can
+- [x] Add idempotency keys and unique constraints wherever a business event can
       be retried.
 - [x] Add structured logs for teacher application transitions, reward decisions,
       delegated permission checks, token execution, wallet credit, and
