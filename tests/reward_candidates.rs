@@ -5,8 +5,9 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{
-    course_roles, courses, courses_organizations, organizations, platform_roles, reward_policies,
-    role_permission_course, role_permission_platform, users,
+    course_roles, courses, courses_organizations, organizations, platform_roles,
+    reward_execution_jobs, reward_policies, role_permission_course, role_permission_platform,
+    users,
 };
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
@@ -849,6 +850,22 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     );
     assert!(teacher_approved.approved_amount.is_none());
 
+    let teacher_replay = decide_reward_candidate_by_teacher(
+        &mut conn,
+        teacher.id(),
+        course.id,
+        candidate.id,
+        TeacherRewardCandidateDecisionRequest {
+            status: "approved".to_string(),
+            decision_reason: Some("retry after transport timeout".to_string()),
+        },
+    )
+    .await
+    .expect("repeated teacher approval should be idempotent");
+    assert_eq!(teacher_replay.id, teacher_approved.id);
+    assert_eq!(teacher_replay.status, REWARD_STATUS_TEACHER_APPROVED);
+    assert_eq!(teacher_replay.approved_amount, None);
+
     let amount = BigDecimal::from_str("25.50").expect("valid decimal");
     let amount_approved = decide_reward_amount(
         &mut conn,
@@ -864,13 +881,40 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     .expect("platform reviewer should approve amount after teacher approval");
     assert_eq!(amount_approved.status, REWARD_STATUS_AMOUNT_APPROVED);
     assert_eq!(amount_approved.amount_reviewer_user_id, Some(reviewer.id()));
-    assert_eq!(amount_approved.approved_amount, Some(amount));
+    assert_eq!(amount_approved.approved_amount, Some(amount.clone()));
 
     let execution_job = find_job_by_candidate(&mut conn, candidate.id)
         .await
         .expect("execution job lookup should succeed")
         .expect("amount approval should enqueue execution job");
     assert_eq!(execution_job.status, REWARD_EXECUTION_STATUS_QUEUED);
+
+    let amount_replay = decide_reward_amount(
+        &mut conn,
+        reviewer.id(),
+        candidate.id,
+        RewardAmountDecisionRequest {
+            status: "approved".to_string(),
+            approved_amount: Some(BigDecimal::from(999)),
+            decision_reason: Some("retry with stale client payload".to_string()),
+        },
+    )
+    .await
+    .expect("repeated amount approval should return the existing decision");
+    assert_eq!(amount_replay.id, amount_approved.id);
+    assert_eq!(amount_replay.status, REWARD_STATUS_AMOUNT_APPROVED);
+    assert_eq!(amount_replay.approved_amount, Some(amount));
+
+    let execution_job_count: i64 = reward_execution_jobs::table
+        .filter(reward_execution_jobs::reward_candidate_id.eq(candidate.id))
+        .count()
+        .get_result(&mut conn)
+        .await
+        .expect("execution jobs should be countable");
+    assert_eq!(
+        execution_job_count, 1,
+        "idempotent amount approval retry must not enqueue another execution job"
+    );
 }
 
 #[actix_web::test]

@@ -265,7 +265,7 @@ business logic must ask "does this user have this permission in this scope?"
       can perform the same business action.
 - [x] Add tests proving users with privileged role names but missing the
       required permission cannot perform the business action.
-- [ ] Add idempotency tests for teacher applications, reward candidates, reward
+- [x] Add idempotency tests for teacher applications, reward candidates, reward
       approval, token execution, wallet credit, and reconciliation.
 - [ ] Add Docker Compose integration tests for PostgreSQL-backed reward flows,
       wallet credit, notifications, and Anvil token transaction recording.
