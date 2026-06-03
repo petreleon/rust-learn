@@ -38,6 +38,45 @@ pub async fn find_delegated_permission(
         .await
 }
 
+pub async fn find_active_delegated_permission(
+    conn: &mut AsyncPgConnection,
+    grantee_user_id: i32,
+    permission: &str,
+    scope_type: &str,
+    organization_id: Option<i32>,
+    course_id: Option<i32>,
+) -> QueryResult<Option<DelegatedPermission>> {
+    let now = Utc::now();
+    let mut query = delegated_permissions::table
+        .filter(delegated_permissions::grantee_user_id.eq(grantee_user_id))
+        .filter(delegated_permissions::permission.eq(permission))
+        .filter(delegated_permissions::scope_type.eq(scope_type))
+        .filter(delegated_permissions::revoked_at.is_null())
+        .filter(
+            delegated_permissions::expires_at
+                .is_null()
+                .or(delegated_permissions::expires_at.gt(now)),
+        )
+        .into_boxed();
+
+    query = match organization_id {
+        Some(organization_id) => {
+            query.filter(delegated_permissions::organization_id.eq(organization_id))
+        }
+        None => query.filter(delegated_permissions::organization_id.is_null()),
+    };
+    query = match course_id {
+        Some(course_id) => query.filter(delegated_permissions::course_id.eq(course_id)),
+        None => query.filter(delegated_permissions::course_id.is_null()),
+    };
+
+    query
+        .order(delegated_permissions::created_at.desc())
+        .first(conn)
+        .await
+        .optional()
+}
+
 pub async fn list_delegated_permissions(
     conn: &mut AsyncPgConnection,
     filter: DelegatedPermissionFilter,

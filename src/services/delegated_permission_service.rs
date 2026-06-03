@@ -71,6 +71,27 @@ pub async fn grant_delegated_permission(
         }
     }
 
+    if let Some(existing) = delegated_permission_repository::find_active_delegated_permission(
+        conn,
+        request.grantee_user_id,
+        &permission,
+        &scope_type,
+        organization_id,
+        course_id,
+    )
+    .await?
+    {
+        log::info!(
+            "event=delegated_permission_idempotent_replay delegation_id={} grantor_user_id={} grantee_user_id={} permission={} scope_type={}",
+            existing.id,
+            grantor_user_id,
+            existing.grantee_user_id,
+            existing.permission,
+            existing.scope_type
+        );
+        return Ok(existing);
+    }
+
     let delegation = delegated_permission_repository::create_delegated_permission(
         conn,
         NewDelegatedPermission {

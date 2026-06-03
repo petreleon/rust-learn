@@ -5,7 +5,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{
-    courses, courses_organizations, organizations, reward_policies, users,
+    courses, courses_organizations, delegated_permissions, organizations, reward_policies, users,
 };
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
@@ -185,7 +185,7 @@ async fn delegated_course_permission_submits_candidate_without_course_role() {
     .expect_err("operator without role or delegation must be denied");
     assert!(matches!(denied, RewardCandidateError::PermissionDenied(_)));
 
-    grant_delegated_permission(
+    let delegation = grant_delegated_permission(
         &mut conn,
         admin.id(),
         GrantDelegatedPermissionRequest {
@@ -200,6 +200,37 @@ async fn delegated_course_permission_submits_candidate_without_course_role() {
     )
     .await
     .expect("admin should delegate course reward submission");
+    let replayed_delegation = grant_delegated_permission(
+        &mut conn,
+        admin.id(),
+        GrantDelegatedPermissionRequest {
+            grantee_user_id: operator.id(),
+            permission: Permissions::SUBMIT_COURSE_REWARD_EVENT.to_string(),
+            scope_type: DELEGATED_SCOPE_COURSE.to_string(),
+            organization_id: None,
+            course_id: Some(course.id),
+            reason: Some("retry after client timeout".to_string()),
+            expires_at: None,
+        },
+    )
+    .await
+    .expect("duplicate active delegated permission grant should be idempotent");
+    assert_eq!(replayed_delegation.id, delegation.id);
+
+    let active_delegation_count: i64 = delegated_permissions::table
+        .filter(delegated_permissions::grantee_user_id.eq(operator.id()))
+        .filter(
+            delegated_permissions::permission
+                .eq(Permissions::SUBMIT_COURSE_REWARD_EVENT.to_string()),
+        )
+        .filter(delegated_permissions::scope_type.eq(DELEGATED_SCOPE_COURSE))
+        .filter(delegated_permissions::course_id.eq(Some(course.id)))
+        .filter(delegated_permissions::revoked_at.is_null())
+        .count()
+        .get_result(&mut conn)
+        .await
+        .expect("delegated permissions should be countable");
+    assert_eq!(active_delegation_count, 1);
 
     assert!(user_permission_course_request(
         &mut conn,
