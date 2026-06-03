@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rustfs
+  namespace: rust-learn
+spec:
+  template:
+    spec:
+      containers:
+        - name: rustfs
+          env:
+            - name: RUSTFS_UNSAFE_BYPASS_DISK_CHECK
+              value: "true"

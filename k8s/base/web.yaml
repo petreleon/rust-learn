@@ -18,7 +18,7 @@ spec:
       containers:
         - name: web
           image: web:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           env:

@@ -18,8 +18,20 @@ spec:
       initContainers:
         - name: migrate
           image: rust-app:latest
-          imagePullPolicy: Never
-          command: ["diesel", "migration", "run"]
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-lc"]
+          args:
+            - |
+              for i in {1..60}; do
+                if diesel migration run; then
+                  echo "[migrate] Migrations applied"
+                  exit 0
+                fi
+                echo "[migrate] Diesel migration attempt $i failed; retrying in 2s..."
+                sleep 2
+              done
+              echo "[migrate] Migrations failed after 60 attempts"
+              exit 1
           envFrom:
             - secretRef:
                 name: postgres-secret
@@ -31,10 +43,36 @@ spec:
                 secretKeyRef:
                   name: postgres-secret
                   key: DATABASE_URL
+        - name: wait-for-runtime-services
+          image: rust-app:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-lc"]
+          args:
+            - |
+              wait_for_tcp() {
+                local name="$1"
+                local host="$2"
+                local port="$3"
+
+                for i in {1..120}; do
+                  if timeout 2 bash -c ":</dev/tcp/${host}/${port}" 2>/dev/null; then
+                    echo "[wait] ${name} is reachable at ${host}:${port}"
+                    return 0
+                  fi
+                  echo "[wait] ${name} not ready at ${host}:${port}; retrying in 2s..."
+                  sleep 2
+                done
+
+                echo "[wait] ${name} did not become reachable at ${host}:${port}"
+                return 1
+              }
+
+              wait_for_tcp "Anvil" "anvil" "8545"
+              wait_for_tcp "RustFS" "rustfs" "9000"
       containers:
         - name: rust-app
           image: rust-app:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           command: ["/usr/src/app/scripts/app-entrypoint.sh"]
           ports:
             - containerPort: 8080

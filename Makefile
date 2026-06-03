@@ -1,11 +1,13 @@
 .PHONY: help build run stop test clean docker-build docker-up docker-down setup health \
-  k8s-build k8s-apply k8s-delete k8s-status k8s-logs k8s-forward \
+  k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
   dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
   test-integration fmt web-lint web-build
 
 # Variables
 PROJECT_NAME := rust-learn
 K8S_NAMESPACE := rust-learn
+K8S_BASE := k8s/base
+K8S_DEV := k8s/overlays/dev
 
 # Colors for output
 GREEN := \033[0;32m
@@ -44,23 +46,51 @@ docker-down: ## Stop docker-compose
 # Kubernetes
 k8s-build: ## Build Docker images for Kubernetes
 	@echo "$(YELLOW)Building Docker images...$(NC)"
-	docker build -t rust-app:latest .
-	docker build -t web:latest ./web
+	@if command -v minikube >/dev/null 2>&1 && [ "$$(kubectl config current-context 2>/dev/null)" = "minikube" ]; then \
+		echo "$(YELLOW)Detected minikube context; building locally and loading images into minikube...$(NC)"; \
+		docker build -t rust-app:latest .; \
+		docker build -t web:latest ./web; \
+		minikube image load rust-app:latest; \
+		minikube image load web:latest; \
+	else \
+		docker build -t rust-app:latest .; \
+		docker build -t web:latest ./web; \
+	fi
 
 k8s-apply: ## Apply all Kubernetes resources
 	@echo "$(YELLOW)Applying Kubernetes resources...$(NC)"
-	kubectl apply -k k8s/base/
-	@echo "$(GREEN)Waiting for pods to be ready...$(NC)"
-	kubectl wait --for=condition=ready pod -l app=postgres -n $(K8S_NAMESPACE) --timeout=180s || true
-	kubectl wait --for=condition=ready pod -l app=rustfs -n $(K8S_NAMESPACE) --timeout=180s || true
-	kubectl wait --for=condition=ready pod -l app=anvil -n $(K8S_NAMESPACE) --timeout=180s || true
-	kubectl wait --for=condition=ready pod -l app=rust-app -n $(K8S_NAMESPACE) --timeout=180s || true
-	kubectl wait --for=condition=ready pod -l app=web -n $(K8S_NAMESPACE) --timeout=180s || true
+	kubectl apply -k $(K8S_BASE)/
+	@echo "$(GREEN)Waiting for deployments to roll out...$(NC)"
+	kubectl rollout status deployment/postgres -n $(K8S_NAMESPACE) --timeout=180s
+	kubectl rollout status deployment/rustfs -n $(K8S_NAMESPACE) --timeout=180s
+	kubectl rollout status deployment/anvil -n $(K8S_NAMESPACE) --timeout=180s
+	kubectl rollout status deployment/rust-app -n $(K8S_NAMESPACE) --timeout=300s
+	kubectl rollout status deployment/worker -n $(K8S_NAMESPACE) --timeout=240s
+	kubectl rollout status deployment/web -n $(K8S_NAMESPACE) --timeout=180s
 	@echo "$(GREEN)Deployment complete!$(NC)"
+
+k8s-dev-secrets: ## Generate ignored local Kubernetes development secrets
+	@./scripts/generate-k8s-dev-secrets.sh
+
+k8s-dev-apply: k8s-dev-secrets ## Apply local Kubernetes overlay with generated development secrets
+	@echo "$(YELLOW)Applying local Kubernetes development overlay...$(NC)"
+	kubectl apply -k $(K8S_DEV)/
+	@echo "$(GREEN)Waiting for deployments to roll out...$(NC)"
+	kubectl rollout status deployment/postgres -n $(K8S_NAMESPACE) --timeout=180s
+	kubectl rollout status deployment/rustfs -n $(K8S_NAMESPACE) --timeout=180s
+	kubectl rollout status deployment/anvil -n $(K8S_NAMESPACE) --timeout=180s
+	kubectl rollout status deployment/rust-app -n $(K8S_NAMESPACE) --timeout=300s
+	kubectl rollout status deployment/worker -n $(K8S_NAMESPACE) --timeout=240s
+	kubectl rollout status deployment/web -n $(K8S_NAMESPACE) --timeout=180s
+	@echo "$(GREEN)Development deployment complete!$(NC)"
+
+k8s-dev-delete: ## Delete local Kubernetes development overlay resources
+	@echo "$(YELLOW)Deleting local Kubernetes development overlay...$(NC)"
+	kubectl delete -k $(K8S_DEV)/
 
 k8s-delete: ## Delete all Kubernetes resources
 	@echo "$(YELLOW)Deleting Kubernetes resources...$(NC)"
-	kubectl delete -k k8s/base/
+	kubectl delete -k $(K8S_BASE)/
 	@echo "$(GREEN)All resources have been deleted!$(NC)"
 
 k8s-status: ## Display pod status

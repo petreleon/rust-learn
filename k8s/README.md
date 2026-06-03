@@ -19,7 +19,7 @@ k8s/
 │   ├── ingress.yaml          # Ingress for web access
 │   └── kustomization.yaml    # Kustomize configuration
 └── overlays/
-    └── production/           # Production overlay
+    └── dev/                  # Local Minikube/dev overlay
 ```
 
 ## Accessing the Web Application
@@ -137,11 +137,34 @@ make k8s-build
 
 ## Deployment
 
-### Quick Deploy (using Makefile)
+### Quick Deploy (local Minikube/dev)
 
 ```bash
-# Build images and deploy everything
+# Build images into the active Kubernetes image runtime. When the current
+# context is minikube this builds local Docker images and loads them into
+# Minikube.
 make k8s-build
+
+# Generate ignored local development secrets and deploy the dev overlay.
+make k8s-dev-apply
+```
+
+The dev overlay writes `k8s/overlays/dev/secrets.patch.yaml`, which contains
+generated local RSA keys and development credentials. That file is ignored by
+git and must not be committed. Existing local dev secrets are preserved on
+later runs; set `K8S_DEV_SECRETS_FORCE=1` when you intentionally want to
+regenerate them.
+
+The dev overlay also skips the base ingress resource and enables RustFS's local
+single-disk bypass. Use the base manifests or a production overlay when an
+ingress controller and proper multi-disk/PV object-storage topology are
+available.
+
+### Base Deploy
+
+```bash
+# Use this only after replacing the placeholder base secrets or layering in
+# secrets from your cluster/external secret manager.
 make k8s-apply
 ```
 
@@ -191,6 +214,13 @@ The API deployment uses `/health` for liveness and `/ready` for readiness; the
 readiness endpoint checks PostgreSQL, RustFS/S3, and Ethereum RPC. The worker
 does not expose HTTP, so it has only the heartbeat exec probe and no Service.
 Its memory limit is `3Gi`, matching the Docker Compose worker limit.
+
+For local Minikube, verify the storage addon if PVCs remain pending:
+
+```bash
+kubectl get pods -n kube-system | grep storage-provisioner
+minikube addons enable storage-provisioner
+```
 
 ## Useful Commands
 

@@ -3,3 +3,4 @@
 private_key.pem
 public_key.pem
 **/.DS_Store
+k8s/overlays/dev/secrets.patch.yaml

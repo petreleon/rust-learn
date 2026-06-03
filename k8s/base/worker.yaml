@@ -18,7 +18,7 @@ spec:
       containers:
         - name: worker
           image: rust-app:latest
-          imagePullPolicy: Never
+          imagePullPolicy: IfNotPresent
           command: ["/usr/local/bin/worker"]
           envFrom:
             - configMapRef:
