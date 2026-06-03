@@ -211,7 +211,7 @@ pub async fn platform_reward_dashboard(
 
     let pending_amount_approvals = reward_candidates::table
         .filter(reward_candidates::status.eq(REWARD_STATUS_TEACHER_APPROVED))
-        .order(reward_candidates::updated_at.asc())
+        .order(reward_candidates::updated_at.desc())
         .limit(50)
         .load::<RewardCandidate>(conn)
         .await?

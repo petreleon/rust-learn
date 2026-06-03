@@ -406,6 +406,7 @@ diesel::table! {
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
         decided_at -> Nullable<Timestamptz>,
+        idempotency_key -> Nullable<Text>,
     }
 }
 

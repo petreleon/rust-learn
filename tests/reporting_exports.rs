@@ -156,6 +156,7 @@ async fn create_teacher_application(conn: &mut AsyncPgConnection, applicant_user
             organization_sponsor_id: None,
             portfolio_links: json!([]),
             status: TEACHER_APPLICATION_STATUS_SUBMITTED.to_string(),
+            idempotency_key: None,
         })
         .returning(teacher_applications::id)
         .get_result(conn)
@@ -178,6 +179,7 @@ async fn create_sponsored_teacher_application(
             organization_sponsor_id: Some(organization_id),
             portfolio_links: json!([]),
             status: TEACHER_APPLICATION_STATUS_SUBMITTED.to_string(),
+            idempotency_key: None,
         })
         .returning(teacher_applications::id)
         .get_result(conn)

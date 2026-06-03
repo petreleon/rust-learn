@@ -54,6 +54,17 @@ pub async fn find_application(
         .await
 }
 
+pub async fn find_application_by_idempotency_key(
+    conn: &mut AsyncPgConnection,
+    idempotency_key: &str,
+) -> QueryResult<Option<TeacherApplication>> {
+    teacher_applications::table
+        .filter(teacher_applications::idempotency_key.eq(idempotency_key))
+        .first::<TeacherApplication>(conn)
+        .await
+        .optional()
+}
+
 pub async fn list_applications(
     conn: &mut AsyncPgConnection,
     filter: TeacherApplicationFilter,

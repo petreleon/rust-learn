@@ -30,6 +30,7 @@ pub struct TeacherApplication {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub decided_at: Option<DateTime<Utc>>,
+    pub idempotency_key: Option<String>,
 }
 
 #[derive(Insertable, Debug)]
@@ -43,6 +44,7 @@ pub struct NewTeacherApplication {
     pub organization_sponsor_id: Option<i32>,
     pub portfolio_links: Value,
     pub status: String,
+    pub idempotency_key: Option<String>,
 }
 
 #[derive(Queryable, Identifiable, Selectable, Debug, Clone, Serialize)]

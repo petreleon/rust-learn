@@ -140,6 +140,7 @@ fn platform_application_request() -> SubmitTeacherApplicationRequest {
             "https://example.com/portfolio".to_string(),
             "   ".to_string(),
         ]),
+        idempotency_key: None,
     }
 }
 
@@ -224,6 +225,53 @@ async fn custom_platform_permissions_drive_teacher_application_flow() {
 }
 
 #[actix_web::test]
+async fn teacher_application_submission_is_idempotent_by_key() {
+    let mut conn = setup_conn().await;
+    let applicant = create_user_helper(&mut conn, "teacher_apply_idempotent").await;
+    assign_role_to_user(&mut conn, applicant.id(), Roles::USER)
+        .await
+        .expect("failed to assign USER role");
+
+    let idempotency_key = unique_string("teacher_application_submit");
+    let mut request = platform_application_request();
+    request.idempotency_key = Some(idempotency_key.clone());
+
+    let application = submit_application(&mut conn, applicant.id(), request.clone())
+        .await
+        .expect("initial teacher application should be created");
+    let duplicate = submit_application(&mut conn, applicant.id(), request)
+        .await
+        .expect("same idempotency key and payload should return existing application");
+    assert_eq!(duplicate.id, application.id);
+    assert_eq!(
+        duplicate.idempotency_key.as_deref(),
+        Some(idempotency_key.as_str())
+    );
+
+    let audit = list_audit_events(&mut conn, application.id)
+        .await
+        .expect("audit events should load");
+    assert_eq!(
+        audit.len(),
+        1,
+        "idempotent replay should not add another submitted audit event"
+    );
+
+    let mut conflicting_request = platform_application_request();
+    conflicting_request.idempotency_key = Some(idempotency_key);
+    conflicting_request.experience_summary =
+        "Different application payload for same retry key.".to_string();
+    let denied = submit_application(&mut conn, applicant.id(), conflicting_request)
+        .await
+        .expect_err("idempotency key reuse for a different application should be rejected");
+    assert!(matches!(
+        denied,
+        TeacherApplicationError::InvalidInput(message)
+            if message.contains("idempotency key is already used")
+    ));
+}
+
+#[actix_web::test]
 async fn user_with_submit_permission_can_apply_and_without_permission_cannot() {
     let mut conn = setup_conn().await;
     let applicant = create_user_helper(&mut conn, "teacher_apply_user").await;
@@ -278,6 +326,7 @@ async fn organization_admin_can_nominate_teacher_to_central_queue() {
             requested_course_id: None,
             experience_summary: "Organization-sponsored instructor candidate.".to_string(),
             portfolio_links: None,
+            idempotency_key: None,
         },
     )
     .await
@@ -426,6 +475,7 @@ async fn course_scope_approval_assigns_course_teacher_permission_bundle() {
             experience_summary: "Course-specific Rust instructor.".to_string(),
             organization_sponsor_id: None,
             portfolio_links: None,
+            idempotency_key: None,
         },
     )
     .await
