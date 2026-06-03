@@ -140,13 +140,9 @@ make k8s-build
 ### Quick Deploy (local Minikube/dev)
 
 ```bash
-# Build images into the active Kubernetes image runtime. When the current
-# context is minikube this builds local Docker images and loads them into
-# Minikube.
-make k8s-build
-
-# Generate ignored local development secrets and deploy the dev overlay.
-make k8s-dev-apply
+# Build fresh local images, load them into Minikube, deploy the dev overlay,
+# and point app deployments at unique image tags.
+make k8s-dev-refresh
 ```
 
 The dev overlay writes `k8s/overlays/dev/secrets.patch.yaml`, which contains

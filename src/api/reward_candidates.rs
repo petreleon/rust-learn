@@ -215,27 +215,29 @@ async fn list_course_reward_candidates(
     }
 }
 
+pub fn configure_reward_candidate_routes(cfg: &mut web::ServiceConfig) {
+    cfg.service(
+        web::resource("/reward-candidates/me/history").route(web::get().to(list_my_reward_history)),
+    )
+    .service(
+        web::resource("/courses/{course_id}/reward-candidates")
+            .route(web::post().to(submit_course_reward_candidate))
+            .route(web::get().to(list_course_reward_candidates)),
+    )
+    .service(
+        web::resource("/organizations/{organization_id}/courses/{course_id}/reward-candidates")
+            .route(web::post().to(submit_organization_reward_candidate)),
+    )
+    .service(
+        web::resource("/courses/{course_id}/reward-candidates/{candidate_id}/teacher-decision")
+            .route(web::put().to(decide_reward_candidate_by_teacher)),
+    )
+    .service(
+        web::resource("/reward-candidates/{candidate_id}/amount-decision")
+            .route(web::put().to(decide_reward_amount)),
+    );
+}
+
 pub fn reward_candidate_scope() -> actix_web::Scope {
-    web::scope("")
-        .service(
-            web::resource("/reward-candidates/me/history")
-                .route(web::get().to(list_my_reward_history)),
-        )
-        .service(
-            web::resource("/courses/{course_id}/reward-candidates")
-                .route(web::post().to(submit_course_reward_candidate))
-                .route(web::get().to(list_course_reward_candidates)),
-        )
-        .service(
-            web::resource("/organizations/{organization_id}/courses/{course_id}/reward-candidates")
-                .route(web::post().to(submit_organization_reward_candidate)),
-        )
-        .service(
-            web::resource("/courses/{course_id}/reward-candidates/{candidate_id}/teacher-decision")
-                .route(web::put().to(decide_reward_candidate_by_teacher)),
-        )
-        .service(
-            web::resource("/reward-candidates/{candidate_id}/amount-decision")
-                .route(web::put().to(decide_reward_amount)),
-        )
+    web::scope("").configure(configure_reward_candidate_routes)
 }

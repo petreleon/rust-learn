@@ -1,5 +1,5 @@
 .PHONY: help build run stop test clean docker-build docker-up docker-down setup health \
-  k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
+  k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
   dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
   test-integration fmt web-lint web-build
 
@@ -8,6 +8,9 @@ PROJECT_NAME := rust-learn
 K8S_NAMESPACE := rust-learn
 K8S_BASE := k8s/base
 K8S_DEV := k8s/overlays/dev
+K8S_IMAGE_TAG ?= dev-$(shell date +%Y%m%d%H%M%S)
+K8S_RUST_IMAGE := rust-app:$(K8S_IMAGE_TAG)
+K8S_WEB_IMAGE := web:$(K8S_IMAGE_TAG)
 
 # Colors for output
 GREEN := \033[0;32m
@@ -83,6 +86,30 @@ k8s-dev-apply: k8s-dev-secrets ## Apply local Kubernetes overlay with generated 
 	kubectl rollout status deployment/worker -n $(K8S_NAMESPACE) --timeout=240s
 	kubectl rollout status deployment/web -n $(K8S_NAMESPACE) --timeout=180s
 	@echo "$(GREEN)Development deployment complete!$(NC)"
+
+k8s-dev-refresh: k8s-dev-secrets ## Rebuild, load, and redeploy local Kubernetes dev images with fresh tags
+	@echo "$(YELLOW)Building fresh Kubernetes development images: $(K8S_RUST_IMAGE), $(K8S_WEB_IMAGE)...$(NC)"
+	docker build -t rust-app:latest -t $(K8S_RUST_IMAGE) .
+	docker build -t web:latest -t $(K8S_WEB_IMAGE) ./web
+	@if command -v minikube >/dev/null 2>&1 && [ "$$(kubectl config current-context 2>/dev/null)" = "minikube" ]; then \
+		echo "$(YELLOW)Loading fresh images into minikube...$(NC)"; \
+		minikube image load $(K8S_RUST_IMAGE); \
+		minikube image load $(K8S_WEB_IMAGE); \
+	fi
+	@echo "$(YELLOW)Applying local Kubernetes development overlay...$(NC)"
+	kubectl apply -k $(K8S_DEV)/
+	@echo "$(YELLOW)Pointing deployments at fresh image tags...$(NC)"
+	kubectl set image deployment/rust-app rust-app=$(K8S_RUST_IMAGE) migrate=$(K8S_RUST_IMAGE) wait-for-runtime-services=$(K8S_RUST_IMAGE) -n $(K8S_NAMESPACE)
+	kubectl set image deployment/worker worker=$(K8S_RUST_IMAGE) -n $(K8S_NAMESPACE)
+	kubectl set image deployment/web web=$(K8S_WEB_IMAGE) -n $(K8S_NAMESPACE)
+	@echo "$(GREEN)Waiting for deployments to roll out...$(NC)"
+	kubectl rollout status deployment/postgres -n $(K8S_NAMESPACE) --timeout=180s
+	kubectl rollout status deployment/rustfs -n $(K8S_NAMESPACE) --timeout=180s
+	kubectl rollout status deployment/anvil -n $(K8S_NAMESPACE) --timeout=180s
+	kubectl rollout status deployment/rust-app -n $(K8S_NAMESPACE) --timeout=300s
+	kubectl rollout status deployment/worker -n $(K8S_NAMESPACE) --timeout=240s
+	kubectl rollout status deployment/web -n $(K8S_NAMESPACE) --timeout=180s
+	@echo "$(GREEN)Development deployment refreshed with $(K8S_IMAGE_TAG)!$(NC)"
 
 k8s-dev-delete: ## Delete local Kubernetes development overlay resources
 	@echo "$(YELLOW)Deleting local Kubernetes development overlay...$(NC)"

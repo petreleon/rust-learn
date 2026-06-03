@@ -116,8 +116,11 @@ fn failed(name: &'static str, message: impl Into<String>) -> DependencyCheck {
     }
 }
 
+pub fn configure_health_routes(cfg: &mut web::ServiceConfig) {
+    cfg.route("/health", web::get().to(health))
+        .route("/ready", web::get().to(readiness));
+}
+
 pub fn health_scope() -> actix_web::Scope {
-    web::scope("")
-        .route("/health", web::get().to(health))
-        .route("/ready", web::get().to(readiness))
+    web::scope("").configure(configure_health_routes)
 }
