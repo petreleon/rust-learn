@@ -8,11 +8,17 @@ business logic must ask "does this user have this permission in this scope?"
 
 ## Permission-First Rules
 
-- [ ] Audit every existing service and endpoint that branches on role names and
+- [x] Audit every existing service and endpoint that branches on role names and
       replace business decisions with platform, organization, or course
       permission checks.
-- [ ] Keep role hierarchy checks only for role-assignment safety. Do not use
+- [x] Remaining role-name lookups assign default/minimum permission bundles or
+      maintain the course enrollment record; business authorization paths use
+      platform, organization, course, or delegated permission helpers.
+- [x] Keep role hierarchy checks only for role-assignment safety. Do not use
       hierarchy as a substitute for business authorization.
+- [x] Hierarchy middleware and hierarchy repository helpers are used by role
+      assignment endpoints, not reward, teacher-application, reporting, or
+      fraud-block business authorization.
 - [x] Define missing business permissions before adding flows. Suggested
       platform permissions: `SUBMIT_TEACHER_APPLICATION`,
       `REVIEW_TEACHER_APPLICATIONS`, `APPROVE_TEACHER_APPLICATION`,
@@ -72,9 +78,11 @@ business logic must ask "does this user have this permission in this scope?"
       organization, and course permissions.
 - [x] Keep content visibility permission-based with `VIEW_CONTENT` and
       related course permissions.
-- [ ] Keep assessment access permission-based with `VIEW_ASSESSMENT`,
+- [x] Keep assessment access permission-based with `VIEW_ASSESSMENT`,
       `TAKE_TESTS`, and related course permissions when assessment endpoints
       are implemented.
+- [x] Current audit: no assessment endpoints exist yet; only assessment
+      permission constants and reward event types are present.
 
 ## Student Reward Flow
 
@@ -209,8 +217,12 @@ business logic must ask "does this user have this permission in this scope?"
 - [x] Add migrations for teacher applications, reward policies, reward
       candidates, reward decisions, reward execution jobs, reward audit events,
       reward fraud blocks, and delegated permissions.
-- [ ] Add repository/service layers for each business workflow. Keep complex
+- [x] Add repository/service layers for each business workflow. Keep complex
       business decisions out of Actix handlers.
+- [x] Reward candidates, reward policies, reward execution, reward fraud
+      blocks, delegated permissions, teacher applications, reporting, and
+      student reward history are handled through service/repository layers;
+      Actix handlers delegate business decisions.
 - [x] Add API endpoints for teacher applications, review decisions, reward
       policy management, reward amount approval, reward status, and delegated
       permission management.
@@ -267,7 +279,9 @@ business logic must ask "does this user have this permission in this scope?"
       required permission cannot perform the business action.
 - [x] Add idempotency tests for teacher applications, reward candidates, reward
       approval, token execution, wallet credit, and reconciliation.
-- [ ] Add Docker Compose integration tests for PostgreSQL-backed reward flows,
+- [x] Add Docker Compose integration tests for PostgreSQL-backed reward flows,
       wallet credit, notifications, and Anvil token transaction recording.
+- [x] Verified through Docker Compose: `reward_candidates`, `reward_execution`,
+      `delegated_permissions`, and `token_reconciliation` integration tests.
 - [x] Keep Docker Compose verification commands documented for every business
       flow that requires PostgreSQL, RustFS, Anvil, or the worker.
