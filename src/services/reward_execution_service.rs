@@ -1,3 +1,4 @@
+use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{
     courses, courses_organizations, external_transactions, internal_transactions,
     reward_candidates, reward_policies, transactions, transactions_external_transactions,
@@ -25,6 +26,7 @@ use crate::models::transaction::{
 };
 use crate::models::wallet::Wallet;
 use crate::repositories::persistent_state_repository::get_persistent_state;
+use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::repositories::reward_audit_event_repository;
 use crate::repositories::reward_candidate_repository;
 use crate::repositories::reward_payout_record_repository;
@@ -106,6 +108,7 @@ pub struct RewardTokenConfirmationResult {
 
 #[derive(Debug, PartialEq)]
 pub enum RewardExecutionError {
+    PermissionDenied(String),
     InvalidStatus(String),
     InvalidInput(String),
     NoActivePolicy,
@@ -167,6 +170,15 @@ pub async fn plan_reward_payout(
     Ok(plan)
 }
 
+pub async fn plan_reward_payout_for_actor(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    candidate_id: i64,
+) -> Result<RewardPayoutPlan, RewardExecutionError> {
+    ensure_can_execute_reward_payout(conn, actor_user_id).await?;
+    plan_reward_payout(conn, candidate_id).await
+}
+
 pub async fn credit_reward_wallet(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
@@ -176,13 +188,45 @@ pub async fn credit_reward_wallet(
             Box::pin(async move {
                 let candidate =
                     reward_candidate_repository::find_candidate(conn, candidate_id).await?;
-                credit_reward_wallet_for_candidate(conn, &candidate, false).await
+                credit_reward_wallet_for_candidate(conn, &candidate, false, None).await
             })
         })
         .await?;
 
     log::info!(
         "event=reward_wallet_credit candidate_id={} wallet_id={} amount={} credited={} credit_record_id={:?} transaction_id={:?} internal_transaction_id={:?}",
+        result.candidate_id,
+        result.wallet_id,
+        result.amount,
+        result.credited,
+        result.credit_record_id,
+        result.transaction_id,
+        result.internal_transaction_id
+    );
+
+    Ok(result)
+}
+
+pub async fn credit_reward_wallet_for_actor(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    candidate_id: i64,
+) -> Result<RewardWalletCreditResult, RewardExecutionError> {
+    ensure_can_execute_reward_payout(conn, actor_user_id).await?;
+    let result = conn
+        .transaction::<_, RewardExecutionError, _>(|conn| {
+            Box::pin(async move {
+                let candidate =
+                    reward_candidate_repository::find_candidate(conn, candidate_id).await?;
+                credit_reward_wallet_for_candidate(conn, &candidate, false, Some(actor_user_id))
+                    .await
+            })
+        })
+        .await?;
+
+    log::info!(
+        "event=reward_wallet_credit actor_user_id={} candidate_id={} wallet_id={} amount={} credited={} credit_record_id={:?} transaction_id={:?} internal_transaction_id={:?}",
+        actor_user_id,
         result.candidate_id,
         result.wallet_id,
         result.amount,
@@ -204,7 +248,7 @@ pub async fn notify_reward_wallet_credit(
             Box::pin(async move {
                 let candidate =
                     reward_candidate_repository::find_candidate(conn, candidate_id).await?;
-                notify_reward_wallet_credit_for_candidate(conn, &candidate, false).await
+                notify_reward_wallet_credit_for_candidate(conn, &candidate, false, None).await
             })
         })
         .await?;
@@ -222,9 +266,62 @@ pub async fn notify_reward_wallet_credit(
     Ok(result)
 }
 
+pub async fn notify_reward_wallet_credit_for_actor(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    candidate_id: i64,
+) -> Result<RewardWalletCreditNotificationResult, RewardExecutionError> {
+    ensure_can_execute_reward_payout(conn, actor_user_id).await?;
+    let result = conn
+        .transaction::<_, RewardExecutionError, _>(|conn| {
+            Box::pin(async move {
+                let candidate =
+                    reward_candidate_repository::find_candidate(conn, candidate_id).await?;
+                notify_reward_wallet_credit_for_candidate(
+                    conn,
+                    &candidate,
+                    false,
+                    Some(actor_user_id),
+                )
+                .await
+            })
+        })
+        .await?;
+
+    log::info!(
+        "event=reward_wallet_credit_notification actor_user_id={} candidate_id={} wallet_id={} amount={} notified={} notification_id={:?} transaction_id={}",
+        actor_user_id,
+        result.candidate_id,
+        result.wallet_id,
+        result.amount,
+        result.notified,
+        result.notification_id,
+        result.transaction_id
+    );
+
+    Ok(result)
+}
+
 pub async fn reconcile_reward_candidate(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
+) -> Result<RewardReconciliationResult, RewardExecutionError> {
+    reconcile_reward_candidate_with_actor(conn, candidate_id, None).await
+}
+
+pub async fn reconcile_reward_candidate_for_actor(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    candidate_id: i64,
+) -> Result<RewardReconciliationResult, RewardExecutionError> {
+    ensure_can_execute_reward_payout(conn, actor_user_id).await?;
+    reconcile_reward_candidate_with_actor(conn, candidate_id, Some(actor_user_id)).await
+}
+
+async fn reconcile_reward_candidate_with_actor(
+    conn: &mut AsyncPgConnection,
+    candidate_id: i64,
+    actor_user_id: Option<i32>,
 ) -> Result<RewardReconciliationResult, RewardExecutionError> {
     let result = conn
         .transaction::<_, RewardExecutionError, _>(|conn| {
@@ -264,6 +361,7 @@ pub async fn reconcile_reward_candidate(
                     conn,
                     &candidate,
                     payout_record.is_some(),
+                    actor_user_id,
                 )
                 .await?
                 .credited;
@@ -291,7 +389,13 @@ pub async fn reconcile_reward_candidate(
             let mut notification_created = false;
             if credit_record.is_some() {
                 let notification_result =
-                    notify_reward_wallet_credit_for_candidate(conn, &candidate, true).await?;
+                    notify_reward_wallet_credit_for_candidate(
+                        conn,
+                        &candidate,
+                        true,
+                        actor_user_id,
+                    )
+                    .await?;
                 notification_created = notification_result.notified;
                 candidate = reward_candidate_repository::find_candidate(conn, candidate.id).await?;
             }
@@ -305,7 +409,7 @@ pub async fn reconcile_reward_candidate(
                     conn,
                     NewRewardAuditEvent {
                         reward_candidate_id: candidate.id,
-                        actor_user_id: None,
+                        actor_user_id,
                         event_type: REWARD_AUDIT_EVENT_RECONCILED.to_string(),
                         from_status: Some(initial_status),
                         to_status: candidate.status.clone(),
@@ -350,6 +454,26 @@ pub async fn record_reward_token_confirmation(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
     request: RewardTokenConfirmationRequest,
+) -> Result<RewardTokenConfirmationResult, RewardExecutionError> {
+    record_reward_token_confirmation_with_actor(conn, candidate_id, request, None).await
+}
+
+pub async fn record_reward_token_confirmation_for_actor(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    candidate_id: i64,
+    request: RewardTokenConfirmationRequest,
+) -> Result<RewardTokenConfirmationResult, RewardExecutionError> {
+    ensure_can_execute_reward_payout(conn, actor_user_id).await?;
+    record_reward_token_confirmation_with_actor(conn, candidate_id, request, Some(actor_user_id))
+        .await
+}
+
+async fn record_reward_token_confirmation_with_actor(
+    conn: &mut AsyncPgConnection,
+    candidate_id: i64,
+    request: RewardTokenConfirmationRequest,
+    actor_user_id: Option<i32>,
 ) -> Result<RewardTokenConfirmationResult, RewardExecutionError> {
     validate_token_confirmation_request(&request)?;
 
@@ -397,7 +521,7 @@ pub async fn record_reward_token_confirmation(
                     conn,
                     NewRewardAuditEvent {
                         reward_candidate_id: updated.id,
-                        actor_user_id: None,
+                        actor_user_id,
                         event_type: REWARD_AUDIT_EVENT_TOKEN_CONFIRMED.to_string(),
                         from_status: Some(candidate.status.clone()),
                         to_status: updated.status,
@@ -435,6 +559,18 @@ pub async fn record_reward_token_confirmation(
     Ok(result)
 }
 
+async fn ensure_can_execute_reward_payout(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+) -> Result<(), RewardExecutionError> {
+    let permission = Permissions::EXECUTE_REWARD_PAYOUT.to_string();
+    if user_permission_platform_request(conn, actor_user_id, &permission).await? {
+        Ok(())
+    } else {
+        Err(RewardExecutionError::PermissionDenied(permission))
+    }
+}
+
 fn ensure_candidate_ready_for_payout(
     candidate: &RewardCandidate,
 ) -> Result<(), RewardExecutionError> {
@@ -467,6 +603,7 @@ async fn credit_reward_wallet_for_candidate(
     conn: &mut AsyncPgConnection,
     candidate: &RewardCandidate,
     allow_reconciliation_credit: bool,
+    actor_user_id: Option<i32>,
 ) -> Result<RewardWalletCreditResult, RewardExecutionError> {
     let amount = approved_positive_amount(candidate)?;
     let credit_record =
@@ -533,7 +670,7 @@ async fn credit_reward_wallet_for_candidate(
         conn,
         NewRewardAuditEvent {
             reward_candidate_id: updated.id,
-            actor_user_id: None,
+            actor_user_id,
             event_type: REWARD_AUDIT_EVENT_WALLET_CREDITED.to_string(),
             from_status: Some(candidate.status.clone()),
             to_status: updated.status,
@@ -563,6 +700,7 @@ async fn notify_reward_wallet_credit_for_candidate(
     conn: &mut AsyncPgConnection,
     candidate: &RewardCandidate,
     allow_reconciliation_repair: bool,
+    actor_user_id: Option<i32>,
 ) -> Result<RewardWalletCreditNotificationResult, RewardExecutionError> {
     let allowed_to_inspect_notification = [
         REWARD_STATUS_WALLET_CREDITED,
@@ -657,7 +795,7 @@ async fn notify_reward_wallet_credit_for_candidate(
         conn,
         NewRewardAuditEvent {
             reward_candidate_id: updated.id,
-            actor_user_id: None,
+            actor_user_id,
             event_type: REWARD_AUDIT_EVENT_WALLET_CREDIT_NOTIFIED.to_string(),
             from_status: Some(candidate.status.clone()),
             to_status: updated.status,

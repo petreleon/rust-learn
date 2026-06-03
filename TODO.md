@@ -239,7 +239,7 @@ business logic must ask "does this user have this permission in this scope?"
 
 ## Tests And Verification
 
-- [ ] Add permission-focused tests proving teacher application, reward amount
+- [x] Add permission-focused tests proving teacher application, reward amount
       approval, token execution, and wallet credit are allowed by permission and
       denied without permission.
 - [x] Add tests proving reward candidate submission succeeds for a user with
