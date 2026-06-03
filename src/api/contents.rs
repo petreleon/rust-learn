@@ -129,9 +129,14 @@ struct UploadRequest {
 
 async fn get_upload_url(
     path: web::Path<(i32, i32)>, // course_id, chapter_id
+    s3: Option<web::Data<S3State>>,
     req: web::Json<UploadRequest>,
 ) -> impl Responder {
     let (course_id, chapter_id) = path.into_inner();
+
+    if req.content_type.trim().is_empty() {
+        return HttpResponse::BadRequest().body("content_type is required");
+    }
 
     // Construct object path: courses/{course_id}/chapters/{chapter_id}/{filename}
     let object_path = format!(
@@ -139,23 +144,34 @@ async fn get_upload_url(
         course_id, chapter_id, req.filename
     );
 
-    match S3State::new_from_env().await {
-        Ok(s3) => {
-            // 1 hour expiry
-            match s3.presign_put("course-materials", &object_path, 3600).await {
-                Ok(url) => HttpResponse::Ok().json(serde_json::json!({
-                    "upload_url": url,
-                    "object_key": object_path
-                })),
-                Err(e) => {
-                    eprintln!("S3 error: {}", e);
-                    HttpResponse::InternalServerError().body("Failed to generate upload URL")
-                }
+    let s3 = match s3 {
+        Some(s3) => s3,
+        None => match S3State::new_from_env().await {
+            Ok(s3) => web::Data::new(s3),
+            Err(e) => {
+                eprintln!("S3 client init error: {}", e);
+                return HttpResponse::InternalServerError().body("Failed to init storage client");
             }
-        }
+        },
+    };
+
+    if let Err(e) = s3.ensure_bucket("course-materials").await {
+        eprintln!("S3 bucket init error: {}", e);
+        return HttpResponse::InternalServerError().body("Failed to prepare upload bucket");
+    }
+
+    // 1 hour expiry
+    match s3
+        .presign_external_put("course-materials", &object_path, 3600)
+        .await
+    {
+        Ok(url) => HttpResponse::Ok().json(serde_json::json!({
+            "upload_url": url,
+            "object_key": object_path
+        })),
         Err(e) => {
-            eprintln!("S3 client init error: {}", e);
-            HttpResponse::InternalServerError().body("Failed to init storage client")
+            eprintln!("S3 error: {}", e);
+            HttpResponse::InternalServerError().body("Failed to generate upload URL")
         }
     }
 }

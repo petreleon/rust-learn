@@ -60,7 +60,7 @@ impl S3State {
     }
 
     /// Ensure a bucket exists, creating it if necessary.
-    async fn ensure_bucket(&self, bucket: &str) -> Result<()> {
+    pub async fn ensure_bucket(&self, bucket: &str) -> Result<()> {
         let exists = self.0.head_bucket().bucket(bucket).send().await.is_ok();
 
         if !exists {
