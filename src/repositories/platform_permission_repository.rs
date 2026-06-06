@@ -2,7 +2,6 @@ use crate::config::constants::permissions::Permissions;
 use crate::config::constants::roles::Roles;
 use crate::models::role::PlatformRole;
 use crate::models::role_permission_platform::RolePermissionPlatform;
-use diesel::prelude::*;
 use diesel::QueryResult;
 use diesel_async::AsyncPgConnection;
 

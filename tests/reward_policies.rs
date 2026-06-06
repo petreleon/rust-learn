@@ -94,13 +94,13 @@ async fn platform_admin_creates_versioned_active_reward_policies() {
     let first = create_reward_policy(&mut conn, admin.id(), platform_policy_request("10"))
         .await
         .expect("admin should create first reward policy");
-    assert_eq!(first.version, 1);
+    assert!(first.version >= 1);
     assert!(first.active);
 
     let second = create_reward_policy(&mut conn, admin.id(), platform_policy_request("15"))
         .await
         .expect("admin should create second reward policy version");
-    assert_eq!(second.version, 2);
+    assert_eq!(second.version, first.version + 1);
     assert!(second.active);
 
     let active = list_reward_policies(

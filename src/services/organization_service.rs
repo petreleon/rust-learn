@@ -4,7 +4,6 @@ use crate::models::course::Course;
 use crate::models::courses_organizations::NewCourseOrganization;
 use crate::models::organization::{NewOrganization, Organization, UpdateOrganization};
 use crate::repositories::organization_repository::assign_role_to_user_in_organization;
-use actix_web::{web, HttpResponse};
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, RunQueryDsl};
 

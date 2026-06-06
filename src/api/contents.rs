@@ -10,7 +10,7 @@ use crate::models::upload_job::NewUploadJob;
 use crate::utils::jwt_utils::decode_jwt;
 use crate::utils::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
-use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 

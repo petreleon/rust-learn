@@ -2,7 +2,7 @@ use crate::models::role_organization_hierarchy::RoleOrganizationHierarchy;
 use crate::models::user_role_organization::UserRoleOrganization;
 use crate::repositories::delegated_permission_repository;
 use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::AsyncPgConnection;
 use std::cmp::Ordering;
 
 /// Checks if a user has a specific permission in an organization

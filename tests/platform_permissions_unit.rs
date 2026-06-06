@@ -1,6 +1,4 @@
 use chrono::NaiveDate;
-use diesel::prelude::*;
-use diesel_async::AsyncPgConnection;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::establish_connection;

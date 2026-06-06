@@ -33,8 +33,18 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - |
-              if [ -f /anvil/state.json ] && [ ! -s /anvil/state.json ]; then
-                rm /anvil/state.json
+              if [ -f /anvil/state.json ]; then
+                first_non_ws="$(tr -d '[:space:]' < /anvil/state.json | head -c 1 || true)"
+                case "$first_non_ws" in
+                  "{"|"[")
+                    echo "[anvil] Existing state file detected"
+                    ;;
+                  *)
+                    invalid_state_file="/anvil/state.json.invalid.$(date +%s)"
+                    echo "[anvil] Invalid state detected; moving /anvil/state.json to $invalid_state_file"
+                    mv /anvil/state.json "$invalid_state_file"
+                    ;;
+                esac
               fi
               anvil --host 0.0.0.0 --port 8545 --mnemonic "$ETH_MNEMONIC" --state /anvil/state.json --chain-id 31337
           ports:

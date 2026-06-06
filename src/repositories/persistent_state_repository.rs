@@ -1,4 +1,3 @@
-use diesel::prelude::*;
 use diesel::QueryResult;
 use diesel_async::AsyncPgConnection;
 

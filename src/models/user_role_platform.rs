@@ -20,7 +20,7 @@ impl UserRolePlatform {
         p_user_id: i32,
         p_permission: &str,
     ) -> QueryResult<bool> {
-        use crate::db::schema::{platform_roles, role_permission_platform, user_role_platform};
+        use crate::db::schema::{role_permission_platform, user_role_platform};
 
         let has_permission = diesel::select(diesel::dsl::exists(
             user_role_platform::table

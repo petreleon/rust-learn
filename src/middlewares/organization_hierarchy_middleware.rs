@@ -87,14 +87,22 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         // These clones ensure that we own the data fully and no references are held.
-        let organization_id_str_opt =
-            extract_param(&req, "organization_id", ParamType::Query).map(|s| s.to_owned());
+        let type_param_of_organization = self.type_param_of_organization;
+        let name_param_of_organization = self.name_param_of_organization.clone();
+        let type_param_of_id_user = self.type_param_of_id_user;
+        let name_param_of_id_user = self.name_param_of_id_user.clone();
+        let organization_id_str_opt = extract_param(
+            &req,
+            &name_param_of_organization,
+            type_param_of_organization,
+        )
+        .map(|s| s.to_owned());
         let second_user_id_str_opt =
-            extract_param(&req, "user_id", ParamType::Query).map(|s| s.to_owned());
+            extract_param(&req, &name_param_of_id_user, type_param_of_id_user)
+                .map(|s| s.to_owned());
 
         // Clone `self` if needed or ensure `self.service` is moved or referenced correctly.
         let service = self.service.clone();
-        let mut can_proceed = false;
         async move {
             // Obtain a DB connection directly from the pool (no request extensions)
             let pool = req.app_data::<web::Data<DbPool>>().ok_or_else(|| {
@@ -138,7 +146,7 @@ where
             };
 
             // Now call the compare function with the borrowed connection
-            can_proceed = match user_hierarchy_compare_organization(
+            let can_proceed = match user_hierarchy_compare_organization(
                 &mut conn,
                 organization_id,
                 user_jwt.user_id,

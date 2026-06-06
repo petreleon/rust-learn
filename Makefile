@@ -1,9 +1,10 @@
-.PHONY: help build run stop test clean docker-build docker-up docker-down setup health \
+.PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health \
   k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
-  dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
+  k8s-validate dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
   test-integration fmt web-lint web-build
 
 # Variables
+export PATH := /opt/homebrew/bin:/usr/local/bin:$(PATH)
 PROJECT_NAME := rust-learn
 K8S_NAMESPACE := rust-learn
 K8S_BASE := k8s/base
@@ -11,6 +12,10 @@ K8S_DEV := k8s/overlays/dev
 K8S_IMAGE_TAG ?= dev-$(shell date +%Y%m%d%H%M%S)
 K8S_RUST_IMAGE := rust-app:$(K8S_IMAGE_TAG)
 K8S_WEB_IMAGE := web:$(K8S_IMAGE_TAG)
+DOCKER ?= $(shell command -v docker 2>/dev/null || printf /opt/homebrew/bin/docker)
+DOCKER_COMPOSE ?= $(DOCKER) compose
+KUBECTL ?= $(shell command -v kubectl 2>/dev/null || printf /opt/homebrew/bin/kubectl)
+MINIKUBE ?= $(shell command -v minikube 2>/dev/null || printf /opt/homebrew/bin/minikube)
 
 # Colors for output
 GREEN := \033[0;32m
@@ -25,51 +30,51 @@ help: ## Display this help message
 
 # Docker Compose
 build: ## Build all Docker images
-	docker-compose build
+	$(DOCKER_COMPOSE) build
 
 run: ## Start all services with docker-compose
-	docker-compose up
+	$(DOCKER_COMPOSE) up
 
 dev: ## Start in detached mode (background)
-	docker-compose up -d
+	$(DOCKER_COMPOSE) up -d
 
 stop: ## Stop all services
-	docker-compose down
+	$(DOCKER_COMPOSE) down
 
 docker-build: ## Build images for Kubernetes
-	docker build -t rust-app:latest .
-	docker build -t web:latest ./web
+	$(DOCKER) build -t rust-app:latest .
+	$(DOCKER) build -t web:latest ./web
 
 docker-up: ## Start with docker-compose in background
-	docker-compose up -d
+	$(DOCKER_COMPOSE) up -d
 
 docker-down: ## Stop docker-compose
-	docker-compose down
+	$(DOCKER_COMPOSE) down
 
 # Kubernetes
 k8s-build: ## Build Docker images for Kubernetes
 	@echo "$(YELLOW)Building Docker images...$(NC)"
-	@if command -v minikube >/dev/null 2>&1 && [ "$$(kubectl config current-context 2>/dev/null)" = "minikube" ]; then \
+	@if command -v $(MINIKUBE) >/dev/null 2>&1 && [ "$$($(KUBECTL) config current-context 2>/dev/null)" = "minikube" ]; then \
 		echo "$(YELLOW)Detected minikube context; building locally and loading images into minikube...$(NC)"; \
-		docker build -t rust-app:latest .; \
-		docker build -t web:latest ./web; \
-		minikube image load rust-app:latest; \
-		minikube image load web:latest; \
+		$(DOCKER) build -t rust-app:latest .; \
+		$(DOCKER) build -t web:latest ./web; \
+		$(MINIKUBE) image load rust-app:latest; \
+		$(MINIKUBE) image load web:latest; \
 	else \
-		docker build -t rust-app:latest .; \
-		docker build -t web:latest ./web; \
+		$(DOCKER) build -t rust-app:latest .; \
+		$(DOCKER) build -t web:latest ./web; \
 	fi
 
 k8s-apply: ## Apply all Kubernetes resources
 	@echo "$(YELLOW)Applying Kubernetes resources...$(NC)"
-	kubectl apply -k $(K8S_BASE)/
+	$(KUBECTL) apply -k $(K8S_BASE)/
 	@echo "$(GREEN)Waiting for deployments to roll out...$(NC)"
-	kubectl rollout status deployment/postgres -n $(K8S_NAMESPACE) --timeout=180s
-	kubectl rollout status deployment/rustfs -n $(K8S_NAMESPACE) --timeout=180s
-	kubectl rollout status deployment/anvil -n $(K8S_NAMESPACE) --timeout=180s
-	kubectl rollout status deployment/rust-app -n $(K8S_NAMESPACE) --timeout=300s
-	kubectl rollout status deployment/worker -n $(K8S_NAMESPACE) --timeout=240s
-	kubectl rollout status deployment/web -n $(K8S_NAMESPACE) --timeout=180s
+	$(KUBECTL) rollout status deployment/postgres -n $(K8S_NAMESPACE) --timeout=180s
+	$(KUBECTL) rollout status deployment/rustfs -n $(K8S_NAMESPACE) --timeout=180s
+	$(KUBECTL) rollout status deployment/anvil -n $(K8S_NAMESPACE) --timeout=180s
+	$(KUBECTL) rollout status deployment/rust-app -n $(K8S_NAMESPACE) --timeout=300s
+	$(KUBECTL) rollout status deployment/worker -n $(K8S_NAMESPACE) --timeout=240s
+	$(KUBECTL) rollout status deployment/web -n $(K8S_NAMESPACE) --timeout=180s
 	@echo "$(GREEN)Deployment complete!$(NC)"
 
 k8s-dev-secrets: ## Generate ignored local Kubernetes development secrets
@@ -77,58 +82,62 @@ k8s-dev-secrets: ## Generate ignored local Kubernetes development secrets
 
 k8s-dev-apply: k8s-dev-secrets ## Apply local Kubernetes overlay with generated development secrets
 	@echo "$(YELLOW)Applying local Kubernetes development overlay...$(NC)"
-	kubectl apply -k $(K8S_DEV)/
+	$(KUBECTL) apply -k $(K8S_DEV)/
+	@echo "$(YELLOW)Restarting deployments that consume local secrets/config...$(NC)"
+	$(KUBECTL) rollout restart deployment/anvil deployment/rustfs deployment/rust-app deployment/worker -n $(K8S_NAMESPACE)
 	@echo "$(GREEN)Waiting for deployments to roll out...$(NC)"
-	kubectl rollout status deployment/postgres -n $(K8S_NAMESPACE) --timeout=180s
-	kubectl rollout status deployment/rustfs -n $(K8S_NAMESPACE) --timeout=180s
-	kubectl rollout status deployment/anvil -n $(K8S_NAMESPACE) --timeout=180s
-	kubectl rollout status deployment/rust-app -n $(K8S_NAMESPACE) --timeout=300s
-	kubectl rollout status deployment/worker -n $(K8S_NAMESPACE) --timeout=240s
-	kubectl rollout status deployment/web -n $(K8S_NAMESPACE) --timeout=180s
+	$(KUBECTL) rollout status deployment/postgres -n $(K8S_NAMESPACE) --timeout=180s
+	$(KUBECTL) rollout status deployment/rustfs -n $(K8S_NAMESPACE) --timeout=180s
+	$(KUBECTL) rollout status deployment/anvil -n $(K8S_NAMESPACE) --timeout=180s
+	$(KUBECTL) rollout status deployment/rust-app -n $(K8S_NAMESPACE) --timeout=300s
+	$(KUBECTL) rollout status deployment/worker -n $(K8S_NAMESPACE) --timeout=240s
+	$(KUBECTL) rollout status deployment/web -n $(K8S_NAMESPACE) --timeout=180s
 	@echo "$(GREEN)Development deployment complete!$(NC)"
 
 k8s-dev-refresh: k8s-dev-secrets ## Rebuild, load, and redeploy local Kubernetes dev images with fresh tags
 	@echo "$(YELLOW)Building fresh Kubernetes development images: $(K8S_RUST_IMAGE), $(K8S_WEB_IMAGE)...$(NC)"
-	docker build -t rust-app:latest -t $(K8S_RUST_IMAGE) .
-	docker build -t web:latest -t $(K8S_WEB_IMAGE) ./web
-	@if command -v minikube >/dev/null 2>&1 && [ "$$(kubectl config current-context 2>/dev/null)" = "minikube" ]; then \
+	$(DOCKER) build -t rust-app:latest -t $(K8S_RUST_IMAGE) .
+	$(DOCKER) build -t web:latest -t $(K8S_WEB_IMAGE) ./web
+	@if command -v $(MINIKUBE) >/dev/null 2>&1 && [ "$$($(KUBECTL) config current-context 2>/dev/null)" = "minikube" ]; then \
 		echo "$(YELLOW)Loading fresh images into minikube...$(NC)"; \
-		minikube image load $(K8S_RUST_IMAGE); \
-		minikube image load $(K8S_WEB_IMAGE); \
+		$(MINIKUBE) image load $(K8S_RUST_IMAGE); \
+		$(MINIKUBE) image load $(K8S_WEB_IMAGE); \
 	fi
 	@echo "$(YELLOW)Applying local Kubernetes development overlay...$(NC)"
-	kubectl apply -k $(K8S_DEV)/
+	$(KUBECTL) apply -k $(K8S_DEV)/
+	@echo "$(YELLOW)Restarting runtime dependencies that consume local secrets/config...$(NC)"
+	$(KUBECTL) rollout restart deployment/anvil deployment/rustfs -n $(K8S_NAMESPACE)
 	@echo "$(YELLOW)Pointing deployments at fresh image tags...$(NC)"
-	kubectl set image deployment/rust-app rust-app=$(K8S_RUST_IMAGE) migrate=$(K8S_RUST_IMAGE) wait-for-runtime-services=$(K8S_RUST_IMAGE) -n $(K8S_NAMESPACE)
-	kubectl set image deployment/worker worker=$(K8S_RUST_IMAGE) -n $(K8S_NAMESPACE)
-	kubectl set image deployment/web web=$(K8S_WEB_IMAGE) -n $(K8S_NAMESPACE)
+	$(KUBECTL) set image deployment/rust-app rust-app=$(K8S_RUST_IMAGE) migrate=$(K8S_RUST_IMAGE) wait-for-runtime-services=$(K8S_RUST_IMAGE) -n $(K8S_NAMESPACE)
+	$(KUBECTL) set image deployment/worker worker=$(K8S_RUST_IMAGE) -n $(K8S_NAMESPACE)
+	$(KUBECTL) set image deployment/web web=$(K8S_WEB_IMAGE) -n $(K8S_NAMESPACE)
 	@echo "$(GREEN)Waiting for deployments to roll out...$(NC)"
-	kubectl rollout status deployment/postgres -n $(K8S_NAMESPACE) --timeout=180s
-	kubectl rollout status deployment/rustfs -n $(K8S_NAMESPACE) --timeout=180s
-	kubectl rollout status deployment/anvil -n $(K8S_NAMESPACE) --timeout=180s
-	kubectl rollout status deployment/rust-app -n $(K8S_NAMESPACE) --timeout=300s
-	kubectl rollout status deployment/worker -n $(K8S_NAMESPACE) --timeout=240s
-	kubectl rollout status deployment/web -n $(K8S_NAMESPACE) --timeout=180s
+	$(KUBECTL) rollout status deployment/postgres -n $(K8S_NAMESPACE) --timeout=180s
+	$(KUBECTL) rollout status deployment/rustfs -n $(K8S_NAMESPACE) --timeout=180s
+	$(KUBECTL) rollout status deployment/anvil -n $(K8S_NAMESPACE) --timeout=180s
+	$(KUBECTL) rollout status deployment/rust-app -n $(K8S_NAMESPACE) --timeout=300s
+	$(KUBECTL) rollout status deployment/worker -n $(K8S_NAMESPACE) --timeout=240s
+	$(KUBECTL) rollout status deployment/web -n $(K8S_NAMESPACE) --timeout=180s
 	@echo "$(GREEN)Development deployment refreshed with $(K8S_IMAGE_TAG)!$(NC)"
 
 k8s-dev-delete: ## Delete local Kubernetes development overlay resources
 	@echo "$(YELLOW)Deleting local Kubernetes development overlay...$(NC)"
-	kubectl delete -k $(K8S_DEV)/
+	$(KUBECTL) delete -k $(K8S_DEV)/
 
 k8s-delete: ## Delete all Kubernetes resources
 	@echo "$(YELLOW)Deleting Kubernetes resources...$(NC)"
-	kubectl delete -k $(K8S_BASE)/
+	$(KUBECTL) delete -k $(K8S_BASE)/
 	@echo "$(GREEN)All resources have been deleted!$(NC)"
 
 k8s-status: ## Display pod status
 	@echo "$(GREEN)=== Pod Status ===$(NC)"
-	kubectl get pods -n $(K8S_NAMESPACE)
+	$(KUBECTL) get pods -n $(K8S_NAMESPACE)
 	@echo ""
 	@echo "$(GREEN)=== Services ===$(NC)"
-	kubectl get svc -n $(K8S_NAMESPACE)
+	$(KUBECTL) get svc -n $(K8S_NAMESPACE)
 	@echo ""
 	@echo "$(GREEN)=== Persistent Volume Claims ===$(NC)"
-	kubectl get pvc -n $(K8S_NAMESPACE)
+	$(KUBECTL) get pvc -n $(K8S_NAMESPACE)
 
 k8s-logs: ## Display logs (use: make k8s-logs SERVICE=app)
 	@if [ -z "$(SERVICE)" ]; then \
@@ -136,7 +145,7 @@ k8s-logs: ## Display logs (use: make k8s-logs SERVICE=app)
 		echo "Available services: postgres, rustfs, anvil, rust-app, worker, web"; \
 		exit 1; \
 	fi
-	kubectl logs -n $(K8S_NAMESPACE) -l app=$(SERVICE) --tail=100 -f
+	$(KUBECTL) logs -n $(K8S_NAMESPACE) -l app=$(SERVICE) --tail=100 -f
 
 k8s-forward: ## Start port-forward (use: make k8s-forward SERVICE=web PORT=3000)
 	@if [ -z "$(SERVICE)" ]; then \
@@ -147,14 +156,14 @@ k8s-forward: ## Start port-forward (use: make k8s-forward SERVICE=web PORT=3000)
 		echo "  make k8s-forward SERVICE=postgres PORT=5432"; \
 		exit 1; \
 	fi
-	kubectl port-forward -n $(K8S_NAMESPACE) svc/$(SERVICE) $(PORT):$(PORT)
+	$(KUBECTL) port-forward -n $(K8S_NAMESPACE) svc/$(SERVICE) $(PORT):$(PORT)
 
 # Development
 dev-build: ## Build only the Rust application (without container)
 	cargo build --release
 
 dev-deps: ## Start only API dependencies (Postgres, RustFS, Anvil)
-	docker-compose up -d db rustfs anvil
+	$(DOCKER_COMPOSE) up -d db rustfs anvil
 
 dev-run: ## Run application locally (without container)
 	cargo run --bin rust-learn
@@ -163,17 +172,24 @@ dev-worker: ## Run worker locally (without container)
 	cargo run --bin worker
 
 worker-build: ## Build only the worker Docker image
-	docker-compose build worker
+	$(DOCKER_COMPOSE) build worker
 
 # Tests
 test: ## Run tests
-	cargo test
+	./scripts/run-host-tests.sh
+
+test-compose: ## Run tests through Docker Compose service networking
+	$(DOCKER_COMPOSE) up -d db rustfs anvil
+	./scripts/run-host-tests.sh
 
 test-integration: ## Run integration tests
 	cargo test --test blockchain_integration_tests
 
 fmt: ## Check Rust formatting
 	cargo fmt --all --check
+
+k8s-validate: ## Render Kubernetes manifests locally
+	$(KUBECTL) kustomize $(K8S_BASE) >/dev/null
 
 web-lint: ## Run frontend lint checks
 	cd web && npm run lint
@@ -191,25 +207,25 @@ migrate-redo: ## Redo last migration
 # Cleanup
 clean: ## Delete generated files
 	cargo clean
-	docker-compose down -v --remove-orphans
+	$(DOCKER_COMPOSE) down -v --remove-orphans
 
 # Utilities
 logs: ## Display docker-compose logs (use: make logs SERVICE=app)
 	@if [ -z "$(SERVICE)" ]; then \
-		docker-compose logs -f; \
+		$(DOCKER_COMPOSE) logs -f; \
 	else \
-		docker-compose logs -f $(SERVICE); \
+		$(DOCKER_COMPOSE) logs -f $(SERVICE); \
 	fi
 
 ps: ## Display running containers
-	docker-compose ps
+	$(DOCKER_COMPOSE) ps
 
 shell: ## Enter container shell (use: make shell SERVICE=app)
 	@if [ -z "$(SERVICE)" ]; then \
 		echo "$(YELLOW)Usage: make shell SERVICE=service-name$(NC)"; \
 		exit 1; \
 	fi
-	docker-compose exec $(SERVICE) /bin/sh
+	$(DOCKER_COMPOSE) exec $(SERVICE) /bin/sh
 
 # Setup
 setup: ## Initial setup - create .env file and local JWT keys
@@ -220,7 +236,7 @@ setup: ## Initial setup - create .env file and local JWT keys
 health: ## Check services health status
 	@echo "$(GREEN)=== Health Check ===$(NC)"
 	@echo "Docker:"
-	@docker-compose ps || echo "$(YELLOW)Docker compose is not running$(NC)"
+	@$(DOCKER_COMPOSE) ps || echo "$(YELLOW)Docker compose is not running$(NC)"
 	@echo ""
 	@echo "Kubernetes:"
-	@kubectl get pods -n $(K8S_NAMESPACE) || echo "$(YELLOW)Kubernetes is not configured$(NC)"
+	@$(KUBECTL) get pods -n $(K8S_NAMESPACE) || echo "$(YELLOW)Kubernetes is not configured$(NC)"

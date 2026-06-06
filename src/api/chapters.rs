@@ -4,7 +4,7 @@ use crate::db::DbPool;
 use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
 use crate::models::chapter::{Chapter, NewChapter, UpdateChapter};
 use crate::models::param_type::ParamType;
-use actix_web::{delete, get, post, put, web, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use serde::Deserialize;

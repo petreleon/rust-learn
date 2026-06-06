@@ -37,18 +37,24 @@ use rust_learn::services::reward_execution_service::{
     REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER, REWARD_TRANSACTION_TYPE_WALLET_CREDIT,
 };
 use serde_json::json;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
-    format!("{}_{}", prefix, ts)
+    let seq = UNIQUE_COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("{}_{}_{}_{}", prefix, std::process::id(), ts, seq)
 }
 
 fn unique_hash(prefix: &str) -> String {
+    let seq = UNIQUE_COUNTER.fetch_add(1, Ordering::Relaxed);
     format!(
-        "0x{}{:x}{:x}",
+        "0x{}{:x}{:x}{:x}",
         prefix,
         std::process::id(),
-        chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
+        chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0),
+        seq
     )
 }
 

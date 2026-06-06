@@ -1,5 +1,5 @@
 use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::AsyncPgConnection;
 use std::cmp::Ordering;
 
 use crate::models::role::CourseRole;
