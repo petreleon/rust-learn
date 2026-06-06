@@ -52,6 +52,11 @@ async fn main() -> Result<()> {
     );
 
     let sem = Arc::new(Semaphore::new(concurrency));
+    let deposit_indexer_handle =
+        rust_learn::services::wallet_deposit_indexer_service::spawn_wallet_deposit_indexer(
+            pool.clone(),
+            shutdown.clone(),
+        );
 
     // Write an initial alive stamp for healthcheck
     let _ = worker_utils::write_heartbeat(worker_utils::DEFAULT_WORKER_HEARTBEAT_PATH).await;
@@ -320,6 +325,12 @@ async fn main() -> Result<()> {
             concurrency - available
         );
         tokio::time::sleep(Duration::from_secs(1)).await;
+    }
+
+    if let Some(handle) = deposit_indexer_handle {
+        if let Err(error) = handle.await {
+            log::warn!("event=wallet_deposit_indexer_join_failed error={:?}", error);
+        }
     }
 
     Ok(())

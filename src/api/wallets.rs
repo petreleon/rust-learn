@@ -6,7 +6,10 @@ use crate::models::wallet::Wallet;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::services::wallet_audit_service;
-use crate::services::wallet_service::{self, LinkedWallet};
+use crate::services::wallet_service::{
+    self, LinkedWallet, SetWalletTokenTaxRequest, WalletTokenOperation, WalletTokenTransferError,
+    WalletTokenTransferRequest,
+};
 use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
@@ -234,6 +237,22 @@ fn link_response(linked_wallet: LinkedWallet) -> HttpResponse {
     }
 }
 
+fn wallet_token_transfer_error_response(error: WalletTokenTransferError) -> HttpResponse {
+    match error {
+        WalletTokenTransferError::PermissionDenied(_) => {
+            HttpResponse::Forbidden().body("User does not have wallet tax permission")
+        }
+        WalletTokenTransferError::InvalidInput(message) => HttpResponse::BadRequest().body(message),
+        WalletTokenTransferError::InsufficientFunds => {
+            HttpResponse::Conflict().body("Insufficient wallet balance")
+        }
+        WalletTokenTransferError::Database(message) => {
+            log::error!("event=wallet_token_transfer_api_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to process wallet token transfer")
+        }
+    }
+}
+
 async fn get_my_wallet(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
     let requester = match current_user(&req) {
         Ok(user) => user,
@@ -259,6 +278,117 @@ async fn link_my_wallet(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl R
     };
 
     link_user_wallet_by_id(pool, requester.user_id, requester.user_id).await
+}
+
+async fn list_wallet_token_taxes(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
+    if let Err(response) = current_user(&req) {
+        return response;
+    }
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match wallet_service::get_wallet_token_taxes(&mut conn).await {
+        Ok(settings) => HttpResponse::Ok().json(settings),
+        Err(error) => wallet_token_transfer_error_response(error),
+    }
+}
+
+async fn set_deposit_tax(
+    req: HttpRequest,
+    pool: web::Data<db::DbPool>,
+    body: web::Json<SetWalletTokenTaxRequest>,
+) -> impl Responder {
+    set_wallet_token_tax(req, pool, WalletTokenOperation::Deposit, body.into_inner()).await
+}
+
+async fn set_retire_tax(
+    req: HttpRequest,
+    pool: web::Data<db::DbPool>,
+    body: web::Json<SetWalletTokenTaxRequest>,
+) -> impl Responder {
+    set_wallet_token_tax(req, pool, WalletTokenOperation::Retire, body.into_inner()).await
+}
+
+async fn set_wallet_token_tax(
+    req: HttpRequest,
+    pool: web::Data<db::DbPool>,
+    operation: WalletTokenOperation,
+    body: SetWalletTokenTaxRequest,
+) -> HttpResponse {
+    let requester = match current_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match wallet_service::set_wallet_token_tax_for_actor(
+        &mut conn,
+        requester.user_id,
+        operation,
+        body,
+    )
+    .await
+    {
+        Ok(setting) => HttpResponse::Ok().json(setting),
+        Err(error) => wallet_token_transfer_error_response(error),
+    }
+}
+
+async fn deposit_my_tokens(
+    req: HttpRequest,
+    pool: web::Data<db::DbPool>,
+    body: web::Json<WalletTokenTransferRequest>,
+) -> impl Responder {
+    let requester = match current_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match wallet_service::deposit_tokens_to_user_wallet(
+        &mut conn,
+        requester.user_id,
+        body.into_inner(),
+    )
+    .await
+    {
+        Ok(result) => HttpResponse::Created().json(result),
+        Err(error) => wallet_token_transfer_error_response(error),
+    }
+}
+
+async fn retire_my_tokens(
+    req: HttpRequest,
+    pool: web::Data<db::DbPool>,
+    body: web::Json<WalletTokenTransferRequest>,
+) -> impl Responder {
+    let requester = match current_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match wallet_service::retire_tokens_from_user_wallet(
+        &mut conn,
+        requester.user_id,
+        body.into_inner(),
+    )
+    .await
+    {
+        Ok(result) => HttpResponse::Created().json(result),
+        Err(error) => wallet_token_transfer_error_response(error),
+    }
 }
 
 async fn get_user_wallet(
@@ -536,6 +666,11 @@ pub fn wallet_scope() -> actix_web::Scope {
         .service(web::resource("/me").route(web::get().to(get_my_wallet)))
         .service(web::resource("/me/audit").route(web::get().to(get_my_wallet_audit)))
         .service(web::resource("/me/link").route(web::post().to(link_my_wallet)))
+        .service(web::resource("/me/deposits").route(web::post().to(deposit_my_tokens)))
+        .service(web::resource("/me/retirements").route(web::post().to(retire_my_tokens)))
+        .service(web::resource("/token-taxes").route(web::get().to(list_wallet_token_taxes)))
+        .service(web::resource("/token-taxes/deposit").route(web::put().to(set_deposit_tax)))
+        .service(web::resource("/token-taxes/retire").route(web::put().to(set_retire_tax)))
         .service(web::resource("/users/{id}").route(web::get().to(get_user_wallet)))
         .service(web::resource("/users/{id}/audit").route(web::get().to(get_user_wallet_audit)))
         .service(web::resource("/users/{id}/link").route(web::post().to(link_user_wallet)))

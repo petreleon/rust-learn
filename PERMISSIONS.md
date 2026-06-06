@@ -146,6 +146,8 @@ This document lists all permissions assigned to roles across **Course**, **Organ
 *   RUN_TESTS
 *   SEND_BULK_NOTIFICATION
 *   SEND_NOTIFICATION
+*   SET_DEPOSIT_TAX
+*   SET_RETIRE_TAX
 *   SET_REWARD_POLICY
 *   VIEW_ANALYTICS_DASHBOARD
 *   VIEW_AUDIT_LOGS
@@ -266,6 +268,8 @@ This document lists all permissions assigned to roles across **Course**, **Organ
 *   RUN_TESTS
 *   SEND_BULK_NOTIFICATION
 *   SEND_NOTIFICATION
+*   SET_DEPOSIT_TAX
+*   SET_RETIRE_TAX
 *   SET_REWARD_POLICY
 *   SUSPEND_USER
 *   SUBMIT_COURSE_REWARD_EVENT
@@ -343,6 +347,15 @@ Reward candidate authorization is intentionally split by scope:
     rows, reward payout blockchain events, reward credit records, and an
     inferred reconciliation status for each related reward candidate. Audit
     access uses the same view permissions as wallet reads.
+*   Token deposit and retire operations record whether the user or platform
+    paid Ethereum gas. Deposits first create a pending intent; the worker
+    indexer credits the internal wallet only after it observes the matching
+    Ethereum deposit event. When `gas_payer` is `platform`, the configured
+    token tax is recorded as a separate internal wallet debit. Updating the
+    deposit tax requires platform `SET_DEPOSIT_TAX`; updating the retire tax
+    requires platform `SET_RETIRE_TAX`. API responses imply MetaMask for all
+    transfer paths except platform-paid retirements, where the recipient
+    receives tokens from a platform-sent transfer.
 *   Manual reward corrections are stored as compensation records with their
     own internal wallet transaction. They require platform `RECONCILE_WALLETS`
     or `MANAGE_WALLETS` and do not mutate the original reward candidate

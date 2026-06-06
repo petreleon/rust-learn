@@ -203,6 +203,22 @@ Organization wallet managers can link and read organization wallets with
 `/api/wallets/organizations/{id}` routes. Link endpoints are idempotent and
 return the existing wallet on repeated calls.
 
+Authenticated users can move LearnToken between their centralized platform
+wallet and an Ethereum wallet with `POST /api/wallets/me/deposits` and
+`POST /api/wallets/me/retirements`. Requests include `gas_payer` as `user` or
+`platform`; when the platform pays Ethereum gas, the configured token tax is
+applied as a separate wallet debit. Deposit requests create a pending deposit
+intent and do not credit the internal wallet immediately; the worker deposit
+indexer credits the wallet only after it observes the matching confirmed
+Ethereum event. Transfer responses include
+`wallet_provider`, `metamask_required`, and `wallet_action`: MetaMask is implied
+for every transfer path except a platform-paid retirement, where the person is
+only receiving tokens and the platform sends the transfer. Authenticated users
+can read current token taxes with `GET /api/wallets/token-taxes`; operators
+update them through `PUT /api/wallets/token-taxes/deposit` or
+`PUT /api/wallets/token-taxes/retire`, gated by platform `SET_DEPOSIT_TAX`
+and `SET_RETIRE_TAX` respectively.
+
 ### Student reward history API
 
 Authenticated students can read `GET /api/reward-candidates/me/history` for
@@ -300,6 +316,10 @@ ETH_PORT=8545
 ```
 
 You can also configure `ETH_RPC_URL` if you need an explicit RPC URL.
+Startup deploys and persists LearnToken plus the wallet transfer helper
+contracts when they are missing. If you use pre-deployed contracts, configure
+`LEARN_TOKEN_ADDRESS`, `WALLET_DEPOSIT_IMPORTER_ADDRESS`, and the treasury
+receiver values in `.env`.
 
 ### Bootstrap admin
 
@@ -385,13 +405,26 @@ Useful configuration:
 WORKER_CONCURRENCY=1
 WORKER_MAX_ATTEMPTS=5
 WORKER_BASE_BACKOFF_SECONDS=60
+WALLET_DEPOSIT_INDEXER_ENABLED=true
+WALLET_DEPOSIT_INDEXER_POLL_SECONDS=15
+WALLET_DEPOSIT_INDEXER_CONFIRMATIONS=1
+WALLET_DEPOSIT_INDEXER_BATCH_BLOCKS=500
+WALLET_DEPOSIT_INDEXER_LOOKBACK_BLOCKS=100
+LEARN_TOKEN_DECIMALS=18
 ```
+
+The worker also runs the wallet deposit indexer. It scans LearnToken `Transfer`
+events for user-paid deposits into the configured treasury and
+PlatformImporter `Imported` events for platform-paid deposits. It advances its
+cursor in persistent state as `wallet_deposit_indexer_next_block`; use
+`WALLET_DEPOSIT_INDEXER_START_BLOCK` only for the first scan of a fresh
+environment.
 
 Recommended worker build/start flow:
 
 ```bash
 make worker-build
-docker compose up -d db rustfs worker
+docker compose up -d db rustfs anvil worker
 ```
 
 If the worker build fails with an out-of-memory linker error, increase Docker VM memory and rebuild. With Colima, for example:

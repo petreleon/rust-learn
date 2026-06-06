@@ -504,6 +504,39 @@ diesel::table! {
 }
 
 diesel::table! {
+    wallet_token_deposit_intents (id) {
+        id -> Int8,
+        user_id -> Int4,
+        wallet_id -> Int4,
+        ethereum_address -> Text,
+        platform_address -> Text,
+        amount -> Numeric,
+        #[max_length = 32]
+        gas_payer -> Varchar,
+        tax_amount -> Numeric,
+        #[max_length = 32]
+        status -> Varchar,
+        chain_id -> Nullable<Int8>,
+        contract_address -> Nullable<Text>,
+        transaction_hash -> Nullable<Text>,
+        log_index -> Nullable<Int8>,
+        #[max_length = 50]
+        event_type -> Nullable<Varchar>,
+        external_transaction_id -> Nullable<Int8>,
+        transaction_id -> Nullable<Int8>,
+        #[max_length = 32]
+        wallet_provider -> Varchar,
+        metamask_required -> Bool,
+        #[max_length = 64]
+        wallet_action -> Varchar,
+        last_error -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+        credited_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     wallets (id) {
         id -> Int4,
         user_id -> Nullable<Int4>,
@@ -575,6 +608,10 @@ diesel::joinable!(user_role_organization -> organizations (organization_id));
 diesel::joinable!(user_role_organization -> users (user_id));
 diesel::joinable!(user_role_platform -> platform_roles (platform_role_id));
 diesel::joinable!(user_role_platform -> users (user_id));
+diesel::joinable!(wallet_token_deposit_intents -> external_transactions (external_transaction_id));
+diesel::joinable!(wallet_token_deposit_intents -> transactions (transaction_id));
+diesel::joinable!(wallet_token_deposit_intents -> users (user_id));
+diesel::joinable!(wallet_token_deposit_intents -> wallets (wallet_id));
 diesel::joinable!(wallets -> organizations (organization_id));
 diesel::joinable!(wallets -> users (user_id));
 
@@ -623,5 +660,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     user_role_organization,
     user_role_platform,
     users,
+    wallet_token_deposit_intents,
     wallets,
 );

@@ -9,7 +9,8 @@ use rust_learn::db::schema::{
     courses, external_transactions, internal_transactions, organization_roles, organizations,
     platform_roles, reward_candidates, reward_payout_records, reward_wallet_credit_records,
     role_permission_organization, role_permission_platform, transactions,
-    transactions_external_transactions, transactions_internal_transactions, wallets,
+    transactions_external_transactions, transactions_internal_transactions,
+    wallet_token_deposit_intents, wallets,
 };
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::course::NewCourse;
@@ -22,8 +23,11 @@ use rust_learn::models::role::{OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::repositories::persistent_state_repository::set_persistent_state;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::services::wallet_service;
+use rust_learn::services::wallet_service::{
+    self, credit_observed_wallet_deposit, ObservedWalletDepositEvent, WalletTokenTransferRequest,
+};
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::json;
 use serde_json::Value;
@@ -427,6 +431,359 @@ async fn organization_wallet_manager_can_link_and_read_org_wallet() {
         .await
         .expect("wallet count query should succeed");
     assert_eq!(count, 1);
+}
+
+#[actix_web::test]
+async fn duplicate_pending_deposit_intents_are_marked_ambiguous_without_crediting() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+    let mut conn = setup_conn(&pool).await;
+    let learner = create_test_user(&mut conn, "wallet_ambiguous_learner").await;
+
+    set_persistent_state(
+        &mut conn,
+        "platform_importer_address",
+        "0x00000000000000000000000000000000000000bb",
+    )
+    .await
+    .expect("failed to configure platform importer address");
+
+    let request = WalletTokenTransferRequest {
+        amount: BigDecimal::from(20),
+        ethereum_address: "0x00000000000000000000000000000000000000aa".to_string(),
+        gas_payer: "platform".to_string(),
+        chain_id: None,
+        contract_address: None,
+        transaction_hash: None,
+        log_index: None,
+        platform_address: Some("0x00000000000000000000000000000000000000bb".to_string()),
+    };
+
+    let first =
+        wallet_service::deposit_tokens_to_user_wallet(&mut conn, learner.id(), request.clone())
+            .await
+            .expect("first deposit intent should be created");
+    let second = wallet_service::deposit_tokens_to_user_wallet(&mut conn, learner.id(), request)
+        .await
+        .expect("second deposit intent should be created");
+    assert_ne!(first.id, second.id);
+    assert_eq!(first.wallet_id, second.wallet_id);
+
+    let tx_hash = unique_string("ambiguous_deposit_tx");
+    let result = credit_observed_wallet_deposit(
+        &mut conn,
+        ObservedWalletDepositEvent {
+            chain_id: 31337,
+            contract_address: "0x00000000000000000000000000000000000000cc".to_string(),
+            transaction_hash: tx_hash.clone(),
+            log_index: 7,
+            event_type: "import".to_string(),
+            from_address: "0x00000000000000000000000000000000000000aa".to_string(),
+            to_address: "0x00000000000000000000000000000000000000bb".to_string(),
+            amount: BigDecimal::from(20),
+        },
+    )
+    .await
+    .expect("ambiguous observed deposit should be handled");
+    assert!(!result.credited);
+    assert_eq!(result.status, "ambiguous");
+
+    let intent_rows = wallet_token_deposit_intents::table
+        .filter(wallet_token_deposit_intents::id.eq_any([first.id, second.id]))
+        .select((
+            wallet_token_deposit_intents::status,
+            wallet_token_deposit_intents::transaction_hash,
+            wallet_token_deposit_intents::chain_id,
+            wallet_token_deposit_intents::log_index,
+        ))
+        .load::<(String, Option<String>, Option<i64>, Option<i64>)>(&mut conn)
+        .await
+        .expect("deposit intents should be queryable");
+    assert_eq!(intent_rows.len(), 2);
+    for (status, stored_hash, chain_id, log_index) in intent_rows {
+        assert_eq!(status, "ambiguous");
+        assert_eq!(
+            stored_hash.as_deref(),
+            Some(tx_hash.to_ascii_lowercase().as_str())
+        );
+        assert_eq!(chain_id, Some(31337));
+        assert_eq!(log_index, Some(7));
+    }
+
+    let wallet_balance: BigDecimal = wallets::table
+        .find(first.wallet_id)
+        .select(wallets::value)
+        .get_result(&mut conn)
+        .await
+        .expect("wallet balance should be queryable");
+    assert_eq!(wallet_balance, BigDecimal::from(0));
+}
+
+#[actix_web::test]
+async fn wallet_token_deposit_and_retire_apply_platform_paid_tax() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+    let mut conn = setup_conn(&pool).await;
+    let tax_admin = create_test_user(&mut conn, "wallet_tax_admin").await;
+    let deposit_tax_only = create_test_user(&mut conn, "wallet_deposit_tax_only").await;
+    let stranger = create_test_user(&mut conn, "wallet_tax_stranger").await;
+    let learner = create_test_user(&mut conn, "wallet_tax_learner").await;
+    assign_platform_permission_role(&mut conn, tax_admin.id(), Permissions::SET_DEPOSIT_TAX).await;
+    assign_platform_permission_role(&mut conn, tax_admin.id(), Permissions::SET_RETIRE_TAX).await;
+    assign_platform_permission_role(
+        &mut conn,
+        deposit_tax_only.id(),
+        Permissions::SET_DEPOSIT_TAX,
+    )
+    .await;
+    set_persistent_state(
+        &mut conn,
+        "platform_importer_address",
+        "0x00000000000000000000000000000000000000bb",
+    )
+    .await
+    .expect("failed to configure platform importer address");
+    drop(conn);
+
+    let app = test::init_service(wallet_test_app(pool.clone())).await;
+
+    let forbidden_deposit_tax_req = test::TestRequest::put()
+        .uri("/api/wallets/token-taxes/deposit")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(stranger.id())),
+        ))
+        .set_json(json!({ "tax_amount": "2" }))
+        .to_request();
+    let forbidden_deposit_tax_resp = test::call_service(&app, forbidden_deposit_tax_req).await;
+    assert_eq!(forbidden_deposit_tax_resp.status(), StatusCode::FORBIDDEN);
+
+    let forbidden_retire_tax_req = test::TestRequest::put()
+        .uri("/api/wallets/token-taxes/retire")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(deposit_tax_only.id())),
+        ))
+        .set_json(json!({ "tax_amount": "1" }))
+        .to_request();
+    let forbidden_retire_tax_resp = test::call_service(&app, forbidden_retire_tax_req).await;
+    assert_eq!(forbidden_retire_tax_resp.status(), StatusCode::FORBIDDEN);
+
+    let set_deposit_tax_req = test::TestRequest::put()
+        .uri("/api/wallets/token-taxes/deposit")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(tax_admin.id())),
+        ))
+        .set_json(json!({ "tax_amount": "2" }))
+        .to_request();
+    let set_deposit_tax_resp = test::call_service(&app, set_deposit_tax_req).await;
+    assert_eq!(set_deposit_tax_resp.status(), StatusCode::OK);
+    let deposit_tax: Value = test::read_body_json(set_deposit_tax_resp).await;
+    assert_eq!(deposit_tax["operation"], "deposit");
+    assert_eq!(deposit_tax["tax_amount"], "2");
+
+    let set_retire_tax_req = test::TestRequest::put()
+        .uri("/api/wallets/token-taxes/retire")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(tax_admin.id())),
+        ))
+        .set_json(json!({ "tax_amount": "1" }))
+        .to_request();
+    let set_retire_tax_resp = test::call_service(&app, set_retire_tax_req).await;
+    assert_eq!(set_retire_tax_resp.status(), StatusCode::OK);
+    let retire_tax: Value = test::read_body_json(set_retire_tax_resp).await;
+    assert_eq!(retire_tax["operation"], "retire");
+    assert_eq!(retire_tax["tax_amount"], "1");
+
+    let taxes_req = test::TestRequest::get()
+        .uri("/api/wallets/token-taxes")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(learner.id())),
+        ))
+        .to_request();
+    let taxes_resp = test::call_service(&app, taxes_req).await;
+    assert_eq!(taxes_resp.status(), StatusCode::OK);
+    let taxes: Value = test::read_body_json(taxes_resp).await;
+    assert_eq!(taxes["deposit"]["tax_amount"], "2");
+    assert_eq!(taxes["retire"]["tax_amount"], "1");
+
+    let deposit_tx_hash = format!(
+        "0x{:064x}",
+        ((std::process::id() as u128) << 64)
+            | chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0) as u128
+    );
+    let deposit_req = test::TestRequest::post()
+        .uri("/api/wallets/me/deposits")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(learner.id())),
+        ))
+        .set_json(json!({
+            "amount": "20",
+            "ethereum_address": "0x00000000000000000000000000000000000000aa",
+            "platform_address": "0x00000000000000000000000000000000000000bb",
+            "gas_payer": "platform",
+            "chain_id": 31337,
+            "contract_address": "0x00000000000000000000000000000000000000cc",
+            "transaction_hash": deposit_tx_hash.clone(),
+            "log_index": 0
+        }))
+        .to_request();
+    let deposit_resp = test::call_service(&app, deposit_req).await;
+    assert_eq!(deposit_resp.status(), StatusCode::CREATED);
+    let deposit: Value = test::read_body_json(deposit_resp).await;
+    assert_eq!(deposit["operation"], "deposit");
+    assert_eq!(deposit["status"], "pending_chain_confirmation");
+    assert_eq!(deposit["amount"], "20");
+    assert_eq!(deposit["tax_amount"], "2");
+    assert_eq!(deposit["wallet_delta_on_confirmation"], "18");
+    assert_eq!(deposit["gas_payer"], "platform");
+    assert_eq!(deposit["wallet_provider"], "metamask");
+    assert_eq!(deposit["metamask_required"], true);
+    assert_eq!(deposit["wallet_action"], "metamask_permit_signature");
+    let deposit_intent_id = deposit["id"].as_i64().expect("deposit intent id");
+    let wallet_id = deposit["wallet_id"].as_i64().expect("wallet id") as i32;
+
+    let mut conn = setup_conn(&pool).await;
+    let pending_balance: BigDecimal = wallets::table
+        .find(wallet_id)
+        .select(wallets::value)
+        .get_result(&mut conn)
+        .await
+        .expect("wallet balance query should succeed");
+    assert_eq!(pending_balance, BigDecimal::from(0));
+
+    let deposit_credit = credit_observed_wallet_deposit(
+        &mut conn,
+        ObservedWalletDepositEvent {
+            chain_id: 31337,
+            contract_address: "0x00000000000000000000000000000000000000cc".to_string(),
+            transaction_hash: deposit_tx_hash.clone(),
+            log_index: 0,
+            event_type: "import".to_string(),
+            from_address: "0x00000000000000000000000000000000000000aa".to_string(),
+            to_address: "0x00000000000000000000000000000000000000bb".to_string(),
+            amount: BigDecimal::from(20),
+        },
+    )
+    .await
+    .expect("observed deposit should credit");
+    assert!(deposit_credit.credited);
+    assert_eq!(deposit_credit.intent_id, Some(deposit_intent_id));
+    assert_eq!(deposit_credit.wallet_id, Some(wallet_id));
+    assert_eq!(deposit_credit.status, "credited");
+    let deposit_transaction_id = deposit_credit
+        .transaction_id
+        .expect("deposit transaction id");
+    drop(conn);
+
+    let retire_req = test::TestRequest::post()
+        .uri("/api/wallets/me/retirements")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(learner.id())),
+        ))
+        .set_json(json!({
+            "amount": "5",
+            "ethereum_address": "0x00000000000000000000000000000000000000dd",
+            "platform_address": "0x00000000000000000000000000000000000000bb",
+            "gas_payer": "platform",
+            "chain_id": 31337,
+            "contract_address": "0x00000000000000000000000000000000000000cc",
+            "transaction_hash": unique_string("retire_tx"),
+            "log_index": 1
+        }))
+        .to_request();
+    let retire_resp = test::call_service(&app, retire_req).await;
+    assert_eq!(retire_resp.status(), StatusCode::CREATED);
+    let retire: Value = test::read_body_json(retire_resp).await;
+    assert_eq!(retire["operation"], "retire");
+    assert_eq!(retire["amount"], "5");
+    assert_eq!(retire["tax_amount"], "1");
+    assert_eq!(retire["wallet_delta"], "-6");
+    assert_eq!(retire["gas_payer"], "platform");
+    assert_eq!(retire["wallet_provider"], "platform");
+    assert_eq!(retire["metamask_required"], false);
+    assert_eq!(retire["wallet_action"], "platform_transfer");
+    let retire_transaction_id = retire["transaction_id"]
+        .as_i64()
+        .expect("retire transaction id");
+
+    let wallet_req = test::TestRequest::get()
+        .uri("/api/wallets/me")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(learner.id())),
+        ))
+        .to_request();
+    let wallet_resp = test::call_service(&app, wallet_req).await;
+    assert_eq!(wallet_resp.status(), StatusCode::OK);
+    let wallet: Value = test::read_body_json(wallet_resp).await;
+    assert_eq!(wallet["id"], wallet_id);
+    assert_eq!(wallet["value"], "12");
+
+    let audit_req = test::TestRequest::get()
+        .uri("/api/wallets/me/audit")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(learner.id())),
+        ))
+        .to_request();
+    let audit_resp = test::call_service(&app, audit_req).await;
+    assert_eq!(audit_resp.status(), StatusCode::OK);
+    let audit: Value = test::read_body_json(audit_resp).await;
+
+    let internal = audit["internal_transactions"]
+        .as_array()
+        .expect("internal transaction audit rows");
+    assert_eq!(internal.len(), 4);
+    assert!(internal.iter().any(|row| {
+        row["transaction_id"] == deposit_transaction_id
+            && row["transaction_type"] == "token_deposit"
+            && row["amount"] == "20"
+    }));
+    assert!(internal.iter().any(|row| {
+        row["transaction_id"] == deposit_transaction_id
+            && row["transaction_type"] == "token_deposit"
+            && row["amount"] == "-2"
+    }));
+    assert!(internal.iter().any(|row| {
+        row["transaction_id"] == retire_transaction_id
+            && row["transaction_type"] == "token_retire"
+            && row["amount"] == "-5"
+    }));
+    assert!(internal.iter().any(|row| {
+        row["transaction_id"] == retire_transaction_id
+            && row["transaction_type"] == "token_retire"
+            && row["amount"] == "-1"
+    }));
+
+    let external = audit["external_transactions"]
+        .as_array()
+        .expect("external transaction audit rows");
+    assert_eq!(external.len(), 2);
+    assert!(external.iter().any(|row| {
+        row["transaction_id"] == deposit_transaction_id
+            && row["event_type"] == "import"
+            && row["reward_candidate_id"].is_null()
+    }));
+    assert!(external.iter().any(|row| {
+        row["transaction_id"] == retire_transaction_id
+            && row["event_type"] == "transfer"
+            && row["reward_candidate_id"].is_null()
+    }));
+
+    let mut conn = setup_conn(&pool).await;
+    let balance: BigDecimal = wallets::table
+        .find(wallet_id)
+        .select(wallets::value)
+        .get_result(&mut conn)
+        .await
+        .expect("wallet balance query should succeed");
+    assert_eq!(balance, BigDecimal::from(12));
 }
 
 #[actix_web::test]

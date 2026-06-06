@@ -67,6 +67,8 @@ pub enum Permissions {
     WITHDRAW_MONEY,
     VIEW_TRANSACTIONS,
     CENTRALIZED_WALLET_TRANSFER,
+    SET_RETIRE_TAX,
+    SET_DEPOSIT_TAX,
 
     // Platform / Admin
     MANAGE_PLATFORM_SETTINGS,

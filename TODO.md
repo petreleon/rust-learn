@@ -180,6 +180,8 @@ business logic must ask "does this user have this permission in this scope?"
       blockchain events, reward records, and reconciliation status.
 - [x] Add compensation records for manual reward corrections. Do not mutate
       historical reward decisions in place.
+- [x] Run a worker-side deposit indexer so MetaMask deposits are credited only
+      after matching confirmed Ethereum events are observed.
 
 ## Administration And Delegation
 

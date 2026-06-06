@@ -1,7 +1,7 @@
 use crate::db::schema::{
     external_transactions, internal_transactions, reward_candidates, reward_compensation_records,
     reward_payout_records, reward_wallet_credit_records, transactions,
-    transactions_internal_transactions,
+    transactions_external_transactions, transactions_internal_transactions,
 };
 use crate::models::reward_candidate::{
     RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED,
@@ -100,9 +100,18 @@ pub async fn build_wallet_audit(
     wallet: Wallet,
 ) -> QueryResult<WalletAudit> {
     let internal_transactions = load_internal_transactions(conn, wallet.id).await?;
+    let wallet_transaction_ids = internal_transactions
+        .iter()
+        .map(|row| row.transaction_id)
+        .collect::<Vec<_>>();
     let candidate_ids = load_wallet_reward_candidate_ids(conn, &wallet).await?;
     let reward_records = load_reward_records(conn, candidate_ids.as_slice()).await?;
-    let external_transactions = load_external_transactions(conn, candidate_ids.as_slice()).await?;
+    let external_transactions = load_external_transactions(
+        conn,
+        candidate_ids.as_slice(),
+        wallet_transaction_ids.as_slice(),
+    )
+    .await?;
     let compensation_records = load_compensation_records(conn, wallet.id).await?;
 
     Ok(WalletAudit {
@@ -271,56 +280,70 @@ async fn load_reward_records(
 async fn load_external_transactions(
     conn: &mut AsyncPgConnection,
     candidate_ids: &[i64],
+    wallet_transaction_ids: &[i64],
 ) -> QueryResult<Vec<WalletExternalTransactionAudit>> {
-    if candidate_ids.is_empty() {
-        return Ok(Vec::new());
-    }
+    let mut audits = Vec::new();
+    let mut seen = HashSet::new();
 
-    let rows = reward_payout_records::table
-        .inner_join(
-            external_transactions::table
-                .on(reward_payout_records::external_transaction_id.eq(external_transactions::id)),
-        )
-        .filter(reward_payout_records::reward_candidate_id.eq_any(candidate_ids))
-        .select((
-            reward_payout_records::reward_candidate_id,
-            reward_payout_records::transaction_id,
-            external_transactions::id,
-            external_transactions::amount,
-            external_transactions::blockchain_address,
-            external_transactions::chain_id,
-            external_transactions::contract_address,
-            external_transactions::transaction_hash,
-            external_transactions::log_index,
-            external_transactions::event_type,
-            external_transactions::from_address,
-            external_transactions::to_address,
-        ))
-        .order(external_transactions::id.desc())
-        .load::<(
-            i64,
-            i64,
-            i64,
-            bigdecimal::BigDecimal,
-            String,
-            Option<i64>,
-            Option<String>,
-            Option<String>,
-            Option<i64>,
-            Option<String>,
-            Option<String>,
-            Option<String>,
-        )>(conn)
-        .await?;
+    if !candidate_ids.is_empty() {
+        let rows =
+            reward_payout_records::table
+                .inner_join(external_transactions::table.on(
+                    reward_payout_records::external_transaction_id.eq(external_transactions::id),
+                ))
+                .filter(reward_payout_records::reward_candidate_id.eq_any(candidate_ids))
+                .select((
+                    reward_payout_records::reward_candidate_id,
+                    reward_payout_records::transaction_id,
+                    external_transactions::id,
+                    external_transactions::amount,
+                    external_transactions::blockchain_address,
+                    external_transactions::chain_id,
+                    external_transactions::contract_address,
+                    external_transactions::transaction_hash,
+                    external_transactions::log_index,
+                    external_transactions::event_type,
+                    external_transactions::from_address,
+                    external_transactions::to_address,
+                ))
+                .order(external_transactions::id.desc())
+                .load::<(
+                    i64,
+                    i64,
+                    i64,
+                    bigdecimal::BigDecimal,
+                    String,
+                    Option<i64>,
+                    Option<String>,
+                    Option<String>,
+                    Option<i64>,
+                    Option<String>,
+                    Option<String>,
+                    Option<String>,
+                )>(conn)
+                .await?;
 
-    Ok(rows
-        .into_iter()
-        .map(
-            |(
-                reward_candidate_id,
-                transaction_id,
+        for (
+            reward_candidate_id,
+            transaction_id,
+            external_transaction_id,
+            amount,
+            blockchain_address,
+            chain_id,
+            contract_address,
+            transaction_hash,
+            log_index,
+            event_type,
+            from_address,
+            to_address,
+        ) in rows
+        {
+            seen.insert((transaction_id, external_transaction_id));
+            audits.push(WalletExternalTransactionAudit {
                 external_transaction_id,
-                amount,
+                transaction_id,
+                reward_candidate_id: Some(reward_candidate_id),
+                amount: amount.to_string(),
                 blockchain_address,
                 chain_id,
                 contract_address,
@@ -329,11 +352,68 @@ async fn load_external_transactions(
                 event_type,
                 from_address,
                 to_address,
-            )| {
-                WalletExternalTransactionAudit {
+            });
+        }
+    }
+
+    if !wallet_transaction_ids.is_empty() {
+        let rows = transactions_external_transactions::table
+            .inner_join(
+                external_transactions::table
+                    .on(transactions_external_transactions::external_transaction_id
+                        .eq(external_transactions::id)),
+            )
+            .filter(
+                transactions_external_transactions::transaction_id.eq_any(wallet_transaction_ids),
+            )
+            .select((
+                transactions_external_transactions::transaction_id,
+                external_transactions::id,
+                external_transactions::amount,
+                external_transactions::blockchain_address,
+                external_transactions::chain_id,
+                external_transactions::contract_address,
+                external_transactions::transaction_hash,
+                external_transactions::log_index,
+                external_transactions::event_type,
+                external_transactions::from_address,
+                external_transactions::to_address,
+            ))
+            .order(external_transactions::id.desc())
+            .load::<(
+                i64,
+                i64,
+                bigdecimal::BigDecimal,
+                String,
+                Option<i64>,
+                Option<String>,
+                Option<String>,
+                Option<i64>,
+                Option<String>,
+                Option<String>,
+                Option<String>,
+            )>(conn)
+            .await?;
+
+        for (
+            transaction_id,
+            external_transaction_id,
+            amount,
+            blockchain_address,
+            chain_id,
+            contract_address,
+            transaction_hash,
+            log_index,
+            event_type,
+            from_address,
+            to_address,
+        ) in rows
+        {
+            if seen.insert((transaction_id, external_transaction_id)) {
+                audits.push(WalletExternalTransactionAudit {
                     external_transaction_id,
                     transaction_id,
-                    reward_candidate_id: Some(reward_candidate_id),
+                    reward_candidate_id: None,
                     amount: amount.to_string(),
                     blockchain_address,
                     chain_id,
@@ -343,10 +423,19 @@ async fn load_external_transactions(
                     event_type,
                     from_address,
                     to_address,
-                }
-            },
-        )
-        .collect())
+                });
+            }
+        }
+    }
+
+    audits.sort_by(|left, right| {
+        right
+            .external_transaction_id
+            .cmp(&left.external_transaction_id)
+            .then_with(|| right.transaction_id.cmp(&left.transaction_id))
+    });
+
+    Ok(audits)
 }
 
 async fn load_compensation_records(

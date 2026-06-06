@@ -73,14 +73,26 @@ async fn main() -> std::io::Result<()> {
             .await
             .expect("Failed to update database version");
 
-        // Ensure LearnToken is deployed (idempotent: uses persistent state)
-        match crate::utils::eth_utils::deploy_startup(&mut conn, "LearnToken", "LRN", 18).await {
-            Ok(addr) => log::info!(
-                "event=eth_startup_deploy_ready contract=LearnToken address={:#x}",
-                addr
-            ),
+        // Ensure LearnToken and wallet transfer helper contracts are deployed
+        // idempotently and persisted for API/worker use.
+        match crate::utils::eth_utils::deploy_all_startup(&mut conn, "LearnToken", "LRN", 18).await
+        {
+            Ok((token_addr, presigner_addr, importer_addr)) => {
+                let presigner_address = presigner_addr
+                    .map(|addr| format!("{:#x}", addr))
+                    .unwrap_or_else(|| "none".to_string());
+                let importer_address = importer_addr
+                    .map(|addr| format!("{:#x}", addr))
+                    .unwrap_or_else(|| "none".to_string());
+                log::info!(
+                    "event=eth_startup_deploy_ready token_address={:#x} presigner_address={} importer_address={}",
+                    token_addr,
+                    presigner_address,
+                    importer_address
+                );
+            }
             Err(err) => log::error!(
-                "event=eth_startup_deploy_failed contract=LearnToken error={:?}",
+                "event=eth_startup_deploy_failed contract_scope=wallet_transfer error={:?}",
                 err
             ),
         }

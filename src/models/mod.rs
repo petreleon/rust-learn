@@ -38,3 +38,4 @@ pub mod user_role_course;
 pub mod user_role_organization;
 pub mod user_role_platform;
 pub mod wallet;
+pub mod wallet_token_deposit_intent;

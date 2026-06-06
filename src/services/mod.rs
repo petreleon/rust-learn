@@ -12,4 +12,5 @@ pub mod reward_policy_service;
 pub mod teacher_application_service;
 pub mod token_reconciliation;
 pub mod wallet_audit_service;
+pub mod wallet_deposit_indexer_service;
 pub mod wallet_service;
