@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RustLearn Web Console
 
-## Getting Started
+Next.js operations console for reward, teacher-application, reporting, fraud,
+delegation, and wallet workflows.
 
-First, run the development server:
+## Local Development
+
+From the repository root, start the API dependencies and run the API:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+make dev-deps
+./scripts/run-host-tests.sh cargo run --bin rust-learn
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then start the web app:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd web
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open <http://localhost:3000>. The app uses `/api` in the browser by default.
+Next proxies `/api/*` to `${API_URL}/api/*` and `/health` to `${API_URL}/health`.
+When `API_URL` is not set, it defaults to `http://127.0.0.1:8080`.
 
-## Learn More
+Container and Kubernetes deployments set `API_URL` explicitly:
 
-To learn more about Next.js, take a look at the following resources:
+- Docker Compose: `http://app:8080`
+- Kubernetes: `http://rust-app:8080`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Checks
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run lint
+npm run build
+```

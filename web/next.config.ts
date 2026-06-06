@@ -1,11 +1,17 @@
 import type { NextConfig } from "next";
 
+const apiUrl = process.env.API_URL || "http://127.0.0.1:8080";
+
 const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: '/api/:path*',
-        destination: `${process.env.API_URL || 'http://rust-app:8080'}/:path*`,
+        source: "/health",
+        destination: `${apiUrl}/health`,
+      },
+      {
+        source: "/api/:path*",
+        destination: `${apiUrl}/api/:path*`,
       },
     ];
   },
