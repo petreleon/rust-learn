@@ -216,3 +216,44 @@ async fn register_rejects_weak_password_and_login_rejects_bad_credentials() {
     let body = test::read_body(bad_login_resp).await;
     assert_eq!(body.as_ref(), b"Invalid credentials");
 }
+
+#[actix_web::test]
+async fn register_rejects_duplicate_email_without_panicking() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+    let app = test::init_service(auth_test_app(pool.clone())).await;
+
+    let email = unique_email("auth-duplicate");
+    let password = "ValidPass123!";
+    let payload = serde_json::json!({
+        "email": email,
+        "password": password,
+        "name": "Duplicate Register",
+        "date_of_birth": "2005-10-11"
+    });
+
+    let first_req = test::TestRequest::post()
+        .uri("/api/auth/register")
+        .set_json(&payload)
+        .to_request();
+    let first_resp = test::call_service(&app, first_req).await;
+    assert_eq!(first_resp.status(), StatusCode::OK);
+
+    let duplicate_req = test::TestRequest::post()
+        .uri("/api/auth/register")
+        .set_json(&payload)
+        .to_request();
+    let duplicate_resp = test::call_service(&app, duplicate_req).await;
+    assert_eq!(duplicate_resp.status(), StatusCode::CONFLICT);
+    let body = test::read_body(duplicate_resp).await;
+    assert_eq!(body.as_ref(), b"Email already registered");
+
+    let mut conn = setup_conn(&pool).await;
+    let user_count: i64 = users::table
+        .filter(users::email.eq(email))
+        .count()
+        .get_result(&mut conn)
+        .await
+        .expect("duplicate registration should leave one user");
+    assert_eq!(user_count, 1);
+}

@@ -2,6 +2,8 @@
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::NaiveDate;
+use diesel::result::{DatabaseErrorKind, Error as DieselError};
+use diesel_async::AsyncConnection;
 use serde::Deserialize;
 
 use crate::db;
@@ -58,6 +60,26 @@ fn email_log_hash(email: &str) -> String {
         .chars()
         .take(16)
         .collect()
+}
+
+fn registration_db_error_response(error: DieselError, email: &str) -> HttpResponse {
+    match error {
+        DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, _) => {
+            log::warn!(
+                "event=auth_register_failed reason=email_already_registered email_hash={}",
+                email_log_hash(email)
+            );
+            HttpResponse::Conflict().body("Email already registered")
+        }
+        DieselError::NotFound => {
+            log::error!("event=auth_register_failed reason=default_student_role_missing");
+            HttpResponse::InternalServerError().body("Failed to register user")
+        }
+        err => {
+            log::error!("event=auth_register_failed reason=database_error error={err}");
+            HttpResponse::InternalServerError().body("Failed to register user")
+        }
+    }
 }
 
 #[post("/login")]
@@ -134,40 +156,13 @@ pub async fn register(
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    // Create new user
-    let new_user_data = NewUser {
-        name: req.name.to_string(),
-        email: req.email.clone(),
-        date_of_birth: req.date_of_birth,
-        created_at: chrono::Utc::now().naive_utc(),
-        kyc_verified: false,
-        email_verified: false,
+    let hashed_password = match hash(&req.password, DEFAULT_COST) {
+        Ok(password_hash) => password_hash,
+        Err(err) => {
+            log::error!("event=auth_password_hash_failed error={}", err);
+            return HttpResponse::InternalServerError().body("Failed to register user");
+        }
     };
-
-    let inserted_user = User::create(new_user_data, &mut conn)
-        .await
-        .expect("Error saving new user");
-
-    // Assign default role (STUDENT)
-    let role_id = PlatformRole::find_by_name("STUDENT", &mut conn)
-        .await
-        .expect("Error finding STUDENT role");
-
-    UserRolePlatform::assign(&mut conn, inserted_user.id(), role_id)
-        .await
-        .expect("Error assigning default role to user");
-
-    // Hash password and create authentication
-    let hashed_password = hash(&req.password, DEFAULT_COST).unwrap();
-    let new_auth = Authentication {
-        user_id: inserted_user.id(),
-        type_authentication: "password".to_string(),
-        info_auth: hashed_password,
-    };
-
-    Authentication::create(new_auth, &mut conn)
-        .await
-        .expect("Error saving new authentication");
 
     let verification_token = match generate_verification_token() {
         Ok(token) => token,
@@ -180,18 +175,45 @@ pub async fn register(
                 .body("Failed to create email verification token");
         }
     };
-
     let token_hash = verification_token_hash(&verification_token);
-    if let Err(err) =
-        EmailVerificationToken::create_for_user(&mut conn, inserted_user.id(), token_hash).await
+
+    let new_user_data = NewUser {
+        name: req.name.to_string(),
+        email: req.email.clone(),
+        date_of_birth: req.date_of_birth,
+        created_at: chrono::Utc::now().naive_utc(),
+        kyc_verified: false,
+        email_verified: false,
+    };
+
+    let inserted_user = match conn
+        .transaction::<_, DieselError, _>(|conn| {
+            Box::pin(async move {
+                let inserted_user = User::create(new_user_data, conn).await?;
+
+                let role_id = PlatformRole::find_by_name("STUDENT", conn).await?;
+                UserRolePlatform::assign(conn, inserted_user.id(), role_id).await?;
+
+                let new_auth = Authentication {
+                    user_id: inserted_user.id(),
+                    type_authentication: "password".to_string(),
+                    info_auth: hashed_password,
+                };
+                Authentication::create(new_auth, conn).await?;
+
+                EmailVerificationToken::create_for_user(conn, inserted_user.id(), token_hash)
+                    .await?;
+
+                Ok(inserted_user)
+            })
+        })
+        .await
     {
-        log::error!(
-            "event=email_verification_token_save_failed user_id={} error={}",
-            inserted_user.id(),
-            err
-        );
-        return HttpResponse::InternalServerError().body("Failed to save email verification token");
-    }
+        Ok(user) => user,
+        Err(err) => {
+            return registration_db_error_response(err, &req.email);
+        }
+    };
 
     print_mock_verification_email(
         &inserted_user.email,
