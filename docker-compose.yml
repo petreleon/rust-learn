@@ -28,6 +28,7 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+    command: sh -c "npm ci --no-audit --no-fund && npm run dev"
     ports:
       - "3000:3000"
     volumes:
