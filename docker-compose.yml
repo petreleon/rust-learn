@@ -29,7 +29,11 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
-    command: sh -c "npm ci --no-audit --no-fund && npm run dev"
+    command: >
+      sh -c "if [ ! -d node_modules/next ] ||
+      [ package.json -nt node_modules/.package-lock.json ] ||
+      [ package-lock.json -nt node_modules/.package-lock.json ];
+      then npm ci --no-audit --no-fund; fi && npm run dev"
     ports:
       - "3000:3000"
     volumes:
@@ -42,6 +46,12 @@ services:
       - API_URL=http://app:8080
     depends_on:
       - app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 30s
 
   db:
     image: postgres:latest
