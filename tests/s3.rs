@@ -1,6 +1,18 @@
 use std::env;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use rust_learn::utils::s3_utils::S3State;
+
+static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+fn unique_test_id(prefix: &str) -> String {
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let seq = UNIQUE_COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("{}_{}_{}_{}", prefix, std::process::id(), ts, seq)
+}
 
 fn require_s3_external() -> String {
     let mut ext = env::var("S3_EXTERNAL_DOMAIN").ok();
@@ -20,22 +32,15 @@ async fn presign_external_get_works() {
 
     let s3 = S3State::new_from_env().await.expect("init s3");
     // Ensure the test bucket exists by uploading a small temporary file.
-    let tmp = std::env::temp_dir().join(format!(
-        "s3_test_{}.txt",
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let object = format!("{}.txt", unique_test_id("test-object-get"));
+    let tmp = std::env::temp_dir().join(format!("{}.txt", unique_test_id("s3_test_get")));
     std::fs::write(&tmp, b"test").expect("write tmp");
-    s3.put_object_from_path("test-bucket", "test-object.txt", tmp.clone())
+    s3.put_object_from_path("test-bucket", &object, tmp.clone())
         .await
         .expect("ensure bucket/upload");
     let _ = std::fs::remove_file(&tmp);
 
-    let url = s3
-        .presign_external_get("test-bucket", "test-object.txt", 60)
-        .await;
+    let url = s3.presign_external_get("test-bucket", &object, 60).await;
     assert!(url.is_ok(), "presign_external_get failed: {:?}", url.err());
 }
 
@@ -46,21 +51,16 @@ async fn presign_external_post_form_data_works() {
 
     let s3 = S3State::new_from_env().await.expect("init s3");
     // Ensure bucket exists by uploading a small object.
-    let tmp = std::env::temp_dir().join(format!(
-        "s3_test_{}.txt",
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos()
-    ));
+    let object = format!("{}.txt", unique_test_id("test-object-post"));
+    let tmp = std::env::temp_dir().join(format!("{}.txt", unique_test_id("s3_test_post")));
     std::fs::write(&tmp, b"test").expect("write tmp");
-    s3.put_object_from_path("test-bucket", "test-object.txt", tmp.clone())
+    s3.put_object_from_path("test-bucket", &object, tmp.clone())
         .await
         .expect("ensure bucket/upload");
     let _ = std::fs::remove_file(&tmp);
 
     let res = s3
-        .presign_external_post_form_data("test-bucket", "test-object.txt", 300)
+        .presign_external_post_form_data("test-bucket", &object, 300)
         .await;
     assert!(res.is_ok(), "presign POST failed: {:?}", res.err());
 }

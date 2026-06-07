@@ -35,12 +35,29 @@ async fn main() -> Result<()> {
     let shutdown_handle = shutdown.clone();
     // spawn a task to listen for SIGTERM and SIGINT
     tokio::spawn(async move {
-        // Listen for SIGTERM
-        if let Ok(mut sigterm) = signal(SignalKind::terminate()) {
-            let _ = sigterm.recv().await;
+        let mut sigterm = signal(SignalKind::terminate()).ok();
+
+        tokio::select! {
+            _ = async {
+                if let Some(sigterm) = sigterm.as_mut() {
+                    let _ = sigterm.recv().await;
+                } else {
+                    std::future::pending::<()>().await;
+                }
+            } => {
+                log::info!("event=worker_shutdown_signal signal=terminate action=stop_claiming");
+            }
+            result = tokio::signal::ctrl_c() => {
+                if let Err(err) = result {
+                    log::warn!(
+                        "event=worker_shutdown_signal_listen_failed signal=interrupt error={:?}",
+                        err
+                    );
+                }
+                log::info!("event=worker_shutdown_signal signal=interrupt action=stop_claiming");
+            }
         }
-        // Also listen for Ctrl-C as fallback
-        let _ = tokio::signal::ctrl_c().await;
+
         log::info!("event=worker_shutdown_signal action=stop_claiming");
         shutdown_handle.store(true, Ordering::SeqCst);
     });
@@ -194,117 +211,120 @@ async fn main() -> Result<()> {
                 .await;
             let duration_ms = started_at.elapsed().as_millis();
 
-            if res.is_ok() {
-                if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_done(
-                    job_id,
-                    &mut *conn_for_task,
-                )
-                .await
-                {
-                    log::error!(
-                        "event=worker_job_mark_done_failed job_id={} error={:?}",
+            match res {
+                Ok(()) => {
+                    if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_done(
                         job_id,
-                        e
-                    );
-                }
-                log::info!(
-                    "event=worker_job_processed job_id={} result=done duration_ms={} attempt={} previous_attempts={}",
-                    job_id,
-                    duration_ms,
-                    attempt_number,
-                    current_attempts
-                );
-            } else {
-                let err_text = format!("{}", res.err().unwrap());
-                let new_attempts = current_attempts + 1;
-                log::warn!(
-                    "event=worker_job_processing_failed job_id={} bucket={} object={} duration_ms={} attempts={} max_attempts={} error={}",
-                    job_id,
-                    bucket,
-                    object,
-                    duration_ms,
-                    new_attempts,
-                    max_attempts,
-                    err_text
-                );
-
-                if new_attempts >= max_attempts {
-                    if let Some(uid) = user_id {
-                        if let Err(e) = notifications_cloned
-                            .send_worker_failure_notification(
-                                uid,
-                                job_id,
-                                &object,
-                                new_attempts as i32,
-                                &err_text,
-                            )
-                            .await
-                        {
-                            log::warn!(
-                                "event=notification_send_failed kind=worker_failure job_id={} user_id={} error={:?}",
-                                job_id,
-                                uid,
-                                e
-                            );
-                        }
-                    }
-
-                    // mark as permanently failed
-                    if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_failed(
-                        job_id,
-                        new_attempts as i32,
-                        err_text.clone(),
                         &mut *conn_for_task,
                     )
                     .await
                     {
                         log::error!(
-                            "event=worker_job_mark_failed_failed job_id={} attempts={} error={:?}",
+                            "event=worker_job_mark_done_failed job_id={} error={:?}",
                             job_id,
-                            new_attempts,
-                            e
-                        );
-                    }
-                    log::warn!(
-                        "event=worker_job_terminal_failure job_id={} duration_ms={} attempts={} max_attempts={} failed_jobs_delta=1",
-                        job_id,
-                        duration_ms,
-                        new_attempts,
-                        max_attempts
-                    );
-                } else {
-                    // exponential backoff (base * 2^attempts)
-                    // set updated_at to future time so claim SQL skips it until backoff expires
-                    let future_time = worker_utils::retry_available_at(
-                        chrono::Utc::now(),
-                        base_backoff_seconds,
-                        current_attempts,
-                    );
-
-                    if let Err(e) = rust_learn::models::upload_job::UploadJob::schedule_retry(
-                        job_id,
-                        new_attempts as i32,
-                        err_text.clone(),
-                        future_time,
-                        &mut *conn_for_task,
-                    )
-                    .await
-                    {
-                        log::error!(
-                            "event=worker_job_schedule_retry_failed job_id={} attempts={} error={:?}",
-                            job_id,
-                            new_attempts,
                             e
                         );
                     }
                     log::info!(
-                        "event=worker_job_retry_scheduled job_id={} duration_ms={} attempts={} max_attempts={} retry_available_at={}",
+                        "event=worker_job_processed job_id={} result=done duration_ms={} attempt={} previous_attempts={}",
                         job_id,
+                        duration_ms,
+                        attempt_number,
+                        current_attempts
+                    );
+                }
+                Err(err) => {
+                    let err_text = err.to_string();
+                    let new_attempts = current_attempts + 1;
+                    log::warn!(
+                        "event=worker_job_processing_failed job_id={} bucket={} object={} duration_ms={} attempts={} max_attempts={} error={}",
+                        job_id,
+                        bucket,
+                        object,
                         duration_ms,
                         new_attempts,
                         max_attempts,
-                        future_time
+                        err_text
                     );
+
+                    if new_attempts >= max_attempts {
+                        if let Some(uid) = user_id {
+                            if let Err(e) = notifications_cloned
+                                .send_worker_failure_notification(
+                                    uid,
+                                    job_id,
+                                    &object,
+                                    new_attempts as i32,
+                                    &err_text,
+                                )
+                                .await
+                            {
+                                log::warn!(
+                                    "event=notification_send_failed kind=worker_failure job_id={} user_id={} error={:?}",
+                                    job_id,
+                                    uid,
+                                    e
+                                );
+                            }
+                        }
+
+                        // mark as permanently failed
+                        if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_failed(
+                            job_id,
+                            new_attempts as i32,
+                            err_text.clone(),
+                            &mut *conn_for_task,
+                        )
+                        .await
+                        {
+                            log::error!(
+                                "event=worker_job_mark_failed_failed job_id={} attempts={} error={:?}",
+                                job_id,
+                                new_attempts,
+                                e
+                            );
+                        }
+                        log::warn!(
+                            "event=worker_job_terminal_failure job_id={} duration_ms={} attempts={} max_attempts={} failed_jobs_delta=1",
+                            job_id,
+                            duration_ms,
+                            new_attempts,
+                            max_attempts
+                        );
+                    } else {
+                        // exponential backoff (base * 2^attempts)
+                        // set updated_at to future time so claim SQL skips it until backoff expires
+                        let future_time = worker_utils::retry_available_at(
+                            chrono::Utc::now(),
+                            base_backoff_seconds,
+                            current_attempts,
+                        );
+
+                        if let Err(e) = rust_learn::models::upload_job::UploadJob::schedule_retry(
+                            job_id,
+                            new_attempts as i32,
+                            err_text.clone(),
+                            future_time,
+                            &mut *conn_for_task,
+                        )
+                        .await
+                        {
+                            log::error!(
+                                "event=worker_job_schedule_retry_failed job_id={} attempts={} error={:?}",
+                                job_id,
+                                new_attempts,
+                                e
+                            );
+                        }
+                        log::info!(
+                            "event=worker_job_retry_scheduled job_id={} duration_ms={} attempts={} max_attempts={} retry_available_at={}",
+                            job_id,
+                            duration_ms,
+                            new_attempts,
+                            max_attempts,
+                            future_time
+                        );
+                    }
                 }
             }
 

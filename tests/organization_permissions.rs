@@ -11,10 +11,14 @@ use rust_learn::repositories::user_repository::create_user;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::models::role::OrganizationRole;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
-    format!("{}_{}", prefix, ts)
+    let seq = UNIQUE_COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("{}_{}_{}_{}", prefix, std::process::id(), ts, seq)
 }
 
 async fn setup_conn(
