@@ -34,7 +34,8 @@ services:
       - ./web:/app
       - /app/node_modules
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      # Keep browser requests same-origin; Next proxies /api and /health to API_URL.
+      - NEXT_PUBLIC_API_URL=/api
       - API_URL=http://app:8080
     depends_on:
       - app

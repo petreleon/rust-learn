@@ -96,7 +96,7 @@ process are documented in [docs/operations.md](docs/operations.md).
 
 ### Frontend
 
-The `web/` directory contains a Next.js app that can call the Rust API through `NEXT_PUBLIC_API_URL` in browser contexts and `API_URL` for container/server contexts.
+The `web/` directory contains a Next.js app that keeps browser API calls on the same origin through `/api` by default. `API_URL` points the Next proxy at the Rust API in container/server contexts; `NEXT_PUBLIC_API_URL` can override the browser root when needed.
 The first screen is a reward operations console for teacher applications,
 course reward candidate decisions, platform amount review, student reward
 history, organization reward reports, reward fraud blocks, delegated reward
