@@ -1,5 +1,5 @@
 // src/api/authentication.rs
-use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use bcrypt::{non_truncating_hash, verify, DEFAULT_COST};
 use chrono::NaiveDate;
 use diesel::result::{DatabaseErrorKind, Error as DieselError};
@@ -265,20 +265,28 @@ pub async fn hello() -> impl Responder {
 
 #[get("/user_id")]
 pub async fn user_id(req: HttpRequest) -> impl Responder {
-    // Try to decode the Authorization header to extract the user ID instead of reading request extensions
-    if let Some(auth_header) = req.headers().get("Authorization") {
-        if let Ok(auth_str) = auth_header.to_str() {
-            if let Some(token) = auth_str.strip_prefix("Bearer ") {
-                if let Ok(token_data) = crate::utils::jwt_utils::decode_jwt(token) {
-                    let user_jwt = token_data.claims;
-                    return HttpResponse::Ok()
-                        .body(format!("Hello! Your ID is {}", user_jwt.user_id));
-                }
-            }
-        }
+    if let Some(user_jwt) = req.extensions().get::<crate::models::user_jwt::UserJWT>() {
+        return HttpResponse::Ok().body(format!("Hello! Your ID is {}", user_jwt.user_id));
     }
 
-    HttpResponse::Ok().body("You didn't provide any ID")
+    let Some(auth_header) = req.headers().get("Authorization") else {
+        return HttpResponse::Unauthorized().body("Missing Authorization header");
+    };
+
+    let Ok(auth_str) = auth_header.to_str() else {
+        return HttpResponse::Unauthorized().body("Invalid Authorization header format");
+    };
+
+    let Some(token) = auth_str.strip_prefix("Bearer ") else {
+        return HttpResponse::Unauthorized().body("Invalid Authorization header format");
+    };
+
+    match crate::utils::jwt_utils::decode_jwt(token) {
+        Ok(token_data) => {
+            HttpResponse::Ok().body(format!("Hello! Your ID is {}", token_data.claims.user_id))
+        }
+        Err(_) => HttpResponse::Unauthorized().body("Invalid token"),
+    }
 }
 
 pub async fn jwks() -> impl Responder {
@@ -304,6 +312,8 @@ pub fn auth_scope() -> actix_web::Scope {
 #[cfg(test)]
 mod tests {
     use super::{email_log_hash, validate_password_strength, PASSWORD_TOO_LONG_MESSAGE};
+    use crate::utils::jwt_utils::create_jwt;
+    use actix_web::{http::StatusCode, test as actix_test, App};
 
     #[test]
     fn accepts_strong_password() {
@@ -375,5 +385,78 @@ mod tests {
             email_log_hash("learner@example.com"),
             email_log_hash("teacher@example.com")
         );
+    }
+
+    #[actix_web::test]
+    async fn user_id_requires_authorization_header() {
+        let app = actix_test::init_service(App::new().service(super::auth_scope())).await;
+
+        let response = actix_test::call_service(
+            &app,
+            actix_test::TestRequest::get()
+                .uri("/auth/user_id")
+                .to_request(),
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        let body = actix_test::read_body(response).await;
+        assert_eq!(body.as_ref(), b"Missing Authorization header");
+    }
+
+    #[actix_web::test]
+    async fn user_id_rejects_malformed_authorization_header() {
+        let app = actix_test::init_service(App::new().service(super::auth_scope())).await;
+
+        let response = actix_test::call_service(
+            &app,
+            actix_test::TestRequest::get()
+                .uri("/auth/user_id")
+                .insert_header(("Authorization", "Basic not-a-bearer-token"))
+                .to_request(),
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        let body = actix_test::read_body(response).await;
+        assert_eq!(body.as_ref(), b"Invalid Authorization header format");
+    }
+
+    #[actix_web::test]
+    async fn user_id_rejects_invalid_bearer_token() {
+        let app = actix_test::init_service(App::new().service(super::auth_scope())).await;
+
+        let response = actix_test::call_service(
+            &app,
+            actix_test::TestRequest::get()
+                .uri("/auth/user_id")
+                .insert_header(("Authorization", "Bearer not-a-valid-token"))
+                .to_request(),
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        let body = actix_test::read_body(response).await;
+        assert_eq!(body.as_ref(), b"Invalid token");
+    }
+
+    #[actix_web::test]
+    async fn user_id_returns_id_for_valid_bearer_token() {
+        let _ = dotenvy::dotenv();
+        let token = create_jwt(42).expect("test JWT should be created");
+        let app = actix_test::init_service(App::new().service(super::auth_scope())).await;
+
+        let response = actix_test::call_service(
+            &app,
+            actix_test::TestRequest::get()
+                .uri("/auth/user_id")
+                .insert_header(("Authorization", format!("Bearer {token}")))
+                .to_request(),
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = actix_test::read_body(response).await;
+        assert_eq!(body.as_ref(), b"Hello! Your ID is 42");
     }
 }
