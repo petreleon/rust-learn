@@ -5,5 +5,5 @@ pub mod wallet;
 
 pub use compiler::compile_contract;
 pub use deployer::*;
-pub use provider::get_provider;
-pub use wallet::load_wallet_from_env;
+pub use provider::{get_provider, try_get_provider};
+pub use wallet::{load_wallet_from_env, try_load_wallet_from_env};
