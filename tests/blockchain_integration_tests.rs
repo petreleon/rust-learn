@@ -1,10 +1,11 @@
+use anyhow::{Context, Result};
 use bip39::Mnemonic;
 use ethers::prelude::*;
 use ethers::signers::coins_bip39::English;
 use ethers::signers::MnemonicBuilder;
 use getrandom::getrandom;
 use rust_learn::utils::eth_utils::{
-    compile_contract, deploy_contract, get_provider, load_wallet_from_env,
+    try_compile_contract, try_deploy_contract, try_get_provider, try_load_wallet_from_env,
 };
 
 // This test requires a running Anvil node accessible via the .env configuration.
@@ -13,29 +14,31 @@ use rust_learn::utils::eth_utils::{
 // `cargo test --test blockchain_integration_tests -- --ignored`
 #[tokio::test(flavor = "multi_thread")]
 #[ignore]
-async fn test_deploy_and_mint() {
+async fn test_deploy_and_mint() -> Result<()> {
     // 1. Setup: Load wallet, provider, and compile contract
     // Use a dedicated derivation index to avoid nonce clashes with any persistent anvil state
-    let mnemonic = std::env::var("ETH_MNEMONIC").expect("ETH_MNEMONIC not set for test");
+    let mnemonic = std::env::var("ETH_MNEMONIC").context("ETH_MNEMONIC not set for test")?;
     let wallet = MnemonicBuilder::<English>::default()
         .phrase(mnemonic.as_str())
         .index(2u32)
-        .expect("failed to set derivation index")
+        .context("failed to set derivation index")?
         .build()
-        .expect("failed to build deployer wallet")
+        .context("failed to build deployer wallet")?
         .with_chain_id(31337u64);
-    let provider = get_provider();
+    let provider = try_get_provider().map_err(anyhow::Error::msg)?;
 
     // Compile and deploy LearnToken
-    let (abi, bytecode) = compile_contract("LearnToken.sol", "LearnToken");
-    let token_addr = deploy_contract(
+    let (abi, bytecode) =
+        try_compile_contract("LearnToken.sol", "LearnToken").map_err(anyhow::Error::msg)?;
+    let token_addr = try_deploy_contract(
         wallet.clone(),
         provider.clone(),
         abi.clone(),
         bytecode,
         ("Test Token".to_string(), "TST".to_string(), 18u8),
     )
-    .await;
+    .await
+    .map_err(anyhow::Error::msg)?;
 
     let client = std::sync::Arc::new(SignerMiddleware::new(provider.clone(), wallet.clone()));
     let token = Contract::new(token_addr, abi.clone(), client.clone());
@@ -43,120 +46,145 @@ async fn test_deploy_and_mint() {
     // Mint tokens to the test wallet
     let my_addr = wallet.address();
     let amount_to_mint = U256::from(100) * U256::from(10).pow(U256::from(18)); // 100 tokens
-    let mint_call: ContractCall<_, ()> = token.method("mint", (my_addr, amount_to_mint)).unwrap();
-    let pending = mint_call.send().await.expect("mint send");
-    let _ = pending.await.expect("mint confirm").unwrap();
+    let mint_call: ContractCall<_, ()> = token
+        .method("mint", (my_addr, amount_to_mint))
+        .context("failed to build mint call")?;
+    let pending = mint_call.send().await.context("mint send failed")?;
+    let _ = pending
+        .await
+        .context("mint confirmation failed")?
+        .context("mint transaction was dropped before receipt")?;
 
     // Verify minted balance
     let balance: U256 = token
         .method::<_, U256>("balanceOf", my_addr)
-        .unwrap()
+        .context("failed to build balanceOf call")?
         .call()
         .await
-        .expect("balanceOf");
+        .context("balanceOf call failed")?;
     assert_eq!(balance, amount_to_mint);
 
     // Deploy LearnTokenPresigner
     let (presigner_abi, presigner_bytecode) =
-        compile_contract("LearnTokenPresigner.sol", "LearnTokenPresigner");
-    let presigner_addr = deploy_contract(
+        try_compile_contract("LearnTokenPresigner.sol", "LearnTokenPresigner")
+            .map_err(anyhow::Error::msg)?;
+    let presigner_addr = try_deploy_contract(
         wallet.clone(),
         provider.clone(),
         presigner_abi.clone(),
         presigner_bytecode,
         (token_addr,),
     )
-    .await;
+    .await
+    .map_err(anyhow::Error::msg)?;
     let presigner = Contract::new(presigner_addr, presigner_abi.clone(), client.clone());
 
     // Approve presigner to transfer tokens and deposit
     let approve_call = token
         .method::<_, bool>("approve", (presigner_addr, amount_to_mint))
-        .unwrap();
-    let p = approve_call.send().await.expect("approve send");
-    let _ = p.await.expect("approve confirm").unwrap();
+        .context("failed to build approve call")?;
+    let p = approve_call.send().await.context("approve send failed")?;
+    let _ = p
+        .await
+        .context("approve confirmation failed")?
+        .context("approve transaction was dropped before receipt")?;
 
     // Deposit into presigner
     let deposit_call = presigner
         .method::<_, ()>("deposit", amount_to_mint)
-        .unwrap();
-    let d = deposit_call.send().await.expect("deposit send");
-    let _ = d.await.expect("deposit confirm").unwrap();
+        .context("failed to build deposit call")?;
+    let d = deposit_call.send().await.context("deposit send failed")?;
+    let _ = d
+        .await
+        .context("deposit confirmation failed")?
+        .context("deposit transaction was dropped before receipt")?;
 
     // Withdraw back
     let withdraw_call = presigner
         .method::<_, ()>("withdraw", amount_to_mint)
-        .unwrap();
-    let w = withdraw_call.send().await.expect("withdraw send");
-    let _ = w.await.expect("withdraw confirm").unwrap();
+        .context("failed to build withdraw call")?;
+    let w = withdraw_call.send().await.context("withdraw send failed")?;
+    let _ = w
+        .await
+        .context("withdraw confirmation failed")?
+        .context("withdraw transaction was dropped before receipt")?;
 
     // Deploy PlatformImporter (we won't test permit here)
     let (importer_abi, importer_bytecode) =
-        compile_contract("PlatformImporter.sol", "PlatformImporter");
+        try_compile_contract("PlatformImporter.sol", "PlatformImporter")
+            .map_err(anyhow::Error::msg)?;
     let treasury = my_addr; // use self as treasury for test
-    let importer_addr = deploy_contract(
+    let importer_addr = try_deploy_contract(
         wallet.clone(),
         provider.clone(),
         importer_abi.clone(),
         importer_bytecode,
         (treasury,),
     )
-    .await;
+    .await
+    .map_err(anyhow::Error::msg)?;
 
     // Sanity: deployed addresses are non-zero
     assert_ne!(token_addr, Address::zero());
     assert_ne!(presigner_addr, Address::zero());
     assert_ne!(importer_addr, Address::zero());
+    Ok(())
 }
 
 // Test EIP-2612 permit flow with PlatformImporter.importWithPermit
 #[tokio::test(flavor = "multi_thread")]
 #[ignore]
-async fn test_permit_import() {
+async fn test_permit_import() -> Result<()> {
     // Generate distinct mnemonics for deployer and owner
     let mut entropy_deployer = [0u8; 16];
-    getrandom(&mut entropy_deployer).expect("failed to get randomness for deployer");
+    getrandom(&mut entropy_deployer).context("failed to get randomness for deployer")?;
     let mnemonic_deployer =
-        Mnemonic::from_entropy(&entropy_deployer).expect("failed to build deployer mnemonic");
+        Mnemonic::from_entropy(&entropy_deployer).context("failed to build deployer mnemonic")?;
     let phrase_deployer = mnemonic_deployer.to_string();
 
     let mut entropy_owner = [0u8; 16];
-    getrandom(&mut entropy_owner).expect("failed to get randomness for owner");
+    getrandom(&mut entropy_owner).context("failed to get randomness for owner")?;
     let mnemonic_owner =
-        Mnemonic::from_entropy(&entropy_owner).expect("failed to build owner mnemonic");
+        Mnemonic::from_entropy(&entropy_owner).context("failed to build owner mnemonic")?;
     let phrase_owner = mnemonic_owner.to_string();
 
     // Deployer and owner come from different mnemonics (both at index 0)
     let deployer_wallet = MnemonicBuilder::<English>::default()
         .phrase(phrase_deployer.as_str())
         .index(0u32)
-        .expect("failed to set derivation index")
+        .context("failed to set derivation index")?
         .build()
-        .expect("failed to build deployer wallet")
+        .context("failed to build deployer wallet")?
         .with_chain_id(31337u64);
-    let provider = get_provider();
+    let provider = try_get_provider().map_err(anyhow::Error::msg)?;
 
     // Fund the freshly-generated deployer wallet from the default Anvil-funded faucet
-    let faucet = load_wallet_from_env().with_chain_id(31337u64);
+    let faucet = try_load_wallet_from_env()
+        .map_err(anyhow::Error::msg)?
+        .with_chain_id(31337u64);
     let faucet_client = std::sync::Arc::new(SignerMiddleware::new(provider.clone(), faucet));
     let fund_value = U256::from(10u64) * U256::from(10).pow(U256::from(18)); // 10 ETH
     let tx = TransactionRequest::pay(deployer_wallet.address(), fund_value);
     let pending = faucet_client
         .send_transaction(tx, None)
         .await
-        .expect("funding deployer tx send");
-    let _ = pending.await.expect("funding deployer tx confirm");
+        .context("funding deployer transaction send failed")?;
+    let _ = pending
+        .await
+        .context("funding deployer transaction confirmation failed")?;
 
     // Deploy token
-    let (abi, bytecode) = compile_contract("LearnToken.sol", "LearnToken");
-    let token_addr = deploy_contract(
+    let (abi, bytecode) =
+        try_compile_contract("LearnToken.sol", "LearnToken").map_err(anyhow::Error::msg)?;
+    let token_addr = try_deploy_contract(
         deployer_wallet.clone(),
         provider.clone(),
         abi.clone(),
         bytecode,
         ("Permit Token".to_string(), "PTKN".to_string(), 18u8),
     )
-    .await;
+    .await
+    .map_err(anyhow::Error::msg)?;
 
     let client = std::sync::Arc::new(SignerMiddleware::new(
         provider.clone(),
@@ -168,34 +196,37 @@ async fn test_permit_import() {
     let owner_wallet = MnemonicBuilder::<English>::default()
         .phrase(phrase_owner.as_str())
         .index(0u32)
-        .expect("failed to set derivation index")
+        .context("failed to set derivation index")?
         .build()
-        .expect("failed to build owner wallet");
+        .context("failed to build owner wallet")?;
     let owner = owner_wallet.address();
 
     // Mint tokens to owner
     let amount = U256::from(50) * U256::from(10).pow(U256::from(18));
     let _ = token
         .method::<_, ()>("mint", (owner, amount))
-        .unwrap()
+        .context("failed to build mint call")?
         .send()
         .await
-        .unwrap()
+        .context("mint send failed")?
         .await
-        .unwrap();
+        .context("mint confirmation failed")?
+        .context("mint transaction was dropped before receipt")?;
 
     // Deploy importer with treasury = random address
     let (importer_abi, importer_bytecode) =
-        compile_contract("PlatformImporter.sol", "PlatformImporter");
+        try_compile_contract("PlatformImporter.sol", "PlatformImporter")
+            .map_err(anyhow::Error::msg)?;
     let treasury = Address::random();
-    let importer_addr = deploy_contract(
+    let importer_addr = try_deploy_contract(
         deployer_wallet.clone(),
         provider.clone(),
         importer_abi.clone(),
         importer_bytecode,
         (treasury,),
     )
-    .await;
+    .await
+    .map_err(anyhow::Error::msg)?;
     let importer = Contract::new(importer_addr, importer_abi.clone(), client.clone());
 
     // Build permit signature following EIP-2612
@@ -211,16 +242,16 @@ async fn test_permit_import() {
     // fetch nonce and domain separator from token
     let nonce: U256 = token
         .method::<_, U256>("nonces", owner)
-        .unwrap()
+        .context("failed to build nonces call")?
         .call()
         .await
-        .unwrap();
+        .context("nonces call failed")?;
     let domain_separator: H256 = token
         .method::<_, H256>("DOMAIN_SEPARATOR", ())
-        .unwrap()
+        .context("failed to build DOMAIN_SEPARATOR call")?
         .call()
         .await
-        .unwrap();
+        .context("DOMAIN_SEPARATOR call failed")?;
 
     // deadline
     let deadline = U256::from(9999999999u64);
@@ -258,7 +289,9 @@ async fn test_permit_import() {
     let digest_h256 = H256::from_slice(&digest);
 
     // Sign digest with owner's wallet (synchronous return)
-    let sig = owner_wallet.sign_hash(digest_h256).unwrap();
+    let sig = owner_wallet
+        .sign_hash(digest_h256)
+        .context("failed to sign permit digest")?;
     let v = sig.v as u8;
     let r = sig.r;
     let s = sig.s;
@@ -280,19 +313,20 @@ async fn test_permit_import() {
                 s_bytes,
             ),
         )
-        .unwrap()
+        .context("failed to build importWithPermit call")?
         .send()
         .await
-        .expect("import tx send")
+        .context("importWithPermit transaction send failed")?
         .await
-        .expect("import tx confirm");
+        .context("importWithPermit transaction confirmation failed")?;
 
     // Check treasury balance increased
     let bal: U256 = token
         .method::<_, U256>("balanceOf", treasury)
-        .unwrap()
+        .context("failed to build treasury balanceOf call")?
         .call()
         .await
-        .unwrap();
+        .context("treasury balanceOf call failed")?;
     assert_eq!(bal, amount);
+    Ok(())
 }
