@@ -1,7 +1,7 @@
 .PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health runtime-verify runtime-disk docker-prune-build-cache \
   k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
   k8s-validate dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
-  dev-refresh test-integration fmt web-lint web-build
+  dev-refresh test-integration fmt clippy web-lint web-build
 
 # Variables
 export PATH := /opt/homebrew/bin:/usr/local/bin:$(PATH)
@@ -204,6 +204,9 @@ test-integration: ## Run integration tests
 
 fmt: ## Check Rust formatting
 	cargo fmt --all --check
+
+clippy: ## Run Rust Clippy on all targets and features
+	cargo clippy --all-targets --features app-bin,worker-bin,tool-bin -- -D warnings
 
 k8s-validate: ## Render Kubernetes manifests locally
 	$(KUBECTL) kustomize $(K8S_BASE) >/dev/null

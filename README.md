@@ -569,6 +569,7 @@ Makefile shortcuts:
 
 ```bash
 make fmt
+make clippy
 make test
 make test-integration
 make web-lint
@@ -583,6 +584,7 @@ Test dependency notes:
 
 | Check | External requirements |
 | --- | --- |
+| `make clippy` | Local Rust toolchain plus native libraries such as `libpq`; runs Clippy across all targets and the app, worker, and tool feature flags with warnings denied. |
 | `make test` / `cargo test` | A valid `.env`; many integration tests open `DATABASE_URL`, so start PostgreSQL first with `make dev-deps` when running the full suite. Host runs also need local native libraries such as `libpq`. |
 | `make test-compose` | Docker plus a valid `.env`; starts PostgreSQL, RustFS, and Anvil, then runs Cargo in the `test-runner` profile so host native libraries are not required. |
 | `cargo test --test s3` | RustFS/S3-compatible storage reachable through the `S3_*` settings. With Compose, run from the container network or set `S3_INTERNAL_DOMAIN`/`S3_EXTERNAL_DOMAIN` appropriately for the host. |
