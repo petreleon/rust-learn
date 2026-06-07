@@ -47,22 +47,15 @@ spec:
           livenessProbe:
             exec:
               command:
-                - /bin/sh
-                - -c
-                - |
-                  if [ -f /tmp/worker_alive ]; then
-                    last=$(stat -c %Y /tmp/worker_alive)
-                    now=$(date +%s)
-                    diff=$((now-last))
-                    if [ $diff -lt 120 ]; then
-                      exit 0
-                    else
-                      exit 1
-                    fi
-                  else
-                    exit 1
-                  fi
-            initialDelaySeconds: 10
+                - /usr/local/bin/worker-healthcheck
+            initialDelaySeconds: 30
             periodSeconds: 30
-            timeoutSeconds: 10
-            failureThreshold: 4
+            timeoutSeconds: 15
+            failureThreshold: 6
+          startupProbe:
+            exec:
+              command:
+                - /usr/local/bin/worker-healthcheck
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30

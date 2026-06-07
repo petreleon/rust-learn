@@ -45,6 +45,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy the built binary from the builder stage
 COPY --from=builder /usr/src/worker/target/release/worker /usr/local/bin/worker
-RUN chmod +x /usr/local/bin/worker
+COPY scripts/worker-healthcheck.sh /usr/local/bin/worker-healthcheck
+RUN chmod +x /usr/local/bin/worker /usr/local/bin/worker-healthcheck
 
 ENTRYPOINT ["/usr/local/bin/worker"]

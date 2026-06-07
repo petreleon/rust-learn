@@ -454,7 +454,8 @@ Inspect worker logs:
 docker compose logs -f worker
 ```
 
-The worker writes `/tmp/worker_alive`; Docker Compose uses this heartbeat for health checks.
+The worker writes `/tmp/worker_alive`; Docker Compose and Kubernetes run
+`/usr/local/bin/worker-healthcheck` against this heartbeat for health checks.
 Use `docker compose logs -f worker` to watch heartbeat-adjacent metric events
 for queue depth, attempts, processing duration, retries, and failed jobs.
 

@@ -99,6 +99,7 @@ case "${1:-apply}" in
     rebuild)
         echo -e "${YELLOW}Rebuilding Docker images...${NC}"
         docker build -t rust-app:latest .
+        docker build -t rust-worker:latest -f docker/worker.Dockerfile .
         docker build -t web:latest ./web
         echo -e "${GREEN}Images rebuilt successfully${NC}"
         ;;

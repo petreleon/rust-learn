@@ -120,12 +120,11 @@ services:
     stop_signal: SIGTERM
     stop_grace_period: 2m
     healthcheck:
-      # Escape $ to avoid Compose env interpolation; compute file mtime delta < 120s
-      test: ["CMD-SHELL", "if [ -f /tmp/worker_alive ]; then last=$$(stat -c %Y /tmp/worker_alive); now=$$(date +%s); diff=$$((now-last)); if [ $$diff -lt 120 ]; then exit 0; else exit 1; fi; else exit 1; fi"]
+      test: ["CMD", "/usr/local/bin/worker-healthcheck"]
       interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      timeout: 10s
+      retries: 4
+      start_period: 15s
     deploy:
       resources:
         limits:
