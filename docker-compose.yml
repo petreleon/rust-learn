@@ -36,6 +36,7 @@ services:
       - ./web:/app
       - /app/node_modules
     environment:
+      - NODE_ENV=development
       # Keep browser requests same-origin; Next proxies /api and /health to API_URL.
       - NEXT_PUBLIC_API_URL=/api
       - API_URL=http://app:8080
