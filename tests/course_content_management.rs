@@ -1,8 +1,9 @@
 use actix_service::Service;
 use actix_web::{test, web, App};
 use chrono::NaiveDate;
+use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::db::schema::courses;
+use rust_learn::db::schema::{courses, upload_jobs};
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::chapter::Chapter;
 use rust_learn::models::content::Content;
@@ -222,7 +223,16 @@ async fn test_course_content_lifecycle() {
     let updated_content: Content = test::read_body_json(resp).await;
     assert_eq!(updated_content.data.unwrap(), "Updated Text");
 
-    // 8. Teacher Triggers Processing
+    let mut conn = setup_conn(&pool).await;
+    let queued_text_jobs_before = upload_jobs::table
+        .filter(upload_jobs::object.eq("Updated Text"))
+        .count()
+        .get_result::<i64>(&mut conn)
+        .await
+        .expect("upload job count query should succeed");
+    drop(conn);
+
+    // 8. Teacher cannot trigger video processing for text content
     let req = test::TestRequest::post()
         .uri(&format!(
             "/courses/{}/chapters/{}/contents/{}/process",
@@ -231,5 +241,14 @@ async fn test_course_content_lifecycle() {
         .insert_header(("Authorization", format!("Bearer {}", teacher_token)))
         .to_request();
     let resp = app.call(req).await.unwrap();
-    assert_eq!(resp.status(), actix_web::http::StatusCode::ACCEPTED);
+    assert_eq!(resp.status(), actix_web::http::StatusCode::BAD_REQUEST);
+
+    let mut conn = setup_conn(&pool).await;
+    let queued_text_jobs_after = upload_jobs::table
+        .filter(upload_jobs::object.eq("Updated Text"))
+        .count()
+        .get_result::<i64>(&mut conn)
+        .await
+        .expect("upload job count query should succeed");
+    assert_eq!(queued_text_jobs_after, queued_text_jobs_before);
 }
