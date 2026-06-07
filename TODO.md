@@ -236,6 +236,9 @@ business logic must ask "does this user have this permission in this scope?"
 - [x] Add structured logs for teacher application transitions, reward decisions,
       delegated permission checks, token execution, wallet credit, and
       reconciliation.
+- [x] Throttle idle worker queue metric logs with
+      `WORKER_QUEUE_METRICS_INTERVAL_SECONDS` so Docker Compose and Kubernetes
+      logs stay readable while per-job and failure events remain immediate.
 
 ## Frontend Workflows
 

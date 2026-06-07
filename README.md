@@ -170,10 +170,12 @@ without enabling verbose logs for every dependency.
 
 The worker emits operational metric events to the same log stream:
 `worker_queue_metrics` reports queue depth, ready and delayed queued jobs,
-processing jobs, failed jobs, and in-flight tasks. Per-job events include
-`worker_job_claimed`, `worker_job_started`, `worker_job_processed`,
-`worker_job_retry_scheduled`, and `worker_job_terminal_failure` with attempt
-numbers and processing duration in milliseconds.
+processing jobs, failed jobs, and in-flight tasks. Idle metric logging is
+throttled by `WORKER_QUEUE_METRICS_INTERVAL_SECONDS` to keep Compose and
+Kubernetes logs readable. Per-job events include `worker_job_claimed`,
+`worker_job_started`, `worker_job_processed`, `worker_job_retry_scheduled`, and
+`worker_job_terminal_failure` with attempt numbers and processing duration in
+milliseconds.
 
 ### Mock email preview
 
@@ -419,6 +421,7 @@ Useful configuration:
 WORKER_CONCURRENCY=1
 WORKER_MAX_ATTEMPTS=5
 WORKER_BASE_BACKOFF_SECONDS=60
+WORKER_QUEUE_METRICS_INTERVAL_SECONDS=60
 WALLET_DEPOSIT_INDEXER_ENABLED=true
 WALLET_DEPOSIT_INDEXER_POLL_SECONDS=15
 WALLET_DEPOSIT_INDEXER_CONFIRMATIONS=1

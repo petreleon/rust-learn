@@ -12,6 +12,7 @@ use tokio::sync::{Semaphore, TryAcquireError};
 use rust_learn::utils::worker as worker_utils;
 
 const WORKER_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30);
+const DEFAULT_WORKER_QUEUE_METRICS_INTERVAL: Duration = Duration::from_secs(60);
 
 /// Worker entrypoint. Uses a tokio Semaphore to limit the number of
 /// concurrent ffmpeg processing tasks (controlled via WORKER_CONCURRENCY).
@@ -77,6 +78,13 @@ async fn main() -> Result<()> {
     );
 
     let sem = Arc::new(Semaphore::new(concurrency));
+    let queue_metrics_interval = Duration::from_secs(worker_utils::positive_u64_from_env_value(
+        std::env::var("WORKER_QUEUE_METRICS_INTERVAL_SECONDS")
+            .ok()
+            .as_deref(),
+        DEFAULT_WORKER_QUEUE_METRICS_INTERVAL.as_secs(),
+    ));
+    let mut last_queue_metrics_log: Option<Instant> = None;
     let deposit_indexer_handle =
         rust_learn::services::wallet_deposit_indexer_service::spawn_wallet_deposit_indexer(
             pool.clone(),
@@ -140,25 +148,33 @@ async fn main() -> Result<()> {
         // Use a transaction + FOR UPDATE SKIP LOCKED to safely claim a job without raw SQL
         // Select only queued jobs whose updated_at (used as available_at for retries)
         // is either NULL or <= now() so backoff delays are respected.
-        match rust_learn::models::upload_job::UploadJob::queue_metrics(&mut conn).await {
-            Ok(metrics) => {
-                let in_flight = concurrency
-                    .saturating_sub(sem.available_permits())
-                    .saturating_sub(1);
-                log::info!(
-                    "event=worker_queue_metrics queue_depth={} queued_ready={} queued_delayed={} processing={} failed={} in_flight={} concurrency={}",
-                    metrics.queue_depth(),
-                    metrics.queued_ready,
-                    metrics.queued_delayed,
-                    metrics.processing,
-                    metrics.failed,
-                    in_flight,
-                    concurrency
-                );
+        let should_log_metrics = last_queue_metrics_log
+            .map(|logged_at| logged_at.elapsed() >= queue_metrics_interval)
+            .unwrap_or(true);
+
+        if should_log_metrics {
+            match rust_learn::models::upload_job::UploadJob::queue_metrics(&mut conn).await {
+                Ok(metrics) => {
+                    let in_flight = concurrency
+                        .saturating_sub(sem.available_permits())
+                        .saturating_sub(1);
+                    log::info!(
+                        "event=worker_queue_metrics queue_depth={} queued_ready={} queued_delayed={} processing={} failed={} in_flight={} concurrency={} interval_seconds={}",
+                        metrics.queue_depth(),
+                        metrics.queued_ready,
+                        metrics.queued_delayed,
+                        metrics.processing,
+                        metrics.failed,
+                        in_flight,
+                        concurrency,
+                        queue_metrics_interval.as_secs()
+                    );
+                }
+                Err(e) => {
+                    log::warn!("event=worker_queue_metrics_failed error={:?}", e);
+                }
             }
-            Err(e) => {
-                log::warn!("event=worker_queue_metrics_failed error={:?}", e);
-            }
+            last_queue_metrics_log = Some(Instant::now());
         }
 
         let job_opt: Option<rust_learn::models::upload_job::UploadJob> =
