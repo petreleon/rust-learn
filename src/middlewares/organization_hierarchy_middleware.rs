@@ -1,6 +1,7 @@
 // Filename: organization_hierarchy_middleware.rs
 
 use actix_service::{forward_ready, Service, Transform};
+use actix_web::HttpMessage;
 use actix_web::{
     dev::{ServiceRequest, ServiceResponse},
     web, Error,
@@ -10,9 +11,8 @@ use futures::FutureExt;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
-// Assuming these modules are defined in your application
 use crate::db::DbPool;
-use crate::models::param_type::ParamType;
+use crate::models::{param_type::ParamType, user_jwt::UserJWT};
 use crate::repositories::organization_repository::user_hierarchy_compare_organization;
 use crate::utils::request_utils::extract_param;
 
@@ -86,7 +86,16 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        // These clones ensure that we own the data fully and no references are held.
+        let db_pool = match req.app_data::<web::Data<DbPool>>() {
+            Some(pool) => pool.clone(),
+            None => {
+                return future::ready(Err(actix_web::error::ErrorInternalServerError(
+                    "Failed to access database pool",
+                )))
+                .boxed_local();
+            }
+        };
+
         let type_param_of_organization = self.type_param_of_organization;
         let name_param_of_organization = self.name_param_of_organization.clone();
         let type_param_of_id_user = self.type_param_of_id_user;
@@ -100,18 +109,10 @@ where
         let second_user_id_str_opt =
             extract_param(&req, &name_param_of_id_user, type_param_of_id_user)
                 .map(|s| s.to_owned());
+        let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
 
-        // Clone `self` if needed or ensure `self.service` is moved or referenced correctly.
         let service = self.service.clone();
         async move {
-            // Obtain a DB connection directly from the pool (no request extensions)
-            let pool = req.app_data::<web::Data<DbPool>>().ok_or_else(|| {
-                actix_web::error::ErrorInternalServerError("Failed to get database pool")
-            })?;
-            let mut conn = pool.get().await.map_err(|_| {
-                actix_web::error::ErrorInternalServerError("Failed to get database connection")
-            })?;
-
             let organization_id = organization_id_str_opt
                 .and_then(|id_str| id_str.parse::<i32>().ok())
                 .ok_or_else(|| {
@@ -124,27 +125,13 @@ where
                     actix_web::error::ErrorBadRequest("Invalid or missing user parameter")
                 })?;
 
-            // Extract and decode JWT from Authorization header rather than from request extensions
-            let user_jwt = if let Some(auth_header) = req.headers().get("Authorization") {
-                if let Ok(auth_str) = auth_header.to_str() {
-                    if let Some(token) = auth_str.strip_prefix("Bearer ") {
-                        match crate::utils::jwt_utils::decode_jwt(token) {
-                            Ok(token_data) => token_data.claims,
-                            Err(_) => {
-                                return Err(actix_web::error::ErrorUnauthorized("Unauthorized"))
-                            }
-                        }
-                    } else {
-                        return Err(actix_web::error::ErrorUnauthorized("Unauthorized"));
-                    }
-                } else {
-                    return Err(actix_web::error::ErrorUnauthorized("Unauthorized"));
-                }
-            } else {
-                return Err(actix_web::error::ErrorUnauthorized("Unauthorized"));
-            };
+            let user_jwt = user_jwt_opt
+                .ok_or_else(|| actix_web::error::ErrorUnauthorized("Unauthorized access"))?;
 
-            // Now call the compare function with the borrowed connection
+            let mut conn = db_pool.get().await.map_err(|_| {
+                actix_web::error::ErrorInternalServerError("Failed to get database connection")
+            })?;
+
             let can_proceed = match user_hierarchy_compare_organization(
                 &mut conn,
                 organization_id,
@@ -164,7 +151,6 @@ where
                 return Err(actix_web::error::ErrorForbidden("Forbidden"));
             }
 
-            // Use the cloned service here.
             let fut = service.call(req);
             fut.await
         }
