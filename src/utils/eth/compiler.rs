@@ -22,10 +22,26 @@ fn load_contract_artifact(contract_name: &str) -> Option<(Abi, Bytes)> {
     Some((abi, Bytes::from(bin_bytes)))
 }
 
+fn compile_from_source_requested() -> bool {
+    env::var("ETH_CONTRACT_COMPILE_FROM_SOURCE")
+        .map(|value| matches!(value.trim(), "1" | "true" | "TRUE" | "yes" | "YES"))
+        .unwrap_or(false)
+}
+
 /// Compile a specific contract file+name using ethers-solc. Returns (Abi, Bytecode).
 pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes) {
     use ethers_solc::{remappings::Remapping, Project, ProjectPathsConfig};
     use std::process::Command;
+
+    if !compile_from_source_requested() {
+        if let Some(artifact) = load_contract_artifact(contract_name) {
+            log::info!(
+                "event=eth_compile_artifact_loaded contract={}",
+                contract_name
+            );
+            return artifact;
+        }
+    }
 
     // Configure remappings for OpenZeppelin
     let mut remappings: Vec<Remapping> = Vec::new();

@@ -1,75 +1,41 @@
-# =======================
-# Stage 1: Build Z3 (4.12.1) and solc from source on Debian 12
-# =======================
-FROM debian:12 AS solc_builder
-ARG DEBIAN_FRONTEND=noninteractive
-ARG Z3_VERSION=4.12.1
-ARG SOLC_VERSION=0.8.26
-
-# Build dependencies (Boost headers, toolchain, Python for Z3)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential cmake git curl ca-certificates python3 \
-    libboost-all-dev \
- && rm -rf /var/lib/apt/lists/*
-
-# Build & install Z3 >= 4.12.1
-RUN git clone --depth 1 --branch z3-${Z3_VERSION} https://github.com/Z3Prover/z3.git /tmp/z3 \
- && cd /tmp/z3 \
- && python3 scripts/mk_make.py --prefix=/usr/local \
- && cd build && make -j"$(nproc)" && make install && ldconfig
-
-# Fetch Solidity release tarball
-RUN curl -L -o /tmp/solidity.tar.gz \
-      https://github.com/ethereum/solidity/releases/download/v${SOLC_VERSION}/solidity_${SOLC_VERSION}.tar.gz \
- && mkdir -p /src && tar -xzf /tmp/solidity.tar.gz -C /src --strip-components=1
-
-WORKDIR /src
-# Build ONLY the solc binary; avoid cmake --install to skip yul-phaser
-RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPEDANTIC=OFF \
- && cmake --build build --target solc --parallel "$(nproc)" \
- && install -m 0755 build/solc/solc /usr/local/bin/solc
-
-# =======================
-# Stage 2: Rust dev image with solc
-# =======================
-FROM rust:latest
+FROM rust:bookworm AS app_builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev pkg-config libssl-dev build-essential git ca-certificates \
-    ffmpeg \
  && rm -rf /var/lib/apt/lists/*
 
-# Copy solc + Z3 runtime libs from builder
-COPY --from=solc_builder /usr/local/bin/solc /usr/local/bin/solc
-COPY --from=solc_builder /usr/local/lib/libz3.so* /usr/local/lib/
-
-# Ensure the dynamic linker can find /usr/local/lib
-RUN ldconfig || true
-
-# Sanity check
-RUN solc --version
-
-# Your Rust tooling
 RUN cargo install diesel_cli --no-default-features --features postgres
 
-# Ensure cargo-installed binaries (diesel, rustup shims) are always on PATH
 ENV CARGO_HOME=/usr/local/cargo
 ENV PATH="/usr/local/cargo/bin:${PATH}"
 
-# Also place diesel in a standard bin dir so it's always found regardless of shell PATH
-RUN ln -sf /usr/local/cargo/bin/diesel /usr/local/bin/diesel
-
 WORKDIR /usr/src/app
 
-# Build the worker binary during image build so runtime containers don't compile
-# the workspace (link-time is memory heavy and can get OOM-killed in constrained containers).
-# Copy source, build the `worker` binary, and install it to /usr/local/bin.
 COPY . .
 # Build with a single job to reduce memory pressure during linking. Fail if worker cannot be built.
 ENV CARGO_BUILD_JOBS=1
 RUN cargo build -j1 --release --bin worker
 RUN cargo build -j1 --release --bin rust-learn
-# Copy them to a stable path in the image
-RUN test -x target/release/worker && cp target/release/worker /usr/local/bin/worker
-RUN test -x target/release/rust-learn && cp target/release/rust-learn /usr/local/bin/rust-learn
+
+FROM debian:12-slim AS runtime
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash ca-certificates coreutils ffmpeg git libpq5 libssl3 libstdc++6 \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY --from=app_builder /usr/local/cargo/bin/diesel /usr/local/bin/diesel
+COPY --from=app_builder /usr/src/app/target/release/worker /usr/local/bin/worker
+COPY --from=app_builder /usr/src/app/target/release/rust-learn /usr/local/bin/rust-learn
+
+WORKDIR /usr/src/app
+COPY diesel.toml ./diesel.toml
+COPY migrations ./migrations
+COPY scripts ./scripts
+COPY ethereum/artifacts ./ethereum/artifacts
+
+RUN chmod +x /usr/local/bin/worker /usr/local/bin/rust-learn /usr/local/bin/diesel \
+ && chmod +x ./scripts/*.sh \
+ && ldconfig \
+ && diesel --version

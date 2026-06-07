@@ -3,7 +3,7 @@ target
 node_modules
 **/target
 **/.git
-ethereum/artifacts
+ethereum/contracts
 tmp
 tmp/*
 .DS_Store

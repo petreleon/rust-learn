@@ -2,7 +2,7 @@
 # - Build stage: rust toolchain (Debian-based)
 # - Final stage: minimal Debian runtime containing only the built binary
 
-FROM rust:latest AS builder
+FROM rust:bookworm AS builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -15,9 +15,8 @@ ENV CARGO_HOME=/usr/local/cargo
 
 WORKDIR /usr/src/worker
 
-# Copy manifest first to leverage Docker layer caching for dependencies
-# Cargo.lock is excluded from context via .dockerignore, copy only Cargo.toml
-COPY Cargo.toml ./
+# Copy manifest first to leverage Docker layer caching for dependencies.
+COPY Cargo.toml Cargo.lock ./
 RUN cargo fetch || true
 
 # Copy the whole workspace - building a workspace crate may require workspace sources
@@ -30,13 +29,17 @@ ENV CARGO_BUILD_JOBS=1
 RUN cargo build --release --bin worker
 
 # --- Final runtime image ---
-# Use the same base as the builder to ensure compatible glibc/runtime libraries
-FROM rust:latest AS runtime
+# Keep only the worker binary and runtime libraries in the final image.
+FROM debian:12-slim AS runtime
+
+ARG DEBIAN_FRONTEND=noninteractive
 
 # Install only runtime packages required by the worker binary
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    libssl3 \
     libpq5 \
+    libstdc++6 \
     ffmpeg \
  && rm -rf /var/lib/apt/lists/*
 
