@@ -4,14 +4,14 @@ pub mod updates;
 
 use self::updates::{apply_update_v1, apply_update_v2};
 use crate::models::db_version_control::DbVersionControl;
-use diesel::QueryResult;
+use anyhow::Result;
 use diesel_async::AsyncPgConnection;
 use futures::future::BoxFuture;
 
 // A small alias for update functions stored in the update list.
 // Each update receives a mutable Postgres connection and returns
-// Diesel's `QueryResult<()>` (alias for Result<_, diesel::result::Error>).
-type UpdateFn = fn(&mut AsyncPgConnection) -> BoxFuture<'_, QueryResult<()>>;
+// an error with enough context for clean startup logs.
+type UpdateFn = fn(&mut AsyncPgConnection) -> BoxFuture<'_, Result<()>>;
 
 /// Returns the list of available updates as pairs of (target_version, function).
 ///
@@ -28,7 +28,7 @@ fn updates() -> Vec<(i32, UpdateFn)> {
 /// - Applies each update whose target version is greater than the current version.
 /// - At the end, sets the stored version to the maximum available update version
 ///   (no change if there are no updates or max <= current).
-pub async fn version_updater(conn: &mut AsyncPgConnection) -> QueryResult<()> {
+pub async fn version_updater(conn: &mut AsyncPgConnection) -> Result<()> {
     // Query the current version row. If it's missing or null, treat as 0.
     let current_version = DbVersionControl::get_current_version(conn).await?;
 
