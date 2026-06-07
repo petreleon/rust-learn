@@ -396,9 +396,14 @@
   }
 
   .sidebar {
+    order: 2;
     min-height: auto;
     border-right: 0;
-    border-bottom: 1px solid #d8dee6;
+    border-top: 1px solid #d8dee6;
+  }
+
+  .workspace {
+    order: 1;
   }
 
   .grid,
