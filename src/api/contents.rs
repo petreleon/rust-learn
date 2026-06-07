@@ -35,7 +35,11 @@ async fn list_contents(
     match result {
         Ok(list) => HttpResponse::Ok().json(list),
         Err(e) => {
-            eprintln!("DB error listing contents: {}", e);
+            log::error!(
+                "event=content_list_failed chapter_id={} error={}",
+                chapter_id,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to list contents")
         }
     }
@@ -115,7 +119,12 @@ async fn create_content(
             HttpResponse::Created().json(content)
         }
         Err(e) => {
-            eprintln!("DB error creating content: {}", e);
+            log::error!(
+                "event=content_create_failed course_id={} chapter_id={} error={}",
+                course_id,
+                chapter_id,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to create content")
         }
     }
@@ -150,14 +159,24 @@ async fn get_upload_url(
         None => match S3State::new_from_env().await {
             Ok(s3) => web::Data::new(s3),
             Err(e) => {
-                eprintln!("S3 client init error: {}", e);
+                log::error!(
+                    "event=content_upload_url_failed reason=s3_client_init course_id={} chapter_id={} error={}",
+                    course_id,
+                    chapter_id,
+                    e
+                );
                 return HttpResponse::InternalServerError().body("Failed to init storage client");
             }
         },
     };
 
     if let Err(e) = s3.ensure_bucket("course-materials").await {
-        eprintln!("S3 bucket init error: {}", e);
+        log::error!(
+            "event=content_upload_url_failed reason=s3_bucket_init course_id={} chapter_id={} bucket=course-materials error={}",
+            course_id,
+            chapter_id,
+            e
+        );
         return HttpResponse::InternalServerError().body("Failed to prepare upload bucket");
     }
 
@@ -171,7 +190,13 @@ async fn get_upload_url(
             "object_key": object_path
         })),
         Err(e) => {
-            eprintln!("S3 error: {}", e);
+            log::error!(
+                "event=content_upload_url_failed reason=presign_put course_id={} chapter_id={} bucket=course-materials object={} error={}",
+                course_id,
+                chapter_id,
+                object_path,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to generate upload URL")
         }
     }
@@ -197,7 +222,11 @@ async fn update_content(
         Ok(content) => HttpResponse::Ok().json(content),
         Err(diesel::result::Error::NotFound) => HttpResponse::NotFound().body("Content not found"),
         Err(e) => {
-            eprintln!("DB error updating content {}: {}", content_id, e);
+            log::error!(
+                "event=content_update_failed content_id={} error={}",
+                content_id,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to update content")
         }
     }
@@ -226,7 +255,11 @@ async fn delete_content(
             }
         }
         Err(e) => {
-            eprintln!("DB error deleting content {}: {}", content_id, e);
+            log::error!(
+                "event=content_delete_failed content_id={} error={}",
+                content_id,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to delete content")
         }
     }
@@ -261,7 +294,13 @@ async fn process_content(
             return HttpResponse::NotFound().body("Chapter not found")
         }
         Err(e) => {
-            eprintln!("DB error fetching chapter: {}", e);
+            log::error!(
+                "event=content_process_failed reason=chapter_lookup course_id={} chapter_id={} content_id={} error={}",
+                course_id,
+                chapter_id,
+                content_id,
+                e
+            );
             return HttpResponse::InternalServerError().body("Failed to fetch chapter");
         }
     }
@@ -278,7 +317,13 @@ async fn process_content(
             return HttpResponse::NotFound().body("Content not found")
         }
         Err(e) => {
-            eprintln!("DB error fetching content: {}", e);
+            log::error!(
+                "event=content_process_failed reason=content_lookup course_id={} chapter_id={} content_id={} error={}",
+                course_id,
+                chapter_id,
+                content_id,
+                e
+            );
             return HttpResponse::InternalServerError().body("Failed to fetch content");
         }
     };
@@ -321,7 +366,14 @@ async fn process_content(
     match result {
         Ok(_) => HttpResponse::Accepted().body("Video processing queued"),
         Err(e) => {
-            eprintln!("DB error queuing job: {}", e);
+            log::error!(
+                "event=content_process_failed reason=upload_job_insert course_id={} chapter_id={} content_id={} object={} error={}",
+                course_id,
+                chapter_id,
+                content_id,
+                object_key,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to queue processing job")
         }
     }

@@ -31,7 +31,11 @@ async fn list_chapters(path: web::Path<i32>, pool: web::Data<DbPool>) -> impl Re
     match result {
         Ok(chap_list) => HttpResponse::Ok().json(chap_list),
         Err(e) => {
-            eprintln!("DB error listing chapters: {}", e);
+            log::error!(
+                "event=chapter_list_failed course_id={} error={}",
+                course_id_val,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to load chapters")
         }
     }
@@ -68,7 +72,11 @@ async fn create_chapter(
     match result {
         Ok(chapter) => HttpResponse::Created().json(chapter),
         Err(e) => {
-            eprintln!("DB error creating chapter: {}", e);
+            log::error!(
+                "event=chapter_create_failed course_id={} error={}",
+                course_id_val,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to create chapter")
         }
     }
@@ -94,7 +102,11 @@ async fn update_chapter(
         Ok(chapter) => HttpResponse::Ok().json(chapter),
         Err(diesel::result::Error::NotFound) => HttpResponse::NotFound().body("Chapter not found"),
         Err(e) => {
-            eprintln!("DB error updating chapter {}: {}", chapter_id, e);
+            log::error!(
+                "event=chapter_update_failed chapter_id={} error={}",
+                chapter_id,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to update chapter")
         }
     }
@@ -120,7 +132,11 @@ async fn delete_chapter(path: web::Path<i32>, pool: web::Data<DbPool>) -> impl R
             }
         }
         Err(e) => {
-            eprintln!("DB error deleting chapter {}: {}", chapter_id, e);
+            log::error!(
+                "event=chapter_delete_failed chapter_id={} error={}",
+                chapter_id,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to delete chapter")
         }
     }
