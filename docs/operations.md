@@ -142,7 +142,7 @@ Run contract integration tests through Compose with Anvil available:
 
 ```bash
 docker compose up -d anvil
-docker compose run --rm --no-deps --entrypoint bash worker -lc 'export PATH=/usr/local/cargo/bin:$PATH; cd /usr/src/app; ETH_HOST=anvil ETH_PORT=8545 ETH_RPC_URL=http://anvil:8545 cargo test --test blockchain_integration_tests -- --nocapture'
+docker compose --profile test run --rm --no-deps test-runner cargo test --test blockchain_integration_tests -- --nocapture
 docker compose stop anvil
 ```
 

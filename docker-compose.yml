@@ -126,6 +126,30 @@ services:
           cpus: '1.0'
           memory: 3G
 
+  test-runner:
+    build:
+      context: .
+      dockerfile: docker/test-runner.Dockerfile
+    profiles:
+      - test
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+      ETH_HOST: anvil
+      ETH_PORT: "8545"
+      ETH_RPC_URL: http://anvil:8545
+      S3_INTERNAL_DOMAIN: rustfs
+      CARGO_BUILD_JOBS: "1"
+      CARGO_TARGET_DIR: /usr/local/cargo/target
+    volumes:
+      - .:/usr/src/app
+      - cargo_disk:/usr/local/cargo
+    depends_on:
+      - db
+      - rustfs
+      - anvil
+
 volumes:
   postgres_data:
   cargo_disk:

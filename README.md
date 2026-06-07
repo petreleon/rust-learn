@@ -191,7 +191,7 @@ cargo run --bin mock_email -- learner@example.com "Demo Learner" mock-preview-to
 Or through Docker Compose:
 
 ```bash
-docker compose run --rm --no-deps --entrypoint bash worker -lc 'export PATH=/usr/local/cargo/bin:$PATH; cd /usr/src/app && cargo run --bin mock_email -- learner@example.com "Demo Learner" mock-preview-token'
+docker compose --profile test run --rm --no-deps test-runner cargo run --bin mock_email -- learner@example.com "Demo Learner" mock-preview-token
 ```
 
 ### Wallet linking API
@@ -458,7 +458,8 @@ cargo test
 Docker Compose equivalent:
 
 ```bash
-docker compose run --rm --no-deps --entrypoint bash worker -lc 'export PATH=/usr/local/cargo/bin:$PATH; cd /usr/src/app; cargo test'
+make test-compose
+docker compose --profile test run --rm test-runner cargo test
 ```
 
 Business-flow verification through Docker Compose:
@@ -467,28 +468,35 @@ Business-flow verification through Docker Compose:
 docker compose up -d db rustfs anvil
 
 # Teacher application and central review queue.
-docker compose run --rm app cargo test --test teacher_applications
+docker compose --profile test run --rm test-runner cargo test --test teacher_applications
 
 # Course enrollment and join-request reward prerequisites.
-docker compose run --rm app cargo test --test course_enrollment_api
-docker compose run --rm app cargo test --test course_join_requests
+docker compose --profile test run --rm test-runner cargo test --test course_enrollment_api
+docker compose --profile test run --rm test-runner cargo test --test course_join_requests
 
 # Reward candidate submission, teacher approval, amount approval, fraud blocks,
 # delegated permissions, student history, and reporting.
-docker compose run --rm app cargo test --test reward_candidates
-docker compose run --rm app cargo test --test reward_fraud_blocks
-docker compose run --rm app cargo test --test reward_management_api
-docker compose run --rm app cargo test --test delegated_permissions
-docker compose run --rm app cargo test --test student_reward_history
-docker compose run --rm app cargo test --test reporting_exports
+docker compose --profile test run --rm test-runner cargo test --test reward_candidates
+docker compose --profile test run --rm test-runner cargo test --test reward_fraud_blocks
+docker compose --profile test run --rm test-runner cargo test --test reward_management_api
+docker compose --profile test run --rm test-runner cargo test --test delegated_permissions
+docker compose --profile test run --rm test-runner cargo test --test student_reward_history
+docker compose --profile test run --rm test-runner cargo test --test reporting_exports
 
 # Wallet credit, notification idempotency, reconciliation, and transaction links.
-docker compose run --rm app cargo test --test reward_execution
-docker compose run --rm app cargo test --test wallet_linking
-docker compose run --rm app cargo test --test notification_events
+docker compose --profile test run --rm test-runner cargo test --test reward_execution
+docker compose --profile test run --rm test-runner cargo test --test wallet_linking
+docker compose --profile test run --rm test-runner cargo test --test notification_events
 
 # Anvil-backed token contract behavior.
-docker compose run --rm app cargo test --test blockchain_integration_tests
+docker compose --profile test run --rm test-runner cargo test --test blockchain_integration_tests
+```
+
+To pass a narrower test filter through the Make target:
+
+```bash
+make test-compose CARGO_TEST_ARGS='--lib'
+make test-compose CARGO_TEST_ARGS='--test authentication_flow'
 ```
 
 Run blockchain integration tests:
@@ -506,7 +514,7 @@ cargo fmt --all --check
 Docker Compose equivalent:
 
 ```bash
-docker compose run --rm --no-deps --entrypoint bash worker -lc 'export PATH=/usr/local/cargo/bin:$PATH; cd /usr/src/app; cargo fmt --all --check'
+docker compose --profile test run --rm --no-deps test-runner cargo fmt --all --check
 ```
 
 Frontend checks:
@@ -549,7 +557,8 @@ Test dependency notes:
 
 | Check | External requirements |
 | --- | --- |
-| `make test` / `cargo test` | A valid `.env`; many integration tests open `DATABASE_URL`, so start PostgreSQL first with `make dev-deps` when running the full suite. |
+| `make test` / `cargo test` | A valid `.env`; many integration tests open `DATABASE_URL`, so start PostgreSQL first with `make dev-deps` when running the full suite. Host runs also need local native libraries such as `libpq`. |
+| `make test-compose` | Docker plus a valid `.env`; starts PostgreSQL, RustFS, and Anvil, then runs Cargo in the `test-runner` profile so host native libraries are not required. |
 | `cargo test --test s3` | RustFS/S3-compatible storage reachable through the `S3_*` settings. With Compose, run from the container network or set `S3_INTERNAL_DOMAIN`/`S3_EXTERNAL_DOMAIN` appropriately for the host. |
 | `make test-integration` / `cargo test --test blockchain_integration_tests -- --ignored` | Anvil or another Ethereum JSON-RPC endpoint plus `ETH_MNEMONIC` and provider settings in `.env`. |
 | Worker/media-processing checks | ffmpeg on `PATH`, PostgreSQL, and RustFS/S3. Keep `WORKER_CONCURRENCY=1` on small Docker VMs. |

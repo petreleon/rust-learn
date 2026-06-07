@@ -181,7 +181,7 @@ test: ## Run tests
 
 test-compose: ## Run tests through Docker Compose service networking
 	$(DOCKER_COMPOSE) up -d db rustfs anvil
-	./scripts/run-host-tests.sh
+	$(DOCKER_COMPOSE) --profile test run --rm test-runner cargo test $(CARGO_TEST_ARGS)
 
 test-integration: ## Run integration tests
 	cargo test --test blockchain_integration_tests
