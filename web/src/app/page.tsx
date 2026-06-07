@@ -317,6 +317,7 @@ export default function Home() {
   const hasPermission = (permission: string) => selectedPermissions.has(permission);
   const hasSessionToken = hasText(token);
   const protectedActionTitle = hasSessionToken ? undefined : "JWT required";
+  const disableForMissingInputs = (missingInputs: boolean) => hasSessionToken && missingInputs;
   const canTeacherApply = hasPermission("SUBMIT_TEACHER_APPLICATION");
   const canReviewTeachers = hasPermission("REVIEW_TEACHER_APPLICATIONS");
   const canDecideTeachers =
@@ -767,7 +768,7 @@ export default function Home() {
                   type="button"
                   className={styles.primaryButton}
                   onClick={submitTeacherApplication}
-                  disabled={!hasSessionToken || !canSubmitTeacherApplicationForm}
+                  disabled={disableForMissingInputs(!canSubmitTeacherApplicationForm)}
                   title={protectedActionTitle}
                 >
                   <Send size={17} aria-hidden />
@@ -793,7 +794,6 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={loadTeacherApplications}
-                  disabled={!hasSessionToken}
                   title={protectedActionTitle}
                 >
                   <ClipboardList size={17} aria-hidden />
@@ -838,7 +838,7 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={decideTeacherApplication}
-                  disabled={!hasSessionToken || !canDecideTeacherApplicationForm}
+                  disabled={disableForMissingInputs(!canDecideTeacherApplicationForm)}
                   title={protectedActionTitle}
                 >
                   <CheckCircle2 size={17} aria-hidden />
@@ -895,7 +895,7 @@ export default function Home() {
                   type="button"
                   className={styles.primaryButton}
                   onClick={submitRewardCandidate}
-                  disabled={!hasSessionToken || !canSubmitRewardCandidateForm}
+                  disabled={disableForMissingInputs(!canSubmitRewardCandidateForm)}
                   title={protectedActionTitle}
                 >
                   <Send size={17} aria-hidden />
@@ -909,7 +909,7 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={loadRewardCandidates}
-                disabled={!hasSessionToken || !canLoadRewardCandidatesForm}
+                disabled={disableForMissingInputs(!canLoadRewardCandidatesForm)}
                 title={protectedActionTitle}
               >
                 <ClipboardList size={17} aria-hidden />
@@ -944,7 +944,7 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={decideStudentReward}
-                  disabled={!hasSessionToken || !canDecideStudentRewardForm}
+                  disabled={disableForMissingInputs(!canDecideStudentRewardForm)}
                   title={protectedActionTitle}
                 >
                   <CheckCircle2 size={17} aria-hidden />
@@ -991,7 +991,7 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={decideRewardAmount}
-                  disabled={!hasSessionToken || !canDecideRewardAmountForm}
+                  disabled={disableForMissingInputs(!canDecideRewardAmountForm)}
                   title={protectedActionTitle}
                 >
                   <WalletCards size={17} aria-hidden />
@@ -1026,7 +1026,7 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={loadStudentHistory}
-                disabled={!hasSessionToken || !canViewCourseRewards}
+                disabled={!canViewCourseRewards}
                 title={protectedActionTitle}
               >
                 <History size={17} aria-hidden />
@@ -1054,7 +1054,7 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={() => loadOrganizationReport(false)}
-                disabled={!hasSessionToken || !canViewOrgReports || !canLoadOrganizationReportForm}
+                disabled={!canViewOrgReports || disableForMissingInputs(!canLoadOrganizationReportForm)}
                 title={protectedActionTitle}
               >
                 <ClipboardList size={17} aria-hidden />
@@ -1064,7 +1064,7 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={() => loadOrganizationReport(true)}
-                disabled={!hasSessionToken || !canViewOrgReports || !canLoadOrganizationReportForm}
+                disabled={!canViewOrgReports || disableForMissingInputs(!canLoadOrganizationReportForm)}
                 title={protectedActionTitle}
               >
                 <Download size={17} aria-hidden />
@@ -1081,7 +1081,6 @@ export default function Home() {
                       "Platform reward approvals CSV"
                     )
                   }
-                  disabled={!hasSessionToken}
                   title={protectedActionTitle}
                 >
                   reward approvals
@@ -1091,7 +1090,6 @@ export default function Home() {
                   onClick={() =>
                     loadPlatformExport("/reports/platform/token-payouts.csv", "Platform token payouts CSV")
                   }
-                  disabled={!hasSessionToken}
                   title={protectedActionTitle}
                 >
                   token payouts
@@ -1104,7 +1102,6 @@ export default function Home() {
                       "Platform delegated permissions CSV"
                     )
                   }
-                  disabled={!hasSessionToken}
                   title={protectedActionTitle}
                 >
                   delegations
@@ -1197,7 +1194,7 @@ export default function Home() {
                   type="button"
                   className={styles.primaryButton}
                   onClick={createFraudBlock}
-                  disabled={!hasSessionToken || !canCreateFraudBlockForm}
+                  disabled={disableForMissingInputs(!canCreateFraudBlockForm)}
                   title={protectedActionTitle}
                 >
                   <Ban size={17} aria-hidden />
@@ -1211,7 +1208,6 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={listFraudBlocks}
-                  disabled={!hasSessionToken}
                   title={protectedActionTitle}
                 >
                   <ClipboardList size={17} aria-hidden />
@@ -1227,7 +1223,7 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={loadFraudAudit}
-                  disabled={!hasSessionToken || !canUseFraudBlockForm}
+                  disabled={disableForMissingInputs(!canUseFraudBlockForm)}
                   title={protectedActionTitle}
                 >
                   <History size={17} aria-hidden />
@@ -1237,7 +1233,7 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={revokeFraudBlock}
-                  disabled={!hasSessionToken || !canManageFraud || !canUseFraudBlockForm}
+                  disabled={!canManageFraud || disableForMissingInputs(!canUseFraudBlockForm)}
                   title={protectedActionTitle}
                 >
                   <CheckCircle2 size={17} aria-hidden />
@@ -1325,7 +1321,7 @@ export default function Home() {
                 type="button"
                 className={styles.primaryButton}
                 onClick={grantDelegation}
-                disabled={!hasSessionToken || !canGrantDelegationForm}
+                disabled={disableForMissingInputs(!canGrantDelegationForm)}
                 title={protectedActionTitle}
               >
                 <KeyRound size={17} aria-hidden />
@@ -1335,7 +1331,6 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={listDelegations}
-                disabled={!hasSessionToken}
                 title={protectedActionTitle}
               >
                 <ClipboardList size={17} aria-hidden />
@@ -1359,7 +1354,7 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={revokeDelegation}
-                disabled={!hasSessionToken || !canDelegate || !canRevokeDelegationForm}
+                disabled={!canDelegate || disableForMissingInputs(!canRevokeDelegationForm)}
                 title={protectedActionTitle}
               >
                 <Ban size={17} aria-hidden />
