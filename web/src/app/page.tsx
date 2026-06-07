@@ -100,6 +100,24 @@ function optionalNumber(value: string) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function hasText(value: string) {
+  return value.trim().length > 0;
+}
+
+function hasPositiveInteger(value: string) {
+  return /^[1-9]\d*$/.test(value.trim());
+}
+
+function hasNonNegativeNumber(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) && parsed >= 0;
+}
+
 function splitLinks(value: string) {
   const links = value
     .split(/[\n,]/)
@@ -289,6 +307,38 @@ export default function Home() {
     hasPermission("BLOCK_REWARD_ORGANIZATION");
   const canDelegate = hasPermission("DELEGATE_REWARD_APPROVAL");
   const canExport = hasPermission("EXPORT_DATA");
+  const canSubmitTeacherApplicationForm =
+    hasText(teacherForm.experience_summary) &&
+    (teacherForm.requested_scope === "platform" ||
+      (teacherForm.requested_scope === "organization" &&
+        (hasPositiveInteger(teacherForm.requested_organization_id) ||
+          hasPositiveInteger(teacherForm.organization_sponsor_id))) ||
+      (teacherForm.requested_scope === "course" &&
+        hasPositiveInteger(teacherForm.requested_course_id)));
+  const canDecideTeacherApplicationForm = hasPositiveInteger(teacherDecision.application_id);
+  const canSubmitRewardCandidateForm =
+    hasPositiveInteger(rewardCourseId) && hasPositiveInteger(rewardStudentId);
+  const canLoadRewardCandidatesForm = hasPositiveInteger(rewardCourseId);
+  const canDecideStudentRewardForm =
+    hasPositiveInteger(rewardCourseId) && hasPositiveInteger(rewardCandidateId);
+  const canDecideRewardAmountForm =
+    hasPositiveInteger(rewardCandidateId) &&
+    (amountDecision.status !== "approved" || hasNonNegativeNumber(amountDecision.approved_amount));
+  const canLoadOrganizationReportForm = hasPositiveInteger(organizationId);
+  const canCreateFraudBlockTarget =
+    (fraudBlock.scope_type === "teacher" && hasPositiveInteger(fraudBlock.teacher_user_id)) ||
+    (fraudBlock.scope_type === "organization" && hasPositiveInteger(fraudBlock.organization_id)) ||
+    (fraudBlock.scope_type === "course" && hasPositiveInteger(fraudBlock.course_id)) ||
+    (fraudBlock.scope_type === "reward_policy" && hasPositiveInteger(fraudBlock.reward_policy_id));
+  const canCreateFraudBlockForm = canCreateFraudBlockTarget && hasText(fraudBlock.reason);
+  const canUseFraudBlockForm = hasPositiveInteger(fraudBlockId);
+  const canGrantDelegationForm =
+    hasPositiveInteger(delegation.grantee_user_id) &&
+    (delegation.scope_type === "platform" ||
+      (delegation.scope_type === "organization" &&
+        hasPositiveInteger(delegation.organization_id)) ||
+      (delegation.scope_type === "course" && hasPositiveInteger(delegation.course_id)));
+  const canRevokeDelegationForm = hasPositiveInteger(delegationId);
 
   function togglePermission(permission: string) {
     setSelectedPermissions((current) => {
@@ -665,7 +715,12 @@ export default function Home() {
                     }
                   />
                 </label>
-                <button type="button" className={styles.primaryButton} onClick={submitTeacherApplication}>
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={submitTeacherApplication}
+                  disabled={!canSubmitTeacherApplicationForm}
+                >
                   <Send size={17} aria-hidden />
                   <span>Submit</span>
                 </button>
@@ -717,7 +772,12 @@ export default function Home() {
                     }))
                   }
                 />
-                <button type="button" className={styles.secondaryButton} onClick={decideTeacherApplication}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={decideTeacherApplication}
+                  disabled={!canDecideTeacherApplicationForm}
+                >
                   <CheckCircle2 size={17} aria-hidden />
                   <span>Decide</span>
                 </button>
@@ -761,7 +821,12 @@ export default function Home() {
                   value={rewardStudentId}
                   onChange={(event) => setRewardStudentId(event.target.value)}
                 />
-                <button type="button" className={styles.primaryButton} onClick={submitRewardCandidate}>
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={submitRewardCandidate}
+                  disabled={!canSubmitRewardCandidateForm}
+                >
                   <Send size={17} aria-hidden />
                   <span>Submit candidate</span>
                 </button>
@@ -769,7 +834,12 @@ export default function Home() {
             )}
 
             {canViewCourseRewards && (
-              <button type="button" className={styles.secondaryButton} onClick={loadRewardCandidates}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={loadRewardCandidates}
+                disabled={!canLoadRewardCandidatesForm}
+              >
                 <ClipboardList size={17} aria-hidden />
                 <span>Load candidates</span>
               </button>
@@ -796,7 +866,12 @@ export default function Home() {
                     }))
                   }
                 />
-                <button type="button" className={styles.secondaryButton} onClick={decideStudentReward}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={decideStudentReward}
+                  disabled={!canDecideStudentRewardForm}
+                >
                   <CheckCircle2 size={17} aria-hidden />
                   <span>Teacher decision</span>
                 </button>
@@ -834,7 +909,12 @@ export default function Home() {
                     }))
                   }
                 />
-                <button type="button" className={styles.secondaryButton} onClick={decideRewardAmount}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={decideRewardAmount}
+                  disabled={!canDecideRewardAmountForm}
+                >
                   <WalletCards size={17} aria-hidden />
                   <span>Set amount</span>
                 </button>
@@ -889,7 +969,7 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={() => loadOrganizationReport(false)}
-                disabled={!canViewOrgReports}
+                disabled={!canViewOrgReports || !canLoadOrganizationReportForm}
               >
                 <ClipboardList size={17} aria-hidden />
                 <span>Load</span>
@@ -898,7 +978,7 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={() => loadOrganizationReport(true)}
-                disabled={!canViewOrgReports}
+                disabled={!canViewOrgReports || !canLoadOrganizationReportForm}
               >
                 <Download size={17} aria-hidden />
                 <span>CSV</span>
@@ -1015,7 +1095,12 @@ export default function Home() {
                     }
                   />
                 </label>
-                <button type="button" className={styles.primaryButton} onClick={createFraudBlock}>
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={createFraudBlock}
+                  disabled={!canCreateFraudBlockForm}
+                >
                   <Ban size={17} aria-hidden />
                   <span>Create block</span>
                 </button>
@@ -1032,7 +1117,12 @@ export default function Home() {
                   value={fraudBlockId}
                   onChange={(event) => setFraudBlockId(event.target.value)}
                 />
-                <button type="button" className={styles.secondaryButton} onClick={loadFraudAudit}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={loadFraudAudit}
+                  disabled={!canUseFraudBlockForm}
+                >
                   <History size={17} aria-hidden />
                   <span>Audit</span>
                 </button>
@@ -1040,7 +1130,7 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={revokeFraudBlock}
-                  disabled={!canManageFraud}
+                  disabled={!canManageFraud || !canUseFraudBlockForm}
                 >
                   <CheckCircle2 size={17} aria-hidden />
                   <span>Revoke</span>
@@ -1119,7 +1209,12 @@ export default function Home() {
                   setDelegation((current) => ({ ...current, reason: event.target.value }))
                 }
               />
-              <button type="button" className={styles.primaryButton} onClick={grantDelegation}>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={grantDelegation}
+                disabled={!canGrantDelegationForm}
+              >
                 <KeyRound size={17} aria-hidden />
                 <span>Grant</span>
               </button>
@@ -1143,7 +1238,7 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={revokeDelegation}
-                disabled={!canDelegate}
+                disabled={!canDelegate || !canRevokeDelegationForm}
               >
                 <Ban size={17} aria-hidden />
                 <span>Revoke</span>
