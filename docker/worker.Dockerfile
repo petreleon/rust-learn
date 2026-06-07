@@ -26,7 +26,7 @@ COPY . .
 ENV CARGO_BUILD_JOBS=1
 
 # Build the worker binary in release mode
-RUN cargo build --release --bin worker
+RUN cargo build --release --bin worker --features worker-bin
 
 # --- Final runtime image ---
 # Keep only the worker binary and runtime libraries in the final image.

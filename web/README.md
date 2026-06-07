@@ -9,7 +9,7 @@ From the repository root, start the API dependencies and run the API:
 
 ```bash
 make dev-deps
-./scripts/run-host-tests.sh cargo run --bin rust-learn
+./scripts/run-host-tests.sh cargo run --bin rust-learn --features app-bin
 ```
 
 Then start the web app:

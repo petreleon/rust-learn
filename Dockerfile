@@ -15,8 +15,8 @@ WORKDIR /usr/src/app
 COPY . .
 # Build with a single job to reduce memory pressure during linking. Fail if worker cannot be built.
 ENV CARGO_BUILD_JOBS=1
-RUN cargo build -j1 --release --bin worker
-RUN cargo build -j1 --release --bin rust-learn
+RUN cargo build -j1 --release --bin worker --features worker-bin
+RUN cargo build -j1 --release --bin rust-learn --features app-bin
 
 FROM debian:12-slim AS runtime
 

@@ -485,6 +485,7 @@ pub fn course_scope() -> actix_web::Scope {
     web::scope("/courses")
         .configure(crate::api::chapters::config)
         .configure(crate::api::contents::config)
+        .configure(crate::api::reward_candidates::configure_course_reward_candidate_routes)
         .service(
             web::resource("")
                 .route(

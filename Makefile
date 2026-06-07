@@ -165,16 +165,16 @@ k8s-forward: ## Start port-forward (use: make k8s-forward SERVICE=web PORT=3000)
 
 # Development
 dev-build: ## Build only the Rust application (without container)
-	cargo build --release
+	cargo build --release --bin rust-learn --features app-bin
 
 dev-deps: ## Start only API dependencies (Postgres, RustFS, Anvil)
 	$(DOCKER_COMPOSE) up -d db rustfs anvil
 
 dev-run: ## Run application locally (without container)
-	cargo run --bin rust-learn
+	cargo run --bin rust-learn --features app-bin
 
 dev-worker: ## Run worker locally (without container)
-	cargo run --bin worker
+	cargo run --bin worker --features worker-bin
 
 worker-build: ## Build only the worker Docker image
 	$(DOCKER_COMPOSE) build worker

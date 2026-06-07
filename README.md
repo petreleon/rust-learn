@@ -185,13 +185,13 @@ link; the Compose default points directly at the API verification endpoint.
 Preview the mock email without registering a user:
 
 ```bash
-cargo run --bin mock_email -- learner@example.com "Demo Learner" mock-preview-token
+cargo run --bin mock_email --features tool-bin -- learner@example.com "Demo Learner" mock-preview-token
 ```
 
 Or through Docker Compose:
 
 ```bash
-docker compose --profile test run --rm --no-deps test-runner cargo run --bin mock_email -- learner@example.com "Demo Learner" mock-preview-token
+docker compose --profile test run --rm --no-deps test-runner cargo run --bin mock_email --features tool-bin -- learner@example.com "Demo Learner" mock-preview-token
 ```
 
 ### Wallet linking API
@@ -383,7 +383,7 @@ worker containers. It is the quickest path when you want to run the Rust API on
 the host with Cargo:
 
 ```bash
-cargo run --bin rust-learn
+cargo run --bin rust-learn --features app-bin
 ```
 
 The equivalent raw Docker Compose command is:
@@ -395,7 +395,7 @@ docker-compose up -d db rustfs anvil
 Run the worker locally:
 
 ```bash
-cargo run --bin worker
+cargo run --bin worker --features worker-bin
 ```
 
 Run the frontend locally:

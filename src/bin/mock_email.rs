@@ -7,7 +7,7 @@ fn main() {
         .first()
         .is_some_and(|arg| arg == "--help" || arg == "-h")
     {
-        println!("Usage: cargo run --bin mock_email -- [email] [name] [token]");
+        println!("Usage: cargo run --bin mock_email --features tool-bin -- [email] [name] [token]");
         return;
     }
 

@@ -1,8 +1,8 @@
 // A small utility to compile a Solidity contract and write its ABI to a file.
 // Usage:
-//   cargo run --bin abi_export -- <path/to/Contract.sol> <ContractName> <out_dir>
+//   cargo run --bin abi_export --features tool-bin -- <path/to/Contract.sol> <ContractName> <out_dir>
 // Example:
-//   cargo run --bin abi_export -- ethereum/contracts/LearnToken.sol LearnToken ethereum/artifacts
+//   cargo run --bin abi_export --features tool-bin -- ethereum/contracts/LearnToken.sol LearnToken ethereum/artifacts
 
 use std::{
     env, fs,

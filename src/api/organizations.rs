@@ -183,6 +183,7 @@ async fn assign_role(
 
 pub fn organization_scope() -> actix_web::Scope {
     web::scope("/organizations")
+        .configure(crate::api::reward_candidates::configure_organization_reward_candidate_routes)
         .service(
             web::resource("")
                 .route(web::get().to(list_organizations).wrap(
