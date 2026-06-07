@@ -239,6 +239,9 @@ business logic must ask "does this user have this permission in this scope?"
 - [x] Throttle idle worker queue metric logs with
       `WORKER_QUEUE_METRICS_INTERVAL_SECONDS` so Docker Compose and Kubernetes
       logs stay readable while per-job and failure events remain immediate.
+- [x] Throttle empty wallet deposit indexer poll logs with
+      `WALLET_DEPOSIT_INDEXER_IDLE_LOG_SECONDS` while deposit credits and failed
+      polls remain immediate.
 
 ## Frontend Workflows
 

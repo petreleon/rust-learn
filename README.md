@@ -424,6 +424,7 @@ WORKER_BASE_BACKOFF_SECONDS=60
 WORKER_QUEUE_METRICS_INTERVAL_SECONDS=60
 WALLET_DEPOSIT_INDEXER_ENABLED=true
 WALLET_DEPOSIT_INDEXER_POLL_SECONDS=15
+WALLET_DEPOSIT_INDEXER_IDLE_LOG_SECONDS=60
 WALLET_DEPOSIT_INDEXER_CONFIRMATIONS=1
 WALLET_DEPOSIT_INDEXER_BATCH_BLOCKS=500
 WALLET_DEPOSIT_INDEXER_LOOKBACK_BLOCKS=100
@@ -435,7 +436,8 @@ events for user-paid deposits into the configured treasury and
 PlatformImporter `Imported` events for platform-paid deposits. It advances its
 cursor in persistent state as `wallet_deposit_indexer_next_block`; use
 `WALLET_DEPOSIT_INDEXER_START_BLOCK` only for the first scan of a fresh
-environment.
+environment. Empty polls are logged at `WALLET_DEPOSIT_INDEXER_IDLE_LOG_SECONDS`
+while polls that credit deposits and failed polls are logged immediately.
 
 Recommended worker build/start flow:
 

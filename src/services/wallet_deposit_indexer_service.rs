@@ -16,13 +16,14 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 const NEXT_BLOCK_STATE_KEY: &str = "wallet_deposit_indexer_next_block";
 const DEFAULT_POLL_SECONDS: u64 = 15;
 const DEFAULT_CONFIRMATIONS: u64 = 1;
 const DEFAULT_BATCH_BLOCKS: u64 = 500;
 const DEFAULT_LOOKBACK_BLOCKS: u64 = 100;
+const DEFAULT_IDLE_LOG_SECONDS: u64 = 60;
 
 #[derive(Debug, Clone)]
 struct WalletDepositIndexerConfig {
@@ -30,6 +31,7 @@ struct WalletDepositIndexerConfig {
     confirmations: u64,
     batch_blocks: u64,
     lookback_blocks: u64,
+    idle_log_seconds: u64,
     token_decimals: u32,
 }
 
@@ -53,14 +55,25 @@ pub fn spawn_wallet_deposit_indexer(
 
 async fn run_wallet_deposit_indexer(pool: DbPool, shutdown: Arc<AtomicBool>) {
     let config = WalletDepositIndexerConfig::from_env();
+    let idle_log_interval = Duration::from_secs(config.idle_log_seconds);
+    let mut last_idle_log: Option<Instant> = None;
 
     while !shutdown.load(Ordering::SeqCst) {
         match run_wallet_deposit_indexer_once(&pool, &config).await {
             Ok(credited_count) => {
-                log::info!(
-                    "event=wallet_deposit_indexer_poll_complete credited_count={}",
-                    credited_count
-                );
+                let now = Instant::now();
+                let should_log =
+                    should_log_indexer_poll(credited_count, last_idle_log, idle_log_interval, now);
+                if should_log {
+                    if credited_count == 0 {
+                        last_idle_log = Some(now);
+                    }
+                    log::info!(
+                        "event=wallet_deposit_indexer_poll_complete credited_count={} idle_log_interval_seconds={}",
+                        credited_count,
+                        config.idle_log_seconds
+                    );
+                }
             }
             Err(error) => {
                 log::warn!("event=wallet_deposit_indexer_poll_failed error={}", error);
@@ -439,6 +452,21 @@ fn env_bool(key: &str, default: bool) -> bool {
         .unwrap_or(default)
 }
 
+fn should_log_indexer_poll(
+    credited_count: usize,
+    last_idle_log: Option<Instant>,
+    idle_log_interval: Duration,
+    now: Instant,
+) -> bool {
+    if credited_count > 0 {
+        return true;
+    }
+
+    last_idle_log
+        .map(|logged_at| now.duration_since(logged_at) >= idle_log_interval)
+        .unwrap_or(true)
+}
+
 impl WalletDepositIndexerConfig {
     fn from_env() -> Self {
         WalletDepositIndexerConfig {
@@ -458,6 +486,10 @@ impl WalletDepositIndexerConfig {
                 "WALLET_DEPOSIT_INDEXER_LOOKBACK_BLOCKS",
                 DEFAULT_LOOKBACK_BLOCKS,
             ),
+            idle_log_seconds: positive_u64_env(
+                "WALLET_DEPOSIT_INDEXER_IDLE_LOG_SECONDS",
+                DEFAULT_IDLE_LOG_SECONDS,
+            ),
             token_decimals: env::var("LEARN_TOKEN_DECIMALS")
                 .ok()
                 .and_then(|value| value.parse::<u32>().ok())
@@ -472,4 +504,50 @@ fn positive_u64_env(key: &str, default: u64) -> u64 {
         .and_then(|value| value.parse::<u64>().ok())
         .filter(|value| *value > 0)
         .unwrap_or(default)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::should_log_indexer_poll;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn logs_first_idle_indexer_poll() {
+        assert!(should_log_indexer_poll(
+            0,
+            None,
+            Duration::from_secs(60),
+            Instant::now()
+        ));
+    }
+
+    #[test]
+    fn throttles_idle_indexer_poll_until_interval_elapses() {
+        let now = Instant::now();
+
+        assert!(!should_log_indexer_poll(
+            0,
+            Some(now - Duration::from_secs(30)),
+            Duration::from_secs(60),
+            now
+        ));
+        assert!(should_log_indexer_poll(
+            0,
+            Some(now - Duration::from_secs(60)),
+            Duration::from_secs(60),
+            now
+        ));
+    }
+
+    #[test]
+    fn logs_non_idle_indexer_poll_immediately() {
+        let now = Instant::now();
+
+        assert!(should_log_indexer_poll(
+            1,
+            Some(now),
+            Duration::from_secs(60),
+            now
+        ));
+    }
 }
