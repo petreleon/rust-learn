@@ -700,10 +700,17 @@ pub async fn credit_observed_wallet_deposit(
                 });
             }
 
-            let intent = candidates
-                .into_iter()
-                .next()
-                .expect("non-empty candidate list");
+            let Some(intent) = candidates.into_iter().next() else {
+                log::error!(
+                    "event=wallet_token_deposit_candidate_missing_after_match chain_id={} tx_hash={} log_index={}",
+                    event.chain_id,
+                    event.transaction_hash,
+                    event.log_index
+                );
+                return Err(WalletTokenTransferError::Database(
+                    "matched deposit candidate disappeared before crediting".to_string(),
+                ));
+            };
             let transaction_id =
                 create_wallet_token_transaction(conn, WalletTokenOperation::Deposit).await?;
             let external_transaction_id =
