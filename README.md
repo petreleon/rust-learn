@@ -574,6 +574,8 @@ make test-integration
 make web-lint
 make web-build
 make health
+make runtime-disk
+make docker-prune-build-cache
 ```
 
 Test dependency notes:
@@ -664,6 +666,20 @@ release builds fail, and inspect worker logs before raising concurrency:
 docker compose logs -f worker
 colima start --memory 8192
 docker compose build worker
+```
+
+Docker and Minikube can also run out of disk after repeated local image builds.
+Check runtime storage before long Compose or Kubernetes verification runs:
+
+```bash
+make runtime-disk
+```
+
+If the build cache is the pressure source, prune only Docker build cache without
+removing images, containers, or volumes:
+
+```bash
+make docker-prune-build-cache
 ```
 
 ## Kubernetes

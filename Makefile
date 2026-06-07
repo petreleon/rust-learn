@@ -1,4 +1,4 @@
-.PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health \
+.PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health runtime-disk docker-prune-build-cache \
   k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
   k8s-validate dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
   dev-refresh test-integration fmt web-lint web-build
@@ -19,6 +19,7 @@ DOCKER_COMPOSE ?= $(DOCKER) compose
 COMPOSE_REFRESH_SERVICES ?= app web
 KUBECTL ?= $(shell command -v kubectl 2>/dev/null || printf /opt/homebrew/bin/kubectl)
 MINIKUBE ?= $(shell command -v minikube 2>/dev/null || printf /opt/homebrew/bin/minikube)
+CURL ?= $(shell command -v curl 2>/dev/null || printf curl)
 
 # Colors for output
 GREEN := \033[0;32m
@@ -254,5 +255,31 @@ health: ## Check services health status
 	@echo "Docker:"
 	@$(DOCKER_COMPOSE) ps || echo "$(YELLOW)Docker compose is not running$(NC)"
 	@echo ""
+	@echo "Docker endpoints:"
+	@$(CURL) -fsS http://localhost:3000/healthz || echo "$(YELLOW)Web healthz is not reachable on localhost:3000$(NC)"
+	@echo ""
+	@$(CURL) -fsS http://localhost:8080/health || echo "$(YELLOW)API health is not reachable on localhost:8080$(NC)"
+	@echo ""
+	@$(CURL) -fsS http://localhost:8080/ready || echo "$(YELLOW)API ready is not reachable on localhost:8080$(NC)"
+	@echo ""
+	@echo ""
 	@echo "Kubernetes:"
 	@$(KUBECTL) get pods -n $(K8S_NAMESPACE) || echo "$(YELLOW)Kubernetes is not configured$(NC)"
+	@echo ""
+	@echo "Kubernetes endpoints:"
+	@$(KUBECTL) exec -n $(K8S_NAMESPACE) deploy/web -- sh -c 'wget -qO- http://127.0.0.1:3000/healthz && printf "\n" && wget -qO- http://rust-app:8080/ready && printf "\n"' || echo "$(YELLOW)Kubernetes web/API readiness is not reachable from the web pod$(NC)"
+
+runtime-disk: ## Show Docker and Minikube disk usage
+	@echo "$(GREEN)=== Runtime Disk Usage ===$(NC)"
+	@echo "Docker:"
+	@$(DOCKER) system df || echo "$(YELLOW)Docker is not reachable$(NC)"
+	@echo ""
+	@echo "Minikube:"
+	@if $(MINIKUBE) status >/dev/null 2>&1; then \
+		$(MINIKUBE) ssh -- df -h /var /; \
+	else \
+		echo "$(YELLOW)Minikube is not running$(NC)"; \
+	fi
+
+docker-prune-build-cache: ## Prune Docker build cache without removing images or volumes
+	$(DOCKER) builder prune -f
