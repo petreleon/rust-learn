@@ -39,6 +39,7 @@ services:
     volumes:
       - ./web:/app
       - /app/node_modules
+      - /app/.next
     environment:
       - NODE_ENV=development
       # Keep browser requests same-origin; Next proxies /api and /health to API_URL.

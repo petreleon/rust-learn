@@ -316,8 +316,22 @@ export default function Home() {
 
   const hasPermission = (permission: string) => selectedPermissions.has(permission);
   const hasSessionToken = hasText(token);
-  const protectedActionTitle = hasSessionToken ? undefined : "JWT required";
-  const disableForMissingInputs = (missingInputs: boolean) => hasSessionToken && missingInputs;
+  const actionState = (
+    ready = true,
+    allowed = true,
+    permissionLabel = "Required permission"
+  ) => {
+    if (!allowed) {
+      return { disabled: true, title: permissionLabel };
+    }
+    if (!hasSessionToken) {
+      return { disabled: true, title: "JWT required" };
+    }
+    if (!ready) {
+      return { disabled: true, title: "Complete required fields" };
+    }
+    return { disabled: false, title: undefined };
+  };
   const canTeacherApply = hasPermission("SUBMIT_TEACHER_APPLICATION");
   const canReviewTeachers = hasPermission("REVIEW_TEACHER_APPLICATIONS");
   const canDecideTeachers =
@@ -768,8 +782,7 @@ export default function Home() {
                   type="button"
                   className={styles.primaryButton}
                   onClick={submitTeacherApplication}
-                  disabled={disableForMissingInputs(!canSubmitTeacherApplicationForm)}
-                  title={protectedActionTitle}
+                  {...actionState(canSubmitTeacherApplicationForm)}
                 >
                   <Send size={17} aria-hidden />
                   <span>Submit</span>
@@ -794,7 +807,7 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={loadTeacherApplications}
-                  title={protectedActionTitle}
+                  {...actionState()}
                 >
                   <ClipboardList size={17} aria-hidden />
                   <span>Load queue</span>
@@ -838,8 +851,7 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={decideTeacherApplication}
-                  disabled={disableForMissingInputs(!canDecideTeacherApplicationForm)}
-                  title={protectedActionTitle}
+                  {...actionState(canDecideTeacherApplicationForm)}
                 >
                   <CheckCircle2 size={17} aria-hidden />
                   <span>Decide</span>
@@ -895,8 +907,7 @@ export default function Home() {
                   type="button"
                   className={styles.primaryButton}
                   onClick={submitRewardCandidate}
-                  disabled={disableForMissingInputs(!canSubmitRewardCandidateForm)}
-                  title={protectedActionTitle}
+                  {...actionState(canSubmitRewardCandidateForm)}
                 >
                   <Send size={17} aria-hidden />
                   <span>Submit candidate</span>
@@ -909,8 +920,7 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={loadRewardCandidates}
-                disabled={disableForMissingInputs(!canLoadRewardCandidatesForm)}
-                title={protectedActionTitle}
+                {...actionState(canLoadRewardCandidatesForm)}
               >
                 <ClipboardList size={17} aria-hidden />
                 <span>Load candidates</span>
@@ -944,8 +954,7 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={decideStudentReward}
-                  disabled={disableForMissingInputs(!canDecideStudentRewardForm)}
-                  title={protectedActionTitle}
+                  {...actionState(canDecideStudentRewardForm)}
                 >
                   <CheckCircle2 size={17} aria-hidden />
                   <span>Teacher decision</span>
@@ -991,8 +1000,7 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={decideRewardAmount}
-                  disabled={disableForMissingInputs(!canDecideRewardAmountForm)}
-                  title={protectedActionTitle}
+                  {...actionState(canDecideRewardAmountForm)}
                 >
                   <WalletCards size={17} aria-hidden />
                   <span>Set amount</span>
@@ -1026,8 +1034,7 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={loadStudentHistory}
-                disabled={!canViewCourseRewards}
-                title={protectedActionTitle}
+                {...actionState(true, canViewCourseRewards, "View course rewards permission required")}
               >
                 <History size={17} aria-hidden />
                 <span>Load history</span>
@@ -1054,8 +1061,11 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={() => loadOrganizationReport(false)}
-                disabled={!canViewOrgReports || disableForMissingInputs(!canLoadOrganizationReportForm)}
-                title={protectedActionTitle}
+                {...actionState(
+                  canLoadOrganizationReportForm,
+                  canViewOrgReports,
+                  "View organization rewards permission required"
+                )}
               >
                 <ClipboardList size={17} aria-hidden />
                 <span>Load</span>
@@ -1064,8 +1074,11 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={() => loadOrganizationReport(true)}
-                disabled={!canViewOrgReports || disableForMissingInputs(!canLoadOrganizationReportForm)}
-                title={protectedActionTitle}
+                {...actionState(
+                  canLoadOrganizationReportForm,
+                  canViewOrgReports,
+                  "View organization rewards permission required"
+                )}
               >
                 <Download size={17} aria-hidden />
                 <span>CSV</span>
@@ -1081,7 +1094,7 @@ export default function Home() {
                       "Platform reward approvals CSV"
                     )
                   }
-                  title={protectedActionTitle}
+                  {...actionState()}
                 >
                   reward approvals
                 </button>
@@ -1090,7 +1103,7 @@ export default function Home() {
                   onClick={() =>
                     loadPlatformExport("/reports/platform/token-payouts.csv", "Platform token payouts CSV")
                   }
-                  title={protectedActionTitle}
+                  {...actionState()}
                 >
                   token payouts
                 </button>
@@ -1102,7 +1115,7 @@ export default function Home() {
                       "Platform delegated permissions CSV"
                     )
                   }
-                  title={protectedActionTitle}
+                  {...actionState()}
                 >
                   delegations
                 </button>
@@ -1194,8 +1207,7 @@ export default function Home() {
                   type="button"
                   className={styles.primaryButton}
                   onClick={createFraudBlock}
-                  disabled={disableForMissingInputs(!canCreateFraudBlockForm)}
-                  title={protectedActionTitle}
+                  {...actionState(canCreateFraudBlockForm)}
                 >
                   <Ban size={17} aria-hidden />
                   <span>Create block</span>
@@ -1208,7 +1220,7 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={listFraudBlocks}
-                  title={protectedActionTitle}
+                  {...actionState()}
                 >
                   <ClipboardList size={17} aria-hidden />
                   <span>Load active</span>
@@ -1223,8 +1235,7 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={loadFraudAudit}
-                  disabled={disableForMissingInputs(!canUseFraudBlockForm)}
-                  title={protectedActionTitle}
+                  {...actionState(canUseFraudBlockForm)}
                 >
                   <History size={17} aria-hidden />
                   <span>Audit</span>
@@ -1233,8 +1244,11 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={revokeFraudBlock}
-                  disabled={!canManageFraud || disableForMissingInputs(!canUseFraudBlockForm)}
-                  title={protectedActionTitle}
+                  {...actionState(
+                    canUseFraudBlockForm,
+                    canManageFraud,
+                    "Manage fraud blocks permission required"
+                  )}
                 >
                   <CheckCircle2 size={17} aria-hidden />
                   <span>Revoke</span>
@@ -1321,8 +1335,7 @@ export default function Home() {
                 type="button"
                 className={styles.primaryButton}
                 onClick={grantDelegation}
-                disabled={disableForMissingInputs(!canGrantDelegationForm)}
-                title={protectedActionTitle}
+                {...actionState(canGrantDelegationForm)}
               >
                 <KeyRound size={17} aria-hidden />
                 <span>Grant</span>
@@ -1331,7 +1344,7 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={listDelegations}
-                title={protectedActionTitle}
+                {...actionState()}
               >
                 <ClipboardList size={17} aria-hidden />
                 <span>Load</span>
@@ -1354,8 +1367,11 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={revokeDelegation}
-                disabled={!canDelegate || disableForMissingInputs(!canRevokeDelegationForm)}
-                title={protectedActionTitle}
+                {...actionState(
+                  canRevokeDelegationForm,
+                  canDelegate,
+                  "Delegation permission required"
+                )}
               >
                 <Ban size={17} aria-hidden />
                 <span>Revoke</span>
