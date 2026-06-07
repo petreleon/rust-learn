@@ -279,12 +279,6 @@ pub async fn verify_email(
     }
 }
 
-// hello
-#[get("/hello")]
-pub async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
-}
-
 #[get("/user_id")]
 pub async fn user_id(req: HttpRequest) -> impl Responder {
     match authenticated_user_id(&req) {
@@ -309,7 +303,6 @@ pub fn auth_scope() -> actix_web::Scope {
         .service(login)
         .service(register)
         .service(verify_email)
-        .service(hello)
         .service(user_id)
 }
 

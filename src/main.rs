@@ -10,42 +10,20 @@ pub mod utils;
 use crate::config::db_setup::version_updater;
 use crate::utils::s3_utils::S3State;
 use actix_web::rt::time::timeout;
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
-use infer::Infer;
+use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
+use serde_json::json;
 use std::time::Duration;
 
 const ETH_STARTUP_DEPLOY_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[get("/")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello world!")
-}
-
-#[get("/{name}")]
-async fn hello2(name: web::Path<String>) -> impl Responder {
-    let response_message = format!("Hello, {}!", name);
-    HttpResponse::Ok().body(response_message)
-}
-
-#[post("/echo")]
-async fn echo(req_body: String) -> impl Responder {
-    HttpResponse::Ok().body(req_body)
-}
-
-#[post("/echo_bin")]
-async fn echo_bin(req_body: web::Bytes) -> impl Responder {
-    let infer = Infer::new();
-    let kind = infer.get(&req_body);
-
-    let content_type = kind.map_or("application/octet-stream", |kind| kind.mime_type());
-
-    HttpResponse::Ok()
-        .content_type(content_type) // Set the content type to the detected MIME type
-        .body(req_body)
-}
-
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey there!")
+async fn api_index() -> impl Responder {
+    HttpResponse::Ok().json(json!({
+        "service": "rust-learn-api",
+        "health": "/health",
+        "readiness": "/ready",
+        "api": "/api"
+    }))
 }
 
 #[actix_web::main]
@@ -128,13 +106,9 @@ async fn main() -> std::io::Result<()> {
                 "/.well-known/jwks.json",
                 web::get().to(api::authentication::jwks),
             )
-            .route("/hey", web::get().to(manual_hello))
             .configure(api::health::configure_health_routes)
             .service(api::api_scope())
-            .service(hello)
-            .service(hello2)
-            .service(echo)
-            .service(echo_bin)
+            .service(api_index)
     })
     .bind("0.0.0.0:8080")? // Update the bind address if necessary
     .run()

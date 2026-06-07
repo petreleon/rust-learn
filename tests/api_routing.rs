@@ -27,12 +27,14 @@ async fn api_scope_and_following_routes_are_reachable() {
         test::call_service(&app, test::TestRequest::get().uri("/health").to_request()).await;
     assert_eq!(health.status(), StatusCode::OK);
 
-    let auth_hello = test::call_service(
+    let auth_user_id = test::call_service(
         &app,
-        test::TestRequest::get().uri("/api/auth/hello").to_request(),
+        test::TestRequest::get()
+            .uri("/api/auth/user_id")
+            .to_request(),
     )
     .await;
-    assert_eq!(auth_hello.status(), StatusCode::OK);
+    assert_ne!(auth_user_id.status(), StatusCode::NOT_FOUND);
 
     for (method, route) in [
         (Method::GET, "/api/courses"),
