@@ -9,8 +9,12 @@ pub mod utils;
 
 use crate::config::db_setup::version_updater;
 use crate::utils::s3_utils::S3State;
+use actix_web::rt::time::timeout;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use infer::Infer;
+use std::time::Duration;
+
+const ETH_STARTUP_DEPLOY_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -85,9 +89,13 @@ async fn main() -> std::io::Result<()> {
 
         // Ensure LearnToken and wallet transfer helper contracts are deployed
         // idempotently and persisted for API/worker use.
-        match crate::utils::eth_utils::deploy_all_startup(&mut conn, "LearnToken", "LRN", 18).await
+        match timeout(
+            ETH_STARTUP_DEPLOY_TIMEOUT,
+            crate::utils::eth_utils::deploy_all_startup(&mut conn, "LearnToken", "LRN", 18),
+        )
+        .await
         {
-            Ok((token_addr, presigner_addr, importer_addr)) => {
+            Ok(Ok((token_addr, presigner_addr, importer_addr))) => {
                 let presigner_address = presigner_addr
                     .map(|addr| format!("{:#x}", addr))
                     .unwrap_or_else(|| "none".to_string());
@@ -101,9 +109,13 @@ async fn main() -> std::io::Result<()> {
                     importer_address
                 );
             }
-            Err(err) => log::error!(
+            Ok(Err(err)) => log::error!(
                 "event=eth_startup_deploy_failed contract_scope=wallet_transfer error={:?}",
                 err
+            ),
+            Err(_) => log::error!(
+                "event=eth_startup_deploy_timed_out contract_scope=wallet_transfer timeout_seconds={}",
+                ETH_STARTUP_DEPLOY_TIMEOUT.as_secs()
             ),
         }
     }

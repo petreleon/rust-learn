@@ -55,11 +55,9 @@ docker-down: ## Stop docker-compose
 k8s-build: ## Build Docker images for Kubernetes
 	@echo "$(YELLOW)Building Docker images...$(NC)"
 	@if command -v $(MINIKUBE) >/dev/null 2>&1 && [ "$$($(KUBECTL) config current-context 2>/dev/null)" = "minikube" ]; then \
-		echo "$(YELLOW)Detected minikube context; building locally and loading images into minikube...$(NC)"; \
-		$(DOCKER) build -t rust-app:latest .; \
-		$(DOCKER) build -t web:latest ./web; \
-		$(MINIKUBE) image load rust-app:latest; \
-		$(MINIKUBE) image load web:latest; \
+		echo "$(YELLOW)Detected minikube context; building images directly inside minikube...$(NC)"; \
+		$(MINIKUBE) image build -t rust-app:latest .; \
+		$(MINIKUBE) image build -t web:latest ./web; \
 	else \
 		$(DOCKER) build -t rust-app:latest .; \
 		$(DOCKER) build -t web:latest ./web; \
@@ -96,12 +94,15 @@ k8s-dev-apply: k8s-dev-secrets ## Apply local Kubernetes overlay with generated 
 
 k8s-dev-refresh: k8s-dev-secrets ## Rebuild, load, and redeploy local Kubernetes dev images with fresh tags
 	@echo "$(YELLOW)Building fresh Kubernetes development images: $(K8S_RUST_IMAGE), $(K8S_WEB_IMAGE)...$(NC)"
-	$(DOCKER) build -t rust-app:latest -t $(K8S_RUST_IMAGE) .
-	$(DOCKER) build -t web:latest -t $(K8S_WEB_IMAGE) ./web
 	@if command -v $(MINIKUBE) >/dev/null 2>&1 && [ "$$($(KUBECTL) config current-context 2>/dev/null)" = "minikube" ]; then \
-		echo "$(YELLOW)Loading fresh images into minikube...$(NC)"; \
-		$(MINIKUBE) image load $(K8S_RUST_IMAGE); \
-		$(MINIKUBE) image load $(K8S_WEB_IMAGE); \
+		echo "$(YELLOW)Detected minikube context; building images directly inside minikube...$(NC)"; \
+		$(MINIKUBE) image build -t $(K8S_RUST_IMAGE) .; \
+		$(MINIKUBE) image tag $(K8S_RUST_IMAGE) rust-app:latest; \
+		$(MINIKUBE) image build -t $(K8S_WEB_IMAGE) ./web; \
+		$(MINIKUBE) image tag $(K8S_WEB_IMAGE) web:latest; \
+	else \
+		$(DOCKER) build -t rust-app:latest -t $(K8S_RUST_IMAGE) .; \
+		$(DOCKER) build -t web:latest -t $(K8S_WEB_IMAGE) ./web; \
 	fi
 	@echo "$(YELLOW)Applying local Kubernetes development overlay...$(NC)"
 	$(KUBECTL) apply -k $(K8S_DEV)/

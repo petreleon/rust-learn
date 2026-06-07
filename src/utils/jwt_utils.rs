@@ -3,7 +3,9 @@
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::{self, Duration};
 use jsonwebtoken::{
-    decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation,
+    decode, encode,
+    errors::{Error as JwtError, ErrorKind},
+    Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation,
 };
 use openssl::pkey::PKey;
 use serde::Serialize;
@@ -53,8 +55,12 @@ fn jwt_key_id() -> String {
     jwt_key_id_from_env_value(env::var("JWT_KEY_ID").ok().as_deref())
 }
 
-pub fn create_jwt(user_id: i32) -> Result<String, jsonwebtoken::errors::Error> {
-    let private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY must be set");
+fn required_jwt_key_from_env(name: &str) -> Result<String, JwtError> {
+    env::var(name).map_err(|_| ErrorKind::InvalidKeyFormat.into())
+}
+
+pub fn create_jwt(user_id: i32) -> Result<String, JwtError> {
+    let private_key = required_jwt_key_from_env("PRIVATE_KEY")?;
     let expiration = chrono::Utc::now() + Duration::seconds(jwt_expiration_seconds());
     let claims = UserJWT::new(user_id, expiration);
     let encoding_key = EncodingKey::from_rsa_pem(private_key.as_bytes())?;
@@ -63,8 +69,8 @@ pub fn create_jwt(user_id: i32) -> Result<String, jsonwebtoken::errors::Error> {
     encode(&header, &claims, &encoding_key)
 }
 
-pub fn decode_jwt(token: &str) -> Result<TokenData<UserJWT>, jsonwebtoken::errors::Error> {
-    let public_key = env::var("PUBLIC_KEY").expect("PUBLIC_KEY must be set");
+pub fn decode_jwt(token: &str) -> Result<TokenData<UserJWT>, JwtError> {
+    let public_key = required_jwt_key_from_env("PUBLIC_KEY")?;
     let decoding_key = DecodingKey::from_rsa_pem(public_key.as_bytes())?;
     let validation = Validation::new(Algorithm::RS256);
     decode::<UserJWT>(token, &decoding_key, &validation)
@@ -98,8 +104,9 @@ pub fn public_jwks_from_env() -> Result<JwksResponse, String> {
 mod tests {
     use super::{
         jwt_expiration_seconds_from_env_value, jwt_key_id_from_env_value, public_jwks_from_pem,
-        DEFAULT_JWT_EXPIRATION_SECONDS, DEFAULT_JWT_KEY_ID,
+        required_jwt_key_from_env, DEFAULT_JWT_EXPIRATION_SECONDS, DEFAULT_JWT_KEY_ID,
     };
+    use jsonwebtoken::errors::ErrorKind;
     use openssl::pkey::PKey;
     use openssl::rsa::Rsa;
 
@@ -141,6 +148,14 @@ mod tests {
     #[test]
     fn parses_jwt_key_id() {
         assert_eq!(jwt_key_id_from_env_value(Some(" primary ")), "primary");
+    }
+
+    #[test]
+    fn missing_jwt_key_env_returns_key_error() {
+        let err = required_jwt_key_from_env("RUST_LEARN_TEST_MISSING_JWT_KEY")
+            .expect_err("missing key should be returned as a JWT error");
+
+        assert_eq!(err.kind(), &ErrorKind::InvalidKeyFormat);
     }
 
     #[test]

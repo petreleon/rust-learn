@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Keep behavior consistent with current Compose command (fetch submodules on start)
-if command -v git >/dev/null 2>&1; then
+# Keep behavior consistent with current Compose command when a Git checkout is
+# mounted. Built production images do not include .git metadata.
+if [[ -d .git ]] && command -v git >/dev/null 2>&1; then
   # Avoid noisy "dubious ownership" warnings when the workspace is bind-mounted
   git config --global --add safe.directory '*' || true
   git config --global --add safe.directory /usr/src/app || true
