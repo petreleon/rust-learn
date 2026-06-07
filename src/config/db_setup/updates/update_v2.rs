@@ -11,7 +11,7 @@ use std::env;
 
 pub fn apply_update_v2(conn: &mut AsyncPgConnection) -> BoxFuture<'_, Result<()>> {
     async move {
-        println!("Applying update v2...");
+        log::info!("event=db_version_update_apply_started version=2");
 
         // Fetch admin details from environment variables
         let admin_name = required_env("ADMIN_NAME")?;
@@ -23,9 +23,10 @@ pub fn apply_update_v2(conn: &mut AsyncPgConnection) -> BoxFuture<'_, Result<()>
         let user = create_user(conn, &admin_name, &admin_email, admin_dob, &admin_password)
             .await
             .context("Failed to create admin user")?;
-        println!(
-            "Admin user '{}' created successfully with ID {}",
-            user.name, user.id
+        log::info!(
+            "event=bootstrap_admin_created version=2 user_id={} user_name={}",
+            user.id,
+            user.name
         );
 
         // Attempt to assign the SUPER_ADMIN role to the newly created admin user
@@ -35,9 +36,10 @@ pub fn apply_update_v2(conn: &mut AsyncPgConnection) -> BoxFuture<'_, Result<()>
                 format!("Failed to assign SUPER_ADMIN role to user '{}'", user.name)
             })?;
 
-        println!(
-            "SUPER_ADMIN role assigned to user '{}' successfully",
-            user.name
+        log::info!(
+            "event=bootstrap_admin_role_assigned version=2 user_id={} role={}",
+            user.id,
+            Roles::SUPER_ADMIN
         );
 
         Ok(())

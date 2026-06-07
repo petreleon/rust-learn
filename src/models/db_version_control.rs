@@ -23,7 +23,13 @@ impl DbVersionControl {
         conn: &mut AsyncPgConnection,
         new_version: i32,
     ) -> QueryResult<usize> {
-        diesel::update(db_version_control::table.filter(db_version_control::id.eq(1)))
+        diesel::insert_into(db_version_control::table)
+            .values((
+                db_version_control::id.eq(1),
+                db_version_control::version.eq(new_version),
+            ))
+            .on_conflict(db_version_control::id)
+            .do_update()
             .set(db_version_control::version.eq(new_version))
             .execute(conn)
             .await
