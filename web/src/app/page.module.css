@@ -123,6 +123,7 @@
 
 .statusMessage {
   margin-top: 10px;
+  min-height: 20px;
   color: #64748b;
   font-size: 0.86rem;
   overflow-wrap: anywhere;

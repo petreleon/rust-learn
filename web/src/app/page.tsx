@@ -130,6 +130,30 @@ function prettyBody(value: string) {
   }
 }
 
+function formatHealthMessage(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "API responded";
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (parsed && typeof parsed === "object" && "status" in parsed) {
+      const status = String((parsed as { status?: unknown }).status ?? "").trim();
+      if (status.toLowerCase() === "ok") {
+        return "API healthy";
+      }
+      if (status) {
+        return `API status: ${status}`;
+      }
+    }
+  } catch {
+    return trimmed;
+  }
+
+  return trimmed;
+}
+
 function statusLabel(status: ApiState) {
   if (status === "online") {
     return "Online";
@@ -223,7 +247,7 @@ export default function Home() {
           throw new Error(`HTTP ${response.status}`);
         }
         setApiState("online");
-        setApiMessage(body || "API responded");
+        setApiMessage(formatHealthMessage(body));
       })
       .catch((error: Error) => {
         if (controller.signal.aborted) {
@@ -491,7 +515,9 @@ export default function Home() {
               spellCheck={false}
             />
           </label>
-          <p className={styles.statusMessage}>{apiMessage}</p>
+          <p className={styles.statusMessage} aria-live="polite">
+            {apiMessage}
+          </p>
         </section>
 
         <section className={styles.sidebarSection} aria-labelledby="permissions-title">
