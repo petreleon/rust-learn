@@ -1,6 +1,6 @@
 // src/api/authentication.rs
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
-use bcrypt::{hash, verify, DEFAULT_COST};
+use bcrypt::{non_truncating_hash, verify, DEFAULT_COST};
 use chrono::NaiveDate;
 use diesel::result::{DatabaseErrorKind, Error as DieselError};
 use diesel_async::AsyncConnection;
@@ -18,6 +18,9 @@ use crate::utils::email::{
 use crate::utils::jwt_utils::{create_jwt, public_jwks_from_env};
 
 const MIN_PASSWORD_LENGTH: usize = 12;
+const MAX_BCRYPT_PASSWORD_BYTES: usize = 71;
+const PASSWORD_TOO_LONG_MESSAGE: &str =
+    "Password must be at most 71 UTF-8 bytes for bcrypt hashing";
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
@@ -41,6 +44,10 @@ pub struct VerifyEmailQuery {
 fn validate_password_strength(password: &str) -> Result<(), &'static str> {
     if password.len() < MIN_PASSWORD_LENGTH {
         return Err("Password must be at least 12 characters long");
+    }
+
+    if password.len() > MAX_BCRYPT_PASSWORD_BYTES {
+        return Err(PASSWORD_TOO_LONG_MESSAGE);
     }
 
     let has_lowercase = password.chars().any(char::is_lowercase);
@@ -156,7 +163,7 @@ pub async fn register(
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let hashed_password = match hash(&req.password, DEFAULT_COST) {
+    let hashed_password = match non_truncating_hash(&req.password, DEFAULT_COST) {
         Ok(password_hash) => password_hash,
         Err(err) => {
             log::error!("event=auth_password_hash_failed error={}", err);
@@ -296,7 +303,7 @@ pub fn auth_scope() -> actix_web::Scope {
 
 #[cfg(test)]
 mod tests {
-    use super::{email_log_hash, validate_password_strength};
+    use super::{email_log_hash, validate_password_strength, PASSWORD_TOO_LONG_MESSAGE};
 
     #[test]
     fn accepts_strong_password() {
@@ -331,6 +338,24 @@ mod tests {
                 "Password must include lowercase, uppercase, numeric, and symbol characters"
             );
         }
+    }
+
+    #[test]
+    fn rejects_passwords_over_bcrypt_byte_limit() {
+        let long_password = format!("Aa1!{}", "a".repeat(68));
+
+        assert_eq!(
+            validate_password_strength(&long_password).unwrap_err(),
+            PASSWORD_TOO_LONG_MESSAGE
+        );
+    }
+
+    #[test]
+    fn accepts_password_at_bcrypt_byte_limit() {
+        let password = format!("Aa1!{}", "a".repeat(67));
+
+        assert_eq!(password.len(), 71);
+        assert!(validate_password_strength(&password).is_ok());
     }
 
     #[test]
