@@ -14,7 +14,7 @@ import {
   ShieldAlert,
   WalletCards,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./page.module.css";
 
 type ApiState = "checking" | "online" | "offline";
@@ -199,6 +199,7 @@ function optionLabel(value: string) {
 }
 
 export default function Home() {
+  const resultPanelRef = useRef<HTMLElement | null>(null);
   const [apiRoot, setApiRoot] = useState(process.env.NEXT_PUBLIC_API_URL || "/api");
   const [token, setToken] = useState("");
   const [healthCheckTick, setHealthCheckTick] = useState(0);
@@ -369,6 +370,12 @@ export default function Home() {
   }
 
   async function sendApi(label: string, path: string, method: HttpMethod = "GET", body?: unknown) {
+    const revealResultPanel = () => {
+      requestAnimationFrame(() => {
+        resultPanelRef.current?.scrollIntoView({ block: "start", inline: "nearest" });
+      });
+    };
+
     const root = normalizeRoot(apiRoot);
     const headers = new Headers();
     headers.set("Accept", "application/json, text/csv, text/plain");
@@ -380,6 +387,7 @@ export default function Home() {
     }
 
     setResult({ label, status: "Pending", body: "Waiting for API response.", ok: true });
+    revealResultPanel();
 
     try {
       const response = await fetch(`${root}${path}`, {
@@ -394,6 +402,7 @@ export default function Home() {
         body: prettyBody(text),
         ok: response.ok,
       });
+      revealResultPanel();
     } catch (error) {
       setResult({
         label,
@@ -401,6 +410,7 @@ export default function Home() {
         body: error instanceof Error ? error.message : "Unknown request failure",
         ok: false,
       });
+      revealResultPanel();
     }
   }
 
@@ -1300,6 +1310,7 @@ export default function Home() {
         </div>
 
         <section
+          ref={resultPanelRef}
           className={styles.resultPanel}
           aria-labelledby="result-title"
           aria-live="polite"
