@@ -8,7 +8,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # Install native dependencies required to build and link the worker
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev pkg-config libssl-dev build-essential git ca-certificates ffmpeg \
+    libpq-dev pkg-config libssl-dev build-essential git ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
 ENV CARGO_HOME=/usr/local/cargo

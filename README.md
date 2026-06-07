@@ -553,8 +553,10 @@ DOCKER_DEFAULT_PLATFORM=linux/arm64 docker compose build app web worker
 ```
 
 This build was last verified locally for `rust-learn-app`, `rust-learn-web`,
-and `rust-learn-worker`. The web image may report `npm audit` advisories during
-dependency installation; those advisories do not fail the image build.
+and `rust-learn-worker`. Kubernetes builds use separate `rust-app` and
+`rust-worker` images so the API runtime does not carry ffmpeg. The web image may
+report `npm audit` advisories during dependency installation; those advisories
+do not fail the image build.
 
 Makefile shortcuts:
 

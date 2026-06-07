@@ -125,8 +125,11 @@ manager in an overlay.
 ### 2. Build Docker Images
 
 ```bash
-# Build Rust application image
+# Build Rust API image
 docker build -t rust-app:latest .
+
+# Build worker image
+docker build -t rust-worker:latest -f docker/worker.Dockerfile .
 
 # Build web image
 docker build -t web:latest ./web
@@ -144,6 +147,9 @@ make k8s-build
 # and point app deployments at unique image tags.
 make k8s-dev-refresh
 ```
+
+The refresh builds separate `rust-app`, `rust-worker`, and `web` images. It
+aborts before updating deployments if any image build fails.
 
 The dev overlay writes `k8s/overlays/dev/secrets.patch.yaml`, which contains
 generated local RSA keys and development credentials. That file is ignored by

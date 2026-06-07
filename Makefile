@@ -9,8 +9,10 @@ PROJECT_NAME := rust-learn
 K8S_NAMESPACE := rust-learn
 K8S_BASE := k8s/base
 K8S_DEV := k8s/overlays/dev
-K8S_IMAGE_TAG ?= dev-$(shell date +%Y%m%d%H%M%S)
-K8S_RUST_IMAGE := rust-app:$(K8S_IMAGE_TAG)
+K8S_IMAGE_TAG_DEFAULT := dev-$(shell date +%Y%m%d%H%M%S)
+K8S_IMAGE_TAG ?= $(K8S_IMAGE_TAG_DEFAULT)
+K8S_APP_IMAGE := rust-app:$(K8S_IMAGE_TAG)
+K8S_WORKER_IMAGE := rust-worker:$(K8S_IMAGE_TAG)
 K8S_WEB_IMAGE := web:$(K8S_IMAGE_TAG)
 DOCKER ?= $(shell command -v docker 2>/dev/null || printf /opt/homebrew/bin/docker)
 DOCKER_COMPOSE ?= $(DOCKER) compose
@@ -47,6 +49,7 @@ stop: ## Stop all services
 
 docker-build: ## Build images for Kubernetes
 	$(DOCKER) build -t rust-app:latest .
+	$(DOCKER) build -t rust-worker:latest -f docker/worker.Dockerfile .
 	$(DOCKER) build -t web:latest ./web
 
 docker-up: ## Start with docker-compose in background
@@ -58,12 +61,15 @@ docker-down: ## Stop docker-compose
 # Kubernetes
 k8s-build: ## Build Docker images for Kubernetes
 	@echo "$(YELLOW)Building Docker images...$(NC)"
-	@if command -v $(MINIKUBE) >/dev/null 2>&1 && [ "$$($(KUBECTL) config current-context 2>/dev/null)" = "minikube" ]; then \
+	@set -e; \
+	if command -v $(MINIKUBE) >/dev/null 2>&1 && [ "$$($(KUBECTL) config current-context 2>/dev/null)" = "minikube" ]; then \
 		echo "$(YELLOW)Detected minikube context; building images directly inside minikube...$(NC)"; \
 		$(MINIKUBE) image build -t rust-app:latest .; \
+		$(MINIKUBE) image build -t rust-worker:latest -f docker/worker.Dockerfile .; \
 		$(MINIKUBE) image build -t web:latest ./web; \
 	else \
 		$(DOCKER) build -t rust-app:latest .; \
+		$(DOCKER) build -t rust-worker:latest -f docker/worker.Dockerfile .; \
 		$(DOCKER) build -t web:latest ./web; \
 	fi
 
@@ -97,15 +103,19 @@ k8s-dev-apply: k8s-dev-secrets ## Apply local Kubernetes overlay with generated 
 	@echo "$(GREEN)Development deployment complete!$(NC)"
 
 k8s-dev-refresh: k8s-dev-secrets ## Rebuild, load, and redeploy local Kubernetes dev images with fresh tags
-	@echo "$(YELLOW)Building fresh Kubernetes development images: $(K8S_RUST_IMAGE), $(K8S_WEB_IMAGE)...$(NC)"
-	@if command -v $(MINIKUBE) >/dev/null 2>&1 && [ "$$($(KUBECTL) config current-context 2>/dev/null)" = "minikube" ]; then \
+	@echo "$(YELLOW)Building fresh Kubernetes development images: $(K8S_APP_IMAGE), $(K8S_WORKER_IMAGE), $(K8S_WEB_IMAGE)...$(NC)"
+	@set -e; \
+	if command -v $(MINIKUBE) >/dev/null 2>&1 && [ "$$($(KUBECTL) config current-context 2>/dev/null)" = "minikube" ]; then \
 		echo "$(YELLOW)Detected minikube context; building images directly inside minikube...$(NC)"; \
-		$(MINIKUBE) image build -t $(K8S_RUST_IMAGE) .; \
-		$(MINIKUBE) image tag $(K8S_RUST_IMAGE) rust-app:latest; \
+		$(MINIKUBE) image build -t $(K8S_APP_IMAGE) .; \
+		$(MINIKUBE) image tag $(K8S_APP_IMAGE) rust-app:latest; \
+		$(MINIKUBE) image build -t $(K8S_WORKER_IMAGE) -f docker/worker.Dockerfile .; \
+		$(MINIKUBE) image tag $(K8S_WORKER_IMAGE) rust-worker:latest; \
 		$(MINIKUBE) image build -t $(K8S_WEB_IMAGE) ./web; \
 		$(MINIKUBE) image tag $(K8S_WEB_IMAGE) web:latest; \
 	else \
-		$(DOCKER) build -t rust-app:latest -t $(K8S_RUST_IMAGE) .; \
+		$(DOCKER) build -t rust-app:latest -t $(K8S_APP_IMAGE) .; \
+		$(DOCKER) build -t rust-worker:latest -t $(K8S_WORKER_IMAGE) -f docker/worker.Dockerfile .; \
 		$(DOCKER) build -t web:latest -t $(K8S_WEB_IMAGE) ./web; \
 	fi
 	@echo "$(YELLOW)Applying local Kubernetes development overlay...$(NC)"
@@ -113,8 +123,8 @@ k8s-dev-refresh: k8s-dev-secrets ## Rebuild, load, and redeploy local Kubernetes
 	@echo "$(YELLOW)Restarting runtime dependencies that consume local secrets/config...$(NC)"
 	$(KUBECTL) rollout restart deployment/anvil deployment/rustfs -n $(K8S_NAMESPACE)
 	@echo "$(YELLOW)Pointing deployments at fresh image tags...$(NC)"
-	$(KUBECTL) set image deployment/rust-app rust-app=$(K8S_RUST_IMAGE) migrate=$(K8S_RUST_IMAGE) wait-for-runtime-services=$(K8S_RUST_IMAGE) -n $(K8S_NAMESPACE)
-	$(KUBECTL) set image deployment/worker worker=$(K8S_RUST_IMAGE) -n $(K8S_NAMESPACE)
+	$(KUBECTL) set image deployment/rust-app rust-app=$(K8S_APP_IMAGE) migrate=$(K8S_APP_IMAGE) wait-for-runtime-services=$(K8S_APP_IMAGE) -n $(K8S_NAMESPACE)
+	$(KUBECTL) set image deployment/worker worker=$(K8S_WORKER_IMAGE) -n $(K8S_NAMESPACE)
 	$(KUBECTL) set image deployment/web web=$(K8S_WEB_IMAGE) -n $(K8S_NAMESPACE)
 	@echo "$(GREEN)Waiting for deployments to roll out...$(NC)"
 	$(KUBECTL) rollout status deployment/postgres -n $(K8S_NAMESPACE) --timeout=180s
