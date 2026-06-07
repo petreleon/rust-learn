@@ -8,6 +8,7 @@ services:
     environment:
       ETH_HOST: anvil
       ETH_PORT: "8545"
+      ETH_RPC_URL: http://anvil:8545
       PROD_MODE: "TRUE"
     ports:
       - "8080:8080"
@@ -91,6 +92,9 @@ services:
     env_file:
       - .env
     environment:
+      ETH_HOST: anvil
+      ETH_PORT: "8545"
+      ETH_RPC_URL: http://anvil:8545
       # concurrency for ffmpeg workers (default 1)
       WORKER_CONCURRENCY: "1"
       # retry/backoff configuration

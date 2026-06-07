@@ -308,14 +308,15 @@ RustFS API is exposed on port `9000`; the console is exposed on port `9001`.
 
 ### Ethereum provider
 
-The Compose stack runs Anvil on port `8545`. The app container defaults to:
+The Compose stack runs Anvil on port `8545`. App and worker containers override
+the provider URL to the Compose service:
 
 ```text
 ETH_HOST=anvil
 ETH_PORT=8545
+ETH_RPC_URL=http://anvil:8545
 ```
 
-You can also configure `ETH_RPC_URL` if you need an explicit RPC URL.
 Startup deploys and persists LearnToken plus the wallet transfer helper
 contracts when they are missing. If you use pre-deployed contracts, configure
 `LEARN_TOKEN_ADDRESS`, `WALLET_DEPOSIT_IMPORTER_ADDRESS`, and the treasury
