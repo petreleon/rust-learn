@@ -46,7 +46,7 @@ async fn list_users(pool: web::Data<db::DbPool>) -> impl Responder {
             HttpResponse::Ok().json(json!({ "users": users_json }))
         }
         Err(e) => {
-            eprintln!("DB error listing users: {}", e);
+            log::error!("event=user_list_failed error={}", e);
             HttpResponse::InternalServerError().body("Failed to load users")
         }
     }
@@ -101,7 +101,7 @@ async fn get_user(
         })),
         Err(diesel::result::Error::NotFound) => HttpResponse::NotFound().body("User not found"),
         Err(e) => {
-            eprintln!("DB error fetching user {}: {}", user_id, e);
+            log::error!("event=user_fetch_failed user_id={} error={}", user_id, e);
             HttpResponse::InternalServerError().body("Failed to fetch user")
         }
     }
@@ -167,7 +167,13 @@ async fn assign_role(
             HttpResponse::BadRequest().body(format!("Role '{}' not found", role_name))
         }
         Err(e) => {
-            eprintln!("Error assigning platform role: {}", e);
+            log::error!(
+                "event=platform_role_assign_failed requester_user_id={} target_user_id={} role={} error={}",
+                requester_id,
+                target_user_id,
+                role_name,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to assign role")
         }
     }

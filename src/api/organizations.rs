@@ -19,7 +19,7 @@ async fn list_organizations(pool: web::Data<db::DbPool>) -> impl Responder {
     match organization_service::list_organizations(&pool).await {
         Ok(org_list) => HttpResponse::Ok().json(org_list),
         Err(e) => {
-            eprintln!("{}", e);
+            log::error!("event=organization_list_failed error={}", e);
             HttpResponse::InternalServerError().body("Failed to load organizations")
         }
     }
@@ -33,7 +33,11 @@ async fn get_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> 
             HttpResponse::NotFound().body("Organization not found")
         }
         Err(e) => {
-            eprintln!("DB error fetching organization {}: {}", org_id, e);
+            log::error!(
+                "event=organization_fetch_failed organization_id={} error={}",
+                org_id,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to fetch organization")
         }
     }
@@ -61,7 +65,7 @@ async fn create_organization(
     match organization_service::create_organization(&pool, dto).await {
         Ok(org) => HttpResponse::Created().json(org),
         Err(e) => {
-            eprintln!("{}", e);
+            log::error!("event=organization_create_failed error={}", e);
             HttpResponse::InternalServerError().body("Failed to create organization")
         }
     }
@@ -82,7 +86,11 @@ async fn update_organization(
             HttpResponse::NotFound().body("Organization not found")
         }
         Err(e) => {
-            eprintln!("DB error updating organization {}: {}", org_id, e);
+            log::error!(
+                "event=organization_update_failed organization_id={} error={}",
+                org_id,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to update organization")
         }
     }
@@ -99,7 +107,11 @@ async fn delete_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) 
             }
         }
         Err(e) => {
-            eprintln!("{}", e);
+            log::error!(
+                "event=organization_delete_failed organization_id={} error={}",
+                org_id,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to delete organization")
         }
     }
@@ -113,7 +125,11 @@ async fn get_organization_courses(
     match organization_service::get_organization_courses(&pool, org_id).await {
         Ok(courses) => HttpResponse::Ok().json(courses),
         Err(e) => {
-            eprintln!("{}", e);
+            log::error!(
+                "event=organization_courses_fetch_failed organization_id={} error={}",
+                org_id,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to fetch organization courses")
         }
     }
@@ -174,7 +190,14 @@ async fn assign_role(
             } else if msg.contains("Role or User not found") {
                 HttpResponse::BadRequest().body(msg)
             } else {
-                eprintln!("{}", msg);
+                log::error!(
+                    "event=organization_role_assign_failed organization_id={} requester_user_id={} target_user_id={} role={} error={}",
+                    org_id,
+                    requester_id,
+                    target_user_id,
+                    role_name,
+                    msg
+                );
                 HttpResponse::InternalServerError().body("Failed to assign role")
             }
         }

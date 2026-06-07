@@ -147,7 +147,14 @@ async fn list_courses(
     match result {
         Ok(course_list) => HttpResponse::Ok().json(course_list),
         Err(e) => {
-            eprintln!("DB error listing courses: {}", e);
+            log::error!(
+                "event=course_list_failed search={:?} organization_id={:?} limit={:?} offset={:?} error={}",
+                query.search,
+                query.organization_id,
+                query.limit,
+                query.offset,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to load courses")
         }
     }
@@ -169,7 +176,11 @@ async fn get_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl R
         Ok(course) => HttpResponse::Ok().json(course),
         Err(diesel::result::Error::NotFound) => HttpResponse::NotFound().body("Course not found"),
         Err(e) => {
-            eprintln!("DB error fetching course {}: {}", course_id, e);
+            log::error!(
+                "event=course_fetch_failed course_id={} error={}",
+                course_id,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to fetch course")
         }
     }
@@ -381,7 +392,11 @@ async fn delete_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> imp
             }
         }
         Err(e) => {
-            eprintln!("DB error deleting course {}: {}", course_id, e);
+            log::error!(
+                "event=course_delete_failed course_id={} error={}",
+                course_id,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to delete course")
         }
     }
@@ -409,7 +424,11 @@ async fn get_course_organizations(
     match result {
         Ok(orgs) => HttpResponse::Ok().json(orgs),
         Err(e) => {
-            eprintln!("DB error fetching course organizations: {}", e);
+            log::error!(
+                "event=course_organizations_fetch_failed course_id={} error={}",
+                course_id,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to fetch course organizations")
         }
     }
@@ -475,7 +494,14 @@ async fn assign_role(
         Err(diesel::result::Error::RollbackTransaction) => HttpResponse::Forbidden().body("Hierarchy check failed: Cannot assign role higher than or equal to your own, or modify user with higher/equal rank."),
         Err(diesel::result::Error::NotFound) => HttpResponse::BadRequest().body("Role or User not found"),
         Err(e) => {
-            eprintln!("Error assigning role: {}", e);
+            log::error!(
+                "event=course_role_assign_failed requester_user_id={} target_user_id={} course_id={} role={} error={}",
+                requester_id,
+                target_user_id,
+                course_id,
+                role_name,
+                e
+            );
             HttpResponse::InternalServerError().body("Failed to assign role")
         }
     }
