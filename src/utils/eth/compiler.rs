@@ -198,8 +198,3 @@ pub fn try_compile_contract(
 
     Ok((abi, bytecode))
 }
-
-/// Compile a specific contract file+name using ethers-solc. Returns (Abi, Bytecode).
-pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes) {
-    try_compile_contract(contract_file, contract_name).expect("Failed to compile contract")
-}

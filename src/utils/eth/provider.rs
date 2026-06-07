@@ -15,9 +15,3 @@ pub fn try_get_provider() -> Result<Provider<Http>, String> {
     Provider::<Http>::try_from(url.clone())
         .map_err(|err| format!("Could not create provider from {url}: {err}"))
 }
-
-/// Connects to an Ethereum node using env configuration
-pub fn get_provider() -> Provider<Http> {
-    dotenvy::dotenv().ok();
-    try_get_provider().expect("Could not create provider from ETH_RPC_URL/ETH_HOST/ETH_PORT")
-}

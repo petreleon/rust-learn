@@ -6,8 +6,8 @@
 
 ## Quick context for code-generating agents
 
-- Language: Rust (edition 2021). Web server: Actix Web. DB: PostgreSQL via Diesel r2d2 pool.
-- Smart contracts live under `ethereum/contracts/` and are compiled/deployed via `src/utils/eth_utils.rs` (functions: `compile_contract`, `deploy_contract`, `get_provider`, `load_wallet_from_env`, `deploy_startup`). Prefer using these helpers instead of invoking solc directly.
+- Language: Rust (edition 2021). Web server: Actix Web. DB: PostgreSQL via Diesel async/deadpool.
+- Smart contracts live under `ethereum/contracts/` and are compiled/deployed via `src/utils/eth/` helpers such as `try_compile_contract`, `try_deploy_contract`, `try_get_provider`, `try_load_wallet_from_env`, and `deploy_startup`. Prefer using these fallible helpers instead of invoking solc directly.
 - On startup (`src/main.rs`) the app:
   - loads `.env`, establishes the DB pool (`db::establish_connection()`),
   - initializes S3 state (`utils::s3_utils::S3State::new_from_env()`),
@@ -16,7 +16,7 @@
 
 ## Useful developer workflows (Docker Compose only)
 
-- Start services (Postgres, rus3fs, Anvil, App container shellable):
+- Start services (Postgres, RustFS, Anvil, App container shellable):
 
   - Bring up infra: `docker compose up -d db rustfs anvil app`
   - The `app` service initializes git submodules and stays running; you exec into it to run commands.
@@ -47,10 +47,10 @@
 
 ## Project-specific conventions & gotchas
 
-- Contract compilation: code first tries `ethers_solc` and falls back to the `solc` CLI (see `src/utils/eth_utils.rs`). The repo includes a heavy multi-stage `Dockerfile` that builds `solc` and Z3 — prefer using the Docker image or the helper functions rather than replicating the solc build steps locally.
+- Contract compilation: code first tries committed artifacts, then `ethers_solc`, and finally falls back to the `solc` CLI (see `src/utils/eth/compiler.rs`). The repo includes a heavy multi-stage `Dockerfile` that builds `solc` and Z3; prefer using the Docker image or the helper functions rather than replicating the solc build steps locally.
   - Run all compile/deploy-related commands via `docker compose exec app ...` to ensure consistent toolchain.
 
-- Persistent contract state: deployed contract addresses are stored in DB persistent state (see `deploy_startup` comments in `src/utils/eth_utils.rs`). When modifying deployment logic, update the persistent state key handling.
+- Persistent contract state: deployed contract addresses are stored in DB persistent state (see `deploy_startup` in `src/utils/eth/deployer.rs`). When modifying deployment logic, update the persistent state key handling.
 
 - DB connection pattern: handlers acquire connections via `pool.get()` (see `main.rs` and middleware removal note). Avoid copying an old connection-middleware pattern — tests indicate middleware was removed intentionally.
 
@@ -60,7 +60,7 @@
 
 ## Integration points & important files to inspect
 
-- src/utils/eth_utils.rs — compile/deploy helpers (use these when adding or testing contracts).
+- src/utils/eth/ — compile/deploy helpers (use these when adding or testing contracts).
 - src/bin/abi_export.rs — shows how to export ABI/bytecode with `cargo run --bin abi_export -- ethereum/contracts/LearnToken.sol LearnToken ethereum/artifacts`.
 - src/main.rs — app startup: DB pool, S3 init, deploy_startup call, Actix server wiring.
 - src/config/db_setup.rs — DB version updater called on startup (keep migrations/`migrations/` in sync).
@@ -70,7 +70,7 @@
 ## How to extend safely (handy rules for codegen)
 
 - When adding endpoints, follow the existing pattern: use `web::Data` for shared pool/state, call `pool.get()` inside handlers, and return Actix `Responder` types.
-- For changes touching contracts, prefer calling `compile_contract(...)` and `deploy_contract(...)` (from `src/utils/eth_utils.rs`) so tests and startup idempotency are preserved.
+- For changes touching contracts, prefer the fallible helpers in `src/utils/eth/`, especially `try_compile_contract(...)` and `try_deploy_contract(...)`, so tests and startup idempotency are preserved without panic-based failures.
 - Keep database schema changes in `migrations/` and ensure `version_updater` semantics are preserved; tests and startup depend on these migrations running.
 
 If anything in these notes is unclear or you'd like more examples (small PR-ready edits, tests, or a checklist for preparing a dev environment), tell me which section to expand and I'll iterate. 

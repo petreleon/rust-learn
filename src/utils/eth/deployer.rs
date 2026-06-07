@@ -44,19 +44,6 @@ pub async fn try_deploy_contract(
     Ok(contract.address())
 }
 
-/// Deploys the LearnToken contract
-pub async fn deploy_contract(
-    wallet: Wallet<k256::ecdsa::SigningKey>,
-    provider: Provider<Http>,
-    abi: Abi,
-    bytecode: Bytes,
-    deploy_args: impl ethers::core::abi::Tokenize,
-) -> Address {
-    try_deploy_contract(wallet, provider, abi, bytecode, deploy_args)
-        .await
-        .expect("Failed to deploy contract")
-}
-
 pub async fn deploy_learn_token_and_save(
     conn: &mut AsyncPgConnection,
     name: &str,

@@ -16,7 +16,7 @@ use tokio::fs as tokio_fs;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command as TokioCommand;
 
-/// Async S3 client wrapper. Works with any S3-compatible service (AWS S3, rus3fs, etc.).
+/// Async S3 client wrapper. Works with any S3-compatible service (AWS S3, RustFS, etc.).
 #[derive(Clone)]
 pub struct S3State(Arc<Client>);
 

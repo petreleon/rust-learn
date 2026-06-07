@@ -3,7 +3,7 @@ pub mod deployer;
 pub mod provider;
 pub mod wallet;
 
-pub use compiler::{compile_contract, try_compile_contract};
+pub use compiler::try_compile_contract;
 pub use deployer::*;
-pub use provider::{get_provider, try_get_provider};
-pub use wallet::{load_wallet_from_env, try_load_wallet_from_env};
+pub use provider::try_get_provider;
+pub use wallet::try_load_wallet_from_env;
