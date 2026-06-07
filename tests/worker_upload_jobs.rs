@@ -137,6 +137,10 @@ async fn schedule_retry_sets_queued_state_attempts_error_and_future_availability
     let updated_at = updated.updated_at.expect("retry should set updated_at");
     assert!(updated_at > Utc::now());
     assert!(updated_at <= retry_at + Duration::seconds(1));
+
+    UploadJob::mark_done(job.id(), &mut conn)
+        .await
+        .expect("test should clean up retry job");
 }
 
 #[actix_web::test]
@@ -164,6 +168,10 @@ async fn mark_failed_sets_terminal_failure_state() {
         Some("permanent processing failure")
     );
     assert!(updated.updated_at.is_some());
+
+    UploadJob::mark_done(job.id(), &mut conn)
+        .await
+        .expect("test should clean up failed job");
 }
 
 #[actix_web::test]
