@@ -489,7 +489,7 @@ docker compose --profile test run --rm test-runner cargo test --test wallet_link
 docker compose --profile test run --rm test-runner cargo test --test notification_events
 
 # Anvil-backed token contract behavior.
-docker compose --profile test run --rm test-runner cargo test --test blockchain_integration_tests
+docker compose --profile test run --rm test-runner cargo test --test blockchain_integration_tests -- --ignored
 ```
 
 To pass a narrower test filter through the Make target:
@@ -502,7 +502,8 @@ make test-compose CARGO_TEST_ARGS='--test authentication_flow'
 Run blockchain integration tests:
 
 ```bash
-cargo test --test blockchain_integration_tests
+make test-integration
+cargo test --test blockchain_integration_tests -- --ignored
 ```
 
 Check formatting:
@@ -560,7 +561,8 @@ Test dependency notes:
 | `make test` / `cargo test` | A valid `.env`; many integration tests open `DATABASE_URL`, so start PostgreSQL first with `make dev-deps` when running the full suite. Host runs also need local native libraries such as `libpq`. |
 | `make test-compose` | Docker plus a valid `.env`; starts PostgreSQL, RustFS, and Anvil, then runs Cargo in the `test-runner` profile so host native libraries are not required. |
 | `cargo test --test s3` | RustFS/S3-compatible storage reachable through the `S3_*` settings. With Compose, run from the container network or set `S3_INTERNAL_DOMAIN`/`S3_EXTERNAL_DOMAIN` appropriately for the host. |
-| `make test-integration` / `cargo test --test blockchain_integration_tests -- --ignored` | Anvil or another Ethereum JSON-RPC endpoint plus `ETH_MNEMONIC` and provider settings in `.env`. |
+| `make test-integration` | Docker plus a valid `.env`; starts Anvil, then runs ignored blockchain tests in the `test-runner` profile. |
+| `cargo test --test blockchain_integration_tests -- --ignored` | Anvil or another Ethereum JSON-RPC endpoint plus `ETH_MNEMONIC` and provider settings in `.env`; host runs also need local native libraries such as `libpq`. |
 | Worker/media-processing checks | ffmpeg on `PATH`, PostgreSQL, and RustFS/S3. Keep `WORKER_CONCURRENCY=1` on small Docker VMs. |
 
 Docker is the recommended way to provide PostgreSQL, RustFS, and Anvil for local test runs:

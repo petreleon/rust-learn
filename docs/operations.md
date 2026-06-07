@@ -142,7 +142,7 @@ Run contract integration tests through Compose with Anvil available:
 
 ```bash
 docker compose up -d anvil
-docker compose --profile test run --rm --no-deps test-runner cargo test --test blockchain_integration_tests -- --nocapture
+docker compose --profile test run --rm --no-deps test-runner cargo test --test blockchain_integration_tests -- --ignored --nocapture
 docker compose stop anvil
 ```
 

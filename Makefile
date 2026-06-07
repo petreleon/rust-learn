@@ -184,7 +184,8 @@ test-compose: ## Run tests through Docker Compose service networking
 	$(DOCKER_COMPOSE) --profile test run --rm test-runner cargo test $(CARGO_TEST_ARGS)
 
 test-integration: ## Run integration tests
-	cargo test --test blockchain_integration_tests
+	$(DOCKER_COMPOSE) up -d anvil
+	$(DOCKER_COMPOSE) --profile test run --rm --no-deps test-runner cargo test --test blockchain_integration_tests -- --ignored
 
 fmt: ## Check Rust formatting
 	cargo fmt --all --check
