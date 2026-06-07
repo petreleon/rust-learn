@@ -129,9 +129,7 @@ async fn assign_role(
         None => return HttpResponse::Unauthorized().body("Missing Authorization header"),
     };
 
-    let token = if auth_header.starts_with("Bearer ") {
-        &auth_header["Bearer ".len()..]
-    } else {
+    let Some(token) = auth_header.strip_prefix("Bearer ") else {
         return HttpResponse::Unauthorized().body("Invalid Authorization header format");
     };
 
@@ -179,13 +177,15 @@ pub fn user_scope() -> actix_web::Scope {
     web::scope("/user")
         .service(
             web::resource("").route(web::get().to(list_users).wrap(
-                PlatformPermissionMiddleware::new(Permissions::VIEW_USER.to_string()),
+                PlatformPermissionMiddleware::require(Permissions::VIEW_USER.to_string()),
             )),
         )
         .service(web::resource("/{id}").route(web::get().to(get_user)))
         .service(
             web::resource("/{id}/role").route(web::post().to(assign_role).wrap(
-                PlatformPermissionMiddleware::new(Permissions::ASSIGN_ROLES_TO_USER.to_string()),
+                PlatformPermissionMiddleware::require(
+                    Permissions::ASSIGN_ROLES_TO_USER.to_string(),
+                ),
             )),
         )
 }

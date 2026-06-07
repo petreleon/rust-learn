@@ -127,8 +127,7 @@ where
             // Extract and decode JWT from Authorization header rather than from request extensions
             let user_jwt = if let Some(auth_header) = req.headers().get("Authorization") {
                 if let Ok(auth_str) = auth_header.to_str() {
-                    if auth_str.starts_with("Bearer ") {
-                        let token = &auth_str["Bearer ".len()..];
+                    if let Some(token) = auth_str.strip_prefix("Bearer ") {
                         match crate::utils::jwt_utils::decode_jwt(token) {
                             Ok(token_data) => token_data.claims,
                             Err(_) => {

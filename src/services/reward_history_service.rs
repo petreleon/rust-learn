@@ -300,11 +300,7 @@ async fn load_token_transaction(
 }
 
 fn normalize_reward_status(status: &str) -> Result<String, StudentRewardHistoryError> {
-    let normalized = status
-        .trim()
-        .to_ascii_lowercase()
-        .replace('-', "_")
-        .replace(' ', "_");
+    let normalized = status.trim().to_ascii_lowercase().replace(['-', ' '], "_");
     match normalized.as_str() {
         REWARD_STATUS_PENDING_TEACHER_APPROVAL
         | REWARD_STATUS_TEACHER_APPROVED

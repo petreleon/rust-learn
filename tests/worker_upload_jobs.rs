@@ -72,10 +72,10 @@ async fn queue_metrics_counts_ready_delayed_processing_and_failed_jobs() {
         .await
         .expect("queue metrics should load after seeded jobs");
 
-    assert!(after.queued_ready >= before.queued_ready + 1);
-    assert!(after.queued_delayed >= before.queued_delayed + 1);
-    assert!(after.processing >= before.processing + 1);
-    assert!(after.failed >= before.failed + 1);
+    assert!(after.queued_ready > before.queued_ready);
+    assert!(after.queued_delayed > before.queued_delayed);
+    assert!(after.processing > before.processing);
+    assert!(after.failed > before.failed);
     assert!(after.queue_depth() >= before.queue_depth() + 2);
 
     UploadJob::mark_done(ready.id(), &mut conn)

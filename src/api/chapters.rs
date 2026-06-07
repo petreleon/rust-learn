@@ -132,7 +132,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             .route(
                 web::get()
                     .to(list_chapters)
-                    .wrap(CoursePermissionMiddleware::new(
+                    .wrap(CoursePermissionMiddleware::require(
                         Permissions::VIEW_COURSE.to_string(), // Student can view
                         ParamType::Path,
                         "id".to_string(),
@@ -141,7 +141,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             .route(
                 web::post()
                     .to(create_chapter)
-                    .wrap(CoursePermissionMiddleware::new(
+                    .wrap(CoursePermissionMiddleware::require(
                         Permissions::MANAGE_COURSE_SETTINGS.to_string(), // Teacher+
                         ParamType::Path,
                         "id".to_string(),
@@ -153,7 +153,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             .route(
                 web::put()
                     .to(update_chapter)
-                    .wrap(CoursePermissionMiddleware::new(
+                    .wrap(CoursePermissionMiddleware::require(
                         Permissions::MANAGE_COURSE_SETTINGS.to_string(),
                         ParamType::Path,
                         "course_id".to_string(),
@@ -162,7 +162,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             .route(
                 web::delete()
                     .to(delete_chapter)
-                    .wrap(CoursePermissionMiddleware::new(
+                    .wrap(CoursePermissionMiddleware::require(
                         Permissions::MANAGE_COURSE_SETTINGS.to_string(),
                         ParamType::Path,
                         "course_id".to_string(),

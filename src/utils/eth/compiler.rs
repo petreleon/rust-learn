@@ -123,7 +123,7 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
 
     let out_dir = Path::new("./ethereum/artifacts");
     if !out_dir.exists() {
-        fs::create_dir_all(&out_dir).expect("failed to create artifacts dir");
+        fs::create_dir_all(out_dir).expect("failed to create artifacts dir");
     }
 
     let mut cmd = Command::new("solc");

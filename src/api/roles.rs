@@ -56,17 +56,23 @@ pub fn roles_scope() -> actix_web::Scope {
     web::scope("/roles")
         .service(
             web::resource("").route(web::get().to(list_platform_roles).wrap(
-                PlatformPermissionMiddleware::new(Permissions::VIEW_ROLE_ASSIGNMENTS.to_string()),
+                PlatformPermissionMiddleware::require(
+                    Permissions::VIEW_ROLE_ASSIGNMENTS.to_string(),
+                ),
             )),
         )
         .service(
             web::resource("/organization").route(web::get().to(list_organization_roles).wrap(
-                PlatformPermissionMiddleware::new(Permissions::VIEW_ROLE_ASSIGNMENTS.to_string()),
+                PlatformPermissionMiddleware::require(
+                    Permissions::VIEW_ROLE_ASSIGNMENTS.to_string(),
+                ),
             )),
         )
         .service(
             web::resource("/course").route(web::get().to(list_course_roles).wrap(
-                PlatformPermissionMiddleware::new(Permissions::VIEW_ROLE_ASSIGNMENTS.to_string()),
+                PlatformPermissionMiddleware::require(
+                    Permissions::VIEW_ROLE_ASSIGNMENTS.to_string(),
+                ),
             )),
         )
 }

@@ -8,12 +8,15 @@ use futures::FutureExt;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+type AccessCheck =
+    dyn Fn(&ServiceRequest) -> LocalBoxFuture<'static, Result<bool, Error>> + Send + Sync;
+type DenialError = dyn Fn() -> Error + Send + Sync;
+
 // Middleware definition
 pub struct ConditionalAccessMiddleware<S> {
     _service: PhantomData<S>,
-    permitting_function:
-        Arc<dyn Fn(&ServiceRequest) -> LocalBoxFuture<'static, Result<bool, Error>> + Send + Sync>,
-    denial_error: Arc<dyn Fn() -> Error + Send + Sync>,
+    permitting_function: Arc<AccessCheck>,
+    denial_error: Arc<DenialError>,
 }
 
 impl<S> ConditionalAccessMiddleware<S> {
@@ -56,9 +59,8 @@ where
 
 pub struct ConditionalAccessMiddlewareService<S> {
     service: S,
-    permitting_function:
-        Arc<dyn Fn(&ServiceRequest) -> LocalBoxFuture<'static, Result<bool, Error>> + Send + Sync>,
-    denial_error: Arc<dyn Fn() -> Error + Send + Sync>,
+    permitting_function: Arc<AccessCheck>,
+    denial_error: Arc<DenialError>,
 }
 
 impl<S, B> Service<ServiceRequest> for ConditionalAccessMiddlewareService<S>

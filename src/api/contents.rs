@@ -270,11 +270,7 @@ async fn process_content(
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
         .unwrap_or("");
-    let token = if auth_header.starts_with("Bearer ") {
-        &auth_header[7..]
-    } else {
-        ""
-    };
+    let token = auth_header.strip_prefix("Bearer ").unwrap_or("");
     let user_id = decode_jwt(token).ok().map(|d| d.claims.user_id);
 
     // 4. Enqueue Job
@@ -304,7 +300,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             .route(
                 web::get()
                     .to(list_contents)
-                    .wrap(CoursePermissionMiddleware::new(
+                    .wrap(CoursePermissionMiddleware::require(
                         Permissions::VIEW_CONTENT.to_string(),
                         ParamType::Path,
                         "course_id".to_string(),
@@ -313,7 +309,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             .route(
                 web::post()
                     .to(create_content)
-                    .wrap(CoursePermissionMiddleware::new(
+                    .wrap(CoursePermissionMiddleware::require(
                         Permissions::CREATE_CONTENT.to_string(),
                         ParamType::Path,
                         "course_id".to_string(),
@@ -324,7 +320,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         web::resource("/{course_id}/chapters/{chapter_id}/contents/upload_url").route(
             web::post()
                 .to(get_upload_url)
-                .wrap(CoursePermissionMiddleware::new(
+                .wrap(CoursePermissionMiddleware::require(
                     Permissions::CREATE_CONTENT.to_string(),
                     ParamType::Path,
                     "course_id".to_string(),
@@ -336,7 +332,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             .route(
                 web::put()
                     .to(update_content)
-                    .wrap(CoursePermissionMiddleware::new(
+                    .wrap(CoursePermissionMiddleware::require(
                         Permissions::MODIFY_CONTENT.to_string(),
                         ParamType::Path,
                         "course_id".to_string(),
@@ -345,7 +341,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
             .route(
                 web::delete()
                     .to(delete_content)
-                    .wrap(CoursePermissionMiddleware::new(
+                    .wrap(CoursePermissionMiddleware::require(
                         Permissions::DELETE_CONTENT.to_string(),
                         ParamType::Path,
                         "course_id".to_string(),
@@ -356,7 +352,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
         web::resource("/{course_id}/chapters/{chapter_id}/contents/{id}/process").route(
             web::post()
                 .to(process_content)
-                .wrap(CoursePermissionMiddleware::new(
+                .wrap(CoursePermissionMiddleware::require(
                     Permissions::MODIFY_CONTENT.to_string(),
                     ParamType::Path,
                     "course_id".to_string(),

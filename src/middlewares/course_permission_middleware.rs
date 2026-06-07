@@ -10,7 +10,7 @@ use crate::utils::request_utils::extract_param;
 pub struct CoursePermissionMiddleware;
 
 impl CoursePermissionMiddleware {
-    pub fn new<S>(
+    pub fn require<S>(
         permission_name: String,
         type_param_of_course: ParamType,
         name_param_of_course: String,
@@ -18,7 +18,7 @@ impl CoursePermissionMiddleware {
         ConditionalAccessMiddleware::new(
             move |req: &ServiceRequest| {
                 let permission_name = permission_name.clone();
-                let type_param_of_course = type_param_of_course.clone();
+                let type_param_of_course = type_param_of_course;
                 let name_param_of_course = name_param_of_course.clone();
 
                 // Extract data synchronously (as much as possible that doesn't need async)

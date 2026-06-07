@@ -134,9 +134,7 @@ async fn assign_role(
         None => return HttpResponse::Unauthorized().body("Missing Authorization header"),
     };
 
-    let token = if auth_header.starts_with("Bearer ") {
-        &auth_header["Bearer ".len()..]
-    } else {
+    let Some(token) = auth_header.strip_prefix("Bearer ") else {
         return HttpResponse::Unauthorized().body("Invalid Authorization header format");
     };
 
@@ -187,20 +185,20 @@ pub fn organization_scope() -> actix_web::Scope {
     web::scope("/organizations")
         .service(
             web::resource("")
-                .route(
-                    web::get()
-                        .to(list_organizations)
-                        .wrap(PlatformPermissionMiddleware::new(
-                            Permissions::VIEW_ORGANIZATION.to_string(),
-                        )),
-                )
+                .route(web::get().to(list_organizations).wrap(
+                    PlatformPermissionMiddleware::require(
+                        Permissions::VIEW_ORGANIZATION.to_string(),
+                    ),
+                ))
                 .route(web::post().to(create_organization).wrap(
-                    PlatformPermissionMiddleware::new(Permissions::CREATE_ORGANIZATION.to_string()),
+                    PlatformPermissionMiddleware::require(
+                        Permissions::CREATE_ORGANIZATION.to_string(),
+                    ),
                 )),
         )
         .service(
             web::resource("/{id}/courses").route(web::get().to(get_organization_courses).wrap(
-                PlatformPermissionMiddleware::new(Permissions::VIEW_ORGANIZATION.to_string()),
+                PlatformPermissionMiddleware::require(Permissions::VIEW_ORGANIZATION.to_string()),
             )),
         )
         .service(
@@ -208,19 +206,19 @@ pub fn organization_scope() -> actix_web::Scope {
                 .route(
                     web::get()
                         .to(get_organization)
-                        .wrap(PlatformPermissionMiddleware::new(
+                        .wrap(PlatformPermissionMiddleware::require(
                             Permissions::VIEW_ORGANIZATION.to_string(),
                         )),
                 )
                 .route(web::put().to(update_organization).wrap(
-                    OrganizationPermissionMiddleware::new(
+                    OrganizationPermissionMiddleware::require(
                         Permissions::MANAGE_ORG_SETTINGS.to_string(),
                         ParamType::Path,
                         "id".to_string(),
                     ),
                 ))
                 .route(web::delete().to(delete_organization).wrap(
-                    OrganizationPermissionMiddleware::new(
+                    OrganizationPermissionMiddleware::require(
                         Permissions::MANAGE_ORG_SETTINGS.to_string(),
                         ParamType::Path,
                         "id".to_string(),
@@ -229,7 +227,7 @@ pub fn organization_scope() -> actix_web::Scope {
         )
         .service(
             web::resource("/{id}/users/{user_id}/roles").route(web::post().to(assign_role).wrap(
-                OrganizationPermissionMiddleware::new(
+                OrganizationPermissionMiddleware::require(
                     Permissions::ASSIGN_ROLES_TO_ORG_USERS.to_string(),
                     ParamType::Path,
                     "id".to_string(),
@@ -240,7 +238,7 @@ pub fn organization_scope() -> actix_web::Scope {
             web::resource("/{id}/teacher-applications").route(
                 web::post()
                     .to(crate::api::teacher_applications::nominate_application)
-                    .wrap(OrganizationPermissionMiddleware::new(
+                    .wrap(OrganizationPermissionMiddleware::require(
                         Permissions::NOMINATE_TEACHER_FOR_PLATFORM_REVIEW.to_string(),
                         ParamType::Path,
                         "id".to_string(),

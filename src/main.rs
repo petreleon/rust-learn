@@ -56,10 +56,7 @@ async fn main() -> std::io::Result<()> {
         Ok(s) => s,
         Err(e) => {
             log::error!("event=s3_init_failed error={:?}", e);
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "S3 init failed",
-            ));
+            return Err(std::io::Error::other("S3 init failed"));
         }
     };
     // Initialize notifications state (DB-backed using the pool)

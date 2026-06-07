@@ -47,8 +47,7 @@ where
     fn call(&self, req: ServiceRequest) -> Self::Future {
         if let Some(auth_header) = req.headers().get("Authorization") {
             if let Ok(auth_str) = auth_header.to_str() {
-                if auth_str.starts_with("Bearer ") {
-                    let token = &auth_str["Bearer ".len()..];
+                if let Some(token) = auth_str.strip_prefix("Bearer ") {
                     if let Ok(token_data) = decode_jwt(token) {
                         let user_jwt: UserJWT = token_data.claims;
                         // Add user_jwt to request extensions so downstream handlers/middleware can read it

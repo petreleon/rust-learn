@@ -435,9 +435,7 @@ async fn assign_role(
         None => return HttpResponse::Unauthorized().body("Missing Authorization header"),
     };
 
-    let token = if auth_header.starts_with("Bearer ") {
-        &auth_header["Bearer ".len()..]
-    } else {
+    let Some(token) = auth_header.strip_prefix("Bearer ") else {
         return HttpResponse::Unauthorized().body("Invalid Authorization header format");
     };
 
@@ -492,7 +490,7 @@ pub fn course_scope() -> actix_web::Scope {
                 .route(
                     web::get()
                         .to(list_courses)
-                        .wrap(PlatformPermissionMiddleware::new(
+                        .wrap(PlatformPermissionMiddleware::require(
                             Permissions::VIEW_COURSE.to_string(),
                         )),
                 )
@@ -500,11 +498,9 @@ pub fn course_scope() -> actix_web::Scope {
         )
         .service(
             web::resource("/{id}/organizations").route(
-                web::get()
-                    .to(get_course_organizations)
-                    .wrap(PlatformPermissionMiddleware::new(
-                        Permissions::VIEW_COURSE.to_string(),
-                    )),
+                web::get().to(get_course_organizations).wrap(
+                    PlatformPermissionMiddleware::require(Permissions::VIEW_COURSE.to_string()),
+                ),
             ),
         )
         .service(web::resource("/{id}/lifecycle").route(web::put().to(update_course_lifecycle)))
@@ -522,7 +518,7 @@ pub fn course_scope() -> actix_web::Scope {
                 .route(
                     web::get()
                         .to(get_course)
-                        .wrap(PlatformPermissionMiddleware::new(
+                        .wrap(PlatformPermissionMiddleware::require(
                             Permissions::VIEW_COURSE.to_string(),
                         )),
                 )
@@ -530,7 +526,7 @@ pub fn course_scope() -> actix_web::Scope {
                 .route(
                     web::delete()
                         .to(delete_course)
-                        .wrap(CoursePermissionMiddleware::new(
+                        .wrap(CoursePermissionMiddleware::require(
                             Permissions::DELETE_COURSE.to_string(),
                             ParamType::Path,
                             "id".to_string(),
@@ -539,7 +535,7 @@ pub fn course_scope() -> actix_web::Scope {
         )
         .service(
             web::resource("/{id}/users/{user_id}/roles").route(web::post().to(assign_role).wrap(
-                CoursePermissionMiddleware::new(
+                CoursePermissionMiddleware::require(
                     Permissions::MANAGE_COURSE_ENROLLMENTS.to_string(),
                     ParamType::Path,
                     "id".to_string(),

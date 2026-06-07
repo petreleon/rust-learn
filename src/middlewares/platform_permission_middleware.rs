@@ -8,7 +8,7 @@ use crate::repositories::platform_repository::user_permission_platform_request;
 pub struct PlatformPermissionMiddleware;
 
 impl PlatformPermissionMiddleware {
-    pub fn new<S>(permission_name: String) -> ConditionalAccessMiddleware<S> {
+    pub fn require<S>(permission_name: String) -> ConditionalAccessMiddleware<S> {
         ConditionalAccessMiddleware::new(
             move |req: &ServiceRequest| {
                 let permission_name = permission_name.clone();

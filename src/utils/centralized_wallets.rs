@@ -71,7 +71,7 @@ pub struct TransferResult {
 /// Core helper: applies an internal transaction effect to a single wallet.
 /// - Inserts into internal_transactions (amount may be positive or negative)
 /// - Updates the wallet balance atomically (SELECT ... FOR UPDATE, then UPDATE)
-/// Returns the created internal_transactions.id
+/// - Returns the created internal_transactions.id
 pub fn transact(conn: &mut PgConnection, wallet_id: i32, amount: BigDecimal) -> Result<i64> {
     // Perform the guarded atomic update first: ensure balance doesn't go negative.
     // Use RETURNING id to check that the row was updated. If no rows were affected,
@@ -109,7 +109,7 @@ pub fn receive(conn: &mut PgConnection, wallet_id: i32, amount: BigDecimal) -> R
 /// - two internal_transactions rows (debit negative, credit positive)
 /// - one generic transactions row of type 'internal_transfer'
 /// - two links in transactions_internal_transactions
-/// Also updates wallet balances.
+/// - Also updates wallet balances.
 pub fn transfers_between_wallets(
     conn: &mut PgConnection,
     from_wallet_id: i32,

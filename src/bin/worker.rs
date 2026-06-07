@@ -215,7 +215,7 @@ async fn main() -> Result<()> {
                 Ok(()) => {
                     if let Err(e) = rust_learn::models::upload_job::UploadJob::mark_done(
                         job_id,
-                        &mut *conn_for_task,
+                        &mut conn_for_task,
                     )
                     .await
                     {
@@ -273,7 +273,7 @@ async fn main() -> Result<()> {
                             job_id,
                             new_attempts as i32,
                             err_text.clone(),
-                            &mut *conn_for_task,
+                            &mut conn_for_task,
                         )
                         .await
                         {
@@ -305,7 +305,7 @@ async fn main() -> Result<()> {
                             new_attempts as i32,
                             err_text.clone(),
                             future_time,
-                            &mut *conn_for_task,
+                            &mut conn_for_task,
                         )
                         .await
                         {

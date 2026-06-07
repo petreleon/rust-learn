@@ -13,7 +13,7 @@ impl UserJWT {
     // Method to create a new UserJWT instance
     pub fn new(user_id: i32, exp: DateTime<Utc>) -> Self {
         UserJWT {
-            user_id: user_id,
+            user_id,
             exp: exp.timestamp() as usize,
         }
     }

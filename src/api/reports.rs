@@ -336,98 +336,84 @@ pub fn reports_scope() -> actix_web::Scope {
     web::scope("/reports")
         .service(
             web::resource("/platform/summary").route(web::get().to(get_platform_summary).wrap(
-                PlatformPermissionMiddleware::new(Permissions::VIEW_REPORT.to_string()),
+                PlatformPermissionMiddleware::require(Permissions::VIEW_REPORT.to_string()),
             )),
         )
         .service(
             web::resource("/platform/summary.csv").route(
                 web::get()
                     .to(export_platform_summary)
-                    .wrap(PlatformPermissionMiddleware::new(
+                    .wrap(PlatformPermissionMiddleware::require(
                         Permissions::EXPORT_DATA.to_string(),
                     )),
             ),
         )
-        .service(
-            web::resource("/platform/reward-dashboard").route(
-                web::get().to(get_platform_reward_dashboard).wrap(
-                    PlatformPermissionMiddleware::new(Permissions::VIEW_REWARD_AUDIT.to_string()),
-                ),
-            ),
-        )
-        .service(web::resource("/platform/reward-dashboard.csv").route(
-            web::get().to(export_platform_reward_dashboard).wrap(
-                PlatformPermissionMiddleware::new(Permissions::EXPORT_DATA.to_string()),
+        .service(web::resource("/platform/reward-dashboard").route(
+            web::get().to(get_platform_reward_dashboard).wrap(
+                PlatformPermissionMiddleware::require(Permissions::VIEW_REWARD_AUDIT.to_string()),
             ),
         ))
-        .service(
-            web::resource("/platform/fraud-dashboard").route(
-                web::get().to(get_platform_fraud_dashboard).wrap(
-                    PlatformPermissionMiddleware::new(Permissions::VIEW_REWARD_AUDIT.to_string()),
-                ),
+        .service(web::resource("/platform/reward-dashboard.csv").route(
+            web::get().to(export_platform_reward_dashboard).wrap(
+                PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
             ),
-        )
-        .service(
-            web::resource("/platform/fraud-dashboard.csv").route(
-                web::get().to(export_platform_fraud_dashboard).wrap(
-                    PlatformPermissionMiddleware::new(Permissions::EXPORT_DATA.to_string()),
-                ),
+        ))
+        .service(web::resource("/platform/fraud-dashboard").route(
+            web::get().to(get_platform_fraud_dashboard).wrap(
+                PlatformPermissionMiddleware::require(Permissions::VIEW_REWARD_AUDIT.to_string()),
             ),
-        )
+        ))
+        .service(web::resource("/platform/fraud-dashboard.csv").route(
+            web::get().to(export_platform_fraud_dashboard).wrap(
+                PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
+            ),
+        ))
         .service(web::resource("/platform/teacher-applications.csv").route(
             web::get().to(export_platform_teacher_applications).wrap(
-                PlatformPermissionMiddleware::new(Permissions::EXPORT_DATA.to_string()),
+                PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
             ),
         ))
         .service(web::resource("/platform/reward-approvals.csv").route(
             web::get().to(export_platform_reward_approvals).wrap(
-                PlatformPermissionMiddleware::new(Permissions::EXPORT_DATA.to_string()),
+                PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
             ),
         ))
-        .service(
-            web::resource("/platform/token-payouts.csv").route(
-                web::get().to(export_platform_token_payouts).wrap(
-                    PlatformPermissionMiddleware::new(Permissions::EXPORT_DATA.to_string()),
-                ),
+        .service(web::resource("/platform/token-payouts.csv").route(
+            web::get().to(export_platform_token_payouts).wrap(
+                PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
             ),
-        )
-        .service(
-            web::resource("/platform/wallet-credits.csv").route(
-                web::get().to(export_platform_wallet_credits).wrap(
-                    PlatformPermissionMiddleware::new(Permissions::EXPORT_DATA.to_string()),
-                ),
+        ))
+        .service(web::resource("/platform/wallet-credits.csv").route(
+            web::get().to(export_platform_wallet_credits).wrap(
+                PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
             ),
-        )
+        ))
         .service(web::resource("/platform/delegated-permissions.csv").route(
             web::get().to(export_platform_delegated_permissions).wrap(
-                PlatformPermissionMiddleware::new(Permissions::EXPORT_DATA.to_string()),
+                PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
             ),
         ))
-        .service(
-            web::resource("/organizations/{id}/summary").route(
-                web::get().to(get_organization_summary).wrap(
-                    OrganizationPermissionMiddleware::new(
-                        Permissions::VIEW_REPORT.to_string(),
-                        ParamType::Path,
-                        "id".to_string(),
-                    ),
+        .service(web::resource("/organizations/{id}/summary").route(
+            web::get().to(get_organization_summary).wrap(
+                OrganizationPermissionMiddleware::require(
+                    Permissions::VIEW_REPORT.to_string(),
+                    ParamType::Path,
+                    "id".to_string(),
                 ),
             ),
-        )
-        .service(
-            web::resource("/organizations/{id}/summary.csv").route(
-                web::get().to(export_organization_summary).wrap(
-                    OrganizationPermissionMiddleware::new(
-                        Permissions::GENERATE_REPORT.to_string(),
-                        ParamType::Path,
-                        "id".to_string(),
-                    ),
+        ))
+        .service(web::resource("/organizations/{id}/summary.csv").route(
+            web::get().to(export_organization_summary).wrap(
+                OrganizationPermissionMiddleware::require(
+                    Permissions::GENERATE_REPORT.to_string(),
+                    ParamType::Path,
+                    "id".to_string(),
                 ),
             ),
-        )
+        ))
         .service(web::resource("/organizations/{id}/reward-dashboard").route(
             web::get().to(get_organization_reward_dashboard).wrap(
-                OrganizationPermissionMiddleware::new(
+                OrganizationPermissionMiddleware::require(
                     Permissions::VIEW_ORG_REWARD_REPORTS.to_string(),
                     ParamType::Path,
                     "id".to_string(),
@@ -437,7 +423,7 @@ pub fn reports_scope() -> actix_web::Scope {
         .service(
             web::resource("/organizations/{id}/reward-dashboard.csv").route(
                 web::get().to(export_organization_reward_dashboard).wrap(
-                    OrganizationPermissionMiddleware::new(
+                    OrganizationPermissionMiddleware::require(
                         Permissions::VIEW_ORG_REWARD_REPORTS.to_string(),
                         ParamType::Path,
                         "id".to_string(),

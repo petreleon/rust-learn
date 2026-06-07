@@ -3,7 +3,6 @@
 // This file kept as a placeholder to avoid test-suite breakage; no runtime checks here.
 
 #[test]
-fn placeholder_db_connection_middleware_test() {
+fn removed_db_connection_middleware_has_no_runtime_contract() {
     // Intentionally empty — original middleware tests removed.
-    assert!(true);
 }

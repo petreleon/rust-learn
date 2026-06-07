@@ -283,8 +283,7 @@ fn normalize_event_type(event_type: &str) -> Result<String, RewardPolicyError> {
     let normalized = event_type
         .trim()
         .to_ascii_lowercase()
-        .replace('-', "_")
-        .replace(' ', "_");
+        .replace(['-', ' '], "_");
     match normalized.as_str() {
         REWARD_EVENT_ASSESSMENT_COMPLETION
         | REWARD_EVENT_COURSE_COMPLETION

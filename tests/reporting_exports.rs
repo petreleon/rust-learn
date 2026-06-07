@@ -380,28 +380,29 @@ async fn create_course_reward_policy(
         .expect("failed to create reward policy")
 }
 
-async fn create_fraud_block(
-    conn: &mut AsyncPgConnection,
+struct FraudBlockSeed<'a> {
     created_by_user_id: i32,
-    scope_type: &str,
+    scope_type: &'a str,
     teacher_user_id: Option<i32>,
     organization_id: Option<i32>,
     course_id: Option<i32>,
     reward_policy_id: Option<i64>,
-    reason: &str,
+    reason: &'a str,
     expires_at: Option<chrono::DateTime<Utc>>,
-) -> i64 {
+}
+
+async fn create_fraud_block(conn: &mut AsyncPgConnection, seed: FraudBlockSeed<'_>) -> i64 {
     diesel::insert_into(reward_fraud_blocks::table)
         .values(NewRewardFraudBlock {
-            scope_type: scope_type.to_string(),
-            teacher_user_id,
-            organization_id,
-            course_id,
-            reward_policy_id,
-            reason: reason.to_string(),
+            scope_type: seed.scope_type.to_string(),
+            teacher_user_id: seed.teacher_user_id,
+            organization_id: seed.organization_id,
+            course_id: seed.course_id,
+            reward_policy_id: seed.reward_policy_id,
+            reason: seed.reason.to_string(),
             evidence_reference: Some(format!("case://{}", unique_string("fraud_report"))),
-            created_by_user_id,
-            expires_at,
+            created_by_user_id: seed.created_by_user_id,
+            expires_at: seed.expires_at,
         })
         .returning(reward_fraud_blocks::id)
         .get_result(conn)
@@ -801,62 +802,72 @@ async fn platform_fraud_dashboard_reports_active_blocks_by_scope() {
 
     let teacher_block_id = create_fraud_block(
         &mut conn,
-        platform_admin.id(),
-        REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
-        Some(teacher.id()),
-        None,
-        None,
-        None,
-        "teacher approvals paused for review",
-        None,
+        FraudBlockSeed {
+            created_by_user_id: platform_admin.id(),
+            scope_type: REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
+            teacher_user_id: Some(teacher.id()),
+            organization_id: None,
+            course_id: None,
+            reward_policy_id: None,
+            reason: "teacher approvals paused for review",
+            expires_at: None,
+        },
     )
     .await;
     let organization_block_id = create_fraud_block(
         &mut conn,
-        platform_admin.id(),
-        REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
-        None,
-        Some(org.id),
-        None,
-        None,
-        "organization reward activity paused",
-        None,
+        FraudBlockSeed {
+            created_by_user_id: platform_admin.id(),
+            scope_type: REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
+            teacher_user_id: None,
+            organization_id: Some(org.id),
+            course_id: None,
+            reward_policy_id: None,
+            reason: "organization reward activity paused",
+            expires_at: None,
+        },
     )
     .await;
     let course_block_id = create_fraud_block(
         &mut conn,
-        platform_admin.id(),
-        REWARD_FRAUD_BLOCK_SCOPE_COURSE,
-        None,
-        None,
-        Some(course.id),
-        None,
-        "course rewards under review",
-        None,
+        FraudBlockSeed {
+            created_by_user_id: platform_admin.id(),
+            scope_type: REWARD_FRAUD_BLOCK_SCOPE_COURSE,
+            teacher_user_id: None,
+            organization_id: None,
+            course_id: Some(course.id),
+            reward_policy_id: None,
+            reason: "course rewards under review",
+            expires_at: None,
+        },
     )
     .await;
     let policy_block_id = create_fraud_block(
         &mut conn,
-        platform_admin.id(),
-        REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY,
-        None,
-        None,
-        None,
-        Some(policy_id),
-        "policy payouts paused",
-        None,
+        FraudBlockSeed {
+            created_by_user_id: platform_admin.id(),
+            scope_type: REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY,
+            teacher_user_id: None,
+            organization_id: None,
+            course_id: None,
+            reward_policy_id: Some(policy_id),
+            reason: "policy payouts paused",
+            expires_at: None,
+        },
     )
     .await;
     let expired_block_id = create_fraud_block(
         &mut conn,
-        platform_admin.id(),
-        REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
-        Some(expired_teacher.id()),
-        None,
-        None,
-        None,
-        "expired teacher block",
-        Some(Utc::now() - Duration::minutes(5)),
+        FraudBlockSeed {
+            created_by_user_id: platform_admin.id(),
+            scope_type: REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
+            teacher_user_id: Some(expired_teacher.id()),
+            organization_id: None,
+            course_id: None,
+            reward_policy_id: None,
+            reason: "expired teacher block",
+            expires_at: Some(Utc::now() - Duration::minutes(5)),
+        },
     )
     .await;
     drop(conn);

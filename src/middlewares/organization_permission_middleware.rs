@@ -10,7 +10,7 @@ use crate::utils::request_utils::extract_param;
 pub struct OrganizationPermissionMiddleware;
 
 impl OrganizationPermissionMiddleware {
-    pub fn new<S>(
+    pub fn require<S>(
         permission_name: String,
         type_param_of_organization: ParamType,
         name_param_of_organization: String,
@@ -18,7 +18,7 @@ impl OrganizationPermissionMiddleware {
         ConditionalAccessMiddleware::new(
             move |req: &ServiceRequest| {
                 let permission_name = permission_name.clone();
-                let type_param_of_organization = type_param_of_organization.clone();
+                let type_param_of_organization = type_param_of_organization;
                 let name_param_of_organization = name_param_of_organization.clone();
 
                 let db_pool = match req.app_data::<web::Data<crate::db::DbPool>>() {
