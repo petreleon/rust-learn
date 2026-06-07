@@ -39,19 +39,22 @@ pub async fn readiness(
     pool: Option<web::Data<DbPool>>,
     s3: Option<web::Data<S3State>>,
 ) -> impl Responder {
-    let mut checks = Vec::with_capacity(3);
+    let db_check = async move {
+        match pool {
+            Some(pool) => check_db(pool).await,
+            None => failed("postgres", "missing database pool"),
+        }
+    };
+    let s3_check = async move {
+        match s3 {
+            Some(s3) => check_s3(s3).await,
+            None => failed("s3", "missing S3 state"),
+        }
+    };
+    let eth_check = check_ethereum();
 
-    checks.push(match pool {
-        Some(pool) => check_db(pool).await,
-        None => failed("postgres", "missing database pool"),
-    });
-
-    checks.push(match s3 {
-        Some(s3) => check_s3(s3).await,
-        None => failed("s3", "missing S3 state"),
-    });
-
-    checks.push(check_ethereum().await);
+    let (db, s3, ethereum) = tokio::join!(db_check, s3_check, eth_check);
+    let checks = vec![db, s3, ethereum];
 
     let ready = checks.iter().all(|check| check.status == "ok");
     let response = ReadinessResponse {
