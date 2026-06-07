@@ -1,16 +1,9 @@
 use crate::db;
-use crate::models::user_jwt::UserJWT;
 use crate::services::reward_fraud_block_service::{
     self, ListRewardFraudBlocksRequest, RewardFraudBlockError, RewardFraudBlockRequest,
 };
-use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
-
-fn current_user(req: &HttpRequest) -> Result<UserJWT, HttpResponse> {
-    req.extensions()
-        .get::<UserJWT>()
-        .cloned()
-        .ok_or_else(|| HttpResponse::Unauthorized().body("Missing authenticated user"))
-}
+use crate::utils::request_auth::authenticated_user;
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
 fn reward_fraud_block_error_response(error: RewardFraudBlockError) -> HttpResponse {
     match error {
@@ -33,7 +26,7 @@ async fn create_reward_fraud_block(
     pool: web::Data<db::DbPool>,
     body: web::Json<RewardFraudBlockRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -59,7 +52,7 @@ async fn list_reward_fraud_blocks(
     pool: web::Data<db::DbPool>,
     query: web::Query<ListRewardFraudBlocksRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -85,7 +78,7 @@ async fn revoke_reward_fraud_block(
     path: web::Path<i64>,
     pool: web::Data<db::DbPool>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -111,7 +104,7 @@ async fn reward_fraud_block_audit_history(
     path: web::Path<i64>,
     pool: web::Data<db::DbPool>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };

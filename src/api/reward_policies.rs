@@ -1,16 +1,9 @@
 use crate::db;
-use crate::models::user_jwt::UserJWT;
 use crate::services::reward_policy_service::{
     self, CreateRewardPolicyRequest, ListRewardPoliciesRequest, RewardPolicyError,
 };
-use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
-
-fn current_user(req: &HttpRequest) -> Result<UserJWT, HttpResponse> {
-    req.extensions()
-        .get::<UserJWT>()
-        .cloned()
-        .ok_or_else(|| HttpResponse::Unauthorized().body("Unauthorized access"))
-}
+use crate::utils::request_auth::authenticated_user;
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
 fn reward_policy_error_response(error: RewardPolicyError) -> HttpResponse {
     match error {
@@ -31,7 +24,7 @@ async fn create_reward_policy(
     pool: web::Data<db::DbPool>,
     body: web::Json<CreateRewardPolicyRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -57,7 +50,7 @@ async fn list_reward_policies(
     pool: web::Data<db::DbPool>,
     query: web::Query<ListRewardPoliciesRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };

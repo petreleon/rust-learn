@@ -1,7 +1,6 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db;
 use crate::models::teacher_application::TeacherApplication;
-use crate::models::user_jwt::UserJWT;
 use crate::repositories::teacher_application_repository::{
     list_organization_user_ids_with_permission, list_platform_user_ids_with_permission,
 };
@@ -10,16 +9,10 @@ use crate::services::teacher_application_service::{
     SubmitTeacherApplicationRequest, TeacherApplicationDecisionRequest, TeacherApplicationError,
 };
 use crate::utils::notifications::NotificationsState;
-use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
+use crate::utils::request_auth::authenticated_user;
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel_async::AsyncPgConnection;
 use std::collections::HashSet;
-
-fn current_user(req: &HttpRequest) -> Result<UserJWT, HttpResponse> {
-    req.extensions()
-        .get::<UserJWT>()
-        .cloned()
-        .ok_or_else(|| HttpResponse::Unauthorized().body("Unauthorized access"))
-}
 
 fn service_error_response(error: TeacherApplicationError) -> HttpResponse {
     match error {
@@ -117,7 +110,7 @@ async fn submit_application(
     pool: web::Data<db::DbPool>,
     body: web::Json<SubmitTeacherApplicationRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -148,7 +141,7 @@ pub async fn nominate_application(
     pool: web::Data<db::DbPool>,
     body: web::Json<OrganizationTeacherNominationRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -186,7 +179,7 @@ async fn list_applications(
     pool: web::Data<db::DbPool>,
     query: web::Query<ListTeacherApplicationsRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -213,7 +206,7 @@ async fn decide_application(
     pool: web::Data<db::DbPool>,
     body: web::Json<TeacherApplicationDecisionRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -253,7 +246,7 @@ async fn list_audit_events(
     path: web::Path<i64>,
     pool: web::Data<db::DbPool>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };

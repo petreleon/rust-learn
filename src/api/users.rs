@@ -1,15 +1,14 @@
-use crate::api::authentication::authenticated_user_id;
 use crate::config::constants::permissions::Permissions;
 use crate::db;
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 use crate::models::user::User;
-use crate::models::user_jwt::UserJWT;
 use crate::repositories::platform_repository::{
     assign_role_to_user_with_hierarchy, user_permission_platform_request,
 };
 use crate::utils::notifications::NotificationsState;
+use crate::utils::request_auth::{authenticated_user, authenticated_user_id};
 use actix_web::{web, HttpRequest};
-use actix_web::{HttpMessage, HttpResponse, Responder};
+use actix_web::{HttpResponse, Responder};
 use serde::Deserialize;
 use serde_json::json;
 
@@ -64,9 +63,9 @@ async fn get_user(
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let requester = match req.extensions().get::<UserJWT>().cloned() {
-        Some(user_jwt) => user_jwt,
-        None => return HttpResponse::Unauthorized().body("Unauthorized access"),
+    let requester = match authenticated_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
     };
 
     if requester.user_id != user_id {

@@ -1,4 +1,3 @@
-use crate::api::authentication::authenticated_user_id;
 use crate::config::constants::permissions::Permissions;
 use crate::db;
 use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
@@ -7,6 +6,7 @@ use crate::models::organization::UpdateOrganization;
 use crate::models::param_type::ParamType;
 use crate::services::organization_service;
 use crate::utils::notifications::NotificationsState;
+use crate::utils::request_auth::authenticated_user_id;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use serde::Deserialize;
 

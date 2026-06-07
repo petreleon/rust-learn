@@ -1,4 +1,3 @@
-use crate::api::authentication::authenticated_user_id;
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::chapters;
 use crate::db::schema::contents;
@@ -10,6 +9,7 @@ use crate::models::content::{Content, NewContent, UpdateContent};
 use crate::models::param_type::ParamType;
 use crate::models::upload_job::NewUploadJob;
 use crate::utils::notifications::NotificationsState;
+use crate::utils::request_auth::authenticated_user_id;
 use crate::utils::s3_utils::S3State;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel::{ExpressionMethods, QueryDsl};

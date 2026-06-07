@@ -1,22 +1,15 @@
 use crate::db;
 use crate::models::delegated_permission::GrantDelegatedPermissionRequest;
-use crate::models::user_jwt::UserJWT;
 use crate::services::delegated_permission_service::{
     self, DelegatedPermissionError, ListDelegatedPermissionsRequest,
 };
-use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
+use crate::utils::request_auth::authenticated_user;
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 struct RevokeDelegatedPermissionRequest {
     revoke_reason: Option<String>,
-}
-
-fn current_user(req: &HttpRequest) -> Result<UserJWT, HttpResponse> {
-    req.extensions()
-        .get::<UserJWT>()
-        .cloned()
-        .ok_or_else(|| HttpResponse::Unauthorized().body("Missing authenticated user"))
 }
 
 fn delegated_permission_error_response(error: DelegatedPermissionError) -> HttpResponse {
@@ -40,7 +33,7 @@ async fn grant_delegated_permission(
     pool: web::Data<db::DbPool>,
     body: web::Json<GrantDelegatedPermissionRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -66,7 +59,7 @@ async fn list_delegated_permissions(
     pool: web::Data<db::DbPool>,
     query: web::Query<ListDelegatedPermissionsRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -93,7 +86,7 @@ async fn revoke_delegated_permission(
     pool: web::Data<db::DbPool>,
     body: web::Json<RevokeDelegatedPermissionRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };

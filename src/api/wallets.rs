@@ -1,7 +1,6 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db;
 use crate::db::schema::{organizations, users};
-use crate::models::user_jwt::UserJWT;
 use crate::models::wallet::Wallet;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
@@ -10,7 +9,8 @@ use crate::services::wallet_service::{
     self, LinkedWallet, SetWalletTokenTaxRequest, WalletTokenOperation, WalletTokenTransferError,
     WalletTokenTransferRequest,
 };
-use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
+use crate::utils::request_auth::authenticated_user;
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use serde::Serialize;
@@ -61,13 +61,6 @@ impl From<LinkedWallet> for WalletLinkResponse {
 enum WalletOperation {
     View,
     Link,
-}
-
-fn current_user(req: &HttpRequest) -> Result<UserJWT, HttpResponse> {
-    req.extensions()
-        .get::<UserJWT>()
-        .cloned()
-        .ok_or_else(|| HttpResponse::Unauthorized().body("Unauthorized access"))
 }
 
 async fn ensure_user_exists(
@@ -254,7 +247,7 @@ fn wallet_token_transfer_error_response(error: WalletTokenTransferError) -> Http
 }
 
 async fn get_my_wallet(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -263,7 +256,7 @@ async fn get_my_wallet(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Re
 }
 
 async fn get_my_wallet_audit(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -272,7 +265,7 @@ async fn get_my_wallet_audit(req: HttpRequest, pool: web::Data<db::DbPool>) -> i
 }
 
 async fn link_my_wallet(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -281,7 +274,7 @@ async fn link_my_wallet(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl R
 }
 
 async fn list_wallet_token_taxes(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
-    if let Err(response) = current_user(&req) {
+    if let Err(response) = authenticated_user(&req) {
         return response;
     }
     let mut conn = match pool.get().await {
@@ -317,7 +310,7 @@ async fn set_wallet_token_tax(
     operation: WalletTokenOperation,
     body: SetWalletTokenTaxRequest,
 ) -> HttpResponse {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -344,7 +337,7 @@ async fn deposit_my_tokens(
     pool: web::Data<db::DbPool>,
     body: web::Json<WalletTokenTransferRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -370,7 +363,7 @@ async fn retire_my_tokens(
     pool: web::Data<db::DbPool>,
     body: web::Json<WalletTokenTransferRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -396,7 +389,7 @@ async fn get_user_wallet(
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -409,7 +402,7 @@ async fn get_user_wallet_audit(
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -422,7 +415,7 @@ async fn link_user_wallet(
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -531,7 +524,7 @@ async fn get_organization_wallet(
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -544,7 +537,7 @@ async fn get_organization_wallet_audit(
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -557,7 +550,7 @@ async fn link_organization_wallet(
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };

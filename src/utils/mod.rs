@@ -6,6 +6,7 @@ pub mod logging;
 pub mod course_utils;
 pub mod email;
 pub mod eth;
+pub mod request_auth;
 pub mod request_utils;
 pub use eth as eth_utils;
 pub mod centralized_wallets;

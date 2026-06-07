@@ -1,4 +1,3 @@
-use crate::api::authentication::authenticated_user_id;
 use crate::config::constants::permissions::Permissions;
 use crate::db;
 use crate::db::schema::{course_join_requests, courses};
@@ -7,7 +6,6 @@ use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddle
 use crate::models::course::{Course, UpdateCourse};
 use crate::models::course_join_request::COURSE_JOIN_STATUS_APPROVED;
 use crate::models::param_type::ParamType;
-use crate::models::user_jwt::UserJWT;
 use crate::repositories::course_repository::assign_role_to_user_in_course;
 use crate::services::course_enrollment_service::{
     decide_course_join_request as decide_course_join_request_for_actor,
@@ -21,7 +19,8 @@ use crate::services::course_service::{
     CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest, CourseUpdateError,
 };
 use crate::utils::notifications::NotificationsState;
-use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
+use crate::utils::request_auth::{authenticated_user, authenticated_user_id};
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use serde::Deserialize;
@@ -37,13 +36,6 @@ pub struct CourseDiscoveryParams {
     pub organization_id: Option<i32>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
-}
-
-fn current_user(req: &HttpRequest) -> Result<UserJWT, HttpResponse> {
-    req.extensions()
-        .get::<UserJWT>()
-        .cloned()
-        .ok_or_else(|| HttpResponse::Unauthorized().body("Unauthorized access"))
 }
 
 fn lifecycle_error_response(error: CourseLifecycleError) -> HttpResponse {
@@ -198,7 +190,7 @@ async fn create_course(
     pool: web::Data<db::DbPool>,
     body: web::Json<CreateCourseRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -227,7 +219,7 @@ async fn update_course(
     pool: web::Data<db::DbPool>,
     body: web::Json<UpdateCourse>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -252,7 +244,7 @@ async fn update_course_lifecycle(
     pool: web::Data<db::DbPool>,
     body: web::Json<CourseLifecycleUpdateRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -279,7 +271,7 @@ async fn request_course_join(
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -300,7 +292,7 @@ async fn decide_course_join_request(
     pool: web::Data<db::DbPool>,
     body: web::Json<CourseJoinDecisionRequest>,
 ) -> impl Responder {
-    let reviewer = match current_user(&req) {
+    let reviewer = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -354,7 +346,7 @@ async fn remove_course_enrollment(
     path: web::Path<(i32, i32)>,
     pool: web::Data<db::DbPool>,
 ) -> impl Responder {
-    let actor = match current_user(&req) {
+    let actor = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };

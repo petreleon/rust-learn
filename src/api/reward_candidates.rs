@@ -1,5 +1,4 @@
 use crate::db;
-use crate::models::user_jwt::UserJWT;
 use crate::services::reward_candidate_service::{
     self, ListRewardCandidatesRequest, RewardAmountDecisionRequest, RewardCandidateError,
     SubmitRewardCandidateRequest, TeacherRewardCandidateDecisionRequest,
@@ -7,14 +6,8 @@ use crate::services::reward_candidate_service::{
 use crate::services::reward_history_service::{
     self, StudentRewardHistoryError, StudentRewardHistoryRequest,
 };
-use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
-
-fn current_user(req: &HttpRequest) -> Result<UserJWT, HttpResponse> {
-    req.extensions()
-        .get::<UserJWT>()
-        .cloned()
-        .ok_or_else(|| HttpResponse::Unauthorized().body("Unauthorized access"))
-}
+use crate::utils::request_auth::authenticated_user;
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
 fn reward_candidate_error_response(error: RewardCandidateError) -> HttpResponse {
     match error {
@@ -51,7 +44,7 @@ async fn submit_course_reward_candidate(
     pool: web::Data<db::DbPool>,
     body: web::Json<SubmitRewardCandidateRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -79,7 +72,7 @@ async fn submit_organization_reward_candidate(
     pool: web::Data<db::DbPool>,
     body: web::Json<SubmitRewardCandidateRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -109,7 +102,7 @@ async fn decide_reward_candidate_by_teacher(
     pool: web::Data<db::DbPool>,
     body: web::Json<TeacherRewardCandidateDecisionRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -139,7 +132,7 @@ async fn decide_reward_amount(
     pool: web::Data<db::DbPool>,
     body: web::Json<RewardAmountDecisionRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -166,7 +159,7 @@ async fn list_my_reward_history(
     pool: web::Data<db::DbPool>,
     query: web::Query<StudentRewardHistoryRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
@@ -193,7 +186,7 @@ async fn list_course_reward_candidates(
     pool: web::Data<db::DbPool>,
     query: web::Query<ListRewardCandidatesRequest>,
 ) -> impl Responder {
-    let requester = match current_user(&req) {
+    let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };

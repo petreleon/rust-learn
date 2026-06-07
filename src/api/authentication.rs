@@ -1,5 +1,5 @@
 // src/api/authentication.rs
-use actix_web::{get, post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use bcrypt::{non_truncating_hash, verify, DEFAULT_COST};
 use chrono::NaiveDate;
 use diesel::result::{DatabaseErrorKind, Error as DieselError};
@@ -15,7 +15,8 @@ use crate::models::user_role_platform::UserRolePlatform;
 use crate::utils::email::{
     generate_verification_token, print_mock_verification_email, verification_token_hash,
 };
-use crate::utils::jwt_utils::{create_jwt, decode_jwt, public_jwks_from_env};
+use crate::utils::jwt_utils::{create_jwt, public_jwks_from_env};
+use crate::utils::request_auth::authenticated_user_id;
 
 const MIN_PASSWORD_LENGTH: usize = 12;
 const MAX_BCRYPT_PASSWORD_BYTES: usize = 71;
@@ -87,28 +88,6 @@ fn registration_db_error_response(error: DieselError, email: &str) -> HttpRespon
             HttpResponse::InternalServerError().body("Failed to register user")
         }
     }
-}
-
-pub(crate) fn authenticated_user_id(req: &HttpRequest) -> Result<i32, HttpResponse> {
-    if let Some(user_jwt) = req.extensions().get::<crate::models::user_jwt::UserJWT>() {
-        return Ok(user_jwt.user_id);
-    }
-
-    let Some(auth_header) = req.headers().get("Authorization") else {
-        return Err(HttpResponse::Unauthorized().body("Missing Authorization header"));
-    };
-
-    let Ok(auth_str) = auth_header.to_str() else {
-        return Err(HttpResponse::Unauthorized().body("Invalid Authorization header format"));
-    };
-
-    let Some(token) = auth_str.strip_prefix("Bearer ") else {
-        return Err(HttpResponse::Unauthorized().body("Invalid Authorization header format"));
-    };
-
-    decode_jwt(token)
-        .map(|token_data| token_data.claims.user_id)
-        .map_err(|_| HttpResponse::Unauthorized().body("Invalid token"))
 }
 
 #[post("/login")]
