@@ -12,21 +12,52 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+K8S_NAMESPACE="${K8S_NAMESPACE:-rust-learn}"
+
+find_tool() {
+    local name="$1"
+    local candidate
+
+    if command -v "$name" &> /dev/null; then
+        command -v "$name"
+        return 0
+    fi
+
+    for candidate in "/opt/homebrew/bin/$name" "/usr/local/bin/$name"; do
+        if [ -x "$candidate" ]; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+KUBECTL="${KUBECTL:-$(find_tool kubectl || true)}"
+DOCKER="${DOCKER:-$(find_tool docker || true)}"
+
+require_docker() {
+    if [ -z "$DOCKER" ]; then
+        echo -e "${RED}Error: docker is not installed${NC}"
+        exit 1
+    fi
+}
+
 # Check if kubectl is installed
-if ! command -v kubectl &> /dev/null; then
+if [ -z "$KUBECTL" ]; then
     echo -e "${RED}Error: kubectl is not installed${NC}"
     exit 1
 fi
 
 # Check if kustomize is available
-if ! kubectl kustomize --help &> /dev/null; then
+if ! "$KUBECTL" kustomize --help &> /dev/null; then
     echo -e "${YELLOW}Warning: kustomize is not available via kubectl${NC}"
 fi
 
 # Functions
 apply_base() {
     echo -e "${GREEN}Applying base Kubernetes resources...${NC}"
-    kubectl apply -k k8s/base/
+    "$KUBECTL" apply -k k8s/base/
 }
 
 wait_for_pods() {
@@ -35,30 +66,30 @@ wait_for_pods() {
     echo ""
     
     echo "Waiting for PostgreSQL..."
-    kubectl wait --for=condition=ready pod -l app=postgres -n rust-learn --timeout=180s || echo -e "${YELLOW}PostgreSQL timeout, continuing...${NC}"
+    "$KUBECTL" wait --for=condition=ready pod -l app=postgres -n "$K8S_NAMESPACE" --timeout=180s || echo -e "${YELLOW}PostgreSQL timeout, continuing...${NC}"
     
     echo "Waiting for RustFS..."
-    kubectl wait --for=condition=ready pod -l app=rustfs -n rust-learn --timeout=180s || echo -e "${YELLOW}RustFS timeout, continuing...${NC}"
+    "$KUBECTL" wait --for=condition=ready pod -l app=rustfs -n "$K8S_NAMESPACE" --timeout=180s || echo -e "${YELLOW}RustFS timeout, continuing...${NC}"
     
     echo "Waiting for Anvil..."
-    kubectl wait --for=condition=ready pod -l app=anvil -n rust-learn --timeout=180s || echo -e "${YELLOW}Anvil timeout, continuing...${NC}"
+    "$KUBECTL" wait --for=condition=ready pod -l app=anvil -n "$K8S_NAMESPACE" --timeout=180s || echo -e "${YELLOW}Anvil timeout, continuing...${NC}"
     
     echo "Waiting for App..."
-    kubectl wait --for=condition=ready pod -l app=rust-app -n rust-learn --timeout=180s || echo -e "${YELLOW}App timeout, continuing...${NC}"
+    "$KUBECTL" wait --for=condition=ready pod -l app=rust-app -n "$K8S_NAMESPACE" --timeout=180s || echo -e "${YELLOW}App timeout, continuing...${NC}"
     
     echo "Waiting for Web..."
-    kubectl wait --for=condition=ready pod -l app=web -n rust-learn --timeout=180s || echo -e "${YELLOW}Web timeout, continuing...${NC}"
+    "$KUBECTL" wait --for=condition=ready pod -l app=web -n "$K8S_NAMESPACE" --timeout=180s || echo -e "${YELLOW}Web timeout, continuing...${NC}"
 }
 
 show_status() {
     echo ""
     echo -e "${GREEN}=== Deployment Status ===${NC}"
     echo ""
-    kubectl get pods -n rust-learn
+    "$KUBECTL" get pods -n "$K8S_NAMESPACE"
     echo ""
-    kubectl get svc -n rust-learn
+    "$KUBECTL" get svc -n "$K8S_NAMESPACE"
     echo ""
-    kubectl get pvc -n rust-learn
+    "$KUBECTL" get pvc -n "$K8S_NAMESPACE"
 }
 
 show_access_info() {
@@ -74,9 +105,9 @@ show_access_info() {
     echo "  - Web Frontend: web:3000 (NodePort: 30030)"
     echo ""
     echo "To access services:"
-    echo "  kubectl port-forward -n rust-learn svc/rust-app 8080:8080"
-    echo "  kubectl port-forward -n rust-learn svc/web 3000:3000"
-    echo "  kubectl port-forward -n rust-learn svc/rustfs 9001:9001"
+    echo "  $KUBECTL port-forward -n $K8S_NAMESPACE svc/rust-app 8080:8080"
+    echo "  $KUBECTL port-forward -n $K8S_NAMESPACE svc/web 3000:3000"
+    echo "  $KUBECTL port-forward -n $K8S_NAMESPACE svc/rustfs 9001:9001"
     echo ""
 }
 
@@ -93,14 +124,15 @@ case "${1:-apply}" in
         ;;
     delete)
         echo -e "${YELLOW}Deleting all resources...${NC}"
-        kubectl delete -k k8s/base/
+        "$KUBECTL" delete -k k8s/base/
         echo -e "${GREEN}All resources deleted${NC}"
         ;;
     rebuild)
+        require_docker
         echo -e "${YELLOW}Rebuilding Docker images...${NC}"
-        docker build -t rust-app:latest .
-        docker build -t rust-worker:latest -f docker/worker.Dockerfile .
-        docker build -t web:latest ./web
+        "$DOCKER" build -t rust-app:latest .
+        "$DOCKER" build -t rust-worker:latest -f docker/worker.Dockerfile .
+        "$DOCKER" build -t web:latest ./web
         echo -e "${GREEN}Images rebuilt successfully${NC}"
         ;;
     logs)
@@ -108,14 +140,19 @@ case "${1:-apply}" in
             echo "Usage: $0 logs <app|worker|postgres|rustfs|anvil|web>"
             exit 1
         fi
-        kubectl logs -n rust-learn -l app=$2 --tail=100 -f
+        "$KUBECTL" logs -n "$K8S_NAMESPACE" -l "app=$2" --tail=100 -f
         ;;
     exec)
         if [ -z "$2" ]; then
             echo "Usage: $0 exec <pod-name> [command]"
             exit 1
         fi
-        kubectl exec -it -n rust-learn $2 -- ${3:-/bin/sh}
+        pod_name="$2"
+        shift 2
+        if [ "$#" -eq 0 ]; then
+            set -- /bin/sh
+        fi
+        "$KUBECTL" exec -it -n "$K8S_NAMESPACE" "$pod_name" -- "$@"
         ;;
     *)
         echo "Usage: $0 {apply|status|delete|rebuild|logs|exec}"

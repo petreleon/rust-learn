@@ -170,6 +170,11 @@ available.
 make k8s-apply
 ```
 
+The helper script `./k8s/deploy.sh` can apply, inspect, rebuild, and tail logs
+for the base deployment. It auto-detects `kubectl` and `docker` from common
+Homebrew and local install paths; set `KUBECTL`, `DOCKER`, or `K8S_NAMESPACE`
+when your tools or namespace live elsewhere.
+
 ### Manual Deploy
 
 ```bash
