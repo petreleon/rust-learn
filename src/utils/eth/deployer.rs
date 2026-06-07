@@ -6,7 +6,7 @@ use ethers::prelude::*;
 use std::env;
 use std::str::FromStr;
 
-use super::compiler::compile_contract;
+use super::compiler::try_compile_contract;
 use super::provider::try_get_provider;
 use super::wallet::try_load_wallet_from_env;
 use crate::repositories::persistent_state_repository::{
@@ -66,7 +66,8 @@ pub async fn deploy_learn_token_and_save(
     let wallet = try_load_wallet_from_env().map_err(deployment_error)?;
     let provider = try_get_provider().map_err(deployment_error)?;
 
-    let (abi, bytecode) = compile_contract("LearnToken.sol", "LearnToken");
+    let (abi, bytecode) =
+        try_compile_contract("LearnToken.sol", "LearnToken").map_err(deployment_error)?;
     let addr = try_deploy_contract(
         wallet,
         provider,
@@ -94,7 +95,8 @@ pub async fn deploy_learn_token_presigner_and_save(
     let wallet = try_load_wallet_from_env().map_err(deployment_error)?;
     let provider = try_get_provider().map_err(deployment_error)?;
 
-    let (abi, bytecode) = compile_contract("LearnTokenPresigner.sol", "LearnTokenPresigner");
+    let (abi, bytecode) = try_compile_contract("LearnTokenPresigner.sol", "LearnTokenPresigner")
+        .map_err(deployment_error)?;
     let addr = try_deploy_contract(wallet, provider, abi, bytecode, (learn_token_addr,))
         .await
         .map_err(deployment_error)?;
@@ -115,7 +117,8 @@ pub async fn deploy_platform_importer_and_save(
     let wallet = try_load_wallet_from_env().map_err(deployment_error)?;
     let provider = try_get_provider().map_err(deployment_error)?;
 
-    let (abi, bytecode) = compile_contract("PlatformImporter.sol", "PlatformImporter");
+    let (abi, bytecode) = try_compile_contract("PlatformImporter.sol", "PlatformImporter")
+        .map_err(deployment_error)?;
     let addr = try_deploy_contract(wallet, provider, abi, bytecode, (treasury,))
         .await
         .map_err(deployment_error)?;

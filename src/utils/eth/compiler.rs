@@ -29,7 +29,10 @@ fn compile_from_source_requested() -> bool {
 }
 
 /// Compile a specific contract file+name using ethers-solc. Returns (Abi, Bytecode).
-pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes) {
+pub fn try_compile_contract(
+    contract_file: &str,
+    contract_name: &str,
+) -> Result<(Abi, Bytes), String> {
     use ethers_solc::{remappings::Remapping, Project, ProjectPathsConfig};
     use std::process::Command;
 
@@ -39,7 +42,7 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
                 "event=eth_compile_artifact_loaded contract={}",
                 contract_name
             );
-            return artifact;
+            return Ok(artifact);
         }
     }
 
@@ -51,7 +54,10 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
             Ok(p) => p.display().to_string(),
             Err(_) => oz_env_path.display().to_string(),
         };
-        remappings.push(Remapping::from_str(&format!("@openzeppelin/={}/", oz_env_str)).unwrap());
+        remappings.push(
+            Remapping::from_str(&format!("@openzeppelin/={}/", oz_env_str))
+                .map_err(|error| format!("invalid OZ_PATH remapping: {error}"))?,
+        );
     } else {
         let oz_path = Path::new("./ethereum/contracts").join("lib/openzeppelin-contracts");
         if oz_path.exists() {
@@ -59,8 +65,10 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
                 Ok(p) => p.display().to_string(),
                 Err(_) => oz_path.display().to_string(),
             };
-            remappings
-                .push(Remapping::from_str(&format!("@openzeppelin/={}/", oz_path_str)).unwrap());
+            remappings.push(
+                Remapping::from_str(&format!("@openzeppelin/={}/", oz_path_str))
+                    .map_err(|error| format!("invalid OpenZeppelin remapping: {error}"))?,
+            );
         }
     }
 
@@ -70,11 +78,11 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
         .artifacts("./ethereum/artifacts")
         .remappings(remappings)
         .build()
-        .expect("Failed to build project paths");
+        .map_err(|error| format!("Failed to build project paths: {error}"))?;
     let project = Project::builder()
         .paths(paths)
         .build()
-        .expect("Failed to build project");
+        .map_err(|error| format!("Failed to build project: {error}"))?;
     let output = match project.compile() {
         Ok(output) => output,
         Err(err) => {
@@ -84,24 +92,29 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
                     contract_name,
                     err
                 );
-                return artifact;
+                return Ok(artifact);
             }
 
-            panic!("Failed to compile project: {:?}", err);
+            return Err(format!("Failed to compile project: {err:?}"));
         }
     };
 
     if let Some(contract) = output.find(contract_name, contract_file) {
-        let abi = contract.abi.as_ref().expect("ABI not found").clone().into();
+        let abi = contract
+            .abi
+            .as_ref()
+            .ok_or_else(|| format!("ABI not found for {contract_name}"))?
+            .clone()
+            .into();
         let bytecode = contract
             .bytecode
             .as_ref()
-            .expect("Bytecode not found")
+            .ok_or_else(|| format!("Bytecode not found for {contract_name}"))?
             .object
             .clone()
             .into_bytes()
-            .expect("Could not get bytecode");
-        return (abi, bytecode);
+            .ok_or_else(|| format!("Could not get bytecode for {contract_name}"))?;
+        return Ok((abi, bytecode));
     }
 
     if let Some(artifact) = load_contract_artifact(contract_name) {
@@ -109,7 +122,7 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
             "event=eth_compile_artifact_fallback reason=missing_contract_in_ethers_solc contract={}",
             contract_name
         );
-        return artifact;
+        return Ok(artifact);
     }
 
     // Fallback: use solc CLI
@@ -139,7 +152,8 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
 
     let out_dir = Path::new("./ethereum/artifacts");
     if !out_dir.exists() {
-        fs::create_dir_all(out_dir).expect("failed to create artifacts dir");
+        fs::create_dir_all(out_dir)
+            .map_err(|error| format!("failed to create artifacts dir: {error}"))?;
     }
 
     let mut cmd = Command::new("solc");
@@ -153,24 +167,39 @@ pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes
     }
     cmd.arg(format!("./ethereum/contracts/{}", contract_file));
 
-    let status = cmd.status().expect("failed to run solc CLI");
+    let status = cmd
+        .status()
+        .map_err(|error| format!("failed to run solc CLI: {error}"))?;
     if !status.success() {
-        panic!("solc CLI failed to compile the contract");
+        return Err(format!(
+            "solc CLI failed to compile {contract_name} from {contract_file}"
+        ));
     }
 
     let abi_path = out_dir.join(format!("{}.abi", contract_name));
     let bin_path = out_dir.join(format!("{}.bin", contract_name));
 
     if !abi_path.exists() || !bin_path.exists() {
-        panic!("solc CLI did not produce expected artifacts");
+        return Err(format!(
+            "solc CLI did not produce expected artifacts for {contract_name}"
+        ));
     }
 
-    let abi_json = fs::read_to_string(&abi_path).expect("failed to read abi file");
-    let abi: Abi = serde_json::from_str(&abi_json).expect("failed to parse ABI JSON");
+    let abi_json = fs::read_to_string(&abi_path)
+        .map_err(|error| format!("failed to read abi file {}: {error}", abi_path.display()))?;
+    let abi: Abi = serde_json::from_str(&abi_json)
+        .map_err(|error| format!("failed to parse ABI JSON {}: {error}", abi_path.display()))?;
 
-    let bin_hex = fs::read_to_string(&bin_path).expect("failed to read bin file");
-    let bin_bytes = hex::decode(bin_hex.trim()).expect("failed to decode bin hex");
+    let bin_hex = fs::read_to_string(&bin_path)
+        .map_err(|error| format!("failed to read bin file {}: {error}", bin_path.display()))?;
+    let bin_bytes = hex::decode(bin_hex.trim())
+        .map_err(|error| format!("failed to decode bin hex {}: {error}", bin_path.display()))?;
     let bytecode = Bytes::from(bin_bytes);
 
-    (abi, bytecode)
+    Ok((abi, bytecode))
+}
+
+/// Compile a specific contract file+name using ethers-solc. Returns (Abi, Bytecode).
+pub fn compile_contract(contract_file: &str, contract_name: &str) -> (Abi, Bytes) {
+    try_compile_contract(contract_file, contract_name).expect("Failed to compile contract")
 }
