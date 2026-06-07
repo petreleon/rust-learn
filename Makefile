@@ -39,8 +39,8 @@ run: ## Start all services with docker-compose
 dev: ## Start in detached mode (background)
 	$(DOCKER_COMPOSE) up -d
 
-dev-refresh: ## Rebuild app/web images and restart Compose services
-	$(DOCKER_COMPOSE) up -d --build $(COMPOSE_REFRESH_SERVICES)
+dev-refresh: ## Rebuild selected app/web images and restart them without rebuilding dependencies
+	$(DOCKER_COMPOSE) up -d --no-deps --build $(COMPOSE_REFRESH_SERVICES)
 
 stop: ## Stop all services
 	$(DOCKER_COMPOSE) down

@@ -356,6 +356,8 @@ make dev-refresh
 
 Set `COMPOSE_REFRESH_SERVICES='app web worker'` when worker image changes also
 need to be rebuilt for the same local run.
+The refresh target rebuilds only the selected services, so a web-only refresh
+does not also rebuild the Rust API image through Compose dependencies.
 
 Default local service ports:
 

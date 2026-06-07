@@ -729,7 +729,11 @@ export default function Home() {
 
             {canReviewTeachers && (
               <div className={styles.actionStrip}>
-                <select value={teacherStatus} onChange={(event) => setTeacherStatus(event.target.value)}>
+                <select
+                  aria-label="Teacher application status filter"
+                  value={teacherStatus}
+                  onChange={(event) => setTeacherStatus(event.target.value)}
+                >
                   {teacherApplicationStatuses.map((status) => (
                     <option key={status} value={status}>
                       {status}
@@ -746,6 +750,7 @@ export default function Home() {
             {canDecideTeachers && (
               <div className={styles.actionStrip}>
                 <input
+                  aria-label="Teacher application id"
                   placeholder="Application id"
                   value={teacherDecision.application_id}
                   onChange={(event) =>
@@ -753,6 +758,7 @@ export default function Home() {
                   }
                 />
                 <select
+                  aria-label="Teacher decision status"
                   value={teacherDecision.status}
                   onChange={(event) =>
                     setTeacherDecision((current) => ({ ...current, status: event.target.value }))
@@ -763,6 +769,7 @@ export default function Home() {
                   <option value="needs_changes">needs_changes</option>
                 </select>
                 <input
+                  aria-label="Teacher decision reason"
                   placeholder="Reason"
                   value={teacherDecision.decision_reason}
                   onChange={(event) =>
@@ -796,16 +803,22 @@ export default function Home() {
 
             <div className={styles.actionStrip}>
               <input
+                aria-label="Reward course id"
                 placeholder="Course id"
                 value={rewardCourseId}
                 onChange={(event) => setRewardCourseId(event.target.value)}
               />
               <input
+                aria-label="Reward candidate id"
                 placeholder="Candidate id"
                 value={rewardCandidateId}
                 onChange={(event) => setRewardCandidateId(event.target.value)}
               />
-              <select value={rewardStatus} onChange={(event) => setRewardStatus(event.target.value)}>
+              <select
+                aria-label="Reward candidate status filter"
+                value={rewardStatus}
+                onChange={(event) => setRewardStatus(event.target.value)}
+              >
                 {rewardStatuses.map((status) => (
                   <option key={status} value={status}>
                     {status}
@@ -817,6 +830,7 @@ export default function Home() {
             {canSubmitReward && (
               <div className={styles.actionStrip}>
                 <input
+                  aria-label="Reward student user id"
                   placeholder="Student user id"
                   value={rewardStudentId}
                   onChange={(event) => setRewardStudentId(event.target.value)}
@@ -848,6 +862,7 @@ export default function Home() {
             {canTeacherApproveReward && (
               <div className={styles.actionStrip}>
                 <select
+                  aria-label="Teacher reward decision status"
                   value={teacherRewardDecision.status}
                   onChange={(event) =>
                     setTeacherRewardDecision((current) => ({ ...current, status: event.target.value }))
@@ -857,6 +872,7 @@ export default function Home() {
                   <option value="rejected">rejected</option>
                 </select>
                 <input
+                  aria-label="Teacher reward decision reason"
                   placeholder="Teacher reason"
                   value={teacherRewardDecision.decision_reason}
                   onChange={(event) =>
@@ -881,6 +897,7 @@ export default function Home() {
             {canApproveAmount && (
               <div className={styles.actionStrip}>
                 <select
+                  aria-label="Reward amount decision status"
                   value={amountDecision.status}
                   onChange={(event) =>
                     setAmountDecision((current) => ({ ...current, status: event.target.value }))
@@ -890,6 +907,7 @@ export default function Home() {
                   <option value="rejected">rejected</option>
                 </select>
                 <input
+                  aria-label="Approved reward amount"
                   placeholder="Amount"
                   value={amountDecision.approved_amount}
                   onChange={(event) =>
@@ -900,6 +918,7 @@ export default function Home() {
                   }
                 />
                 <input
+                  aria-label="Reward amount decision reason"
                   placeholder="Amount reason"
                   value={amountDecision.decision_reason}
                   onChange={(event) =>
@@ -931,7 +950,11 @@ export default function Home() {
               <History size={22} aria-hidden />
             </div>
             <div className={styles.actionStrip}>
-              <select value={historyStatus} onChange={(event) => setHistoryStatus(event.target.value)}>
+              <select
+                aria-label="Reward history status filter"
+                value={historyStatus}
+                onChange={(event) => setHistoryStatus(event.target.value)}
+              >
                 <option value="">all statuses</option>
                 {rewardStatuses.map((status) => (
                   <option key={status} value={status}>
@@ -961,6 +984,7 @@ export default function Home() {
             </div>
             <div className={styles.actionStrip}>
               <input
+                aria-label="Report organization id"
                 placeholder="Organization id"
                 value={organizationId}
                 onChange={(event) => setOrganizationId(event.target.value)}
@@ -1045,6 +1069,7 @@ export default function Home() {
                   </select>
                 </label>
                 <input
+                  aria-label="Fraud block teacher user id"
                   placeholder="Teacher user id"
                   value={fraudBlock.teacher_user_id}
                   onChange={(event) =>
@@ -1052,6 +1077,7 @@ export default function Home() {
                   }
                 />
                 <input
+                  aria-label="Fraud block organization id"
                   placeholder="Organization id"
                   value={fraudBlock.organization_id}
                   onChange={(event) =>
@@ -1059,6 +1085,7 @@ export default function Home() {
                   }
                 />
                 <input
+                  aria-label="Fraud block course id"
                   placeholder="Course id"
                   value={fraudBlock.course_id}
                   onChange={(event) =>
@@ -1066,6 +1093,7 @@ export default function Home() {
                   }
                 />
                 <input
+                  aria-label="Fraud block policy id"
                   placeholder="Policy id"
                   value={fraudBlock.reward_policy_id}
                   onChange={(event) =>
@@ -1076,6 +1104,7 @@ export default function Home() {
                   }
                 />
                 <input
+                  aria-label="Fraud block evidence reference"
                   placeholder="Evidence reference"
                   value={fraudBlock.evidence_reference}
                   onChange={(event) =>
@@ -1113,6 +1142,7 @@ export default function Home() {
                   <span>Load active</span>
                 </button>
                 <input
+                  aria-label="Fraud block id"
                   placeholder="Block id"
                   value={fraudBlockId}
                   onChange={(event) => setFraudBlockId(event.target.value)}
@@ -1149,6 +1179,7 @@ export default function Home() {
             </div>
             <fieldset className={styles.formGrid} disabled={!canDelegate}>
               <input
+                aria-label="Delegation grantee user id"
                 placeholder="Grantee user id"
                 value={delegation.grantee_user_id}
                 onChange={(event) =>
@@ -1156,6 +1187,7 @@ export default function Home() {
                 }
               />
               <select
+                aria-label="Delegated permission"
                 value={delegation.permission}
                 onChange={(event) =>
                   setDelegation((current) => ({ ...current, permission: event.target.value }))
@@ -1171,6 +1203,7 @@ export default function Home() {
                 <option value="VIEW_ORG_REWARD_REPORTS">VIEW_ORG_REWARD_REPORTS</option>
               </select>
               <select
+                aria-label="Delegation scope type"
                 value={delegation.scope_type}
                 onChange={(event) =>
                   setDelegation((current) => ({ ...current, scope_type: event.target.value }))
@@ -1181,6 +1214,7 @@ export default function Home() {
                 <option value="course">course</option>
               </select>
               <input
+                aria-label="Delegation organization id"
                 placeholder="Organization id"
                 value={delegation.organization_id}
                 onChange={(event) =>
@@ -1188,6 +1222,7 @@ export default function Home() {
                 }
               />
               <input
+                aria-label="Delegation course id"
                 placeholder="Course id"
                 value={delegation.course_id}
                 onChange={(event) =>
@@ -1195,6 +1230,7 @@ export default function Home() {
                 }
               />
               <input
+                aria-label="Delegation expiration"
                 placeholder="Expires at"
                 value={delegation.expires_at}
                 onChange={(event) =>
@@ -1202,6 +1238,7 @@ export default function Home() {
                 }
               />
               <input
+                aria-label="Delegation reason"
                 className={styles.fullWidth}
                 placeholder="Reason"
                 value={delegation.reason}
@@ -1225,11 +1262,13 @@ export default function Home() {
             </fieldset>
             <div className={styles.actionStrip}>
               <input
+                aria-label="Delegation id"
                 placeholder="Delegation id"
                 value={delegationId}
                 onChange={(event) => setDelegationId(event.target.value)}
               />
               <input
+                aria-label="Delegation revoke reason"
                 placeholder="Revoke reason"
                 value={revokeReason}
                 onChange={(event) => setRevokeReason(event.target.value)}
@@ -1247,7 +1286,12 @@ export default function Home() {
           </section>
         </div>
 
-        <section className={styles.resultPanel} aria-labelledby="result-title">
+        <section
+          className={styles.resultPanel}
+          aria-labelledby="result-title"
+          aria-live="polite"
+          aria-atomic="false"
+        >
           <div className={styles.panelHeader}>
             <div>
               <p className={styles.eyebrow}>{result.status}</p>
@@ -1257,7 +1301,9 @@ export default function Home() {
               {result.ok ? "OK" : "Error"}
             </span>
           </div>
-          <pre>{result.body}</pre>
+          <pre aria-label="API response body" tabIndex={0}>
+            {result.body}
+          </pre>
         </section>
       </section>
     </main>

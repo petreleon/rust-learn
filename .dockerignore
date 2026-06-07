@@ -1,6 +1,7 @@
 target
 .git
 node_modules
+web
 **/target
 **/.git
 ethereum/contracts
