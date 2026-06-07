@@ -218,9 +218,11 @@ The base manifests are expected to render with `kubectl kustomize k8s/base`.
 Service names line up with in-cluster DNS values used by the app:
 `postgres:5432`, `rustfs:9000`, `anvil:8545`, `rust-app:8080`, and `web:3000`.
 The API deployment uses `/health` for liveness and `/ready` for readiness; the
-readiness endpoint checks PostgreSQL, RustFS/S3, and Ethereum RPC. The worker
-does not expose HTTP, so it uses the bundled `/usr/local/bin/worker-healthcheck`
-script for startup and liveness probes and has no Service.
+readiness endpoint checks PostgreSQL, RustFS/S3, and Ethereum RPC. The web
+deployment uses `/healthz` for startup, readiness, and liveness so probes do not
+render the full Next.js dashboard. The worker does not expose HTTP, so it uses
+the bundled `/usr/local/bin/worker-healthcheck` script for startup and liveness
+probes and has no Service.
 Its memory limit is `3Gi`, matching the Docker Compose worker limit.
 
 For local Minikube, verify the storage addon if PVCs remain pending:

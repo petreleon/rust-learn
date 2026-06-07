@@ -198,6 +198,13 @@ function optionLabel(value: string) {
     .join(" ");
 }
 
+function flowStatus(hasAccess: boolean, hasSessionToken: boolean) {
+  if (!hasAccess) {
+    return "Locked";
+  }
+  return hasSessionToken ? "Open" : "Needs JWT";
+}
+
 export default function Home() {
   const resultPanelRef = useRef<HTMLElement | null>(null);
   const [apiRoot, setApiRoot] = useState(process.env.NEXT_PUBLIC_API_URL || "/api");
@@ -308,6 +315,8 @@ export default function Home() {
   );
 
   const hasPermission = (permission: string) => selectedPermissions.has(permission);
+  const hasSessionToken = hasText(token);
+  const protectedActionTitle = hasSessionToken ? undefined : "JWT required";
   const canTeacherApply = hasPermission("SUBMIT_TEACHER_APPLICATION");
   const canReviewTeachers = hasPermission("REVIEW_TEACHER_APPLICATIONS");
   const canDecideTeachers =
@@ -375,6 +384,17 @@ export default function Home() {
         resultPanelRef.current?.scrollIntoView({ block: "start", inline: "nearest" });
       });
     };
+
+    if (!hasSessionToken) {
+      setResult({
+        label,
+        status: "Session required",
+        body: "Add a JWT before sending protected API requests.",
+        ok: false,
+      });
+      revealResultPanel();
+      return;
+    }
 
     const root = normalizeRoot(apiRoot);
     const headers = new Headers();
@@ -642,15 +662,17 @@ export default function Home() {
         <section className={styles.metrics} aria-label="Workflow access">
           <div className={styles.metric}>
             <span>Teacher flow</span>
-            <strong>{canTeacherApply || canReviewTeachers ? "Open" : "Locked"}</strong>
+            <strong>{flowStatus(canTeacherApply || canReviewTeachers, hasSessionToken)}</strong>
           </div>
           <div className={styles.metric}>
             <span>Reward flow</span>
-            <strong>{canSubmitReward || canTeacherApproveReward || canApproveAmount ? "Open" : "Locked"}</strong>
+            <strong>
+              {flowStatus(canSubmitReward || canTeacherApproveReward || canApproveAmount, hasSessionToken)}
+            </strong>
           </div>
           <div className={styles.metric}>
             <span>Audit flow</span>
-            <strong>{canViewFraud || canDelegate || canExport ? "Open" : "Locked"}</strong>
+            <strong>{flowStatus(canViewFraud || canDelegate || canExport, hasSessionToken)}</strong>
           </div>
         </section>
 
@@ -745,7 +767,8 @@ export default function Home() {
                   type="button"
                   className={styles.primaryButton}
                   onClick={submitTeacherApplication}
-                  disabled={!canSubmitTeacherApplicationForm}
+                  disabled={!hasSessionToken || !canSubmitTeacherApplicationForm}
+                  title={protectedActionTitle}
                 >
                   <Send size={17} aria-hidden />
                   <span>Submit</span>
@@ -766,7 +789,13 @@ export default function Home() {
                     </option>
                   ))}
                 </select>
-                <button type="button" className={styles.secondaryButton} onClick={loadTeacherApplications}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={loadTeacherApplications}
+                  disabled={!hasSessionToken}
+                  title={protectedActionTitle}
+                >
                   <ClipboardList size={17} aria-hidden />
                   <span>Load queue</span>
                 </button>
@@ -809,7 +838,8 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={decideTeacherApplication}
-                  disabled={!canDecideTeacherApplicationForm}
+                  disabled={!hasSessionToken || !canDecideTeacherApplicationForm}
+                  title={protectedActionTitle}
                 >
                   <CheckCircle2 size={17} aria-hidden />
                   <span>Decide</span>
@@ -865,7 +895,8 @@ export default function Home() {
                   type="button"
                   className={styles.primaryButton}
                   onClick={submitRewardCandidate}
-                  disabled={!canSubmitRewardCandidateForm}
+                  disabled={!hasSessionToken || !canSubmitRewardCandidateForm}
+                  title={protectedActionTitle}
                 >
                   <Send size={17} aria-hidden />
                   <span>Submit candidate</span>
@@ -878,7 +909,8 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={loadRewardCandidates}
-                disabled={!canLoadRewardCandidatesForm}
+                disabled={!hasSessionToken || !canLoadRewardCandidatesForm}
+                title={protectedActionTitle}
               >
                 <ClipboardList size={17} aria-hidden />
                 <span>Load candidates</span>
@@ -912,7 +944,8 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={decideStudentReward}
-                  disabled={!canDecideStudentRewardForm}
+                  disabled={!hasSessionToken || !canDecideStudentRewardForm}
+                  title={protectedActionTitle}
                 >
                   <CheckCircle2 size={17} aria-hidden />
                   <span>Teacher decision</span>
@@ -958,7 +991,8 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={decideRewardAmount}
-                  disabled={!canDecideRewardAmountForm}
+                  disabled={!hasSessionToken || !canDecideRewardAmountForm}
+                  title={protectedActionTitle}
                 >
                   <WalletCards size={17} aria-hidden />
                   <span>Set amount</span>
@@ -992,7 +1026,8 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={loadStudentHistory}
-                disabled={!canViewCourseRewards}
+                disabled={!hasSessionToken || !canViewCourseRewards}
+                title={protectedActionTitle}
               >
                 <History size={17} aria-hidden />
                 <span>Load history</span>
@@ -1019,7 +1054,8 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={() => loadOrganizationReport(false)}
-                disabled={!canViewOrgReports || !canLoadOrganizationReportForm}
+                disabled={!hasSessionToken || !canViewOrgReports || !canLoadOrganizationReportForm}
+                title={protectedActionTitle}
               >
                 <ClipboardList size={17} aria-hidden />
                 <span>Load</span>
@@ -1028,7 +1064,8 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={() => loadOrganizationReport(true)}
-                disabled={!canViewOrgReports || !canLoadOrganizationReportForm}
+                disabled={!hasSessionToken || !canViewOrgReports || !canLoadOrganizationReportForm}
+                title={protectedActionTitle}
               >
                 <Download size={17} aria-hidden />
                 <span>CSV</span>
@@ -1044,6 +1081,8 @@ export default function Home() {
                       "Platform reward approvals CSV"
                     )
                   }
+                  disabled={!hasSessionToken}
+                  title={protectedActionTitle}
                 >
                   reward approvals
                 </button>
@@ -1052,6 +1091,8 @@ export default function Home() {
                   onClick={() =>
                     loadPlatformExport("/reports/platform/token-payouts.csv", "Platform token payouts CSV")
                   }
+                  disabled={!hasSessionToken}
+                  title={protectedActionTitle}
                 >
                   token payouts
                 </button>
@@ -1063,6 +1104,8 @@ export default function Home() {
                       "Platform delegated permissions CSV"
                     )
                   }
+                  disabled={!hasSessionToken}
+                  title={protectedActionTitle}
                 >
                   delegations
                 </button>
@@ -1154,7 +1197,8 @@ export default function Home() {
                   type="button"
                   className={styles.primaryButton}
                   onClick={createFraudBlock}
-                  disabled={!canCreateFraudBlockForm}
+                  disabled={!hasSessionToken || !canCreateFraudBlockForm}
+                  title={protectedActionTitle}
                 >
                   <Ban size={17} aria-hidden />
                   <span>Create block</span>
@@ -1163,7 +1207,13 @@ export default function Home() {
             )}
             {canViewFraud && (
               <div className={styles.actionStrip}>
-                <button type="button" className={styles.secondaryButton} onClick={listFraudBlocks}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={listFraudBlocks}
+                  disabled={!hasSessionToken}
+                  title={protectedActionTitle}
+                >
                   <ClipboardList size={17} aria-hidden />
                   <span>Load active</span>
                 </button>
@@ -1177,7 +1227,8 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={loadFraudAudit}
-                  disabled={!canUseFraudBlockForm}
+                  disabled={!hasSessionToken || !canUseFraudBlockForm}
+                  title={protectedActionTitle}
                 >
                   <History size={17} aria-hidden />
                   <span>Audit</span>
@@ -1186,7 +1237,8 @@ export default function Home() {
                   type="button"
                   className={styles.secondaryButton}
                   onClick={revokeFraudBlock}
-                  disabled={!canManageFraud || !canUseFraudBlockForm}
+                  disabled={!hasSessionToken || !canManageFraud || !canUseFraudBlockForm}
+                  title={protectedActionTitle}
                 >
                   <CheckCircle2 size={17} aria-hidden />
                   <span>Revoke</span>
@@ -1273,12 +1325,19 @@ export default function Home() {
                 type="button"
                 className={styles.primaryButton}
                 onClick={grantDelegation}
-                disabled={!canGrantDelegationForm}
+                disabled={!hasSessionToken || !canGrantDelegationForm}
+                title={protectedActionTitle}
               >
                 <KeyRound size={17} aria-hidden />
                 <span>Grant</span>
               </button>
-              <button type="button" className={styles.secondaryButton} onClick={listDelegations}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={listDelegations}
+                disabled={!hasSessionToken}
+                title={protectedActionTitle}
+              >
                 <ClipboardList size={17} aria-hidden />
                 <span>Load</span>
               </button>
@@ -1300,7 +1359,8 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={revokeDelegation}
-                disabled={!canDelegate || !canRevokeDelegationForm}
+                disabled={!hasSessionToken || !canDelegate || !canRevokeDelegationForm}
+                title={protectedActionTitle}
               >
                 <Ban size={17} aria-hidden />
                 <span>Revoke</span>

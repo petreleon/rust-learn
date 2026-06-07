@@ -47,7 +47,7 @@ services:
     depends_on:
       - app
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/healthz >/dev/null 2>&1"]
       interval: 15s
       timeout: 5s
       retries: 8

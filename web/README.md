@@ -22,6 +22,8 @@ npm run dev
 Open <http://localhost:3000>. The app uses `/api` in the browser by default.
 Next proxies `/api/*` to `${API_URL}/api/*` and `/health` to `${API_URL}/health`.
 When `API_URL` is not set, it defaults to `http://127.0.0.1:8080`.
+The web process exposes `GET /healthz` for container and Kubernetes probes so
+health checks do not render the full dashboard.
 
 Container and Kubernetes deployments keep browser requests on `/api` and set
 `API_URL` explicitly:

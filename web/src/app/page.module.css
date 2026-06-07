@@ -284,6 +284,7 @@
 .primaryButton:disabled,
 .secondaryButton:disabled,
 .iconButton:disabled,
+.reportLinks button:disabled,
 .formGrid:disabled {
   cursor: not-allowed;
   opacity: 1;
@@ -294,7 +295,9 @@
 .secondaryButton:disabled,
 .secondaryButton:disabled:hover,
 .iconButton:disabled,
-.iconButton:disabled:hover {
+.iconButton:disabled:hover,
+.reportLinks button:disabled,
+.reportLinks button:disabled:hover {
   background: #f1f5f9;
   border-color: #d8dee6;
   color: #94a3b8;
