@@ -1,9 +1,17 @@
 use chrono::{Duration, Utc};
 use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::schema::upload_jobs;
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::upload_job::{NewUploadJob, UploadJob};
+use std::sync::LazyLock;
+use tokio::sync::{Mutex, MutexGuard};
+
+static WORKER_UPLOAD_JOB_TEST_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+async fn lock_worker_upload_job_tests() -> MutexGuard<'static, ()> {
+    WORKER_UPLOAD_JOB_TEST_LOCK.lock().await
+}
 
 fn unique_object(prefix: &str) -> String {
     let ts = Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -42,49 +50,61 @@ async fn fetch_upload_job(conn: &mut AsyncPgConnection, id: i64) -> UploadJob {
 
 #[actix_web::test]
 async fn queue_metrics_counts_ready_delayed_processing_and_failed_jobs() {
+    let _guard = lock_worker_upload_job_tests().await;
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
     let mut conn = setup_conn(&pool).await;
-    let before = UploadJob::queue_metrics(&mut conn)
-        .await
-        .expect("queue metrics should load before seeded jobs");
+    conn.transaction::<(), diesel::result::Error, _>(|tx| {
+        Box::pin(async move {
+            let before = UploadJob::queue_metrics(tx)
+                .await
+                .expect("queue metrics should load before seeded jobs");
 
-    let ready = insert_upload_job(&mut conn, &unique_object("metrics-ready")).await;
-    let delayed = insert_upload_job(&mut conn, &unique_object("metrics-delayed")).await;
-    let processing = insert_upload_job(&mut conn, &unique_object("metrics-processing")).await;
-    let failed = insert_upload_job(&mut conn, &unique_object("metrics-failed")).await;
+            let ready = insert_upload_job(tx, &unique_object("metrics-ready")).await;
+            let delayed = insert_upload_job(tx, &unique_object("metrics-delayed")).await;
+            let processing = insert_upload_job(tx, &unique_object("metrics-processing")).await;
+            let failed = insert_upload_job(tx, &unique_object("metrics-failed")).await;
 
-    diesel::update(upload_jobs::table.find(delayed.id()))
-        .set(upload_jobs::updated_at.eq(Utc::now() + Duration::minutes(10)))
-        .execute(&mut conn)
-        .await
-        .expect("test should delay a queued job");
-    diesel::update(upload_jobs::table.find(processing.id()))
-        .set(upload_jobs::status.eq("processing"))
-        .execute(&mut conn)
-        .await
-        .expect("test should mark a job processing");
-    UploadJob::mark_failed(failed.id(), 3, "metrics failure".to_string(), &mut conn)
-        .await
-        .expect("test should mark a job failed");
+            diesel::update(upload_jobs::table.find(delayed.id()))
+                .set(upload_jobs::updated_at.eq(Utc::now() + Duration::minutes(10)))
+                .execute(tx)
+                .await
+                .expect("test should delay a queued job");
+            diesel::update(upload_jobs::table.find(processing.id()))
+                .set(upload_jobs::status.eq("processing"))
+                .execute(tx)
+                .await
+                .expect("test should mark a job processing");
+            UploadJob::mark_failed(failed.id(), 3, "metrics failure".to_string(), tx)
+                .await
+                .expect("test should mark a job failed");
 
-    let after = UploadJob::queue_metrics(&mut conn)
-        .await
-        .expect("queue metrics should load after seeded jobs");
+            let after = UploadJob::queue_metrics(tx)
+                .await
+                .expect("queue metrics should load after seeded jobs");
 
-    assert!(after.queued_ready > before.queued_ready);
-    assert!(after.queued_delayed > before.queued_delayed);
-    assert!(after.processing > before.processing);
-    assert!(after.failed > before.failed);
-    assert!(after.queue_depth() >= before.queue_depth() + 2);
+            assert_eq!(after.queued_ready, before.queued_ready + 1);
+            assert_eq!(after.queued_delayed, before.queued_delayed + 1);
+            assert_eq!(after.processing, before.processing + 1);
+            assert_eq!(after.failed, before.failed + 1);
+            assert_eq!(after.queue_depth(), before.queue_depth() + 2);
 
-    UploadJob::mark_done(ready.id(), &mut conn)
-        .await
-        .expect("test should clean up ready job");
+            for job in [ready, delayed, processing, failed] {
+                UploadJob::mark_done(job.id(), tx)
+                    .await
+                    .expect("test should clean up metrics job");
+            }
+
+            Ok(())
+        })
+    })
+    .await
+    .expect("metrics transaction should commit");
 }
 
 #[actix_web::test]
 async fn schedule_retry_sets_queued_state_attempts_error_and_future_availability() {
+    let _guard = lock_worker_upload_job_tests().await;
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
     let mut conn = setup_conn(&pool).await;
@@ -121,6 +141,7 @@ async fn schedule_retry_sets_queued_state_attempts_error_and_future_availability
 
 #[actix_web::test]
 async fn mark_failed_sets_terminal_failure_state() {
+    let _guard = lock_worker_upload_job_tests().await;
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
     let mut conn = setup_conn(&pool).await;
@@ -147,6 +168,7 @@ async fn mark_failed_sets_terminal_failure_state() {
 
 #[actix_web::test]
 async fn mark_done_sets_terminal_success_state_without_changing_attempts() {
+    let _guard = lock_worker_upload_job_tests().await;
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
     let mut conn = setup_conn(&pool).await;

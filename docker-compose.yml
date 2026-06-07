@@ -145,6 +145,9 @@ services:
       ETH_PORT: "8545"
       ETH_RPC_URL: http://anvil:8545
       S3_INTERNAL_DOMAIN: rustfs
+      S3_EXTERNAL_DOMAIN: rustfs
+      S3_EXTERNAL_PORT: "9000"
+      S3_EXTERNAL_SCHEME: http
       CARGO_BUILD_JOBS: "1"
       CARGO_TARGET_DIR: /usr/local/cargo/target
     volumes:

@@ -55,6 +55,10 @@ app-bin = []
 worker-bin = []
 tool-bin = []
 
+[profile.test]
+debug = 0
+incremental = false
+
 [dev-dependencies]
 # used only by tests to generate random mnemonics
 bip39 = "1.1"
