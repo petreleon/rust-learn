@@ -1,4 +1,4 @@
-.PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health runtime-disk docker-prune-build-cache \
+.PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health runtime-verify runtime-disk docker-prune-build-cache \
   k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
   k8s-validate dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
   dev-refresh test-integration fmt web-lint web-build
@@ -268,6 +268,23 @@ health: ## Check services health status
 	@echo ""
 	@echo "Kubernetes endpoints:"
 	@$(KUBECTL) exec -n $(K8S_NAMESPACE) deploy/web -- sh -c 'wget -qO- http://127.0.0.1:3000/healthz && printf "\n" && wget -qO- http://rust-app:8080/ready && printf "\n"' || echo "$(YELLOW)Kubernetes web/API readiness is not reachable from the web pod$(NC)"
+
+runtime-verify: ## Fail unless Docker Compose and Kubernetes runtime checks pass
+	@set -e; \
+	echo "$(GREEN)=== Runtime Verification ===$(NC)"; \
+	echo "Checking Docker Compose services and endpoints..."; \
+	$(DOCKER_COMPOSE) ps web app worker db rustfs anvil >/dev/null; \
+	$(CURL) -fsS http://localhost:3000/healthz >/dev/null; \
+	$(CURL) -fsS http://localhost:8080/health >/dev/null; \
+	$(CURL) -fsS http://localhost:8080/ready >/dev/null; \
+	$(DOCKER_COMPOSE) exec -T worker /usr/local/bin/worker-healthcheck >/dev/null; \
+	echo "$(GREEN)Docker Compose runtime OK$(NC)"; \
+	echo "Checking Kubernetes deployments, pods, and in-cluster endpoints..."; \
+	$(KUBECTL) get namespace $(K8S_NAMESPACE) >/dev/null; \
+	$(KUBECTL) wait --for=condition=Available deployment --all -n $(K8S_NAMESPACE) --timeout=180s >/dev/null; \
+	$(KUBECTL) wait --for=condition=Ready pod --all -n $(K8S_NAMESPACE) --timeout=180s >/dev/null; \
+	$(KUBECTL) exec -n $(K8S_NAMESPACE) deploy/web -- sh -c 'wget -qO- http://127.0.0.1:3000/healthz >/dev/null && wget -qO- http://rust-app:8080/ready >/dev/null'; \
+	echo "$(GREEN)Kubernetes runtime OK$(NC)"
 
 runtime-disk: ## Show Docker and Minikube disk usage
 	@echo "$(GREEN)=== Runtime Disk Usage ===$(NC)"
