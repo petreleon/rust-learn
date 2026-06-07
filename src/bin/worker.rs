@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use dotenvy::dotenv;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -18,7 +18,13 @@ async fn main() -> Result<()> {
     // Initialize environment, DB pool, S3 and notifications state
     dotenv().ok();
     rust_learn::utils::logging::init_logging("worker");
-    let pool = rust_learn::db::establish_connection();
+    let pool = match rust_learn::db::try_establish_connection() {
+        Ok(pool) => pool,
+        Err(error) => {
+            log::error!("event=worker_db_pool_init_failed error={}", error);
+            return Err(anyhow!(error));
+        }
+    };
 
     let s3 = match rust_learn::utils::s3_utils::S3State::new_from_env().await {
         Ok(m) => m,

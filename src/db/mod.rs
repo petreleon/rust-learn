@@ -6,13 +6,17 @@ use diesel_async::AsyncPgConnection;
 
 pub type DbPool = Pool<AsyncPgConnection>;
 
-pub fn establish_connection() -> DbPool {
-    let database_url =
-        std::env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env file");
+pub fn try_establish_connection() -> Result<DbPool, String> {
+    let database_url = std::env::var("DATABASE_URL")
+        .map_err(|_| "DATABASE_URL must be set in .env file".to_string())?;
 
     let config = AsyncDieselConnectionManager::<diesel_async::AsyncPgConnection>::new(database_url);
 
     Pool::builder(config)
         .build()
-        .expect("Failed to create pool.")
+        .map_err(|error| format!("Failed to create pool: {error}"))
+}
+
+pub fn establish_connection() -> DbPool {
+    try_establish_connection().expect("Failed to establish database connection")
 }

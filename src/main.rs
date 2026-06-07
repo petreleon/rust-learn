@@ -49,8 +49,13 @@ async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();
     crate::utils::logging::init_logging("api");
 
-    // Use the establish_connection function from the db module
-    let pool = db::establish_connection();
+    let pool = match db::try_establish_connection() {
+        Ok(pool) => pool,
+        Err(error) => {
+            log::error!("event=db_pool_init_failed error={}", error);
+            return Err(std::io::Error::other(error));
+        }
+    };
     // Initialize S3 client state and put into app data
     let s3_state = match S3State::new_from_env().await {
         Ok(s) => s,
@@ -62,13 +67,21 @@ async fn main() -> std::io::Result<()> {
     // Initialize notifications state (DB-backed using the pool)
     let notifications_state = crate::utils::notifications::NotificationsState::new(pool.clone());
     {
-        let mut conn = pool
-            .get()
-            .await
-            .expect("Failed to get DB connection from pool");
-        version_updater(&mut conn)
-            .await
-            .expect("Failed to update database version");
+        let mut conn = match pool.get().await {
+            Ok(conn) => conn,
+            Err(error) => {
+                log::error!("event=db_connection_failed phase=startup error={:?}", error);
+                return Err(std::io::Error::other(format!(
+                    "Failed to get DB connection from pool: {error}"
+                )));
+            }
+        };
+        if let Err(error) = version_updater(&mut conn).await {
+            log::error!("event=db_version_update_failed error={:?}", error);
+            return Err(std::io::Error::other(format!(
+                "Failed to update database version: {error}"
+            )));
+        }
 
         // Ensure LearnToken and wallet transfer helper contracts are deployed
         // idempotently and persisted for API/worker use.
