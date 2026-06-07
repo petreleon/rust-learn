@@ -346,6 +346,17 @@ Or use the Makefile:
 make dev
 ```
 
+`make dev` starts the current Compose images. After changing Rust API code,
+frontend dependencies, or Dockerfiles, rebuild the app/web images before testing
+the full userflow:
+
+```bash
+make dev-refresh
+```
+
+Set `COMPOSE_REFRESH_SERVICES='app web worker'` when worker image changes also
+need to be rebuilt for the same local run.
+
 Default local service ports:
 
 | Service | URL/port |

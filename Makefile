@@ -1,7 +1,7 @@
 .PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health \
   k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
   k8s-validate dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
-  test-integration fmt web-lint web-build
+  dev-refresh test-integration fmt web-lint web-build
 
 # Variables
 export PATH := /opt/homebrew/bin:/usr/local/bin:$(PATH)
@@ -14,6 +14,7 @@ K8S_RUST_IMAGE := rust-app:$(K8S_IMAGE_TAG)
 K8S_WEB_IMAGE := web:$(K8S_IMAGE_TAG)
 DOCKER ?= $(shell command -v docker 2>/dev/null || printf /opt/homebrew/bin/docker)
 DOCKER_COMPOSE ?= $(DOCKER) compose
+COMPOSE_REFRESH_SERVICES ?= app web
 KUBECTL ?= $(shell command -v kubectl 2>/dev/null || printf /opt/homebrew/bin/kubectl)
 MINIKUBE ?= $(shell command -v minikube 2>/dev/null || printf /opt/homebrew/bin/minikube)
 
@@ -37,6 +38,9 @@ run: ## Start all services with docker-compose
 
 dev: ## Start in detached mode (background)
 	$(DOCKER_COMPOSE) up -d
+
+dev-refresh: ## Rebuild app/web images and restart Compose services
+	$(DOCKER_COMPOSE) up -d --build $(COMPOSE_REFRESH_SERVICES)
 
 stop: ## Stop all services
 	$(DOCKER_COMPOSE) down
