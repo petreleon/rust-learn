@@ -1,3 +1,4 @@
+use crate::api::authentication::authenticated_user_id;
 use crate::config::constants::permissions::Permissions;
 use crate::db;
 use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
@@ -5,7 +6,6 @@ use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddle
 use crate::models::organization::UpdateOrganization;
 use crate::models::param_type::ParamType;
 use crate::services::organization_service;
-use crate::utils::jwt_utils::decode_jwt;
 use crate::utils::notifications::NotificationsState;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use serde::Deserialize;
@@ -145,18 +145,9 @@ async fn assign_role(
     let role_name = &body.role_name;
 
     // Identify Requester from JWT
-    let auth_header = match req.headers().get("Authorization") {
-        Some(h) => h.to_str().unwrap_or(""),
-        None => return HttpResponse::Unauthorized().body("Missing Authorization header"),
-    };
-
-    let Some(token) = auth_header.strip_prefix("Bearer ") else {
-        return HttpResponse::Unauthorized().body("Invalid Authorization header format");
-    };
-
-    let requester_id = match decode_jwt(token) {
-        Ok(data) => data.claims.user_id,
-        Err(_) => return HttpResponse::Unauthorized().body("Invalid token"),
+    let requester_id = match authenticated_user_id(&req) {
+        Ok(user_id) => user_id,
+        Err(response) => return response,
     };
 
     match organization_service::assign_role(&pool, requester_id, target_user_id, org_id, role_name)

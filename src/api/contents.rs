@@ -1,3 +1,4 @@
+use crate::api::authentication::authenticated_user_id;
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::chapters;
 use crate::db::schema::contents;
@@ -8,10 +9,9 @@ use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware
 use crate::models::content::{Content, NewContent, UpdateContent};
 use crate::models::param_type::ParamType;
 use crate::models::upload_job::NewUploadJob;
-use crate::utils::jwt_utils::decode_jwt;
 use crate::utils::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 
@@ -271,11 +271,16 @@ fn is_video_content_type(content_type: &str) -> bool {
 }
 
 async fn process_content(
-    req: actix_web::HttpRequest,
+    req: HttpRequest,
     path: web::Path<(i32, i32, i32)>, // course_id, chapter_id, content_id
     pool: web::Data<DbPool>,
 ) -> impl Responder {
     let (course_id, chapter_id, content_id) = path.into_inner();
+    let user_id = match authenticated_user_id(&req) {
+        Ok(user_id) => user_id,
+        Err(response) => return response,
+    };
+
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
@@ -342,20 +347,11 @@ async fn process_content(
         return HttpResponse::BadRequest().body("Content data must be a course upload object key");
     }
 
-    // 3. Identify User (Optional, for notifications)
-    let auth_header = req
-        .headers()
-        .get("Authorization")
-        .and_then(|h| h.to_str().ok())
-        .unwrap_or("");
-    let token = auth_header.strip_prefix("Bearer ").unwrap_or("");
-    let user_id = decode_jwt(token).ok().map(|d| d.claims.user_id);
-
-    // 4. Enqueue Job
+    // 3. Enqueue Job
     let new_job = NewUploadJob {
         bucket: "course-materials",
         object: &object_key,
-        user_id,
+        user_id: Some(user_id),
     };
 
     let result = diesel::insert_into(upload_jobs::table)

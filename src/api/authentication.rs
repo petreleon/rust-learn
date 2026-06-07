@@ -15,7 +15,7 @@ use crate::models::user_role_platform::UserRolePlatform;
 use crate::utils::email::{
     generate_verification_token, print_mock_verification_email, verification_token_hash,
 };
-use crate::utils::jwt_utils::{create_jwt, public_jwks_from_env};
+use crate::utils::jwt_utils::{create_jwt, decode_jwt, public_jwks_from_env};
 
 const MIN_PASSWORD_LENGTH: usize = 12;
 const MAX_BCRYPT_PASSWORD_BYTES: usize = 71;
@@ -87,6 +87,28 @@ fn registration_db_error_response(error: DieselError, email: &str) -> HttpRespon
             HttpResponse::InternalServerError().body("Failed to register user")
         }
     }
+}
+
+pub(crate) fn authenticated_user_id(req: &HttpRequest) -> Result<i32, HttpResponse> {
+    if let Some(user_jwt) = req.extensions().get::<crate::models::user_jwt::UserJWT>() {
+        return Ok(user_jwt.user_id);
+    }
+
+    let Some(auth_header) = req.headers().get("Authorization") else {
+        return Err(HttpResponse::Unauthorized().body("Missing Authorization header"));
+    };
+
+    let Ok(auth_str) = auth_header.to_str() else {
+        return Err(HttpResponse::Unauthorized().body("Invalid Authorization header format"));
+    };
+
+    let Some(token) = auth_str.strip_prefix("Bearer ") else {
+        return Err(HttpResponse::Unauthorized().body("Invalid Authorization header format"));
+    };
+
+    decode_jwt(token)
+        .map(|token_data| token_data.claims.user_id)
+        .map_err(|_| HttpResponse::Unauthorized().body("Invalid token"))
 }
 
 #[post("/login")]
@@ -265,27 +287,9 @@ pub async fn hello() -> impl Responder {
 
 #[get("/user_id")]
 pub async fn user_id(req: HttpRequest) -> impl Responder {
-    if let Some(user_jwt) = req.extensions().get::<crate::models::user_jwt::UserJWT>() {
-        return HttpResponse::Ok().body(format!("Hello! Your ID is {}", user_jwt.user_id));
-    }
-
-    let Some(auth_header) = req.headers().get("Authorization") else {
-        return HttpResponse::Unauthorized().body("Missing Authorization header");
-    };
-
-    let Ok(auth_str) = auth_header.to_str() else {
-        return HttpResponse::Unauthorized().body("Invalid Authorization header format");
-    };
-
-    let Some(token) = auth_str.strip_prefix("Bearer ") else {
-        return HttpResponse::Unauthorized().body("Invalid Authorization header format");
-    };
-
-    match crate::utils::jwt_utils::decode_jwt(token) {
-        Ok(token_data) => {
-            HttpResponse::Ok().body(format!("Hello! Your ID is {}", token_data.claims.user_id))
-        }
-        Err(_) => HttpResponse::Unauthorized().body("Invalid token"),
+    match authenticated_user_id(&req) {
+        Ok(user_id) => HttpResponse::Ok().body(format!("Hello! Your ID is {}", user_id)),
+        Err(response) => response,
     }
 }
 
@@ -312,8 +316,9 @@ pub fn auth_scope() -> actix_web::Scope {
 #[cfg(test)]
 mod tests {
     use super::{email_log_hash, validate_password_strength, PASSWORD_TOO_LONG_MESSAGE};
+    use crate::models::user_jwt::UserJWT;
     use crate::utils::jwt_utils::create_jwt;
-    use actix_web::{http::StatusCode, test as actix_test, App};
+    use actix_web::{http::StatusCode, test as actix_test, App, HttpMessage};
 
     #[test]
     fn accepts_strong_password() {
@@ -458,5 +463,23 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
         let body = actix_test::read_body(response).await;
         assert_eq!(body.as_ref(), b"Hello! Your ID is 42");
+    }
+
+    #[actix_web::test]
+    async fn user_id_uses_decoded_request_extension() {
+        let app = actix_test::init_service(App::new().service(super::auth_scope())).await;
+        let request = actix_test::TestRequest::get()
+            .uri("/auth/user_id")
+            .to_request();
+        request.extensions_mut().insert(UserJWT::new(
+            77,
+            chrono::Utc::now() + chrono::Duration::hours(1),
+        ));
+
+        let response = actix_test::call_service(&app, request).await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = actix_test::read_body(response).await;
+        assert_eq!(body.as_ref(), b"Hello! Your ID is 77");
     }
 }

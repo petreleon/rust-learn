@@ -1,3 +1,4 @@
+use crate::api::authentication::authenticated_user_id;
 use crate::config::constants::permissions::Permissions;
 use crate::db;
 use crate::db::schema::{course_join_requests, courses};
@@ -19,7 +20,6 @@ use crate::services::course_service::{
     update_course_lifecycle as update_course_lifecycle_status, CourseCreationError,
     CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest, CourseUpdateError,
 };
-use crate::utils::jwt_utils::decode_jwt;
 use crate::utils::notifications::NotificationsState;
 use actix_web::{web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use diesel::prelude::*;
@@ -449,18 +449,9 @@ async fn assign_role(
     };
 
     // Identify Requester from JWT
-    let auth_header = match req.headers().get("Authorization") {
-        Some(h) => h.to_str().unwrap_or(""),
-        None => return HttpResponse::Unauthorized().body("Missing Authorization header"),
-    };
-
-    let Some(token) = auth_header.strip_prefix("Bearer ") else {
-        return HttpResponse::Unauthorized().body("Invalid Authorization header format");
-    };
-
-    let requester_id = match decode_jwt(token) {
-        Ok(data) => data.claims.user_id,
-        Err(_) => return HttpResponse::Unauthorized().body("Invalid token"),
+    let requester_id = match authenticated_user_id(&req) {
+        Ok(user_id) => user_id,
+        Err(response) => return response,
     };
 
     // Permission Check: Handled by Middleware

@@ -1,3 +1,4 @@
+use crate::api::authentication::authenticated_user_id;
 use crate::config::constants::permissions::Permissions;
 use crate::db;
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
@@ -6,7 +7,6 @@ use crate::models::user_jwt::UserJWT;
 use crate::repositories::platform_repository::{
     assign_role_to_user_with_hierarchy, user_permission_platform_request,
 };
-use crate::utils::jwt_utils::decode_jwt;
 use crate::utils::notifications::NotificationsState;
 use actix_web::{web, HttpRequest};
 use actix_web::{HttpMessage, HttpResponse, Responder};
@@ -124,18 +124,9 @@ async fn assign_role(
     };
 
     // 2. Identify Requester from JWT
-    let auth_header = match req.headers().get("Authorization") {
-        Some(h) => h.to_str().unwrap_or(""),
-        None => return HttpResponse::Unauthorized().body("Missing Authorization header"),
-    };
-
-    let Some(token) = auth_header.strip_prefix("Bearer ") else {
-        return HttpResponse::Unauthorized().body("Invalid Authorization header format");
-    };
-
-    let requester_id = match decode_jwt(token) {
-        Ok(data) => data.claims.user_id,
-        Err(_) => return HttpResponse::Unauthorized().body("Invalid token"),
+    let requester_id = match authenticated_user_id(&req) {
+        Ok(user_id) => user_id,
+        Err(response) => return response,
     };
 
     match assign_role_to_user_with_hierarchy(&mut conn, requester_id, target_user_id, role_name)
