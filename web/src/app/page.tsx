@@ -14,7 +14,7 @@ import {
   ShieldAlert,
   WalletCards,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import styles from "./page.module.css";
 
 type ApiState = "checking" | "online" | "offline";
@@ -209,6 +209,8 @@ export default function Home() {
   const resultPanelRef = useRef<HTMLElement | null>(null);
   const [apiRoot, setApiRoot] = useState(process.env.NEXT_PUBLIC_API_URL || "/api");
   const [token, setToken] = useState("");
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
+  const [sessionMessage, setSessionMessage] = useState("Not signed in");
   const [healthCheckTick, setHealthCheckTick] = useState(0);
   const [apiState, setApiState] = useState<ApiState>("checking");
   const [apiMessage, setApiMessage] = useState("Checking API");
@@ -316,6 +318,7 @@ export default function Home() {
 
   const hasPermission = (permission: string) => selectedPermissions.has(permission);
   const hasSessionToken = hasText(token);
+  const canSignIn = hasText(credentials.email) && hasText(credentials.password);
   const actionState = (
     ready = true,
     allowed = true,
@@ -391,6 +394,103 @@ export default function Home() {
       }
       return next;
     });
+  }
+
+  async function signIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canSignIn) {
+      setSessionMessage("Email and password required");
+      return;
+    }
+
+    const root = normalizeRoot(apiRoot);
+    setSessionMessage("Signing in");
+    setResult({
+      label: "Sign in",
+      status: "Pending",
+      body: "Waiting for API response.",
+      ok: true,
+    });
+
+    try {
+      const response = await fetch(`${root}/auth/login`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json, text/plain",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: credentials.email.trim(),
+          password: credentials.password,
+        }),
+      });
+      const text = await response.text();
+
+      if (!response.ok) {
+        const body = prettyBody(text);
+        setSessionMessage(body || `Sign in failed with HTTP ${response.status}`);
+        setResult({
+          label: "Sign in",
+          status: `HTTP ${response.status}`,
+          body,
+          ok: false,
+        });
+        return;
+      }
+
+      let nextToken = text.trim();
+      try {
+        const parsed: unknown = JSON.parse(text);
+        if (typeof parsed === "string") {
+          nextToken = parsed;
+        } else if (
+          parsed &&
+          typeof parsed === "object" &&
+          "token" in parsed &&
+          typeof parsed.token === "string"
+        ) {
+          nextToken = parsed.token;
+        }
+      } catch {
+        // The API currently returns a JSON string, but keep plain text tolerant.
+      }
+
+      if (!nextToken) {
+        setSessionMessage("Sign in response did not include a JWT");
+        setResult({
+          label: "Sign in",
+          status: `HTTP ${response.status}`,
+          body: "Sign in response did not include a JWT.",
+          ok: false,
+        });
+        return;
+      }
+
+      setToken(nextToken);
+      setCredentials((current) => ({ ...current, password: "" }));
+      setSessionMessage("Signed in");
+      setResult({
+        label: "Sign in",
+        status: `HTTP ${response.status}`,
+        body: "JWT loaded into this session.",
+        ok: true,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown request failure";
+      setSessionMessage(message);
+      setResult({
+        label: "Sign in",
+        status: "Request failed",
+        body: message,
+        ok: false,
+      });
+    }
+  }
+
+  function clearSession() {
+    setToken("");
+    setCredentials((current) => ({ ...current, password: "" }));
+    setSessionMessage("Session cleared");
   }
 
   async function sendApi(label: string, path: string, method: HttpMethod = "GET", body?: unknown) {
@@ -617,15 +717,66 @@ export default function Home() {
               }}
             />
           </label>
+          <form className={styles.sessionForm} onSubmit={signIn}>
+            <label className={styles.fieldLabel}>
+              Email
+              <input
+                type="email"
+                autoComplete="email"
+                value={credentials.email}
+                onChange={(event) =>
+                  setCredentials((current) => ({ ...current, email: event.target.value }))
+                }
+              />
+            </label>
+            <label className={styles.fieldLabel}>
+              Password
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={credentials.password}
+                onChange={(event) =>
+                  setCredentials((current) => ({ ...current, password: event.target.value }))
+                }
+              />
+            </label>
+            <div className={styles.sessionActions}>
+              <button
+                type="submit"
+                className={styles.primaryButton}
+                disabled={!canSignIn}
+                title={canSignIn ? undefined : "Email and password required"}
+              >
+                <KeyRound size={17} aria-hidden />
+                <span>Sign in</span>
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={clearSession}
+                disabled={!hasSessionToken}
+                title={hasSessionToken ? undefined : "No active JWT"}
+              >
+                <Ban size={17} aria-hidden />
+                <span>Clear</span>
+              </button>
+            </div>
+          </form>
           <label className={styles.fieldLabel}>
             JWT
             <textarea
               rows={4}
               value={token}
-              onChange={(event) => setToken(event.target.value)}
+              onChange={(event) => {
+                setToken(event.target.value);
+                setSessionMessage(hasText(event.target.value) ? "JWT loaded" : "Not signed in");
+              }}
               spellCheck={false}
             />
           </label>
+          <p className={styles.statusMessage} aria-live="polite">
+            {sessionMessage}
+          </p>
           <p className={styles.statusMessage} aria-live="polite">
             {apiMessage}
           </p>
