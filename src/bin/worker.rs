@@ -7,9 +7,11 @@ use std::sync::{
 use std::time::{Duration, Instant};
 
 use tokio::signal::unix::{signal, SignalKind};
-use tokio::sync::Semaphore;
+use tokio::sync::{Semaphore, TryAcquireError};
 
 use rust_learn::utils::worker as worker_utils;
+
+const WORKER_HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30);
 
 /// Worker entrypoint. Uses a tokio Semaphore to limit the number of
 /// concurrent ffmpeg processing tasks (controlled via WORKER_CONCURRENCY).
@@ -81,8 +83,16 @@ async fn main() -> Result<()> {
             shutdown.clone(),
         );
 
-    // Write an initial alive stamp for healthcheck
-    let _ = worker_utils::write_heartbeat(worker_utils::DEFAULT_WORKER_HEARTBEAT_PATH).await;
+    let heartbeat_handle = tokio::spawn(async {
+        loop {
+            if let Err(error) =
+                worker_utils::write_heartbeat(worker_utils::DEFAULT_WORKER_HEARTBEAT_PATH).await
+            {
+                log::warn!("event=worker_heartbeat_write_failed error={:?}", error);
+            }
+            tokio::time::sleep(WORKER_HEARTBEAT_INTERVAL).await;
+        }
+    });
 
     // Configure retry/backoff behaviour
     let max_attempts: i64 = worker_utils::positive_i64_from_env_value(
@@ -100,6 +110,19 @@ async fn main() -> Result<()> {
             log::info!("event=worker_shutdown_requested action=wait_for_in_flight");
             break;
         }
+
+        let permit = match sem.clone().try_acquire_owned() {
+            Ok(permit) => permit,
+            Err(TryAcquireError::NoPermits) => {
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                continue;
+            }
+            Err(TryAcquireError::Closed) => {
+                log::info!("event=worker_semaphore_closed action=exit");
+                return Ok(());
+            }
+        };
+
         // Try to atomically claim a job and return it
         let mut conn = match pool.get().await {
             Ok(c) => c,
@@ -108,6 +131,7 @@ async fn main() -> Result<()> {
                     "event=worker_db_connection_failed phase=claim error={:?}",
                     e
                 );
+                drop(permit);
                 tokio::time::sleep(Duration::from_secs(5)).await;
                 continue;
             }
@@ -116,13 +140,11 @@ async fn main() -> Result<()> {
         // Use a transaction + FOR UPDATE SKIP LOCKED to safely claim a job without raw SQL
         // Select only queued jobs whose updated_at (used as available_at for retries)
         // is either NULL or <= now() so backoff delays are respected.
-
-        // Stamp alive for healthcheck
-        let _ = worker_utils::write_heartbeat(worker_utils::DEFAULT_WORKER_HEARTBEAT_PATH).await;
-
         match rust_learn::models::upload_job::UploadJob::queue_metrics(&mut conn).await {
             Ok(metrics) => {
-                let in_flight = concurrency.saturating_sub(sem.available_permits());
+                let in_flight = concurrency
+                    .saturating_sub(sem.available_permits())
+                    .saturating_sub(1);
                 log::info!(
                     "event=worker_queue_metrics queue_depth={} queued_ready={} queued_delayed={} processing={} failed={} in_flight={} concurrency={}",
                     metrics.queue_depth(),
@@ -144,6 +166,7 @@ async fn main() -> Result<()> {
                 Ok(j) => j,
                 Err(e) => {
                     log::error!("event=worker_job_claim_failed error={:?}", e);
+                    drop(permit);
                     tokio::time::sleep(Duration::from_secs(2)).await;
                     continue;
                 }
@@ -153,18 +176,9 @@ async fn main() -> Result<()> {
             Some(j) => j,
             None => {
                 // No queued jobs; sleep and retry
+                drop(permit);
                 tokio::time::sleep(Duration::from_secs(3)).await;
                 continue;
-            }
-        };
-
-        // Acquire a permit before spawning the task so we don't exceed concurrency
-        let permit = match sem.clone().acquire_owned().await {
-            Ok(p) => p,
-            Err(_) => {
-                // semaphore closed; graceful exit
-                log::info!("event=worker_semaphore_closed action=exit");
-                return Ok(());
             }
         };
 
@@ -358,6 +372,8 @@ async fn main() -> Result<()> {
             log::warn!("event=wallet_deposit_indexer_join_failed error={:?}", error);
         }
     }
+
+    heartbeat_handle.abort();
 
     Ok(())
 }
