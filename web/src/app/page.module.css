@@ -116,6 +116,13 @@
   font: inherit;
 }
 
+.fieldLabel select,
+.actionStrip select,
+.formGrid select {
+  padding-right: 32px;
+  text-overflow: ellipsis;
+}
+
 .fieldLabel textarea,
 .formGrid textarea {
   resize: vertical;
@@ -271,7 +278,18 @@
 .iconButton:disabled,
 .formGrid:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 1;
+}
+
+.primaryButton:disabled,
+.primaryButton:disabled:hover,
+.secondaryButton:disabled,
+.secondaryButton:disabled:hover,
+.iconButton:disabled,
+.iconButton:disabled:hover {
+  background: #f1f5f9;
+  border-color: #d8dee6;
+  color: #94a3b8;
 }
 
 .metrics {

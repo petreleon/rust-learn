@@ -85,6 +85,14 @@ const rewardStatuses = [
 ];
 
 const teacherApplicationStatuses = ["submitted", "needs_changes", "approved", "rejected"];
+const delegatedPermissions = [
+  "APPROVE_REWARD_AMOUNT",
+  "VIEW_REWARD_AUDIT",
+  "MANAGE_REWARD_FRAUD_BLOCKS",
+  "SUBMIT_COURSE_REWARD_EVENT",
+  "APPROVE_STUDENT_REWARD_CANDIDATE",
+  "VIEW_ORG_REWARD_REPORTS",
+];
 
 function normalizeRoot(root: string) {
   const trimmed = root.trim();
@@ -180,6 +188,14 @@ function statusLabel(status: ApiState) {
     return "Offline";
   }
   return "Checking";
+}
+
+function optionLabel(value: string) {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`)
+    .join(" ");
 }
 
 export default function Home() {
@@ -648,9 +664,9 @@ export default function Home() {
                       setTeacherForm((current) => ({ ...current, requested_scope: event.target.value }))
                     }
                   >
-                    <option value="platform">platform</option>
-                    <option value="organization">organization</option>
-                    <option value="course">course</option>
+                    <option value="platform">{optionLabel("platform")}</option>
+                    <option value="organization">{optionLabel("organization")}</option>
+                    <option value="course">{optionLabel("course")}</option>
                   </select>
                 </label>
                 <label className={styles.fieldLabel}>
@@ -736,7 +752,7 @@ export default function Home() {
                 >
                   {teacherApplicationStatuses.map((status) => (
                     <option key={status} value={status}>
-                      {status}
+                      {optionLabel(status)}
                     </option>
                   ))}
                 </select>
@@ -764,9 +780,9 @@ export default function Home() {
                     setTeacherDecision((current) => ({ ...current, status: event.target.value }))
                   }
                 >
-                  <option value="approved">approved</option>
-                  <option value="rejected">rejected</option>
-                  <option value="needs_changes">needs_changes</option>
+                  <option value="approved">{optionLabel("approved")}</option>
+                  <option value="rejected">{optionLabel("rejected")}</option>
+                  <option value="needs_changes">{optionLabel("needs_changes")}</option>
                 </select>
                 <input
                   aria-label="Teacher decision reason"
@@ -821,7 +837,7 @@ export default function Home() {
               >
                 {rewardStatuses.map((status) => (
                   <option key={status} value={status}>
-                    {status}
+                    {optionLabel(status)}
                   </option>
                 ))}
               </select>
@@ -868,8 +884,8 @@ export default function Home() {
                     setTeacherRewardDecision((current) => ({ ...current, status: event.target.value }))
                   }
                 >
-                  <option value="approved">approved</option>
-                  <option value="rejected">rejected</option>
+                  <option value="approved">{optionLabel("approved")}</option>
+                  <option value="rejected">{optionLabel("rejected")}</option>
                 </select>
                 <input
                   aria-label="Teacher reward decision reason"
@@ -903,8 +919,8 @@ export default function Home() {
                     setAmountDecision((current) => ({ ...current, status: event.target.value }))
                   }
                 >
-                  <option value="approved">approved</option>
-                  <option value="rejected">rejected</option>
+                  <option value="approved">{optionLabel("approved")}</option>
+                  <option value="rejected">{optionLabel("rejected")}</option>
                 </select>
                 <input
                   aria-label="Approved reward amount"
@@ -955,10 +971,10 @@ export default function Home() {
                 value={historyStatus}
                 onChange={(event) => setHistoryStatus(event.target.value)}
               >
-                <option value="">all statuses</option>
+                <option value="">All statuses</option>
                 {rewardStatuses.map((status) => (
                   <option key={status} value={status}>
-                    {status}
+                    {optionLabel(status)}
                   </option>
                 ))}
               </select>
@@ -1062,10 +1078,10 @@ export default function Home() {
                       setFraudBlock((current) => ({ ...current, scope_type: event.target.value }))
                     }
                   >
-                    <option value="teacher">teacher</option>
-                    <option value="organization">organization</option>
-                    <option value="course">course</option>
-                    <option value="reward_policy">reward_policy</option>
+                    <option value="teacher">{optionLabel("teacher")}</option>
+                    <option value="organization">{optionLabel("organization")}</option>
+                    <option value="course">{optionLabel("course")}</option>
+                    <option value="reward_policy">{optionLabel("reward_policy")}</option>
                   </select>
                 </label>
                 <input
@@ -1193,14 +1209,11 @@ export default function Home() {
                   setDelegation((current) => ({ ...current, permission: event.target.value }))
                 }
               >
-                <option value="APPROVE_REWARD_AMOUNT">APPROVE_REWARD_AMOUNT</option>
-                <option value="VIEW_REWARD_AUDIT">VIEW_REWARD_AUDIT</option>
-                <option value="MANAGE_REWARD_FRAUD_BLOCKS">MANAGE_REWARD_FRAUD_BLOCKS</option>
-                <option value="SUBMIT_COURSE_REWARD_EVENT">SUBMIT_COURSE_REWARD_EVENT</option>
-                <option value="APPROVE_STUDENT_REWARD_CANDIDATE">
-                  APPROVE_STUDENT_REWARD_CANDIDATE
-                </option>
-                <option value="VIEW_ORG_REWARD_REPORTS">VIEW_ORG_REWARD_REPORTS</option>
+                {delegatedPermissions.map((permission) => (
+                  <option key={permission} value={permission}>
+                    {optionLabel(permission)}
+                  </option>
+                ))}
               </select>
               <select
                 aria-label="Delegation scope type"
@@ -1209,9 +1222,9 @@ export default function Home() {
                   setDelegation((current) => ({ ...current, scope_type: event.target.value }))
                 }
               >
-                <option value="platform">platform</option>
-                <option value="organization">organization</option>
-                <option value="course">course</option>
+                <option value="platform">{optionLabel("platform")}</option>
+                <option value="organization">{optionLabel("organization")}</option>
+                <option value="course">{optionLabel("course")}</option>
               </select>
               <input
                 aria-label="Delegation organization id"
