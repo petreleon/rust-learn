@@ -1,130 +1,21 @@
-.page {
-  min-height: 100vh;
-  padding: 24px;
-  color: #172033;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 247, 251, 0.96)),
-    #f5f7fb;
-}
-
-.topbar,
-.hero,
 .grid,
 .workspaces {
   width: min(1180px, 100%);
   margin: 0 auto;
 }
 
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 48px;
-}
-
-.brand,
-.topActions,
 .panelHeader,
 .sectionTitle,
 .buttonRow,
 .badgeRow,
-.statusStrip,
 .statusPill,
 .errorBox,
-.delegationItem {
+.delegationItem,
+.primaryLink,
+.secondaryButton,
+.secondaryLink {
   display: flex;
   align-items: center;
-}
-
-.brand {
-  gap: 10px;
-}
-
-.brandMark {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  color: #ffffff;
-  background: #1f6f8b;
-  border-radius: 8px;
-  font-weight: 800;
-}
-
-.brand small {
-  display: block;
-  margin-top: 2px;
-  color: #64748b;
-  font-size: 0.78rem;
-}
-
-.topActions {
-  gap: 8px;
-}
-
-.navLink,
-.iconButton,
-.primaryButton,
-.secondaryButton {
-  min-height: 40px;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #172033;
-}
-
-.navLink {
-  display: inline-flex;
-  align-items: center;
-  padding: 0 14px;
-  font-weight: 700;
-}
-
-.iconButton {
-  display: grid;
-  width: 40px;
-  place-items: center;
-  cursor: pointer;
-}
-
-.hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 24px;
-  align-items: end;
-  padding: 46px 0 24px;
-}
-
-.heroText {
-  min-width: 0;
-}
-
-.eyebrow {
-  color: #0f766e;
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.hero h1 {
-  margin-top: 6px;
-  font-size: clamp(2rem, 4vw, 3.25rem);
-  line-height: 1;
-}
-
-.hero p {
-  max-width: 650px;
-  margin-top: 12px;
-  color: #475569;
-  font-size: 1rem;
-  line-height: 1.55;
-}
-
-.statusStrip {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 .grid {
@@ -146,6 +37,11 @@
   padding: 18px;
 }
 
+.singlePanel {
+  width: min(760px, 100%);
+  margin: 0 auto;
+}
+
 .panelHeader,
 .sectionTitle {
   gap: 8px;
@@ -157,66 +53,44 @@
   font-size: 1rem;
 }
 
-.field {
-  display: grid;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.field span,
-.summaryTitle {
-  color: #475569;
-  font-size: 0.82rem;
-  font-weight: 800;
-}
-
-.field textarea {
-  width: 100%;
-  min-height: 132px;
-  resize: vertical;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 12px;
-  color: #172033;
-  background: #f8fafc;
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.85rem;
-  line-height: 1.45;
-}
-
 .buttonRow {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 14px;
 }
 
-.primaryButton,
-.secondaryButton {
-  display: inline-flex;
-  align-items: center;
+.primaryLink,
+.secondaryButton,
+.secondaryLink {
   justify-content: center;
   gap: 8px;
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
   padding: 0 14px;
-  cursor: pointer;
+  color: #172033;
+  background: #ffffff;
   font-weight: 800;
 }
 
-.primaryButton {
+.primaryLink {
+  width: fit-content;
   border-color: #1f6f8b;
   color: #ffffff;
   background: #1f6f8b;
 }
 
-.primaryButton:disabled {
-  cursor: progress;
-  opacity: 0.75;
+.secondaryButton {
+  cursor: pointer;
 }
 
-.secondaryButton {
-  background: #f8fafc;
+.secondaryLink {
+  width: fit-content;
+  min-height: 36px;
 }
 
 .errorBox {
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 14px;
   border: 1px solid #fecaca;
@@ -312,6 +186,12 @@
   gap: 8px;
 }
 
+.summaryTitle {
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .roleBadge {
   display: inline-flex;
   align-items: center;
@@ -375,23 +255,9 @@
 }
 
 @media (max-width: 780px) {
-  .page {
-    padding: 16px;
-  }
-
-  .hero,
   .grid,
   .cardGrid {
     grid-template-columns: 1fr;
-  }
-
-  .hero {
-    gap: 14px;
-    padding-top: 28px;
-  }
-
-  .statusStrip {
-    justify-content: flex-start;
   }
 
   .delegationItem {
@@ -401,24 +267,10 @@
 }
 
 @media (max-width: 460px) {
-  .topbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .topActions,
   .buttonRow,
-  .primaryButton,
-  .secondaryButton {
+  .primaryLink,
+  .secondaryButton,
+  .secondaryLink {
     width: 100%;
-  }
-
-  .navLink,
-  .iconButton {
-    justify-content: center;
-  }
-
-  .iconButton {
-    width: 48px;
   }
 }

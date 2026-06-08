@@ -12,7 +12,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ProductShell } from "@/components/product-shell";
 import {
+  clearStoredSessionToken,
   fetchCurrentSession,
   readStoredSessionToken,
   type CurrentSession,
@@ -23,7 +25,7 @@ import styles from "./page.module.css";
 type LoadState = "idle" | "loading" | "success" | "error";
 
 export default function AccountSettingsPage() {
-  const [initialToken] = useState(() => readStoredSessionToken() || "");
+  const [initialToken, setInitialToken] = useState(() => readStoredSessionToken() || "");
   const [loadState, setLoadState] = useState<LoadState>(initialToken ? "loading" : "idle");
   const [session, setSession] = useState<CurrentSession | null>(null);
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
@@ -41,6 +43,10 @@ export default function AccountSettingsPage() {
         nextError instanceof SessionRequestError
           ? nextError
           : new SessionRequestError("Account could not be loaded.", 0, "network_error");
+      if (requestError.status === 401 || requestError.status === 404) {
+        clearStoredSessionToken();
+        setInitialToken("");
+      }
       setSession(null);
       setError({ code: requestError.code, message: requestError.message });
       setLoadState("error");
@@ -65,40 +71,31 @@ export default function AccountSettingsPage() {
     return `${count} workspace${count === 1 ? "" : "s"}`;
   }, [session]);
 
-  return (
-    <main className={styles.page}>
-      <header className={styles.topbar}>
-        <Link className={styles.brand} href="/">
-          <span className={styles.brandMark}>RL</span>
-          <span>
-            <strong>RustLearn</strong>
-            <small>Account</small>
-          </span>
-        </Link>
-        <nav className={styles.topActions} aria-label="Account links">
-          <Link className={styles.navLink} href="/session">
-            Session
-          </Link>
-          <Link className={styles.navLink} href="/login?redirect=/settings/account">
-            Login
-          </Link>
-          <Link className={styles.navLink} href="/ops">
-            Operations
-          </Link>
-        </nav>
-      </header>
+  function signOut() {
+    clearStoredSessionToken();
+    setInitialToken("");
+    setSession(null);
+    setError(null);
+    setLoadState("idle");
+  }
 
-      <section className={styles.hero}>
-        <div>
-          <p className={styles.eyebrow}>Settings</p>
-          <h1>Account</h1>
-          <p>Profile, email status, wallet readiness, and notification preferences.</p>
-        </div>
+  return (
+    <ProductShell
+      activeNav="account"
+      breadcrumbs={[{ href: "/session", label: "Workspace" }, { label: "Account" }]}
+      description="Profile, email status, wallet readiness, and notification preferences."
+      eyebrow="Settings"
+      isSignedIn={Boolean(initialToken || session)}
+      onSignOut={signOut}
+      session={session}
+      statusItems={
         <span className={styles.statusPill}>
           <ShieldCheck size={16} aria-hidden />
           {workspaceSummary}
         </span>
-      </section>
+      }
+      title="Account"
+    >
 
       {loadState === "loading" ? (
         <section className={styles.panel}>
@@ -194,7 +191,7 @@ export default function AccountSettingsPage() {
           </article>
         </section>
       ) : null}
-    </main>
+    </ProductShell>
   );
 }
 

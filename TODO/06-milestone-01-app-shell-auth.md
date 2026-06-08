@@ -47,9 +47,9 @@ navigation.
 
 ## App Shell
 
-- [ ] Add persistent top-level layout with product identity, primary nav,
+- [x] Add persistent top-level layout with product identity, primary nav,
       workspace switcher, account menu, notification entry, and route title.
-- [ ] Add mobile navigation that does not hide primary actions behind tiny text
+- [x] Add mobile navigation that does not hide primary actions behind tiny text
       or overflow-prone controls.
 - [ ] Add breadcrumbs or contextual back links for nested learner, teacher,
       organization, and platform admin routes.
@@ -84,7 +84,7 @@ navigation.
 
 ## Acceptance Evidence
 
-- [ ] `npm run lint` and `npm run build` pass in `web/`.
+- [x] `npm run lint` and `npm run build` pass in `web/`.
 - [ ] Desktop browser check covers login, current-user loading, navigation, and
       denied state.
 - [ ] Mobile browser check covers login, nav open/close, workspace switcher,

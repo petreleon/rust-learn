@@ -4,15 +4,16 @@ import {
   AlertCircle,
   BookOpen,
   Building2,
-  CheckCircle2,
-  KeyRound,
+  Loader2,
+  LogIn,
   LogOut,
   RefreshCw,
   ShieldCheck,
   UserCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { ProductShell } from "@/components/product-shell";
 import {
   clearStoredSessionToken,
   fetchCurrentSession,
@@ -22,7 +23,6 @@ import {
   type OrganizationSessionScope,
   type PlatformSessionScope,
   SessionRequestError,
-  storeSessionToken,
 } from "@/lib/session";
 import styles from "./page.module.css";
 
@@ -31,22 +31,29 @@ type LoadState = "idle" | "loading" | "success" | "error";
 const previewLimit = 4;
 
 export default function SessionPage() {
-  const [initialToken] = useState(() => readStoredSessionToken() || "");
-  const [tokenInput, setTokenInput] = useState(initialToken);
-  const [activeToken, setActiveToken] = useState(initialToken);
+  const [hasToken, setHasToken] = useState(() => Boolean(readStoredSessionToken()));
   const [session, setSession] = useState<CurrentSession | null>(null);
-  const [loadState, setLoadState] = useState<LoadState>("idle");
+  const [loadState, setLoadState] = useState<LoadState>(() =>
+    readStoredSessionToken() ? "loading" : "idle",
+  );
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
 
-  const loadSession = useCallback(async (token: string) => {
+  const loadSession = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token) {
+      setHasToken(false);
+      setSession(null);
+      setError(null);
+      setLoadState("idle");
+      return;
+    }
+
+    setHasToken(true);
     setLoadState("loading");
     setError(null);
 
     try {
       const nextSession = await fetchCurrentSession({ token });
-      storeSessionToken(token);
-      setActiveToken(token);
-      setTokenInput(token);
       setSession(nextSession);
       setLoadState("success");
     } catch (nextError) {
@@ -54,6 +61,10 @@ export default function SessionPage() {
         nextError instanceof SessionRequestError
           ? nextError
           : new SessionRequestError("Session request failed.", 0, "network_error");
+      if (requestError.status === 401 || requestError.status === 404) {
+        clearStoredSessionToken();
+        setHasToken(false);
+      }
       setSession(null);
       setError({ code: requestError.code, message: requestError.message });
       setLoadState("error");
@@ -61,13 +72,9 @@ export default function SessionPage() {
   }, []);
 
   useEffect(() => {
-    if (!initialToken) {
-      return undefined;
-    }
-
-    const timeout = window.setTimeout(() => void loadSession(initialToken), 0);
+    const timeout = window.setTimeout(() => void loadSession(), 0);
     return () => window.clearTimeout(timeout);
-  }, [initialToken, loadSession]);
+  }, [loadSession]);
 
   const workspaceCount = useMemo(() => {
     if (!session) {
@@ -77,193 +84,191 @@ export default function SessionPage() {
     return session.organizations.length + session.courses.length;
   }, [session]);
 
-  function submitToken(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    void loadSession(tokenInput);
-  }
-
   function signOut() {
     clearStoredSessionToken();
-    setActiveToken("");
-    setTokenInput("");
+    setHasToken(false);
     setSession(null);
     setError(null);
     setLoadState("idle");
   }
 
   return (
-    <main className={styles.page}>
-      <header className={styles.topbar}>
-        <Link className={styles.brand} href="/">
-          <span className={styles.brandMark}>RL</span>
-          <span>
-            <strong>RustLearn</strong>
-            <small>Workspace</small>
-          </span>
-        </Link>
-        <nav className={styles.topActions} aria-label="Session actions">
-          {!activeToken ? (
-            <Link href="/login?redirect=/session" className={styles.navLink}>
-              Sign in
-            </Link>
-          ) : null}
-          <Link href="/settings/account" className={styles.navLink}>
-            Account
-          </Link>
-          <Link href="/ops" className={styles.navLink}>
-            Operations
-          </Link>
-          {activeToken ? (
-            <button className={styles.iconButton} type="button" onClick={signOut} aria-label="Sign out">
-              <LogOut size={18} aria-hidden />
-            </button>
-          ) : null}
-        </nav>
-      </header>
-
-      <section className={styles.hero}>
-        <div className={styles.heroText}>
-          <p className={styles.eyebrow}>Account</p>
-          <h1>Current session</h1>
-          <p>
-            Profile, workspace scopes, and delegated permissions resolved from the API.
-          </p>
-        </div>
-        <div className={styles.statusStrip} aria-live="polite">
+    <ProductShell
+      activeNav="session"
+      breadcrumbs={[{ label: "Workspace" }]}
+      description="Profile, workspace scopes, and delegated permissions resolved from the API."
+      eyebrow="Account"
+      isSignedIn={hasToken || Boolean(session)}
+      onSignOut={signOut}
+      session={session}
+      statusItems={
+        <>
           <StatusPill
             icon={<ShieldCheck size={16} aria-hidden />}
-            label={session ? "Verified session" : "No active session"}
-            tone={session ? "good" : "neutral"}
+            label={
+              loadState === "loading"
+                ? "Resolving session"
+                : session
+                  ? "Verified session"
+                  : "No active session"
+            }
+            tone={session ? "good" : loadState === "error" ? "warn" : "neutral"}
           />
           <StatusPill
             icon={<Building2 size={16} aria-hidden />}
             label={`${workspaceCount} workspaces`}
             tone="neutral"
           />
-        </div>
-      </section>
-
-      <section className={styles.grid}>
-        <form className={styles.panel} onSubmit={submitToken}>
+        </>
+      }
+      title="Current session"
+    >
+      {loadState === "idle" && !session ? (
+        <section className={`${styles.panel} ${styles.singlePanel}`}>
           <div className={styles.panelHeader}>
-            <KeyRound size={20} aria-hidden />
-            <h2>Session token</h2>
+            <LogIn size={20} aria-hidden />
+            <h2>Sign in required</h2>
           </div>
-          <label className={styles.field}>
-            <span>Bearer token</span>
-            <textarea
-              value={tokenInput}
-              onChange={(event) => setTokenInput(event.target.value)}
-              placeholder="Paste token from /api/auth/login"
-              rows={5}
-              spellCheck={false}
-            />
-          </label>
-          <div className={styles.buttonRow}>
-            <button className={styles.primaryButton} type="submit" disabled={loadState === "loading"}>
-              {loadState === "loading" ? (
-                <RefreshCw className={styles.spin} size={18} aria-hidden />
-              ) : (
-                <CheckCircle2 size={18} aria-hidden />
-              )}
-              Load session
-            </button>
-            {activeToken ? (
-              <button className={styles.secondaryButton} type="button" onClick={() => void loadSession(activeToken)}>
-                <RefreshCw size={18} aria-hidden />
-                Refresh
-              </button>
-            ) : null}
-          </div>
-          {error ? (
-            <div className={styles.errorBox} role="status">
-              <AlertCircle size={18} aria-hidden />
-              <span>
-                <strong>{error.code}</strong>
-                {error.message}
-              </span>
-            </div>
-          ) : null}
-        </form>
-
-        <section className={styles.panel} aria-label="Current user">
-          <div className={styles.panelHeader}>
-            <UserCircle size={20} aria-hidden />
-            <h2>Profile</h2>
-          </div>
-          {session ? (
-            <div className={styles.profileBlock}>
-              <div>
-                <p className={styles.profileName}>{session.user.name}</p>
-                <p className={styles.muted}>{session.user.email}</p>
-              </div>
-              <div className={styles.badgeRow}>
-                <StatusPill
-                  label={session.user.email_verified ? "Email verified" : "Email pending"}
-                  tone={session.user.email_verified ? "good" : "warn"}
-                />
-                <StatusPill
-                  label={session.user.kyc_verified ? "KYC verified" : "KYC pending"}
-                  tone={session.user.kyc_verified ? "good" : "neutral"}
-                />
-              </div>
-              <ScopeSummary title="Platform" scope={session.platform} />
-            </div>
-          ) : (
-            <EmptyState title="No profile loaded" detail="Load a session to resolve account access." />
-          )}
+          <p className={styles.muted}>
+            The workspace loads from the session created by the login flow. No manual token
+            paste is needed on product routes.
+          </p>
+          <Link className={styles.primaryLink} href="/login?redirect=/session">
+            <LogIn size={18} aria-hidden />
+            Sign in
+          </Link>
         </section>
-      </section>
+      ) : null}
 
-      <section className={styles.workspaces}>
-        <SectionTitle icon={<Building2 size={20} aria-hidden />} title="Organizations" />
-        {session?.organizations.length ? (
-          <div className={styles.cardGrid}>
-            {session.organizations.map((organization) => (
-              <OrganizationCard key={organization.id} organization={organization} />
-            ))}
+      {loadState === "loading" ? (
+        <section className={`${styles.panel} ${styles.singlePanel}`} aria-live="polite">
+          <div className={styles.panelHeader}>
+            <Loader2 className={styles.spin} size={20} aria-hidden />
+            <h2>Loading workspace</h2>
           </div>
-        ) : (
-          <EmptyState title="No organization access" detail="Organization scopes will appear here." />
-        )}
-      </section>
+          <p className={styles.muted}>
+            Resolving your account, permissions, organizations, courses, and delegated access.
+          </p>
+        </section>
+      ) : null}
 
-      <section className={styles.workspaces}>
-        <SectionTitle icon={<BookOpen size={20} aria-hidden />} title="Courses" />
-        {session?.courses.length ? (
-          <div className={styles.cardGrid}>
-            {session.courses.map((course) => (
-              <CourseCard key={course.id} course={course} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="No course access" detail="Course enrollments and teaching scopes will appear here." />
-        )}
-      </section>
+      {error ? (
+        <section className={`${styles.errorBox} ${styles.singlePanel}`} role="status">
+          <AlertCircle size={18} aria-hidden />
+          <span>
+            <strong>{error.code}</strong>
+            {error.message}
+          </span>
+          <Link className={styles.secondaryLink} href="/login?redirect=/session">
+            Return to login
+          </Link>
+        </section>
+      ) : null}
 
-      <section className={styles.workspaces}>
-        <SectionTitle icon={<ShieldCheck size={20} aria-hidden />} title="Delegated permissions" />
-        {session?.delegated_permissions.length ? (
-          <div className={styles.delegationList}>
-            {session.delegated_permissions.map((delegation) => (
-              <article className={styles.delegationItem} key={delegation.id}>
+      {session ? (
+        <>
+          <section className={styles.grid}>
+            <section className={styles.panel} aria-label="Workspace status">
+              <div className={styles.panelHeader}>
+                <ShieldCheck size={20} aria-hidden />
+                <h2>Access status</h2>
+              </div>
+              <p className={styles.muted}>
+                Use this page to inspect the account and workspace scopes that product routes use
+                for navigation and permission gates.
+              </p>
+              <div className={styles.buttonRow}>
+                <button
+                  className={styles.secondaryButton}
+                  type="button"
+                  onClick={() => void loadSession()}
+                >
+                  <RefreshCw size={18} aria-hidden />
+                  Refresh
+                </button>
+                <button className={styles.secondaryButton} type="button" onClick={signOut}>
+                  <LogOut size={18} aria-hidden />
+                  Sign out
+                </button>
+              </div>
+            </section>
+
+            <section className={styles.panel} aria-label="Current user">
+              <div className={styles.panelHeader}>
+                <UserCircle size={20} aria-hidden />
+                <h2>Profile</h2>
+              </div>
+              <div className={styles.profileBlock}>
                 <div>
-                  <strong>{delegation.permission}</strong>
-                  <p className={styles.muted}>
-                    {delegation.organization_name ||
-                      delegation.course_title ||
-                      delegation.scope_type}
-                  </p>
+                  <p className={styles.profileName}>{session.user.name}</p>
+                  <p className={styles.muted}>{session.user.email}</p>
                 </div>
-                <StatusPill label={delegation.expires_at ? "Expires" : "No expiry"} tone="neutral" />
-              </article>
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="No active delegations" detail="Temporary permissions will appear with scope context." />
-        )}
-      </section>
-    </main>
+                <div className={styles.badgeRow}>
+                  <StatusPill
+                    label={session.user.email_verified ? "Email verified" : "Email pending"}
+                    tone={session.user.email_verified ? "good" : "warn"}
+                  />
+                  <StatusPill
+                    label={session.user.kyc_verified ? "KYC verified" : "KYC pending"}
+                    tone={session.user.kyc_verified ? "good" : "neutral"}
+                  />
+                </div>
+                <ScopeSummary title="Platform" scope={session.platform} />
+              </div>
+            </section>
+          </section>
+
+          <section className={styles.workspaces}>
+            <SectionTitle icon={<Building2 size={20} aria-hidden />} title="Organizations" />
+            {session.organizations.length ? (
+              <div className={styles.cardGrid}>
+                {session.organizations.map((organization) => (
+                  <OrganizationCard key={organization.id} organization={organization} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No organization access" detail="Organization scopes will appear here." />
+            )}
+          </section>
+
+          <section className={styles.workspaces}>
+            <SectionTitle icon={<BookOpen size={20} aria-hidden />} title="Courses" />
+            {session.courses.length ? (
+              <div className={styles.cardGrid}>
+                {session.courses.map((course) => (
+                  <CourseCard key={course.id} course={course} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No course access" detail="Course enrollments and teaching scopes will appear here." />
+            )}
+          </section>
+
+          <section className={styles.workspaces}>
+            <SectionTitle icon={<ShieldCheck size={20} aria-hidden />} title="Delegated permissions" />
+            {session.delegated_permissions.length ? (
+              <div className={styles.delegationList}>
+                {session.delegated_permissions.map((delegation) => (
+                  <article className={styles.delegationItem} key={delegation.id}>
+                    <div>
+                      <strong>{delegation.permission}</strong>
+                      <p className={styles.muted}>
+                        {delegation.organization_name ||
+                          delegation.course_title ||
+                          delegation.scope_type}
+                      </p>
+                    </div>
+                    <StatusPill label={delegation.expires_at ? "Expires" : "No expiry"} tone="neutral" />
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No active delegations" detail="Temporary permissions will appear with scope context." />
+            )}
+          </section>
+        </>
+      ) : null}
+    </ProductShell>
   );
 }
 

@@ -2,7 +2,7 @@
 
 ## App Shell And Routing
 
-- [ ] Create a route-based app shell with persistent navigation, account menu,
+- [x] Create a route-based app shell with persistent navigation, account menu,
       workspace switcher, notifications, and contextual actions.
 - [ ] Add public routes for landing, login, registration, email verification,
       password recovery, and course discovery.
@@ -22,16 +22,16 @@
 
 ## Authentication And Session UX
 
-- [ ] Replace the manual session panel with normal login, logout, registration,
+- [x] Replace the manual session panel with normal login, logout, registration,
       and account recovery screens.
-- [ ] Add current-user loading that resolves profile, platform permissions,
+- [x] Add current-user loading that resolves profile, platform permissions,
       organization memberships, course enrollments, and delegated permissions.
-- [ ] Persist session state intentionally and document the chosen storage model.
-- [ ] Handle expired, missing, invalid, and server-revoked sessions with clear
+- [x] Persist session state intentionally and document the chosen storage model.
+- [x] Handle expired, missing, invalid, and server-revoked sessions with clear
       redirects and messages.
 - [ ] Show permission-denied states in context instead of only disabling
       controls.
-- [ ] Add account settings for profile data, email verification status, wallet
+- [x] Add account settings for profile data, email verification status, wallet
       connection status, and notification preferences.
 
 ## Learner Experience
