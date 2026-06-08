@@ -382,6 +382,42 @@
   font-size: 0.86rem;
 }
 
+.panelNotice {
+  min-height: 42px;
+  margin-bottom: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  padding: 9px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.panelNotice svg {
+  margin-top: 1px;
+  color: #64748b;
+  flex: 0 0 auto;
+}
+
+.panelNotice div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.panelNotice strong {
+  font-size: 0.86rem;
+}
+
+.panelNotice span {
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

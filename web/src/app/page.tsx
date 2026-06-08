@@ -219,6 +219,18 @@ function flowStatus(hasAccess: boolean, hasSessionToken: boolean) {
   return hasSessionToken ? "Open" : "Needs JWT";
 }
 
+function PermissionNotice({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div className={styles.panelNotice} role="status">
+      <ShieldAlert size={16} aria-hidden />
+      <div>
+        <strong>{title}</strong>
+        <span>{detail}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const resultPanelRef = useRef<HTMLElement | null>(null);
   const [apiRoot, setApiRoot] = useState(process.env.NEXT_PUBLIC_API_URL || "/api");
@@ -365,6 +377,11 @@ export default function Home() {
     hasPermission("BLOCK_REWARD_ORGANIZATION");
   const canDelegate = hasPermission("DELEGATE_REWARD_APPROVAL");
   const canExport = hasPermission("EXPORT_DATA");
+  const canUseTeacherWorkflow = canTeacherApply || canReviewTeachers || canDecideTeachers;
+  const canUseRewardWorkflow =
+    canSubmitReward || canViewCourseRewards || canTeacherApproveReward || canApproveAmount;
+  const canUseReportWorkflow = canViewOrgReports || canExport;
+  const canUseFraudWorkflow = canViewFraud || canManageFraud;
   const canSubmitTeacherApplicationForm =
     hasText(teacherForm.experience_summary) &&
     (teacherForm.requested_scope === "platform" ||
@@ -860,13 +877,11 @@ export default function Home() {
         <section className={styles.metrics} aria-label="Workflow access">
           <div className={styles.metric}>
             <span>Teacher flow</span>
-            <strong>{flowStatus(canTeacherApply || canReviewTeachers, hasSessionToken)}</strong>
+            <strong>{flowStatus(canUseTeacherWorkflow, hasSessionToken)}</strong>
           </div>
           <div className={styles.metric}>
             <span>Reward flow</span>
-            <strong>
-              {flowStatus(canSubmitReward || canTeacherApproveReward || canApproveAmount, hasSessionToken)}
-            </strong>
+            <strong>{flowStatus(canUseRewardWorkflow, hasSessionToken)}</strong>
           </div>
           <div className={styles.metric}>
             <span>Audit flow</span>
@@ -893,6 +908,13 @@ export default function Home() {
               </div>
               <GraduationCap size={22} aria-hidden />
             </div>
+
+            {!canUseTeacherWorkflow && (
+              <PermissionNotice
+                title="Teacher permissions disabled"
+                detail="Enable application or review permissions to show teacher workflow actions."
+              />
+            )}
 
             {canTeacherApply && (
               <div className={styles.formGrid}>
@@ -1098,6 +1120,13 @@ export default function Home() {
               </select>
             </div>
 
+            {!canUseRewardWorkflow && (
+              <PermissionNotice
+                title="Reward permissions disabled"
+                detail="Enable course reward permissions to submit, load, or approve candidates."
+              />
+            )}
+
             {canSubmitReward && (
               <div className={styles.actionStrip}>
                 <input
@@ -1222,6 +1251,12 @@ export default function Home() {
               </div>
               <History size={22} aria-hidden />
             </div>
+            {!canViewCourseRewards && (
+              <PermissionNotice
+                title="Reward history permission disabled"
+                detail="Enable course reward status permission to load student history."
+              />
+            )}
             <div className={styles.actionStrip}>
               <select
                 aria-label="Reward history status filter"
@@ -1255,6 +1290,12 @@ export default function Home() {
               </div>
               <Download size={22} aria-hidden />
             </div>
+            {!canUseReportWorkflow && (
+              <PermissionNotice
+                title="Reporting permissions disabled"
+                detail="Enable organization report or export permissions to use reporting actions."
+              />
+            )}
             <div className={styles.actionStrip}>
               <input
                 aria-label="Report organization id"
@@ -1337,6 +1378,12 @@ export default function Home() {
               </div>
               <ShieldAlert size={22} aria-hidden />
             </div>
+            {!canUseFraudWorkflow && (
+              <PermissionNotice
+                title="Fraud permissions disabled"
+                detail="Enable fraud audit or management permissions to inspect reward blocks."
+              />
+            )}
             {canManageFraud && (
               <div className={styles.formGrid}>
                 <label className={styles.fieldLabel}>
@@ -1476,6 +1523,12 @@ export default function Home() {
               </div>
               <KeyRound size={22} aria-hidden />
             </div>
+            {!canDelegate && (
+              <PermissionNotice
+                title="Delegation permission disabled"
+                detail="Enable delegated reward approval permission to grant or revoke delegations."
+              />
+            )}
             <fieldset className={styles.formGrid} disabled={!canDelegate}>
               <input
                 aria-label="Delegation grantee user id"
