@@ -1,0 +1,119 @@
+# Milestone 5: Platform Admin Experience
+
+Goal: give platform operators a serious admin workspace for teacher review,
+reward amount review, fraud controls, delegated permissions, exports, wallet
+reconciliation, and system health.
+
+## Self-Criticism Before Building
+
+- [ ] If platform admin screens expose raw queues without prioritization,
+      filters, or audit context, reject the dashboard.
+- [ ] If reward amount review looks like teacher approval, reject the flow.
+- [ ] If fraud controls can be triggered without confirmation and audit
+      visibility, reject the interaction.
+- [ ] If delegated permission grant/revoke lacks scope and expiry clarity,
+      reject it.
+- [ ] If exports or reconciliation actions cannot be explained after failure,
+      reject the UX.
+
+## Backend Contracts
+
+- [ ] Platform dashboard summary with pending teacher applications, reward
+      amount reviews, payout failures, active fraud blocks, reconciliation
+      mismatches, exports, and system health.
+- [ ] Teacher application queue with filters, detail, audit, and decisions.
+- [ ] Reward amount review queue with teacher-approved candidates only.
+- [ ] Fraud block list, create, audit, revoke, expiration, and scoped target
+      search.
+- [ ] Delegated permission list, grant, revoke, expiration, scope, and usage
+      audit.
+- [ ] Export endpoints with CSV response handling and status/failure behavior.
+- [ ] Wallet reconciliation and transaction audit endpoints.
+- [ ] Health/readiness and runtime status endpoints suitable for admin display.
+
+## Routes And Screens
+
+- [ ] `/admin` platform admin dashboard.
+- [ ] `/admin/teacher-applications` review queue.
+- [ ] `/admin/teacher-applications/[applicationId]` detail, decision, and
+      audit.
+- [ ] `/admin/rewards/amount-review` reward amount queue.
+- [ ] `/admin/rewards/[candidateId]` reward candidate detail and audit context.
+- [ ] `/admin/fraud-blocks` fraud block list and create flow.
+- [ ] `/admin/fraud-blocks/[blockId]` block detail, audit, and revoke.
+- [ ] `/admin/delegations` delegated permission management.
+- [ ] `/admin/exports` report exports and CSV downloads.
+- [ ] `/admin/wallets` wallet reconciliation and transaction audit.
+- [ ] `/admin/system` readiness, health, and runtime status.
+
+## Teacher Application Review
+
+- [ ] Queue supports status filters, search, pagination, stale refresh, and
+      empty state.
+- [ ] Detail page shows applicant, requested scope, sponsor, portfolio links,
+      current status, decision history, and audit events.
+- [ ] Decision form supports approve, needs changes, reject, required reasons,
+      conflict handling, and post-decision audit visibility.
+- [ ] Approved scope clearly maps to the permission bundle or backend action
+      that will be assigned.
+
+## Reward Amount Review
+
+- [ ] Queue includes only candidates that completed course-scoped teacher
+      approval or explicitly valid prior state.
+- [ ] Detail shows eligibility, course context, student context, teacher
+      decision, fraud block state, prior reward history, and calculated amount
+      source.
+- [ ] Amount decision cannot submit blank, negative, malformed, or unauthorized
+      values.
+- [ ] Conflict response refreshes the candidate and explains the state change.
+- [ ] Token pending, token confirmed, wallet credited, needs reconciliation,
+      and failed statuses are represented clearly.
+
+## Fraud Blocks And Delegation
+
+- [ ] Fraud block create flow supports teacher, organization, course, and
+      reward policy targets through searchable pickers.
+- [ ] Fraud block requires reason and optional evidence reference.
+- [ ] Fraud block revoke requires confirmation, reason when required, and audit
+      visibility.
+- [ ] Delegation grant flow shows grantee, permission, scope, expiration,
+      reason, and risk explanation.
+- [ ] Delegation list distinguishes active, expired, revoked, and scoped
+      elsewhere.
+- [ ] Revoke flow confirms impact and preserves historical context.
+
+## Exports, Wallets, And System Health
+
+- [ ] Export list explains report purpose, permission requirements, filters,
+      CSV download status, empty exports, and failed exports.
+- [ ] Wallet reconciliation shows internal ledger, external transaction links,
+      reward records, missing credits, missing notifications, and repair state.
+- [ ] System health distinguishes API liveness, readiness, database, storage,
+      Ethereum RPC, worker heartbeat, and web health.
+- [ ] Admin screens avoid leaking secrets, raw private keys, or sensitive
+      environment values.
+
+## Platform Admin Edge Cases
+
+- [ ] Admin has teacher-review permission but not reward-review permission.
+- [ ] Admin has reward-review permission but fraud block prevents action.
+- [ ] Application or reward candidate is decided by another reviewer while
+      detail page is open.
+- [ ] Delegated permission expires between form open and submit.
+- [ ] Fraud block target is already blocked or revoked.
+- [ ] Export is large, empty, denied, slow, or fails after request starts.
+- [ ] Wallet reconciliation can repair one side effect but not another.
+- [ ] Health endpoint is live while readiness dependency is down.
+
+## Acceptance Evidence
+
+- [ ] Desktop and mobile checks for admin dashboard, teacher review, reward
+      amount review, fraud blocks, delegations, exports, wallets, and system.
+- [ ] Tests for split platform permissions, conflict decisions, fraud-blocked
+      rewards, expired delegation, failed CSV, and readiness dependency down.
+- [ ] Docker Compose E2E path: admin dashboard, teacher review or reward amount
+      decision, report/export, log scan.
+- [ ] Kubernetes smoke path loads `/admin`, verifies in-cluster API readiness
+      behavior, and scans recent app/web/worker logs.
+

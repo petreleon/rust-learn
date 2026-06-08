@@ -14,7 +14,7 @@ The long-term goal is to provide a trustworthy platform where:
 - platform administrators can operate global roles, permissions, wallets, exports, and integrations;
 - blockchain-backed reward flows can be tested and audited before broader deployment.
 
-See [`VISION.md`](VISION.md) for the product and architecture direction, and [`TODO.md`](TODO.md) for the current roadmap.
+See [`VISION.md`](VISION.md) for the product and architecture direction, and [`TODO/`](TODO/) for the current roadmap.
 The target LearnToken reward flow is defined in
 [`REWARD_LIFECYCLE.md`](REWARD_LIFECYCLE.md).
 
@@ -41,7 +41,7 @@ The target LearnToken reward flow is defined in
 ├── Makefile                # Common development, Docker, Kubernetes, and test commands
 ├── PERMISSIONS.md          # Current role/permission matrix
 ├── VISION.md               # Product and architecture vision
-├── TODO.md                 # Prioritized project roadmap
+├── TODO/                   # Prioritized project roadmap
 └── AGENTS.md               # Contributor/AI-agent guidance
 ```
 
@@ -743,7 +743,7 @@ make k8s-delete
 ## Documentation
 
 - [`VISION.md`](VISION.md) — mission, architecture direction, strategic pillars, and near-term outcomes.
-- [`TODO.md`](TODO.md) — prioritized implementation roadmap.
+- [`TODO/`](TODO/) — prioritized implementation roadmap.
 - [`PERMISSIONS.md`](PERMISSIONS.md) — current permissions assigned to platform, organization, and course roles.
 - [`THIRD_PARTY.md`](THIRD_PARTY.md) — third-party Rust crates, Docker images, and external tools.
 - [`AGENTS.md`](AGENTS.md) — repository guidance for AI agents and contributors.

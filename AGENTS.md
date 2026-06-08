@@ -34,7 +34,7 @@ RustLearn is an incentivized learning platform. The backend is a Rust/Actix Web 
 - When adding or changing permissions, update the matching constants, seed migrations, middleware usage, and `PERMISSIONS.md` if the documented matrix changes.
 - When adding migrations, include both `up.sql` and `down.sql`, and regenerate/check `src/db/schema.rs` when schema changes require it.
 - When changing Ethereum contracts, update artifacts using the existing tooling/tests and run blockchain integration tests when feasible.
-- When changing worker behavior, document any new environment variables in `.env.example`, `README.md`, and `TODO.md` if they affect operations.
+- When changing worker behavior, document any new environment variables in `.env.example`, `README.md`, and `TODO/` if they affect operations.
 
 ## Useful commands
 
