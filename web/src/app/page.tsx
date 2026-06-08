@@ -125,6 +125,11 @@ function hasPositiveInteger(value: string) {
   return /^[1-9]\d*$/.test(value.trim());
 }
 
+function optionalPositiveInteger(value: string) {
+  const trimmed = value.trim();
+  return hasPositiveInteger(trimmed) ? Number(trimmed) : undefined;
+}
+
 function hasNonNegativeNumber(value: string) {
   const trimmed = value.trim();
   if (!trimmed) {
@@ -559,12 +564,18 @@ export default function Home() {
   }
 
   function submitTeacherApplication() {
+    const requestedScope = teacherForm.requested_scope;
+
     void sendApi("Submit teacher application", "/teacher-applications", "POST", {
-      requested_scope: teacherForm.requested_scope,
-      requested_organization_id: optionalNumber(teacherForm.requested_organization_id),
-      requested_course_id: optionalNumber(teacherForm.requested_course_id),
+      requested_scope: requestedScope,
+      requested_organization_id:
+        requestedScope === "organization"
+          ? optionalPositiveInteger(teacherForm.requested_organization_id)
+          : undefined,
+      requested_course_id:
+        requestedScope === "course" ? optionalPositiveInteger(teacherForm.requested_course_id) : undefined,
       experience_summary: teacherForm.experience_summary,
-      organization_sponsor_id: optionalNumber(teacherForm.organization_sponsor_id),
+      organization_sponsor_id: optionalPositiveInteger(teacherForm.organization_sponsor_id),
       portfolio_links: splitLinks(teacherForm.portfolio_links),
     });
   }
@@ -590,7 +601,7 @@ export default function Home() {
 
   function submitRewardCandidate() {
     void sendApi("Submit reward candidate", `/courses/${rewardCourseId}/reward-candidates`, "POST", {
-      student_user_id: optionalNumber(rewardStudentId),
+      student_user_id: optionalPositiveInteger(rewardStudentId),
       event_type: "course_completion",
       evidence: { completion_percentage: 100 },
     });
@@ -649,15 +660,18 @@ export default function Home() {
     void sendApi("Create reward fraud block", "/reward-fraud-blocks", "POST", {
       scope_type: fraudBlock.scope_type,
       teacher_user_id:
-        fraudBlock.scope_type === "teacher" ? optionalNumber(fraudBlock.teacher_user_id) : undefined,
+        fraudBlock.scope_type === "teacher"
+          ? optionalPositiveInteger(fraudBlock.teacher_user_id)
+          : undefined,
       organization_id:
         fraudBlock.scope_type === "organization"
-          ? optionalNumber(fraudBlock.organization_id)
+          ? optionalPositiveInteger(fraudBlock.organization_id)
           : undefined,
-      course_id: fraudBlock.scope_type === "course" ? optionalNumber(fraudBlock.course_id) : undefined,
+      course_id:
+        fraudBlock.scope_type === "course" ? optionalPositiveInteger(fraudBlock.course_id) : undefined,
       reward_policy_id:
         fraudBlock.scope_type === "reward_policy"
-          ? optionalNumber(fraudBlock.reward_policy_id)
+          ? optionalPositiveInteger(fraudBlock.reward_policy_id)
           : undefined,
       reason: fraudBlock.reason,
       evidence_reference: fraudBlock.evidence_reference || undefined,
@@ -678,12 +692,15 @@ export default function Home() {
 
   function grantDelegation() {
     void sendApi("Grant delegated permission", "/delegated-permissions", "POST", {
-      grantee_user_id: optionalNumber(delegation.grantee_user_id),
+      grantee_user_id: optionalPositiveInteger(delegation.grantee_user_id),
       permission: delegation.permission,
       scope_type: delegation.scope_type,
       organization_id:
-        delegation.scope_type === "organization" ? optionalNumber(delegation.organization_id) : undefined,
-      course_id: delegation.scope_type === "course" ? optionalNumber(delegation.course_id) : undefined,
+        delegation.scope_type === "organization"
+          ? optionalPositiveInteger(delegation.organization_id)
+          : undefined,
+      course_id:
+        delegation.scope_type === "course" ? optionalPositiveInteger(delegation.course_id) : undefined,
       reason: delegation.reason || undefined,
       expires_at: delegation.expires_at || undefined,
     });
@@ -882,32 +899,36 @@ export default function Home() {
                     <option value="course">{optionLabel("course")}</option>
                   </select>
                 </label>
-                <label className={styles.fieldLabel}>
-                  Organization id
-                  <input
-                    {...positiveIntegerInputProps}
-                    value={teacherForm.requested_organization_id}
-                    onChange={(event) =>
-                      setTeacherForm((current) => ({
-                        ...current,
-                        requested_organization_id: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-                <label className={styles.fieldLabel}>
-                  Course id
-                  <input
-                    {...positiveIntegerInputProps}
-                    value={teacherForm.requested_course_id}
-                    onChange={(event) =>
-                      setTeacherForm((current) => ({
-                        ...current,
-                        requested_course_id: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
+                {teacherForm.requested_scope === "organization" && (
+                  <label className={styles.fieldLabel}>
+                    Organization id
+                    <input
+                      {...positiveIntegerInputProps}
+                      value={teacherForm.requested_organization_id}
+                      onChange={(event) =>
+                        setTeacherForm((current) => ({
+                          ...current,
+                          requested_organization_id: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                )}
+                {teacherForm.requested_scope === "course" && (
+                  <label className={styles.fieldLabel}>
+                    Course id
+                    <input
+                      {...positiveIntegerInputProps}
+                      value={teacherForm.requested_course_id}
+                      onChange={(event) =>
+                        setTeacherForm((current) => ({
+                          ...current,
+                          requested_course_id: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                )}
                 <label className={styles.fieldLabel}>
                   Sponsor org id
                   <input
