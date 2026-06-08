@@ -4,6 +4,8 @@ Next.js operations console for reward, teacher-application, reporting, fraud,
 delegation, and wallet workflows.
 
 `/login` is the product sign-in route for email/password authentication.
+`/register` creates unverified learner accounts and shows the local mock-email
+next step. `/verify-email` confirms account email tokens before login.
 `/session` is the first product-session surface. It calls `GET /api/me` and
 renders the resolved user profile, platform permissions, organization scopes,
 course scopes, and active delegated permissions for route-guard work.

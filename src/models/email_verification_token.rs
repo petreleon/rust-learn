@@ -26,6 +26,14 @@ pub struct NewEmailVerificationToken {
     pub expires_at: NaiveDateTime,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum EmailVerificationResult {
+    Verified,
+    AlreadyVerified,
+    Expired,
+    Invalid,
+}
+
 impl EmailVerificationToken {
     pub async fn create_for_user(
         conn: &mut AsyncPgConnection,
@@ -57,21 +65,35 @@ impl EmailVerificationToken {
             .await
     }
 
-    pub async fn verify(conn: &mut AsyncPgConnection, token_hash: &str) -> QueryResult<bool> {
+    pub async fn verify(
+        conn: &mut AsyncPgConnection,
+        token_hash: &str,
+    ) -> QueryResult<EmailVerificationResult> {
         use crate::db::schema::email_verification_tokens::dsl as tokens;
 
         let now = Utc::now().naive_utc();
         let token = tokens::email_verification_tokens
             .filter(tokens::token_hash.eq(token_hash))
-            .filter(tokens::used_at.is_null())
-            .filter(tokens::expires_at.gt(now))
             .first::<EmailVerificationToken>(conn)
             .await
             .optional()?;
 
         let Some(token) = token else {
-            return Ok(false);
+            return Ok(EmailVerificationResult::Invalid);
         };
+
+        let user = users::table.find(token.user_id).first::<User>(conn).await?;
+        if user.email_verified {
+            return Ok(EmailVerificationResult::AlreadyVerified);
+        }
+
+        if token.used_at.is_some() {
+            return Ok(EmailVerificationResult::Invalid);
+        }
+
+        if token.expires_at <= now {
+            return Ok(EmailVerificationResult::Expired);
+        }
 
         diesel::update(users::table.find(token.user_id))
             .set(users::email_verified.eq(true))
@@ -83,6 +105,6 @@ impl EmailVerificationToken {
             .execute(conn)
             .await?;
 
-        Ok(true)
+        Ok(EmailVerificationResult::Verified)
     }
 }

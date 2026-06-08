@@ -36,7 +36,7 @@ navigation.
       email, server failure, timeout, and redirect back to intended route.
 - [x] `/register` supports password policy feedback, duplicate email, mock
       email-verification explanation, and post-register next step.
-- [ ] `/verify-email` supports valid token, expired token, invalid token, and
+- [x] `/verify-email` supports valid token, expired token, invalid token, and
       already-verified states.
 - [ ] `/forgot-password` and `/reset-password` exist as product-ready shells or
       are explicitly deferred with non-broken navigation.

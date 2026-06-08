@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::db;
 use crate::models::authentication::Authentication;
-use crate::models::email_verification_token::EmailVerificationToken;
+use crate::models::email_verification_token::{EmailVerificationResult, EmailVerificationToken};
 use crate::models::role::PlatformRole;
 use crate::models::user::{NewUser, User};
 use crate::models::user_role_platform::UserRolePlatform;
@@ -259,8 +259,18 @@ pub async fn verify_email(
 
     let token_hash = verification_token_hash(token);
     match EmailVerificationToken::verify(&mut conn, &token_hash).await {
-        Ok(true) => HttpResponse::Ok().body("Email verified successfully"),
-        Ok(false) => HttpResponse::BadRequest().body("Invalid or expired verification token"),
+        Ok(EmailVerificationResult::Verified) => {
+            HttpResponse::Ok().body("Email verified successfully")
+        }
+        Ok(EmailVerificationResult::AlreadyVerified) => {
+            HttpResponse::Ok().body("Email already verified")
+        }
+        Ok(EmailVerificationResult::Expired) => {
+            HttpResponse::BadRequest().body("Verification token expired")
+        }
+        Ok(EmailVerificationResult::Invalid) => {
+            HttpResponse::BadRequest().body("Invalid verification token")
+        }
         Err(err) => {
             log::error!("event=email_verification_failed error={}", err);
             HttpResponse::InternalServerError().body("Failed to verify email token")

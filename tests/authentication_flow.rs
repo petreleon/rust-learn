@@ -7,13 +7,20 @@ use rust_learn::db::schema::{
     authentications, email_verification_tokens, user_role_platform, users,
 };
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::models::email_verification_token::EmailVerificationToken;
 use rust_learn::models::role::PlatformRole;
 use rust_learn::models::user::User;
+use rust_learn::utils::email::verification_token_hash;
 use rust_learn::utils::jwt_utils::decode_jwt;
 
 fn unique_email(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}+{}-{}@example.com", prefix, std::process::id(), ts)
+}
+
+fn unique_token(prefix: &str) -> String {
+    let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
+    format!("{}-{}-{}", prefix, std::process::id(), ts)
 }
 
 async fn setup_conn(
@@ -215,6 +222,127 @@ async fn register_rejects_weak_password_and_login_rejects_bad_credentials() {
     assert_eq!(bad_login_resp.status(), StatusCode::UNAUTHORIZED);
     let body = test::read_body(bad_login_resp).await;
     assert_eq!(body.as_ref(), b"Invalid credentials");
+}
+
+#[actix_web::test]
+async fn verify_email_marks_user_verified_and_reports_already_verified_replay() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+    let app = test::init_service(auth_test_app(pool.clone())).await;
+    let mut conn = setup_conn(&pool).await;
+
+    let user = rust_learn::repositories::user_repository::create_user(
+        &mut conn,
+        "Verify Email",
+        &unique_email("auth-verify"),
+        Some(NaiveDate::from_ymd_opt(2004, 4, 4).unwrap()),
+        "ValidPass123!",
+    )
+    .await
+    .expect("failed to create user");
+    diesel::update(users::table.find(user.id()))
+        .set(users::email_verified.eq(false))
+        .execute(&mut conn)
+        .await
+        .expect("test should mark user unverified");
+
+    let token = unique_token("verify-email-valid-token");
+    EmailVerificationToken::create_for_user(&mut conn, user.id(), verification_token_hash(&token))
+        .await
+        .expect("failed to create verification token");
+    drop(conn);
+
+    let verify_resp = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri(&format!("/api/auth/verify-email?token={token}"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(verify_resp.status(), StatusCode::OK);
+    let body = test::read_body(verify_resp).await;
+    assert_eq!(body.as_ref(), b"Email verified successfully");
+
+    let mut conn = setup_conn(&pool).await;
+    let verified = User::find_by_id(user.id(), &mut conn)
+        .await
+        .expect("user should still exist");
+    assert!(verified.email_verified);
+    drop(conn);
+
+    let replay_resp = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri(&format!("/api/auth/verify-email?token={token}"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(replay_resp.status(), StatusCode::OK);
+    let body = test::read_body(replay_resp).await;
+    assert_eq!(body.as_ref(), b"Email already verified");
+}
+
+#[actix_web::test]
+async fn verify_email_reports_expired_and_invalid_tokens() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+    let app = test::init_service(auth_test_app(pool.clone())).await;
+    let mut conn = setup_conn(&pool).await;
+
+    let user = rust_learn::repositories::user_repository::create_user(
+        &mut conn,
+        "Expired Verify Email",
+        &unique_email("auth-expired-verify"),
+        Some(NaiveDate::from_ymd_opt(2005, 5, 5).unwrap()),
+        "ValidPass123!",
+    )
+    .await
+    .expect("failed to create user");
+    diesel::update(users::table.find(user.id()))
+        .set(users::email_verified.eq(false))
+        .execute(&mut conn)
+        .await
+        .expect("test should mark user unverified");
+
+    let token = unique_token("verify-email-expired-token");
+    let token_hash = verification_token_hash(&token);
+    EmailVerificationToken::create_for_user(&mut conn, user.id(), token_hash.clone())
+        .await
+        .expect("failed to create verification token");
+    diesel::update(
+        email_verification_tokens::table
+            .filter(email_verification_tokens::token_hash.eq(token_hash)),
+    )
+    .set(
+        email_verification_tokens::expires_at
+            .eq(chrono::Utc::now().naive_utc() - chrono::Duration::minutes(1)),
+    )
+    .execute(&mut conn)
+    .await
+    .expect("failed to expire verification token");
+    drop(conn);
+
+    let expired_resp = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri(&format!("/api/auth/verify-email?token={token}"))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(expired_resp.status(), StatusCode::BAD_REQUEST);
+    let body = test::read_body(expired_resp).await;
+    assert_eq!(body.as_ref(), b"Verification token expired");
+
+    let invalid_resp = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri("/api/auth/verify-email?token=not-a-stored-token")
+            .to_request(),
+    )
+    .await;
+    assert_eq!(invalid_resp.status(), StatusCode::BAD_REQUEST);
+    let body = test::read_body(invalid_resp).await;
+    assert_eq!(body.as_ref(), b"Invalid verification token");
 }
 
 #[actix_web::test]
