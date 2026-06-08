@@ -1466,29 +1466,31 @@ export default function Home() {
                 detail="Enable course reward status permission to load student history."
               />
             )}
-            <div className={styles.actionStrip}>
-              <select
-                aria-label="Reward history status filter"
-                value={historyStatus}
-                onChange={(event) => setHistoryStatus(event.target.value)}
-              >
-                <option value="">All statuses</option>
-                {rewardStatuses.map((status) => (
-                  <option key={status} value={status}>
-                    {optionLabel(status)}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={loadStudentHistory}
-                {...actionState(true, canViewCourseRewards, "View course rewards permission required")}
-              >
-                <History size={17} aria-hidden />
-                <span>Load history</span>
-              </button>
-            </div>
+            {canViewCourseRewards && (
+              <div className={styles.actionStrip}>
+                <select
+                  aria-label="Reward history status filter"
+                  value={historyStatus}
+                  onChange={(event) => setHistoryStatus(event.target.value)}
+                >
+                  <option value="">All statuses</option>
+                  {rewardStatuses.map((status) => (
+                    <option key={status} value={status}>
+                      {optionLabel(status)}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={loadStudentHistory}
+                  {...actionState()}
+                >
+                  <History size={17} aria-hidden />
+                  <span>Load history</span>
+                </button>
+              </div>
+            )}
           </section>
 
           <section className={styles.panel} aria-labelledby="report-title">
