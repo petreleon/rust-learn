@@ -365,6 +365,9 @@ Set `COMPOSE_REFRESH_SERVICES='app web worker'` when worker image changes also
 need to be rebuilt for the same local run.
 The refresh target rebuilds only the selected services, so a web-only refresh
 does not also rebuild the Rust API image through Compose dependencies.
+Rust app and worker image builds use BuildKit Cargo cache mounts; the first
+rebuild after a Dockerfile or cache reset is still slow, but later source-only
+refreshes can reuse downloaded crates and compiled dependencies.
 
 Default local service ports:
 

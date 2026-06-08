@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 # Lightweight Dockerfile to build only the `worker` binary
 # - Build stage: rust toolchain (Debian-based)
 # - Final stage: minimal Debian runtime containing only the built binary
@@ -17,7 +19,9 @@ WORKDIR /usr/src/worker
 
 # Copy manifest first to leverage Docker layer caching for dependencies.
 COPY Cargo.toml Cargo.lock ./
-RUN cargo fetch || true
+RUN --mount=type=cache,id=rust-learn-cargo-registry,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=rust-learn-cargo-git,target=/usr/local/cargo/git \
+    cargo fetch --locked
 
 # Copy the whole workspace - building a workspace crate may require workspace sources
 COPY . .
@@ -26,7 +30,11 @@ COPY . .
 ENV CARGO_BUILD_JOBS=1
 
 # Build the worker binary in release mode
-RUN cargo build --release --bin worker --features worker-bin
+RUN --mount=type=cache,id=rust-learn-cargo-registry,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=rust-learn-cargo-git,target=/usr/local/cargo/git \
+    --mount=type=cache,id=rust-learn-worker-target,target=/usr/src/worker/target \
+    cargo build --locked --release --bin worker --features worker-bin \
+ && cp /usr/src/worker/target/release/worker /usr/local/bin/worker-build
 
 # --- Final runtime image ---
 # Keep only the worker binary and runtime libraries in the final image.
@@ -44,7 +52,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 # Copy the built binary from the builder stage
-COPY --from=builder /usr/src/worker/target/release/worker /usr/local/bin/worker
+COPY --from=builder /usr/local/bin/worker-build /usr/local/bin/worker
 COPY scripts/worker-healthcheck.sh /usr/local/bin/worker-healthcheck
 RUN chmod +x /usr/local/bin/worker /usr/local/bin/worker-healthcheck
 
