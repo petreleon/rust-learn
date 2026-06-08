@@ -44,6 +44,8 @@
   - Recent runtime warnings/errors: `make runtime-log-scan`
   - Render Kubernetes manifests: `make k8s-validate`
   - Refresh local Kubernetes dev images and deployments: `make k8s-dev-refresh`
+  - Refresh only the local Kubernetes web image after frontend changes:
+    `make k8s-dev-refresh-web`
 
 - Commands that intentionally run inside Compose containers:
 
