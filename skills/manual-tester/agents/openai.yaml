@@ -1,0 +1,5 @@
+interface:
+  display_name: "Manual Tester"
+  short_description: "Human-centered frontend QA passes"
+  default_prompt: "Use $manual-tester to manually verify this RustLearn frontend flow."
+

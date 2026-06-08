@@ -1,0 +1,5 @@
+interface:
+  display_name: "Product Manager"
+  short_description: "Turn frontend goals into sequenced plans"
+  default_prompt: "Use $product-manager to sequence the next RustLearn frontend milestone."
+

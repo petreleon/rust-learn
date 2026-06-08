@@ -1,0 +1,5 @@
+interface:
+  display_name: "Frontend Dev"
+  short_description: "Build product-grade frontend UI"
+  default_prompt: "Use $frontend-dev to implement the next RustLearn frontend milestone."
+

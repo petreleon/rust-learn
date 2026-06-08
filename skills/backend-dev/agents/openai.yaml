@@ -1,0 +1,4 @@
+interface:
+  display_name: "Backend Dev"
+  short_description: "Build Rust API contracts and services"
+  default_prompt: "Use $backend-dev to implement the backend contract for this RustLearn frontend flow."

@@ -37,6 +37,7 @@ The target LearnToken reward flow is defined in
 ├── tests/                  # Integration and permission tests
 ├── web/                    # Next.js frontend
 ├── k8s/                    # Kubernetes manifests
+├── skills/                 # Repo-local Codex skill definitions
 ├── docker-compose.yml      # Local app, web, Postgres, RustFS, Anvil, worker stack
 ├── Makefile                # Common development, Docker, Kubernetes, and test commands
 ├── PERMISSIONS.md          # Current role/permission matrix

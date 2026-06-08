@@ -23,6 +23,8 @@ RustLearn is an incentivized learning platform. The backend is a Rust/Actix Web 
 - `tests/` — integration and permission tests.
 - `web/` — Next.js frontend. Do not edit `web/node_modules/`.
 - `k8s/` — Kubernetes manifests.
+- `skills/` — repo-local Codex skill definitions for product planning,
+  backend/frontend development, and testing workflows.
 
 ## Development rules
 

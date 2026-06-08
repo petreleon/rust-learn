@@ -1,0 +1,5 @@
+interface:
+  display_name: "Automatic Tester"
+  short_description: "Automated frontend and runtime tests"
+  default_prompt: "Use $automatic-tester to add and run repeatable frontend tests."
+

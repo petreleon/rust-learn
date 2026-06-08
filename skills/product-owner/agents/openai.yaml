@@ -1,0 +1,5 @@
+interface:
+  display_name: "Product Owner"
+  short_description: "Define frontend value and acceptance"
+  default_prompt: "Use $product-owner to define acceptance criteria for this frontend user flow."
+
