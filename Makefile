@@ -220,8 +220,7 @@ web-build: ## Build the frontend
 	cd web && npm run build
 
 web-lint-compose: ## Run frontend lint checks inside the Docker Compose web service
-	$(DOCKER_COMPOSE) up -d web
-	$(DOCKER_COMPOSE) exec -T web npm run lint
+	$(DOCKER_COMPOSE) run --rm --no-deps web sh -c 'npm ci --no-audit --no-fund && npm run lint'
 
 web-build-compose: ## Build the frontend Docker image through Docker Compose
 	$(DOCKER_COMPOSE) build web

@@ -304,7 +304,7 @@ function formatFieldList(fields: string[]) {
 
 function PermissionNotice({ title, detail }: { title: string; detail: string }) {
   return (
-    <div className={styles.panelNotice} role="status">
+    <div className={styles.panelNotice} role="status" aria-label={`${title}: ${detail}`}>
       <ShieldAlert size={16} aria-hidden />
       <div>
         <strong>{title}</strong>
@@ -318,13 +318,14 @@ function RequirementNotice({ action, fields }: { action: string; fields: string[
   if (fields.length === 0) {
     return null;
   }
+  const message = formatFieldList(fields);
 
   return (
-    <div className={styles.requirementNotice} role="status">
+    <div className={styles.requirementNotice} role="status" aria-label={`${action}: ${message}`}>
       <FileCheck size={16} aria-hidden />
       <div>
         <strong>{action}</strong>
-        <span>{formatFieldList(fields)}</span>
+        <span>{message}</span>
       </div>
     </div>
   );
