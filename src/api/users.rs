@@ -17,7 +17,7 @@ pub struct AssignRoleRequest {
     pub role_name: String,
 }
 
-// GET /user -> list users (placeholder implementation)
+// GET /user -> list users for callers with VIEW_USER.
 async fn list_users(pool: web::Data<db::DbPool>) -> impl Responder {
     let mut conn = match pool.get().await {
         Ok(c) => c,
@@ -51,7 +51,7 @@ async fn list_users(pool: web::Data<db::DbPool>) -> impl Responder {
     }
 }
 
-// GET /user/{id} -> get a single user by id (placeholder)
+// GET /user/{id} -> users can read themselves; VIEW_USER can read anyone.
 async fn get_user(
     req: HttpRequest,
     path: web::Path<i32>,
