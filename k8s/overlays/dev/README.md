@@ -12,7 +12,8 @@ make k8s-dev-apply
 ```
 
 The generated `secrets.patch.yaml` contains local development credentials and
-must not be committed. Existing secrets are preserved on later runs; set
+must not be committed. The generator restricts it to the current user with
+`0600` permissions. Existing secrets are preserved on later runs; set
 `K8S_DEV_SECRETS_FORCE=1` to regenerate them.
 
 Use the base manifests or a production overlay for clusters with a configured

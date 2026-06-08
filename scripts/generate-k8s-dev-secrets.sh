@@ -5,7 +5,12 @@ OUT="${1:-k8s/overlays/dev/secrets.patch.yaml}"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
+restrict_secret_permissions() {
+  chmod 600 "$OUT"
+}
+
 if [[ -f "$OUT" && "${K8S_DEV_SECRETS_FORCE:-0}" != "1" ]]; then
+  restrict_secret_permissions
   echo "$OUT already exists; leaving local development secrets unchanged."
   echo "Set K8S_DEV_SECRETS_FORCE=1 to regenerate it."
   exit 0
@@ -104,5 +109,7 @@ stringData:
 )
 PY
 
+restrict_secret_permissions
 echo "Wrote $OUT"
+echo "Restricted $OUT to the current user."
 echo "Do not commit this file."
