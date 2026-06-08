@@ -64,10 +64,14 @@ fn validate_password_strength(password: &str) -> Result<(), &'static str> {
 }
 
 fn email_log_hash(email: &str) -> String {
-    verification_token_hash(&email.trim().to_ascii_lowercase())
+    verification_token_hash(&normalize_email(email))
         .chars()
         .take(16)
         .collect()
+}
+
+fn normalize_email(email: &str) -> String {
+    email.trim().to_ascii_lowercase()
 }
 
 fn registration_db_error_response(error: DieselError, email: &str) -> HttpResponse {
@@ -92,12 +96,13 @@ fn registration_db_error_response(error: DieselError, email: &str) -> HttpRespon
 
 #[post("/login")]
 pub async fn login(pool: web::Data<db::DbPool>, req: web::Json<LoginRequest>) -> impl Responder {
+    let email = normalize_email(&req.email);
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let user_auth_result = User::find_with_password_auth(&req.email, &mut conn).await;
+    let user_auth_result = User::find_with_password_auth(&email, &mut conn).await;
 
     match user_auth_result {
         Ok((user, info_auth)) => {
@@ -107,7 +112,7 @@ pub async fn login(pool: web::Data<db::DbPool>, req: web::Json<LoginRequest>) ->
                         log::warn!(
                             "event=auth_login_denied reason=email_unverified user_id={} email_hash={}",
                             user.id(),
-                            email_log_hash(&user.email)
+                            email_log_hash(&email)
                         );
                         return HttpResponse::Forbidden().body("Email verification required");
                     }
@@ -128,14 +133,14 @@ pub async fn login(pool: web::Data<db::DbPool>, req: web::Json<LoginRequest>) ->
                 } else {
                     log::warn!(
                         "event=auth_login_failed reason=invalid_credentials email_hash={}",
-                        email_log_hash(&req.email)
+                        email_log_hash(&email)
                     );
                     HttpResponse::Unauthorized().body("Invalid credentials")
                 }
             } else {
                 log::warn!(
                     "event=auth_login_failed reason=missing_password_auth email_hash={}",
-                    email_log_hash(&req.email)
+                    email_log_hash(&email)
                 );
                 HttpResponse::Unauthorized().body("Invalid credentials")
             }
@@ -143,7 +148,7 @@ pub async fn login(pool: web::Data<db::DbPool>, req: web::Json<LoginRequest>) ->
         Err(_) => {
             log::warn!(
                 "event=auth_login_failed reason=invalid_credentials email_hash={}",
-                email_log_hash(&req.email)
+                email_log_hash(&email)
             );
             HttpResponse::Unauthorized().body("Invalid credentials")
         }
@@ -155,6 +160,11 @@ pub async fn register(
     pool: web::Data<db::DbPool>,
     req: web::Json<RegisterRequest>,
 ) -> impl Responder {
+    let email = normalize_email(&req.email);
+    if email.is_empty() {
+        return HttpResponse::BadRequest().body("Email is required");
+    }
+
     if let Err(message) = validate_password_strength(&req.password) {
         return HttpResponse::BadRequest().body(message);
     }
@@ -187,7 +197,7 @@ pub async fn register(
 
     let new_user_data = NewUser {
         name: req.name.to_string(),
-        email: req.email.clone(),
+        email,
         date_of_birth: req.date_of_birth,
         created_at: chrono::Utc::now().naive_utc(),
         kyc_verified: false,
@@ -287,7 +297,9 @@ pub fn auth_scope() -> actix_web::Scope {
 
 #[cfg(test)]
 mod tests {
-    use super::{email_log_hash, validate_password_strength, PASSWORD_TOO_LONG_MESSAGE};
+    use super::{
+        email_log_hash, normalize_email, validate_password_strength, PASSWORD_TOO_LONG_MESSAGE,
+    };
     use crate::models::user_jwt::UserJWT;
     use crate::utils::jwt_utils::create_jwt;
     use actix_web::{http::StatusCode, test as actix_test, App, HttpMessage};
@@ -354,6 +366,14 @@ mod tests {
         assert_eq!(first.len(), 16);
         assert!(!first.contains("learner"));
         assert!(!first.contains('@'));
+    }
+
+    #[test]
+    fn normalize_email_trims_and_lowercases_input() {
+        assert_eq!(
+            normalize_email(" Learner+Demo@Example.COM "),
+            "learner+demo@example.com"
+        );
     }
 
     #[test]
