@@ -769,7 +769,7 @@ export default function Home() {
     amountDecision.status !== DEFAULT_AMOUNT_DECISION_STATUS;
   const hasOrganizationReportDraft = hasText(organizationId);
   const hasFraudBlockCreateDraft =
-    activeFraudBlockScope !== DEFAULT_FRAUD_BLOCK_SCOPE ||
+    fraudBlock.scope_type !== DEFAULT_FRAUD_BLOCK_SCOPE ||
     hasAnyText([
       fraudBlock.teacher_user_id,
       fraudBlock.organization_id,
