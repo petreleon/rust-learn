@@ -1,7 +1,7 @@
-.PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health runtime-verify runtime-disk docker-prune-build-cache \
+.PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health runtime-verify runtime-log-scan runtime-disk docker-prune-build-cache \
   k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
   k8s-validate dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
-  dev-refresh test-integration fmt clippy web-lint web-build web-lint-compose web-build-compose
+  dev-refresh test-integration fmt clippy web-lint web-build web-lint-compose web-build-compose logs ps shell
 
 # Variables
 export PATH := /opt/homebrew/bin:/usr/local/bin:$(PATH)
@@ -20,6 +20,8 @@ COMPOSE_REFRESH_SERVICES ?= app web
 KUBECTL ?= $(shell command -v kubectl 2>/dev/null || printf /opt/homebrew/bin/kubectl)
 MINIKUBE ?= $(shell command -v minikube 2>/dev/null || printf /opt/homebrew/bin/minikube)
 CURL ?= $(shell command -v curl 2>/dev/null || printf curl)
+LOG_SCAN_SINCE ?= 30m
+LOG_SCAN_PATTERN := level=(ERROR|WARN)|panic|traceback|unhandled|HTTP[[:space:]]+500|[^0-9]500[^0-9]
 
 # Colors for output
 GREEN := \033[0;32m
@@ -295,6 +297,24 @@ runtime-verify: ## Fail unless Docker Compose and Kubernetes runtime checks pass
 	$(KUBECTL) wait --for=condition=Ready pod --all -n $(K8S_NAMESPACE) --timeout=180s >/dev/null; \
 	$(KUBECTL) exec -n $(K8S_NAMESPACE) deploy/web -- sh -c 'wget -qO- http://127.0.0.1:3000/healthz >/dev/null && wget -qO- http://rust-app:8080/ready >/dev/null'; \
 	echo "$(GREEN)Kubernetes runtime OK$(NC)"
+
+runtime-log-scan: ## Show recent warning/error log lines from Docker Compose and Kubernetes
+	@set -e; \
+	scan_logs() { \
+		label="$$1"; shift; \
+		echo ""; \
+		echo "$$label"; \
+		if "$$@" 2>/dev/null | grep -E -i '$(LOG_SCAN_PATTERN)'; then \
+			:; \
+		else \
+			echo "No recent warning/error log lines"; \
+		fi; \
+	}; \
+	echo "$(GREEN)=== Runtime Log Scan ($(LOG_SCAN_SINCE)) ===$(NC)"; \
+	scan_logs "Docker Compose app/worker/web:" $(DOCKER_COMPOSE) logs --no-color --since $(LOG_SCAN_SINCE) app worker web; \
+	scan_logs "Kubernetes rust-app:" $(KUBECTL) logs -n $(K8S_NAMESPACE) deploy/rust-app --since=$(LOG_SCAN_SINCE); \
+	scan_logs "Kubernetes worker:" $(KUBECTL) logs -n $(K8S_NAMESPACE) deploy/worker --since=$(LOG_SCAN_SINCE); \
+	scan_logs "Kubernetes web:" $(KUBECTL) logs -n $(K8S_NAMESPACE) deploy/web --since=$(LOG_SCAN_SINCE)
 
 runtime-disk: ## Show Docker and Minikube disk usage
 	@echo "$(GREEN)=== Runtime Disk Usage ===$(NC)"
