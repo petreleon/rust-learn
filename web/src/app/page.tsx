@@ -85,13 +85,22 @@ const rewardStatuses = [
 ];
 
 const teacherApplicationStatuses = ["submitted", "needs_changes", "approved", "rejected"];
-const delegatedPermissions = [
-  "APPROVE_REWARD_AMOUNT",
-  "VIEW_REWARD_AUDIT",
-  "MANAGE_REWARD_FRAUD_BLOCKS",
-  "SUBMIT_COURSE_REWARD_EVENT",
-  "APPROVE_STUDENT_REWARD_CANDIDATE",
-  "VIEW_ORG_REWARD_REPORTS",
+const delegatedPermissionOptions: Array<{ key: string; scopes: string[] }> = [
+  { key: "APPROVE_REWARD_AMOUNT", scopes: ["platform"] },
+  { key: "EXECUTE_REWARD_PAYOUT", scopes: ["platform"] },
+  { key: "VIEW_REWARD_AUDIT", scopes: ["platform"] },
+  { key: "MANAGE_REWARD_FRAUD_BLOCKS", scopes: ["platform"] },
+  { key: "BLOCK_REWARD_TEACHER", scopes: ["platform"] },
+  { key: "BLOCK_REWARD_ORGANIZATION", scopes: ["platform"] },
+  { key: "SUBMIT_ORG_COURSE_REWARD_EVENT", scopes: ["organization"] },
+  { key: "VIEW_ORG_REWARD_REPORTS", scopes: ["organization"] },
+  { key: "MANAGE_ORG_REWARD_BUDGET", scopes: ["organization"] },
+  { key: "SUBMIT_COURSE_REWARD_EVENT", scopes: ["course"] },
+  { key: "CREATE_REWARDABLE_COURSE_EVENT", scopes: ["course"] },
+  { key: "APPROVE_STUDENT_REWARD_CANDIDATE", scopes: ["course"] },
+  { key: "VIEW_COURSE_REWARD_STATUS", scopes: ["course"] },
+  { key: "GRADE_REWARDABLE_ASSESSMENT", scopes: ["course"] },
+  { key: "MANAGE_COURSE_REWARD_RULES", scopes: ["course"] },
 ];
 
 const fraudBlockScopes = ["teacher", "organization", "course", "reward_policy"];
@@ -514,8 +523,15 @@ export default function Home() {
       : canViewFraud
         ? "Audit block"
         : "Revoke block";
+  const scopedDelegatedPermissions = delegatedPermissionOptions
+    .filter((permission) => permission.scopes.includes(delegation.scope_type))
+    .map((permission) => permission.key);
+  const activeDelegatedPermission = scopedDelegatedPermissions.includes(delegation.permission)
+    ? delegation.permission
+    : scopedDelegatedPermissions[0] || delegation.permission;
   const canGrantDelegationForm =
     hasPositiveInteger(delegation.grantee_user_id) &&
+    scopedDelegatedPermissions.length > 0 &&
     (delegation.scope_type === "platform" ||
       (delegation.scope_type === "organization" &&
         hasPositiveInteger(delegation.organization_id)) ||
@@ -887,7 +903,7 @@ export default function Home() {
   function grantDelegation() {
     void sendApi("Grant delegated permission", "/delegated-permissions", "POST", {
       grantee_user_id: optionalPositiveInteger(delegation.grantee_user_id),
-      permission: delegation.permission,
+      permission: activeDelegatedPermission,
       scope_type: delegation.scope_type,
       organization_id:
         delegation.scope_type === "organization"
@@ -1842,12 +1858,12 @@ export default function Home() {
                   />
                   <select
                     aria-label="Delegated permission"
-                    value={delegation.permission}
+                    value={activeDelegatedPermission}
                     onChange={(event) =>
                       setDelegation((current) => ({ ...current, permission: event.target.value }))
                     }
                   >
-                    {delegatedPermissions.map((permission) => (
+                    {scopedDelegatedPermissions.map((permission) => (
                       <option key={permission} value={permission}>
                         {optionLabel(permission)}
                       </option>
