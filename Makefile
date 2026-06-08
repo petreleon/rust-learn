@@ -1,5 +1,5 @@
 .PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health runtime-verify runtime-log-scan runtime-disk docker-prune-build-cache \
-  k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-refresh-web k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
+  k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-refresh-app k8s-dev-refresh-web k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
   k8s-validate k8s-dev-validate dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
   dev-refresh test-integration preflight fmt clippy web-lint web-build web-lint-compose web-build-compose logs ps shell
 
@@ -21,6 +21,7 @@ KUBECTL ?= $(shell command -v kubectl 2>/dev/null || printf /opt/homebrew/bin/ku
 MINIKUBE ?= $(shell command -v minikube 2>/dev/null || printf /opt/homebrew/bin/minikube)
 CURL ?= $(shell command -v curl 2>/dev/null || printf curl)
 HOST_CARGO ?= ./scripts/run-host-tests.sh
+LOCAL_PORT ?= $(PORT)
 LOG_SCAN_SINCE ?= 30m
 LOG_SCAN_PATTERN := level=(ERROR|WARN)|panic|traceback|unhandled|HTTP[[:space:]]+500|status=500|(^|[^[:alnum:]_=])500($|[^[:alnum:]_])
 WEB_DASHBOARD_SMOKE_TEXT ?= Reward and teaching workflows
@@ -68,10 +69,13 @@ k8s-build: ## Build Docker images for Kubernetes
 	@echo "$(YELLOW)Building Docker images...$(NC)"
 	@set -e; \
 	if command -v $(MINIKUBE) >/dev/null 2>&1 && [ "$$($(KUBECTL) config current-context 2>/dev/null)" = "minikube" ]; then \
-		echo "$(YELLOW)Detected minikube context; building images directly inside minikube...$(NC)"; \
-		$(MINIKUBE) image build -t rust-app:latest .; \
-		$(MINIKUBE) image build -t rust-worker:latest -f docker/worker.Dockerfile .; \
-		$(MINIKUBE) image build -t web:latest ./web; \
+		echo "$(YELLOW)Detected minikube context; building locally and loading images into minikube...$(NC)"; \
+		$(DOCKER) build -t rust-app:latest .; \
+		$(DOCKER) build -t rust-worker:latest -f docker/worker.Dockerfile .; \
+		$(DOCKER) build -t web:latest ./web; \
+		$(MINIKUBE) image load rust-app:latest --daemon; \
+		$(MINIKUBE) image load rust-worker:latest --daemon; \
+		$(MINIKUBE) image load web:latest --daemon; \
 	else \
 		$(DOCKER) build -t rust-app:latest .; \
 		$(DOCKER) build -t rust-worker:latest -f docker/worker.Dockerfile .; \
@@ -111,13 +115,16 @@ k8s-dev-refresh: k8s-dev-secrets ## Rebuild, load, and redeploy local Kubernetes
 	@echo "$(YELLOW)Building fresh Kubernetes development images: $(K8S_APP_IMAGE), $(K8S_WORKER_IMAGE), $(K8S_WEB_IMAGE)...$(NC)"
 	@set -e; \
 	if command -v $(MINIKUBE) >/dev/null 2>&1 && [ "$$($(KUBECTL) config current-context 2>/dev/null)" = "minikube" ]; then \
-		echo "$(YELLOW)Detected minikube context; building images directly inside minikube...$(NC)"; \
-		$(MINIKUBE) image build -t $(K8S_APP_IMAGE) .; \
-		$(MINIKUBE) image tag $(K8S_APP_IMAGE) rust-app:latest; \
-		$(MINIKUBE) image build -t $(K8S_WORKER_IMAGE) -f docker/worker.Dockerfile .; \
-		$(MINIKUBE) image tag $(K8S_WORKER_IMAGE) rust-worker:latest; \
-		$(MINIKUBE) image build -t $(K8S_WEB_IMAGE) ./web; \
-		$(MINIKUBE) image tag $(K8S_WEB_IMAGE) web:latest; \
+		echo "$(YELLOW)Detected minikube context; building locally and loading images into minikube...$(NC)"; \
+		$(DOCKER) build -t rust-app:latest -t $(K8S_APP_IMAGE) .; \
+		$(DOCKER) build -t rust-worker:latest -t $(K8S_WORKER_IMAGE) -f docker/worker.Dockerfile .; \
+		$(DOCKER) build -t web:latest -t $(K8S_WEB_IMAGE) ./web; \
+		$(MINIKUBE) image load $(K8S_APP_IMAGE) --daemon; \
+		$(MINIKUBE) image load rust-app:latest --daemon; \
+		$(MINIKUBE) image load $(K8S_WORKER_IMAGE) --daemon; \
+		$(MINIKUBE) image load rust-worker:latest --daemon; \
+		$(MINIKUBE) image load $(K8S_WEB_IMAGE) --daemon; \
+		$(MINIKUBE) image load web:latest --daemon; \
 	else \
 		$(DOCKER) build -t rust-app:latest -t $(K8S_APP_IMAGE) .; \
 		$(DOCKER) build -t rust-worker:latest -t $(K8S_WORKER_IMAGE) -f docker/worker.Dockerfile .; \
@@ -140,13 +147,30 @@ k8s-dev-refresh: k8s-dev-secrets ## Rebuild, load, and redeploy local Kubernetes
 	$(KUBECTL) rollout status deployment/web -n $(K8S_NAMESPACE) --timeout=180s
 	@echo "$(GREEN)Development deployment refreshed with $(K8S_IMAGE_TAG)!$(NC)"
 
+k8s-dev-refresh-app: ## Rebuild and redeploy only the local Kubernetes app image
+	@echo "$(YELLOW)Building fresh Kubernetes app image: $(K8S_APP_IMAGE)...$(NC)"
+	@set -e; \
+	if command -v $(MINIKUBE) >/dev/null 2>&1 && [ "$$($(KUBECTL) config current-context 2>/dev/null)" = "minikube" ]; then \
+		echo "$(YELLOW)Detected minikube context; building locally and loading app image into minikube...$(NC)"; \
+		$(DOCKER) build -t rust-app:latest -t $(K8S_APP_IMAGE) .; \
+		$(MINIKUBE) image load $(K8S_APP_IMAGE) --daemon; \
+		$(MINIKUBE) image load rust-app:latest --daemon; \
+	else \
+		$(DOCKER) build -t rust-app:latest -t $(K8S_APP_IMAGE) .; \
+	fi
+	@echo "$(YELLOW)Pointing app deployment at $(K8S_APP_IMAGE)...$(NC)"
+	$(KUBECTL) set image deployment/rust-app rust-app=$(K8S_APP_IMAGE) migrate=$(K8S_APP_IMAGE) wait-for-runtime-services=$(K8S_APP_IMAGE) -n $(K8S_NAMESPACE)
+	$(KUBECTL) rollout status deployment/rust-app -n $(K8S_NAMESPACE) --timeout=300s
+	@echo "$(GREEN)App deployment refreshed with $(K8S_IMAGE_TAG)!$(NC)"
+
 k8s-dev-refresh-web: ## Rebuild and redeploy only the local Kubernetes web image
 	@echo "$(YELLOW)Building fresh Kubernetes web image: $(K8S_WEB_IMAGE)...$(NC)"
 	@set -e; \
 	if command -v $(MINIKUBE) >/dev/null 2>&1 && [ "$$($(KUBECTL) config current-context 2>/dev/null)" = "minikube" ]; then \
-		echo "$(YELLOW)Detected minikube context; building web image directly inside minikube...$(NC)"; \
-		$(MINIKUBE) image build -t $(K8S_WEB_IMAGE) ./web; \
-		$(MINIKUBE) image tag $(K8S_WEB_IMAGE) web:latest; \
+		echo "$(YELLOW)Detected minikube context; building locally and loading web image into minikube...$(NC)"; \
+		$(DOCKER) build -t web:latest -t $(K8S_WEB_IMAGE) ./web; \
+		$(MINIKUBE) image load $(K8S_WEB_IMAGE) --daemon; \
+		$(MINIKUBE) image load web:latest --daemon; \
 	else \
 		$(DOCKER) build -t web:latest -t $(K8S_WEB_IMAGE) ./web; \
 	fi
@@ -182,16 +206,17 @@ k8s-logs: ## Display logs (use: make k8s-logs SERVICE=app)
 	fi
 	$(KUBECTL) logs -n $(K8S_NAMESPACE) -l app=$(SERVICE) --tail=100 -f
 
-k8s-forward: ## Start port-forward (use: make k8s-forward SERVICE=web PORT=3000)
-	@if [ -z "$(SERVICE)" ]; then \
-		echo "$(YELLOW)Usage: make k8s-forward SERVICE=service-name PORT=port$(NC)"; \
+k8s-forward: ## Start port-forward (use: make k8s-forward SERVICE=web PORT=3000 LOCAL_PORT=33030)
+	@if [ -z "$(SERVICE)" ] || [ -z "$(PORT)" ]; then \
+		echo "$(YELLOW)Usage: make k8s-forward SERVICE=service-name PORT=port [LOCAL_PORT=local-port]$(NC)"; \
 		echo "Examples:"; \
 		echo "  make k8s-forward SERVICE=web PORT=3000"; \
+		echo "  make k8s-forward SERVICE=web PORT=3000 LOCAL_PORT=33030"; \
 		echo "  make k8s-forward SERVICE=rust-app PORT=8080"; \
 		echo "  make k8s-forward SERVICE=postgres PORT=5432"; \
 		exit 1; \
 	fi
-	$(KUBECTL) port-forward -n $(K8S_NAMESPACE) svc/$(SERVICE) $(PORT):$(PORT)
+	$(KUBECTL) port-forward -n $(K8S_NAMESPACE) svc/$(SERVICE) $(LOCAL_PORT):$(PORT)
 
 # Development
 dev-build: ## Build only the Rust application (without container)

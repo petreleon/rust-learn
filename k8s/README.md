@@ -78,6 +78,9 @@ minikube service web-external -n rust-learn
 # Port forward to localhost:3000
 make k8s-forward SERVICE=web PORT=3000
 
+# Use a different local port when localhost:3000 is already in use
+make k8s-forward SERVICE=web PORT=3000 LOCAL_PORT=33030
+
 # Or access via Minikube
 minikube service web-external -n rust-learn --url
 ```
@@ -151,10 +154,11 @@ make k8s-dev-refresh
 The refresh builds separate `rust-app`, `rust-worker`, and `web` images. It
 aborts before updating deployments if any image build fails.
 
-For frontend-only Kubernetes iterations after the dev overlay is already
-applied, rebuild and roll out just the web image:
+For backend-only or frontend-only Kubernetes iterations after the dev overlay is
+already applied, rebuild and roll out only the changed runtime image:
 
 ```bash
+make k8s-dev-refresh-app
 make k8s-dev-refresh-web
 ```
 
@@ -283,6 +287,9 @@ kubectl port-forward -n rust-learn svc/rust-app 8080:8080
 
 # Or use the Makefile
 make k8s-forward SERVICE=web PORT=3000
+
+# Avoid local port conflicts, for example when Docker Compose web already uses 3000
+make k8s-forward SERVICE=web PORT=3000 LOCAL_PORT=33030
 ```
 
 ### Access Services
@@ -355,8 +362,8 @@ curl http://localhost:8080/ready
 
 3. **Test without Ingress:**
    ```bash
-   kubectl port-forward -n rust-learn svc/web 3000:3000
-   # Open http://localhost:3000 in browser
+   make k8s-forward SERVICE=web PORT=3000 LOCAL_PORT=33030
+   # Open http://localhost:33030 in browser
    ```
 
 ## Monitoring
@@ -432,6 +439,7 @@ make k8s-logs SERVICE=web
 
 # Port forward
 make k8s-forward SERVICE=web PORT=3000
+make k8s-forward SERVICE=web PORT=3000 LOCAL_PORT=33030
 ```
 
 ## Quick Start Guide
@@ -446,6 +454,8 @@ make k8s-apply
 # 3. Access the application (choose one method)
 # Option A: Port forward
 make k8s-forward SERVICE=web PORT=3000
+# Or avoid local port conflicts
+make k8s-forward SERVICE=web PORT=3000 LOCAL_PORT=33030
 
 # Option B: Minikube
 minikube service web-external -n rust-learn --url

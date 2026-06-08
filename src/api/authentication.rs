@@ -109,7 +109,7 @@ pub async fn login(pool: web::Data<db::DbPool>, req: web::Json<LoginRequest>) ->
             if let Some(hash) = info_auth {
                 if verify(&req.password, &hash).unwrap_or(false) {
                     if !user.email_verified {
-                        log::warn!(
+                        log::info!(
                             "event=auth_login_denied reason=email_unverified user_id={} email_hash={}",
                             user.id(),
                             email_log_hash(&email)
@@ -131,7 +131,7 @@ pub async fn login(pool: web::Data<db::DbPool>, req: web::Json<LoginRequest>) ->
                         }
                     }
                 } else {
-                    log::warn!(
+                    log::info!(
                         "event=auth_login_failed reason=invalid_credentials email_hash={}",
                         email_log_hash(&email)
                     );
@@ -146,7 +146,7 @@ pub async fn login(pool: web::Data<db::DbPool>, req: web::Json<LoginRequest>) ->
             }
         }
         Err(_) => {
-            log::warn!(
+            log::info!(
                 "event=auth_login_failed reason=invalid_credentials email_hash={}",
                 email_log_hash(&email)
             );
