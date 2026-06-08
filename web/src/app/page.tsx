@@ -157,6 +157,31 @@ const platformExportReports = [
   },
 ];
 
+const PROTECTED_ACTIONS = {
+  submitTeacherApplication: "Submit teacher application",
+  teacherApplicationQueue: "Teacher application queue",
+  teacherApplicationDecision: "Teacher application decision",
+  submitRewardCandidate: "Submit reward candidate",
+  courseRewardCandidates: "Course reward candidates",
+  courseRewardDecision: "Course reward decision",
+  rewardAmountDecision: "Reward amount decision",
+  studentRewardHistory: "Student reward history",
+  organizationSummary: "Organization summary",
+  organizationSummaryCsv: "Organization summary CSV",
+  organizationRewardReport: "Organization reward report",
+  organizationRewardCsv: "Organization reward CSV",
+  platformSummary: "Platform summary",
+  platformRewardDashboard: "Platform reward dashboard",
+  platformFraudDashboard: "Platform fraud dashboard",
+  createRewardFraudBlock: "Create reward fraud block",
+  rewardFraudBlocks: "Reward fraud blocks",
+  rewardFraudAudit: "Reward fraud audit",
+  revokeRewardFraudBlock: "Revoke reward fraud block",
+  grantDelegatedPermission: "Grant delegated permission",
+  delegatedPermissions: "Delegated permissions",
+  revokeDelegatedPermission: "Revoke delegated permission",
+} as const;
+
 const positiveIntegerInputProps = {
   inputMode: "numeric" as const,
   pattern: "[0-9]*",
@@ -285,11 +310,14 @@ function optionLabel(value: string) {
     .join(" ");
 }
 
-function flowStatus(hasAccess: boolean, hasSessionToken: boolean) {
+function flowStatus(hasAccess: boolean, hasSessionToken: boolean, hasServerDenial = false) {
   if (!hasAccess) {
     return "Locked";
   }
-  return hasSessionToken ? "Open" : "Needs JWT";
+  if (!hasSessionToken) {
+    return "Needs JWT";
+  }
+  return hasServerDenial ? "Limited" : "Open";
 }
 
 function missingFields(fields: Array<[label: string, complete: boolean]>) {
@@ -333,6 +361,22 @@ function RequirementNotice({ action, fields }: { action: string; fields: string[
   );
 }
 
+function ServerDeniedNotice({ action }: { action: string }) {
+  return (
+    <div
+      className={`${styles.requirementNotice} ${styles.deniedNotice}`}
+      role="status"
+      aria-label={`${action}: server denied`}
+    >
+      <ShieldAlert size={16} aria-hidden />
+      <div>
+        <strong>Server denied</strong>
+        <span>{action} is locked for this JWT.</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const resultPanelRef = useRef<HTMLElement | null>(null);
   const [apiRoot, setApiRoot] = useState(process.env.NEXT_PUBLIC_API_URL || "/api");
@@ -346,6 +390,7 @@ export default function Home() {
   const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(
     () => new Set(DEFAULT_PERMISSION_KEYS)
   );
+  const [serverDeniedActions, setServerDeniedActions] = useState<Set<string>>(() => new Set());
   const [result, setResult] = useState<ApiResult>({
     label: "Result",
     status: "Idle",
@@ -447,14 +492,19 @@ export default function Home() {
 
   const hasPermission = (permission: string) => selectedPermissions.has(permission);
   const hasSessionToken = hasText(token);
+  const isServerDenied = (action: string) => serverDeniedActions.has(action);
   const canSignIn = hasText(credentials.email) && hasText(credentials.password);
   const hasSessionDraft =
     hasSessionToken || hasText(credentials.email) || hasText(credentials.password);
   const actionState = (
     ready = true,
     allowed = true,
-    permissionLabel = "Required permission"
+    permissionLabel = "Required permission",
+    serverAction?: string
   ) => {
+    if (serverAction && isServerDenied(serverAction)) {
+      return { disabled: true, title: "Server denied this JWT" };
+    }
     if (!allowed) {
       return { disabled: true, title: permissionLabel };
     }
@@ -466,6 +516,8 @@ export default function Home() {
     }
     return { disabled: false, title: undefined };
   };
+  const serverDeniedNotice = (serverAction: string, action: string) =>
+    hasSessionToken && isServerDenied(serverAction) ? <ServerDeniedNotice action={action} /> : null;
   const canTeacherApply = hasPermission("SUBMIT_TEACHER_APPLICATION");
   const canReviewTeachers = hasPermission("REVIEW_TEACHER_APPLICATIONS");
   const canApproveTeachers = hasPermission("APPROVE_TEACHER_APPLICATION");
@@ -510,6 +562,35 @@ export default function Home() {
     canUseOrganizationReportControls || canViewPlatformDashboards || canExport;
   const canUseFraudWorkflow = canViewFraud || canManageFraud;
   const canUseAuditWorkflow = canUseReportWorkflow || canUseFraudWorkflow || canDelegate;
+  const teacherWorkflowServerDenied = [
+    PROTECTED_ACTIONS.submitTeacherApplication,
+    PROTECTED_ACTIONS.teacherApplicationQueue,
+    PROTECTED_ACTIONS.teacherApplicationDecision,
+  ].some(isServerDenied);
+  const rewardWorkflowServerDenied = [
+    PROTECTED_ACTIONS.submitRewardCandidate,
+    PROTECTED_ACTIONS.courseRewardCandidates,
+    PROTECTED_ACTIONS.courseRewardDecision,
+    PROTECTED_ACTIONS.rewardAmountDecision,
+    PROTECTED_ACTIONS.studentRewardHistory,
+  ].some(isServerDenied);
+  const auditWorkflowServerDenied = [
+    PROTECTED_ACTIONS.organizationSummary,
+    PROTECTED_ACTIONS.organizationSummaryCsv,
+    PROTECTED_ACTIONS.organizationRewardReport,
+    PROTECTED_ACTIONS.organizationRewardCsv,
+    PROTECTED_ACTIONS.platformSummary,
+    PROTECTED_ACTIONS.platformRewardDashboard,
+    PROTECTED_ACTIONS.platformFraudDashboard,
+    PROTECTED_ACTIONS.createRewardFraudBlock,
+    PROTECTED_ACTIONS.rewardFraudBlocks,
+    PROTECTED_ACTIONS.rewardFraudAudit,
+    PROTECTED_ACTIONS.revokeRewardFraudBlock,
+    PROTECTED_ACTIONS.grantDelegatedPermission,
+    PROTECTED_ACTIONS.delegatedPermissions,
+    PROTECTED_ACTIONS.revokeDelegatedPermission,
+    ...platformExportReports.map((report) => report.resultLabel),
+  ].some(isServerDenied);
   const canSubmitTeacherApplicationForm =
     hasText(teacherForm.experience_summary) &&
     (teacherForm.requested_scope === "platform" ||
@@ -758,6 +839,7 @@ export default function Home() {
 
       setToken(nextToken);
       setShowToken(false);
+      setServerDeniedActions(new Set());
       setCredentials((current) => ({ ...current, password: "" }));
       setSessionMessage("Signed in");
       setResult({
@@ -791,6 +873,7 @@ export default function Home() {
     setToken("");
     setShowToken(false);
     setCredentials({ email: "", password: "" });
+    setServerDeniedActions(new Set());
     setSessionMessage("Session fields cleared");
     resetSessionResult();
   }
@@ -833,10 +916,35 @@ export default function Home() {
         body: body === undefined ? undefined : JSON.stringify(body),
       });
       const text = await response.text();
+      const responseBody = prettyBody(text);
+      if (response.status === 403) {
+        setServerDeniedActions((current) => {
+          if (current.has(label)) {
+            return current;
+          }
+          const next = new Set(current);
+          next.add(label);
+          return next;
+        });
+      } else {
+        setServerDeniedActions((current) => {
+          if (!current.has(label)) {
+            return current;
+          }
+          const next = new Set(current);
+          next.delete(label);
+          return next;
+        });
+      }
       setResult({
         label,
         status: `HTTP ${response.status}`,
-        body: prettyBody(text),
+        body:
+          response.status === 403
+            ? [responseBody, "This JWT does not grant server access for this action."]
+                .filter(Boolean)
+                .join("\n\n")
+            : responseBody,
         ok: response.ok,
       });
       revealResultPanel();
@@ -854,7 +962,7 @@ export default function Home() {
   function submitTeacherApplication() {
     const requestedScope = teacherForm.requested_scope;
 
-    void sendApi("Submit teacher application", "/teacher-applications", "POST", {
+    void sendApi(PROTECTED_ACTIONS.submitTeacherApplication, "/teacher-applications", "POST", {
       requested_scope: requestedScope,
       requested_organization_id:
         requestedScope === "organization"
@@ -870,14 +978,14 @@ export default function Home() {
 
   function loadTeacherApplications() {
     void sendApi(
-      "Teacher application queue",
+      PROTECTED_ACTIONS.teacherApplicationQueue,
       `/teacher-applications${buildQuery({ status: teacherStatus, limit: 25 })}`
     );
   }
 
   function decideTeacherApplication() {
     void sendApi(
-      "Teacher application decision",
+      PROTECTED_ACTIONS.teacherApplicationDecision,
       `/teacher-applications/${teacherDecision.application_id}/decision`,
       "PUT",
       {
@@ -888,7 +996,7 @@ export default function Home() {
   }
 
   function submitRewardCandidate() {
-    void sendApi("Submit reward candidate", `/courses/${rewardCourseId}/reward-candidates`, "POST", {
+    void sendApi(PROTECTED_ACTIONS.submitRewardCandidate, `/courses/${rewardCourseId}/reward-candidates`, "POST", {
       student_user_id: optionalPositiveInteger(rewardStudentId),
       event_type: "course_completion",
       evidence: { completion_percentage: 100 },
@@ -897,7 +1005,7 @@ export default function Home() {
 
   function loadRewardCandidates() {
     void sendApi(
-      "Course reward candidates",
+      PROTECTED_ACTIONS.courseRewardCandidates,
       `/courses/${rewardCourseId}/reward-candidates${buildQuery({
         status: rewardStatus,
         limit: 25,
@@ -907,7 +1015,7 @@ export default function Home() {
 
   function decideStudentReward() {
     void sendApi(
-      "Course reward decision",
+      PROTECTED_ACTIONS.courseRewardDecision,
       `/courses/${rewardCourseId}/reward-candidates/${rewardCandidateId}/teacher-decision`,
       "PUT",
       {
@@ -918,7 +1026,7 @@ export default function Home() {
   }
 
   function decideRewardAmount() {
-    void sendApi("Reward amount decision", `/reward-candidates/${rewardCandidateId}/amount-decision`, "PUT", {
+    void sendApi(PROTECTED_ACTIONS.rewardAmountDecision, `/reward-candidates/${rewardCandidateId}/amount-decision`, "PUT", {
       status: amountDecision.status,
       approved_amount:
         amountDecision.status === "approved" ? optionalNumber(amountDecision.approved_amount) : undefined,
@@ -928,21 +1036,21 @@ export default function Home() {
 
   function loadStudentHistory() {
     void sendApi(
-      "Student reward history",
+      PROTECTED_ACTIONS.studentRewardHistory,
       `/reward-candidates/me/history${buildQuery({ status: historyStatus, limit: 25 })}`
     );
   }
 
   function loadOrganizationReport(csv = false) {
     void sendApi(
-      csv ? "Organization reward CSV" : "Organization reward report",
+      csv ? PROTECTED_ACTIONS.organizationRewardCsv : PROTECTED_ACTIONS.organizationRewardReport,
       `/reports/organizations/${organizationId}/reward-dashboard${csv ? ".csv" : ""}`
     );
   }
 
   function loadOrganizationSummary(csv = false) {
     void sendApi(
-      csv ? "Organization summary CSV" : "Organization summary",
+      csv ? PROTECTED_ACTIONS.organizationSummaryCsv : PROTECTED_ACTIONS.organizationSummary,
       `/reports/organizations/${organizationId}/summary${csv ? ".csv" : ""}`
     );
   }
@@ -952,7 +1060,7 @@ export default function Home() {
   }
 
   function createFraudBlock() {
-    void sendApi("Create reward fraud block", "/reward-fraud-blocks", "POST", {
+    void sendApi(PROTECTED_ACTIONS.createRewardFraudBlock, "/reward-fraud-blocks", "POST", {
       scope_type: activeFraudBlockScope,
       teacher_user_id:
         activeFraudBlockScope === "teacher"
@@ -974,19 +1082,19 @@ export default function Home() {
   }
 
   function listFraudBlocks() {
-    void sendApi("Reward fraud blocks", "/reward-fraud-blocks?active=true&limit=25");
+    void sendApi(PROTECTED_ACTIONS.rewardFraudBlocks, "/reward-fraud-blocks?active=true&limit=25");
   }
 
   function revokeFraudBlock() {
-    void sendApi("Revoke reward fraud block", `/reward-fraud-blocks/${fraudBlockId}/revoke`, "PUT");
+    void sendApi(PROTECTED_ACTIONS.revokeRewardFraudBlock, `/reward-fraud-blocks/${fraudBlockId}/revoke`, "PUT");
   }
 
   function loadFraudAudit() {
-    void sendApi("Reward fraud audit", `/reward-fraud-blocks/${fraudBlockId}/audit`);
+    void sendApi(PROTECTED_ACTIONS.rewardFraudAudit, `/reward-fraud-blocks/${fraudBlockId}/audit`);
   }
 
   function grantDelegation() {
-    void sendApi("Grant delegated permission", "/delegated-permissions", "POST", {
+    void sendApi(PROTECTED_ACTIONS.grantDelegatedPermission, "/delegated-permissions", "POST", {
       grantee_user_id: optionalPositiveInteger(delegation.grantee_user_id),
       permission: activeDelegatedPermission,
       scope_type: delegation.scope_type,
@@ -1002,11 +1110,11 @@ export default function Home() {
   }
 
   function listDelegations() {
-    void sendApi("Delegated permissions", "/delegated-permissions?active=true&limit=25");
+    void sendApi(PROTECTED_ACTIONS.delegatedPermissions, "/delegated-permissions?active=true&limit=25");
   }
 
   function revokeDelegation() {
-    void sendApi("Revoke delegated permission", `/delegated-permissions/${delegationId}/revoke`, "PUT", {
+    void sendApi(PROTECTED_ACTIONS.revokeDelegatedPermission, `/delegated-permissions/${delegationId}/revoke`, "PUT", {
       revoke_reason: revokeReason || undefined,
     });
   }
@@ -1037,6 +1145,7 @@ export default function Home() {
               onChange={(event) => {
                 setApiState("checking");
                 setApiMessage("Checking API");
+                setServerDeniedActions(new Set());
                 setApiRoot(event.target.value);
               }}
             />
@@ -1097,6 +1206,7 @@ export default function Home() {
                 value={token}
                 onChange={(event) => {
                   const nextToken = event.target.value;
+                  setServerDeniedActions(new Set());
                   setToken(nextToken);
                   if (hasText(nextToken)) {
                     setSessionMessage("JWT loaded");
@@ -1178,15 +1288,21 @@ export default function Home() {
         <section className={styles.metrics} aria-label="Workflow access">
           <div className={styles.metric}>
             <span>Teacher flow</span>
-            <strong>{flowStatus(canUseTeacherWorkflow, hasSessionToken)}</strong>
+            <strong>
+              {flowStatus(canUseTeacherWorkflow, hasSessionToken, teacherWorkflowServerDenied)}
+            </strong>
           </div>
           <div className={styles.metric}>
             <span>Reward flow</span>
-            <strong>{flowStatus(canUseRewardWorkflow, hasSessionToken)}</strong>
+            <strong>
+              {flowStatus(canUseRewardWorkflow, hasSessionToken, rewardWorkflowServerDenied)}
+            </strong>
           </div>
           <div className={styles.metric}>
             <span>Audit flow</span>
-            <strong>{flowStatus(canUseAuditWorkflow, hasSessionToken)}</strong>
+            <strong>
+              {flowStatus(canUseAuditWorkflow, hasSessionToken, auditWorkflowServerDenied)}
+            </strong>
           </div>
         </section>
 
@@ -1225,6 +1341,7 @@ export default function Home() {
                     fields={teacherApplicationMissingFields}
                   />
                 )}
+                {serverDeniedNotice(PROTECTED_ACTIONS.submitTeacherApplication, "Submit application")}
                 <div className={styles.formGrid}>
                   <label className={styles.fieldLabel}>
                     Scope
@@ -1315,7 +1432,12 @@ export default function Home() {
                     type="button"
                     className={styles.primaryButton}
                     onClick={submitTeacherApplication}
-                    {...actionState(canSubmitTeacherApplicationForm)}
+                    {...actionState(
+                      canSubmitTeacherApplicationForm,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.submitTeacherApplication
+                    )}
                   >
                     <Send size={17} aria-hidden />
                     <span>Submit</span>
@@ -1325,28 +1447,36 @@ export default function Home() {
             )}
 
             {canReviewTeachers && (
-              <div className={styles.actionStrip}>
-                <select
-                  aria-label="Teacher application status filter"
-                  value={teacherStatus}
-                  onChange={(event) => setTeacherStatus(event.target.value)}
-                >
-                  {teacherApplicationStatuses.map((status) => (
-                    <option key={status} value={status}>
-                      {optionLabel(status)}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  onClick={loadTeacherApplications}
-                  {...actionState()}
-                >
-                  <ClipboardList size={17} aria-hidden />
-                  <span>Load queue</span>
-                </button>
-              </div>
+              <>
+                {serverDeniedNotice(PROTECTED_ACTIONS.teacherApplicationQueue, "Load queue")}
+                <div className={styles.actionStrip}>
+                  <select
+                    aria-label="Teacher application status filter"
+                    value={teacherStatus}
+                    onChange={(event) => setTeacherStatus(event.target.value)}
+                  >
+                    {teacherApplicationStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {optionLabel(status)}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={loadTeacherApplications}
+                    {...actionState(
+                      true,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.teacherApplicationQueue
+                    )}
+                  >
+                    <ClipboardList size={17} aria-hidden />
+                    <span>Load queue</span>
+                  </button>
+                </div>
+              </>
             )}
 
             {canDecideTeachers && (
@@ -1354,6 +1484,7 @@ export default function Home() {
                 {hasSessionToken && (
                   <RequirementNotice action="Decide" fields={teacherDecisionMissingFields} />
                 )}
+                {serverDeniedNotice(PROTECTED_ACTIONS.teacherApplicationDecision, "Decide")}
                 <div className={styles.actionStrip}>
                   <input
                     aria-label="Teacher application id"
@@ -1395,7 +1526,12 @@ export default function Home() {
                     type="button"
                     className={styles.secondaryButton}
                     onClick={decideTeacherApplication}
-                    {...actionState(canDecideTeacherApplicationForm)}
+                    {...actionState(
+                      canDecideTeacherApplicationForm,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.teacherApplicationDecision
+                    )}
                   >
                     <CheckCircle2 size={17} aria-hidden />
                     <span>Decide</span>
@@ -1465,6 +1601,7 @@ export default function Home() {
                     fields={submitRewardCandidateMissingFields}
                   />
                 )}
+                {serverDeniedNotice(PROTECTED_ACTIONS.submitRewardCandidate, "Submit candidate")}
                 <div className={styles.actionStrip}>
                   <input
                     aria-label="Reward student user id"
@@ -1477,7 +1614,12 @@ export default function Home() {
                     type="button"
                     className={styles.primaryButton}
                     onClick={submitRewardCandidate}
-                    {...actionState(canSubmitRewardCandidateForm)}
+                    {...actionState(
+                      canSubmitRewardCandidateForm,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.submitRewardCandidate
+                    )}
                   >
                     <Send size={17} aria-hidden />
                     <span>Submit candidate</span>
@@ -1494,11 +1636,17 @@ export default function Home() {
                     fields={loadRewardCandidatesMissingFields}
                   />
                 )}
+                {serverDeniedNotice(PROTECTED_ACTIONS.courseRewardCandidates, "Load candidates")}
                 <button
                   type="button"
                   className={styles.secondaryButton}
                   onClick={loadRewardCandidates}
-                  {...actionState(canLoadRewardCandidatesForm)}
+                  {...actionState(
+                    canLoadRewardCandidatesForm,
+                    true,
+                    "Required permission",
+                    PROTECTED_ACTIONS.courseRewardCandidates
+                  )}
                 >
                   <ClipboardList size={17} aria-hidden />
                   <span>Load candidates</span>
@@ -1514,6 +1662,7 @@ export default function Home() {
                     fields={teacherRewardDecisionMissingFields}
                   />
                 )}
+                {serverDeniedNotice(PROTECTED_ACTIONS.courseRewardDecision, "Teacher decision")}
                 <div className={styles.actionStrip}>
                   <select
                     aria-label="Teacher reward decision status"
@@ -1543,7 +1692,12 @@ export default function Home() {
                     type="button"
                     className={styles.secondaryButton}
                     onClick={decideStudentReward}
-                    {...actionState(canDecideStudentRewardForm)}
+                    {...actionState(
+                      canDecideStudentRewardForm,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.courseRewardDecision
+                    )}
                   >
                     <CheckCircle2 size={17} aria-hidden />
                     <span>Teacher decision</span>
@@ -1557,6 +1711,7 @@ export default function Home() {
                 {hasSessionToken && (
                   <RequirementNotice action="Set amount" fields={amountDecisionMissingFields} />
                 )}
+                {serverDeniedNotice(PROTECTED_ACTIONS.rewardAmountDecision, "Set amount")}
                 <div className={styles.actionStrip}>
                   <select
                     aria-label="Reward amount decision status"
@@ -1597,7 +1752,12 @@ export default function Home() {
                     type="button"
                     className={styles.secondaryButton}
                     onClick={decideRewardAmount}
-                    {...actionState(canDecideRewardAmountForm)}
+                    {...actionState(
+                      canDecideRewardAmountForm,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.rewardAmountDecision
+                    )}
                   >
                     <WalletCards size={17} aria-hidden />
                     <span>Set amount</span>
@@ -1622,29 +1782,37 @@ export default function Home() {
               />
             )}
             {canViewCourseRewards && (
-              <div className={styles.actionStrip}>
-                <select
-                  aria-label="Reward history status filter"
-                  value={historyStatus}
-                  onChange={(event) => setHistoryStatus(event.target.value)}
-                >
-                  <option value="">All statuses</option>
-                  {rewardStatuses.map((status) => (
-                    <option key={status} value={status}>
-                      {optionLabel(status)}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  onClick={loadStudentHistory}
-                  {...actionState()}
-                >
-                  <History size={17} aria-hidden />
-                  <span>Load history</span>
-                </button>
-              </div>
+              <>
+                {serverDeniedNotice(PROTECTED_ACTIONS.studentRewardHistory, "Load history")}
+                <div className={styles.actionStrip}>
+                  <select
+                    aria-label="Reward history status filter"
+                    value={historyStatus}
+                    onChange={(event) => setHistoryStatus(event.target.value)}
+                  >
+                    <option value="">All statuses</option>
+                    {rewardStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {optionLabel(status)}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={loadStudentHistory}
+                    {...actionState(
+                      true,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.studentRewardHistory
+                    )}
+                  >
+                    <History size={17} aria-hidden />
+                    <span>Load history</span>
+                  </button>
+                </div>
+              </>
             )}
           </section>
 
@@ -1668,6 +1836,10 @@ export default function Home() {
                 fields={organizationReportMissingFields}
               />
             )}
+            {serverDeniedNotice(PROTECTED_ACTIONS.organizationSummary, "Summary")}
+            {serverDeniedNotice(PROTECTED_ACTIONS.organizationSummaryCsv, "Summary CSV")}
+            {serverDeniedNotice(PROTECTED_ACTIONS.organizationRewardReport, "Reward report")}
+            {serverDeniedNotice(PROTECTED_ACTIONS.organizationRewardCsv, "Reward CSV")}
             {canUseOrganizationReportControls && (
               <div className={styles.actionStrip}>
                 <input
@@ -1682,7 +1854,12 @@ export default function Home() {
                     type="button"
                     className={styles.secondaryButton}
                     onClick={() => loadOrganizationSummary(false)}
-                    {...actionState(canLoadOrganizationReportForm)}
+                    {...actionState(
+                      canLoadOrganizationReportForm,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.organizationSummary
+                    )}
                   >
                     <ClipboardList size={17} aria-hidden />
                     <span>Summary</span>
@@ -1693,7 +1870,12 @@ export default function Home() {
                     type="button"
                     className={styles.secondaryButton}
                     onClick={() => loadOrganizationSummary(true)}
-                    {...actionState(canLoadOrganizationReportForm)}
+                    {...actionState(
+                      canLoadOrganizationReportForm,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.organizationSummaryCsv
+                    )}
                   >
                     <Download size={17} aria-hidden />
                     <span>Summary CSV</span>
@@ -1704,7 +1886,12 @@ export default function Home() {
                     type="button"
                     className={styles.secondaryButton}
                     onClick={() => loadOrganizationReport(false)}
-                    {...actionState(canLoadOrganizationReportForm)}
+                    {...actionState(
+                      canLoadOrganizationReportForm,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.organizationRewardReport
+                    )}
                   >
                     <ClipboardList size={17} aria-hidden />
                     <span>Reward report</span>
@@ -1715,7 +1902,12 @@ export default function Home() {
                     type="button"
                     className={styles.secondaryButton}
                     onClick={() => loadOrganizationReport(true)}
-                    {...actionState(canLoadOrganizationReportForm)}
+                    {...actionState(
+                      canLoadOrganizationReportForm,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.organizationRewardCsv
+                    )}
                   >
                     <Download size={17} aria-hidden />
                     <span>Reward CSV</span>
@@ -1723,6 +1915,10 @@ export default function Home() {
                 )}
               </div>
             )}
+            {canExport &&
+              platformExportReports.map((report) =>
+                serverDeniedNotice(report.resultLabel, report.label)
+              )}
             {canExport && (
               <div className={styles.reportLinks}>
                 {platformExportReports.map((report) => (
@@ -1730,7 +1926,7 @@ export default function Home() {
                     key={report.path}
                     type="button"
                     onClick={() => loadPlatformExport(report.path, report.resultLabel)}
-                    {...actionState()}
+                    {...actionState(true, true, "Required permission", report.resultLabel)}
                   >
                     <Download size={16} aria-hidden />
                     <span>{report.label}</span>
@@ -1738,28 +1934,50 @@ export default function Home() {
                 ))}
               </div>
             )}
+            {canViewSummaryReports &&
+              serverDeniedNotice(PROTECTED_ACTIONS.platformSummary, "Platform summary")}
             {canViewSummaryReports && (
               <div className={styles.reportLinks}>
                 <button
                   type="button"
                   onClick={() =>
-                    loadPlatformExport("/reports/platform/summary", "Platform summary")
+                    loadPlatformExport(
+                      "/reports/platform/summary",
+                      PROTECTED_ACTIONS.platformSummary
+                    )
                   }
-                  {...actionState()}
+                  {...actionState(
+                    true,
+                    true,
+                    "Required permission",
+                    PROTECTED_ACTIONS.platformSummary
+                  )}
                 >
                   <ClipboardList size={16} aria-hidden />
                   <span>Platform summary</span>
                 </button>
               </div>
             )}
+            {canViewPlatformDashboards &&
+              serverDeniedNotice(PROTECTED_ACTIONS.platformRewardDashboard, "Reward dashboard")}
+            {canViewPlatformDashboards &&
+              serverDeniedNotice(PROTECTED_ACTIONS.platformFraudDashboard, "Fraud dashboard")}
             {canViewPlatformDashboards && (
               <div className={styles.reportLinks}>
                 <button
                   type="button"
                   onClick={() =>
-                    loadPlatformExport("/reports/platform/reward-dashboard", "Platform reward dashboard")
+                    loadPlatformExport(
+                      "/reports/platform/reward-dashboard",
+                      PROTECTED_ACTIONS.platformRewardDashboard
+                    )
                   }
-                  {...actionState()}
+                  {...actionState(
+                    true,
+                    true,
+                    "Required permission",
+                    PROTECTED_ACTIONS.platformRewardDashboard
+                  )}
                 >
                   <ClipboardList size={16} aria-hidden />
                   <span>Reward dashboard</span>
@@ -1767,9 +1985,17 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() =>
-                    loadPlatformExport("/reports/platform/fraud-dashboard", "Platform fraud dashboard")
+                    loadPlatformExport(
+                      "/reports/platform/fraud-dashboard",
+                      PROTECTED_ACTIONS.platformFraudDashboard
+                    )
                   }
-                  {...actionState()}
+                  {...actionState(
+                    true,
+                    true,
+                    "Required permission",
+                    PROTECTED_ACTIONS.platformFraudDashboard
+                  )}
                 >
                   <ShieldAlert size={16} aria-hidden />
                   <span>Fraud dashboard</span>
@@ -1800,6 +2026,7 @@ export default function Home() {
                     fields={fraudBlockCreateMissingFields}
                   />
                 )}
+                {serverDeniedNotice(PROTECTED_ACTIONS.createRewardFraudBlock, "Create block")}
                 {hasSessionToken && !canCreateSelectedFraudScope && (
                   <PermissionNotice
                     title="Selected block scope permission disabled"
@@ -1908,7 +2135,8 @@ export default function Home() {
                     {...actionState(
                       canCreateFraudBlockFields,
                       canCreateSelectedFraudScope,
-                      selectedFraudBlockScopePermission.permissionTitle
+                      selectedFraudBlockScopePermission.permissionTitle,
+                      PROTECTED_ACTIONS.createRewardFraudBlock
                     )}
                   >
                     <Ban size={17} aria-hidden />
@@ -1925,13 +2153,21 @@ export default function Home() {
                     fields={fraudBlockUseMissingFields}
                   />
                 )}
+                {serverDeniedNotice(PROTECTED_ACTIONS.rewardFraudBlocks, "Load active")}
+                {serverDeniedNotice(PROTECTED_ACTIONS.rewardFraudAudit, "Audit")}
+                {serverDeniedNotice(PROTECTED_ACTIONS.revokeRewardFraudBlock, "Revoke")}
                 <div className={styles.actionStrip}>
                   {canViewFraud && (
                     <button
                       type="button"
                       className={styles.secondaryButton}
                       onClick={listFraudBlocks}
-                      {...actionState()}
+                      {...actionState(
+                        true,
+                        true,
+                        "Required permission",
+                        PROTECTED_ACTIONS.rewardFraudBlocks
+                      )}
                     >
                       <ClipboardList size={17} aria-hidden />
                       <span>Load active</span>
@@ -1949,7 +2185,12 @@ export default function Home() {
                       type="button"
                       className={styles.secondaryButton}
                       onClick={loadFraudAudit}
-                      {...actionState(canUseFraudBlockForm)}
+                      {...actionState(
+                        canUseFraudBlockForm,
+                        true,
+                        "Required permission",
+                        PROTECTED_ACTIONS.rewardFraudAudit
+                      )}
                     >
                       <History size={17} aria-hidden />
                       <span>Audit</span>
@@ -1960,7 +2201,12 @@ export default function Home() {
                       type="button"
                       className={styles.secondaryButton}
                       onClick={revokeFraudBlock}
-                      {...actionState(canUseFraudBlockForm)}
+                      {...actionState(
+                        canUseFraudBlockForm,
+                        true,
+                        "Required permission",
+                        PROTECTED_ACTIONS.revokeRewardFraudBlock
+                      )}
                     >
                       <CheckCircle2 size={17} aria-hidden />
                       <span>Revoke</span>
@@ -1993,6 +2239,8 @@ export default function Home() {
                     fields={delegationGrantMissingFields}
                   />
                 )}
+                {serverDeniedNotice(PROTECTED_ACTIONS.grantDelegatedPermission, "Grant")}
+                {serverDeniedNotice(PROTECTED_ACTIONS.delegatedPermissions, "Load")}
                 <fieldset className={styles.formGrid}>
                   <input
                     aria-label="Delegation grantee user id"
@@ -2077,7 +2325,12 @@ export default function Home() {
                     type="button"
                     className={styles.primaryButton}
                     onClick={grantDelegation}
-                    {...actionState(canGrantDelegationForm)}
+                    {...actionState(
+                      canGrantDelegationForm,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.grantDelegatedPermission
+                    )}
                   >
                     <KeyRound size={17} aria-hidden />
                     <span>Grant</span>
@@ -2086,7 +2339,12 @@ export default function Home() {
                     type="button"
                     className={styles.secondaryButton}
                     onClick={listDelegations}
-                    {...actionState()}
+                    {...actionState(
+                      true,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.delegatedPermissions
+                    )}
                   >
                     <ClipboardList size={17} aria-hidden />
                     <span>Load</span>
@@ -2098,6 +2356,7 @@ export default function Home() {
                     fields={delegationRevokeMissingFields}
                   />
                 )}
+                {serverDeniedNotice(PROTECTED_ACTIONS.revokeDelegatedPermission, "Revoke")}
                 <div className={styles.actionStrip}>
                   <input
                     aria-label="Delegation id"
@@ -2116,7 +2375,12 @@ export default function Home() {
                     type="button"
                     className={styles.secondaryButton}
                     onClick={revokeDelegation}
-                    {...actionState(canRevokeDelegationForm)}
+                    {...actionState(
+                      canRevokeDelegationForm,
+                      true,
+                      "Required permission",
+                      PROTECTED_ACTIONS.revokeDelegatedPermission
+                    )}
                   >
                     <Ban size={17} aria-hidden />
                     <span>Revoke</span>

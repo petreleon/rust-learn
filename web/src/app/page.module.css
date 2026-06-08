@@ -484,6 +484,20 @@
   overflow-wrap: anywhere;
 }
 
+.deniedNotice {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #7f1d1d;
+}
+
+.deniedNotice svg {
+  color: #dc2626;
+}
+
+.deniedNotice span {
+  color: #991b1b;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
