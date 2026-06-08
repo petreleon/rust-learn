@@ -182,38 +182,6 @@ const PROTECTED_ACTIONS = {
   revokeDelegatedPermission: "Revoke delegated permission",
 } as const;
 
-const TEACHER_WORKFLOW_ACTIONS = [
-  PROTECTED_ACTIONS.submitTeacherApplication,
-  PROTECTED_ACTIONS.teacherApplicationQueue,
-  PROTECTED_ACTIONS.teacherApplicationDecision,
-] as const;
-
-const REWARD_WORKFLOW_ACTIONS = [
-  PROTECTED_ACTIONS.submitRewardCandidate,
-  PROTECTED_ACTIONS.courseRewardCandidates,
-  PROTECTED_ACTIONS.courseRewardDecision,
-  PROTECTED_ACTIONS.rewardAmountDecision,
-  PROTECTED_ACTIONS.studentRewardHistory,
-] as const;
-
-const AUDIT_WORKFLOW_ACTIONS = [
-  PROTECTED_ACTIONS.organizationSummary,
-  PROTECTED_ACTIONS.organizationSummaryCsv,
-  PROTECTED_ACTIONS.organizationRewardReport,
-  PROTECTED_ACTIONS.organizationRewardCsv,
-  PROTECTED_ACTIONS.platformSummary,
-  PROTECTED_ACTIONS.platformRewardDashboard,
-  PROTECTED_ACTIONS.platformFraudDashboard,
-  PROTECTED_ACTIONS.createRewardFraudBlock,
-  PROTECTED_ACTIONS.rewardFraudBlocks,
-  PROTECTED_ACTIONS.rewardFraudAudit,
-  PROTECTED_ACTIONS.revokeRewardFraudBlock,
-  PROTECTED_ACTIONS.grantDelegatedPermission,
-  PROTECTED_ACTIONS.delegatedPermissions,
-  PROTECTED_ACTIONS.revokeDelegatedPermission,
-  ...platformExportReports.map((report) => report.resultLabel),
-] as const;
-
 const positiveIntegerInputProps = {
   inputMode: "numeric" as const,
   pattern: "[0-9]*",
@@ -613,9 +581,48 @@ export default function Home() {
     canUseOrganizationReportControls || canViewPlatformDashboards || canExport;
   const canUseFraudWorkflow = canViewFraud || canManageFraud;
   const canUseAuditWorkflow = canUseReportWorkflow || canUseFraudWorkflow || canDelegate;
-  const teacherWorkflowServerDenied = TEACHER_WORKFLOW_ACTIONS.some(isServerDenied);
-  const rewardWorkflowServerDenied = REWARD_WORKFLOW_ACTIONS.some(isServerDenied);
-  const auditWorkflowServerDenied = AUDIT_WORKFLOW_ACTIONS.some(isServerDenied);
+  const visibleTeacherWorkflowActions = [
+    ...(canTeacherApply ? [PROTECTED_ACTIONS.submitTeacherApplication] : []),
+    ...(canReviewTeachers ? [PROTECTED_ACTIONS.teacherApplicationQueue] : []),
+    ...(canDecideTeachers ? [PROTECTED_ACTIONS.teacherApplicationDecision] : []),
+  ];
+  const visibleRewardWorkflowActions = [
+    ...(canSubmitReward ? [PROTECTED_ACTIONS.submitRewardCandidate] : []),
+    ...(canViewCourseRewards
+      ? [PROTECTED_ACTIONS.courseRewardCandidates, PROTECTED_ACTIONS.studentRewardHistory]
+      : []),
+    ...(canTeacherApproveReward ? [PROTECTED_ACTIONS.courseRewardDecision] : []),
+    ...(canApproveAmount ? [PROTECTED_ACTIONS.rewardAmountDecision] : []),
+  ];
+  const visibleAuditWorkflowActions = [
+    ...(canViewSummaryReports
+      ? [PROTECTED_ACTIONS.organizationSummary, PROTECTED_ACTIONS.platformSummary]
+      : []),
+    ...(canGenerateReports ? [PROTECTED_ACTIONS.organizationSummaryCsv] : []),
+    ...(canViewOrgReports
+      ? [PROTECTED_ACTIONS.organizationRewardReport, PROTECTED_ACTIONS.organizationRewardCsv]
+      : []),
+    ...(canExport ? platformExportReports.map((report) => report.resultLabel) : []),
+    ...(canViewPlatformDashboards
+      ? [PROTECTED_ACTIONS.platformRewardDashboard, PROTECTED_ACTIONS.platformFraudDashboard]
+      : []),
+    ...(canManageFraud
+      ? [PROTECTED_ACTIONS.createRewardFraudBlock, PROTECTED_ACTIONS.revokeRewardFraudBlock]
+      : []),
+    ...(canViewFraud
+      ? [PROTECTED_ACTIONS.rewardFraudBlocks, PROTECTED_ACTIONS.rewardFraudAudit]
+      : []),
+    ...(canDelegate
+      ? [
+          PROTECTED_ACTIONS.grantDelegatedPermission,
+          PROTECTED_ACTIONS.delegatedPermissions,
+          PROTECTED_ACTIONS.revokeDelegatedPermission,
+        ]
+      : []),
+  ];
+  const teacherWorkflowServerDenied = visibleTeacherWorkflowActions.some(isServerDenied);
+  const rewardWorkflowServerDenied = visibleRewardWorkflowActions.some(isServerDenied);
+  const auditWorkflowServerDenied = visibleAuditWorkflowActions.some(isServerDenied);
   const canSubmitTeacherApplicationForm =
     hasText(teacherForm.experience_summary) &&
     (teacherForm.requested_scope === "platform" ||
