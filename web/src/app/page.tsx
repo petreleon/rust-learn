@@ -1426,9 +1426,15 @@ export default function Home() {
           <p className={styles.statusMessage} aria-live="polite">
             {apiMessage}
           </p>
+          <div className={styles.permissionSummary}>
+            <span>Permissions</span>
+            <strong>{selectedPermissions.size}</strong>
+            <a href="#permissions-panel">Edit</a>
+          </div>
         </section>
 
         <section
+          id="permissions-panel"
           className={`${styles.sidebarSection} ${styles.permissionsPanel}`}
           aria-labelledby="permissions-title"
         >
