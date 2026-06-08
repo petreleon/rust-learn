@@ -420,10 +420,11 @@
 @media (max-width: 1120px) {
   .shell {
     grid-template-columns: 1fr;
+    row-gap: 16px;
   }
 
   .sidebar {
-    order: 2;
+    display: contents;
     grid-column: auto;
     width: auto;
     min-height: auto;
@@ -435,9 +436,28 @@
     border-top: 1px solid #d8dee6;
   }
 
-  .workspace {
+  .brand {
     order: 1;
+    margin: 16px 16px 0;
+    padding: 14px;
+    border: 1px solid #d8dee6;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  .sessionPanel {
+    order: 2;
+    margin: 0 16px;
+  }
+
+  .workspace {
+    order: 3;
     grid-column: auto;
+  }
+
+  .permissionsPanel {
+    order: 4;
+    margin: 0 16px 16px;
   }
 
   .grid,

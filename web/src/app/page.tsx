@@ -701,7 +701,10 @@ export default function Home() {
           </div>
         </div>
 
-        <section className={styles.sidebarSection} aria-labelledby="api-session-title">
+        <section
+          className={`${styles.sidebarSection} ${styles.sessionPanel}`}
+          aria-labelledby="api-session-title"
+        >
           <div className={styles.sectionHeaderCompact}>
             <h2 id="api-session-title">Session</h2>
             <span className={`${styles.statusPill} ${styles[apiState]}`}>{statusLabel(apiState)}</span>
@@ -782,7 +785,10 @@ export default function Home() {
           </p>
         </section>
 
-        <section className={styles.sidebarSection} aria-labelledby="permissions-title">
+        <section
+          className={`${styles.sidebarSection} ${styles.permissionsPanel}`}
+          aria-labelledby="permissions-title"
+        >
           <div className={styles.sectionHeaderCompact}>
             <h2 id="permissions-title">Permissions</h2>
             <span className={styles.countPill}>{selectedPermissions.size}</span>
