@@ -407,6 +407,8 @@ export default function Home() {
     () => new Set(DEFAULT_PERMISSION_KEYS)
   );
   const [serverDeniedActions, setServerDeniedActions] = useState<Set<string>>(() => new Set());
+  const pendingActionRef = useRef<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult>({
     label: "Result",
     status: "Idle",
@@ -521,7 +523,10 @@ export default function Home() {
   const hasPermission = (permission: string) => selectedPermissions.has(permission);
   const hasSessionToken = hasText(token);
   const isServerDenied = (action: string) => serverDeniedActions.has(action);
-  const canSignIn = hasText(credentials.email) && hasText(credentials.password);
+  const hasCompleteCredentials = hasText(credentials.email) && hasText(credentials.password);
+  const hasPendingAction = pendingAction !== null;
+  const pendingActionTitle = pendingAction ? `${pendingAction} request in progress` : undefined;
+  const canSignIn = hasCompleteCredentials && !hasPendingAction;
   const hasSessionDraft =
     hasSessionToken || hasText(credentials.email) || hasText(credentials.password);
   const resetServerDenials = () => setServerDeniedActions(new Set());
@@ -541,6 +546,23 @@ export default function Home() {
       return next;
     });
   };
+  const beginPendingAction = (action: string) => {
+    if (pendingActionRef.current) {
+      return false;
+    }
+
+    pendingActionRef.current = action;
+    setPendingAction(action);
+    return true;
+  };
+  const finishPendingAction = (action: string) => {
+    if (pendingActionRef.current !== action) {
+      return;
+    }
+
+    pendingActionRef.current = null;
+    setPendingAction(null);
+  };
   const actionState = (
     ready = true,
     allowed = true,
@@ -558,6 +580,9 @@ export default function Home() {
     }
     if (!ready) {
       return { disabled: true, title: "Complete required fields" };
+    }
+    if (hasPendingAction) {
+      return { disabled: true, title: pendingActionTitle };
     }
     return { disabled: false, title: undefined };
   };
@@ -700,8 +725,23 @@ export default function Home() {
     detail: "Selected fraud block scope is not supported.",
     permissionTitle: "Supported fraud block scope required",
   };
+  const resultTone = result.status === "Pending" ? "pending" : result.ok ? "success" : "error";
+  const resultToneClass =
+    resultTone === "pending"
+      ? styles.checking
+      : resultTone === "success"
+        ? styles.online
+        : styles.offline;
+  const resultToneLabel =
+    resultTone === "pending" ? "Pending" : resultTone === "success" ? "OK" : "Error";
+  const resultOutcome =
+    resultTone === "pending"
+      ? "Request pending."
+      : resultTone === "success"
+        ? "Request succeeded."
+        : "Request failed.";
   const resultAnnouncement = `${result.label}. ${result.status}. ${
-    result.ok ? "Request succeeded." : "Request failed."
+    resultOutcome
   }`;
   const firstAllowedFraudBlockScope = fraudBlockScopes.find(
     (scope) => fraudBlockScopePermissions[scope]?.allowed
@@ -875,8 +915,12 @@ export default function Home() {
 
   async function signIn(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canSignIn) {
+    if (!hasCompleteCredentials) {
       setSessionMessage("Email and password required");
+      return;
+    }
+    if (!beginPendingAction("Sign in")) {
+      setSessionMessage(`${pendingActionRef.current} request in progress`);
       return;
     }
 
@@ -963,6 +1007,8 @@ export default function Home() {
         body: message,
         ok: false,
       });
+    } finally {
+      finishPendingAction("Sign in");
     }
   }
 
@@ -996,6 +1042,16 @@ export default function Home() {
         label,
         status: "Session required",
         body: "Add a JWT before sending protected API requests.",
+        ok: false,
+      });
+      revealResultPanel();
+      return;
+    }
+    if (!beginPendingAction(label)) {
+      setResult({
+        label,
+        status: "Request pending",
+        body: `${pendingActionRef.current} is already waiting for an API response.`,
         ok: false,
       });
       revealResultPanel();
@@ -1044,6 +1100,8 @@ export default function Home() {
         ok: false,
       });
       revealResultPanel();
+    } finally {
+      finishPendingAction(label);
     }
   }
 
@@ -1266,17 +1324,23 @@ export default function Home() {
                 type="submit"
                 className={styles.primaryButton}
                 disabled={!canSignIn}
-                title={canSignIn ? undefined : "Email and password required"}
+                title={
+                  pendingActionTitle ??
+                  (hasCompleteCredentials ? undefined : "Email and password required")
+                }
               >
                 <KeyRound size={17} aria-hidden />
-                <span>Sign in</span>
+                <span>{pendingAction === "Sign in" ? "Signing in" : "Sign in"}</span>
               </button>
               <button
                 type="button"
                 className={styles.secondaryButton}
                 onClick={clearSession}
-                disabled={!hasSessionDraft}
-                title={hasSessionDraft ? "Clear local session fields" : "No session fields to clear"}
+                disabled={!hasSessionDraft || hasPendingAction}
+                title={
+                  pendingActionTitle ??
+                  (hasSessionDraft ? "Clear local session fields" : "No session fields to clear")
+                }
                 aria-label="Clear session fields"
               >
                 <Ban size={17} aria-hidden />
@@ -2500,8 +2564,8 @@ export default function Home() {
               <p className={styles.eyebrow}>{result.status}</p>
               <h2 id="result-title">{result.label}</h2>
             </div>
-            <span className={`${styles.statusPill} ${result.ok ? styles.online : styles.offline}`}>
-              {result.ok ? "OK" : "Error"}
+            <span className={`${styles.statusPill} ${resultToneClass}`}>
+              {resultToneLabel}
             </span>
           </div>
           <pre aria-label="API response body" tabIndex={0}>
