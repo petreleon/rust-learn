@@ -94,6 +94,8 @@ const delegatedPermissions = [
   "VIEW_ORG_REWARD_REPORTS",
 ];
 
+const fraudBlockScopes = ["teacher", "organization", "course", "reward_policy"];
+
 const positiveIntegerInputProps = {
   inputMode: "numeric" as const,
   pattern: "[0-9]*",
@@ -430,11 +432,6 @@ export default function Home() {
     hasPositiveInteger(rewardCandidateId) &&
     (amountDecision.status !== "approved" || hasNonNegativeNumber(amountDecision.approved_amount));
   const canLoadOrganizationReportForm = hasPositiveInteger(organizationId);
-  const canCreateFraudBlockTarget =
-    (fraudBlock.scope_type === "teacher" && hasPositiveInteger(fraudBlock.teacher_user_id)) ||
-    (fraudBlock.scope_type === "organization" && hasPositiveInteger(fraudBlock.organization_id)) ||
-    (fraudBlock.scope_type === "course" && hasPositiveInteger(fraudBlock.course_id)) ||
-    (fraudBlock.scope_type === "reward_policy" && hasPositiveInteger(fraudBlock.reward_policy_id));
   const fraudBlockScopePermissions: Record<
     string,
     { allowed: boolean; detail: string; permissionTitle: string }
@@ -465,8 +462,25 @@ export default function Home() {
     detail: "Selected fraud block scope is not supported.",
     permissionTitle: "Supported fraud block scope required",
   };
+  const firstAllowedFraudBlockScope = fraudBlockScopes.find(
+    (scope) => fraudBlockScopePermissions[scope]?.allowed
+  );
+  const activeFraudBlockScope =
+    selectedFraudBlockScopePermission.allowed || !firstAllowedFraudBlockScope
+      ? fraudBlock.scope_type
+      : firstAllowedFraudBlockScope;
+  const activeFraudBlockScopePermission = fraudBlockScopePermissions[activeFraudBlockScope] ?? {
+    allowed: false,
+    detail: "Selected fraud block scope is not supported.",
+    permissionTitle: "Supported fraud block scope required",
+  };
+  const canCreateFraudBlockTarget =
+    (activeFraudBlockScope === "teacher" && hasPositiveInteger(fraudBlock.teacher_user_id)) ||
+    (activeFraudBlockScope === "organization" && hasPositiveInteger(fraudBlock.organization_id)) ||
+    (activeFraudBlockScope === "course" && hasPositiveInteger(fraudBlock.course_id)) ||
+    (activeFraudBlockScope === "reward_policy" && hasPositiveInteger(fraudBlock.reward_policy_id));
   const canCreateFraudBlockFields = canCreateFraudBlockTarget && hasText(fraudBlock.reason);
-  const canCreateSelectedFraudScope = selectedFraudBlockScopePermission.allowed;
+  const canCreateSelectedFraudScope = activeFraudBlockScopePermission.allowed;
   const canUseFraudBlockForm = hasPositiveInteger(fraudBlockId);
   const canGrantDelegationForm =
     hasPositiveInteger(delegation.grantee_user_id) &&
@@ -516,16 +530,18 @@ export default function Home() {
   const fraudBlockCreateMissingFields = missingFields([
     [
       "Teacher user id",
-      fraudBlock.scope_type !== "teacher" || hasPositiveInteger(fraudBlock.teacher_user_id),
+      activeFraudBlockScope !== "teacher" || hasPositiveInteger(fraudBlock.teacher_user_id),
     ],
     [
       "Organization id",
-      fraudBlock.scope_type !== "organization" || hasPositiveInteger(fraudBlock.organization_id),
+      activeFraudBlockScope !== "organization" ||
+        hasPositiveInteger(fraudBlock.organization_id),
     ],
-    ["Course id", fraudBlock.scope_type !== "course" || hasPositiveInteger(fraudBlock.course_id)],
+    ["Course id", activeFraudBlockScope !== "course" || hasPositiveInteger(fraudBlock.course_id)],
     [
       "Policy id",
-      fraudBlock.scope_type !== "reward_policy" || hasPositiveInteger(fraudBlock.reward_policy_id),
+      activeFraudBlockScope !== "reward_policy" ||
+        hasPositiveInteger(fraudBlock.reward_policy_id),
     ],
     ["Reason", hasText(fraudBlock.reason)],
   ]);
@@ -804,19 +820,19 @@ export default function Home() {
 
   function createFraudBlock() {
     void sendApi("Create reward fraud block", "/reward-fraud-blocks", "POST", {
-      scope_type: fraudBlock.scope_type,
+      scope_type: activeFraudBlockScope,
       teacher_user_id:
-        fraudBlock.scope_type === "teacher"
+        activeFraudBlockScope === "teacher"
           ? optionalPositiveInteger(fraudBlock.teacher_user_id)
           : undefined,
       organization_id:
-        fraudBlock.scope_type === "organization"
+        activeFraudBlockScope === "organization"
           ? optionalPositiveInteger(fraudBlock.organization_id)
           : undefined,
       course_id:
-        fraudBlock.scope_type === "course" ? optionalPositiveInteger(fraudBlock.course_id) : undefined,
+        activeFraudBlockScope === "course" ? optionalPositiveInteger(fraudBlock.course_id) : undefined,
       reward_policy_id:
-        fraudBlock.scope_type === "reward_policy"
+        activeFraudBlockScope === "reward_policy"
           ? optionalPositiveInteger(fraudBlock.reward_policy_id)
           : undefined,
       reason: fraudBlock.reason,
@@ -1589,29 +1605,20 @@ export default function Home() {
                     Scope
                     <select
                       aria-label="Fraud block scope type"
-                      value={fraudBlock.scope_type}
+                      value={activeFraudBlockScope}
                       onChange={(event) =>
                         setFraudBlock((current) => ({ ...current, scope_type: event.target.value }))
                       }
                     >
-                      <option value="teacher" disabled={!fraudBlockScopePermissions.teacher.allowed}>
-                        {optionLabel("teacher")}
-                      </option>
-                      <option
-                        value="organization"
-                        disabled={!fraudBlockScopePermissions.organization.allowed}
-                      >
-                        {optionLabel("organization")}
-                      </option>
-                      <option value="course" disabled={!fraudBlockScopePermissions.course.allowed}>
-                        {optionLabel("course")}
-                      </option>
-                      <option
-                        value="reward_policy"
-                        disabled={!fraudBlockScopePermissions.reward_policy.allowed}
-                      >
-                        {optionLabel("reward_policy")}
-                      </option>
+                      {fraudBlockScopes.map((scope) => (
+                        <option
+                          key={scope}
+                          value={scope}
+                          disabled={!fraudBlockScopePermissions[scope]?.allowed}
+                        >
+                          {optionLabel(scope)}
+                        </option>
+                      ))}
                     </select>
                   </label>
                   <input
