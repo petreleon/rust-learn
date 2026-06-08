@@ -1,6 +1,6 @@
 .PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health runtime-verify runtime-log-scan runtime-disk docker-prune-build-cache \
   k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-refresh-web k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
-  k8s-validate dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
+  k8s-validate k8s-dev-validate dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
   dev-refresh test-integration fmt clippy web-lint web-build web-lint-compose web-build-compose logs ps shell
 
 # Variables
@@ -226,8 +226,12 @@ fmt: ## Check Rust formatting
 clippy: ## Run Rust Clippy on all targets and features
 	$(HOST_CARGO) cargo clippy --all-targets --features app-bin,worker-bin,tool-bin -- -D warnings
 
-k8s-validate: ## Render Kubernetes manifests locally
+k8s-validate: k8s-dev-secrets ## Render base and local development Kubernetes manifests
 	$(KUBECTL) kustomize $(K8S_BASE) >/dev/null
+	$(KUBECTL) kustomize $(K8S_DEV) >/dev/null
+
+k8s-dev-validate: k8s-dev-secrets ## Render local Kubernetes development overlay
+	$(KUBECTL) kustomize $(K8S_DEV) >/dev/null
 
 web-lint: ## Run frontend lint checks
 	cd web && npm run lint

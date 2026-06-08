@@ -720,6 +720,7 @@ Kubernetes manifests live under `k8s/`. Common commands:
 
 ```bash
 make k8s-build
+make k8s-validate
 make k8s-apply
 make k8s-dev-refresh-web
 make k8s-status

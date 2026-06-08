@@ -221,7 +221,9 @@ kubectl apply -k k8s/base/
 
 ### Manifest Validation
 
-The base manifests are expected to render with `kubectl kustomize k8s/base`.
+The base and local development manifests are expected to render with
+`make k8s-validate`. The validation target preserves or generates the ignored
+local development secret patch required by `k8s/overlays/dev`.
 Service names line up with in-cluster DNS values used by the app:
 `postgres:5432`, `rustfs:9000`, `anvil:8545`, `rust-app:8080`, and `web:3000`.
 The API deployment uses `/health` for liveness and `/ready` for readiness; the
