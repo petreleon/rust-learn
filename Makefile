@@ -39,7 +39,7 @@ help: ## Display this help message
 build: ## Build all Docker images
 	$(DOCKER_COMPOSE) build
 
-run: ## Start all services with docker-compose
+run: ## Start all services with Docker Compose
 	$(DOCKER_COMPOSE) up
 
 dev: ## Start in detached mode (background)
@@ -56,10 +56,10 @@ docker-build: ## Build images for Kubernetes
 	$(DOCKER) build -t rust-worker:latest -f docker/worker.Dockerfile .
 	$(DOCKER) build -t web:latest ./web
 
-docker-up: ## Start with docker-compose in background
+docker-up: ## Start with Docker Compose in background
 	$(DOCKER_COMPOSE) up -d
 
-docker-down: ## Stop docker-compose
+docker-down: ## Stop Docker Compose
 	$(DOCKER_COMPOSE) down
 
 # Kubernetes
@@ -254,7 +254,7 @@ clean: ## Delete generated files
 	$(DOCKER_COMPOSE) down -v --remove-orphans
 
 # Utilities
-logs: ## Display docker-compose logs (use: make logs SERVICE=app)
+logs: ## Display Docker Compose logs (use: make logs SERVICE=app)
 	@if [ -z "$(SERVICE)" ]; then \
 		$(DOCKER_COMPOSE) logs -f; \
 	else \

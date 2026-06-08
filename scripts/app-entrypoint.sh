@@ -15,7 +15,7 @@ if [[ "${PROD_MODE:-}" == "TRUE" ]]; then
   echo "[entrypoint] PROD_MODE=TRUE: applying Diesel migrations and starting the app"
 
   # Best-effort wait for Postgres to be ready and run migrations (retry loop)
-  # Diesel CLI is available in the image; DB settings come from .env via docker-compose
+  # Diesel CLI is available in the image; DB settings come from .env via Docker Compose.
   for i in {1..30}; do
     if diesel migration run; then
       echo "[entrypoint] Migrations applied"

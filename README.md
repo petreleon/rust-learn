@@ -340,7 +340,7 @@ ADMIN_DATE_OF_BIRTH=1990-01-01
 Start the complete local stack:
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 Or use the Makefile:
@@ -394,7 +394,7 @@ cargo run --bin rust-learn --features app-bin
 The equivalent raw Docker Compose command is:
 
 ```bash
-docker-compose up -d db rustfs anvil
+docker compose up -d db rustfs anvil
 ```
 
 Run the worker locally:
@@ -650,8 +650,8 @@ database credentials in `.env` do not match the Compose container, or a migratio
 failed partway through. Check the database service first:
 
 ```bash
-docker-compose ps db
-docker-compose logs -f db
+docker compose ps db
+docker compose logs -f db
 ```
 
 When running the API on the host, `DATABASE_URL` should point at
@@ -667,8 +667,8 @@ from the host, mismatched credentials, or RustFS not being ready. Check the
 service and console:
 
 ```bash
-docker-compose ps rustfs
-docker-compose logs -f rustfs
+docker compose ps rustfs
+docker compose logs -f rustfs
 ```
 
 Containers should use `S3_INTERNAL_DOMAIN=rustfs`. A host-run API or worker
@@ -680,8 +680,8 @@ name is configured, or an old local state volume is being reused. Check Anvil an
 query the chain ID:
 
 ```bash
-docker-compose ps anvil
-docker-compose logs -f anvil
+docker compose ps anvil
+docker compose logs -f anvil
 curl -s -X POST -H 'Content-Type: application/json' \
   --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
   http://localhost:8545
