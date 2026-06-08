@@ -412,6 +412,11 @@ export default function Home() {
   const canUseTeacherWorkflow = canTeacherApply || canReviewTeachers || canDecideTeachers;
   const canUseRewardWorkflow =
     canSubmitReward || canViewCourseRewards || canTeacherApproveReward || canApproveAmount;
+  const showRewardCourseId = canSubmitReward || canViewCourseRewards || canTeacherApproveReward;
+  const showRewardCandidateId = canTeacherApproveReward || canApproveAmount;
+  const showRewardStatusFilter = canViewCourseRewards;
+  const showRewardSharedFields =
+    showRewardCourseId || showRewardCandidateId || showRewardStatusFilter;
   const canUseReportWorkflow = canViewOrgReports || canExport;
   const canUseFraudWorkflow = canViewFraud || canManageFraud;
   const canSubmitTeacherApplicationForm =
@@ -1256,33 +1261,41 @@ export default function Home() {
               <FileCheck size={22} aria-hidden />
             </div>
 
-            <div className={styles.actionStrip}>
-              <input
-                aria-label="Reward course id"
-                {...positiveIntegerInputProps}
-                placeholder="Course id"
-                value={rewardCourseId}
-                onChange={(event) => setRewardCourseId(event.target.value)}
-              />
-              <input
-                aria-label="Reward candidate id"
-                {...positiveIntegerInputProps}
-                placeholder="Candidate id"
-                value={rewardCandidateId}
-                onChange={(event) => setRewardCandidateId(event.target.value)}
-              />
-              <select
-                aria-label="Reward candidate status filter"
-                value={rewardStatus}
-                onChange={(event) => setRewardStatus(event.target.value)}
-              >
-                {rewardStatuses.map((status) => (
-                  <option key={status} value={status}>
-                    {optionLabel(status)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {showRewardSharedFields && (
+              <div className={styles.actionStrip}>
+                {showRewardCourseId && (
+                  <input
+                    aria-label="Reward course id"
+                    {...positiveIntegerInputProps}
+                    placeholder="Course id"
+                    value={rewardCourseId}
+                    onChange={(event) => setRewardCourseId(event.target.value)}
+                  />
+                )}
+                {showRewardCandidateId && (
+                  <input
+                    aria-label="Reward candidate id"
+                    {...positiveIntegerInputProps}
+                    placeholder="Candidate id"
+                    value={rewardCandidateId}
+                    onChange={(event) => setRewardCandidateId(event.target.value)}
+                  />
+                )}
+                {showRewardStatusFilter && (
+                  <select
+                    aria-label="Reward candidate status filter"
+                    value={rewardStatus}
+                    onChange={(event) => setRewardStatus(event.target.value)}
+                  >
+                    {rewardStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {optionLabel(status)}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
 
             {!canUseRewardWorkflow && (
               <PermissionNotice
