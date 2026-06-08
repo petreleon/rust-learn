@@ -469,10 +469,10 @@ for queue depth, attempts, processing duration, retries, and failed jobs.
 Hosted GitHub Actions CI is intentionally disabled. Run the quality gates
 locally, preferably through Docker Compose, to avoid spending hosted CI minutes.
 
-Run all Rust tests:
+Run all Rust tests on the host:
 
 ```bash
-cargo test
+make test
 ```
 
 Docker Compose equivalent:
@@ -585,7 +585,7 @@ Test dependency notes:
 | Check | External requirements |
 | --- | --- |
 | `make clippy` | Local Rust toolchain plus native libraries such as `libpq`; runs Clippy across all targets and the app, worker, and tool feature flags with warnings denied. |
-| `make test` / `cargo test` | A valid `.env`; many integration tests open `DATABASE_URL`, so start PostgreSQL first with `make dev-deps` when running the full suite. Host runs also need local native libraries such as `libpq`. |
+| `make test` | A valid `.env`; many integration tests open `DATABASE_URL`, so start PostgreSQL first with `make dev-deps` when running the full suite. The host wrapper maps Compose-only service names to localhost ports and uses `target/host-tests` so Docker and host artifacts do not collide. Host runs also need local native libraries such as `libpq`. |
 | `make test-compose` | Docker plus a valid `.env`; starts PostgreSQL, RustFS, and Anvil, then runs Cargo in the `test-runner` profile so host native libraries are not required. |
 | `cargo test --test s3` | RustFS/S3-compatible storage reachable through the `S3_*` settings. With Compose, run from the container network or set `S3_INTERNAL_DOMAIN`/`S3_EXTERNAL_DOMAIN` appropriately for the host. |
 | `make test-integration` | Docker plus a valid `.env`; starts Anvil, then runs ignored blockchain tests in the `test-runner` profile. |

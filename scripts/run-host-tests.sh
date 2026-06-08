@@ -14,6 +14,10 @@ for bin_dir in /opt/homebrew/bin /usr/local/bin; do
   fi
 done
 
+# Keep host-built test artifacts separate from Docker/Linux artifacts. Mixed
+# target directories can leave stale or non-executable test binaries behind.
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target/host-tests}"
+
 # The committed local .env defaults are container-friendly. When tests run on
 # the host against Compose-published ports, map Docker DNS names to localhost.
 if [[ "${DATABASE_URL:-}" == *@db:5432/* ]]; then
@@ -42,8 +46,31 @@ if [[ -d /opt/homebrew/opt/libpq/lib ]]; then
   export DYLD_LIBRARY_PATH="${DYLD_LIBRARY_PATH:+$DYLD_LIBRARY_PATH:}/opt/homebrew/opt/libpq/lib"
 fi
 
+repair_cargo_test_binaries() {
+  local deps_dir="$CARGO_TARGET_DIR/debug/deps"
+  [[ -d "$deps_dir" ]] || return 0
+
+  find "$deps_dir" -maxdepth 1 -type f ! -perm -111 -print0 |
+    while IFS= read -r -d '' artifact; do
+      if file -b "$artifact" | grep -q 'executable'; then
+        chmod +x "$artifact"
+      fi
+    done
+}
+
+run_cargo_test() {
+  cargo test --no-run "$@"
+  repair_cargo_test_binaries
+  exec cargo test "$@"
+}
+
 if [[ $# -eq 0 ]]; then
-  exec cargo test
+  run_cargo_test
+fi
+
+if [[ "$1" == "cargo" && "${2:-}" == "test" ]]; then
+  shift 2
+  run_cargo_test "$@"
 fi
 
 exec "$@"

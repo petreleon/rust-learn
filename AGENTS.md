@@ -40,14 +40,14 @@ RustLearn is an incentivized learning platform. The backend is a Rust/Actix Web 
 
 ```bash
 cargo fmt --all --check
-cargo test
-cargo test --test blockchain_integration_tests
+make test
+make test-compose
+make test-integration
 make dev
 make dev-worker
-make test
 ```
 
-For containerized development, use Docker Compose commands from the README or Makefile. The worker binary can require a large Docker VM memory allocation during release builds.
+Use `make test` for host Rust tests; it rewrites Compose-only service hosts to localhost and keeps host artifacts in `target/host-tests`. For containerized development, use Docker Compose commands from the README or Makefile. The worker binary can require a large Docker VM memory allocation during release builds.
 
 ## Pull request checklist
 
