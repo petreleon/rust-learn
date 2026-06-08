@@ -1288,6 +1288,9 @@ export default function Home() {
           <button
             type="button"
             className={styles.iconButton}
+            disabled={apiState === "checking"}
+            aria-label="Check API health"
+            title="Check API health"
             onClick={() => {
               setApiState("checking");
               setApiMessage("Checking API");
@@ -1295,7 +1298,7 @@ export default function Home() {
             }}
           >
             <RefreshCw size={18} aria-hidden />
-            <span>Refresh</span>
+            <span>{apiState === "checking" ? "Checking" : "Check API"}</span>
           </button>
         </header>
 
