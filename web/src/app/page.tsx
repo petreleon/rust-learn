@@ -761,6 +761,12 @@ export default function Home() {
     setToken("");
     setCredentials((current) => ({ ...current, password: "" }));
     setSessionMessage("Session cleared");
+    setResult({
+      label: "Result",
+      status: "Idle",
+      body: "Session cleared. Previous API response hidden.",
+      ok: true,
+    });
   }
 
   async function sendApi(label: string, path: string, method: HttpMethod = "GET", body?: unknown) {
