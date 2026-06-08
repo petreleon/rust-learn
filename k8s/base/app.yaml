@@ -22,8 +22,11 @@ spec:
           command: ["/bin/bash", "-lc"]
           args:
             - |
+              runtime_diesel_config="$(mktemp)"
+              trap 'rm -f "$runtime_diesel_config"' EXIT
+
               for i in {1..60}; do
-                if diesel migration run; then
+                if diesel migration run --config-file "$runtime_diesel_config"; then
                   echo "[migrate] Migrations applied"
                   exit 0
                 fi

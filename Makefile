@@ -92,7 +92,7 @@ k8s-apply: ## Apply all Kubernetes resources
 k8s-dev-secrets: ## Generate ignored local Kubernetes development secrets
 	@./scripts/generate-k8s-dev-secrets.sh
 
-k8s-dev-apply: k8s-dev-secrets ## Apply local Kubernetes overlay with generated development secrets
+k8s-dev-apply: k8s-dev-secrets k8s-build ## Build images and apply local Kubernetes overlay with generated development secrets
 	@echo "$(YELLOW)Applying local Kubernetes development overlay...$(NC)"
 	$(KUBECTL) apply -k $(K8S_DEV)/
 	@echo "$(YELLOW)Restarting deployments that consume local secrets/config...$(NC)"

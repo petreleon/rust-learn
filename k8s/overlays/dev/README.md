@@ -11,6 +11,11 @@ make k8s-dev-secrets
 make k8s-dev-apply
 ```
 
+`make k8s-dev-apply` also builds the local `latest` app, worker, and web images
+before applying the overlay, so Kubernetes does not roll out pods that reference
+missing local images. For faster code iteration after the overlay is already
+running, use `make k8s-dev-refresh` or `make k8s-dev-refresh-web`.
+
 The generated `secrets.patch.yaml` contains local development credentials and
 must not be committed. The generator restricts it to the current user with
 `0600` permissions. Existing secrets are preserved on later runs; set
