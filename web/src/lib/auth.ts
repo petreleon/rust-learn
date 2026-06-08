@@ -17,6 +17,15 @@ export type LoginWithPasswordOptions = {
   timeoutMs?: number;
 };
 
+export type RegisterAccountOptions = {
+  apiRoot?: string;
+  dateOfBirth?: string;
+  email: string;
+  name: string;
+  password: string;
+  timeoutMs?: number;
+};
+
 const DEFAULT_TIMEOUT_MS = 10000;
 
 export async function loginWithPassword({
@@ -63,6 +72,52 @@ export async function loginWithPassword({
   }
 }
 
+export async function registerAccount({
+  apiRoot = "/api",
+  dateOfBirth,
+  email,
+  name,
+  password,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+}: RegisterAccountOptions): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${apiRoot}/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        date_of_birth: dateOfBirth || undefined,
+        email,
+        name,
+        password,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw await registrationErrorFromResponse(response);
+    }
+
+    return await response.text();
+  } catch (error) {
+    if (error instanceof AuthRequestError) {
+      throw error;
+    }
+
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new AuthRequestError("Registration timed out.", 0, "timeout");
+    }
+
+    throw new AuthRequestError("Registration failed before the API responded.", 0, "network_error");
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function authErrorFromResponse(response: Response) {
   const text = await response.text();
   const message = text || response.statusText || "Login failed.";
@@ -80,4 +135,23 @@ async function authErrorFromResponse(response: Response) {
   }
 
   return new AuthRequestError(message, response.status, "login_error");
+}
+
+async function registrationErrorFromResponse(response: Response) {
+  const text = await response.text();
+  const message = text || response.statusText || "Registration failed.";
+
+  if (response.status === 409) {
+    return new AuthRequestError(message, response.status, "duplicate_email");
+  }
+
+  if (response.status === 400 && message.toLowerCase().includes("password")) {
+    return new AuthRequestError(message, response.status, "password_policy");
+  }
+
+  if (response.status >= 500) {
+    return new AuthRequestError(message, response.status, "server_error");
+  }
+
+  return new AuthRequestError(message, response.status, "registration_error");
 }

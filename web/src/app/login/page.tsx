@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useMemo, useState } from "react";
 import { AuthRequestError, loginWithPassword } from "@/lib/auth";
 import { storeSessionToken } from "@/lib/session";
-import styles from "./page.module.css";
+import styles from "../auth.module.css";
 
 type SubmitState = "idle" | "loading" | "error";
 
@@ -62,6 +62,9 @@ export default function LoginPage() {
         <nav className={styles.topActions} aria-label="Login links">
           <Link className={styles.navLink} href="/session">
             Session
+          </Link>
+          <Link className={styles.navLink} href="/register">
+            Register
           </Link>
           <Link className={styles.navLink} href="/">
             Operations
@@ -149,6 +152,10 @@ export default function LoginPage() {
             )}
             Sign in
           </button>
+
+          <p className={styles.inlinePrompt}>
+            New to RustLearn? <Link href="/register">Create an account</Link>
+          </p>
         </form>
       </section>
     </main>
