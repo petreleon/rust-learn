@@ -35,6 +35,8 @@ type PermissionOption = {
   scope: "platform" | "organization" | "course";
 };
 
+const HEALTH_CHECK_TIMEOUT_MS = 5000;
+
 const PERMISSIONS: PermissionOption[] = [
   { key: "SUBMIT_TEACHER_APPLICATION", label: "Submit application", scope: "platform" },
   { key: "REVIEW_TEACHER_APPLICATIONS", label: "Review applications", scope: "platform" },
@@ -457,10 +459,16 @@ export default function Home() {
     const controller = new AbortController();
     const root = normalizeRoot(apiRoot);
     const healthRoot = root.endsWith("/api") ? root.slice(0, -4) : root;
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, HEALTH_CHECK_TIMEOUT_MS);
 
     fetch(`${healthRoot || ""}/health`, { signal: controller.signal })
       .then(async (response) => {
         const body = await response.text();
+        window.clearTimeout(timeoutId);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -468,14 +476,20 @@ export default function Home() {
         setApiMessage(formatHealthMessage(body));
       })
       .catch((error: Error) => {
-        if (controller.signal.aborted) {
+        window.clearTimeout(timeoutId);
+        if (controller.signal.aborted && !timedOut) {
           return;
         }
         setApiState("offline");
-        setApiMessage(error.message || "Connection failed");
+        setApiMessage(
+          timedOut ? "API health check timed out" : error.message || "Connection failed"
+        );
       });
 
-    return () => controller.abort();
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [apiRoot, healthCheckTick]);
 
   const permissionGroups = useMemo(
