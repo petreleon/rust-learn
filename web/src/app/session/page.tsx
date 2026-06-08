@@ -102,6 +102,11 @@ export default function SessionPage() {
           </span>
         </Link>
         <nav className={styles.topActions} aria-label="Session actions">
+          {!activeToken ? (
+            <Link href="/login?redirect=/session" className={styles.navLink}>
+              Sign in
+            </Link>
+          ) : null}
           <Link href="/" className={styles.navLink}>
             Operations
           </Link>

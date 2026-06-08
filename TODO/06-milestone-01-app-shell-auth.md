@@ -32,7 +32,7 @@ navigation.
 
 - [ ] `/` routes to the appropriate product home after current-user resolution,
       or to public course discovery when anonymous browsing is supported.
-- [ ] `/login` supports email/password login, invalid credentials, unverified
+- [x] `/login` supports email/password login, invalid credentials, unverified
       email, server failure, timeout, and redirect back to intended route.
 - [ ] `/register` supports password policy feedback, duplicate email, mock
       email-verification explanation, and post-register next step.
