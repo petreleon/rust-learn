@@ -4,7 +4,12 @@ set -euo pipefail
 ENV_FILE="${1:-.env}"
 EXAMPLE_FILE="${2:-.env.example}"
 
+restrict_env_permissions() {
+  chmod 600 "$ENV_FILE"
+}
+
 if [[ -f "$ENV_FILE" ]]; then
+  restrict_env_permissions
   echo "$ENV_FILE already exists; leaving it unchanged."
   exit 0
 fi
@@ -15,6 +20,7 @@ if [[ ! -f "$EXAMPLE_FILE" ]]; then
 fi
 
 cp "$EXAMPLE_FILE" "$ENV_FILE"
+restrict_env_permissions
 echo "Created $ENV_FILE from $EXAMPLE_FILE."
 
 if ! command -v openssl >/dev/null 2>&1; then
@@ -56,6 +62,7 @@ for line in lines:
 
 env_path.write_text("\n".join(updated) + "\n")
 PY
+restrict_env_permissions
 
 echo "Generated a local RSA key pair for JWT signing in $ENV_FILE."
 echo "Do not commit $ENV_FILE."

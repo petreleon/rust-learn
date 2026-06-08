@@ -125,7 +125,11 @@ Create a local `.env` file from the example:
 make setup
 ```
 
-`make setup` copies `.env.example` to `.env` and, when OpenSSL and Python 3 are available, replaces the committed JWT placeholders with a freshly generated local RSA key pair. Then edit `.env` for your environment-specific database, object-storage, Ethereum, and bootstrap-admin values.
+`make setup` copies `.env.example` to `.env`, restricts it to the current user
+with `0600` permissions, and, when OpenSSL and Python 3 are available, replaces
+the committed JWT placeholders with a freshly generated local RSA key pair. Then
+edit `.env` for your environment-specific database, object-storage, Ethereum,
+and bootstrap-admin values.
 
 ### RSA keys for JWT signing
 
