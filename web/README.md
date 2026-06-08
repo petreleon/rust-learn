@@ -23,6 +23,15 @@ from effective permissions instead of role labels, and show contextual denied
 states when the current user lacks the required learner, teacher, organization,
 or platform access signal.
 
+Learner product routes now include `/courses`, `/rewards`, and `/wallet`.
+`/courses` shows current course access from the session and an honest
+catalog-readiness state until course discovery/detail contracts exist.
+`/rewards` loads `GET /api/reward-candidates/me/history`, supports human
+status filters, and separates teacher review, amount approval, token
+processing, wallet credit, reconciliation, and failed states. `/wallet` loads
+`GET /api/wallets/me`, treats `404 Wallet not linked` as an empty state, and
+uses `POST /api/wallets/me/link` for the self-service link action.
+
 The shared product shell includes global status notices for session expiry and
 retryable workspace failures. Its account and mobile menus show delegated
 permissions with scope labels and expiration text so temporary access is visible

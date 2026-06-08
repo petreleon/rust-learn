@@ -9,9 +9,15 @@
       platform admin dashboard.
 - [ ] Add interaction tests for permission-denied, empty, error, loading, and
       success states.
+  - [x] Mocked browser QA covers learner `/courses`, `/rewards`, `/wallet`,
+        reward filter interaction, wallet unlinked empty state, wallet link
+        success, and mobile menu interaction for this checkpoint.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
+  - [x] Frontend helper tests now cover session/auth JSON and text errors plus
+        learner reward-history success/filtering, wallet `404`, wallet link
+        success, and learner `403` text error normalization.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.

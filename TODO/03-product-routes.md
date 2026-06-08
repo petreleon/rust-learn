@@ -38,8 +38,12 @@
 
 - [ ] Build a learner dashboard showing enrolled courses, progress, due work,
       reward status, wallet summary, and recent notifications.
+  - [x] Add learner dashboard onward navigation to courses, rewards, and wallet
+        product routes.
 - [ ] Build course discovery with search, filters, organization/course
       metadata, reward availability, and enrollment calls to action.
+  - [x] Add a `/courses` product route that shows current course access and
+        clearly defers full discovery until catalog data exists.
 - [ ] Build course detail pages with syllabus, instructor information,
       prerequisites, reward policy summary, enrollment status, and access
       requirements.
@@ -47,11 +51,13 @@
       states, completion tracking, and next-step navigation.
 - [ ] Build assessment-taking screens when assessment endpoints are ready,
       including attempt state, results, and retry rules.
-- [ ] Build learner reward history with candidate status, approved amount,
+- [x] Build learner reward history with candidate status, approved amount,
       wallet credit, token transaction, reconciliation status, and helpful
       explanations.
 - [ ] Build wallet linking/deposit/retirement screens that make MetaMask and
       platform-wallet requirements understandable.
+  - [x] Add wallet summary and self-linking route for linked/unlinked wallet
+        states. Deposits, retirements, and audit/history remain open.
 
 ## Teacher Experience
 

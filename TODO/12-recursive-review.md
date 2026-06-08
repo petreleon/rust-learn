@@ -103,4 +103,11 @@ represented in this folder.
 - [ ] Each route implementation should add traceability notes before coding.
 - [ ] The first real implementation checkpoint should start with Milestone 1,
       not with more operations-console polish.
-
+- [x] Learner reward history and wallet linking can be productized with current
+      backend contracts.
+- [x] Full course discovery, course detail, lesson progress, wallet deposits,
+      retirements, and wallet audit/history still cannot be marked complete
+      without additional contracts.
+- [x] Browser-only QA is not enough for authenticated learner states because
+      the current in-app Browser path does not expose network interception or
+      storage setup; mocked Playwright QA is required for this checkpoint.

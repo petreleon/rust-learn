@@ -11,6 +11,7 @@ const compiledDir = mkdtempSync(path.join(tmpdir(), "rustlearn-api-helper-tests-
 
 const session = await importTranspiled("src/lib/session.ts");
 const auth = await importTranspiled("src/lib/auth.ts");
+const learner = await importTranspiled("src/lib/learner.ts");
 
 test("fetchCurrentSession parses JSON success and sends bearer token", async () => {
   const calls = mockFetch((url, init) => {
@@ -161,6 +162,109 @@ test("verifyEmailToken separates invalid and expired text errors", async () => {
     code: "expired_token",
     errorClass: auth.AuthRequestError,
     status: 400,
+  });
+});
+
+test("fetchRewardHistory parses learner reward filters and JSON success", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/reward-candidates/me/history?limit=10&status=wallet_credited");
+    assert.equal(init.headers.Authorization, "Bearer learner-token");
+    return jsonResponse([
+      {
+        approved_amount: "12",
+        course_id: 7,
+        course_title: "Rust Ownership",
+        created_at: "2026-01-01T10:00:00Z",
+        event_type: "course_completion",
+        reward_candidate_id: 99,
+        status: "wallet_credited",
+        token_transaction: {
+          amount: "12",
+          blockchain_address: "0xlearner",
+          chain_id: 31337,
+          external_transaction_id: 5,
+          payout_transaction_id: 4,
+          recorded_at: "2026-01-02T10:00:00Z",
+          transaction_hash: "0xtxhash",
+        },
+        updated_at: "2026-01-02T10:00:00Z",
+        wallet_credit: {
+          amount: "12",
+          credited_at: "2026-01-02T10:10:00Z",
+          internal_transaction_id: 8,
+          reward_wallet_credit_record_id: 6,
+          transaction_id: 7,
+          wallet_id: 3,
+        },
+      },
+    ]);
+  });
+
+  const history = await learner.fetchRewardHistory({
+    limit: 10,
+    status: "wallet_credited",
+    token: "learner-token",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(history.length, 1);
+  assert.equal(history[0].course_title, "Rust Ownership");
+  assert.equal(history[0].wallet_credit.amount, "12");
+});
+
+test("fetchMyWallet returns null for unlinked wallet and parses linked wallet", async () => {
+  mockFetch(() => textResponse("Wallet not linked", { status: 404 }));
+
+  const missingWallet = await learner.fetchMyWallet({ token: "learner-token" });
+  assert.equal(missingWallet, null);
+
+  mockFetch((url, init) => {
+    assert.equal(url, "/api/wallets/me");
+    assert.equal(init.headers.Authorization, "Bearer learner-token");
+    return jsonResponse({
+      id: 3,
+      organization_id: null,
+      owner_type: "user",
+      user_id: 1,
+      value: "42",
+    });
+  });
+
+  const wallet = await learner.fetchMyWallet({ token: "learner-token" });
+  assert.equal(wallet.id, 3);
+  assert.equal(wallet.value, "42");
+});
+
+test("linkMyWallet parses created response and learner text errors", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/wallets/me/link");
+    assert.equal(init.method, "POST");
+    return jsonResponse(
+      {
+        created: true,
+        wallet: {
+          id: 4,
+          organization_id: null,
+          owner_type: "user",
+          user_id: 1,
+          value: "0",
+        },
+      },
+      { status: 201 },
+    );
+  });
+
+  const result = await learner.linkMyWallet({ token: "learner-token" });
+  assert.equal(calls.length, 1);
+  assert.equal(result.created, true);
+  assert.equal(result.wallet.id, 4);
+
+  mockFetch(() => textResponse("User does not have wallet access", { status: 403 }));
+
+  await assertRequestError(learner.linkMyWallet({ token: "learner-token" }), {
+    code: "permission_denied",
+    errorClass: learner.LearnerRequestError,
+    status: 403,
   });
 });
 

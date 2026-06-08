@@ -1,0 +1,312 @@
+.statePanel,
+.contentGrid,
+.section,
+.catalogPanel,
+.errorPanel {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.statePanel,
+.summaryCard,
+.itemCard,
+.catalogPanel,
+.errorPanel {
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
+}
+
+.statePanel,
+.catalogPanel,
+.errorPanel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.panelHeader,
+.actionRow,
+.statusPill,
+.itemHeader,
+.metaRow,
+.primaryLink,
+.secondaryButton,
+.secondaryLink,
+.disabledSearch,
+.filterBar,
+.filterButton,
+.iconAction,
+.sectionHeader {
+  display: flex;
+  align-items: center;
+}
+
+.panelHeader,
+.actionRow,
+.metaRow,
+.disabledSearch,
+.filterBar {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.panelHeader h2,
+.section h2 {
+  font-size: 1.08rem;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.itemGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.summaryCard,
+.itemCard {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.summaryCard strong {
+  font-size: 1.65rem;
+}
+
+.section {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.sectionHeader {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.itemHeader {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.itemHeader h3 {
+  min-width: 0;
+  font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.muted {
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.primaryLink,
+.secondaryButton,
+.secondaryLink {
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #172033;
+  background: #ffffff;
+  font-weight: 820;
+}
+
+.primaryLink {
+  width: fit-content;
+  border-color: #1f6f8b;
+  color: #ffffff;
+  background: #1f6f8b;
+}
+
+.secondaryButton {
+  cursor: pointer;
+}
+
+.iconAction {
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #172033;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.iconAction:hover,
+.secondaryButton:hover,
+.secondaryLink:hover {
+  border-color: #9fb6c2;
+  background: #f8fafc;
+}
+
+.secondaryButton:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
+.catalogPanel {
+  margin-top: 16px;
+  border-color: #b6d8e2;
+  background: #f2fbfc;
+}
+
+.catalogPanel p {
+  max-width: 760px;
+}
+
+.disabledSearch span,
+.filterButton {
+  min-height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #334155;
+  background: #ffffff;
+  font-weight: 820;
+}
+
+.disabledSearch span {
+  display: inline-flex;
+  gap: 8px;
+  color: #94a3b8;
+  background: #f8fafc;
+}
+
+.filterButton {
+  cursor: pointer;
+}
+
+.filterButton:hover {
+  border-color: #9fb6c2;
+}
+
+.activeFilter {
+  border-color: #1f6f8b;
+  color: #ffffff;
+  background: #1f6f8b;
+}
+
+.errorPanel {
+  border-color: #fecaca;
+  color: #991b1b;
+  background: #fff1f2;
+}
+
+.statusPill,
+.metaRow span {
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  font-weight: 820;
+}
+
+.statusPill {
+  gap: 6px;
+}
+
+.metaRow span {
+  display: inline-flex;
+  align-items: center;
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.good {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.neutral {
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.warn {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.bad {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.detailList {
+  display: grid;
+  gap: 4px;
+  color: #64748b;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.walletValue {
+  font-size: 2rem;
+}
+
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.skeleton {
+  min-height: 108px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e2e8f0, #f8fafc, #e2e8f0);
+  background-size: 220% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 860px) {
+  .contentGrid,
+  .itemGrid,
+  .skeletonGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .actionRow,
+  .disabledSearch span,
+  .filterButton,
+  .primaryLink,
+  .secondaryButton,
+  .secondaryLink {
+    width: 100%;
+  }
+
+  .itemHeader,
+  .sectionHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

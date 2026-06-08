@@ -5,9 +5,11 @@ import {
   BookOpen,
   BriefcaseBusiness,
   Building2,
+  CreditCard,
   Loader2,
   LogIn,
   ShieldCheck,
+  Trophy,
 } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
@@ -299,6 +301,30 @@ function LearnerContent({ session }: { session: CurrentSession }) {
           value={session.courses.filter((course) => course.effective_permissions.includes("VIEW_COURSE_REWARD_STATUS")).length}
         />
         <SummaryCard icon={<BriefcaseBusiness size={20} aria-hidden />} label="Organizations" value={session.organizations.length} />
+      </section>
+      <section className={styles.statePanel}>
+        <div className={styles.panelHeader}>
+          <BookOpen size={20} aria-hidden />
+          <h2>Continue as a learner</h2>
+        </div>
+        <p className={styles.muted}>
+          Open course access, reward history, or wallet readiness without leaving the product
+          workspace.
+        </p>
+        <div className={styles.actionRow}>
+          <Link className={styles.primaryLink} href="/courses">
+            <BookOpen size={18} aria-hidden />
+            Courses
+          </Link>
+          <Link className={styles.secondaryLink} href="/rewards">
+            <Trophy size={18} aria-hidden />
+            Rewards
+          </Link>
+          <Link className={styles.secondaryLink} href="/wallet">
+            <CreditCard size={18} aria-hidden />
+            Wallet
+          </Link>
+        </div>
       </section>
       <ScopeList
         empty="Course enrollments and learning scopes will appear here."
