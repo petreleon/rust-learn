@@ -498,6 +498,7 @@ export default function Home() {
   const canUseReportWorkflow =
     canViewOrgReports || canViewPlatformReports || canViewPlatformDashboards || canExport;
   const canUseFraudWorkflow = canViewFraud || canManageFraud;
+  const canUseAuditWorkflow = canUseReportWorkflow || canUseFraudWorkflow || canDelegate;
   const canSubmitTeacherApplicationForm =
     hasText(teacherForm.experience_summary) &&
     (teacherForm.requested_scope === "platform" ||
@@ -1145,7 +1146,7 @@ export default function Home() {
           </div>
           <div className={styles.metric}>
             <span>Audit flow</span>
-            <strong>{flowStatus(canViewFraud || canDelegate || canExport, hasSessionToken)}</strong>
+            <strong>{flowStatus(canUseAuditWorkflow, hasSessionToken)}</strong>
           </div>
         </section>
 
