@@ -874,6 +874,16 @@ export default function Home() {
           </div>
         </section>
 
+        {!hasSessionToken && (
+          <section className={styles.workflowNotice} aria-label="Session requirement">
+            <KeyRound size={18} aria-hidden />
+            <div>
+              <strong>JWT required</strong>
+              <span>Protected workflow actions are locked until a session token is loaded.</span>
+            </div>
+          </section>
+        )}
+
         <div className={styles.grid}>
           <section className={styles.panel} aria-labelledby="teacher-title">
             <div className={styles.panelHeader}>

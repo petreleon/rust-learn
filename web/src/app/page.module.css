@@ -346,6 +346,42 @@
   font-size: 1.25rem;
 }
 
+.workflowNotice {
+  min-height: 48px;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #78350f;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workflowNotice svg {
+  flex: 0 0 auto;
+}
+
+.workflowNotice div {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.workflowNotice strong,
+.workflowNotice span {
+  overflow-wrap: anywhere;
+}
+
+.workflowNotice strong {
+  font-size: 0.9rem;
+}
+
+.workflowNotice span {
+  font-size: 0.86rem;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -479,6 +515,16 @@
   .formGrid,
   .actionStrip {
     grid-template-columns: 1fr;
+  }
+
+  .workflowNotice,
+  .workflowNotice div {
+    align-items: flex-start;
+  }
+
+  .workflowNotice div {
+    flex-direction: column;
+    gap: 2px;
   }
 
   .topbar h1 {
