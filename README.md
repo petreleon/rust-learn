@@ -98,11 +98,11 @@ process are documented in [docs/operations.md](docs/operations.md).
 ### Frontend
 
 The `web/` directory contains a Next.js app that keeps browser API calls on the same origin through `/api` by default. `API_URL` points the Next proxy at the Rust API in container/server contexts; `NEXT_PUBLIC_API_URL` can override the browser root when needed.
-The first screen is a reward operations console for teacher applications,
-course reward candidate decisions, platform amount review, student reward
-history, organization reward reports, reward fraud blocks, delegated reward
-permissions, and CSV exports. UI actions are shown or disabled from resolved
-platform, organization, and course permission strings rather than role labels.
+The default `/` route resolves the current product session, sending anonymous
+users to `/login` and users with a stored token to `/session`. The internal
+workflow console for teacher applications, reward decisions, reports, fraud
+blocks, delegations, exports, and local API debugging lives at `/ops` while the
+route-based product frontend replaces it.
 
 ## Prerequisites
 
@@ -628,7 +628,7 @@ Test dependency notes:
 | `cargo test --test s3` | RustFS/S3-compatible storage reachable through the `S3_*` settings. With Compose, run from the container network or set `S3_INTERNAL_DOMAIN`/`S3_EXTERNAL_DOMAIN` appropriately for the host. |
 | `make test-integration` | Docker plus a valid `.env`; starts Anvil, then runs ignored blockchain tests in the `test-runner` profile. |
 | `./scripts/run-host-tests.sh cargo test --test blockchain_integration_tests -- --ignored` | Anvil or another Ethereum JSON-RPC endpoint plus `ETH_MNEMONIC` and provider settings in `.env`; the host wrapper supplies Compose-to-localhost rewrites, native library paths, and `target/host-tests`. |
-| `make runtime-verify` | Running Docker Compose stack and Kubernetes `rust-learn` namespace; fails if Compose endpoints, the web dashboard shell, the worker heartbeat, K8s deployments/pods, or in-cluster web/API readiness are unhealthy. |
+| `make runtime-verify` | Running Docker Compose stack and Kubernetes `rust-learn` namespace; fails if Compose endpoints, the product entry shell, the worker heartbeat, K8s deployments/pods, or in-cluster web/API readiness are unhealthy. |
 | Worker/media-processing checks | ffmpeg on `PATH`, PostgreSQL, and RustFS/S3. Keep `WORKER_CONCURRENCY=1` on small Docker VMs. |
 
 Docker is the recommended way to provide PostgreSQL, RustFS, and Anvil for local test runs:

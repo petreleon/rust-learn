@@ -110,7 +110,7 @@ export default function SessionPage() {
           <Link href="/settings/account" className={styles.navLink}>
             Account
           </Link>
-          <Link href="/" className={styles.navLink}>
+          <Link href="/ops" className={styles.navLink}>
             Operations
           </Link>
           {activeToken ? (

@@ -24,7 +24,7 @@ HOST_CARGO ?= ./scripts/run-host-tests.sh
 LOCAL_PORT ?= $(PORT)
 LOG_SCAN_SINCE ?= 30m
 LOG_SCAN_PATTERN := level=(ERROR|WARN)|panic|traceback|unhandled|HTTP[[:space:]]+500|status=500|(^|[^[:alnum:]_=])500($|[^[:alnum:]_])
-WEB_DASHBOARD_SMOKE_TEXT ?= Reward and teaching workflows
+WEB_DASHBOARD_SMOKE_TEXT ?= Opening your workspace
 
 # Colors for output
 GREEN := \033[0;32m

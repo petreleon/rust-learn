@@ -49,6 +49,8 @@ application.
 - [x] `GET /healthz` exists for container and Kubernetes probes.
 - [x] Operations console can exercise teacher applications, rewards, reports,
       fraud blocks, delegations, exports, and health checks.
+- [x] The operations console is isolated at `/ops`; `/` now resolves the
+      product session before sending users to login or session surfaces.
 - [ ] Real app shell, route structure, and persona-specific navigation exist.
 - [ ] Learner, teacher, organization, and platform admin experiences are usable
       without treating the UI as an API test panel.

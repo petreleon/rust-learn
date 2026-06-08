@@ -26,7 +26,7 @@ export default function ResetPasswordPage() {
           <Link className={styles.navLink} href="/forgot-password">
             Forgot password
           </Link>
-          <Link className={styles.navLink} href="/">
+          <Link className={styles.navLink} href="/ops">
             Operations
           </Link>
         </nav>

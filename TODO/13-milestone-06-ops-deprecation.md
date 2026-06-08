@@ -19,18 +19,18 @@ routes are verified.
 
 ## Migration Tasks
 
-- [ ] Move the current single-page workflow console into `/ops`.
+- [x] Move the current single-page workflow console into `/ops`.
 - [ ] Keep `/ops` behind authentication and permission checks appropriate for
       internal operators.
 - [ ] Preserve the API root control only where it is still useful for local
       debugging.
 - [ ] Remove manual permission toggles from product routes; keep them only in
       `/ops` if they remain valuable as a test harness.
-- [ ] Replace the default `/` route with product-home routing driven by
+- [x] Replace the default `/` route with product-home routing driven by
       current-user state.
-- [ ] Update smoke text constants so runtime checks prove product routes, not
+- [x] Update smoke text constants so runtime checks prove product routes, not
       only `/ops`.
-- [ ] Update `web/README.md`, root `README.md`, and `TODO/` when the default
+- [x] Update `web/README.md`, root `README.md`, and `TODO/` when the default
       frontend route changes.
 
 ## Product Flow Replacement Checklist
@@ -84,11 +84,10 @@ Do not demote a console control until its product equivalent is verified.
 
 - [ ] Desktop and mobile rendered checks for `/`, core product routes, and
       `/ops`.
-- [ ] Browser proof that `/` no longer renders the operations console once
+- [x] Browser proof that `/` no longer renders the operations console once
       product home exists.
-- [ ] Browser proof that `/ops` still renders meaningful debug controls for
+- [x] Browser proof that `/ops` still renders meaningful debug controls for
       permitted operators.
 - [ ] Docker Compose runtime verification uses product route smoke text.
 - [ ] Kubernetes runtime verification uses product route smoke text.
 - [ ] Recent logs are clean after route migration.
-

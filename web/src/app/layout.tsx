@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RustLearn Operations",
+  title: "RustLearn",
   description: "Learner and administrator workflows for RustLearn",
 };
 

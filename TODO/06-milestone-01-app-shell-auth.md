@@ -30,7 +30,7 @@ navigation.
 
 ## Routes
 
-- [ ] `/` routes to the appropriate product home after current-user resolution,
+- [x] `/` routes to the appropriate product home after current-user resolution,
       or to public course discovery when anonymous browsing is supported.
 - [x] `/login` supports email/password login, invalid credentials, unverified
       email, server failure, timeout, and redirect back to intended route.
@@ -42,7 +42,7 @@ navigation.
       are explicitly deferred with non-broken navigation.
 - [x] `/settings/account` shows profile, email verification, wallet status, and
       notification preference placeholders.
-- [ ] `/ops` hosts the existing operations console once it is moved out of the
+- [x] `/ops` hosts the existing operations console once it is moved out of the
       product home.
 
 ## App Shell

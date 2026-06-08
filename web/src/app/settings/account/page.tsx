@@ -82,7 +82,7 @@ export default function AccountSettingsPage() {
           <Link className={styles.navLink} href="/login?redirect=/settings/account">
             Login
           </Link>
-          <Link className={styles.navLink} href="/">
+          <Link className={styles.navLink} href="/ops">
             Operations
           </Link>
         </nav>

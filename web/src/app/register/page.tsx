@@ -131,7 +131,7 @@ export default function RegisterPage() {
           <Link className={styles.navLink} href="/session">
             Session
           </Link>
-          <Link className={styles.navLink} href="/">
+          <Link className={styles.navLink} href="/ops">
             Operations
           </Link>
         </nav>

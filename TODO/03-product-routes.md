@@ -17,7 +17,7 @@
 - [ ] Add platform admin routes for users, roles, permissions, teacher
       application review, reward amount review, fraud blocks, wallet
       reconciliation, exports, system health, and audit logs.
-- [ ] Move internal workflow-testing controls to `/ops` and clearly separate
+- [x] Move internal workflow-testing controls to `/ops` and clearly separate
       them from the product navigation.
 
 ## Authentication And Session UX
@@ -102,4 +102,3 @@
       permission-aware availability.
 - [ ] Build wallet reconciliation and transaction audit views for platform
       operators.
-

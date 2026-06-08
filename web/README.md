@@ -1,7 +1,12 @@
-# RustLearn Web Console
+# RustLearn Web
 
-Next.js operations console for reward, teacher-application, reporting, fraud,
-delegation, and wallet workflows.
+Next.js product frontend and internal operations console for RustLearn.
+
+`/` resolves the current session and routes users to the right product surface:
+anonymous users go to `/login`, and users with a stored token are checked
+against `GET /api/me` before going to `/session`. `/ops` is the internal
+operations console for reward, teacher-application, reporting, fraud,
+delegation, wallet, export, and local API-debugging workflows.
 
 `/login` is the product sign-in route for email/password authentication.
 `/register` creates unverified learner accounts and shows the local mock-email
@@ -26,7 +31,9 @@ cd web
 npm run dev
 ```
 
-Open <http://localhost:3000>. The app uses `/api` in the browser by default.
+Open <http://localhost:3000>. The product entry redirects anonymous users to
+`/login`; open <http://localhost:3000/ops> for the internal workflow console.
+The app uses `/api` in the browser by default.
 Next proxies `/api/*` to `${API_URL}/api/*` and `/health` to `${API_URL}/health`.
 When `API_URL` is not set, it defaults to `http://127.0.0.1:8080`.
 The web process exposes `GET /healthz` for container and Kubernetes probes so
