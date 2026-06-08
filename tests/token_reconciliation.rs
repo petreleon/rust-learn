@@ -8,7 +8,7 @@ use rust_learn::services::token_reconciliation::{
 
 fn sync_connection() -> PgConnection {
     let _ = dotenvy::dotenv();
-    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_url = rust_learn::db::database_url_from_env().expect("DATABASE_URL must be set");
     PgConnection::establish(&database_url).expect("failed to connect to database")
 }
 

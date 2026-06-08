@@ -32,9 +32,10 @@ async fn readiness_checks_database_s3_and_ethereum() {
 
     let req = test::TestRequest::get().uri("/ready").to_request();
     let resp = test::call_service(&app, req).await;
-
-    assert_eq!(resp.status(), StatusCode::OK);
+    let status = resp.status();
     let body: Value = test::read_body_json(resp).await;
+
+    assert_eq!(status, StatusCode::OK, "readiness response: {body}");
     assert_eq!(body["status"], "ready");
 
     let checks = body["checks"]

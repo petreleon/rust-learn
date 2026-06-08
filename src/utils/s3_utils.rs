@@ -4,6 +4,7 @@ use aws_sdk_s3::config::{Credentials, Region};
 use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::Client;
 use std::env;
+use std::net::ToSocketAddrs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -22,6 +23,51 @@ pub struct S3State(Arc<Client>);
 
 fn configured_region() -> Region {
     Region::new(env::var("AWS_REGION").unwrap_or_else(|_| "us-east-1".into()))
+}
+
+fn internal_endpoint_from_env() -> String {
+    let host = env::var("S3_INTERNAL_DOMAIN").unwrap_or_else(|_| "rustfs".into());
+    let port = env::var("S3_INTERNAL_PORT").unwrap_or_else(|_| "9000".into());
+    let scheme = env::var("S3_INTERNAL_SCHEME").unwrap_or_else(|_| "http".into());
+    let host = normalize_internal_s3_host_for_debug(
+        host,
+        &port,
+        cfg!(debug_assertions),
+        host_port_resolves,
+    );
+
+    format!("{}://{}:{}", scheme, host, port)
+}
+
+fn normalize_internal_s3_host_for_debug<F>(
+    host: String,
+    port: &str,
+    is_debug_build: bool,
+    host_resolves: F,
+) -> String
+where
+    F: Fn(&str, u16) -> bool,
+{
+    if !is_debug_build || host != "rustfs" {
+        return host;
+    }
+
+    let Ok(port) = port.parse::<u16>() else {
+        return host;
+    };
+
+    if host_resolves("rustfs", port) {
+        host
+    } else {
+        "localhost".to_string()
+    }
+}
+
+fn host_port_resolves(host: &str, port: u16) -> bool {
+    (host, port)
+        .to_socket_addrs()
+        .map(|mut addresses| addresses.next().is_some())
+        .unwrap_or(false)
 }
 
 async fn configured_client(endpoint: String) -> Client {
@@ -44,12 +90,7 @@ async fn configured_client(endpoint: String) -> Client {
 impl S3State {
     /// Build a configured async Client from environment variables.
     pub async fn new_from_env() -> Result<Self> {
-        let host = env::var("S3_INTERNAL_DOMAIN").unwrap_or_else(|_| "rustfs".into());
-        let port = env::var("S3_INTERNAL_PORT").unwrap_or_else(|_| "9000".into());
-        let scheme = env::var("S3_INTERNAL_SCHEME").unwrap_or_else(|_| "http".into());
-        let endpoint = format!("{}://{}:{}", scheme, host, port);
-
-        let client = configured_client(endpoint).await;
+        let client = configured_client(internal_endpoint_from_env()).await;
         Ok(S3State(Arc::new(client)))
     }
 
@@ -328,5 +369,51 @@ impl S3State {
 
         let _ = tokio_fs::remove_dir_all(&tmp_dir).await;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_internal_s3_host_for_debug;
+
+    #[test]
+    fn leaves_non_compose_s3_hosts_unchanged() {
+        assert_eq!(
+            normalize_internal_s3_host_for_debug("localhost".to_string(), "9000", true, |_, _| {
+                false
+            }),
+            "localhost"
+        );
+    }
+
+    #[test]
+    fn rewrites_compose_s3_host_when_service_dns_is_unavailable() {
+        assert_eq!(
+            normalize_internal_s3_host_for_debug(
+                "rustfs".to_string(),
+                "9000",
+                true,
+                |host, port| host != "rustfs" || port != 9000,
+            ),
+            "localhost"
+        );
+    }
+
+    #[test]
+    fn leaves_compose_s3_host_when_service_dns_is_available() {
+        assert_eq!(
+            normalize_internal_s3_host_for_debug("rustfs".to_string(), "9000", true, |_, _| true),
+            "rustfs"
+        );
+    }
+
+    #[test]
+    fn leaves_compose_s3_host_in_release_builds() {
+        assert_eq!(
+            normalize_internal_s3_host_for_debug("rustfs".to_string(), "9000", false, |_, _| {
+                false
+            }),
+            "rustfs"
+        );
     }
 }

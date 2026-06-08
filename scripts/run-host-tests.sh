@@ -52,6 +52,12 @@ repair_cargo_test_binaries() {
 
   find "$deps_dir" -maxdepth 1 -type f ! -perm -111 -print0 |
     while IFS= read -r -d '' artifact; do
+      case "$(basename "$artifact")" in
+        *.*)
+          continue
+          ;;
+      esac
+
       if file -b "$artifact" | grep -q 'executable'; then
         chmod +x "$artifact"
       fi

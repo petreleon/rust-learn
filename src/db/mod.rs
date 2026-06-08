@@ -16,7 +16,7 @@ pub fn try_establish_connection() -> Result<DbPool, String> {
         .map_err(|error| format!("Failed to create pool: {error}"))
 }
 
-fn database_url_from_env() -> Result<String, String> {
+pub fn database_url_from_env() -> Result<String, String> {
     let database_url = std::env::var("DATABASE_URL")
         .map_err(|_| "DATABASE_URL must be set in .env file".to_string())?;
 
