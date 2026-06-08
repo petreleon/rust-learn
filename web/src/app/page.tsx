@@ -132,6 +132,16 @@ function optionalPositiveInteger(value: string) {
   return hasPositiveInteger(trimmed) ? Number(trimmed) : undefined;
 }
 
+function optionalUtcDateTime(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+}
+
 function hasNonNegativeNumber(value: string) {
   const trimmed = value.trim();
   if (!trimmed) {
@@ -886,7 +896,7 @@ export default function Home() {
       course_id:
         delegation.scope_type === "course" ? optionalPositiveInteger(delegation.course_id) : undefined,
       reason: delegation.reason || undefined,
-      expires_at: delegation.expires_at || undefined,
+      expires_at: optionalUtcDateTime(delegation.expires_at),
     });
   }
 
@@ -1881,6 +1891,7 @@ export default function Home() {
                   )}
                   <input
                     aria-label="Delegation expiration"
+                    type="datetime-local"
                     placeholder="Expires at"
                     value={delegation.expires_at}
                     onChange={(event) =>
