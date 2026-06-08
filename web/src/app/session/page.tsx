@@ -31,11 +31,9 @@ type LoadState = "idle" | "loading" | "success" | "error";
 const previewLimit = 4;
 
 export default function SessionPage() {
-  const [hasToken, setHasToken] = useState(() => Boolean(readStoredSessionToken()));
+  const [hasToken, setHasToken] = useState(false);
   const [session, setSession] = useState<CurrentSession | null>(null);
-  const [loadState, setLoadState] = useState<LoadState>(() =>
-    readStoredSessionToken() ? "loading" : "idle",
-  );
+  const [loadState, setLoadState] = useState<LoadState>("loading");
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
 
   const loadSession = useCallback(async () => {

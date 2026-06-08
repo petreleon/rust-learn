@@ -10,17 +10,26 @@ import {
   Menu,
   Settings,
   UserCircle,
+  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode } from "react";
+import { accessSummary } from "@/lib/access";
 import { type CurrentSession } from "@/lib/session";
 import styles from "./product-shell.module.css";
 
-type ActiveNav = "session" | "account" | "ops" | "none";
+type ActiveNav = "session" | "learn" | "teach" | "organizations" | "admin" | "account" | "none";
 
 type Breadcrumb = {
   label: string;
   href?: string;
+};
+
+type NavItem = {
+  href: string;
+  icon: LucideIcon;
+  key: ActiveNav;
+  label: string;
 };
 
 type ProductShellProps = {
@@ -36,11 +45,10 @@ type ProductShellProps = {
   title: string;
 };
 
-const navItems = [
+const baseNavItems: NavItem[] = [
   { key: "session", href: "/session", label: "Workspace", icon: Home },
   { key: "account", href: "/settings/account", label: "Account", icon: Settings },
-  { key: "ops", href: "/ops", label: "Operations", icon: BriefcaseBusiness },
-] as const;
+];
 
 export function ProductShell({
   activeNav,
@@ -56,6 +64,7 @@ export function ProductShell({
 }: ProductShellProps) {
   const workspaceOptions = buildWorkspaceOptions(session);
   const accountLabel = session?.user.name || (isSignedIn ? "Resolving" : "Account");
+  const navItems = buildNavItems(session);
 
   return (
     <main className={styles.page}>
@@ -121,6 +130,7 @@ export function ProductShell({
           activeNav={activeNav}
           accountLabel={accountLabel}
           isSignedIn={isSignedIn}
+          navItems={navItems}
           onSignOut={onSignOut}
           session={session}
           workspaceOptions={workspaceOptions}
@@ -179,6 +189,10 @@ function AccountMenu({
           <Settings size={16} aria-hidden />
           Account settings
         </Link>
+        <Link className={styles.accountMenuItem} href="/ops">
+          <BriefcaseBusiness size={16} aria-hidden />
+          Operations console
+        </Link>
         {isSignedIn && onSignOut ? (
           <button className={styles.accountMenuItem} type="button" onClick={onSignOut}>
             <LogOut size={16} aria-hidden />
@@ -199,6 +213,7 @@ function MobileMenu({
   accountLabel,
   activeNav,
   isSignedIn,
+  navItems,
   onSignOut,
   session,
   workspaceOptions,
@@ -206,6 +221,7 @@ function MobileMenu({
   accountLabel: string;
   activeNav: ActiveNav;
   isSignedIn: boolean;
+  navItems: NavItem[];
   onSignOut?: () => void;
   session?: CurrentSession | null;
   workspaceOptions: Array<{ label: string; value: string }>;
@@ -249,6 +265,10 @@ function MobileMenu({
           <Bell size={16} aria-hidden />
           Notifications
         </button>
+        <Link className={styles.accountMenuItem} href="/ops">
+          <BriefcaseBusiness size={16} aria-hidden />
+          Operations console
+        </Link>
         <div className={styles.menuMeta}>
           <strong>{accountLabel}</strong>
           <span>{session?.user.email || "Sign in to load account details."}</span>
@@ -288,4 +308,28 @@ function buildWorkspaceOptions(session?: CurrentSession | null) {
     })),
   );
   return options;
+}
+
+function buildNavItems(session?: CurrentSession | null) {
+  if (!session) {
+    return baseNavItems;
+  }
+
+  const access = accessSummary(session);
+  return [
+    baseNavItems[0],
+    access.learner
+      ? { key: "learn", href: "/learn", label: "Learn", icon: Home }
+      : null,
+    access.teacher
+      ? { key: "teach", href: "/teach", label: "Teach", icon: BriefcaseBusiness }
+      : null,
+    access.organization
+      ? { key: "organizations", href: "/organizations", label: "Organizations", icon: BriefcaseBusiness }
+      : null,
+    access.platformAdmin
+      ? { key: "admin", href: "/admin", label: "Admin", icon: BriefcaseBusiness }
+      : null,
+    baseNavItems[1],
+  ].filter((item): item is NavItem => Boolean(item));
 }

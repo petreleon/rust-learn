@@ -17,6 +17,12 @@ permissions, organization scopes, course scopes, and active delegated
 permissions for route-guard work. Manual bearer-token entry belongs in `/ops`,
 not in product routes.
 
+The first permission-aware workspace routes are `/learn`, `/teach`,
+`/organizations`, and `/admin`. They all load `GET /api/me`, derive navigation
+from effective permissions instead of role labels, and show contextual denied
+states when the current user lacks the required learner, teacher, organization,
+or platform access signal.
+
 ## Local Development
 
 From the repository root, start the API dependencies and run the API:

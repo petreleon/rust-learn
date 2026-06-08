@@ -29,7 +29,7 @@
 - [x] Persist session state intentionally and document the chosen storage model.
 - [x] Handle expired, missing, invalid, and server-revoked sessions with clear
       redirects and messages.
-- [ ] Show permission-denied states in context instead of only disabling
+- [x] Show permission-denied states in context instead of only disabling
       controls.
 - [x] Add account settings for profile data, email verification status, wallet
       connection status, and notification preferences.

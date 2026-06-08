@@ -53,21 +53,21 @@ navigation.
       or overflow-prone controls.
 - [ ] Add breadcrumbs or contextual back links for nested learner, teacher,
       organization, and platform admin routes.
-- [ ] Add route-level loading skeletons that preserve layout stability.
+- [x] Add route-level loading skeletons that preserve layout stability.
 - [ ] Add global toast/status area for success, retryable errors, session
       expiry, and background operation notices.
 
 ## Permission And Workspace Navigation
 
-- [ ] Show learner navigation when the user has learner defaults or course
+- [x] Show learner navigation when the user has learner defaults or course
       enrollments.
-- [ ] Show teacher navigation only when course permissions, approved teaching
+- [x] Show teacher navigation only when course permissions, approved teaching
       scope, or teacher application state justify it.
-- [ ] Show organization navigation only for organization memberships or
+- [x] Show organization navigation only for organization memberships or
       organization-scoped permissions.
-- [ ] Show platform admin navigation only for platform permissions.
+- [x] Show platform admin navigation only for platform permissions.
 - [ ] Show delegated-permission affordances with expiration and scope context.
-- [ ] Add denied-state pages that explain the missing permission without
+- [x] Add denied-state pages that explain the missing permission without
       exposing sensitive admin details.
 
 ## Edge Cases
@@ -75,8 +75,8 @@ navigation.
 - [ ] User logs out with unsaved form state.
 - [ ] Token expires while current-user request is in flight.
 - [ ] Token expires after route data loads but before a mutation.
-- [ ] User has no memberships and no courses.
-- [ ] User has only course-scoped permissions and no organization membership.
+- [x] User has no memberships and no courses.
+- [x] User has only course-scoped permissions and no organization membership.
 - [ ] User has multiple organizations and a stale workspace selection.
 - [ ] User has delegated permission that expires during the session.
 - [ ] API root differs between local browser, Docker Compose, and Kubernetes.
@@ -85,9 +85,9 @@ navigation.
 ## Acceptance Evidence
 
 - [x] `npm run lint` and `npm run build` pass in `web/`.
-- [ ] Desktop browser check covers login, current-user loading, navigation, and
+- [x] Desktop browser check covers login, current-user loading, navigation, and
       denied state.
-- [ ] Mobile browser check covers login, nav open/close, workspace switcher,
+- [x] Mobile browser check covers login, nav open/close, workspace switcher,
       account menu, and denied state without horizontal overflow.
 - [ ] API-helper tests cover JSON success, text errors, `401`, `403`, timeout,
       and network failure.

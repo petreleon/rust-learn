@@ -25,12 +25,13 @@ import styles from "./page.module.css";
 type LoadState = "idle" | "loading" | "success" | "error";
 
 export default function AccountSettingsPage() {
-  const [initialToken, setInitialToken] = useState(() => readStoredSessionToken() || "");
-  const [loadState, setLoadState] = useState<LoadState>(initialToken ? "loading" : "idle");
+  const [hasToken, setHasToken] = useState(false);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
   const [session, setSession] = useState<CurrentSession | null>(null);
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
 
   const loadAccount = useCallback(async (token: string) => {
+    setHasToken(true);
     setLoadState("loading");
     setError(null);
 
@@ -45,7 +46,7 @@ export default function AccountSettingsPage() {
           : new SessionRequestError("Account could not be loaded.", 0, "network_error");
       if (requestError.status === 401 || requestError.status === 404) {
         clearStoredSessionToken();
-        setInitialToken("");
+        setHasToken(false);
       }
       setSession(null);
       setError({ code: requestError.code, message: requestError.message });
@@ -54,13 +55,20 @@ export default function AccountSettingsPage() {
   }, []);
 
   useEffect(() => {
-    if (!initialToken) {
-      return undefined;
-    }
+    const timeout = window.setTimeout(() => {
+      const token = readStoredSessionToken();
+      if (!token) {
+        setHasToken(false);
+        setSession(null);
+        setError(null);
+        setLoadState("idle");
+        return;
+      }
 
-    const timeout = window.setTimeout(() => void loadAccount(initialToken), 0);
+      void loadAccount(token);
+    }, 0);
     return () => window.clearTimeout(timeout);
-  }, [initialToken, loadAccount]);
+  }, [loadAccount]);
 
   const workspaceSummary = useMemo(() => {
     if (!session) {
@@ -73,7 +81,7 @@ export default function AccountSettingsPage() {
 
   function signOut() {
     clearStoredSessionToken();
-    setInitialToken("");
+    setHasToken(false);
     setSession(null);
     setError(null);
     setLoadState("idle");
@@ -85,7 +93,7 @@ export default function AccountSettingsPage() {
       breadcrumbs={[{ href: "/session", label: "Workspace" }, { label: "Account" }]}
       description="Profile, email status, wallet readiness, and notification preferences."
       eyebrow="Settings"
-      isSignedIn={Boolean(initialToken || session)}
+      isSignedIn={hasToken || Boolean(session)}
       onSignOut={signOut}
       session={session}
       statusItems={
