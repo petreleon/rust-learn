@@ -23,6 +23,7 @@ CURL ?= $(shell command -v curl 2>/dev/null || printf curl)
 HOST_CARGO ?= ./scripts/run-host-tests.sh
 LOG_SCAN_SINCE ?= 30m
 LOG_SCAN_PATTERN := level=(ERROR|WARN)|panic|traceback|unhandled|HTTP[[:space:]]+500|status=500|(^|[^[:alnum:]_=])500($|[^[:alnum:]_])
+WEB_DASHBOARD_SMOKE_TEXT ?= Reward and teaching workflows
 
 # Colors for output
 GREEN := \033[0;32m
@@ -306,6 +307,7 @@ runtime-verify: ## Fail unless Docker Compose and Kubernetes runtime checks pass
 	echo "Checking Docker Compose services and endpoints..."; \
 	$(DOCKER_COMPOSE) ps web app worker db rustfs anvil >/dev/null; \
 	$(CURL) -fsS http://localhost:3000/healthz >/dev/null; \
+	$(CURL) -fsS http://localhost:3000 | grep -q '$(WEB_DASHBOARD_SMOKE_TEXT)'; \
 	$(CURL) -fsS http://localhost:8080/health >/dev/null; \
 	$(CURL) -fsS http://localhost:8080/ready >/dev/null; \
 	$(DOCKER_COMPOSE) exec -T worker /usr/local/bin/worker-healthcheck >/dev/null; \
@@ -314,7 +316,7 @@ runtime-verify: ## Fail unless Docker Compose and Kubernetes runtime checks pass
 	$(KUBECTL) get namespace $(K8S_NAMESPACE) >/dev/null; \
 	$(KUBECTL) wait --for=condition=Available deployment --all -n $(K8S_NAMESPACE) --timeout=180s >/dev/null; \
 	$(KUBECTL) wait --for=condition=Ready pod --all -n $(K8S_NAMESPACE) --timeout=180s >/dev/null; \
-	$(KUBECTL) exec -n $(K8S_NAMESPACE) deploy/web -- sh -c 'wget -qO- http://127.0.0.1:3000/healthz >/dev/null && wget -qO- http://rust-app:8080/ready >/dev/null'; \
+	$(KUBECTL) exec -n $(K8S_NAMESPACE) deploy/web -- sh -c 'wget -qO- http://127.0.0.1:3000/healthz >/dev/null && wget -qO- http://127.0.0.1:3000 | grep -q "$(WEB_DASHBOARD_SMOKE_TEXT)" && wget -qO- http://rust-app:8080/ready >/dev/null'; \
 	echo "$(GREEN)Kubernetes runtime OK$(NC)"
 
 runtime-log-scan: ## Fail on recent warning/error log lines from Docker Compose and Kubernetes

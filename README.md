@@ -622,7 +622,7 @@ Test dependency notes:
 | `cargo test --test s3` | RustFS/S3-compatible storage reachable through the `S3_*` settings. With Compose, run from the container network or set `S3_INTERNAL_DOMAIN`/`S3_EXTERNAL_DOMAIN` appropriately for the host. |
 | `make test-integration` | Docker plus a valid `.env`; starts Anvil, then runs ignored blockchain tests in the `test-runner` profile. |
 | `./scripts/run-host-tests.sh cargo test --test blockchain_integration_tests -- --ignored` | Anvil or another Ethereum JSON-RPC endpoint plus `ETH_MNEMONIC` and provider settings in `.env`; the host wrapper supplies Compose-to-localhost rewrites, native library paths, and `target/host-tests`. |
-| `make runtime-verify` | Running Docker Compose stack and Kubernetes `rust-learn` namespace; fails if Compose endpoints, the worker heartbeat, K8s deployments/pods, or in-cluster web/API readiness are unhealthy. |
+| `make runtime-verify` | Running Docker Compose stack and Kubernetes `rust-learn` namespace; fails if Compose endpoints, the web dashboard shell, the worker heartbeat, K8s deployments/pods, or in-cluster web/API readiness are unhealthy. |
 | Worker/media-processing checks | ffmpeg on `PATH`, PostgreSQL, and RustFS/S3. Keep `WORKER_CONCURRENCY=1` on small Docker VMs. |
 
 Docker is the recommended way to provide PostgreSQL, RustFS, and Anvil for local test runs:
