@@ -94,6 +94,15 @@ const delegatedPermissions = [
   "VIEW_ORG_REWARD_REPORTS",
 ];
 
+const positiveIntegerInputProps = {
+  inputMode: "numeric" as const,
+  pattern: "[0-9]*",
+};
+
+const decimalInputProps = {
+  inputMode: "decimal" as const,
+};
+
 function normalizeRoot(root: string) {
   const trimmed = root.trim();
   return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
@@ -876,6 +885,7 @@ export default function Home() {
                 <label className={styles.fieldLabel}>
                   Organization id
                   <input
+                    {...positiveIntegerInputProps}
                     value={teacherForm.requested_organization_id}
                     onChange={(event) =>
                       setTeacherForm((current) => ({
@@ -888,6 +898,7 @@ export default function Home() {
                 <label className={styles.fieldLabel}>
                   Course id
                   <input
+                    {...positiveIntegerInputProps}
                     value={teacherForm.requested_course_id}
                     onChange={(event) =>
                       setTeacherForm((current) => ({
@@ -900,6 +911,7 @@ export default function Home() {
                 <label className={styles.fieldLabel}>
                   Sponsor org id
                   <input
+                    {...positiveIntegerInputProps}
                     value={teacherForm.organization_sponsor_id}
                     onChange={(event) =>
                       setTeacherForm((current) => ({
@@ -976,6 +988,7 @@ export default function Home() {
               <div className={styles.actionStrip}>
                 <input
                   aria-label="Teacher application id"
+                  {...positiveIntegerInputProps}
                   placeholder="Application id"
                   value={teacherDecision.application_id}
                   onChange={(event) =>
@@ -1029,12 +1042,14 @@ export default function Home() {
             <div className={styles.actionStrip}>
               <input
                 aria-label="Reward course id"
+                {...positiveIntegerInputProps}
                 placeholder="Course id"
                 value={rewardCourseId}
                 onChange={(event) => setRewardCourseId(event.target.value)}
               />
               <input
                 aria-label="Reward candidate id"
+                {...positiveIntegerInputProps}
                 placeholder="Candidate id"
                 value={rewardCandidateId}
                 onChange={(event) => setRewardCandidateId(event.target.value)}
@@ -1056,6 +1071,7 @@ export default function Home() {
               <div className={styles.actionStrip}>
                 <input
                   aria-label="Reward student user id"
+                  {...positiveIntegerInputProps}
                   placeholder="Student user id"
                   value={rewardStudentId}
                   onChange={(event) => setRewardStudentId(event.target.value)}
@@ -1133,6 +1149,7 @@ export default function Home() {
                 </select>
                 <input
                   aria-label="Approved reward amount"
+                  {...decimalInputProps}
                   placeholder="Amount"
                   value={amountDecision.approved_amount}
                   onChange={(event) =>
@@ -1210,6 +1227,7 @@ export default function Home() {
             <div className={styles.actionStrip}>
               <input
                 aria-label="Report organization id"
+                {...positiveIntegerInputProps}
                 placeholder="Organization id"
                 value={organizationId}
                 onChange={(event) => setOrganizationId(event.target.value)}
@@ -1306,6 +1324,7 @@ export default function Home() {
                 </label>
                 <input
                   aria-label="Fraud block teacher user id"
+                  {...positiveIntegerInputProps}
                   placeholder="Teacher user id"
                   value={fraudBlock.teacher_user_id}
                   onChange={(event) =>
@@ -1314,6 +1333,7 @@ export default function Home() {
                 />
                 <input
                   aria-label="Fraud block organization id"
+                  {...positiveIntegerInputProps}
                   placeholder="Organization id"
                   value={fraudBlock.organization_id}
                   onChange={(event) =>
@@ -1322,6 +1342,7 @@ export default function Home() {
                 />
                 <input
                   aria-label="Fraud block course id"
+                  {...positiveIntegerInputProps}
                   placeholder="Course id"
                   value={fraudBlock.course_id}
                   onChange={(event) =>
@@ -1330,6 +1351,7 @@ export default function Home() {
                 />
                 <input
                   aria-label="Fraud block policy id"
+                  {...positiveIntegerInputProps}
                   placeholder="Policy id"
                   value={fraudBlock.reward_policy_id}
                   onChange={(event) =>
@@ -1384,6 +1406,7 @@ export default function Home() {
                 </button>
                 <input
                   aria-label="Fraud block id"
+                  {...positiveIntegerInputProps}
                   placeholder="Block id"
                   value={fraudBlockId}
                   onChange={(event) => setFraudBlockId(event.target.value)}
@@ -1425,6 +1448,7 @@ export default function Home() {
             <fieldset className={styles.formGrid} disabled={!canDelegate}>
               <input
                 aria-label="Delegation grantee user id"
+                {...positiveIntegerInputProps}
                 placeholder="Grantee user id"
                 value={delegation.grantee_user_id}
                 onChange={(event) =>
@@ -1457,6 +1481,7 @@ export default function Home() {
               </select>
               <input
                 aria-label="Delegation organization id"
+                {...positiveIntegerInputProps}
                 placeholder="Organization id"
                 value={delegation.organization_id}
                 onChange={(event) =>
@@ -1465,6 +1490,7 @@ export default function Home() {
               />
               <input
                 aria-label="Delegation course id"
+                {...positiveIntegerInputProps}
                 placeholder="Course id"
                 value={delegation.course_id}
                 onChange={(event) =>
@@ -1510,6 +1536,7 @@ export default function Home() {
             <div className={styles.actionStrip}>
               <input
                 aria-label="Delegation id"
+                {...positiveIntegerInputProps}
                 placeholder="Delegation id"
                 value={delegationId}
                 onChange={(event) => setDelegationId(event.target.value)}
