@@ -89,7 +89,7 @@ navigation.
       denied state.
 - [x] Mobile browser check covers login, nav open/close, workspace switcher,
       account menu, and denied state without horizontal overflow.
-- [ ] API-helper tests cover JSON success, text errors, `401`, `403`, timeout,
+- [x] API-helper tests cover JSON success, text errors, `401`, `403`, timeout,
       and network failure.
 - [ ] Docker Compose smoke path logs in or loads a seeded session, hits a real
       API route, and scans recent app/web logs.

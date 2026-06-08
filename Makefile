@@ -1,7 +1,7 @@
 .PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health runtime-verify runtime-log-scan runtime-disk docker-prune-build-cache \
   k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-refresh-app k8s-dev-refresh-web k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
   k8s-validate k8s-dev-validate dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
-  dev-refresh test-integration preflight fmt clippy web-lint web-build web-lint-compose web-build-compose logs ps shell
+  dev-refresh test-integration preflight fmt clippy web-lint web-build web-api-helper-tests web-lint-compose web-build-compose logs ps shell
 
 # Variables
 export PATH := /opt/homebrew/bin:/usr/local/bin:$(PATH)
@@ -250,6 +250,7 @@ preflight: ## Run standard static, frontend, manifest, and runtime smoke checks
 	$(MAKE) fmt
 	$(MAKE) clippy
 	$(MAKE) web-lint
+	$(MAKE) web-api-helper-tests
 	$(MAKE) web-build
 	$(MAKE) k8s-validate
 	$(MAKE) runtime-verify
@@ -273,6 +274,9 @@ web-lint: ## Run frontend lint checks
 
 web-build: ## Build the frontend
 	cd web && npm run build
+
+web-api-helper-tests: ## Run frontend API helper contract tests
+	cd web && npm run test:api-helpers
 
 web-lint-compose: ## Run frontend lint checks inside the Docker Compose web service
 	$(DOCKER_COMPOSE) run --rm --no-deps web sh -c 'npm ci --no-audit --no-fund && npm run lint'

@@ -604,6 +604,7 @@ make preflight
 make test
 make test-integration
 make web-lint
+make web-api-helper-tests
 make web-build
 make web-lint-compose
 make web-build-compose
@@ -618,11 +619,12 @@ Test dependency notes:
 
 | Check | External requirements |
 | --- | --- |
-| `make preflight` | Local Rust and Node toolchains plus running Docker Compose and Kubernetes runtime environments; runs formatting, Clippy, frontend lint/build, Kubernetes manifest rendering, runtime verification, and recent runtime log scanning. It intentionally does not run the full host or Compose test suites; use `make test` and `make test-compose` for those. |
+| `make preflight` | Local Rust and Node toolchains plus running Docker Compose and Kubernetes runtime environments; runs formatting, Clippy, frontend lint/API-helper tests/build, Kubernetes manifest rendering, runtime verification, and recent runtime log scanning. It intentionally does not run the full host or Compose test suites; use `make test` and `make test-compose` for those. |
 | `make clippy` | Local Rust toolchain plus a valid host Cargo environment; runs Clippy through the host wrapper across all targets and the app, worker, and tool feature flags with warnings denied. |
 | `make test` | A valid `.env`; many integration tests open `DATABASE_URL`, so start PostgreSQL first with `make dev-deps` when running the full suite. The host wrapper maps Compose-only service names to localhost ports, adds local native library paths such as Homebrew `libpq`, and uses `target/host-tests` so Docker and host artifacts do not collide. |
 | `make test-compose` | Docker plus a valid `.env`; starts PostgreSQL, RustFS, and Anvil, then runs Cargo in the `test-runner` profile so host native libraries are not required. |
 | `make web-lint-compose` | Docker; runs ESLint in a one-shot Compose web container after `npm ci`, so stale anonymous `node_modules` volumes cannot hide missing dependencies. |
+| `make web-api-helper-tests` | Local Node toolchain; runs frontend API helper contract tests for session/auth JSON success, text errors, `401`, `403`, timeout, network failure, and verification-token states. |
 | `make web-build-compose` | Docker; builds the `web` image through the production Dockerfile, which is the supported Compose production-build check for the frontend. |
 | `make runtime-log-scan` | Running Docker Compose stack and Kubernetes `rust-learn` namespace; scans recent app, worker, and web logs for warning/error patterns, explicit HTTP 500 statuses, `status=500` fields, and standalone `500` status tokens without matching routine counters such as `failed=0`, config values such as `batch_blocks=500`, or timings such as `500ms`. Override the window with `LOG_SCAN_SINCE=10m`. Fails if a matching log line is found or a required log source is unreachable. |
 | `cargo test --test s3` | RustFS/S3-compatible storage reachable through the `S3_*` settings. With Compose, run from the container network or set `S3_INTERNAL_DOMAIN`/`S3_EXTERNAL_DOMAIN` appropriately for the host. |

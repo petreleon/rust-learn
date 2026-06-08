@@ -92,5 +92,6 @@ Expected error responses:
 
 ```bash
 npm run lint
+npm run test:api-helpers
 npm run build
 ```
