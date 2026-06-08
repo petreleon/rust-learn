@@ -36,6 +36,8 @@ type PermissionOption = {
 };
 
 const HEALTH_CHECK_TIMEOUT_MS = 5000;
+const API_REQUEST_TIMEOUT_MS = 10000;
+const API_REQUEST_TIMEOUT_SECONDS = API_REQUEST_TIMEOUT_MS / 1000;
 
 const PERMISSIONS: PermissionOption[] = [
   { key: "SUBMIT_TEACHER_APPLICATION", label: "Submit application", scope: "platform" },
@@ -306,6 +308,25 @@ function formatHealthMessage(value: string) {
   }
 
   return trimmed;
+}
+
+async function fetchWithTimeout(input: string, init: RequestInit = {}) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+function requestFailureMessage(error: unknown) {
+  if (error instanceof Error && error.name === "AbortError") {
+    return `Request timed out after ${API_REQUEST_TIMEOUT_SECONDS} seconds.`;
+  }
+
+  return error instanceof Error ? error.message : "Unknown request failure";
 }
 
 function statusLabel(status: ApiState) {
@@ -736,13 +757,18 @@ export default function Home() {
     resultTone === "pending" ? "Pending" : resultTone === "success" ? "OK" : "Error";
   const resultOutcome =
     resultTone === "pending"
-      ? "Request pending."
+      ? "Request pending"
       : resultTone === "success"
-        ? "Request succeeded."
-        : "Request failed.";
-  const resultAnnouncement = `${result.label}. ${result.status}. ${
-    resultOutcome
-  }`;
+        ? "Request succeeded"
+        : "Request failed";
+  const resultAnnouncement = [
+    result.label,
+    result.status,
+    result.status === resultOutcome ? undefined : resultOutcome,
+  ]
+    .filter(Boolean)
+    .join(". ")
+    .concat(".");
   const firstAllowedFraudBlockScope = fraudBlockScopes.find(
     (scope) => fraudBlockScopePermissions[scope]?.allowed
   );
@@ -934,7 +960,7 @@ export default function Home() {
     });
 
     try {
-      const response = await fetch(`${root}/auth/login`, {
+      const response = await fetchWithTimeout(`${root}/auth/login`, {
         method: "POST",
         headers: {
           Accept: "application/json, text/plain",
@@ -999,7 +1025,7 @@ export default function Home() {
         ok: true,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown request failure";
+      const message = requestFailureMessage(error);
       setSessionMessage(message);
       setResult({
         label: "Sign in",
@@ -1072,7 +1098,7 @@ export default function Home() {
     revealResultPanel();
 
     try {
-      const response = await fetch(`${root}${path}`, {
+      const response = await fetchWithTimeout(`${root}${path}`, {
         method,
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -1096,7 +1122,7 @@ export default function Home() {
       setResult({
         label,
         status: "Request failed",
-        body: error instanceof Error ? error.message : "Unknown request failure",
+        body: requestFailureMessage(error),
         ok: false,
       });
       revealResultPanel();
