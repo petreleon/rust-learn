@@ -553,6 +553,9 @@ export default function Home() {
     detail: "Selected fraud block scope is not supported.",
     permissionTitle: "Supported fraud block scope required",
   };
+  const resultAnnouncement = `${result.label}. ${result.status}. ${
+    result.ok ? "Request succeeded." : "Request failed."
+  }`;
   const firstAllowedFraudBlockScope = fraudBlockScopes.find(
     (scope) => fraudBlockScopePermissions[scope]?.allowed
   );
@@ -2103,9 +2106,10 @@ export default function Home() {
           ref={resultPanelRef}
           className={styles.resultPanel}
           aria-labelledby="result-title"
-          aria-live="polite"
-          aria-atomic="false"
         >
+          <p className={styles.visuallyHidden} aria-live="polite" aria-atomic="true">
+            {resultAnnouncement}
+          </p>
           <div className={styles.panelHeader}>
             <div>
               <p className={styles.eyebrow}>{result.status}</p>
