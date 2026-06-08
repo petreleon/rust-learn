@@ -1422,18 +1422,20 @@ export default function Home() {
                     <option value="approved">{optionLabel("approved")}</option>
                     <option value="rejected">{optionLabel("rejected")}</option>
                   </select>
-                  <input
-                    aria-label="Approved reward amount"
-                    {...decimalInputProps}
-                    placeholder="Amount"
-                    value={amountDecision.approved_amount}
-                    onChange={(event) =>
-                      setAmountDecision((current) => ({
-                        ...current,
-                        approved_amount: event.target.value,
-                      }))
-                    }
-                  />
+                  {amountDecision.status === "approved" && (
+                    <input
+                      aria-label="Approved reward amount"
+                      {...decimalInputProps}
+                      placeholder="Amount"
+                      value={amountDecision.approved_amount}
+                      onChange={(event) =>
+                        setAmountDecision((current) => ({
+                          ...current,
+                          approved_amount: event.target.value,
+                        }))
+                      }
+                    />
+                  )}
                   <input
                     aria-label="Reward amount decision reason"
                     placeholder="Amount reason"
