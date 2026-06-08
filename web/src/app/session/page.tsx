@@ -107,6 +107,9 @@ export default function SessionPage() {
               Sign in
             </Link>
           ) : null}
+          <Link href="/settings/account" className={styles.navLink}>
+            Account
+          </Link>
           <Link href="/" className={styles.navLink}>
             Operations
           </Link>

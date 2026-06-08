@@ -40,7 +40,7 @@ navigation.
       already-verified states.
 - [x] `/forgot-password` and `/reset-password` exist as product-ready shells or
       are explicitly deferred with non-broken navigation.
-- [ ] `/settings/account` shows profile, email verification, wallet status, and
+- [x] `/settings/account` shows profile, email verification, wallet status, and
       notification preference placeholders.
 - [ ] `/ops` hosts the existing operations console once it is moved out of the
       product home.
