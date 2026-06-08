@@ -757,16 +757,20 @@ export default function Home() {
     }
   }
 
-  function clearSession() {
-    setToken("");
-    setCredentials((current) => ({ ...current, password: "" }));
-    setSessionMessage("Session cleared");
+  function resetSessionResult() {
     setResult({
       label: "Result",
       status: "Idle",
       body: "Session cleared. Previous API response hidden.",
       ok: true,
     });
+  }
+
+  function clearSession() {
+    setToken("");
+    setCredentials((current) => ({ ...current, password: "" }));
+    setSessionMessage("Session cleared");
+    resetSessionResult();
   }
 
   async function sendApi(label: string, path: string, method: HttpMethod = "GET", body?: unknown) {
@@ -1059,8 +1063,14 @@ export default function Home() {
               rows={4}
               value={token}
               onChange={(event) => {
-                setToken(event.target.value);
-                setSessionMessage(hasText(event.target.value) ? "JWT loaded" : "Not signed in");
+                const nextToken = event.target.value;
+                setToken(nextToken);
+                if (hasText(nextToken)) {
+                  setSessionMessage("JWT loaded");
+                } else {
+                  setSessionMessage("Session cleared");
+                  resetSessionResult();
+                }
               }}
               spellCheck={false}
             />
