@@ -596,6 +596,7 @@ Makefile shortcuts:
 ```bash
 make fmt
 make clippy
+make preflight
 make test
 make test-integration
 make web-lint
@@ -613,6 +614,7 @@ Test dependency notes:
 
 | Check | External requirements |
 | --- | --- |
+| `make preflight` | Local Rust and Node toolchains plus running Docker Compose and Kubernetes runtime environments; runs formatting, Clippy, frontend lint/build, Kubernetes manifest rendering, runtime verification, and recent runtime log scanning. It intentionally does not run the full host or Compose test suites; use `make test` and `make test-compose` for those. |
 | `make clippy` | Local Rust toolchain plus a valid host Cargo environment; runs Clippy through the host wrapper across all targets and the app, worker, and tool feature flags with warnings denied. |
 | `make test` | A valid `.env`; many integration tests open `DATABASE_URL`, so start PostgreSQL first with `make dev-deps` when running the full suite. The host wrapper maps Compose-only service names to localhost ports, adds local native library paths such as Homebrew `libpq`, and uses `target/host-tests` so Docker and host artifacts do not collide. |
 | `make test-compose` | Docker plus a valid `.env`; starts PostgreSQL, RustFS, and Anvil, then runs Cargo in the `test-runner` profile so host native libraries are not required. |

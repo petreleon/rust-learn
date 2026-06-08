@@ -1,7 +1,7 @@
 .PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health runtime-verify runtime-log-scan runtime-disk docker-prune-build-cache \
   k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-refresh-web k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
   k8s-validate k8s-dev-validate dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
-  dev-refresh test-integration fmt clippy web-lint web-build web-lint-compose web-build-compose logs ps shell
+  dev-refresh test-integration preflight fmt clippy web-lint web-build web-lint-compose web-build-compose logs ps shell
 
 # Variables
 export PATH := /opt/homebrew/bin:/usr/local/bin:$(PATH)
@@ -220,6 +220,15 @@ test-compose: ## Run tests through Docker Compose service networking
 test-integration: ## Run integration tests
 	$(DOCKER_COMPOSE) up -d anvil
 	$(DOCKER_COMPOSE) --profile test run --rm --no-deps test-runner cargo test --test blockchain_integration_tests -- --ignored
+
+preflight: ## Run standard static, frontend, manifest, and runtime smoke checks
+	$(MAKE) fmt
+	$(MAKE) clippy
+	$(MAKE) web-lint
+	$(MAKE) web-build
+	$(MAKE) k8s-validate
+	$(MAKE) runtime-verify
+	$(MAKE) runtime-log-scan
 
 fmt: ## Check Rust formatting
 	cargo fmt --all --check
