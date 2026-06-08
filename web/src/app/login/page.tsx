@@ -156,6 +156,9 @@ export default function LoginPage() {
           <p className={styles.inlinePrompt}>
             New to RustLearn? <Link href="/register">Create an account</Link>
           </p>
+          <p className={styles.inlinePrompt}>
+            Forgot your password? <Link href="/forgot-password">Reset access</Link>
+          </p>
         </form>
       </section>
     </main>

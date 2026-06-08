@@ -38,7 +38,7 @@ navigation.
       email-verification explanation, and post-register next step.
 - [x] `/verify-email` supports valid token, expired token, invalid token, and
       already-verified states.
-- [ ] `/forgot-password` and `/reset-password` exist as product-ready shells or
+- [x] `/forgot-password` and `/reset-password` exist as product-ready shells or
       are explicitly deferred with non-broken navigation.
 - [ ] `/settings/account` shows profile, email verification, wallet status, and
       notification preference placeholders.
