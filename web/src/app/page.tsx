@@ -398,11 +398,13 @@ export default function Home() {
   const canTeacherApproveReward = hasPermission("APPROVE_STUDENT_REWARD_CANDIDATE");
   const canApproveAmount = hasPermission("APPROVE_REWARD_AMOUNT");
   const canViewOrgReports = hasPermission("VIEW_ORG_REWARD_REPORTS");
-  const canViewFraud = hasPermission("VIEW_REWARD_AUDIT") || hasPermission("MANAGE_REWARD_FRAUD_BLOCKS");
+  const canManageFraudBlocks = hasPermission("MANAGE_REWARD_FRAUD_BLOCKS");
+  const canBlockTeacherRewards = hasPermission("BLOCK_REWARD_TEACHER") || canManageFraudBlocks;
+  const canBlockOrganizationRewards =
+    hasPermission("BLOCK_REWARD_ORGANIZATION") || canManageFraudBlocks;
+  const canViewFraud = hasPermission("VIEW_REWARD_AUDIT") || canManageFraudBlocks;
   const canManageFraud =
-    hasPermission("MANAGE_REWARD_FRAUD_BLOCKS") ||
-    hasPermission("BLOCK_REWARD_TEACHER") ||
-    hasPermission("BLOCK_REWARD_ORGANIZATION");
+    canManageFraudBlocks || canBlockTeacherRewards || canBlockOrganizationRewards;
   const canDelegate = hasPermission("DELEGATE_REWARD_APPROVAL");
   const canExport = hasPermission("EXPORT_DATA");
   const canUseTeacherWorkflow = canTeacherApply || canReviewTeachers || canDecideTeachers;
@@ -433,7 +435,38 @@ export default function Home() {
     (fraudBlock.scope_type === "organization" && hasPositiveInteger(fraudBlock.organization_id)) ||
     (fraudBlock.scope_type === "course" && hasPositiveInteger(fraudBlock.course_id)) ||
     (fraudBlock.scope_type === "reward_policy" && hasPositiveInteger(fraudBlock.reward_policy_id));
-  const canCreateFraudBlockForm = canCreateFraudBlockTarget && hasText(fraudBlock.reason);
+  const fraudBlockScopePermissions: Record<
+    string,
+    { allowed: boolean; detail: string; permissionTitle: string }
+  > = {
+    teacher: {
+      allowed: canBlockTeacherRewards,
+      detail: "Teacher blocks require block teacher rewards or manage fraud blocks permission.",
+      permissionTitle: "Block teacher rewards or manage fraud blocks permission required",
+    },
+    organization: {
+      allowed: canBlockOrganizationRewards,
+      detail: "Organization blocks require block org rewards or manage fraud blocks permission.",
+      permissionTitle: "Block org rewards or manage fraud blocks permission required",
+    },
+    course: {
+      allowed: canManageFraudBlocks,
+      detail: "Course blocks require manage fraud blocks permission.",
+      permissionTitle: "Manage fraud blocks permission required",
+    },
+    reward_policy: {
+      allowed: canManageFraudBlocks,
+      detail: "Reward policy blocks require manage fraud blocks permission.",
+      permissionTitle: "Manage fraud blocks permission required",
+    },
+  };
+  const selectedFraudBlockScopePermission = fraudBlockScopePermissions[fraudBlock.scope_type] ?? {
+    allowed: false,
+    detail: "Selected fraud block scope is not supported.",
+    permissionTitle: "Supported fraud block scope required",
+  };
+  const canCreateFraudBlockFields = canCreateFraudBlockTarget && hasText(fraudBlock.reason);
+  const canCreateSelectedFraudScope = selectedFraudBlockScopePermission.allowed;
   const canUseFraudBlockForm = hasPositiveInteger(fraudBlockId);
   const canGrantDelegationForm =
     hasPositiveInteger(delegation.grantee_user_id) &&
@@ -1545,19 +1578,40 @@ export default function Home() {
                     fields={fraudBlockCreateMissingFields}
                   />
                 )}
+                {hasSessionToken && !canCreateSelectedFraudScope && (
+                  <PermissionNotice
+                    title="Selected block scope permission disabled"
+                    detail={selectedFraudBlockScopePermission.detail}
+                  />
+                )}
                 <div className={styles.formGrid}>
                   <label className={styles.fieldLabel}>
                     Scope
                     <select
+                      aria-label="Fraud block scope type"
                       value={fraudBlock.scope_type}
                       onChange={(event) =>
                         setFraudBlock((current) => ({ ...current, scope_type: event.target.value }))
                       }
                     >
-                      <option value="teacher">{optionLabel("teacher")}</option>
-                      <option value="organization">{optionLabel("organization")}</option>
-                      <option value="course">{optionLabel("course")}</option>
-                      <option value="reward_policy">{optionLabel("reward_policy")}</option>
+                      <option value="teacher" disabled={!fraudBlockScopePermissions.teacher.allowed}>
+                        {optionLabel("teacher")}
+                      </option>
+                      <option
+                        value="organization"
+                        disabled={!fraudBlockScopePermissions.organization.allowed}
+                      >
+                        {optionLabel("organization")}
+                      </option>
+                      <option value="course" disabled={!fraudBlockScopePermissions.course.allowed}>
+                        {optionLabel("course")}
+                      </option>
+                      <option
+                        value="reward_policy"
+                        disabled={!fraudBlockScopePermissions.reward_policy.allowed}
+                      >
+                        {optionLabel("reward_policy")}
+                      </option>
                     </select>
                   </label>
                   <input
@@ -1630,7 +1684,11 @@ export default function Home() {
                     type="button"
                     className={styles.primaryButton}
                     onClick={createFraudBlock}
-                    {...actionState(canCreateFraudBlockForm)}
+                    {...actionState(
+                      canCreateFraudBlockFields,
+                      canCreateSelectedFraudScope,
+                      selectedFraudBlockScopePermission.permissionTitle
+                    )}
                   >
                     <Ban size={17} aria-hidden />
                     <span>Create block</span>
