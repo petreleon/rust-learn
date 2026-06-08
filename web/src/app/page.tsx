@@ -46,6 +46,7 @@ const PERMISSIONS: PermissionOption[] = [
     scope: "course",
   },
   { key: "APPROVE_REWARD_AMOUNT", label: "Approve amount", scope: "platform" },
+  { key: "VIEW_REPORT", label: "View platform reports", scope: "platform" },
   { key: "VIEW_ORG_REWARD_REPORTS", label: "View org rewards", scope: "organization" },
   { key: "VIEW_REWARD_AUDIT", label: "View reward audit", scope: "platform" },
   { key: "MANAGE_REWARD_FRAUD_BLOCKS", label: "Manage fraud blocks", scope: "platform" },
@@ -64,6 +65,7 @@ const DEFAULT_PERMISSION_KEYS = [
   "VIEW_COURSE_REWARD_STATUS",
   "APPROVE_STUDENT_REWARD_CANDIDATE",
   "APPROVE_REWARD_AMOUNT",
+  "VIEW_REPORT",
   "VIEW_ORG_REWARD_REPORTS",
   "VIEW_REWARD_AUDIT",
   "MANAGE_REWARD_FRAUD_BLOCKS",
@@ -474,6 +476,7 @@ export default function Home() {
   const canTeacherApproveReward = hasPermission("APPROVE_STUDENT_REWARD_CANDIDATE");
   const canApproveAmount = hasPermission("APPROVE_REWARD_AMOUNT");
   const canViewOrgReports = hasPermission("VIEW_ORG_REWARD_REPORTS");
+  const canViewPlatformReports = hasPermission("VIEW_REPORT");
   const canManageFraudBlocks = hasPermission("MANAGE_REWARD_FRAUD_BLOCKS");
   const canBlockTeacherRewards = hasPermission("BLOCK_REWARD_TEACHER") || canManageFraudBlocks;
   const canBlockOrganizationRewards =
@@ -492,7 +495,8 @@ export default function Home() {
   const showRewardStatusFilter = canViewCourseRewards;
   const showRewardSharedFields =
     showRewardCourseId || showRewardCandidateId || showRewardStatusFilter;
-  const canUseReportWorkflow = canViewOrgReports || canViewPlatformDashboards || canExport;
+  const canUseReportWorkflow =
+    canViewOrgReports || canViewPlatformReports || canViewPlatformDashboards || canExport;
   const canUseFraudWorkflow = canViewFraud || canManageFraud;
   const canSubmitTeacherApplicationForm =
     hasText(teacherForm.experience_summary) &&
@@ -1614,7 +1618,7 @@ export default function Home() {
             {!canUseReportWorkflow && (
               <PermissionNotice
                 title="Reporting permissions disabled"
-                detail="Enable organization report, reward audit, or export permissions to use reporting actions."
+                detail="Enable platform report, organization report, reward audit, or export permissions to use reporting actions."
               />
             )}
             {hasSessionToken && canViewOrgReports && (
@@ -1665,6 +1669,20 @@ export default function Home() {
                     <span>{report.label}</span>
                   </button>
                 ))}
+              </div>
+            )}
+            {canViewPlatformReports && (
+              <div className={styles.reportLinks}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    loadPlatformExport("/reports/platform/summary", "Platform summary")
+                  }
+                  {...actionState()}
+                >
+                  <ClipboardList size={16} aria-hidden />
+                  <span>Platform summary</span>
+                </button>
               </div>
             )}
             {canViewPlatformDashboards && (
