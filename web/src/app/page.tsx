@@ -445,6 +445,8 @@ export default function Home() {
   const hasPermission = (permission: string) => selectedPermissions.has(permission);
   const hasSessionToken = hasText(token);
   const canSignIn = hasText(credentials.email) && hasText(credentials.password);
+  const hasSessionDraft =
+    hasSessionToken || hasText(credentials.email) || hasText(credentials.password);
   const actionState = (
     ready = true,
     allowed = true,
@@ -783,8 +785,8 @@ export default function Home() {
 
   function clearSession() {
     setToken("");
-    setCredentials((current) => ({ ...current, password: "" }));
-    setSessionMessage("Session cleared");
+    setCredentials({ email: "", password: "" });
+    setSessionMessage("Session fields cleared");
     resetSessionResult();
   }
 
@@ -1071,8 +1073,9 @@ export default function Home() {
                 type="button"
                 className={styles.secondaryButton}
                 onClick={clearSession}
-                disabled={!hasSessionToken}
-                title={hasSessionToken ? undefined : "No active JWT"}
+                disabled={!hasSessionDraft}
+                title={hasSessionDraft ? "Clear local session fields" : "No session fields to clear"}
+                aria-label="Clear session fields"
               >
                 <Ban size={17} aria-hidden />
                 <span>Clear</span>
