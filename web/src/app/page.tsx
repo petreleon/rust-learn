@@ -182,6 +182,38 @@ const PROTECTED_ACTIONS = {
   revokeDelegatedPermission: "Revoke delegated permission",
 } as const;
 
+const TEACHER_WORKFLOW_ACTIONS = [
+  PROTECTED_ACTIONS.submitTeacherApplication,
+  PROTECTED_ACTIONS.teacherApplicationQueue,
+  PROTECTED_ACTIONS.teacherApplicationDecision,
+] as const;
+
+const REWARD_WORKFLOW_ACTIONS = [
+  PROTECTED_ACTIONS.submitRewardCandidate,
+  PROTECTED_ACTIONS.courseRewardCandidates,
+  PROTECTED_ACTIONS.courseRewardDecision,
+  PROTECTED_ACTIONS.rewardAmountDecision,
+  PROTECTED_ACTIONS.studentRewardHistory,
+] as const;
+
+const AUDIT_WORKFLOW_ACTIONS = [
+  PROTECTED_ACTIONS.organizationSummary,
+  PROTECTED_ACTIONS.organizationSummaryCsv,
+  PROTECTED_ACTIONS.organizationRewardReport,
+  PROTECTED_ACTIONS.organizationRewardCsv,
+  PROTECTED_ACTIONS.platformSummary,
+  PROTECTED_ACTIONS.platformRewardDashboard,
+  PROTECTED_ACTIONS.platformFraudDashboard,
+  PROTECTED_ACTIONS.createRewardFraudBlock,
+  PROTECTED_ACTIONS.rewardFraudBlocks,
+  PROTECTED_ACTIONS.rewardFraudAudit,
+  PROTECTED_ACTIONS.revokeRewardFraudBlock,
+  PROTECTED_ACTIONS.grantDelegatedPermission,
+  PROTECTED_ACTIONS.delegatedPermissions,
+  PROTECTED_ACTIONS.revokeDelegatedPermission,
+  ...platformExportReports.map((report) => report.resultLabel),
+] as const;
+
 const positiveIntegerInputProps = {
   inputMode: "numeric" as const,
   pattern: "[0-9]*",
@@ -496,6 +528,23 @@ export default function Home() {
   const canSignIn = hasText(credentials.email) && hasText(credentials.password);
   const hasSessionDraft =
     hasSessionToken || hasText(credentials.email) || hasText(credentials.password);
+  const resetServerDenials = () => setServerDeniedActions(new Set());
+  const setServerDeniedAction = (action: string, denied: boolean) => {
+    setServerDeniedActions((current) => {
+      const isAlreadyDenied = current.has(action);
+      if (isAlreadyDenied === denied) {
+        return current;
+      }
+
+      const next = new Set(current);
+      if (denied) {
+        next.add(action);
+      } else {
+        next.delete(action);
+      }
+      return next;
+    });
+  };
   const actionState = (
     ready = true,
     allowed = true,
@@ -516,8 +565,10 @@ export default function Home() {
     }
     return { disabled: false, title: undefined };
   };
-  const serverDeniedNotice = (serverAction: string, action: string) =>
-    hasSessionToken && isServerDenied(serverAction) ? <ServerDeniedNotice action={action} /> : null;
+  const serverDeniedNotice = (serverAction: string, action: string, key = serverAction) =>
+    hasSessionToken && isServerDenied(serverAction) ? (
+      <ServerDeniedNotice key={key} action={action} />
+    ) : null;
   const canTeacherApply = hasPermission("SUBMIT_TEACHER_APPLICATION");
   const canReviewTeachers = hasPermission("REVIEW_TEACHER_APPLICATIONS");
   const canApproveTeachers = hasPermission("APPROVE_TEACHER_APPLICATION");
@@ -562,35 +613,9 @@ export default function Home() {
     canUseOrganizationReportControls || canViewPlatformDashboards || canExport;
   const canUseFraudWorkflow = canViewFraud || canManageFraud;
   const canUseAuditWorkflow = canUseReportWorkflow || canUseFraudWorkflow || canDelegate;
-  const teacherWorkflowServerDenied = [
-    PROTECTED_ACTIONS.submitTeacherApplication,
-    PROTECTED_ACTIONS.teacherApplicationQueue,
-    PROTECTED_ACTIONS.teacherApplicationDecision,
-  ].some(isServerDenied);
-  const rewardWorkflowServerDenied = [
-    PROTECTED_ACTIONS.submitRewardCandidate,
-    PROTECTED_ACTIONS.courseRewardCandidates,
-    PROTECTED_ACTIONS.courseRewardDecision,
-    PROTECTED_ACTIONS.rewardAmountDecision,
-    PROTECTED_ACTIONS.studentRewardHistory,
-  ].some(isServerDenied);
-  const auditWorkflowServerDenied = [
-    PROTECTED_ACTIONS.organizationSummary,
-    PROTECTED_ACTIONS.organizationSummaryCsv,
-    PROTECTED_ACTIONS.organizationRewardReport,
-    PROTECTED_ACTIONS.organizationRewardCsv,
-    PROTECTED_ACTIONS.platformSummary,
-    PROTECTED_ACTIONS.platformRewardDashboard,
-    PROTECTED_ACTIONS.platformFraudDashboard,
-    PROTECTED_ACTIONS.createRewardFraudBlock,
-    PROTECTED_ACTIONS.rewardFraudBlocks,
-    PROTECTED_ACTIONS.rewardFraudAudit,
-    PROTECTED_ACTIONS.revokeRewardFraudBlock,
-    PROTECTED_ACTIONS.grantDelegatedPermission,
-    PROTECTED_ACTIONS.delegatedPermissions,
-    PROTECTED_ACTIONS.revokeDelegatedPermission,
-    ...platformExportReports.map((report) => report.resultLabel),
-  ].some(isServerDenied);
+  const teacherWorkflowServerDenied = TEACHER_WORKFLOW_ACTIONS.some(isServerDenied);
+  const rewardWorkflowServerDenied = REWARD_WORKFLOW_ACTIONS.some(isServerDenied);
+  const auditWorkflowServerDenied = AUDIT_WORKFLOW_ACTIONS.some(isServerDenied);
   const canSubmitTeacherApplicationForm =
     hasText(teacherForm.experience_summary) &&
     (teacherForm.requested_scope === "platform" ||
@@ -839,7 +864,7 @@ export default function Home() {
 
       setToken(nextToken);
       setShowToken(false);
-      setServerDeniedActions(new Set());
+      resetServerDenials();
       setCredentials((current) => ({ ...current, password: "" }));
       setSessionMessage("Signed in");
       setResult({
@@ -873,7 +898,7 @@ export default function Home() {
     setToken("");
     setShowToken(false);
     setCredentials({ email: "", password: "" });
-    setServerDeniedActions(new Set());
+    resetServerDenials();
     setSessionMessage("Session fields cleared");
     resetSessionResult();
   }
@@ -917,25 +942,7 @@ export default function Home() {
       });
       const text = await response.text();
       const responseBody = prettyBody(text);
-      if (response.status === 403) {
-        setServerDeniedActions((current) => {
-          if (current.has(label)) {
-            return current;
-          }
-          const next = new Set(current);
-          next.add(label);
-          return next;
-        });
-      } else {
-        setServerDeniedActions((current) => {
-          if (!current.has(label)) {
-            return current;
-          }
-          const next = new Set(current);
-          next.delete(label);
-          return next;
-        });
-      }
+      setServerDeniedAction(label, response.status === 403);
       setResult({
         label,
         status: `HTTP ${response.status}`,
@@ -1145,7 +1152,7 @@ export default function Home() {
               onChange={(event) => {
                 setApiState("checking");
                 setApiMessage("Checking API");
-                setServerDeniedActions(new Set());
+                resetServerDenials();
                 setApiRoot(event.target.value);
               }}
             />
@@ -1206,7 +1213,7 @@ export default function Home() {
                 value={token}
                 onChange={(event) => {
                   const nextToken = event.target.value;
-                  setServerDeniedActions(new Set());
+                  resetServerDenials();
                   setToken(nextToken);
                   if (hasText(nextToken)) {
                     setSessionMessage("JWT loaded");
@@ -1917,7 +1924,7 @@ export default function Home() {
             )}
             {canExport &&
               platformExportReports.map((report) =>
-                serverDeniedNotice(report.resultLabel, report.label)
+                serverDeniedNotice(report.resultLabel, report.label, report.path)
               )}
             {canExport && (
               <div className={styles.reportLinks}>
