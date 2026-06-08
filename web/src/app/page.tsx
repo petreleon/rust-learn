@@ -1498,41 +1498,35 @@ export default function Home() {
                 fields={organizationReportMissingFields}
               />
             )}
-            <div className={styles.actionStrip}>
-              <input
-                aria-label="Report organization id"
-                {...positiveIntegerInputProps}
-                placeholder="Organization id"
-                value={organizationId}
-                onChange={(event) => setOrganizationId(event.target.value)}
-              />
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={() => loadOrganizationReport(false)}
-                {...actionState(
-                  canLoadOrganizationReportForm,
-                  canViewOrgReports,
-                  "View organization rewards permission required"
-                )}
-              >
-                <ClipboardList size={17} aria-hidden />
-                <span>Load</span>
-              </button>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={() => loadOrganizationReport(true)}
-                {...actionState(
-                  canLoadOrganizationReportForm,
-                  canViewOrgReports,
-                  "View organization rewards permission required"
-                )}
-              >
-                <Download size={17} aria-hidden />
-                <span>CSV</span>
-              </button>
-            </div>
+            {canViewOrgReports && (
+              <div className={styles.actionStrip}>
+                <input
+                  aria-label="Report organization id"
+                  {...positiveIntegerInputProps}
+                  placeholder="Organization id"
+                  value={organizationId}
+                  onChange={(event) => setOrganizationId(event.target.value)}
+                />
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => loadOrganizationReport(false)}
+                  {...actionState(canLoadOrganizationReportForm)}
+                >
+                  <ClipboardList size={17} aria-hidden />
+                  <span>Load</span>
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => loadOrganizationReport(true)}
+                  {...actionState(canLoadOrganizationReportForm)}
+                >
+                  <Download size={17} aria-hidden />
+                  <span>CSV</span>
+                </button>
+              </div>
+            )}
             {canExport && (
               <div className={styles.reportLinks}>
                 <button
