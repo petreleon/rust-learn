@@ -38,17 +38,54 @@ async fn api_scope_and_following_routes_are_reachable() {
 
     for (method, route) in [
         (Method::GET, "/api/courses"),
+        (Method::GET, "/api/teacher-applications"),
+        (Method::POST, "/api/teacher-applications"),
+        (Method::PUT, "/api/teacher-applications/34/decision"),
         (Method::GET, "/api/reward-candidates/me/history"),
         (Method::GET, "/api/courses/12/reward-candidates"),
         (
             Method::PUT,
             "/api/courses/12/reward-candidates/34/teacher-decision",
         ),
+        (Method::PUT, "/api/reward-candidates/34/amount-decision"),
         (
             Method::POST,
             "/api/organizations/56/courses/12/reward-candidates",
         ),
+        (Method::GET, "/api/reports/platform/summary"),
+        (Method::GET, "/api/reports/platform/summary.csv"),
+        (Method::GET, "/api/reports/platform/reward-dashboard"),
+        (Method::GET, "/api/reports/platform/reward-dashboard.csv"),
+        (Method::GET, "/api/reports/platform/fraud-dashboard"),
+        (Method::GET, "/api/reports/platform/fraud-dashboard.csv"),
+        (
+            Method::GET,
+            "/api/reports/platform/teacher-applications.csv",
+        ),
+        (Method::GET, "/api/reports/platform/reward-approvals.csv"),
+        (Method::GET, "/api/reports/platform/token-payouts.csv"),
+        (Method::GET, "/api/reports/platform/wallet-credits.csv"),
+        (
+            Method::GET,
+            "/api/reports/platform/delegated-permissions.csv",
+        ),
+        (Method::GET, "/api/reports/organizations/56/summary"),
+        (Method::GET, "/api/reports/organizations/56/summary.csv"),
+        (
+            Method::GET,
+            "/api/reports/organizations/56/reward-dashboard",
+        ),
+        (
+            Method::GET,
+            "/api/reports/organizations/56/reward-dashboard.csv",
+        ),
         (Method::GET, "/api/reward-fraud-blocks"),
+        (Method::POST, "/api/reward-fraud-blocks"),
+        (Method::PUT, "/api/reward-fraud-blocks/78/revoke"),
+        (Method::GET, "/api/reward-fraud-blocks/78/audit"),
+        (Method::GET, "/api/delegated-permissions"),
+        (Method::POST, "/api/delegated-permissions"),
+        (Method::PUT, "/api/delegated-permissions/90/revoke"),
     ] {
         match test::try_call_service(
             &app,
