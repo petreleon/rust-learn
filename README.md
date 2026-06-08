@@ -721,6 +721,7 @@ Kubernetes manifests live under `k8s/`. Common commands:
 ```bash
 make k8s-build
 make k8s-apply
+make k8s-dev-refresh-web
 make k8s-status
 make k8s-logs SERVICE=rust-app
 make k8s-forward SERVICE=web PORT=3000

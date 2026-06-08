@@ -151,6 +151,13 @@ make k8s-dev-refresh
 The refresh builds separate `rust-app`, `rust-worker`, and `web` images. It
 aborts before updating deployments if any image build fails.
 
+For frontend-only Kubernetes iterations after the dev overlay is already
+applied, rebuild and roll out just the web image:
+
+```bash
+make k8s-dev-refresh-web
+```
+
 The dev overlay writes `k8s/overlays/dev/secrets.patch.yaml`, which contains
 generated local RSA keys and development credentials. That file is ignored by
 git and must not be committed. Existing local dev secrets are preserved on

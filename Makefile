@@ -1,5 +1,5 @@
 .PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health runtime-verify runtime-log-scan runtime-disk docker-prune-build-cache \
-  k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
+  k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-refresh-web k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
   k8s-validate dev-build dev-deps dev-run dev-worker worker-build migrate migrate-redo \
   dev-refresh test-integration fmt clippy web-lint web-build web-lint-compose web-build-compose logs ps shell
 
@@ -138,6 +138,21 @@ k8s-dev-refresh: k8s-dev-secrets ## Rebuild, load, and redeploy local Kubernetes
 	$(KUBECTL) rollout status deployment/worker -n $(K8S_NAMESPACE) --timeout=240s
 	$(KUBECTL) rollout status deployment/web -n $(K8S_NAMESPACE) --timeout=180s
 	@echo "$(GREEN)Development deployment refreshed with $(K8S_IMAGE_TAG)!$(NC)"
+
+k8s-dev-refresh-web: ## Rebuild and redeploy only the local Kubernetes web image
+	@echo "$(YELLOW)Building fresh Kubernetes web image: $(K8S_WEB_IMAGE)...$(NC)"
+	@set -e; \
+	if command -v $(MINIKUBE) >/dev/null 2>&1 && [ "$$($(KUBECTL) config current-context 2>/dev/null)" = "minikube" ]; then \
+		echo "$(YELLOW)Detected minikube context; building web image directly inside minikube...$(NC)"; \
+		$(MINIKUBE) image build -t $(K8S_WEB_IMAGE) ./web; \
+		$(MINIKUBE) image tag $(K8S_WEB_IMAGE) web:latest; \
+	else \
+		$(DOCKER) build -t web:latest -t $(K8S_WEB_IMAGE) ./web; \
+	fi
+	@echo "$(YELLOW)Pointing web deployment at $(K8S_WEB_IMAGE)...$(NC)"
+	$(KUBECTL) set image deployment/web web=$(K8S_WEB_IMAGE) -n $(K8S_NAMESPACE)
+	$(KUBECTL) rollout status deployment/web -n $(K8S_NAMESPACE) --timeout=180s
+	@echo "$(GREEN)Web deployment refreshed with $(K8S_IMAGE_TAG)!$(NC)"
 
 k8s-dev-delete: ## Delete local Kubernetes development overlay resources
 	@echo "$(YELLOW)Deleting local Kubernetes development overlay...$(NC)"
