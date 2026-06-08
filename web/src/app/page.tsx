@@ -1389,7 +1389,8 @@ export default function Home() {
             <span className={styles.secretField}>
               <input
                 aria-label="JWT"
-                type={showToken ? "text" : "password"}
+                type="text"
+                className={showToken ? undefined : styles.maskedSecret}
                 autoComplete="off"
                 value={token}
                 onChange={(event) => {

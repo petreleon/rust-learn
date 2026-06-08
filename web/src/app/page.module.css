@@ -135,6 +135,10 @@
   resize: vertical;
 }
 
+.maskedSecret {
+  -webkit-text-security: disc;
+}
+
 .sessionForm {
   margin-top: 12px;
   display: grid;
