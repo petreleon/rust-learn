@@ -5,6 +5,8 @@ import {
   CheckCircle2,
   ClipboardList,
   Download,
+  Eye,
+  EyeOff,
   FileCheck,
   GraduationCap,
   History,
@@ -335,6 +337,7 @@ export default function Home() {
   const resultPanelRef = useRef<HTMLElement | null>(null);
   const [apiRoot, setApiRoot] = useState(process.env.NEXT_PUBLIC_API_URL || "/api");
   const [token, setToken] = useState("");
+  const [showToken, setShowToken] = useState(false);
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [sessionMessage, setSessionMessage] = useState("Not signed in");
   const [healthCheckTick, setHealthCheckTick] = useState(0);
@@ -754,6 +757,7 @@ export default function Home() {
       }
 
       setToken(nextToken);
+      setShowToken(false);
       setCredentials((current) => ({ ...current, password: "" }));
       setSessionMessage("Signed in");
       setResult({
@@ -785,6 +789,7 @@ export default function Home() {
 
   function clearSession() {
     setToken("");
+    setShowToken(false);
     setCredentials({ email: "", password: "" });
     setSessionMessage("Session fields cleared");
     resetSessionResult();
@@ -1082,24 +1087,40 @@ export default function Home() {
               </button>
             </div>
           </form>
-          <label className={styles.fieldLabel}>
-            JWT
-            <textarea
-              rows={4}
-              value={token}
-              onChange={(event) => {
-                const nextToken = event.target.value;
-                setToken(nextToken);
-                if (hasText(nextToken)) {
-                  setSessionMessage("JWT loaded");
-                } else {
-                  setSessionMessage("Session cleared");
-                  resetSessionResult();
-                }
-              }}
-              spellCheck={false}
-            />
-          </label>
+          <div className={styles.fieldLabel}>
+            <span>JWT</span>
+            <span className={styles.secretField}>
+              <input
+                aria-label="JWT"
+                type={showToken ? "text" : "password"}
+                autoComplete="off"
+                value={token}
+                onChange={(event) => {
+                  const nextToken = event.target.value;
+                  setToken(nextToken);
+                  if (hasText(nextToken)) {
+                    setSessionMessage("JWT loaded");
+                  } else {
+                    setShowToken(false);
+                    setSessionMessage("Session cleared");
+                    resetSessionResult();
+                  }
+                }}
+                spellCheck={false}
+              />
+              <button
+                type="button"
+                className={styles.tokenVisibilityButton}
+                onClick={() => setShowToken((current) => !current)}
+                disabled={!hasSessionToken}
+                aria-label={showToken ? "Hide JWT" : "Show JWT"}
+                aria-pressed={showToken}
+                title={showToken ? "Hide JWT" : "Show JWT"}
+              >
+                {showToken ? <EyeOff size={17} aria-hidden /> : <Eye size={17} aria-hidden />}
+              </button>
+            </span>
+          </div>
           <p className={styles.statusMessage} aria-live="polite">
             {sessionMessage}
           </p>
