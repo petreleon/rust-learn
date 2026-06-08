@@ -300,21 +300,31 @@ runtime-verify: ## Fail unless Docker Compose and Kubernetes runtime checks pass
 
 runtime-log-scan: ## Show recent warning/error log lines from Docker Compose and Kubernetes
 	@set -e; \
+	failed=0; \
 	scan_logs() { \
 		label="$$1"; shift; \
+		output_file=$$(mktemp); \
 		echo ""; \
 		echo "$$label"; \
-		if "$$@" 2>/dev/null | grep -E -i '$(LOG_SCAN_PATTERN)'; then \
-			:; \
+		if "$$@" >"$$output_file" 2>&1; then \
+			if grep -E -i '$(LOG_SCAN_PATTERN)' "$$output_file"; then \
+				:; \
+			else \
+				echo "No recent warning/error log lines"; \
+			fi; \
 		else \
-			echo "No recent warning/error log lines"; \
+			failed=1; \
+			echo "$(YELLOW)Unable to read logs$(NC)"; \
+			sed -n '1,12p' "$$output_file"; \
 		fi; \
+		rm -f "$$output_file"; \
 	}; \
 	echo "$(GREEN)=== Runtime Log Scan ($(LOG_SCAN_SINCE)) ===$(NC)"; \
 	scan_logs "Docker Compose app/worker/web:" $(DOCKER_COMPOSE) logs --no-color --since $(LOG_SCAN_SINCE) app worker web; \
 	scan_logs "Kubernetes rust-app:" $(KUBECTL) logs -n $(K8S_NAMESPACE) deploy/rust-app --since=$(LOG_SCAN_SINCE); \
 	scan_logs "Kubernetes worker:" $(KUBECTL) logs -n $(K8S_NAMESPACE) deploy/worker --since=$(LOG_SCAN_SINCE); \
-	scan_logs "Kubernetes web:" $(KUBECTL) logs -n $(K8S_NAMESPACE) deploy/web --since=$(LOG_SCAN_SINCE)
+	scan_logs "Kubernetes web:" $(KUBECTL) logs -n $(K8S_NAMESPACE) deploy/web --since=$(LOG_SCAN_SINCE); \
+	exit $$failed
 
 runtime-disk: ## Show Docker and Minikube disk usage
 	@echo "$(GREEN)=== Runtime Disk Usage ===$(NC)"
