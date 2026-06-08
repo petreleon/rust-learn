@@ -1778,134 +1778,140 @@ export default function Home() {
                 detail="Enable delegated reward approval permission to grant or revoke delegations."
               />
             )}
-            {hasSessionToken && canDelegate && (
-              <RequirementNotice
-                action="Grant delegation"
-                fields={delegationGrantMissingFields}
-              />
-            )}
-            <fieldset className={styles.formGrid} disabled={!canDelegate}>
-              <input
-                aria-label="Delegation grantee user id"
-                {...positiveIntegerInputProps}
-                placeholder="Grantee user id"
-                value={delegation.grantee_user_id}
-                onChange={(event) =>
-                  setDelegation((current) => ({ ...current, grantee_user_id: event.target.value }))
-                }
-              />
-              <select
-                aria-label="Delegated permission"
-                value={delegation.permission}
-                onChange={(event) =>
-                  setDelegation((current) => ({ ...current, permission: event.target.value }))
-                }
-              >
-                {delegatedPermissions.map((permission) => (
-                  <option key={permission} value={permission}>
-                    {optionLabel(permission)}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label="Delegation scope type"
-                value={delegation.scope_type}
-                onChange={(event) =>
-                  setDelegation((current) => ({ ...current, scope_type: event.target.value }))
-                }
-              >
-                <option value="platform">{optionLabel("platform")}</option>
-                <option value="organization">{optionLabel("organization")}</option>
-                <option value="course">{optionLabel("course")}</option>
-              </select>
-              <input
-                aria-label="Delegation organization id"
-                {...positiveIntegerInputProps}
-                placeholder="Organization id"
-                value={delegation.organization_id}
-                onChange={(event) =>
-                  setDelegation((current) => ({ ...current, organization_id: event.target.value }))
-                }
-              />
-              <input
-                aria-label="Delegation course id"
-                {...positiveIntegerInputProps}
-                placeholder="Course id"
-                value={delegation.course_id}
-                onChange={(event) =>
-                  setDelegation((current) => ({ ...current, course_id: event.target.value }))
-                }
-              />
-              <input
-                aria-label="Delegation expiration"
-                placeholder="Expires at"
-                value={delegation.expires_at}
-                onChange={(event) =>
-                  setDelegation((current) => ({ ...current, expires_at: event.target.value }))
-                }
-              />
-              <input
-                aria-label="Delegation reason"
-                className={styles.fullWidth}
-                placeholder="Reason"
-                value={delegation.reason}
-                onChange={(event) =>
-                  setDelegation((current) => ({ ...current, reason: event.target.value }))
-                }
-              />
-              <button
-                type="button"
-                className={styles.primaryButton}
-                onClick={grantDelegation}
-                {...actionState(canGrantDelegationForm)}
-              >
-                <KeyRound size={17} aria-hidden />
-                <span>Grant</span>
-              </button>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={listDelegations}
-                {...actionState()}
-              >
-                <ClipboardList size={17} aria-hidden />
-                <span>Load</span>
-              </button>
-            </fieldset>
-            {hasSessionToken && canDelegate && (
-              <RequirementNotice
-                action="Revoke delegation"
-                fields={delegationRevokeMissingFields}
-              />
-            )}
-            <div className={styles.actionStrip}>
-              <input
-                aria-label="Delegation id"
-                {...positiveIntegerInputProps}
-                placeholder="Delegation id"
-                value={delegationId}
-                onChange={(event) => setDelegationId(event.target.value)}
-              />
-              <input
-                aria-label="Delegation revoke reason"
-                placeholder="Revoke reason"
-                value={revokeReason}
-                onChange={(event) => setRevokeReason(event.target.value)}
-              />
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={revokeDelegation}
-                {...actionState(
-                  canRevokeDelegationForm,
-                  canDelegate,
-                  "Delegation permission required"
+            {canDelegate && (
+              <>
+                {hasSessionToken && (
+                  <RequirementNotice
+                    action="Grant delegation"
+                    fields={delegationGrantMissingFields}
+                  />
                 )}
-              >
-                <Ban size={17} aria-hidden />
-                <span>Revoke</span>
-              </button>
-            </div>
+                <fieldset className={styles.formGrid}>
+                  <input
+                    aria-label="Delegation grantee user id"
+                    {...positiveIntegerInputProps}
+                    placeholder="Grantee user id"
+                    value={delegation.grantee_user_id}
+                    onChange={(event) =>
+                      setDelegation((current) => ({
+                        ...current,
+                        grantee_user_id: event.target.value,
+                      }))
+                    }
+                  />
+                  <select
+                    aria-label="Delegated permission"
+                    value={delegation.permission}
+                    onChange={(event) =>
+                      setDelegation((current) => ({ ...current, permission: event.target.value }))
+                    }
+                  >
+                    {delegatedPermissions.map((permission) => (
+                      <option key={permission} value={permission}>
+                        {optionLabel(permission)}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Delegation scope type"
+                    value={delegation.scope_type}
+                    onChange={(event) =>
+                      setDelegation((current) => ({ ...current, scope_type: event.target.value }))
+                    }
+                  >
+                    <option value="platform">{optionLabel("platform")}</option>
+                    <option value="organization">{optionLabel("organization")}</option>
+                    <option value="course">{optionLabel("course")}</option>
+                  </select>
+                  <input
+                    aria-label="Delegation organization id"
+                    {...positiveIntegerInputProps}
+                    placeholder="Organization id"
+                    value={delegation.organization_id}
+                    onChange={(event) =>
+                      setDelegation((current) => ({
+                        ...current,
+                        organization_id: event.target.value,
+                      }))
+                    }
+                  />
+                  <input
+                    aria-label="Delegation course id"
+                    {...positiveIntegerInputProps}
+                    placeholder="Course id"
+                    value={delegation.course_id}
+                    onChange={(event) =>
+                      setDelegation((current) => ({ ...current, course_id: event.target.value }))
+                    }
+                  />
+                  <input
+                    aria-label="Delegation expiration"
+                    placeholder="Expires at"
+                    value={delegation.expires_at}
+                    onChange={(event) =>
+                      setDelegation((current) => ({ ...current, expires_at: event.target.value }))
+                    }
+                  />
+                  <input
+                    aria-label="Delegation reason"
+                    className={styles.fullWidth}
+                    placeholder="Reason"
+                    value={delegation.reason}
+                    onChange={(event) =>
+                      setDelegation((current) => ({ ...current, reason: event.target.value }))
+                    }
+                  />
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={grantDelegation}
+                    {...actionState(canGrantDelegationForm)}
+                  >
+                    <KeyRound size={17} aria-hidden />
+                    <span>Grant</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={listDelegations}
+                    {...actionState()}
+                  >
+                    <ClipboardList size={17} aria-hidden />
+                    <span>Load</span>
+                  </button>
+                </fieldset>
+                {hasSessionToken && (
+                  <RequirementNotice
+                    action="Revoke delegation"
+                    fields={delegationRevokeMissingFields}
+                  />
+                )}
+                <div className={styles.actionStrip}>
+                  <input
+                    aria-label="Delegation id"
+                    {...positiveIntegerInputProps}
+                    placeholder="Delegation id"
+                    value={delegationId}
+                    onChange={(event) => setDelegationId(event.target.value)}
+                  />
+                  <input
+                    aria-label="Delegation revoke reason"
+                    placeholder="Revoke reason"
+                    value={revokeReason}
+                    onChange={(event) => setRevokeReason(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={revokeDelegation}
+                    {...actionState(canRevokeDelegationForm)}
+                  >
+                    <Ban size={17} aria-hidden />
+                    <span>Revoke</span>
+                  </button>
+                </div>
+              </>
+            )}
           </section>
         </div>
 
