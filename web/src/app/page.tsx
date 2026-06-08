@@ -211,6 +211,10 @@ function hasText(value: string) {
   return value.trim().length > 0;
 }
 
+function hasAnyText(values: string[]) {
+  return values.some(hasText);
+}
+
 function hasPositiveInteger(value: string) {
   return /^[1-9]\d*$/.test(value.trim());
 }
@@ -730,6 +734,52 @@ export default function Home() {
         hasPositiveInteger(delegation.organization_id)) ||
       (delegation.scope_type === "course" && hasPositiveInteger(delegation.course_id)));
   const canRevokeDelegationForm = hasPositiveInteger(delegationId);
+  const hasTeacherApplicationDraft =
+    teacherForm.requested_scope !== "platform" ||
+    hasAnyText([
+      teacherForm.requested_organization_id,
+      teacherForm.requested_course_id,
+      teacherForm.experience_summary,
+      teacherForm.organization_sponsor_id,
+      teacherForm.portfolio_links,
+    ]);
+  const hasTeacherDecisionDraft = hasAnyText([
+    teacherDecision.application_id,
+    teacherDecision.decision_reason,
+  ]);
+  const hasSubmitRewardCandidateDraft = hasAnyText([rewardCourseId, rewardStudentId]);
+  const hasLoadRewardCandidatesDraft = hasText(rewardCourseId);
+  const hasTeacherRewardDecisionDraft = hasAnyText([
+    rewardCourseId,
+    rewardCandidateId,
+    teacherRewardDecision.decision_reason,
+  ]);
+  const hasAmountDecisionDraft =
+    hasText(rewardCandidateId) ||
+    amountDecision.approved_amount !== "10" ||
+    hasText(amountDecision.decision_reason);
+  const hasOrganizationReportDraft = hasText(organizationId);
+  const hasFraudBlockCreateDraft =
+    activeFraudBlockScope !== "teacher" ||
+    hasAnyText([
+      fraudBlock.teacher_user_id,
+      fraudBlock.organization_id,
+      fraudBlock.course_id,
+      fraudBlock.reward_policy_id,
+      fraudBlock.reason,
+      fraudBlock.evidence_reference,
+    ]);
+  const hasFraudBlockUseDraft = hasText(fraudBlockId);
+  const hasDelegationGrantDraft =
+    delegation.scope_type !== "platform" ||
+    hasAnyText([
+      delegation.grantee_user_id,
+      delegation.organization_id,
+      delegation.course_id,
+      delegation.reason,
+      delegation.expires_at,
+    ]);
+  const hasDelegationRevokeDraft = hasAnyText([delegationId, revokeReason]);
   const teacherApplicationMissingFields = missingFields([
     ["Experience summary", hasText(teacherForm.experience_summary)],
     [
@@ -1366,7 +1416,7 @@ export default function Home() {
 
             {canTeacherApply && (
               <>
-                {hasSessionToken && (
+                {hasSessionToken && hasTeacherApplicationDraft && (
                   <RequirementNotice
                     action="Submit application"
                     fields={teacherApplicationMissingFields}
@@ -1512,7 +1562,7 @@ export default function Home() {
 
             {canDecideTeachers && (
               <>
-                {hasSessionToken && (
+                {hasSessionToken && hasTeacherDecisionDraft && (
                   <RequirementNotice action="Decide" fields={teacherDecisionMissingFields} />
                 )}
                 {serverDeniedNotice(PROTECTED_ACTIONS.teacherApplicationDecision, "Decide")}
@@ -1626,7 +1676,7 @@ export default function Home() {
 
             {canSubmitReward && (
               <>
-                {hasSessionToken && (
+                {hasSessionToken && hasSubmitRewardCandidateDraft && (
                   <RequirementNotice
                     action="Submit candidate"
                     fields={submitRewardCandidateMissingFields}
@@ -1661,7 +1711,7 @@ export default function Home() {
 
             {canViewCourseRewards && (
               <>
-                {hasSessionToken && (
+                {hasSessionToken && hasLoadRewardCandidatesDraft && (
                   <RequirementNotice
                     action="Load candidates"
                     fields={loadRewardCandidatesMissingFields}
@@ -1687,7 +1737,7 @@ export default function Home() {
 
             {canTeacherApproveReward && (
               <>
-                {hasSessionToken && (
+                {hasSessionToken && hasTeacherRewardDecisionDraft && (
                   <RequirementNotice
                     action="Teacher decision"
                     fields={teacherRewardDecisionMissingFields}
@@ -1739,7 +1789,7 @@ export default function Home() {
 
             {canApproveAmount && (
               <>
-                {hasSessionToken && (
+                {hasSessionToken && hasAmountDecisionDraft && (
                   <RequirementNotice action="Set amount" fields={amountDecisionMissingFields} />
                 )}
                 {serverDeniedNotice(PROTECTED_ACTIONS.rewardAmountDecision, "Set amount")}
@@ -1861,7 +1911,7 @@ export default function Home() {
                 detail="Enable summary, organization reward, reward audit, generate report, or export permissions to use reporting actions."
               />
             )}
-            {hasSessionToken && canUseOrganizationReportControls && (
+            {hasSessionToken && canUseOrganizationReportControls && hasOrganizationReportDraft && (
               <RequirementNotice
                 action="Load organization reports"
                 fields={organizationReportMissingFields}
@@ -2051,7 +2101,7 @@ export default function Home() {
             )}
             {canManageFraud && (
               <>
-                {hasSessionToken && (
+                {hasSessionToken && hasFraudBlockCreateDraft && (
                   <RequirementNotice
                     action="Create block"
                     fields={fraudBlockCreateMissingFields}
@@ -2178,7 +2228,7 @@ export default function Home() {
             )}
             {canUseFraudBlockActions && (
               <>
-                {hasSessionToken && (
+                {hasSessionToken && hasFraudBlockUseDraft && (
                   <RequirementNotice
                     action={fraudBlockActionLabel}
                     fields={fraudBlockUseMissingFields}
@@ -2264,7 +2314,7 @@ export default function Home() {
             )}
             {canDelegate && (
               <>
-                {hasSessionToken && (
+                {hasSessionToken && hasDelegationGrantDraft && (
                   <RequirementNotice
                     action="Grant delegation"
                     fields={delegationGrantMissingFields}
@@ -2381,7 +2431,7 @@ export default function Home() {
                     <span>Load</span>
                   </button>
                 </fieldset>
-                {hasSessionToken && (
+                {hasSessionToken && hasDelegationRevokeDraft && (
                   <RequirementNotice
                     action="Revoke delegation"
                     fields={delegationRevokeMissingFields}
