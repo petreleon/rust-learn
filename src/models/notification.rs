@@ -38,6 +38,20 @@ impl Notification {
             .await
     }
 
+    pub async fn create_many(
+        new_notifications: &[NewNotification<'_>],
+        conn: &mut AsyncPgConnection,
+    ) -> QueryResult<usize> {
+        if new_notifications.is_empty() {
+            return Ok(0);
+        }
+
+        diesel::insert_into(notifications::table)
+            .values(new_notifications)
+            .execute(conn)
+            .await
+    }
+
     pub async fn find_by_user_id(
         user_id: i32,
         conn: &mut AsyncPgConnection,

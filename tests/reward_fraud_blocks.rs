@@ -1,9 +1,13 @@
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{courses, notifications, organizations, reward_fraud_blocks};
 use rust_learn::models::course::{Course, NewCourse};
+use rust_learn::models::delegated_permission::{
+    GrantDelegatedPermissionRequest, DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
+};
 use rust_learn::models::notification::Notification;
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_fraud_block::{
@@ -15,6 +19,7 @@ use rust_learn::models::user::User;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::repositories::user_repository::create_user;
+use rust_learn::services::delegated_permission_service::grant_delegated_permission;
 use rust_learn::services::reward_fraud_block_service::{
     create_reward_fraud_block, revoke_reward_fraud_block, RewardFraudBlockError,
     RewardFraudBlockRequest,
@@ -111,11 +116,45 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
     let moderator = create_user_helper(&mut conn, "fraud_block_moderator").await;
     let teacher = create_user_helper(&mut conn, "fraud_block_teacher").await;
     let org_operator = create_user_helper(&mut conn, "fraud_block_org_operator").await;
+    let delegated_platform_auditor =
+        create_user_helper(&mut conn, "fraud_block_delegated_platform_auditor").await;
+    let delegated_org_operator =
+        create_user_helper(&mut conn, "fraud_block_delegated_org_operator").await;
     let organization = create_organization(&mut conn, &unique_string("FraudBlockOrg")).await;
     let course = create_course(&mut conn, &unique_string("FraudBlockCourse")).await;
     force_assign_platform_role(&mut conn, admin.id(), "ADMIN").await;
     force_assign_platform_role(&mut conn, moderator.id(), "MODERATOR").await;
     force_assign_organization_role(&mut conn, org_operator.id(), organization.id, "ADMIN").await;
+    grant_delegated_permission(
+        &mut conn,
+        admin.id(),
+        GrantDelegatedPermissionRequest {
+            grantee_user_id: delegated_platform_auditor.id(),
+            permission: Permissions::VIEW_REWARD_AUDIT.to_string(),
+            scope_type: DELEGATED_SCOPE_PLATFORM.to_string(),
+            organization_id: None,
+            course_id: None,
+            reason: Some("temporary fraud-audit coverage".to_string()),
+            expires_at: None,
+        },
+    )
+    .await
+    .expect("admin should delegate platform fraud audit notifications");
+    grant_delegated_permission(
+        &mut conn,
+        admin.id(),
+        GrantDelegatedPermissionRequest {
+            grantee_user_id: delegated_org_operator.id(),
+            permission: Permissions::VIEW_ORG_REWARD_REPORTS.to_string(),
+            scope_type: DELEGATED_SCOPE_ORGANIZATION.to_string(),
+            organization_id: Some(organization.id),
+            course_id: None,
+            reason: Some("temporary organization reward report coverage".to_string()),
+            expires_at: None,
+        },
+    )
+    .await
+    .expect("admin should delegate organization reward report notifications");
 
     let denied = create_reward_fraud_block(
         &mut conn,
@@ -158,6 +197,14 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
     assert!(admin_notifications[0]
         .body
         .contains("suspicious reward approvals"));
+    let delegated_platform_notification_count = notifications::table
+        .filter(notifications::user_id.eq(Some(delegated_platform_auditor.id())))
+        .filter(notifications::title.eq("reward_fraud_block:created"))
+        .count()
+        .get_result::<i64>(&mut conn)
+        .await
+        .expect("delegated platform fraud notifications should be countable");
+    assert_eq!(delegated_platform_notification_count, 1);
 
     let revoked = revoke_reward_fraud_block(&mut conn, admin.id(), teacher_block.id)
         .await
@@ -202,6 +249,14 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
         .await
         .expect("organization operator fraud block notifications should be countable");
     assert_eq!(organization_operator_notification_count, 1);
+    let delegated_organization_operator_notification_count = notifications::table
+        .filter(notifications::user_id.eq(Some(delegated_org_operator.id())))
+        .filter(notifications::title.eq("reward_fraud_block:created"))
+        .count()
+        .get_result::<i64>(&mut conn)
+        .await
+        .expect("delegated organization fraud block notifications should be countable");
+    assert_eq!(delegated_organization_operator_notification_count, 1);
 
     let course_block = create_reward_fraud_block(
         &mut conn,

@@ -1,14 +1,15 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{
-    courses_organizations, reward_policies, user_role_organization, user_role_platform,
+    courses_organizations, delegated_permissions, reward_policies, role_permission_organization,
+    role_permission_platform, user_role_organization, user_role_platform,
 };
+use crate::models::delegated_permission::{DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM};
 use crate::models::notification::{NewNotification, Notification};
 use crate::models::reward_fraud_block::{
     NewRewardFraudBlock, RewardFraudBlock, REWARD_FRAUD_BLOCK_SCOPE_COURSE,
     REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION, REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY,
     REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
 };
-use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::repositories::reward_fraud_block_repository;
 use chrono::{DateTime, Utc};
@@ -215,17 +216,15 @@ async fn notify_reward_fraud_block_transition(
         block.id, event_type, block.scope_type, block.reason
     );
 
-    for user_id in recipients {
-        Notification::create(
-            NewNotification {
-                user_id: Some(user_id),
-                title: title.as_str(),
-                body: body.as_str(),
-            },
-            conn,
-        )
-        .await?;
-    }
+    let notifications = recipients
+        .into_iter()
+        .map(|user_id| NewNotification {
+            user_id: Some(user_id),
+            title: title.as_str(),
+            body: body.as_str(),
+        })
+        .collect::<Vec<_>>();
+    Notification::create_many(notifications.as_slice(), conn).await?;
 
     Ok(())
 }
@@ -261,29 +260,41 @@ async fn reward_fraud_block_notification_recipients(
 async fn platform_reward_reviewer_user_ids(
     conn: &mut AsyncPgConnection,
 ) -> Result<Vec<i32>, RewardFraudBlockError> {
-    let user_ids = user_role_platform::table
+    let now = Utc::now();
+    let permissions = platform_fraud_notification_permissions();
+    let mut reviewers = user_role_platform::table
+        .inner_join(role_permission_platform::table.on(
+            user_role_platform::platform_role_id.eq(role_permission_platform::platform_role_id),
+        ))
         .select(user_role_platform::user_id)
+        .filter(role_permission_platform::permission.eq_any(permissions.as_slice()))
         .distinct()
         .load::<Option<i32>>(conn)
-        .await?;
-    let mut reviewers = Vec::new();
-    for user_id in user_ids.into_iter().flatten() {
-        if user_permission_platform_request(
-            conn,
-            user_id,
-            &Permissions::VIEW_REWARD_AUDIT.to_string(),
-        )
         .await?
-            || user_permission_platform_request(
-                conn,
-                user_id,
-                &Permissions::MANAGE_REWARD_FRAUD_BLOCKS.to_string(),
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+
+    reviewers.extend(
+        delegated_permissions::table
+            .select(delegated_permissions::grantee_user_id)
+            .filter(delegated_permissions::scope_type.eq(DELEGATED_SCOPE_PLATFORM))
+            .filter(delegated_permissions::organization_id.is_null())
+            .filter(delegated_permissions::course_id.is_null())
+            .filter(delegated_permissions::permission.eq_any(permissions.as_slice()))
+            .filter(delegated_permissions::revoked_at.is_null())
+            .filter(
+                delegated_permissions::expires_at
+                    .is_null()
+                    .or(delegated_permissions::expires_at.gt(now)),
             )
-            .await?
-        {
-            reviewers.push(user_id);
-        }
-    }
+            .distinct()
+            .load::<i32>(conn)
+            .await?,
+    );
+
+    reviewers.sort_unstable();
+    reviewers.dedup();
     Ok(reviewers)
 }
 
@@ -291,33 +302,58 @@ async fn organization_reward_operator_user_ids(
     conn: &mut AsyncPgConnection,
     organization_id: i32,
 ) -> Result<Vec<i32>, RewardFraudBlockError> {
-    let user_ids = user_role_organization::table
+    let now = Utc::now();
+    let permissions = organization_fraud_notification_permissions();
+    let mut operators = user_role_organization::table
+        .inner_join(
+            role_permission_organization::table.on(user_role_organization::organization_role_id
+                .eq(role_permission_organization::organization_role_id)),
+        )
         .filter(user_role_organization::organization_id.eq(Some(organization_id)))
+        .filter(role_permission_organization::permission.eq_any(permissions.as_slice()))
         .select(user_role_organization::user_id)
         .distinct()
         .load::<Option<i32>>(conn)
-        .await?;
-    let mut operators = Vec::new();
-    for user_id in user_ids.into_iter().flatten() {
-        if user_permission_organization_request(
-            conn,
-            user_id,
-            organization_id,
-            &Permissions::VIEW_ORG_REWARD_REPORTS.to_string(),
-        )
         .await?
-            || user_permission_organization_request(
-                conn,
-                user_id,
-                organization_id,
-                &Permissions::MANAGE_ORG_REWARD_BUDGET.to_string(),
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
+
+    operators.extend(
+        delegated_permissions::table
+            .select(delegated_permissions::grantee_user_id)
+            .filter(delegated_permissions::scope_type.eq(DELEGATED_SCOPE_ORGANIZATION))
+            .filter(delegated_permissions::organization_id.eq(Some(organization_id)))
+            .filter(delegated_permissions::course_id.is_null())
+            .filter(delegated_permissions::permission.eq_any(permissions.as_slice()))
+            .filter(delegated_permissions::revoked_at.is_null())
+            .filter(
+                delegated_permissions::expires_at
+                    .is_null()
+                    .or(delegated_permissions::expires_at.gt(now)),
             )
-            .await?
-        {
-            operators.push(user_id);
-        }
-    }
+            .distinct()
+            .load::<i32>(conn)
+            .await?,
+    );
+
+    operators.sort_unstable();
+    operators.dedup();
     Ok(operators)
+}
+
+fn platform_fraud_notification_permissions() -> [String; 2] {
+    [
+        Permissions::VIEW_REWARD_AUDIT.to_string(),
+        Permissions::MANAGE_REWARD_FRAUD_BLOCKS.to_string(),
+    ]
+}
+
+fn organization_fraud_notification_permissions() -> [String; 2] {
+    [
+        Permissions::VIEW_ORG_REWARD_REPORTS.to_string(),
+        Permissions::MANAGE_ORG_REWARD_BUDGET.to_string(),
+    ]
 }
 
 async fn course_organization_ids(
