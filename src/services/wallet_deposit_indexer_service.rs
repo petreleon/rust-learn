@@ -25,6 +25,36 @@ const DEFAULT_BATCH_BLOCKS: u64 = 500;
 const DEFAULT_LOOKBACK_BLOCKS: u64 = 100;
 const DEFAULT_IDLE_LOG_SECONDS: u64 = 60;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PollFailureLogLevel {
+    Info,
+    Warn,
+    Suppress,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct PollFailureLogDecision {
+    level: PollFailureLogLevel,
+    consecutive_failures: u64,
+    suppressed_failure_count: u64,
+    outage_seconds: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct PollFailureRecovery {
+    consecutive_failures: u64,
+    suppressed_failure_count: u64,
+    outage_seconds: u64,
+}
+
+#[derive(Debug, Default)]
+struct PollFailureLogState {
+    first_failure_at: Option<Instant>,
+    last_warning_at: Option<Instant>,
+    consecutive_failures: u64,
+    suppressed_failure_count: u64,
+}
+
 #[derive(Debug, Clone)]
 struct WalletDepositIndexerConfig {
     poll_seconds: u64,
@@ -57,11 +87,21 @@ async fn run_wallet_deposit_indexer(pool: DbPool, shutdown: Arc<AtomicBool>) {
     let config = WalletDepositIndexerConfig::from_env();
     let idle_log_interval = Duration::from_secs(config.idle_log_seconds);
     let mut last_idle_log: Option<Instant> = None;
+    let mut failure_log_state = PollFailureLogState::default();
 
     while !shutdown.load(Ordering::SeqCst) {
         match run_wallet_deposit_indexer_once(&pool, &config).await {
             Ok(credited_count) => {
                 let now = Instant::now();
+                if let Some(recovery) = failure_log_state.record_success(now) {
+                    log::info!(
+                        "event=wallet_deposit_indexer_poll_recovered consecutive_failures={} suppressed_failure_count={} outage_seconds={}",
+                        recovery.consecutive_failures,
+                        recovery.suppressed_failure_count,
+                        recovery.outage_seconds
+                    );
+                }
+
                 let should_log =
                     should_log_indexer_poll(credited_count, last_idle_log, idle_log_interval, now);
                 if should_log {
@@ -76,7 +116,29 @@ async fn run_wallet_deposit_indexer(pool: DbPool, shutdown: Arc<AtomicBool>) {
                 }
             }
             Err(error) => {
-                log::warn!("event=wallet_deposit_indexer_poll_failed error={}", error);
+                let decision = failure_log_state.record_failure(Instant::now(), idle_log_interval);
+                match decision.level {
+                    PollFailureLogLevel::Info => {
+                        log::info!(
+                            "event=wallet_deposit_indexer_poll_retrying consecutive_failures={} outage_seconds={} warn_after_seconds={} error={}",
+                            decision.consecutive_failures,
+                            decision.outage_seconds,
+                            config.idle_log_seconds,
+                            error
+                        );
+                    }
+                    PollFailureLogLevel::Warn => {
+                        log::warn!(
+                            "event=wallet_deposit_indexer_poll_failed consecutive_failures={} suppressed_failure_count={} outage_seconds={} warn_interval_seconds={} error={}",
+                            decision.consecutive_failures,
+                            decision.suppressed_failure_count,
+                            decision.outage_seconds,
+                            config.idle_log_seconds,
+                            error
+                        );
+                    }
+                    PollFailureLogLevel::Suppress => {}
+                }
             }
         }
 
@@ -467,6 +529,62 @@ fn should_log_indexer_poll(
         .unwrap_or(true)
 }
 
+impl PollFailureLogState {
+    fn record_failure(&mut self, now: Instant, warn_interval: Duration) -> PollFailureLogDecision {
+        let first_failure_at = *self.first_failure_at.get_or_insert(now);
+        self.consecutive_failures = self.consecutive_failures.saturating_add(1);
+        let outage = now.saturating_duration_since(first_failure_at);
+
+        let warn_due = outage >= warn_interval
+            && self
+                .last_warning_at
+                .map(|last_warning_at| {
+                    now.saturating_duration_since(last_warning_at) >= warn_interval
+                })
+                .unwrap_or(true);
+
+        if warn_due {
+            let suppressed_failure_count = self.suppressed_failure_count;
+            self.suppressed_failure_count = 0;
+            self.last_warning_at = Some(now);
+            return PollFailureLogDecision {
+                level: PollFailureLogLevel::Warn,
+                consecutive_failures: self.consecutive_failures,
+                suppressed_failure_count,
+                outage_seconds: outage.as_secs(),
+            };
+        }
+
+        if self.consecutive_failures == 1 {
+            return PollFailureLogDecision {
+                level: PollFailureLogLevel::Info,
+                consecutive_failures: self.consecutive_failures,
+                suppressed_failure_count: 0,
+                outage_seconds: outage.as_secs(),
+            };
+        }
+
+        self.suppressed_failure_count = self.suppressed_failure_count.saturating_add(1);
+        PollFailureLogDecision {
+            level: PollFailureLogLevel::Suppress,
+            consecutive_failures: self.consecutive_failures,
+            suppressed_failure_count: self.suppressed_failure_count,
+            outage_seconds: outage.as_secs(),
+        }
+    }
+
+    fn record_success(&mut self, now: Instant) -> Option<PollFailureRecovery> {
+        let first_failure_at = self.first_failure_at?;
+        let recovery = PollFailureRecovery {
+            consecutive_failures: self.consecutive_failures,
+            suppressed_failure_count: self.suppressed_failure_count,
+            outage_seconds: now.saturating_duration_since(first_failure_at).as_secs(),
+        };
+        *self = Self::default();
+        Some(recovery)
+    }
+}
+
 impl WalletDepositIndexerConfig {
     fn from_env() -> Self {
         WalletDepositIndexerConfig {
@@ -508,7 +626,7 @@ fn positive_u64_env(key: &str, default: u64) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::should_log_indexer_poll;
+    use super::{should_log_indexer_poll, PollFailureLogLevel, PollFailureLogState};
     use std::time::{Duration, Instant};
 
     #[test]
@@ -549,5 +667,87 @@ mod tests {
             Duration::from_secs(60),
             now
         ));
+    }
+
+    #[test]
+    fn logs_first_indexer_poll_failure_as_retrying_info() {
+        let now = Instant::now();
+        let mut state = PollFailureLogState::default();
+
+        let decision = state.record_failure(now, Duration::from_secs(60));
+
+        assert_eq!(decision.level, PollFailureLogLevel::Info);
+        assert_eq!(decision.consecutive_failures, 1);
+        assert_eq!(decision.suppressed_failure_count, 0);
+        assert_eq!(decision.outage_seconds, 0);
+    }
+
+    #[test]
+    fn suppresses_transient_indexer_poll_failures_before_warning_interval() {
+        let now = Instant::now();
+        let mut state = PollFailureLogState::default();
+        state.record_failure(now, Duration::from_secs(60));
+
+        let decision = state.record_failure(now + Duration::from_secs(30), Duration::from_secs(60));
+
+        assert_eq!(decision.level, PollFailureLogLevel::Suppress);
+        assert_eq!(decision.consecutive_failures, 2);
+        assert_eq!(decision.suppressed_failure_count, 1);
+        assert_eq!(decision.outage_seconds, 30);
+    }
+
+    #[test]
+    fn warns_for_sustained_indexer_poll_failures_at_configured_interval() {
+        let now = Instant::now();
+        let mut state = PollFailureLogState::default();
+        state.record_failure(now, Duration::from_secs(60));
+        state.record_failure(now + Duration::from_secs(30), Duration::from_secs(60));
+
+        let decision = state.record_failure(now + Duration::from_secs(60), Duration::from_secs(60));
+
+        assert_eq!(decision.level, PollFailureLogLevel::Warn);
+        assert_eq!(decision.consecutive_failures, 3);
+        assert_eq!(decision.suppressed_failure_count, 1);
+        assert_eq!(decision.outage_seconds, 60);
+    }
+
+    #[test]
+    fn throttles_sustained_indexer_poll_failure_warnings() {
+        let now = Instant::now();
+        let mut state = PollFailureLogState::default();
+        state.record_failure(now, Duration::from_secs(60));
+        state.record_failure(now + Duration::from_secs(30), Duration::from_secs(60));
+        state.record_failure(now + Duration::from_secs(60), Duration::from_secs(60));
+
+        let suppressed =
+            state.record_failure(now + Duration::from_secs(75), Duration::from_secs(60));
+        let warned_again =
+            state.record_failure(now + Duration::from_secs(120), Duration::from_secs(60));
+
+        assert_eq!(suppressed.level, PollFailureLogLevel::Suppress);
+        assert_eq!(suppressed.suppressed_failure_count, 1);
+        assert_eq!(warned_again.level, PollFailureLogLevel::Warn);
+        assert_eq!(warned_again.consecutive_failures, 5);
+        assert_eq!(warned_again.suppressed_failure_count, 1);
+        assert_eq!(warned_again.outage_seconds, 120);
+    }
+
+    #[test]
+    fn logs_indexer_poll_recovery_and_resets_failure_state() {
+        let now = Instant::now();
+        let mut state = PollFailureLogState::default();
+        state.record_failure(now, Duration::from_secs(60));
+        state.record_failure(now + Duration::from_secs(30), Duration::from_secs(60));
+
+        let recovery = state
+            .record_success(now + Duration::from_secs(45))
+            .expect("failure state should record a recovery");
+
+        assert_eq!(recovery.consecutive_failures, 2);
+        assert_eq!(recovery.suppressed_failure_count, 1);
+        assert_eq!(recovery.outage_seconds, 45);
+        assert!(state
+            .record_success(now + Duration::from_secs(46))
+            .is_none());
     }
 }

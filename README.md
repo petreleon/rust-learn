@@ -437,7 +437,9 @@ PlatformImporter `Imported` events for platform-paid deposits. It advances its
 cursor in persistent state as `wallet_deposit_indexer_next_block`; use
 `WALLET_DEPOSIT_INDEXER_START_BLOCK` only for the first scan of a fresh
 environment. Empty polls are logged at `WALLET_DEPOSIT_INDEXER_IDLE_LOG_SECONDS`
-while polls that credit deposits and failed polls are logged immediately.
+while polls that credit deposits are logged immediately. Poll failures log an
+initial retry notice at info level, escalate to warning only after the same
+interval has elapsed, and emit a recovery notice when polling succeeds again.
 
 Recommended worker build/start flow:
 
