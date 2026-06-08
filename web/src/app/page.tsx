@@ -393,8 +393,17 @@ export default function Home() {
   };
   const canTeacherApply = hasPermission("SUBMIT_TEACHER_APPLICATION");
   const canReviewTeachers = hasPermission("REVIEW_TEACHER_APPLICATIONS");
-  const canDecideTeachers =
-    hasPermission("APPROVE_TEACHER_APPLICATION") || hasPermission("REJECT_TEACHER_APPLICATION");
+  const canApproveTeachers = hasPermission("APPROVE_TEACHER_APPLICATION");
+  const canRejectTeachers = hasPermission("REJECT_TEACHER_APPLICATION");
+  const teacherDecisionStatuses = [
+    ...(canApproveTeachers ? ["approved"] : []),
+    ...(canReviewTeachers ? ["needs_changes"] : []),
+    ...(canRejectTeachers ? ["rejected"] : []),
+  ];
+  const activeTeacherDecisionStatus = teacherDecisionStatuses.includes(teacherDecision.status)
+    ? teacherDecision.status
+    : teacherDecisionStatuses[0] || teacherDecision.status;
+  const canDecideTeachers = teacherDecisionStatuses.length > 0;
   const canSubmitReward = hasPermission("SUBMIT_COURSE_REWARD_EVENT");
   const canViewCourseRewards = hasPermission("VIEW_COURSE_REWARD_STATUS");
   const canTeacherApproveReward = hasPermission("APPROVE_STUDENT_REWARD_CANDIDATE");
@@ -427,7 +436,8 @@ export default function Home() {
           hasPositiveInteger(teacherForm.organization_sponsor_id))) ||
       (teacherForm.requested_scope === "course" &&
         hasPositiveInteger(teacherForm.requested_course_id)));
-  const canDecideTeacherApplicationForm = hasPositiveInteger(teacherDecision.application_id);
+  const canDecideTeacherApplicationForm =
+    canDecideTeachers && hasPositiveInteger(teacherDecision.application_id);
   const canSubmitRewardCandidateForm =
     hasPositiveInteger(rewardCourseId) && hasPositiveInteger(rewardStudentId);
   const canLoadRewardCandidatesForm = hasPositiveInteger(rewardCourseId);
@@ -767,7 +777,7 @@ export default function Home() {
       `/teacher-applications/${teacherDecision.application_id}/decision`,
       "PUT",
       {
-        status: teacherDecision.status,
+        status: activeTeacherDecisionStatus,
         decision_reason: teacherDecision.decision_reason || undefined,
       }
     );
@@ -1225,14 +1235,16 @@ export default function Home() {
                   />
                   <select
                     aria-label="Teacher decision status"
-                    value={teacherDecision.status}
+                    value={activeTeacherDecisionStatus}
                     onChange={(event) =>
                       setTeacherDecision((current) => ({ ...current, status: event.target.value }))
                     }
                   >
-                    <option value="approved">{optionLabel("approved")}</option>
-                    <option value="rejected">{optionLabel("rejected")}</option>
-                    <option value="needs_changes">{optionLabel("needs_changes")}</option>
+                    {teacherDecisionStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {optionLabel(status)}
+                      </option>
+                    ))}
                   </select>
                   <input
                     aria-label="Teacher decision reason"
