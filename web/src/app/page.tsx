@@ -487,6 +487,13 @@ export default function Home() {
   const canCreateFraudBlockFields = canCreateFraudBlockTarget && hasText(fraudBlock.reason);
   const canCreateSelectedFraudScope = activeFraudBlockScopePermission.allowed;
   const canUseFraudBlockForm = hasPositiveInteger(fraudBlockId);
+  const canUseFraudBlockActions = canViewFraud || canManageFraud;
+  const fraudBlockActionLabel =
+    canViewFraud && canManageFraud
+      ? "Audit or revoke block"
+      : canViewFraud
+        ? "Audit block"
+        : "Revoke block";
   const canGrantDelegationForm =
     hasPositiveInteger(delegation.grantee_user_id) &&
     (delegation.scope_type === "platform" ||
@@ -1712,24 +1719,26 @@ export default function Home() {
                 </div>
               </>
             )}
-            {canViewFraud && (
+            {canUseFraudBlockActions && (
               <>
                 {hasSessionToken && (
-                <RequirementNotice
-                  action="Audit or revoke block"
-                  fields={fraudBlockUseMissingFields}
-                />
-              )}
+                  <RequirementNotice
+                    action={fraudBlockActionLabel}
+                    fields={fraudBlockUseMissingFields}
+                  />
+                )}
                 <div className={styles.actionStrip}>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={listFraudBlocks}
-                    {...actionState()}
-                  >
-                    <ClipboardList size={17} aria-hidden />
-                    <span>Load active</span>
-                  </button>
+                  {canViewFraud && (
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={listFraudBlocks}
+                      {...actionState()}
+                    >
+                      <ClipboardList size={17} aria-hidden />
+                      <span>Load active</span>
+                    </button>
+                  )}
                   <input
                     aria-label="Fraud block id"
                     {...positiveIntegerInputProps}
@@ -1737,28 +1746,28 @@ export default function Home() {
                     value={fraudBlockId}
                     onChange={(event) => setFraudBlockId(event.target.value)}
                   />
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={loadFraudAudit}
-                    {...actionState(canUseFraudBlockForm)}
-                  >
-                    <History size={17} aria-hidden />
-                    <span>Audit</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={revokeFraudBlock}
-                    {...actionState(
-                      canUseFraudBlockForm,
-                      canManageFraud,
-                      "Manage fraud blocks permission required"
-                    )}
-                  >
-                    <CheckCircle2 size={17} aria-hidden />
-                    <span>Revoke</span>
-                  </button>
+                  {canViewFraud && (
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={loadFraudAudit}
+                      {...actionState(canUseFraudBlockForm)}
+                    >
+                      <History size={17} aria-hidden />
+                      <span>Audit</span>
+                    </button>
+                  )}
+                  {canManageFraud && (
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={revokeFraudBlock}
+                      {...actionState(canUseFraudBlockForm)}
+                    >
+                      <CheckCircle2 size={17} aria-hidden />
+                      <span>Revoke</span>
+                    </button>
+                  )}
                 </div>
               </>
             )}
