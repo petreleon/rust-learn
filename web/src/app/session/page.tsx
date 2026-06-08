@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
-import { ProductShell } from "@/components/product-shell";
+import { ProductShell, type ShellNotice } from "@/components/product-shell";
 import {
   clearStoredSessionToken,
   fetchCurrentSession,
@@ -90,6 +90,8 @@ export default function SessionPage() {
     setLoadState("idle");
   }
 
+  const notice = sessionNotice(error);
+
   return (
     <ProductShell
       activeNav="session"
@@ -97,6 +99,7 @@ export default function SessionPage() {
       description="Profile, workspace scopes, and delegated permissions resolved from the API."
       eyebrow="Account"
       isSignedIn={hasToken || Boolean(session)}
+      notice={notice}
       onSignOut={signOut}
       session={session}
       statusItems={
@@ -256,7 +259,10 @@ export default function SessionPage() {
                           delegation.scope_type}
                       </p>
                     </div>
-                    <StatusPill label={delegation.expires_at ? "Expires" : "No expiry"} tone="neutral" />
+                    <StatusPill
+                      label={delegation.expires_at ? expiryLabel(delegation.expires_at) : "No expiry"}
+                      tone="neutral"
+                    />
                   </article>
                 ))}
               </div>
@@ -349,4 +355,30 @@ function EmptyState({ title, detail }: { title: string; detail: string }) {
       <span>{detail}</span>
     </div>
   );
+}
+
+function sessionNotice(error: { code: string; message: string } | null): ShellNotice | null {
+  if (!error) {
+    return null;
+  }
+
+  if (error.code === "unauthorized" || error.code === "missing_user") {
+    return {
+      actionHref: "/login?redirect=/session",
+      actionLabel: "Sign in",
+      message: "Your stored session is no longer valid. Sign in again to continue.",
+      title: "Session expired",
+      tone: "error",
+    };
+  }
+
+  return {
+    message: error.message,
+    title: "Workspace status",
+    tone: error.code === "timeout" || error.code === "network_error" ? "warn" : "error",
+  };
+}
+
+function expiryLabel(expiresAt: string) {
+  return `Expires ${expiresAt.replace("T", " ").slice(0, 16)}`;
 }

@@ -25,6 +25,14 @@ type Breadcrumb = {
   href?: string;
 };
 
+export type ShellNotice = {
+  actionHref?: string;
+  actionLabel?: string;
+  message: string;
+  title: string;
+  tone: "info" | "success" | "warn" | "error";
+};
+
 type NavItem = {
   href: string;
   icon: LucideIcon;
@@ -39,6 +47,7 @@ type ProductShellProps = {
   description: string;
   eyebrow: string;
   isSignedIn?: boolean;
+  notice?: ShellNotice | null;
   onSignOut?: () => void;
   session?: CurrentSession | null;
   statusItems?: ReactNode;
@@ -57,6 +66,7 @@ export function ProductShell({
   description,
   eyebrow,
   isSignedIn = false,
+  notice,
   onSignOut,
   session,
   statusItems,
@@ -157,6 +167,8 @@ export function ProductShell({
         </nav>
       ) : null}
 
+      {notice ? <GlobalNotice notice={notice} /> : null}
+
       <div className={styles.content}>{children}</div>
     </main>
   );
@@ -185,6 +197,7 @@ function AccountMenu({
           <strong>{session?.user.name || (isSignedIn ? "Session resolving" : "Not signed in")}</strong>
           <span>{session?.user.email || "Sign in to load account details."}</span>
         </div>
+        <DelegationMenu session={session} />
         <Link className={styles.accountMenuItem} href="/settings/account">
           <Settings size={16} aria-hidden />
           Account settings
@@ -273,6 +286,7 @@ function MobileMenu({
           <strong>{accountLabel}</strong>
           <span>{session?.user.email || "Sign in to load account details."}</span>
         </div>
+        <DelegationMenu session={session} />
         {isSignedIn && onSignOut ? (
           <button className={styles.accountMenuItem} type="button" onClick={onSignOut}>
             <LogOut size={16} aria-hidden />
@@ -286,6 +300,48 @@ function MobileMenu({
         )}
       </div>
     </details>
+  );
+}
+
+function GlobalNotice({ notice }: { notice: ShellNotice }) {
+  return (
+    <section
+      aria-live={notice.tone === "error" ? "assertive" : "polite"}
+      className={`${styles.globalNotice} ${styles[notice.tone]}`}
+      role="status"
+    >
+      <div>
+        <strong>{notice.title}</strong>
+        <span>{notice.message}</span>
+      </div>
+      {notice.actionHref && notice.actionLabel ? (
+        <Link className={styles.noticeAction} href={notice.actionHref}>
+          {notice.actionLabel}
+        </Link>
+      ) : null}
+    </section>
+  );
+}
+
+function DelegationMenu({ session }: { session?: CurrentSession | null }) {
+  const delegations = session?.delegated_permissions || [];
+  if (!delegations.length) {
+    return null;
+  }
+
+  return (
+    <div className={styles.delegationMenu} aria-label="Delegated access">
+      <strong>Delegated access</strong>
+      {delegations.slice(0, 3).map((delegation) => (
+        <div className={styles.delegationItem} key={delegation.id}>
+          <span>{delegation.permission}</span>
+          <small>
+            {delegationScopeLabel(delegation)} - {delegationExpiryLabel(delegation.expires_at)}
+          </small>
+        </div>
+      ))}
+      {delegations.length > 3 ? <small>+{delegations.length - 3} more delegations</small> : null}
+    </div>
   );
 }
 
@@ -308,6 +364,18 @@ function buildWorkspaceOptions(session?: CurrentSession | null) {
     })),
   );
   return options;
+}
+
+function delegationScopeLabel(delegation: CurrentSession["delegated_permissions"][number]) {
+  return delegation.organization_name || delegation.course_title || delegation.scope_type;
+}
+
+function delegationExpiryLabel(expiresAt: string | null) {
+  if (!expiresAt) {
+    return "No expiry";
+  }
+
+  return `Expires ${expiresAt.replace("T", " ").slice(0, 16)}`;
 }
 
 function buildNavItems(session?: CurrentSession | null) {

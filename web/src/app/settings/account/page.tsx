@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ProductShell } from "@/components/product-shell";
+import { ProductShell, type ShellNotice } from "@/components/product-shell";
 import {
   clearStoredSessionToken,
   fetchCurrentSession,
@@ -87,6 +87,8 @@ export default function AccountSettingsPage() {
     setLoadState("idle");
   }
 
+  const notice = accountNotice(error);
+
   return (
     <ProductShell
       activeNav="account"
@@ -94,6 +96,7 @@ export default function AccountSettingsPage() {
       description="Profile, email status, wallet readiness, and notification preferences."
       eyebrow="Settings"
       isSignedIn={hasToken || Boolean(session)}
+      notice={notice}
       onSignOut={signOut}
       session={session}
       statusItems={
@@ -210,4 +213,26 @@ function StatusLine({ label, tone }: { label: string; tone: "good" | "neutral" |
       {label}
     </span>
   );
+}
+
+function accountNotice(error: { code: string; message: string } | null): ShellNotice | null {
+  if (!error) {
+    return null;
+  }
+
+  if (error.code === "unauthorized" || error.code === "missing_user") {
+    return {
+      actionHref: "/login?redirect=/settings/account",
+      actionLabel: "Sign in",
+      message: "Your stored session is no longer valid. Sign in again to continue.",
+      title: "Session expired",
+      tone: "error",
+    };
+  }
+
+  return {
+    message: error.message,
+    title: "Account status",
+    tone: error.code === "timeout" || error.code === "network_error" ? "warn" : "error",
+  };
 }

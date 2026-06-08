@@ -21,6 +21,7 @@ import {
   SessionRequestError,
 } from "@/lib/session";
 import { ProductShell } from "./product-shell";
+import { type ShellNotice } from "./product-shell";
 import styles from "./workspace-route.module.css";
 
 type LoadState = "idle" | "loading" | "success" | "error";
@@ -133,6 +134,8 @@ export function WorkspaceRoute({ kind }: { kind: WorkspaceKind }) {
     setLoadState("idle");
   }
 
+  const notice = workspaceNotice(error, kind);
+
   return (
     <ProductShell
       activeNav={config.activeNav}
@@ -140,6 +143,7 @@ export function WorkspaceRoute({ kind }: { kind: WorkspaceKind }) {
       description={config.description}
       eyebrow={config.eyebrow}
       isSignedIn={hasToken || Boolean(session)}
+      notice={notice}
       onSignOut={signOut}
       session={session}
       statusItems={
@@ -165,6 +169,31 @@ export function WorkspaceRoute({ kind }: { kind: WorkspaceKind }) {
       {session && allowed ? <WorkspaceContent kind={kind} session={session} /> : null}
     </ProductShell>
   );
+}
+
+function workspaceNotice(
+  error: { code: string; message: string } | null,
+  kind: WorkspaceKind,
+): ShellNotice | null {
+  if (!error) {
+    return null;
+  }
+
+  if (error.code === "unauthorized" || error.code === "missing_user") {
+    return {
+      actionHref: `/login?redirect=/${kind}`,
+      actionLabel: "Sign in",
+      message: "Your stored session is no longer valid. Sign in again to continue.",
+      title: "Session expired",
+      tone: "error",
+    };
+  }
+
+  return {
+    message: error.message,
+    title: "Workspace status",
+    tone: error.code === "timeout" || error.code === "network_error" ? "warn" : "error",
+  };
 }
 
 function SignedOutState({ redirect }: { redirect: string }) {

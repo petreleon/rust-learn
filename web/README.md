@@ -23,6 +23,11 @@ from effective permissions instead of role labels, and show contextual denied
 states when the current user lacks the required learner, teacher, organization,
 or platform access signal.
 
+The shared product shell includes global status notices for session expiry and
+retryable workspace failures. Its account and mobile menus show delegated
+permissions with scope labels and expiration text so temporary access is visible
+without exposing the internal operations console as primary product navigation.
+
 ## Local Development
 
 From the repository root, start the API dependencies and run the API:

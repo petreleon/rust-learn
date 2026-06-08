@@ -54,7 +54,7 @@ navigation.
 - [ ] Add breadcrumbs or contextual back links for nested learner, teacher,
       organization, and platform admin routes.
 - [x] Add route-level loading skeletons that preserve layout stability.
-- [ ] Add global toast/status area for success, retryable errors, session
+- [x] Add global toast/status area for success, retryable errors, session
       expiry, and background operation notices.
 
 ## Permission And Workspace Navigation
@@ -66,14 +66,14 @@ navigation.
 - [x] Show organization navigation only for organization memberships or
       organization-scoped permissions.
 - [x] Show platform admin navigation only for platform permissions.
-- [ ] Show delegated-permission affordances with expiration and scope context.
+- [x] Show delegated-permission affordances with expiration and scope context.
 - [x] Add denied-state pages that explain the missing permission without
       exposing sensitive admin details.
 
 ## Edge Cases
 
 - [ ] User logs out with unsaved form state.
-- [ ] Token expires while current-user request is in flight.
+- [x] Token expires while current-user request is in flight.
 - [ ] Token expires after route data loads but before a mutation.
 - [x] User has no memberships and no courses.
 - [x] User has only course-scoped permissions and no organization membership.
