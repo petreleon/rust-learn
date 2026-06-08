@@ -1,6 +1,14 @@
-/target
+# Rust build output
+/target/
+
+# Local environment and secrets
 .env
-private_key.pem
-public_key.pem
+.env.*
+!.env.example
+*.pem
+
+# OS/editor noise
 **/.DS_Store
+
+# Generated local Kubernetes development secrets
 k8s/overlays/dev/secrets.patch.yaml
