@@ -79,7 +79,7 @@ navigation.
 - [x] User has only course-scoped permissions and no organization membership.
 - [ ] User has multiple organizations and a stale workspace selection.
 - [ ] User has delegated permission that expires during the session.
-- [ ] API root differs between local browser, Docker Compose, and Kubernetes.
+- [x] API root differs between local browser, Docker Compose, and Kubernetes.
 - [ ] Browser refresh on a deep link preserves intended route after auth.
 
 ## Acceptance Evidence
@@ -91,7 +91,7 @@ navigation.
       account menu, and denied state without horizontal overflow.
 - [x] API-helper tests cover JSON success, text errors, `401`, `403`, timeout,
       and network failure.
-- [ ] Docker Compose smoke path logs in or loads a seeded session, hits a real
+- [x] Docker Compose smoke path logs in or loads a seeded session, hits a real
       API route, and scans recent app/web logs.
-- [ ] Kubernetes smoke path loads the product route and verifies no framework
+- [x] Kubernetes smoke path loads the product route and verifies no framework
       overlay, no console errors, and correct API root behavior.

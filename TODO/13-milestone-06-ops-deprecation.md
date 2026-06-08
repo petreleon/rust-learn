@@ -24,7 +24,7 @@ routes are verified.
       internal operators.
 - [ ] Preserve the API root control only where it is still useful for local
       debugging.
-- [ ] Remove manual permission toggles from product routes; keep them only in
+- [x] Remove manual permission toggles from product routes; keep them only in
       `/ops` if they remain valuable as a test harness.
 - [x] Replace the default `/` route with product-home routing driven by
       current-user state.
@@ -37,9 +37,9 @@ routes are verified.
 
 Do not demote a console control until its product equivalent is verified.
 
-- [ ] Session panel replaced by login, registration, logout, current-user, and
+- [x] Session panel replaced by login, registration, logout, current-user, and
       account routes.
-- [ ] Permission checklist replaced by resolved permission state and
+- [x] Permission checklist replaced by resolved permission state and
       permission-aware navigation.
 - [ ] Teacher application controls replaced by learner/teacher application and
       platform review routes.
@@ -65,7 +65,7 @@ Do not demote a console control until its product equivalent is verified.
       to normal learners.
 - [ ] Add regression tests proving `/ops` does not become the default route for
       authenticated product users.
-- [ ] Scan recent app, web, and worker logs after the route migration.
+- [x] Scan recent app, web, and worker logs after the route migration.
 
 ## Edge Cases
 
@@ -74,7 +74,7 @@ Do not demote a console control until its product equivalent is verified.
       other console anchors.
 - [ ] Product user without `/ops` permission tries to open `/ops`.
 - [ ] Operator opens `/ops` on mobile for emergency debugging.
-- [ ] API root differs between local dev, Docker Compose, and Kubernetes.
+- [x] API root differs between local dev, Docker Compose, and Kubernetes.
 - [ ] `/ops` action fails with text error while product routes use normalized
       helper responses.
 - [ ] Console result state becomes stale after product routes mutate the same
@@ -82,12 +82,12 @@ Do not demote a console control until its product equivalent is verified.
 
 ## Acceptance Evidence
 
-- [ ] Desktop and mobile rendered checks for `/`, core product routes, and
+- [x] Desktop and mobile rendered checks for `/`, core product routes, and
       `/ops`.
 - [x] Browser proof that `/` no longer renders the operations console once
       product home exists.
 - [x] Browser proof that `/ops` still renders meaningful debug controls for
       permitted operators.
-- [ ] Docker Compose runtime verification uses product route smoke text.
-- [ ] Kubernetes runtime verification uses product route smoke text.
-- [ ] Recent logs are clean after route migration.
+- [x] Docker Compose runtime verification uses product route smoke text.
+- [x] Kubernetes runtime verification uses product route smoke text.
+- [x] Recent logs are clean after route migration.
