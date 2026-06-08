@@ -2394,15 +2394,20 @@ export default function Home() {
                       }
                     />
                   )}
-                  <input
-                    aria-label="Delegation expiration"
-                    type="datetime-local"
-                    placeholder="Expires at"
-                    value={delegation.expires_at}
-                    onChange={(event) =>
-                      setDelegation((current) => ({ ...current, expires_at: event.target.value }))
-                    }
-                  />
+                  <label className={styles.fieldLabel}>
+                    Expires at
+                    <input
+                      aria-label="Delegation expiration"
+                      type="datetime-local"
+                      value={delegation.expires_at}
+                      onChange={(event) =>
+                        setDelegation((current) => ({
+                          ...current,
+                          expires_at: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
                   <input
                     aria-label="Delegation reason"
                     className={styles.fullWidth}
