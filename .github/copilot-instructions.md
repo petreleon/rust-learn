@@ -21,6 +21,8 @@
 
 - Host-side Rust checks:
 
+  - Start host-run dependencies: `make dev-deps`
+  - Run the backend on the host: `make dev-run`
   - Full host test suite: `make test`
   - Narrow host test suite: `make test CARGO_TEST_ARGS='--lib'`
   - Ad hoc host Cargo command: `./scripts/run-host-tests.sh cargo test --test authentication_flow`
@@ -31,6 +33,7 @@
 
   - Start services: `make dev`
   - Run app locally through Compose: `docker compose up -d app web worker`
+  - Rebuild/restart selected app or web services after code changes: `make dev-refresh`
   - Test through Compose service networking: `make test-compose`
   - Narrow Compose test suite: `make test-compose CARGO_TEST_ARGS='--lib'`
   - Blockchain integration tests (requires `ETH_MNEMONIC` in `.env` and Anvil up):
@@ -51,7 +54,8 @@
 
   - Open a shell in a running service: `make shell SERVICE=app`
   - Open a shell manually: `docker compose exec app bash`
-  - Run the backend directly in the app container: `docker compose exec app cargo run`
+  - The Compose `app` service already starts the API under `PROD_MODE=TRUE`;
+    use `make dev-refresh COMPOSE_REFRESH_SERVICES=app` after API image changes.
   - Database migrations (diesel CLI is preinstalled in the image):
     `docker compose exec app diesel migration run`
   - Export ABI/bytecode example:
