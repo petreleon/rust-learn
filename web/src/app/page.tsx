@@ -477,6 +477,39 @@ export default function Home() {
       amountDecision.status !== "approved" || hasNonNegativeNumber(amountDecision.approved_amount),
     ],
   ]);
+  const organizationReportMissingFields = missingFields([
+    ["Organization id", hasPositiveInteger(organizationId)],
+  ]);
+  const fraudBlockCreateMissingFields = missingFields([
+    [
+      "Teacher user id",
+      fraudBlock.scope_type !== "teacher" || hasPositiveInteger(fraudBlock.teacher_user_id),
+    ],
+    [
+      "Organization id",
+      fraudBlock.scope_type !== "organization" || hasPositiveInteger(fraudBlock.organization_id),
+    ],
+    ["Course id", fraudBlock.scope_type !== "course" || hasPositiveInteger(fraudBlock.course_id)],
+    [
+      "Policy id",
+      fraudBlock.scope_type !== "reward_policy" || hasPositiveInteger(fraudBlock.reward_policy_id),
+    ],
+    ["Reason", hasText(fraudBlock.reason)],
+  ]);
+  const fraudBlockUseMissingFields = missingFields([
+    ["Block id", hasPositiveInteger(fraudBlockId)],
+  ]);
+  const delegationGrantMissingFields = missingFields([
+    ["Grantee user id", hasPositiveInteger(delegation.grantee_user_id)],
+    [
+      "Organization id",
+      delegation.scope_type !== "organization" || hasPositiveInteger(delegation.organization_id),
+    ],
+    ["Course id", delegation.scope_type !== "course" || hasPositiveInteger(delegation.course_id)],
+  ]);
+  const delegationRevokeMissingFields = missingFields([
+    ["Delegation id", hasPositiveInteger(delegationId)],
+  ]);
 
   function togglePermission(permission: string) {
     setSelectedPermissions((current) => {
@@ -1410,6 +1443,12 @@ export default function Home() {
                 detail="Enable organization report or export permissions to use reporting actions."
               />
             )}
+            {hasSessionToken && canViewOrgReports && (
+              <RequirementNotice
+                action="Load organization report"
+                fields={organizationReportMissingFields}
+              />
+            )}
             <div className={styles.actionStrip}>
               <input
                 aria-label="Report organization id"
@@ -1499,133 +1538,155 @@ export default function Home() {
               />
             )}
             {canManageFraud && (
-              <div className={styles.formGrid}>
-                <label className={styles.fieldLabel}>
-                  Scope
-                  <select
-                    value={fraudBlock.scope_type}
+              <>
+                {hasSessionToken && (
+                  <RequirementNotice
+                    action="Create block"
+                    fields={fraudBlockCreateMissingFields}
+                  />
+                )}
+                <div className={styles.formGrid}>
+                  <label className={styles.fieldLabel}>
+                    Scope
+                    <select
+                      value={fraudBlock.scope_type}
+                      onChange={(event) =>
+                        setFraudBlock((current) => ({ ...current, scope_type: event.target.value }))
+                      }
+                    >
+                      <option value="teacher">{optionLabel("teacher")}</option>
+                      <option value="organization">{optionLabel("organization")}</option>
+                      <option value="course">{optionLabel("course")}</option>
+                      <option value="reward_policy">{optionLabel("reward_policy")}</option>
+                    </select>
+                  </label>
+                  <input
+                    aria-label="Fraud block teacher user id"
+                    {...positiveIntegerInputProps}
+                    placeholder="Teacher user id"
+                    value={fraudBlock.teacher_user_id}
                     onChange={(event) =>
-                      setFraudBlock((current) => ({ ...current, scope_type: event.target.value }))
-                    }
-                  >
-                    <option value="teacher">{optionLabel("teacher")}</option>
-                    <option value="organization">{optionLabel("organization")}</option>
-                    <option value="course">{optionLabel("course")}</option>
-                    <option value="reward_policy">{optionLabel("reward_policy")}</option>
-                  </select>
-                </label>
-                <input
-                  aria-label="Fraud block teacher user id"
-                  {...positiveIntegerInputProps}
-                  placeholder="Teacher user id"
-                  value={fraudBlock.teacher_user_id}
-                  onChange={(event) =>
-                    setFraudBlock((current) => ({ ...current, teacher_user_id: event.target.value }))
-                  }
-                />
-                <input
-                  aria-label="Fraud block organization id"
-                  {...positiveIntegerInputProps}
-                  placeholder="Organization id"
-                  value={fraudBlock.organization_id}
-                  onChange={(event) =>
-                    setFraudBlock((current) => ({ ...current, organization_id: event.target.value }))
-                  }
-                />
-                <input
-                  aria-label="Fraud block course id"
-                  {...positiveIntegerInputProps}
-                  placeholder="Course id"
-                  value={fraudBlock.course_id}
-                  onChange={(event) =>
-                    setFraudBlock((current) => ({ ...current, course_id: event.target.value }))
-                  }
-                />
-                <input
-                  aria-label="Fraud block policy id"
-                  {...positiveIntegerInputProps}
-                  placeholder="Policy id"
-                  value={fraudBlock.reward_policy_id}
-                  onChange={(event) =>
-                    setFraudBlock((current) => ({
-                      ...current,
-                      reward_policy_id: event.target.value,
-                    }))
-                  }
-                />
-                <input
-                  aria-label="Fraud block evidence reference"
-                  placeholder="Evidence reference"
-                  value={fraudBlock.evidence_reference}
-                  onChange={(event) =>
-                    setFraudBlock((current) => ({
-                      ...current,
-                      evidence_reference: event.target.value,
-                    }))
-                  }
-                />
-                <label className={`${styles.fieldLabel} ${styles.fullWidth}`}>
-                  Reason
-                  <textarea
-                    rows={2}
-                    value={fraudBlock.reason}
-                    onChange={(event) =>
-                      setFraudBlock((current) => ({ ...current, reason: event.target.value }))
+                      setFraudBlock((current) => ({
+                        ...current,
+                        teacher_user_id: event.target.value,
+                      }))
                     }
                   />
-                </label>
-                <button
-                  type="button"
-                  className={styles.primaryButton}
-                  onClick={createFraudBlock}
-                  {...actionState(canCreateFraudBlockForm)}
-                >
-                  <Ban size={17} aria-hidden />
-                  <span>Create block</span>
-                </button>
-              </div>
+                  <input
+                    aria-label="Fraud block organization id"
+                    {...positiveIntegerInputProps}
+                    placeholder="Organization id"
+                    value={fraudBlock.organization_id}
+                    onChange={(event) =>
+                      setFraudBlock((current) => ({
+                        ...current,
+                        organization_id: event.target.value,
+                      }))
+                    }
+                  />
+                  <input
+                    aria-label="Fraud block course id"
+                    {...positiveIntegerInputProps}
+                    placeholder="Course id"
+                    value={fraudBlock.course_id}
+                    onChange={(event) =>
+                      setFraudBlock((current) => ({ ...current, course_id: event.target.value }))
+                    }
+                  />
+                  <input
+                    aria-label="Fraud block policy id"
+                    {...positiveIntegerInputProps}
+                    placeholder="Policy id"
+                    value={fraudBlock.reward_policy_id}
+                    onChange={(event) =>
+                      setFraudBlock((current) => ({
+                        ...current,
+                        reward_policy_id: event.target.value,
+                      }))
+                    }
+                  />
+                  <input
+                    aria-label="Fraud block evidence reference"
+                    placeholder="Evidence reference"
+                    value={fraudBlock.evidence_reference}
+                    onChange={(event) =>
+                      setFraudBlock((current) => ({
+                        ...current,
+                        evidence_reference: event.target.value,
+                      }))
+                    }
+                  />
+                  <label className={`${styles.fieldLabel} ${styles.fullWidth}`}>
+                    Reason
+                    <textarea
+                      rows={2}
+                      value={fraudBlock.reason}
+                      onChange={(event) =>
+                        setFraudBlock((current) => ({ ...current, reason: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={createFraudBlock}
+                    {...actionState(canCreateFraudBlockForm)}
+                  >
+                    <Ban size={17} aria-hidden />
+                    <span>Create block</span>
+                  </button>
+                </div>
+              </>
             )}
             {canViewFraud && (
-              <div className={styles.actionStrip}>
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  onClick={listFraudBlocks}
-                  {...actionState()}
-                >
-                  <ClipboardList size={17} aria-hidden />
-                  <span>Load active</span>
-                </button>
-                <input
-                  aria-label="Fraud block id"
-                  {...positiveIntegerInputProps}
-                  placeholder="Block id"
-                  value={fraudBlockId}
-                  onChange={(event) => setFraudBlockId(event.target.value)}
+              <>
+                {hasSessionToken && (
+                <RequirementNotice
+                  action="Audit or revoke block"
+                  fields={fraudBlockUseMissingFields}
                 />
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  onClick={loadFraudAudit}
-                  {...actionState(canUseFraudBlockForm)}
-                >
-                  <History size={17} aria-hidden />
-                  <span>Audit</span>
-                </button>
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  onClick={revokeFraudBlock}
-                  {...actionState(
-                    canUseFraudBlockForm,
-                    canManageFraud,
-                    "Manage fraud blocks permission required"
-                  )}
-                >
-                  <CheckCircle2 size={17} aria-hidden />
-                  <span>Revoke</span>
-                </button>
-              </div>
+              )}
+                <div className={styles.actionStrip}>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={listFraudBlocks}
+                    {...actionState()}
+                  >
+                    <ClipboardList size={17} aria-hidden />
+                    <span>Load active</span>
+                  </button>
+                  <input
+                    aria-label="Fraud block id"
+                    {...positiveIntegerInputProps}
+                    placeholder="Block id"
+                    value={fraudBlockId}
+                    onChange={(event) => setFraudBlockId(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={loadFraudAudit}
+                    {...actionState(canUseFraudBlockForm)}
+                  >
+                    <History size={17} aria-hidden />
+                    <span>Audit</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={revokeFraudBlock}
+                    {...actionState(
+                      canUseFraudBlockForm,
+                      canManageFraud,
+                      "Manage fraud blocks permission required"
+                    )}
+                  >
+                    <CheckCircle2 size={17} aria-hidden />
+                    <span>Revoke</span>
+                  </button>
+                </div>
+              </>
             )}
           </section>
 
@@ -1641,6 +1702,12 @@ export default function Home() {
               <PermissionNotice
                 title="Delegation permission disabled"
                 detail="Enable delegated reward approval permission to grant or revoke delegations."
+              />
+            )}
+            {hasSessionToken && canDelegate && (
+              <RequirementNotice
+                action="Grant delegation"
+                fields={delegationGrantMissingFields}
               />
             )}
             <fieldset className={styles.formGrid} disabled={!canDelegate}>
@@ -1731,6 +1798,12 @@ export default function Home() {
                 <span>Load</span>
               </button>
             </fieldset>
+            {hasSessionToken && canDelegate && (
+              <RequirementNotice
+                action="Revoke delegation"
+                fields={delegationRevokeMissingFields}
+              />
+            )}
             <div className={styles.actionStrip}>
               <input
                 aria-label="Delegation id"
