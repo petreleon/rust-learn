@@ -477,6 +477,21 @@ Run all Rust tests on the host:
 make test
 ```
 
+To pass a narrower host Cargo test filter through the Make target:
+
+```bash
+make test CARGO_TEST_ARGS='--lib'
+make test CARGO_TEST_ARGS='--test authentication_flow'
+```
+
+For ad hoc host Cargo commands, use the host wrapper so Compose-only service
+names, native library paths such as Homebrew `libpq`, and `target/host-tests`
+are configured consistently:
+
+```bash
+./scripts/run-host-tests.sh cargo test --test authentication_flow
+```
+
 Docker Compose equivalent:
 
 ```bash
@@ -525,7 +540,7 @@ Run blockchain integration tests:
 
 ```bash
 make test-integration
-cargo test --test blockchain_integration_tests -- --ignored
+./scripts/run-host-tests.sh cargo test --test blockchain_integration_tests -- --ignored
 ```
 
 Check formatting:
@@ -594,15 +609,15 @@ Test dependency notes:
 
 | Check | External requirements |
 | --- | --- |
-| `make clippy` | Local Rust toolchain plus native libraries such as `libpq`; runs Clippy across all targets and the app, worker, and tool feature flags with warnings denied. |
-| `make test` | A valid `.env`; many integration tests open `DATABASE_URL`, so start PostgreSQL first with `make dev-deps` when running the full suite. The host wrapper maps Compose-only service names to localhost ports and uses `target/host-tests` so Docker and host artifacts do not collide. Host runs also need local native libraries such as `libpq`. |
+| `make clippy` | Local Rust toolchain plus a valid host Cargo environment; runs Clippy through the host wrapper across all targets and the app, worker, and tool feature flags with warnings denied. |
+| `make test` | A valid `.env`; many integration tests open `DATABASE_URL`, so start PostgreSQL first with `make dev-deps` when running the full suite. The host wrapper maps Compose-only service names to localhost ports, adds local native library paths such as Homebrew `libpq`, and uses `target/host-tests` so Docker and host artifacts do not collide. |
 | `make test-compose` | Docker plus a valid `.env`; starts PostgreSQL, RustFS, and Anvil, then runs Cargo in the `test-runner` profile so host native libraries are not required. |
 | `make web-lint-compose` | Docker; runs ESLint in a one-shot Compose web container after `npm ci`, so stale anonymous `node_modules` volumes cannot hide missing dependencies. |
 | `make web-build-compose` | Docker; builds the `web` image through the production Dockerfile, which is the supported Compose production-build check for the frontend. |
 | `make runtime-log-scan` | Running Docker Compose stack and Kubernetes `rust-learn` namespace; scans recent app, worker, and web logs for warning/error patterns, explicit HTTP 500 statuses, `status=500` fields, and standalone `500` status tokens without matching routine counters such as `failed=0`, config values such as `batch_blocks=500`, or timings such as `500ms`. Override the window with `LOG_SCAN_SINCE=10m`. Fails if a required log source is unreachable. |
 | `cargo test --test s3` | RustFS/S3-compatible storage reachable through the `S3_*` settings. With Compose, run from the container network or set `S3_INTERNAL_DOMAIN`/`S3_EXTERNAL_DOMAIN` appropriately for the host. |
 | `make test-integration` | Docker plus a valid `.env`; starts Anvil, then runs ignored blockchain tests in the `test-runner` profile. |
-| `cargo test --test blockchain_integration_tests -- --ignored` | Anvil or another Ethereum JSON-RPC endpoint plus `ETH_MNEMONIC` and provider settings in `.env`; host runs also need local native libraries such as `libpq`. |
+| `./scripts/run-host-tests.sh cargo test --test blockchain_integration_tests -- --ignored` | Anvil or another Ethereum JSON-RPC endpoint plus `ETH_MNEMONIC` and provider settings in `.env`; the host wrapper supplies Compose-to-localhost rewrites, native library paths, and `target/host-tests`. |
 | `make runtime-verify` | Running Docker Compose stack and Kubernetes `rust-learn` namespace; fails if Compose endpoints, the worker heartbeat, K8s deployments/pods, or in-cluster web/API readiness are unhealthy. |
 | Worker/media-processing checks | ffmpeg on `PATH`, PostgreSQL, and RustFS/S3. Keep `WORKER_CONCURRENCY=1` on small Docker VMs. |
 

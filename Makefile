@@ -20,6 +20,7 @@ COMPOSE_REFRESH_SERVICES ?= app web
 KUBECTL ?= $(shell command -v kubectl 2>/dev/null || printf /opt/homebrew/bin/kubectl)
 MINIKUBE ?= $(shell command -v minikube 2>/dev/null || printf /opt/homebrew/bin/minikube)
 CURL ?= $(shell command -v curl 2>/dev/null || printf curl)
+HOST_CARGO ?= ./scripts/run-host-tests.sh
 LOG_SCAN_SINCE ?= 30m
 LOG_SCAN_PATTERN := level=(ERROR|WARN)|panic|traceback|unhandled|HTTP[[:space:]]+500|status=500|(^|[^[:alnum:]_=])500($|[^[:alnum:]_])
 
@@ -194,7 +195,7 @@ worker-build: ## Build only the worker Docker image
 
 # Tests
 test: ## Run tests
-	./scripts/run-host-tests.sh
+	$(HOST_CARGO) cargo test $(CARGO_TEST_ARGS)
 
 test-compose: ## Run tests through Docker Compose service networking
 	$(DOCKER_COMPOSE) up -d db rustfs anvil
@@ -208,7 +209,7 @@ fmt: ## Check Rust formatting
 	cargo fmt --all --check
 
 clippy: ## Run Rust Clippy on all targets and features
-	cargo clippy --all-targets --features app-bin,worker-bin,tool-bin -- -D warnings
+	$(HOST_CARGO) cargo clippy --all-targets --features app-bin,worker-bin,tool-bin -- -D warnings
 
 k8s-validate: ## Render Kubernetes manifests locally
 	$(KUBECTL) kustomize $(K8S_BASE) >/dev/null

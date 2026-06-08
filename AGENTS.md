@@ -47,11 +47,11 @@ make dev
 make dev-worker
 ```
 
-Use `make test` for host Rust tests; it rewrites Compose-only service hosts to localhost and keeps host artifacts in `target/host-tests`. For containerized development, use Docker Compose commands from the README or Makefile. The worker binary can require a large Docker VM memory allocation during release builds.
+Use `make test` for host Rust tests; it rewrites Compose-only service hosts to localhost, adds local native library paths such as Homebrew `libpq`, and keeps host artifacts in `target/host-tests`. For direct Cargo-style host test filters, use `./scripts/run-host-tests.sh cargo test ...` instead of bare `cargo test`. For containerized development, use Docker Compose commands from the README or Makefile. The worker binary can require a large Docker VM memory allocation during release builds.
 
 ## Pull request checklist
 
 - [ ] `cargo fmt --all --check` passes.
-- [ ] Relevant `cargo test` or targeted integration tests pass, or limitations are documented.
+- [ ] Relevant `make test`, `make test-compose`, or host-wrapper Cargo tests pass, or limitations are documented.
 - [ ] Documentation is updated for behavior, environment, deployment, or permission changes.
 - [ ] No secrets, generated build outputs, or dependency folders are committed.
