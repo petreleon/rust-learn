@@ -96,6 +96,16 @@ const rewardStatuses = [
 ];
 
 const teacherApplicationStatuses = ["submitted", "needs_changes", "approved", "rejected"];
+const DEFAULT_TEACHER_APPLICATION_SCOPE = "platform";
+const DEFAULT_TEACHER_DECISION_STATUS = "approved";
+const DEFAULT_REWARD_STATUS = "pending_teacher_approval";
+const DEFAULT_TEACHER_REWARD_DECISION_STATUS = "approved";
+const DEFAULT_AMOUNT_DECISION_STATUS = "approved";
+const DEFAULT_AMOUNT_VALUE = "10";
+const DEFAULT_FRAUD_BLOCK_SCOPE = "teacher";
+const DEFAULT_DELEGATED_PERMISSION = "APPROVE_REWARD_AMOUNT";
+const DEFAULT_DELEGATION_SCOPE = "platform";
+
 const delegatedPermissionOptions: Array<{ key: string; scopes: string[] }> = [
   { key: "APPROVE_REWARD_AMOUNT", scopes: ["platform"] },
   { key: "EXECUTE_REWARD_PAYOUT", scopes: ["platform"] },
@@ -405,7 +415,7 @@ export default function Home() {
   });
 
   const [teacherForm, setTeacherForm] = useState({
-    requested_scope: "platform",
+    requested_scope: DEFAULT_TEACHER_APPLICATION_SCOPE,
     requested_organization_id: "",
     requested_course_id: "",
     experience_summary: "",
@@ -415,21 +425,21 @@ export default function Home() {
   const [teacherStatus, setTeacherStatus] = useState("submitted");
   const [teacherDecision, setTeacherDecision] = useState({
     application_id: "",
-    status: "approved",
+    status: DEFAULT_TEACHER_DECISION_STATUS,
     decision_reason: "",
   });
 
   const [rewardCourseId, setRewardCourseId] = useState("");
   const [rewardCandidateId, setRewardCandidateId] = useState("");
   const [rewardStudentId, setRewardStudentId] = useState("");
-  const [rewardStatus, setRewardStatus] = useState("pending_teacher_approval");
+  const [rewardStatus, setRewardStatus] = useState(DEFAULT_REWARD_STATUS);
   const [teacherRewardDecision, setTeacherRewardDecision] = useState({
-    status: "approved",
+    status: DEFAULT_TEACHER_REWARD_DECISION_STATUS,
     decision_reason: "",
   });
   const [amountDecision, setAmountDecision] = useState({
-    status: "approved",
-    approved_amount: "10",
+    status: DEFAULT_AMOUNT_DECISION_STATUS,
+    approved_amount: DEFAULT_AMOUNT_VALUE,
     decision_reason: "",
   });
 
@@ -437,7 +447,7 @@ export default function Home() {
   const [organizationId, setOrganizationId] = useState("");
 
   const [fraudBlock, setFraudBlock] = useState({
-    scope_type: "teacher",
+    scope_type: DEFAULT_FRAUD_BLOCK_SCOPE,
     teacher_user_id: "",
     organization_id: "",
     course_id: "",
@@ -449,8 +459,8 @@ export default function Home() {
 
   const [delegation, setDelegation] = useState({
     grantee_user_id: "",
-    permission: "APPROVE_REWARD_AMOUNT",
-    scope_type: "platform",
+    permission: DEFAULT_DELEGATED_PERMISSION,
+    scope_type: DEFAULT_DELEGATION_SCOPE,
     organization_id: "",
     course_id: "",
     reason: "",
@@ -735,7 +745,7 @@ export default function Home() {
       (delegation.scope_type === "course" && hasPositiveInteger(delegation.course_id)));
   const canRevokeDelegationForm = hasPositiveInteger(delegationId);
   const hasTeacherApplicationDraft =
-    teacherForm.requested_scope !== "platform" ||
+    teacherForm.requested_scope !== DEFAULT_TEACHER_APPLICATION_SCOPE ||
     hasAnyText([
       teacherForm.requested_organization_id,
       teacherForm.requested_course_id,
@@ -743,24 +753,23 @@ export default function Home() {
       teacherForm.organization_sponsor_id,
       teacherForm.portfolio_links,
     ]);
-  const hasTeacherDecisionDraft = hasAnyText([
-    teacherDecision.application_id,
-    teacherDecision.decision_reason,
-  ]);
+  const hasTeacherDecisionDraft =
+    hasAnyText([teacherDecision.application_id, teacherDecision.decision_reason]) ||
+    teacherDecision.status !== DEFAULT_TEACHER_DECISION_STATUS;
   const hasSubmitRewardCandidateDraft = hasAnyText([rewardCourseId, rewardStudentId]);
-  const hasLoadRewardCandidatesDraft = hasText(rewardCourseId);
-  const hasTeacherRewardDecisionDraft = hasAnyText([
-    rewardCourseId,
-    rewardCandidateId,
-    teacherRewardDecision.decision_reason,
-  ]);
+  const hasLoadRewardCandidatesDraft =
+    hasText(rewardCourseId) || rewardStatus !== DEFAULT_REWARD_STATUS;
+  const hasTeacherRewardDecisionDraft =
+    hasAnyText([rewardCourseId, rewardCandidateId, teacherRewardDecision.decision_reason]) ||
+    teacherRewardDecision.status !== DEFAULT_TEACHER_REWARD_DECISION_STATUS;
   const hasAmountDecisionDraft =
     hasText(rewardCandidateId) ||
-    amountDecision.approved_amount !== "10" ||
-    hasText(amountDecision.decision_reason);
+    amountDecision.approved_amount !== DEFAULT_AMOUNT_VALUE ||
+    hasText(amountDecision.decision_reason) ||
+    amountDecision.status !== DEFAULT_AMOUNT_DECISION_STATUS;
   const hasOrganizationReportDraft = hasText(organizationId);
   const hasFraudBlockCreateDraft =
-    activeFraudBlockScope !== "teacher" ||
+    activeFraudBlockScope !== DEFAULT_FRAUD_BLOCK_SCOPE ||
     hasAnyText([
       fraudBlock.teacher_user_id,
       fraudBlock.organization_id,
@@ -771,7 +780,8 @@ export default function Home() {
     ]);
   const hasFraudBlockUseDraft = hasText(fraudBlockId);
   const hasDelegationGrantDraft =
-    delegation.scope_type !== "platform" ||
+    delegation.scope_type !== DEFAULT_DELEGATION_SCOPE ||
+    activeDelegatedPermission !== DEFAULT_DELEGATED_PERMISSION ||
     hasAnyText([
       delegation.grantee_user_id,
       delegation.organization_id,
