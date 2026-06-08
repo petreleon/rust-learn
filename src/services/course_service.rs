@@ -13,13 +13,14 @@ use crate::repositories::course_repository::user_permission_course_request;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
 use diesel::prelude::*;
-use diesel::PgTextExpressionMethods;
+use diesel::{EscapeExpressionMethods, PgTextExpressionMethods};
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use serde::Deserialize;
 use serde::Serialize;
 
 const DEFAULT_COURSE_LIMIT: i64 = 25;
 const MAX_COURSE_LIMIT: i64 = 100;
+const LIKE_ESCAPE_CHAR: char = '\\';
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CourseDiscoveryQuery {
@@ -121,21 +122,24 @@ pub async fn discover_courses(
     let mut list_query = courses::table.into_boxed();
 
     if let Some(search) = discovery.search.as_deref() {
-        let pattern = format!("%{}%", search);
-        count_query = count_query.filter(courses::title.ilike(pattern.clone()));
-        list_query = list_query.filter(courses::title.ilike(pattern));
+        let pattern = course_title_search_pattern(search);
+        count_query = count_query.filter(
+            courses::title
+                .ilike(pattern.clone())
+                .escape(LIKE_ESCAPE_CHAR),
+        );
+        list_query = list_query.filter(courses::title.ilike(pattern).escape(LIKE_ESCAPE_CHAR));
     }
 
     if let Some(organization_id) = discovery.organization_id {
-        let course_ids = courses_organizations::table
-            .filter(courses_organizations::organization_id.eq(organization_id))
-            .select(courses_organizations::course_id);
-        count_query = count_query.filter(courses::id.eq_any(course_ids));
+        let course_ids_for_organization = || {
+            courses_organizations::table
+                .filter(courses_organizations::organization_id.eq(organization_id))
+                .select(courses_organizations::course_id)
+        };
 
-        let course_ids = courses_organizations::table
-            .filter(courses_organizations::organization_id.eq(organization_id))
-            .select(courses_organizations::course_id);
-        list_query = list_query.filter(courses::id.eq_any(course_ids));
+        count_query = count_query.filter(courses::id.eq_any(course_ids_for_organization()));
+        list_query = list_query.filter(courses::id.eq_any(course_ids_for_organization()));
     }
 
     let total = count_query.count().get_result(conn).await?;
@@ -154,6 +158,21 @@ pub async fn discover_courses(
         search: discovery.search,
         organization_id: discovery.organization_id,
     })
+}
+
+fn course_title_search_pattern(search: &str) -> String {
+    let mut escaped = String::with_capacity(search.len());
+    for ch in search.chars() {
+        match ch {
+            LIKE_ESCAPE_CHAR | '%' | '_' => {
+                escaped.push(LIKE_ESCAPE_CHAR);
+                escaped.push(ch);
+            }
+            _ => escaped.push(ch),
+        }
+    }
+
+    format!("%{}%", escaped)
 }
 
 pub async fn create_course_with_invites(
