@@ -418,6 +418,41 @@
   overflow-wrap: anywhere;
 }
 
+.requirementNotice {
+  min-height: 40px;
+  margin-top: 10px;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  background: #f0f9ff;
+  color: #0c4a6e;
+  padding: 8px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.requirementNotice svg {
+  margin-top: 1px;
+  color: #0284c7;
+  flex: 0 0 auto;
+}
+
+.requirementNotice div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.requirementNotice strong {
+  font-size: 0.84rem;
+}
+
+.requirementNotice span {
+  font-size: 0.81rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

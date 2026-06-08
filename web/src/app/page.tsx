@@ -219,6 +219,18 @@ function flowStatus(hasAccess: boolean, hasSessionToken: boolean) {
   return hasSessionToken ? "Open" : "Needs JWT";
 }
 
+function missingFields(fields: Array<[label: string, complete: boolean]>) {
+  return fields.filter(([, complete]) => !complete).map(([label]) => label);
+}
+
+function formatFieldList(fields: string[]) {
+  if (fields.length === 1) {
+    return `${fields[0]} is required.`;
+  }
+
+  return `${fields.slice(0, -1).join(", ")} and ${fields[fields.length - 1]} are required.`;
+}
+
 function PermissionNotice({ title, detail }: { title: string; detail: string }) {
   return (
     <div className={styles.panelNotice} role="status">
@@ -226,6 +238,22 @@ function PermissionNotice({ title, detail }: { title: string; detail: string }) 
       <div>
         <strong>{title}</strong>
         <span>{detail}</span>
+      </div>
+    </div>
+  );
+}
+
+function RequirementNotice({ action, fields }: { action: string; fields: string[] }) {
+  if (fields.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={styles.requirementNotice} role="status">
+      <FileCheck size={16} aria-hidden />
+      <div>
+        <strong>{action}</strong>
+        <span>{formatFieldList(fields)}</span>
       </div>
     </div>
   );
@@ -414,6 +442,24 @@ export default function Home() {
         hasPositiveInteger(delegation.organization_id)) ||
       (delegation.scope_type === "course" && hasPositiveInteger(delegation.course_id)));
   const canRevokeDelegationForm = hasPositiveInteger(delegationId);
+  const submitRewardCandidateMissingFields = missingFields([
+    ["Course id", hasPositiveInteger(rewardCourseId)],
+    ["Student user id", hasPositiveInteger(rewardStudentId)],
+  ]);
+  const loadRewardCandidatesMissingFields = missingFields([
+    ["Course id", hasPositiveInteger(rewardCourseId)],
+  ]);
+  const teacherRewardDecisionMissingFields = missingFields([
+    ["Course id", hasPositiveInteger(rewardCourseId)],
+    ["Candidate id", hasPositiveInteger(rewardCandidateId)],
+  ]);
+  const amountDecisionMissingFields = missingFields([
+    ["Candidate id", hasPositiveInteger(rewardCandidateId)],
+    [
+      "Approved amount",
+      amountDecision.status !== "approved" || hasNonNegativeNumber(amountDecision.approved_amount),
+    ],
+  ]);
 
   function togglePermission(permission: string) {
     setSelectedPermissions((current) => {
@@ -1128,118 +1174,150 @@ export default function Home() {
             )}
 
             {canSubmitReward && (
-              <div className={styles.actionStrip}>
-                <input
-                  aria-label="Reward student user id"
-                  {...positiveIntegerInputProps}
-                  placeholder="Student user id"
-                  value={rewardStudentId}
-                  onChange={(event) => setRewardStudentId(event.target.value)}
-                />
-                <button
-                  type="button"
-                  className={styles.primaryButton}
-                  onClick={submitRewardCandidate}
-                  {...actionState(canSubmitRewardCandidateForm)}
-                >
-                  <Send size={17} aria-hidden />
-                  <span>Submit candidate</span>
-                </button>
-              </div>
+              <>
+                {hasSessionToken && (
+                  <RequirementNotice
+                    action="Submit candidate"
+                    fields={submitRewardCandidateMissingFields}
+                  />
+                )}
+                <div className={styles.actionStrip}>
+                  <input
+                    aria-label="Reward student user id"
+                    {...positiveIntegerInputProps}
+                    placeholder="Student user id"
+                    value={rewardStudentId}
+                    onChange={(event) => setRewardStudentId(event.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={submitRewardCandidate}
+                    {...actionState(canSubmitRewardCandidateForm)}
+                  >
+                    <Send size={17} aria-hidden />
+                    <span>Submit candidate</span>
+                  </button>
+                </div>
+              </>
             )}
 
             {canViewCourseRewards && (
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={loadRewardCandidates}
-                {...actionState(canLoadRewardCandidatesForm)}
-              >
-                <ClipboardList size={17} aria-hidden />
-                <span>Load candidates</span>
-              </button>
+              <>
+                {hasSessionToken && (
+                  <RequirementNotice
+                    action="Load candidates"
+                    fields={loadRewardCandidatesMissingFields}
+                  />
+                )}
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={loadRewardCandidates}
+                  {...actionState(canLoadRewardCandidatesForm)}
+                >
+                  <ClipboardList size={17} aria-hidden />
+                  <span>Load candidates</span>
+                </button>
+              </>
             )}
 
             {canTeacherApproveReward && (
-              <div className={styles.actionStrip}>
-                <select
-                  aria-label="Teacher reward decision status"
-                  value={teacherRewardDecision.status}
-                  onChange={(event) =>
-                    setTeacherRewardDecision((current) => ({ ...current, status: event.target.value }))
-                  }
-                >
-                  <option value="approved">{optionLabel("approved")}</option>
-                  <option value="rejected">{optionLabel("rejected")}</option>
-                </select>
-                <input
-                  aria-label="Teacher reward decision reason"
-                  placeholder="Teacher reason"
-                  value={teacherRewardDecision.decision_reason}
-                  onChange={(event) =>
-                    setTeacherRewardDecision((current) => ({
-                      ...current,
-                      decision_reason: event.target.value,
-                    }))
-                  }
-                />
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  onClick={decideStudentReward}
-                  {...actionState(canDecideStudentRewardForm)}
-                >
-                  <CheckCircle2 size={17} aria-hidden />
-                  <span>Teacher decision</span>
-                </button>
-              </div>
+              <>
+                {hasSessionToken && (
+                  <RequirementNotice
+                    action="Teacher decision"
+                    fields={teacherRewardDecisionMissingFields}
+                  />
+                )}
+                <div className={styles.actionStrip}>
+                  <select
+                    aria-label="Teacher reward decision status"
+                    value={teacherRewardDecision.status}
+                    onChange={(event) =>
+                      setTeacherRewardDecision((current) => ({
+                        ...current,
+                        status: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="approved">{optionLabel("approved")}</option>
+                    <option value="rejected">{optionLabel("rejected")}</option>
+                  </select>
+                  <input
+                    aria-label="Teacher reward decision reason"
+                    placeholder="Teacher reason"
+                    value={teacherRewardDecision.decision_reason}
+                    onChange={(event) =>
+                      setTeacherRewardDecision((current) => ({
+                        ...current,
+                        decision_reason: event.target.value,
+                      }))
+                    }
+                  />
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={decideStudentReward}
+                    {...actionState(canDecideStudentRewardForm)}
+                  >
+                    <CheckCircle2 size={17} aria-hidden />
+                    <span>Teacher decision</span>
+                  </button>
+                </div>
+              </>
             )}
 
             {canApproveAmount && (
-              <div className={styles.actionStrip}>
-                <select
-                  aria-label="Reward amount decision status"
-                  value={amountDecision.status}
-                  onChange={(event) =>
-                    setAmountDecision((current) => ({ ...current, status: event.target.value }))
-                  }
-                >
-                  <option value="approved">{optionLabel("approved")}</option>
-                  <option value="rejected">{optionLabel("rejected")}</option>
-                </select>
-                <input
-                  aria-label="Approved reward amount"
-                  {...decimalInputProps}
-                  placeholder="Amount"
-                  value={amountDecision.approved_amount}
-                  onChange={(event) =>
-                    setAmountDecision((current) => ({
-                      ...current,
-                      approved_amount: event.target.value,
-                    }))
-                  }
-                />
-                <input
-                  aria-label="Reward amount decision reason"
-                  placeholder="Amount reason"
-                  value={amountDecision.decision_reason}
-                  onChange={(event) =>
-                    setAmountDecision((current) => ({
-                      ...current,
-                      decision_reason: event.target.value,
-                    }))
-                  }
-                />
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  onClick={decideRewardAmount}
-                  {...actionState(canDecideRewardAmountForm)}
-                >
-                  <WalletCards size={17} aria-hidden />
-                  <span>Set amount</span>
-                </button>
-              </div>
+              <>
+                {hasSessionToken && (
+                  <RequirementNotice action="Set amount" fields={amountDecisionMissingFields} />
+                )}
+                <div className={styles.actionStrip}>
+                  <select
+                    aria-label="Reward amount decision status"
+                    value={amountDecision.status}
+                    onChange={(event) =>
+                      setAmountDecision((current) => ({ ...current, status: event.target.value }))
+                    }
+                  >
+                    <option value="approved">{optionLabel("approved")}</option>
+                    <option value="rejected">{optionLabel("rejected")}</option>
+                  </select>
+                  <input
+                    aria-label="Approved reward amount"
+                    {...decimalInputProps}
+                    placeholder="Amount"
+                    value={amountDecision.approved_amount}
+                    onChange={(event) =>
+                      setAmountDecision((current) => ({
+                        ...current,
+                        approved_amount: event.target.value,
+                      }))
+                    }
+                  />
+                  <input
+                    aria-label="Reward amount decision reason"
+                    placeholder="Amount reason"
+                    value={amountDecision.decision_reason}
+                    onChange={(event) =>
+                      setAmountDecision((current) => ({
+                        ...current,
+                        decision_reason: event.target.value,
+                      }))
+                    }
+                  />
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={decideRewardAmount}
+                    {...actionState(canDecideRewardAmountForm)}
+                  >
+                    <WalletCards size={17} aria-hidden />
+                    <span>Set amount</span>
+                  </button>
+                </div>
+              </>
             )}
           </section>
 
