@@ -1637,51 +1637,59 @@ export default function Home() {
                       ))}
                     </select>
                   </label>
-                  <input
-                    aria-label="Fraud block teacher user id"
-                    {...positiveIntegerInputProps}
-                    placeholder="Teacher user id"
-                    value={fraudBlock.teacher_user_id}
-                    onChange={(event) =>
-                      setFraudBlock((current) => ({
-                        ...current,
-                        teacher_user_id: event.target.value,
-                      }))
-                    }
-                  />
-                  <input
-                    aria-label="Fraud block organization id"
-                    {...positiveIntegerInputProps}
-                    placeholder="Organization id"
-                    value={fraudBlock.organization_id}
-                    onChange={(event) =>
-                      setFraudBlock((current) => ({
-                        ...current,
-                        organization_id: event.target.value,
-                      }))
-                    }
-                  />
-                  <input
-                    aria-label="Fraud block course id"
-                    {...positiveIntegerInputProps}
-                    placeholder="Course id"
-                    value={fraudBlock.course_id}
-                    onChange={(event) =>
-                      setFraudBlock((current) => ({ ...current, course_id: event.target.value }))
-                    }
-                  />
-                  <input
-                    aria-label="Fraud block policy id"
-                    {...positiveIntegerInputProps}
-                    placeholder="Policy id"
-                    value={fraudBlock.reward_policy_id}
-                    onChange={(event) =>
-                      setFraudBlock((current) => ({
-                        ...current,
-                        reward_policy_id: event.target.value,
-                      }))
-                    }
-                  />
+                  {activeFraudBlockScope === "teacher" && (
+                    <input
+                      aria-label="Fraud block teacher user id"
+                      {...positiveIntegerInputProps}
+                      placeholder="Teacher user id"
+                      value={fraudBlock.teacher_user_id}
+                      onChange={(event) =>
+                        setFraudBlock((current) => ({
+                          ...current,
+                          teacher_user_id: event.target.value,
+                        }))
+                      }
+                    />
+                  )}
+                  {activeFraudBlockScope === "organization" && (
+                    <input
+                      aria-label="Fraud block organization id"
+                      {...positiveIntegerInputProps}
+                      placeholder="Organization id"
+                      value={fraudBlock.organization_id}
+                      onChange={(event) =>
+                        setFraudBlock((current) => ({
+                          ...current,
+                          organization_id: event.target.value,
+                        }))
+                      }
+                    />
+                  )}
+                  {activeFraudBlockScope === "course" && (
+                    <input
+                      aria-label="Fraud block course id"
+                      {...positiveIntegerInputProps}
+                      placeholder="Course id"
+                      value={fraudBlock.course_id}
+                      onChange={(event) =>
+                        setFraudBlock((current) => ({ ...current, course_id: event.target.value }))
+                      }
+                    />
+                  )}
+                  {activeFraudBlockScope === "reward_policy" && (
+                    <input
+                      aria-label="Fraud block policy id"
+                      {...positiveIntegerInputProps}
+                      placeholder="Policy id"
+                      value={fraudBlock.reward_policy_id}
+                      onChange={(event) =>
+                        setFraudBlock((current) => ({
+                          ...current,
+                          reward_policy_id: event.target.value,
+                        }))
+                      }
+                    />
+                  )}
                   <input
                     aria-label="Fraud block evidence reference"
                     placeholder="Evidence reference"
@@ -1832,27 +1840,31 @@ export default function Home() {
                     <option value="organization">{optionLabel("organization")}</option>
                     <option value="course">{optionLabel("course")}</option>
                   </select>
-                  <input
-                    aria-label="Delegation organization id"
-                    {...positiveIntegerInputProps}
-                    placeholder="Organization id"
-                    value={delegation.organization_id}
-                    onChange={(event) =>
-                      setDelegation((current) => ({
-                        ...current,
-                        organization_id: event.target.value,
-                      }))
-                    }
-                  />
-                  <input
-                    aria-label="Delegation course id"
-                    {...positiveIntegerInputProps}
-                    placeholder="Course id"
-                    value={delegation.course_id}
-                    onChange={(event) =>
-                      setDelegation((current) => ({ ...current, course_id: event.target.value }))
-                    }
-                  />
+                  {delegation.scope_type === "organization" && (
+                    <input
+                      aria-label="Delegation organization id"
+                      {...positiveIntegerInputProps}
+                      placeholder="Organization id"
+                      value={delegation.organization_id}
+                      onChange={(event) =>
+                        setDelegation((current) => ({
+                          ...current,
+                          organization_id: event.target.value,
+                        }))
+                      }
+                    />
+                  )}
+                  {delegation.scope_type === "course" && (
+                    <input
+                      aria-label="Delegation course id"
+                      {...positiveIntegerInputProps}
+                      placeholder="Course id"
+                      value={delegation.course_id}
+                      onChange={(event) =>
+                        setDelegation((current) => ({ ...current, course_id: event.target.value }))
+                      }
+                    />
+                  )}
                   <input
                     aria-label="Delegation expiration"
                     placeholder="Expires at"
