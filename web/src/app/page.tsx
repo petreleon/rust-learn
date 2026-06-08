@@ -354,7 +354,7 @@ function flowStatus(hasAccess: boolean, hasSessionToken: boolean, hasServerDenia
   if (!hasSessionToken) {
     return "Needs JWT";
   }
-  return hasServerDenial ? "Limited" : "Open";
+  return hasServerDenial ? "Limited" : "Ready";
 }
 
 function missingFields(fields: Array<[label: string, complete: boolean]>) {
