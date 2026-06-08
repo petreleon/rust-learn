@@ -17,15 +17,15 @@ navigation.
 
 ## Backend Contracts
 
-- [ ] Add or confirm `GET /api/me` or equivalent current-session endpoint.
-- [ ] Include user id, name, email, email verification status, platform
+- [x] Add or confirm `GET /api/me` or equivalent current-session endpoint.
+- [x] Include user id, name, email, email verification status, platform
       permissions, organization memberships, course enrollments, delegated
       permissions, and useful display labels.
-- [ ] Include enough scope metadata for workspace switching without raw id
+- [x] Include enough scope metadata for workspace switching without raw id
       entry.
-- [ ] Define unauthorized, expired-token, unverified-email, and missing-user
+- [x] Define unauthorized, expired-token, unverified-email, and missing-user
       response shapes.
-- [ ] Decide session storage strategy and document security tradeoffs in
+- [x] Decide session storage strategy and document security tradeoffs in
       `web/README.md`.
 
 ## Routes
@@ -95,4 +95,3 @@ navigation.
       API route, and scans recent app/web logs.
 - [ ] Kubernetes smoke path loads the product route and verifies no framework
       overlay, no console errors, and correct API root behavior.
-

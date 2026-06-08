@@ -1,0 +1,424 @@
+.page {
+  min-height: 100vh;
+  padding: 24px;
+  color: #172033;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 247, 251, 0.96)),
+    #f5f7fb;
+}
+
+.topbar,
+.hero,
+.grid,
+.workspaces {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+}
+
+.brand,
+.topActions,
+.panelHeader,
+.sectionTitle,
+.buttonRow,
+.badgeRow,
+.statusStrip,
+.statusPill,
+.errorBox,
+.delegationItem {
+  display: flex;
+  align-items: center;
+}
+
+.brand {
+  gap: 10px;
+}
+
+.brandMark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  color: #ffffff;
+  background: #1f6f8b;
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.brand small {
+  display: block;
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.topActions {
+  gap: 8px;
+}
+
+.navLink,
+.iconButton,
+.primaryButton,
+.secondaryButton {
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #172033;
+}
+
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  font-weight: 700;
+}
+
+.iconButton {
+  display: grid;
+  width: 40px;
+  place-items: center;
+  cursor: pointer;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: end;
+  padding: 46px 0 24px;
+}
+
+.heroText {
+  min-width: 0;
+}
+
+.eyebrow {
+  color: #0f766e;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  margin-top: 6px;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1;
+}
+
+.hero p {
+  max-width: 650px;
+  margin-top: 12px;
+  color: #475569;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.statusStrip {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.05fr);
+  gap: 16px;
+}
+
+.panel,
+.scopeCard,
+.delegationItem {
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
+}
+
+.panel {
+  padding: 18px;
+}
+
+.panelHeader,
+.sectionTitle {
+  gap: 8px;
+  color: #233044;
+}
+
+.panelHeader h2,
+.sectionTitle h2 {
+  font-size: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.field span,
+.summaryTitle {
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.field textarea {
+  width: 100%;
+  min-height: 132px;
+  resize: vertical;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 12px;
+  color: #172033;
+  background: #f8fafc;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.buttonRow {
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.primaryButton {
+  border-color: #1f6f8b;
+  color: #ffffff;
+  background: #1f6f8b;
+}
+
+.primaryButton:disabled {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+.secondaryButton {
+  background: #f8fafc;
+}
+
+.errorBox {
+  gap: 10px;
+  margin-top: 14px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #991b1b;
+  background: #fff1f2;
+}
+
+.errorBox span {
+  display: grid;
+  gap: 2px;
+}
+
+.profileBlock {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.profileName {
+  font-size: 1.25rem;
+  font-weight: 850;
+}
+
+.muted {
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.badgeRow {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.statusPill,
+.roleBadge,
+.permissionList span {
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.statusPill {
+  gap: 6px;
+}
+
+.good {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.neutral {
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.warn {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.workspaces {
+  margin-top: 24px;
+}
+
+.sectionTitle {
+  margin-bottom: 12px;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.scopeCard {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.scopeCard h3 {
+  font-size: 1.08rem;
+  line-height: 1.25;
+}
+
+.scopeSummary {
+  display: grid;
+  gap: 8px;
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  color: #0f766e;
+  background: #ccfbf1;
+}
+
+.permissionList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.permissionList span {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  color: #3f3f46;
+  background: #f4f4f5;
+  overflow-wrap: anywhere;
+}
+
+.delegationList {
+  display: grid;
+  gap: 10px;
+}
+
+.delegationItem {
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.emptyState {
+  display: grid;
+  gap: 4px;
+  min-height: 92px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 18px;
+  place-content: center start;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.emptyState p {
+  font-weight: 850;
+}
+
+.emptyState span {
+  color: #64748b;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 780px) {
+  .page {
+    padding: 16px;
+  }
+
+  .hero,
+  .grid,
+  .cardGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    gap: 14px;
+    padding-top: 28px;
+  }
+
+  .statusStrip {
+    justify-content: flex-start;
+  }
+
+  .delegationItem {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 460px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topActions,
+  .buttonRow,
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+  }
+
+  .navLink,
+  .iconButton {
+    justify-content: center;
+  }
+
+  .iconButton {
+    width: 48px;
+  }
+}

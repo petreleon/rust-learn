@@ -3,7 +3,7 @@
 Resolve or explicitly document these backend/frontend contracts before product
 screens pretend to be complete.
 
-- [ ] Define or add a current-user/session endpoint that returns profile,
+- [x] Define or add a current-user/session endpoint that returns profile,
       email verification status, platform permissions, organization
       memberships, course enrollments, and delegated permissions for route
       guards.
@@ -28,4 +28,3 @@ screens pretend to be complete.
 - [ ] Define wallet operation response states for MetaMask-required,
       platform-gas, tax, insufficient funds, pending deposit, confirmed
       deposit, retirement, and reconciliation cases.
-
