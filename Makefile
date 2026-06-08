@@ -21,7 +21,7 @@ KUBECTL ?= $(shell command -v kubectl 2>/dev/null || printf /opt/homebrew/bin/ku
 MINIKUBE ?= $(shell command -v minikube 2>/dev/null || printf /opt/homebrew/bin/minikube)
 CURL ?= $(shell command -v curl 2>/dev/null || printf curl)
 LOG_SCAN_SINCE ?= 30m
-LOG_SCAN_PATTERN := level=(ERROR|WARN)|panic|traceback|unhandled|HTTP[[:space:]]+500|[^0-9]500[^0-9]
+LOG_SCAN_PATTERN := level=(ERROR|WARN)|panic|traceback|unhandled|HTTP[[:space:]]+500|status=500|(^|[^[:alnum:]_=])500($|[^[:alnum:]_])
 
 # Colors for output
 GREEN := \033[0;32m
