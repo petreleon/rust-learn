@@ -40,6 +40,7 @@ RustLearn is an incentivized learning platform. The backend is a Rust/Actix Web 
 
 ```bash
 cargo fmt --all --check
+make preflight
 make test
 make test-compose
 make test-integration
@@ -51,7 +52,7 @@ Use `make test` for host Rust tests; it rewrites Compose-only service hosts to l
 
 ## Pull request checklist
 
-- [ ] `cargo fmt --all --check` passes.
+- [ ] `make preflight` passes, or limitations are documented.
 - [ ] Relevant `make test`, `make test-compose`, or host-wrapper Cargo tests pass, or limitations are documented.
 - [ ] Documentation is updated for behavior, environment, deployment, or permission changes.
 - [ ] No secrets, generated build outputs, or dependency folders are committed.
