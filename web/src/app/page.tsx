@@ -442,6 +442,23 @@ export default function Home() {
         hasPositiveInteger(delegation.organization_id)) ||
       (delegation.scope_type === "course" && hasPositiveInteger(delegation.course_id)));
   const canRevokeDelegationForm = hasPositiveInteger(delegationId);
+  const teacherApplicationMissingFields = missingFields([
+    ["Experience summary", hasText(teacherForm.experience_summary)],
+    [
+      "Organization id or sponsor org id",
+      teacherForm.requested_scope !== "organization" ||
+        hasPositiveInteger(teacherForm.requested_organization_id) ||
+        hasPositiveInteger(teacherForm.organization_sponsor_id),
+    ],
+    [
+      "Course id",
+      teacherForm.requested_scope !== "course" ||
+        hasPositiveInteger(teacherForm.requested_course_id),
+    ],
+  ]);
+  const teacherDecisionMissingFields = missingFields([
+    ["Application id", hasPositiveInteger(teacherDecision.application_id)],
+  ]);
   const submitRewardCandidateMissingFields = missingFields([
     ["Course id", hasPositiveInteger(rewardCourseId)],
     ["Student user id", hasPositiveInteger(rewardStudentId)],
@@ -963,99 +980,110 @@ export default function Home() {
             )}
 
             {canTeacherApply && (
-              <div className={styles.formGrid}>
-                <label className={styles.fieldLabel}>
-                  Scope
-                  <select
-                    value={teacherForm.requested_scope}
-                    onChange={(event) =>
-                      setTeacherForm((current) => ({ ...current, requested_scope: event.target.value }))
-                    }
+              <>
+                {hasSessionToken && (
+                  <RequirementNotice
+                    action="Submit application"
+                    fields={teacherApplicationMissingFields}
+                  />
+                )}
+                <div className={styles.formGrid}>
+                  <label className={styles.fieldLabel}>
+                    Scope
+                    <select
+                      value={teacherForm.requested_scope}
+                      onChange={(event) =>
+                        setTeacherForm((current) => ({
+                          ...current,
+                          requested_scope: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="platform">{optionLabel("platform")}</option>
+                      <option value="organization">{optionLabel("organization")}</option>
+                      <option value="course">{optionLabel("course")}</option>
+                    </select>
+                  </label>
+                  {teacherForm.requested_scope === "organization" && (
+                    <label className={styles.fieldLabel}>
+                      Organization id
+                      <input
+                        {...positiveIntegerInputProps}
+                        value={teacherForm.requested_organization_id}
+                        onChange={(event) =>
+                          setTeacherForm((current) => ({
+                            ...current,
+                            requested_organization_id: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                  )}
+                  {teacherForm.requested_scope === "course" && (
+                    <label className={styles.fieldLabel}>
+                      Course id
+                      <input
+                        {...positiveIntegerInputProps}
+                        value={teacherForm.requested_course_id}
+                        onChange={(event) =>
+                          setTeacherForm((current) => ({
+                            ...current,
+                            requested_course_id: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+                  )}
+                  <label className={styles.fieldLabel}>
+                    Sponsor org id
+                    <input
+                      {...positiveIntegerInputProps}
+                      value={teacherForm.organization_sponsor_id}
+                      onChange={(event) =>
+                        setTeacherForm((current) => ({
+                          ...current,
+                          organization_sponsor_id: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className={`${styles.fieldLabel} ${styles.fullWidth}`}>
+                    Experience summary
+                    <textarea
+                      rows={3}
+                      value={teacherForm.experience_summary}
+                      onChange={(event) =>
+                        setTeacherForm((current) => ({
+                          ...current,
+                          experience_summary: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className={`${styles.fieldLabel} ${styles.fullWidth}`}>
+                    Portfolio links
+                    <textarea
+                      rows={2}
+                      value={teacherForm.portfolio_links}
+                      onChange={(event) =>
+                        setTeacherForm((current) => ({
+                          ...current,
+                          portfolio_links: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={submitTeacherApplication}
+                    {...actionState(canSubmitTeacherApplicationForm)}
                   >
-                    <option value="platform">{optionLabel("platform")}</option>
-                    <option value="organization">{optionLabel("organization")}</option>
-                    <option value="course">{optionLabel("course")}</option>
-                  </select>
-                </label>
-                {teacherForm.requested_scope === "organization" && (
-                  <label className={styles.fieldLabel}>
-                    Organization id
-                    <input
-                      {...positiveIntegerInputProps}
-                      value={teacherForm.requested_organization_id}
-                      onChange={(event) =>
-                        setTeacherForm((current) => ({
-                          ...current,
-                          requested_organization_id: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                )}
-                {teacherForm.requested_scope === "course" && (
-                  <label className={styles.fieldLabel}>
-                    Course id
-                    <input
-                      {...positiveIntegerInputProps}
-                      value={teacherForm.requested_course_id}
-                      onChange={(event) =>
-                        setTeacherForm((current) => ({
-                          ...current,
-                          requested_course_id: event.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                )}
-                <label className={styles.fieldLabel}>
-                  Sponsor org id
-                  <input
-                    {...positiveIntegerInputProps}
-                    value={teacherForm.organization_sponsor_id}
-                    onChange={(event) =>
-                      setTeacherForm((current) => ({
-                        ...current,
-                        organization_sponsor_id: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-                <label className={`${styles.fieldLabel} ${styles.fullWidth}`}>
-                  Experience summary
-                  <textarea
-                    rows={3}
-                    value={teacherForm.experience_summary}
-                    onChange={(event) =>
-                      setTeacherForm((current) => ({
-                        ...current,
-                        experience_summary: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-                <label className={`${styles.fieldLabel} ${styles.fullWidth}`}>
-                  Portfolio links
-                  <textarea
-                    rows={2}
-                    value={teacherForm.portfolio_links}
-                    onChange={(event) =>
-                      setTeacherForm((current) => ({
-                        ...current,
-                        portfolio_links: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
-                <button
-                  type="button"
-                  className={styles.primaryButton}
-                  onClick={submitTeacherApplication}
-                  {...actionState(canSubmitTeacherApplicationForm)}
-                >
-                  <Send size={17} aria-hidden />
-                  <span>Submit</span>
-                </button>
-              </div>
+                    <Send size={17} aria-hidden />
+                    <span>Submit</span>
+                  </button>
+                </div>
+              </>
             )}
 
             {canReviewTeachers && (
@@ -1084,48 +1112,56 @@ export default function Home() {
             )}
 
             {canDecideTeachers && (
-              <div className={styles.actionStrip}>
-                <input
-                  aria-label="Teacher application id"
-                  {...positiveIntegerInputProps}
-                  placeholder="Application id"
-                  value={teacherDecision.application_id}
-                  onChange={(event) =>
-                    setTeacherDecision((current) => ({ ...current, application_id: event.target.value }))
-                  }
-                />
-                <select
-                  aria-label="Teacher decision status"
-                  value={teacherDecision.status}
-                  onChange={(event) =>
-                    setTeacherDecision((current) => ({ ...current, status: event.target.value }))
-                  }
-                >
-                  <option value="approved">{optionLabel("approved")}</option>
-                  <option value="rejected">{optionLabel("rejected")}</option>
-                  <option value="needs_changes">{optionLabel("needs_changes")}</option>
-                </select>
-                <input
-                  aria-label="Teacher decision reason"
-                  placeholder="Reason"
-                  value={teacherDecision.decision_reason}
-                  onChange={(event) =>
-                    setTeacherDecision((current) => ({
-                      ...current,
-                      decision_reason: event.target.value,
-                    }))
-                  }
-                />
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  onClick={decideTeacherApplication}
-                  {...actionState(canDecideTeacherApplicationForm)}
-                >
-                  <CheckCircle2 size={17} aria-hidden />
-                  <span>Decide</span>
-                </button>
-              </div>
+              <>
+                {hasSessionToken && (
+                  <RequirementNotice action="Decide" fields={teacherDecisionMissingFields} />
+                )}
+                <div className={styles.actionStrip}>
+                  <input
+                    aria-label="Teacher application id"
+                    {...positiveIntegerInputProps}
+                    placeholder="Application id"
+                    value={teacherDecision.application_id}
+                    onChange={(event) =>
+                      setTeacherDecision((current) => ({
+                        ...current,
+                        application_id: event.target.value,
+                      }))
+                    }
+                  />
+                  <select
+                    aria-label="Teacher decision status"
+                    value={teacherDecision.status}
+                    onChange={(event) =>
+                      setTeacherDecision((current) => ({ ...current, status: event.target.value }))
+                    }
+                  >
+                    <option value="approved">{optionLabel("approved")}</option>
+                    <option value="rejected">{optionLabel("rejected")}</option>
+                    <option value="needs_changes">{optionLabel("needs_changes")}</option>
+                  </select>
+                  <input
+                    aria-label="Teacher decision reason"
+                    placeholder="Reason"
+                    value={teacherDecision.decision_reason}
+                    onChange={(event) =>
+                      setTeacherDecision((current) => ({
+                        ...current,
+                        decision_reason: event.target.value,
+                      }))
+                    }
+                  />
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={decideTeacherApplication}
+                    {...actionState(canDecideTeacherApplicationForm)}
+                  >
+                    <CheckCircle2 size={17} aria-hidden />
+                    <span>Decide</span>
+                  </button>
+                </div>
+              </>
             )}
           </section>
 
