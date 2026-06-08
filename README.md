@@ -549,9 +549,14 @@ npm run build
 Docker Compose equivalent:
 
 ```bash
-docker compose run --rm --no-deps web npm run lint
-docker compose run --rm --no-deps web npm run build
+make web-lint-compose
+make web-build-compose
 ```
+
+`web-lint-compose` runs lint inside the bootstrapped Compose web service, so
+the anonymous `node_modules` volume is populated before ESLint runs.
+`web-build-compose` validates the production Dockerfile build path instead of
+running `next build` inside the development service environment.
 
 Build the Linux ARM64 Compose images:
 
@@ -574,6 +579,8 @@ make test
 make test-integration
 make web-lint
 make web-build
+make web-lint-compose
+make web-build-compose
 make health
 make runtime-verify
 make runtime-disk
@@ -587,6 +594,8 @@ Test dependency notes:
 | `make clippy` | Local Rust toolchain plus native libraries such as `libpq`; runs Clippy across all targets and the app, worker, and tool feature flags with warnings denied. |
 | `make test` | A valid `.env`; many integration tests open `DATABASE_URL`, so start PostgreSQL first with `make dev-deps` when running the full suite. The host wrapper maps Compose-only service names to localhost ports and uses `target/host-tests` so Docker and host artifacts do not collide. Host runs also need local native libraries such as `libpq`. |
 | `make test-compose` | Docker plus a valid `.env`; starts PostgreSQL, RustFS, and Anvil, then runs Cargo in the `test-runner` profile so host native libraries are not required. |
+| `make web-lint-compose` | Docker plus the Compose web service; starts `web` if needed so the service command can install dependencies into the anonymous `node_modules` volume before lint runs. |
+| `make web-build-compose` | Docker; builds the `web` image through the production Dockerfile, which is the supported Compose production-build check for the frontend. |
 | `cargo test --test s3` | RustFS/S3-compatible storage reachable through the `S3_*` settings. With Compose, run from the container network or set `S3_INTERNAL_DOMAIN`/`S3_EXTERNAL_DOMAIN` appropriately for the host. |
 | `make test-integration` | Docker plus a valid `.env`; starts Anvil, then runs ignored blockchain tests in the `test-runner` profile. |
 | `cargo test --test blockchain_integration_tests -- --ignored` | Anvil or another Ethereum JSON-RPC endpoint plus `ETH_MNEMONIC` and provider settings in `.env`; host runs also need local native libraries such as `libpq`. |
