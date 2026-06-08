@@ -107,6 +107,49 @@ const delegatedPermissionOptions: Array<{ key: string; scopes: string[] }> = [
 
 const fraudBlockScopes = ["teacher", "organization", "course", "reward_policy"];
 
+const platformExportReports = [
+  {
+    path: "/reports/platform/summary.csv",
+    label: "Summary CSV",
+    resultLabel: "Platform summary CSV",
+  },
+  {
+    path: "/reports/platform/reward-dashboard.csv",
+    label: "Reward dashboard CSV",
+    resultLabel: "Platform reward dashboard CSV",
+  },
+  {
+    path: "/reports/platform/fraud-dashboard.csv",
+    label: "Fraud dashboard CSV",
+    resultLabel: "Platform fraud dashboard CSV",
+  },
+  {
+    path: "/reports/platform/teacher-applications.csv",
+    label: "Teacher applications CSV",
+    resultLabel: "Platform teacher applications CSV",
+  },
+  {
+    path: "/reports/platform/reward-approvals.csv",
+    label: "Reward approvals CSV",
+    resultLabel: "Platform reward approvals CSV",
+  },
+  {
+    path: "/reports/platform/token-payouts.csv",
+    label: "Token payouts CSV",
+    resultLabel: "Platform token payouts CSV",
+  },
+  {
+    path: "/reports/platform/wallet-credits.csv",
+    label: "Wallet credits CSV",
+    resultLabel: "Platform wallet credits CSV",
+  },
+  {
+    path: "/reports/platform/delegated-permissions.csv",
+    label: "Delegations CSV",
+    resultLabel: "Platform delegated permissions CSV",
+  },
+];
+
 const positiveIntegerInputProps = {
   inputMode: "numeric" as const,
   pattern: "[0-9]*",
@@ -435,6 +478,7 @@ export default function Home() {
   const canBlockOrganizationRewards =
     hasPermission("BLOCK_REWARD_ORGANIZATION") || canManageFraudBlocks;
   const canViewFraud = hasPermission("VIEW_REWARD_AUDIT") || canManageFraudBlocks;
+  const canViewPlatformDashboards = hasPermission("VIEW_REWARD_AUDIT");
   const canManageFraud =
     canManageFraudBlocks || canBlockTeacherRewards || canBlockOrganizationRewards;
   const canDelegate = hasPermission("DELEGATE_REWARD_APPROVAL");
@@ -447,7 +491,7 @@ export default function Home() {
   const showRewardStatusFilter = canViewCourseRewards;
   const showRewardSharedFields =
     showRewardCourseId || showRewardCandidateId || showRewardStatusFilter;
-  const canUseReportWorkflow = canViewOrgReports || canExport;
+  const canUseReportWorkflow = canViewOrgReports || canViewPlatformDashboards || canExport;
   const canUseFraudWorkflow = canViewFraud || canManageFraud;
   const canSubmitTeacherApplicationForm =
     hasText(teacherForm.experience_summary) &&
@@ -1553,7 +1597,7 @@ export default function Home() {
             {!canUseReportWorkflow && (
               <PermissionNotice
                 title="Reporting permissions disabled"
-                detail="Enable organization report or export permissions to use reporting actions."
+                detail="Enable organization report, reward audit, or export permissions to use reporting actions."
               />
             )}
             {hasSessionToken && canViewOrgReports && (
@@ -1593,38 +1637,40 @@ export default function Home() {
             )}
             {canExport && (
               <div className={styles.reportLinks}>
+                {platformExportReports.map((report) => (
+                  <button
+                    key={report.path}
+                    type="button"
+                    onClick={() => loadPlatformExport(report.path, report.resultLabel)}
+                    {...actionState()}
+                  >
+                    <Download size={16} aria-hidden />
+                    <span>{report.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {canViewPlatformDashboards && (
+              <div className={styles.reportLinks}>
                 <button
                   type="button"
                   onClick={() =>
-                    loadPlatformExport(
-                      "/reports/platform/reward-approvals.csv",
-                      "Platform reward approvals CSV"
-                    )
+                    loadPlatformExport("/reports/platform/reward-dashboard", "Platform reward dashboard")
                   }
                   {...actionState()}
                 >
-                  reward approvals
+                  <ClipboardList size={16} aria-hidden />
+                  <span>Reward dashboard</span>
                 </button>
                 <button
                   type="button"
                   onClick={() =>
-                    loadPlatformExport("/reports/platform/token-payouts.csv", "Platform token payouts CSV")
+                    loadPlatformExport("/reports/platform/fraud-dashboard", "Platform fraud dashboard")
                   }
                   {...actionState()}
                 >
-                  token payouts
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    loadPlatformExport(
-                      "/reports/platform/delegated-permissions.csv",
-                      "Platform delegated permissions CSV"
-                    )
-                  }
-                  {...actionState()}
-                >
-                  delegations
+                  <ShieldAlert size={16} aria-hidden />
+                  <span>Fraud dashboard</span>
                 </button>
               </div>
             )}
