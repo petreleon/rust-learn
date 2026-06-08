@@ -313,7 +313,7 @@ runtime-verify: ## Fail unless Docker Compose and Kubernetes runtime checks pass
 	$(KUBECTL) exec -n $(K8S_NAMESPACE) deploy/web -- sh -c 'wget -qO- http://127.0.0.1:3000/healthz >/dev/null && wget -qO- http://rust-app:8080/ready >/dev/null'; \
 	echo "$(GREEN)Kubernetes runtime OK$(NC)"
 
-runtime-log-scan: ## Show recent warning/error log lines from Docker Compose and Kubernetes
+runtime-log-scan: ## Fail on recent warning/error log lines from Docker Compose and Kubernetes
 	@set -e; \
 	failed=0; \
 	scan_logs() { \
@@ -323,7 +323,7 @@ runtime-log-scan: ## Show recent warning/error log lines from Docker Compose and
 		echo "$$label"; \
 		if "$$@" >"$$output_file" 2>&1; then \
 			if grep -E -i '$(LOG_SCAN_PATTERN)' "$$output_file"; then \
-				:; \
+				failed=1; \
 			else \
 				echo "No recent warning/error log lines"; \
 			fi; \
