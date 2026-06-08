@@ -171,6 +171,16 @@ const platformExportReports = [
   },
 ];
 
+const workflowNavItems = [
+  { href: "#teacher-workflow", label: "Applications" },
+  { href: "#reward-workflow", label: "Rewards" },
+  { href: "#history-workflow", label: "History" },
+  { href: "#report-workflow", label: "Reports" },
+  { href: "#fraud-workflow", label: "Fraud" },
+  { href: "#delegation-workflow", label: "Delegation" },
+  { href: "#result-panel", label: "Result" },
+];
+
 const PROTECTED_ACTIONS = {
   submitTeacherApplication: "Submit teacher application",
   teacherApplicationQueue: "Teacher application queue",
@@ -1466,6 +1476,14 @@ export default function Home() {
           </button>
         </header>
 
+        <nav className={styles.workflowNav} aria-label="Workflow sections">
+          {workflowNavItems.map((item) => (
+            <a key={item.href} href={item.href}>
+              {item.label}
+            </a>
+          ))}
+        </nav>
+
         <section className={styles.metrics} aria-label="Workflow access">
           <div className={styles.metric}>
             <span>Teacher flow</span>
@@ -1498,7 +1516,11 @@ export default function Home() {
         )}
 
         <div className={styles.grid}>
-          <section className={styles.panel} aria-labelledby="teacher-title">
+          <section
+            id="teacher-workflow"
+            className={styles.panel}
+            aria-labelledby="teacher-title"
+          >
             <div className={styles.panelHeader}>
               <div>
                 <p className={styles.eyebrow}>Teacher applications</p>
@@ -1722,7 +1744,7 @@ export default function Home() {
             )}
           </section>
 
-          <section className={styles.panel} aria-labelledby="reward-title">
+          <section id="reward-workflow" className={styles.panel} aria-labelledby="reward-title">
             <div className={styles.panelHeader}>
               <div>
                 <p className={styles.eyebrow}>Course rewards</p>
@@ -1948,7 +1970,7 @@ export default function Home() {
             )}
           </section>
 
-          <section className={styles.panel} aria-labelledby="history-title">
+          <section id="history-workflow" className={styles.panel} aria-labelledby="history-title">
             <div className={styles.panelHeader}>
               <div>
                 <p className={styles.eyebrow}>Student</p>
@@ -1997,7 +2019,7 @@ export default function Home() {
             )}
           </section>
 
-          <section className={styles.panel} aria-labelledby="report-title">
+          <section id="report-workflow" className={styles.panel} aria-labelledby="report-title">
             <div className={styles.panelHeader}>
               <div>
                 <p className={styles.eyebrow}>Organization</p>
@@ -2185,7 +2207,7 @@ export default function Home() {
             )}
           </section>
 
-          <section className={styles.panel} aria-labelledby="fraud-title">
+          <section id="fraud-workflow" className={styles.panel} aria-labelledby="fraud-title">
             <div className={styles.panelHeader}>
               <div>
                 <p className={styles.eyebrow}>Fraud controls</p>
@@ -2398,7 +2420,11 @@ export default function Home() {
             )}
           </section>
 
-          <section className={styles.panel} aria-labelledby="delegation-title">
+          <section
+            id="delegation-workflow"
+            className={styles.panel}
+            aria-labelledby="delegation-title"
+          >
             <div className={styles.panelHeader}>
               <div>
                 <p className={styles.eyebrow}>Delegation</p>
@@ -2578,6 +2604,7 @@ export default function Home() {
         </div>
 
         <section
+          id="result-panel"
           ref={resultPanelRef}
           className={styles.resultPanel}
           aria-labelledby="result-title"
