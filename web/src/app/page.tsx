@@ -46,7 +46,8 @@ const PERMISSIONS: PermissionOption[] = [
     scope: "course",
   },
   { key: "APPROVE_REWARD_AMOUNT", label: "Approve amount", scope: "platform" },
-  { key: "VIEW_REPORT", label: "View platform reports", scope: "platform" },
+  { key: "VIEW_REPORT", label: "View summary reports", scope: "platform" },
+  { key: "GENERATE_REPORT", label: "Generate summary CSV", scope: "organization" },
   { key: "VIEW_ORG_REWARD_REPORTS", label: "View org rewards", scope: "organization" },
   { key: "VIEW_REWARD_AUDIT", label: "View reward audit", scope: "platform" },
   { key: "MANAGE_REWARD_FRAUD_BLOCKS", label: "Manage fraud blocks", scope: "platform" },
@@ -66,6 +67,7 @@ const DEFAULT_PERMISSION_KEYS = [
   "APPROVE_STUDENT_REWARD_CANDIDATE",
   "APPROVE_REWARD_AMOUNT",
   "VIEW_REPORT",
+  "GENERATE_REPORT",
   "VIEW_ORG_REWARD_REPORTS",
   "VIEW_REWARD_AUDIT",
   "MANAGE_REWARD_FRAUD_BLOCKS",
@@ -113,7 +115,7 @@ const fraudBlockScopes = ["teacher", "organization", "course", "reward_policy"];
 const platformExportReports = [
   {
     path: "/reports/platform/summary.csv",
-    label: "Summary CSV",
+    label: "Platform summary CSV",
     resultLabel: "Platform summary CSV",
   },
   {
@@ -476,7 +478,8 @@ export default function Home() {
   const canTeacherApproveReward = hasPermission("APPROVE_STUDENT_REWARD_CANDIDATE");
   const canApproveAmount = hasPermission("APPROVE_REWARD_AMOUNT");
   const canViewOrgReports = hasPermission("VIEW_ORG_REWARD_REPORTS");
-  const canViewPlatformReports = hasPermission("VIEW_REPORT");
+  const canViewSummaryReports = hasPermission("VIEW_REPORT");
+  const canGenerateReports = hasPermission("GENERATE_REPORT");
   const canManageFraudBlocks = hasPermission("MANAGE_REWARD_FRAUD_BLOCKS");
   const canBlockTeacherRewards = hasPermission("BLOCK_REWARD_TEACHER") || canManageFraudBlocks;
   const canBlockOrganizationRewards =
@@ -495,8 +498,10 @@ export default function Home() {
   const showRewardStatusFilter = canViewCourseRewards;
   const showRewardSharedFields =
     showRewardCourseId || showRewardCandidateId || showRewardStatusFilter;
+  const canUseOrganizationReportControls =
+    canViewSummaryReports || canGenerateReports || canViewOrgReports;
   const canUseReportWorkflow =
-    canViewOrgReports || canViewPlatformReports || canViewPlatformDashboards || canExport;
+    canUseOrganizationReportControls || canViewPlatformDashboards || canExport;
   const canUseFraudWorkflow = canViewFraud || canManageFraud;
   const canUseAuditWorkflow = canUseReportWorkflow || canUseFraudWorkflow || canDelegate;
   const canSubmitTeacherApplicationForm =
@@ -921,6 +926,13 @@ export default function Home() {
     void sendApi(
       csv ? "Organization reward CSV" : "Organization reward report",
       `/reports/organizations/${organizationId}/reward-dashboard${csv ? ".csv" : ""}`
+    );
+  }
+
+  function loadOrganizationSummary(csv = false) {
+    void sendApi(
+      csv ? "Organization summary CSV" : "Organization summary",
+      `/reports/organizations/${organizationId}/summary${csv ? ".csv" : ""}`
     );
   }
 
@@ -1619,16 +1631,16 @@ export default function Home() {
             {!canUseReportWorkflow && (
               <PermissionNotice
                 title="Reporting permissions disabled"
-                detail="Enable platform report, organization report, reward audit, or export permissions to use reporting actions."
+                detail="Enable summary, organization reward, reward audit, generate report, or export permissions to use reporting actions."
               />
             )}
-            {hasSessionToken && canViewOrgReports && (
+            {hasSessionToken && canUseOrganizationReportControls && (
               <RequirementNotice
-                action="Load organization report"
+                action="Load organization reports"
                 fields={organizationReportMissingFields}
               />
             )}
-            {canViewOrgReports && (
+            {canUseOrganizationReportControls && (
               <div className={styles.actionStrip}>
                 <input
                   aria-label="Report organization id"
@@ -1637,24 +1649,50 @@ export default function Home() {
                   value={organizationId}
                   onChange={(event) => setOrganizationId(event.target.value)}
                 />
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  onClick={() => loadOrganizationReport(false)}
-                  {...actionState(canLoadOrganizationReportForm)}
-                >
-                  <ClipboardList size={17} aria-hidden />
-                  <span>Load</span>
-                </button>
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  onClick={() => loadOrganizationReport(true)}
-                  {...actionState(canLoadOrganizationReportForm)}
-                >
-                  <Download size={17} aria-hidden />
-                  <span>CSV</span>
-                </button>
+                {canViewSummaryReports && (
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => loadOrganizationSummary(false)}
+                    {...actionState(canLoadOrganizationReportForm)}
+                  >
+                    <ClipboardList size={17} aria-hidden />
+                    <span>Summary</span>
+                  </button>
+                )}
+                {canGenerateReports && (
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => loadOrganizationSummary(true)}
+                    {...actionState(canLoadOrganizationReportForm)}
+                  >
+                    <Download size={17} aria-hidden />
+                    <span>Summary CSV</span>
+                  </button>
+                )}
+                {canViewOrgReports && (
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => loadOrganizationReport(false)}
+                    {...actionState(canLoadOrganizationReportForm)}
+                  >
+                    <ClipboardList size={17} aria-hidden />
+                    <span>Reward report</span>
+                  </button>
+                )}
+                {canViewOrgReports && (
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => loadOrganizationReport(true)}
+                    {...actionState(canLoadOrganizationReportForm)}
+                  >
+                    <Download size={17} aria-hidden />
+                    <span>Reward CSV</span>
+                  </button>
+                )}
               </div>
             )}
             {canExport && (
@@ -1672,7 +1710,7 @@ export default function Home() {
                 ))}
               </div>
             )}
-            {canViewPlatformReports && (
+            {canViewSummaryReports && (
               <div className={styles.reportLinks}>
                 <button
                   type="button"
