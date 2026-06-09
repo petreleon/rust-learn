@@ -181,7 +181,7 @@ reconciliation, and system health.
         enriched student/course context, operator permissions, audit parsing,
         amount-decision mutation helper shape, denied/conflict/timeout/network
         normalization, route registration, and permission checks.
-- [ ] Docker Compose E2E path: admin dashboard, teacher review or reward amount
+- [x] Docker Compose E2E path: admin dashboard, teacher review or reward amount
       decision, report/export, log scan.
-- [ ] Kubernetes smoke path loads `/admin`, verifies in-cluster API readiness
+- [x] Kubernetes smoke path loads `/admin`, verifies in-cluster API readiness
       behavior, and scans recent app/web/worker logs.
