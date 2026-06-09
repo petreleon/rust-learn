@@ -102,8 +102,17 @@
         state and portfolio links, shows submitted/needs-changes/approved/
         rejected/audit states, handles stale duplicate `409` conflicts, and
         avoids raw organization/course/application id entry.
-- [ ] Build a teacher dashboard for owned courses, pending student work,
+- [x] Build a teacher dashboard for owned courses, pending student work,
       enrollment requests, reward candidates, and course health.
+  - [x] `/teach` consumes the current-user session, teaching course dashboard,
+        and teacher-application snapshot to show course health, lifecycle
+        state, enrollment pressure, reward review pressure, application status,
+        and scoped action permissions without raw ids or platform reward amount
+        controls.
+  - [x] `/teach/courses` lists owned or permitted teaching courses with title
+        search, lifecycle filtering, empty/error states, mobile layout, and
+        disabled placeholders for unfinished course workspace, enrollment, and
+        reward-review routes.
 - [ ] Build course creation and editing flows for title, description, content,
       settings, publishing state, organization ownership, and reward policy.
 - [ ] Build content upload UI with progress, validation, processing status,

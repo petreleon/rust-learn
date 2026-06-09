@@ -75,6 +75,7 @@ export function ProductShell({
   const workspaceOptions = buildWorkspaceOptions(session);
   const accountLabel = session?.user.name || (isSignedIn ? "Resolving" : "Account");
   const navItems = buildNavItems(session);
+  const showOperationsConsole = Boolean(session && accessSummary(session).platformAdmin);
 
   return (
     <main className={styles.page}>
@@ -133,6 +134,7 @@ export function ProductShell({
             isSignedIn={isSignedIn}
             onSignOut={onSignOut}
             session={session}
+            showOperationsConsole={showOperationsConsole}
           />
         </div>
 
@@ -143,6 +145,7 @@ export function ProductShell({
           navItems={navItems}
           onSignOut={onSignOut}
           session={session}
+          showOperationsConsole={showOperationsConsole}
           workspaceOptions={workspaceOptions}
         />
       </header>
@@ -179,11 +182,13 @@ function AccountMenu({
   isSignedIn,
   onSignOut,
   session,
+  showOperationsConsole,
 }: {
   accountLabel: string;
   isSignedIn: boolean;
   onSignOut?: () => void;
   session?: CurrentSession | null;
+  showOperationsConsole: boolean;
 }) {
   return (
     <details className={styles.accountMenu}>
@@ -202,10 +207,12 @@ function AccountMenu({
           <Settings size={16} aria-hidden />
           Account settings
         </Link>
-        <Link className={styles.accountMenuItem} href="/ops">
-          <BriefcaseBusiness size={16} aria-hidden />
-          Operations console
-        </Link>
+        {showOperationsConsole ? (
+          <Link className={styles.accountMenuItem} href="/ops">
+            <BriefcaseBusiness size={16} aria-hidden />
+            Operations console
+          </Link>
+        ) : null}
         {isSignedIn && onSignOut ? (
           <button className={styles.accountMenuItem} type="button" onClick={onSignOut}>
             <LogOut size={16} aria-hidden />
@@ -229,6 +236,7 @@ function MobileMenu({
   navItems,
   onSignOut,
   session,
+  showOperationsConsole,
   workspaceOptions,
 }: {
   accountLabel: string;
@@ -237,6 +245,7 @@ function MobileMenu({
   navItems: NavItem[];
   onSignOut?: () => void;
   session?: CurrentSession | null;
+  showOperationsConsole: boolean;
   workspaceOptions: Array<{ label: string; value: string }>;
 }) {
   return (
@@ -278,10 +287,12 @@ function MobileMenu({
           <Bell size={16} aria-hidden />
           Notifications
         </button>
-        <Link className={styles.accountMenuItem} href="/ops">
-          <BriefcaseBusiness size={16} aria-hidden />
-          Operations console
-        </Link>
+        {showOperationsConsole ? (
+          <Link className={styles.accountMenuItem} href="/ops">
+            <BriefcaseBusiness size={16} aria-hidden />
+            Operations console
+          </Link>
+        ) : null}
         <div className={styles.menuMeta}>
           <strong>{accountLabel}</strong>
           <span>{session?.user.email || "Sign in to load account details."}</span>

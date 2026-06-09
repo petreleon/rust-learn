@@ -29,15 +29,26 @@ from effective permissions instead of role labels, and show contextual denied
 states when the current user lacks the required learner, teacher, organization,
 or platform access signal.
 
-Teacher product routes now include `/teach/apply`. It loads `GET /api/me` and
-`GET /api/teacher-applications/me`, submits through
+Teacher product routes now include `/teach`, `/teach/apply`, and
+`/teach/courses`. `/teach` loads `GET /api/me`,
+`GET /api/courses/teaching`, and `GET /api/teacher-applications/me` to show
+application status, teaching course health, lifecycle state, content readiness,
+enrollment pressure, reward review pressure, and scoped action permissions.
+`/teach/courses` uses the same teaching-course contract with title search and
+lifecycle filtering. The route keeps course workspace, enrollment, and reward
+review actions disabled until those deeper product routes exist, and it does
+not expose teacher-side reward amount controls. `GET /api/courses/teaching`
+returns `total/limit/offset/search/lifecycle_status`, organization labels,
+content summaries, reward-policy summaries, roster counts, reward queue counts,
+and permission booleans for the current teacher scope. `/teach/apply` loads
+`GET /api/me` and `GET /api/teacher-applications/me`, submits through
 `POST /api/teacher-applications`, preserves draft application text and
 portfolio links in session storage, and renders new, submitted, needs-changes,
 approved, rejected, duplicate-conflict, signed-out, and backend-failure states.
 Organization and course scope choices come from the resolved session context so
-applicants do not type raw internal ids. The page links from `/teach`; broader
-teacher course dashboards, content upload, enrollment queues, student progress,
-and reward review remain future product routes.
+teachers and applicants do not type raw internal ids. Content upload,
+enrollment decision queues, student progress, and reward candidate decision
+screens remain future product routes.
 
 Learner product routes now include `/learn`, `/courses`, `/rewards`, and
 `/wallet`. `/learn` is the learner dashboard. It loads `GET /api/me`, enrolled

@@ -37,6 +37,12 @@
         state, authenticated desktop submission, stale duplicate `409`
         conflict refresh, needs-changes mobile feedback, rejected mobile
         reapply, hidden raw id entry, and no horizontal overflow.
+  - [x] Browser plus mocked Playwright QA covers `/teach` and
+        `/teach/courses` signed-out desktop/mobile states, authenticated
+        desktop dashboard, mobile course search/lifecycle filtering that only
+        reloads after apply, no-access state, plain-text backend `500` state,
+        hidden internal operations console for non-admin product sessions, and
+        no horizontal overflow.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
@@ -66,6 +72,12 @@
   - [x] Rust API/service tests cover teacher application current-user
         snapshots, duplicate open conflicts, idempotency replay, rejected
         reapply, and route registration for `GET /api/teacher-applications/me`.
+  - [x] Frontend helper tests cover teaching-course dashboard filters,
+        response parsing, and plain-text backend failure normalization.
+  - [x] Rust API tests cover `GET /api/courses/teaching` route registration,
+        course-scoped teacher visibility, outsider empty results, lifecycle
+        status, content summary, roster counts, reward queue counts, and action
+        permission booleans.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.

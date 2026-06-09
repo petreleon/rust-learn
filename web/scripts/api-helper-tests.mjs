@@ -567,6 +567,38 @@ test("fetchMyTeacherApplication parses current-user application snapshot", async
   assert.deepEqual(emptySnapshot.audit_events, []);
 });
 
+test("fetchTeachingCourses sends filters and parses teaching dashboard summaries", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/teaching?limit=5&lifecycle_status=published&search=Rust");
+    assert.equal(init.headers.Authorization, "Bearer teacher-token");
+    return jsonResponse(teacherCoursesFixture());
+  });
+
+  const dashboard = await teacher.fetchTeachingCourses({
+    lifecycleStatus: "published",
+    limit: 5,
+    search: " Rust ",
+    token: "teacher-token",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(dashboard.total, 1);
+  assert.equal(dashboard.courses[0].title, "Rust Ownership Lab");
+  assert.equal(dashboard.courses[0].roster.pending_join_request_count, 2);
+  assert.equal(dashboard.courses[0].reward_queue.pending_teacher_count, 1);
+  assert.equal(dashboard.courses[0].permissions.can_approve_reward_candidates, true);
+});
+
+test("fetchTeachingCourses normalizes text backend failures", async () => {
+  mockFetch(() => textResponse("Failed to load teaching courses", { status: 500 }));
+
+  await assertRequestError(teacher.fetchTeachingCourses({ token: "teacher-token" }), {
+    code: "server_error",
+    errorClass: teacher.TeacherRequestError,
+    status: 500,
+  });
+});
+
 test("submitTeacherApplication sends JSON payload and parses created application", async () => {
   const payload = {
     experience_summary: "I teach Rust fundamentals and review project work.",
@@ -784,5 +816,54 @@ function teacherApplicationSnapshotFixture() {
         to_status: "submitted",
       },
     ],
+  };
+}
+
+function teacherCoursesFixture() {
+  return {
+    courses: [
+      {
+        content: {
+          chapter_count: 2,
+          content_count: 4,
+          content_types: ["article", "video"],
+          has_content: true,
+        },
+        id: 9,
+        lifecycle_status: "published",
+        organizations: [{ id: 7, name: "Ferris Academy" }],
+        permissions: {
+          can_approve_reward_candidates: true,
+          can_manage_content: true,
+          can_manage_enrollments: true,
+          can_manage_reward_rules: true,
+          can_manage_settings: true,
+          can_view_reward_candidates: true,
+        },
+        reward_queue: {
+          failed_count: 0,
+          pending_teacher_count: 1,
+          teacher_approved_count: 3,
+        },
+        rewards: {
+          active_policy_count: 1,
+          available: true,
+          event_types: ["course_completion"],
+          payment_strategies: ["treasury_transfer"],
+          token_amounts: ["25"],
+        },
+        roster: {
+          enrolled_student_count: 12,
+          pending_join_request_count: 2,
+          waitlisted_join_request_count: 1,
+        },
+        title: "Rust Ownership Lab",
+      },
+    ],
+    lifecycle_status: "published",
+    limit: 5,
+    offset: 0,
+    search: "Rust",
+    total: 1,
   };
 }

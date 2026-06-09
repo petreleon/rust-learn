@@ -36,6 +36,68 @@ export type TeacherApplicationSnapshot = {
   audit_events: TeacherApplicationAuditEvent[];
 };
 
+export type TeacherCoursesResponse = {
+  courses: TeacherCourseDashboardItem[];
+  lifecycle_status: string | null;
+  limit: number;
+  offset: number;
+  search: string | null;
+  total: number;
+};
+
+export type TeacherCourseDashboardItem = {
+  content: TeacherCourseContentSummary;
+  id: number;
+  lifecycle_status: string;
+  organizations: TeacherCourseOrganization[];
+  permissions: TeacherCoursePermissionSummary;
+  reward_queue: TeacherCourseRewardQueueSummary;
+  rewards: TeacherCourseRewardSummary;
+  roster: TeacherCourseRosterSummary;
+  title: string;
+};
+
+export type TeacherCourseOrganization = {
+  id: number;
+  name: string;
+};
+
+export type TeacherCourseContentSummary = {
+  chapter_count: number;
+  content_count: number;
+  content_types: string[];
+  has_content: boolean;
+};
+
+export type TeacherCourseRewardSummary = {
+  active_policy_count: number;
+  available: boolean;
+  event_types: string[];
+  payment_strategies: string[];
+  token_amounts: string[];
+};
+
+export type TeacherCourseRosterSummary = {
+  enrolled_student_count: number;
+  pending_join_request_count: number;
+  waitlisted_join_request_count: number;
+};
+
+export type TeacherCourseRewardQueueSummary = {
+  failed_count: number;
+  pending_teacher_count: number;
+  teacher_approved_count: number;
+};
+
+export type TeacherCoursePermissionSummary = {
+  can_approve_reward_candidates: boolean;
+  can_manage_content: boolean;
+  can_manage_enrollments: boolean;
+  can_manage_reward_rules: boolean;
+  can_manage_settings: boolean;
+  can_view_reward_candidates: boolean;
+};
+
 export type SubmitTeacherApplicationPayload = {
   experience_summary: string;
   idempotency_key?: string;
@@ -71,6 +133,13 @@ export type TeacherRequestOptions = {
   token: string;
 };
 
+export type TeacherCoursesOptions = TeacherRequestOptions & {
+  lifecycleStatus?: string;
+  limit?: number;
+  offset?: number;
+  search?: string;
+};
+
 export type SubmitTeacherApplicationOptions = TeacherRequestOptions & {
   payload: SubmitTeacherApplicationPayload;
 };
@@ -87,6 +156,37 @@ export async function fetchMyTeacherApplication({
     timeoutMs,
     token,
     url: `${apiRoot}/teacher-applications/me`,
+  });
+}
+
+export async function fetchTeachingCourses({
+  apiRoot = "/api",
+  lifecycleStatus,
+  limit = 25,
+  offset,
+  search,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: TeacherCoursesOptions): Promise<TeacherCoursesResponse> {
+  const query = new URLSearchParams();
+  query.set("limit", String(limit));
+  if (typeof offset === "number") {
+    query.set("offset", String(offset));
+  }
+  if (lifecycleStatus && lifecycleStatus !== "all") {
+    query.set("lifecycle_status", lifecycleStatus);
+  }
+  const trimmedSearch = search?.trim();
+  if (trimmedSearch) {
+    query.set("search", trimmedSearch);
+  }
+
+  const suffix = query.toString();
+  return teacherJsonRequest<TeacherCoursesResponse>({
+    method: "GET",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/teaching${suffix ? `?${suffix}` : ""}`,
   });
 }
 

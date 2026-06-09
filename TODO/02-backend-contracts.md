@@ -43,6 +43,14 @@ screens pretend to be complete.
         conflict while same-key idempotent retries still return the existing
         application, and rejected applications can be followed by a new
         submission.
+- [x] Define a teacher-owned course dashboard/list contract with scoped
+      permissions and lifecycle state.
+  - [x] `GET /api/courses/teaching` returns teaching-visible courses with
+        `total/limit/offset/search/lifecycle_status`, organization labels,
+        content summaries, reward-policy summaries, roster counts, reward
+        queue counts, and action permission booleans. Candidate lookup starts
+        from direct course roles, organization scope, active delegations, and
+        platform scope before per-course permission summaries are built.
 - [ ] Define upload-job or media-processing status APIs before the teacher
       upload UI promises progress or retry visibility.
 - [ ] Define searchable user, organization, course, application, reward,
@@ -52,6 +60,9 @@ screens pretend to be complete.
       helpers must parse both JSON and text responses safely.
 - [ ] Define pagination metadata and filtering contracts for queues, reports,
       audit logs, and dashboards before building reusable table components.
+  - [x] Teacher course dashboard/list now has pagination and title/lifecycle
+        filtering metadata. Enrollment, reward, report, audit, and reusable
+        table contracts remain open.
 - [ ] Define wallet operation response states for MetaMask-required,
       platform-gas, tax, insufficient funds, pending deposit, confirmed
       deposit, retirement, and reconciliation cases.

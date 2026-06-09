@@ -1,8 +1,10 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{
     chapters, contents, course_join_requests, course_roles, courses, courses_organizations,
-    organizations, pending_course_organization_invites, reward_policies, upload_jobs,
-    user_role_course, users,
+    delegated_permissions, organizations, pending_course_organization_invites, reward_candidates,
+    reward_policies, role_permission_course, role_permission_organization,
+    role_permission_platform, upload_jobs, user_role_course, user_role_organization,
+    user_role_platform, users,
 };
 use crate::models::course::{
     Course, NewCourse, UpdateCourse, COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED,
@@ -14,14 +16,22 @@ use crate::models::course_join_request::{
     COURSE_JOIN_STATUS_REJECTED, COURSE_JOIN_STATUS_WAITLISTED,
 };
 use crate::models::courses_organizations::NewCourseOrganization;
+use crate::models::delegated_permission::{
+    DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
+};
 use crate::models::pending_course_organization_invites::{
     NewPendingCourseOrganizationInvite, PendingCourseOrganizationInvite,
+};
+use crate::models::reward_candidate::{
+    REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
 };
 use crate::repositories::course_repository::user_permission_course_request;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
 use bigdecimal::BigDecimal;
+use chrono::Utc;
 use diesel::prelude::*;
+use diesel::BoolExpressionMethods;
 use diesel::{EscapeExpressionMethods, PgTextExpressionMethods};
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use serde::Deserialize;
@@ -89,6 +99,61 @@ pub struct LearnerCourseLearningResponse {
     pub progress_supported: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TeacherCourseDashboardQuery {
+    pub search: Option<String>,
+    pub lifecycle_status: Option<String>,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCourseDashboardResponse {
+    pub courses: Vec<TeacherCourseDashboardItem>,
+    pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
+    pub search: Option<String>,
+    pub lifecycle_status: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCourseDashboardItem {
+    pub id: i32,
+    pub title: String,
+    pub lifecycle_status: String,
+    pub organizations: Vec<LearnerCourseCatalogOrganization>,
+    pub content: LearnerCourseContentSummary,
+    pub rewards: LearnerCourseRewardSummary,
+    pub roster: TeacherCourseRosterSummary,
+    pub reward_queue: TeacherCourseRewardQueueSummary,
+    pub permissions: TeacherCoursePermissionSummary,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCourseRosterSummary {
+    pub enrolled_student_count: i64,
+    pub pending_join_request_count: i64,
+    pub waitlisted_join_request_count: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCourseRewardQueueSummary {
+    pub pending_teacher_count: i64,
+    pub teacher_approved_count: i64,
+    pub failed_count: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCoursePermissionSummary {
+    pub can_manage_settings: bool,
+    pub can_manage_content: bool,
+    pub can_manage_enrollments: bool,
+    pub can_view_reward_candidates: bool,
+    pub can_approve_reward_candidates: bool,
+    pub can_manage_reward_rules: bool,
+}
+
 #[derive(Debug, Serialize)]
 pub struct LearnerCourseCatalogItem {
     pub id: i32,
@@ -150,6 +215,11 @@ pub struct LearnerCourseAccessSummary {
     pub can_request_join: bool,
 }
 
+enum TeacherCourseCandidateScope {
+    All,
+    CourseIds(Vec<i32>),
+}
+
 #[derive(Debug, Serialize)]
 pub struct LearnerCourseCatalogChapter {
     pub id: i32,
@@ -189,6 +259,11 @@ pub struct LearnerCourseLearningContent {
 pub enum LearnerCourseCatalogError {
     PermissionDenied(String),
     NotFound,
+    Database(String),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum TeacherCourseDashboardError {
     Database(String),
 }
 
@@ -296,6 +371,29 @@ impl LearnerCourseCatalogQuery {
     }
 }
 
+impl TeacherCourseDashboardQuery {
+    pub fn new(
+        search: Option<String>,
+        lifecycle_status: Option<String>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Self {
+        let search = normalize_optional_string(search);
+        let lifecycle_status = normalize_optional_string(lifecycle_status);
+        let limit = limit
+            .unwrap_or(DEFAULT_COURSE_LIMIT)
+            .clamp(1, MAX_COURSE_LIMIT);
+        let offset = offset.unwrap_or(0).max(0);
+
+        TeacherCourseDashboardQuery {
+            search,
+            lifecycle_status,
+            limit,
+            offset,
+        }
+    }
+}
+
 pub async fn discover_courses(
     conn: &mut AsyncPgConnection,
     discovery: CourseDiscoveryQuery,
@@ -339,6 +437,85 @@ pub async fn discover_courses(
         offset: discovery.offset,
         search: discovery.search,
         organization_id: discovery.organization_id,
+    })
+}
+
+pub async fn discover_teacher_course_dashboard(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    dashboard_query: TeacherCourseDashboardQuery,
+) -> Result<TeacherCourseDashboardResponse, TeacherCourseDashboardError> {
+    let candidate_scope = teacher_course_candidate_scope(conn, actor_user_id).await?;
+    if matches!(
+        candidate_scope,
+        TeacherCourseCandidateScope::CourseIds(ref ids) if ids.is_empty()
+    ) {
+        return Ok(TeacherCourseDashboardResponse {
+            courses: Vec::new(),
+            total: 0,
+            limit: dashboard_query.limit,
+            offset: dashboard_query.offset,
+            search: dashboard_query.search,
+            lifecycle_status: dashboard_query.lifecycle_status,
+        });
+    }
+
+    let mut count_query = courses::table.into_boxed();
+    let mut list_query = courses::table.into_boxed();
+
+    match &candidate_scope {
+        TeacherCourseCandidateScope::All => {}
+        TeacherCourseCandidateScope::CourseIds(course_ids) => {
+            count_query = count_query.filter(courses::id.eq_any(course_ids));
+            list_query = list_query.filter(courses::id.eq_any(course_ids));
+        }
+    }
+
+    if let Some(search) = dashboard_query.search.as_deref() {
+        let pattern = course_title_search_pattern(search);
+        count_query = count_query.filter(
+            courses::title
+                .ilike(pattern.clone())
+                .escape(LIKE_ESCAPE_CHAR),
+        );
+        list_query = list_query.filter(courses::title.ilike(pattern).escape(LIKE_ESCAPE_CHAR));
+    }
+
+    if let Some(status) = dashboard_query.lifecycle_status.as_deref() {
+        count_query = count_query.filter(courses::lifecycle_status.eq(status));
+        list_query = list_query.filter(courses::lifecycle_status.eq(status));
+    }
+
+    let total = count_query
+        .count()
+        .get_result(conn)
+        .await
+        .map_err(TeacherCourseDashboardError::from)?;
+    let candidate_courses = list_query
+        .order(courses::id.asc())
+        .limit(dashboard_query.limit)
+        .offset(dashboard_query.offset)
+        .load::<Course>(conn)
+        .await
+        .map_err(TeacherCourseDashboardError::from)?;
+
+    let mut items = Vec::new();
+    for course in candidate_courses {
+        let permissions = build_teacher_course_permissions(conn, actor_user_id, course.id).await?;
+        if !permissions.has_teacher_access() {
+            continue;
+        }
+
+        items.push(build_teacher_course_dashboard_item(conn, course, permissions).await?);
+    }
+
+    Ok(TeacherCourseDashboardResponse {
+        courses: items,
+        total,
+        limit: dashboard_query.limit,
+        offset: dashboard_query.offset,
+        search: dashboard_query.search,
+        lifecycle_status: dashboard_query.lifecycle_status,
     })
 }
 
@@ -519,6 +696,31 @@ impl From<diesel::result::Error> for LearnerCourseCatalogError {
     }
 }
 
+impl From<diesel::result::Error> for TeacherCourseDashboardError {
+    fn from(error: diesel::result::Error) -> Self {
+        TeacherCourseDashboardError::Database(error.to_string())
+    }
+}
+
+impl From<LearnerCourseCatalogError> for TeacherCourseDashboardError {
+    fn from(error: LearnerCourseCatalogError) -> Self {
+        match error {
+            LearnerCourseCatalogError::Database(message) => {
+                TeacherCourseDashboardError::Database(message)
+            }
+            LearnerCourseCatalogError::NotFound => {
+                TeacherCourseDashboardError::Database("course not found".to_string())
+            }
+            LearnerCourseCatalogError::PermissionDenied(permission) => {
+                TeacherCourseDashboardError::Database(format!(
+                    "unexpected permission error while building teacher dashboard: {}",
+                    permission
+                ))
+            }
+        }
+    }
+}
+
 async fn load_learner_course_learning_chapters(
     conn: &mut AsyncPgConnection,
     course_id: i32,
@@ -665,6 +867,393 @@ async fn build_learner_course_catalog_item(
         enrollment,
         access,
     })
+}
+
+async fn build_teacher_course_dashboard_item(
+    conn: &mut AsyncPgConnection,
+    course: Course,
+    permissions: TeacherCoursePermissionSummary,
+) -> Result<TeacherCourseDashboardItem, TeacherCourseDashboardError> {
+    let organizations = load_learner_course_organizations(conn, course.id).await?;
+    let content = load_learner_course_content_summary(conn, course.id).await?;
+    let rewards = load_learner_course_reward_summary(conn, course.id).await?;
+    let roster = load_teacher_course_roster_summary(conn, course.id).await?;
+    let reward_queue = load_teacher_course_reward_queue_summary(conn, course.id).await?;
+
+    Ok(TeacherCourseDashboardItem {
+        id: course.id,
+        title: course.title,
+        lifecycle_status: course.lifecycle_status,
+        organizations,
+        content,
+        rewards,
+        roster,
+        reward_queue,
+        permissions,
+    })
+}
+
+async fn teacher_course_candidate_scope(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+) -> Result<TeacherCourseCandidateScope, TeacherCourseDashboardError> {
+    let permission_names = teacher_course_dashboard_permission_names();
+    if has_platform_teacher_course_scope(conn, actor_user_id, &permission_names).await? {
+        return Ok(TeacherCourseCandidateScope::All);
+    }
+
+    let mut course_ids = BTreeSet::new();
+
+    for course_id in direct_teacher_course_ids(conn, actor_user_id, &permission_names).await? {
+        course_ids.insert(course_id);
+    }
+    for course_id in delegated_teacher_course_ids(conn, actor_user_id, &permission_names).await? {
+        course_ids.insert(course_id);
+    }
+
+    let mut organization_ids = BTreeSet::new();
+    for organization_id in
+        direct_teacher_organization_ids(conn, actor_user_id, &permission_names).await?
+    {
+        organization_ids.insert(organization_id);
+    }
+    for organization_id in
+        delegated_teacher_organization_ids(conn, actor_user_id, &permission_names).await?
+    {
+        organization_ids.insert(organization_id);
+    }
+
+    let organization_ids: Vec<i32> = organization_ids.into_iter().collect();
+    for course_id in courses_for_organizations(conn, &organization_ids).await? {
+        course_ids.insert(course_id);
+    }
+
+    Ok(TeacherCourseCandidateScope::CourseIds(
+        course_ids.into_iter().collect(),
+    ))
+}
+
+fn teacher_course_dashboard_permission_names() -> Vec<String> {
+    [
+        Permissions::MANAGE_COURSE_SETTINGS,
+        Permissions::CREATE_CONTENT,
+        Permissions::MODIFY_CONTENT,
+        Permissions::APPROVE_COURSE_CONTENT,
+        Permissions::MANAGE_COURSE_ENROLLMENTS,
+        Permissions::APPROVE_COURSE_JOIN_REQUESTS,
+        Permissions::VIEW_COURSE_REWARD_STATUS,
+        Permissions::APPROVE_STUDENT_REWARD_CANDIDATE,
+        Permissions::MANAGE_COURSE_REWARD_RULES,
+    ]
+    .into_iter()
+    .map(|permission| permission.to_string())
+    .collect()
+}
+
+async fn has_platform_teacher_course_scope(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    permission_names: &[String],
+) -> Result<bool, TeacherCourseDashboardError> {
+    let has_direct_platform_scope = diesel::select(diesel::dsl::exists(
+        user_role_platform::table
+            .inner_join(role_permission_platform::table.on(
+                user_role_platform::platform_role_id.eq(role_permission_platform::platform_role_id),
+            ))
+            .filter(user_role_platform::user_id.eq(actor_user_id))
+            .filter(role_permission_platform::permission.eq_any(permission_names)),
+    ))
+    .get_result::<bool>(conn)
+    .await?;
+    if has_direct_platform_scope {
+        return Ok(true);
+    }
+
+    let now = Utc::now();
+    diesel::select(diesel::dsl::exists(
+        delegated_permissions::table
+            .filter(delegated_permissions::grantee_user_id.eq(actor_user_id))
+            .filter(delegated_permissions::scope_type.eq(DELEGATED_SCOPE_PLATFORM))
+            .filter(delegated_permissions::organization_id.is_null())
+            .filter(delegated_permissions::course_id.is_null())
+            .filter(delegated_permissions::permission.eq_any(permission_names))
+            .filter(delegated_permissions::revoked_at.is_null())
+            .filter(
+                delegated_permissions::expires_at
+                    .is_null()
+                    .or(delegated_permissions::expires_at.gt(now)),
+            ),
+    ))
+    .get_result::<bool>(conn)
+    .await
+    .map_err(TeacherCourseDashboardError::from)
+}
+
+async fn direct_teacher_course_ids(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    permission_names: &[String],
+) -> Result<Vec<i32>, TeacherCourseDashboardError> {
+    let rows = user_role_course::table
+        .inner_join(
+            role_permission_course::table
+                .on(user_role_course::course_role_id.eq(role_permission_course::course_role_id)),
+        )
+        .filter(user_role_course::user_id.eq(actor_user_id))
+        .filter(role_permission_course::permission.eq_any(permission_names))
+        .select(user_role_course::course_id)
+        .load::<Option<i32>>(conn)
+        .await?;
+
+    Ok(rows.into_iter().flatten().collect())
+}
+
+async fn direct_teacher_organization_ids(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    permission_names: &[String],
+) -> Result<Vec<i32>, TeacherCourseDashboardError> {
+    let rows = user_role_organization::table
+        .inner_join(
+            role_permission_organization::table.on(user_role_organization::organization_role_id
+                .eq(role_permission_organization::organization_role_id)),
+        )
+        .filter(user_role_organization::user_id.eq(actor_user_id))
+        .filter(role_permission_organization::permission.eq_any(permission_names))
+        .select(user_role_organization::organization_id)
+        .load::<Option<i32>>(conn)
+        .await?;
+
+    Ok(rows.into_iter().flatten().collect())
+}
+
+async fn delegated_teacher_course_ids(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    permission_names: &[String],
+) -> Result<Vec<i32>, TeacherCourseDashboardError> {
+    let now = Utc::now();
+    let rows = delegated_permissions::table
+        .filter(delegated_permissions::grantee_user_id.eq(actor_user_id))
+        .filter(delegated_permissions::scope_type.eq(DELEGATED_SCOPE_COURSE))
+        .filter(delegated_permissions::organization_id.is_null())
+        .filter(delegated_permissions::permission.eq_any(permission_names))
+        .filter(delegated_permissions::revoked_at.is_null())
+        .filter(
+            delegated_permissions::expires_at
+                .is_null()
+                .or(delegated_permissions::expires_at.gt(now)),
+        )
+        .select(delegated_permissions::course_id)
+        .load::<Option<i32>>(conn)
+        .await?;
+
+    Ok(rows.into_iter().flatten().collect())
+}
+
+async fn delegated_teacher_organization_ids(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    permission_names: &[String],
+) -> Result<Vec<i32>, TeacherCourseDashboardError> {
+    let now = Utc::now();
+    let rows = delegated_permissions::table
+        .filter(delegated_permissions::grantee_user_id.eq(actor_user_id))
+        .filter(delegated_permissions::scope_type.eq(DELEGATED_SCOPE_ORGANIZATION))
+        .filter(delegated_permissions::course_id.is_null())
+        .filter(delegated_permissions::permission.eq_any(permission_names))
+        .filter(delegated_permissions::revoked_at.is_null())
+        .filter(
+            delegated_permissions::expires_at
+                .is_null()
+                .or(delegated_permissions::expires_at.gt(now)),
+        )
+        .select(delegated_permissions::organization_id)
+        .load::<Option<i32>>(conn)
+        .await?;
+
+    Ok(rows.into_iter().flatten().collect())
+}
+
+async fn courses_for_organizations(
+    conn: &mut AsyncPgConnection,
+    organization_ids: &[i32],
+) -> Result<Vec<i32>, TeacherCourseDashboardError> {
+    if organization_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    courses_organizations::table
+        .filter(courses_organizations::organization_id.eq_any(organization_ids))
+        .select(courses_organizations::course_id)
+        .load::<i32>(conn)
+        .await
+        .map_err(TeacherCourseDashboardError::from)
+}
+
+async fn build_teacher_course_permissions(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    course_id: i32,
+) -> Result<TeacherCoursePermissionSummary, TeacherCourseDashboardError> {
+    let can_create_content =
+        teacher_has_course_permission(conn, actor_user_id, course_id, Permissions::CREATE_CONTENT)
+            .await?;
+    let can_modify_content =
+        teacher_has_course_permission(conn, actor_user_id, course_id, Permissions::MODIFY_CONTENT)
+            .await?;
+    let can_approve_content = teacher_has_course_permission(
+        conn,
+        actor_user_id,
+        course_id,
+        Permissions::APPROVE_COURSE_CONTENT,
+    )
+    .await?;
+
+    Ok(TeacherCoursePermissionSummary {
+        can_manage_settings: teacher_has_course_permission(
+            conn,
+            actor_user_id,
+            course_id,
+            Permissions::MANAGE_COURSE_SETTINGS,
+        )
+        .await?,
+        can_manage_content: can_create_content || can_modify_content || can_approve_content,
+        can_manage_enrollments: teacher_has_course_permission(
+            conn,
+            actor_user_id,
+            course_id,
+            Permissions::MANAGE_COURSE_ENROLLMENTS,
+        )
+        .await?
+            || teacher_has_course_permission(
+                conn,
+                actor_user_id,
+                course_id,
+                Permissions::APPROVE_COURSE_JOIN_REQUESTS,
+            )
+            .await?,
+        can_view_reward_candidates: teacher_has_course_permission(
+            conn,
+            actor_user_id,
+            course_id,
+            Permissions::VIEW_COURSE_REWARD_STATUS,
+        )
+        .await?,
+        can_approve_reward_candidates: teacher_has_course_permission(
+            conn,
+            actor_user_id,
+            course_id,
+            Permissions::APPROVE_STUDENT_REWARD_CANDIDATE,
+        )
+        .await?,
+        can_manage_reward_rules: teacher_has_course_permission(
+            conn,
+            actor_user_id,
+            course_id,
+            Permissions::MANAGE_COURSE_REWARD_RULES,
+        )
+        .await?,
+    })
+}
+
+async fn teacher_has_course_permission(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    course_id: i32,
+    permission: Permissions,
+) -> Result<bool, TeacherCourseDashboardError> {
+    user_has_permission_for_course_context(conn, actor_user_id, course_id, &permission)
+        .await
+        .map_err(TeacherCourseDashboardError::from)
+}
+
+async fn load_teacher_course_roster_summary(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+) -> Result<TeacherCourseRosterSummary, TeacherCourseDashboardError> {
+    let enrolled_student_count = user_role_course::table
+        .inner_join(
+            course_roles::table
+                .on(user_role_course::course_role_id.eq(course_roles::id.nullable())),
+        )
+        .filter(user_role_course::course_id.eq(course_id))
+        .filter(course_roles::name.eq("STUDENT"))
+        .count()
+        .get_result::<i64>(conn)
+        .await?;
+    let pending_join_request_count =
+        count_course_join_requests_by_status(conn, course_id, COURSE_JOIN_STATUS_PENDING).await?;
+    let waitlisted_join_request_count =
+        count_course_join_requests_by_status(conn, course_id, COURSE_JOIN_STATUS_WAITLISTED)
+            .await?;
+
+    Ok(TeacherCourseRosterSummary {
+        enrolled_student_count,
+        pending_join_request_count,
+        waitlisted_join_request_count,
+    })
+}
+
+async fn count_course_join_requests_by_status(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    status: &str,
+) -> Result<i64, TeacherCourseDashboardError> {
+    course_join_requests::table
+        .filter(course_join_requests::course_id.eq(course_id))
+        .filter(course_join_requests::status.eq(status))
+        .count()
+        .get_result::<i64>(conn)
+        .await
+        .map_err(TeacherCourseDashboardError::from)
+}
+
+async fn load_teacher_course_reward_queue_summary(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+) -> Result<TeacherCourseRewardQueueSummary, TeacherCourseDashboardError> {
+    Ok(TeacherCourseRewardQueueSummary {
+        pending_teacher_count: count_reward_candidates_by_status(
+            conn,
+            course_id,
+            REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+        )
+        .await?,
+        teacher_approved_count: count_reward_candidates_by_status(
+            conn,
+            course_id,
+            REWARD_STATUS_TEACHER_APPROVED,
+        )
+        .await?,
+        failed_count: count_reward_candidates_by_status(conn, course_id, REWARD_STATUS_FAILED)
+            .await?,
+    })
+}
+
+async fn count_reward_candidates_by_status(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    status: &str,
+) -> Result<i64, TeacherCourseDashboardError> {
+    reward_candidates::table
+        .filter(reward_candidates::course_id.eq(course_id))
+        .filter(reward_candidates::status.eq(status))
+        .count()
+        .get_result::<i64>(conn)
+        .await
+        .map_err(TeacherCourseDashboardError::from)
+}
+
+impl TeacherCoursePermissionSummary {
+    fn has_teacher_access(&self) -> bool {
+        self.can_manage_settings
+            || self.can_manage_content
+            || self.can_manage_enrollments
+            || self.can_view_reward_candidates
+            || self.can_approve_reward_candidates
+            || self.can_manage_reward_rules
+    }
 }
 
 async fn load_learner_course_organizations(

@@ -15,10 +15,11 @@ use crate::services::course_enrollment_service::{
 };
 use crate::services::course_service::{
     create_course_with_invites_for_actor, discover_courses, discover_learner_course_catalog,
-    get_learner_course_detail, get_learner_course_learning, update_course_for_actor,
-    update_course_lifecycle as update_course_lifecycle_status, CourseCreationError,
-    CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest, CourseUpdateError,
-    LearnerCourseCatalogError, LearnerCourseCatalogQuery,
+    discover_teacher_course_dashboard, get_learner_course_detail, get_learner_course_learning,
+    update_course_for_actor, update_course_lifecycle as update_course_lifecycle_status,
+    CourseCreationError, CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest,
+    CourseUpdateError, LearnerCourseCatalogError, LearnerCourseCatalogQuery,
+    TeacherCourseDashboardError, TeacherCourseDashboardQuery,
 };
 use crate::utils::notifications::NotificationsState;
 use crate::utils::request_auth::{authenticated_user, authenticated_user_id};
@@ -47,6 +48,14 @@ pub struct LearnerCourseCatalogParams {
     pub lifecycle_status: Option<String>,
     pub enrollment_status: Option<String>,
     pub reward_available: Option<bool>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+#[derive(Deserialize)]
+pub struct TeacherCourseDashboardParams {
+    pub search: Option<String>,
+    pub lifecycle_status: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
@@ -119,6 +128,15 @@ fn learner_course_catalog_error_response(error: LearnerCourseCatalogError) -> Ht
     }
 }
 
+fn teacher_course_dashboard_error_response(error: TeacherCourseDashboardError) -> HttpResponse {
+    match error {
+        TeacherCourseDashboardError::Database(message) => {
+            log::error!("event=teacher_course_dashboard_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to load teaching courses")
+        }
+    }
+}
+
 async fn send_enrollment_notification_for_course(
     conn: &mut AsyncPgConnection,
     notifications: &NotificationsState,
@@ -172,6 +190,33 @@ async fn list_learner_course_catalog(
     match discover_learner_course_catalog(&mut conn, requester.user_id, catalog_query).await {
         Ok(catalog) => HttpResponse::Ok().json(catalog),
         Err(error) => learner_course_catalog_error_response(error),
+    }
+}
+
+async fn list_teacher_course_dashboard(
+    req: HttpRequest,
+    pool: web::Data<db::DbPool>,
+    query: web::Query<TeacherCourseDashboardParams>,
+) -> impl Responder {
+    let requester = match authenticated_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    let dashboard_query = TeacherCourseDashboardQuery::new(
+        query.search.clone(),
+        query.lifecycle_status.clone(),
+        query.limit,
+        query.offset,
+    );
+
+    match discover_teacher_course_dashboard(&mut conn, requester.user_id, dashboard_query).await {
+        Ok(catalog) => HttpResponse::Ok().json(catalog),
+        Err(error) => teacher_course_dashboard_error_response(error),
     }
 }
 
@@ -592,6 +637,7 @@ pub fn course_scope() -> actix_web::Scope {
         .configure(crate::api::contents::config)
         .configure(crate::api::reward_candidates::configure_course_reward_candidate_routes)
         .service(web::resource("/catalog").route(web::get().to(list_learner_course_catalog)))
+        .service(web::resource("/teaching").route(web::get().to(list_teacher_course_dashboard)))
         .service(
             web::resource("/catalog/{id}/learn")
                 .route(web::get().to(get_learner_course_learning_route)),
