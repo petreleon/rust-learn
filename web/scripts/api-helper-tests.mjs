@@ -482,6 +482,118 @@ test("organization member helpers normalize denied, missing, server, timeout, an
   );
 });
 
+test("organization teacher application helpers send filters and parse tracking rows", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(
+      url,
+      "/api/organizations/7/teacher-applications?search=ada&status=submitted&limit=6&offset=6",
+    );
+    assert.equal(init.headers.Authorization, "Bearer org-token");
+    assert.equal(init.headers.Accept, "application/json, text/plain");
+    return jsonResponse(organizationTeacherApplicationsFixture());
+  });
+
+  const result = await organization.fetchOrganizationTeacherApplications({
+    limit: 6,
+    offset: 6,
+    organizationId: 7,
+    search: " ada ",
+    status: "submitted",
+    token: "org-token",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(result.organization.name, "Ferris Academy");
+  assert.equal(result.total, 1);
+  assert.equal(result.summary.approved, 1);
+  assert.equal(result.operator_permissions.can_nominate_teachers, true);
+  assert.equal(result.applications[0].applicant.name, "Ada Applicant");
+  assert.equal(result.applications[0].requested_organization.name, "Ferris Academy");
+  assert.equal(result.applications[0].audit.latest_event_type, "organization_nominated");
+  assert.equal(result.applications[0].portfolio_links[0], "https://example.test/portfolio");
+});
+
+test("organization teacher application helpers normalize denied, missing, server, timeout, and network errors", async () => {
+  mockFetch(() => textResponse("User does not have permission to view organization teacher applications", { status: 403 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationTeacherApplications({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "permission_denied",
+      errorClass: organization.OrganizationRequestError,
+      status: 403,
+    },
+  );
+
+  mockFetch(() => textResponse("Organization not found", { status: 404 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationTeacherApplications({
+      organizationId: 404,
+      token: "org-token",
+    }),
+    {
+      code: "not_found",
+      errorClass: organization.OrganizationRequestError,
+      status: 404,
+    },
+  );
+
+  mockFetch(() => textResponse("Failed to fetch organization teacher applications", { status: 500 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationTeacherApplications({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "server_error",
+      errorClass: organization.OrganizationRequestError,
+      status: 500,
+    },
+  );
+
+  mockFetch((_url, init) => {
+    return new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      });
+    });
+  });
+
+  await assertRequestError(
+    organization.fetchOrganizationTeacherApplications({
+      organizationId: 7,
+      timeoutMs: 1,
+      token: "org-token",
+    }),
+    {
+      code: "timeout",
+      errorClass: organization.OrganizationRequestError,
+      status: 0,
+    },
+  );
+
+  mockFetch(() => {
+    throw new TypeError("fetch failed");
+  });
+
+  await assertRequestError(
+    organization.fetchOrganizationTeacherApplications({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "network_error",
+      errorClass: organization.OrganizationRequestError,
+      status: 0,
+    },
+  );
+});
+
 test("loginWithPassword parses JSON token success", async () => {
   const calls = mockFetch((url, init) => {
     assert.equal(url, "/api/auth/login");
@@ -1715,6 +1827,63 @@ function organizationMembersFixture() {
     permission: "VIEW_ORGANIZATION",
     role: "ADMIN",
     search: "ada",
+    total: 1,
+  };
+}
+
+function organizationTeacherApplicationsFixture() {
+  return {
+    applications: [
+      {
+        applicant: {
+          email: "ada.applicant@example.test",
+          id: 44,
+          name: "Ada Applicant",
+        },
+        audit: {
+          event_count: 1,
+          latest_event_at: "2026-06-09T10:30:00Z",
+          latest_event_type: "organization_nominated",
+          latest_reason: "Sponsored by Ferris Academy",
+        },
+        created_at: "2026-06-09T10:30:00Z",
+        decided_at: null,
+        decision_reason: null,
+        experience_summary: "Ada teaches Rust ownership and project reviews.",
+        id: 91,
+        portfolio_links: ["https://example.test/portfolio"],
+        requested_course: null,
+        requested_for_this_organization: true,
+        requested_organization: {
+          id: 7,
+          name: "Ferris Academy",
+        },
+        requested_scope: "organization",
+        reviewer: null,
+        sponsored_by_this_organization: true,
+        status: "submitted",
+        updated_at: "2026-06-09T10:30:00Z",
+      },
+    ],
+    limit: 6,
+    offset: 6,
+    operator_permissions: {
+      can_nominate_teachers: true,
+      can_view_applications: true,
+    },
+    organization: {
+      id: 7,
+      name: "Ferris Academy",
+    },
+    search: "ada",
+    status: "submitted",
+    summary: {
+      approved: 1,
+      needs_changes: 0,
+      rejected: 0,
+      submitted: 1,
+      total: 2,
+    },
     total: 1,
   };
 }

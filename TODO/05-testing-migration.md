@@ -106,6 +106,14 @@
         permission, empty member data, and backend `500` retry state. BrowserMCP
         returned `Transport closed` for this runtime, so Playwright supplied
         the rendered evidence.
+  - [x] Playwright QA covers
+        `/organizations/[organizationId]/teacher-applications` populated
+        desktop tracking, dashboard Open-teacher-nominations navigation,
+        search/status filters, mobile first viewport/no-overflow, missing
+        teacher-application permission, empty tracking data, and backend `500`
+        retry state. The in-app Browser runtime loaded but did not expose
+        `browser.documentation()` or `browser.tabs`, so Playwright supplied the
+        rendered evidence.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
@@ -192,6 +200,16 @@
         route behavior for organization-scoped access, search/role/permission
         filters, direct/delegated/effective permission summaries, operator
         action booleans, and outsider `403`.
+  - [x] Frontend helper tests cover organization teacher-application tracking
+        filters, applicant/status/requested-scope/audit/operator summaries,
+        permission-denied text errors, missing organization, backend `5xx`,
+        timeout, and network failure normalization.
+  - [x] Rust API tests cover
+        `GET /api/organizations/{organizationId}/teacher-applications` route
+        behavior for organization-scoped access, submitted/approved sponsored
+        application tracking, search/status filtering, applicant/requested
+        scope/audit summaries, operator permission booleans, and outsider
+        `403`.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.

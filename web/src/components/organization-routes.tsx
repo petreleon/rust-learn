@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   CreditCard,
   Download,
+  ExternalLink,
   FileText,
   Filter,
   Loader2,
@@ -30,6 +31,7 @@ import {
   fetchOrganizationCourses,
   fetchOrganizationMembers,
   fetchOrganizationRewardDashboard,
+  fetchOrganizationTeacherApplications,
   filterOrganizationWorkspace,
   findOrganizationWorkspaceItem,
   missingOrganizationPermissions,
@@ -41,6 +43,8 @@ import {
   type OrganizationMemberList,
   type OrganizationMemberListItem,
   type OrganizationRewardDashboard,
+  type OrganizationTeacherApplicationItem,
+  type OrganizationTeacherApplicationList,
   type OrganizationWorkspaceItem,
   type OrganizationWorkspaceSummary,
 } from "@/lib/organization";
@@ -66,6 +70,7 @@ type CsvState = "idle" | "downloading" | "success" | "error";
 type ReportLoadState = "idle" | "loading" | "success" | "error";
 type CourseLoadState = "idle" | "loading" | "success" | "error";
 type MemberLoadState = "idle" | "loading" | "success" | "error";
+type TeacherApplicationLoadState = "idle" | "loading" | "success" | "error";
 
 const capabilityFilters: Array<{ label: string; value: CapabilityFilter }> = [
   { label: "All access", value: "all" },
@@ -95,7 +100,7 @@ const actionDescriptions: Record<OrganizationCapabilityKey, string> = {
   members: "Inspect organization members, role labels, scoped permissions, and management readiness.",
   reports: "Inspect reward volume, sponsored applications, wallet balances, and CSV exports.",
   settings: "Review scoped organization settings when settings contracts are available.",
-  teacher_applications: "Nominate teachers and track sponsored applications when nomination contracts are available.",
+  teacher_applications: "Track sponsored teacher applications, decisions, applicant context, and audit hints.",
   wallet: "Review budget, wallet state, and audit rows when wallet contracts are available.",
 };
 
@@ -123,6 +128,15 @@ const organizationCourseLifecycleOptions = [
 
 const ORGANIZATION_COURSE_PAGE_SIZE = 6;
 const ORGANIZATION_MEMBER_PAGE_SIZE = 8;
+const ORGANIZATION_TEACHER_APPLICATION_PAGE_SIZE = 6;
+
+const organizationTeacherApplicationStatusOptions = [
+  { label: "All statuses", value: "" },
+  { label: "Submitted", value: "submitted" },
+  { label: "Needs changes", value: "needs_changes" },
+  { label: "Approved", value: "approved" },
+  { label: "Rejected", value: "rejected" },
+];
 
 const organizationMemberRoleOptions = [
   { label: "All roles", value: "" },
@@ -552,6 +566,146 @@ export function OrganizationCoursesRoute({ organizationId }: { organizationId: s
           page={page}
           routeError={courseError}
           rewardFilter={rewardFilter}
+        />
+      ) : null}
+    </ProductShell>
+  );
+}
+
+export function OrganizationTeacherApplicationsRoute({ organizationId }: { organizationId: string }) {
+  const route = useOrganizationSession();
+  const numericOrganizationId = Number.parseInt(organizationId, 10);
+  const invalidOrganizationId = !/^\d+$/.test(organizationId) || !Number.isFinite(numericOrganizationId);
+  const organization = useMemo(
+    () =>
+      route.session && !invalidOrganizationId
+        ? findOrganizationWorkspaceItem(route.session, numericOrganizationId)
+        : null,
+    [invalidOrganizationId, numericOrganizationId, route.session],
+  );
+  const workspace = useMemo(
+    () => (route.session ? buildOrganizationWorkspace(route.session) : emptyWorkspace),
+    [route.session],
+  );
+  const teacherApplicationCapability = organization?.capabilities.find(
+    (capability) => capability.key === "teacher_applications",
+  );
+  const canTrackTeacherApplications = Boolean(teacherApplicationCapability?.enabled);
+  const [applicationError, setApplicationError] = useState<RouteError | null>(null);
+  const [applicationLoadState, setApplicationLoadState] = useState<TeacherApplicationLoadState>("idle");
+  const [applications, setApplications] = useState<OrganizationTeacherApplicationList | null>(null);
+  const [draftSearch, setDraftSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const notice = organizationNotice(route.error || applicationError);
+
+  const loadApplications = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token || invalidOrganizationId || !organization || !canTrackTeacherApplications) {
+      return;
+    }
+
+    setApplicationError(null);
+    setApplicationLoadState("loading");
+
+    try {
+      const nextApplications = await fetchOrganizationTeacherApplications({
+        limit: ORGANIZATION_TEACHER_APPLICATION_PAGE_SIZE,
+        offset: page * ORGANIZATION_TEACHER_APPLICATION_PAGE_SIZE,
+        organizationId: organization.id,
+        search,
+        status: statusFilter,
+        token,
+      });
+      setApplications(nextApplications);
+      setApplicationLoadState("success");
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      if (routeError.status === 401) {
+        clearStoredSessionToken();
+      }
+      setApplications(null);
+      setApplicationError(routeError);
+      setApplicationLoadState("error");
+    }
+  }, [canTrackTeacherApplications, invalidOrganizationId, organization, page, search, statusFilter]);
+
+  useEffect(() => {
+    if (route.session && organization && canTrackTeacherApplications) {
+      const timeout = window.setTimeout(() => {
+        setApplicationError(null);
+        setApplicationLoadState("idle");
+        setApplications(null);
+        void loadApplications();
+      }, 0);
+      return () => window.clearTimeout(timeout);
+    }
+
+    return undefined;
+  }, [canTrackTeacherApplications, loadApplications, organization, route.session]);
+
+  function applyFilters() {
+    setPage(0);
+    setSearch(draftSearch);
+  }
+
+  function resetFilters() {
+    setDraftSearch("");
+    setPage(0);
+    setSearch("");
+    setStatusFilter("");
+  }
+
+  return (
+    <ProductShell
+      activeNav="organizations"
+      breadcrumbs={[
+        { href: "/session", label: "Workspace" },
+        { href: "/organizations", label: "Organizations" },
+        {
+          href: organization ? `/organizations/${organization.id}` : undefined,
+          label: organization?.name || "Organization",
+        },
+        { label: "Teacher nominations" },
+      ]}
+      description="Organization-sponsored teacher application tracking with applicant context, status filters, and audit hints."
+      eyebrow="Organization"
+      isSignedIn={route.hasToken || Boolean(route.session)}
+      notice={notice}
+      onSignOut={route.signOut}
+      session={route.session}
+      statusItems={<OrganizationStatus workspace={workspace} />}
+      title={organization?.name ? `${organization.name} teacher nominations` : "Teacher nominations"}
+    >
+      {route.loadState === "idle" && !route.session ? <SignedOutState redirect={`/organizations/${organizationId}/teacher-applications`} /> : null}
+      {route.loadState === "loading" ? <LoadingState /> : null}
+      {route.error ? <ErrorState error={route.error} redirect={`/organizations/${organizationId}/teacher-applications`} /> : null}
+      {route.session && (invalidOrganizationId || !organization) ? <MissingOrganizationState /> : null}
+      {route.session && organization && !canTrackTeacherApplications ? (
+        <TeacherApplicationsDeniedState
+          capability={teacherApplicationCapability}
+          organizationName={organization.name}
+        />
+      ) : null}
+      {route.session && organization && canTrackTeacherApplications ? (
+        <OrganizationTeacherApplicationsContent
+          applications={applications}
+          draftSearch={draftSearch}
+          loadState={applicationLoadState}
+          onApplyFilters={applyFilters}
+          onDraftSearchChange={setDraftSearch}
+          onPageChange={setPage}
+          onRefresh={loadApplications}
+          onResetFilters={resetFilters}
+          onStatusFilterChange={(nextStatus) => {
+            setStatusFilter(nextStatus);
+            setPage(0);
+          }}
+          organization={organization}
+          page={page}
+          routeError={applicationError}
+          statusFilter={statusFilter}
         />
       ) : null}
     </ProductShell>
@@ -1283,6 +1437,298 @@ function OrganizationCourseCard({ course }: { course: OrganizationCourseListItem
   );
 }
 
+function OrganizationTeacherApplicationsContent({
+  applications,
+  draftSearch,
+  loadState,
+  onApplyFilters,
+  onDraftSearchChange,
+  onPageChange,
+  onRefresh,
+  onResetFilters,
+  onStatusFilterChange,
+  organization,
+  page,
+  routeError,
+  statusFilter,
+}: {
+  applications: OrganizationTeacherApplicationList | null;
+  draftSearch: string;
+  loadState: TeacherApplicationLoadState;
+  onApplyFilters: () => void;
+  onDraftSearchChange: (value: string) => void;
+  onPageChange: (page: number) => void;
+  onRefresh: () => void;
+  onResetFilters: () => void;
+  onStatusFilterChange: (value: string) => void;
+  organization: OrganizationWorkspaceItem;
+  page: number;
+  routeError: RouteError | null;
+  statusFilter: string;
+}) {
+  if (loadState === "loading" || loadState === "idle") {
+    return (
+      <section className={`${styles.panel} ${styles.singlePanel}`} aria-live="polite">
+        <div className={styles.panelHeader}>
+          <Loader2 className={styles.spin} size={20} aria-hidden />
+          <h2>Loading teacher applications</h2>
+        </div>
+        <div className={styles.skeletonGrid} aria-hidden>
+          <div className={styles.skeleton} />
+          <div className={styles.skeleton} />
+          <div className={styles.skeleton} />
+        </div>
+      </section>
+    );
+  }
+
+  if (loadState === "error") {
+    return <TeacherApplicationErrorState error={routeError} onRetry={onRefresh} />;
+  }
+
+  if (!applications) {
+    return null;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(applications.total / applications.limit));
+  const canGoBack = applications.offset > 0;
+  const canGoForward = applications.offset + applications.limit < applications.total;
+
+  return (
+    <>
+      <section className={styles.workspaceHero}>
+        <div className={styles.workspaceTitleBlock}>
+          <Link className={styles.backLink} href={`/organizations/${organization.id}`}>
+            <ArrowLeft size={17} aria-hidden />
+            {organization.name}
+          </Link>
+          <p className={styles.eyebrow}>Teacher nominations</p>
+          <h2>Sponsored application tracking</h2>
+          <p className={styles.muted}>
+            Applications load from the organization-scoped tracking contract. Nomination submission
+            still needs a searchable applicant picker before it should become a normal operator form.
+          </p>
+        </div>
+        <div className={styles.actionRow}>
+          <button className={styles.secondaryButton} onClick={onRefresh} type="button">
+            <RefreshCw size={17} aria-hidden />
+            Refresh
+          </button>
+        </div>
+        <div className={styles.permissionRow}>
+          {applications.operator_permissions.can_view_applications ? <span className={styles.permissionChip}>Can view tracking</span> : null}
+          {applications.operator_permissions.can_nominate_teachers ? <span className={styles.permissionChip}>Can nominate</span> : null}
+          {!applications.operator_permissions.can_view_applications &&
+          !applications.operator_permissions.can_nominate_teachers ? (
+            <span className={styles.permissionChip}>Tracking unavailable</span>
+          ) : null}
+          <StatusPill label={`${applications.summary.rejected} rejected`} tone={applications.summary.rejected ? "warn" : "neutral"} />
+        </div>
+      </section>
+
+      <section className={styles.summaryGrid}>
+        <SummaryCard icon={<UserPlus size={20} aria-hidden />} label="All applications" value={applications.summary.total} />
+        <SummaryCard icon={<Search size={20} aria-hidden />} label="Matching rows" value={applications.total} />
+        <SummaryCard icon={<FileText size={20} aria-hidden />} label="Submitted" value={applications.summary.submitted} />
+        <SummaryCard icon={<CheckCircle2 size={20} aria-hidden />} label="Approved" value={applications.summary.approved} />
+      </section>
+
+      <section className={styles.applicationFilterPanel} aria-label="Teacher application filters">
+        <label>
+          <span>Search applications</span>
+          <span className={styles.inputWithIcon}>
+            <Search size={17} aria-hidden />
+            <input
+              onChange={(event) => onDraftSearchChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  onApplyFilters();
+                }
+              }}
+              placeholder="Applicant, email, scope, course, or status"
+              type="search"
+              value={draftSearch}
+            />
+          </span>
+        </label>
+        <label>
+          <span>Status</span>
+          <select
+            aria-label="Teacher application status filter"
+            onChange={(event) => onStatusFilterChange(event.target.value)}
+            value={statusFilter}
+          >
+            {organizationTeacherApplicationStatusOptions.map((option) => (
+              <option key={option.label} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className={styles.filterActions}>
+          <button className={styles.primaryButton} onClick={onApplyFilters} type="button">
+            <Search size={17} aria-hidden />
+            Apply
+          </button>
+          <button className={styles.secondaryButton} onClick={onResetFilters} type="button">
+            <RefreshCw size={17} aria-hidden />
+            Reset
+          </button>
+        </div>
+      </section>
+
+      <section className={styles.panel}>
+        <div className={styles.sectionHeader}>
+          <h2>Application list</h2>
+          <StatusPill label={`Page ${page + 1} of ${totalPages}`} tone="neutral" />
+        </div>
+        {applications.applications.length ? (
+          <div className={styles.applicationGrid}>
+            {applications.applications.map((application) => (
+              <OrganizationTeacherApplicationCard application={application} key={application.id} />
+            ))}
+          </div>
+        ) : (
+          <p className={styles.muted}>
+            No sponsored teacher applications match these filters. Reset filters or check whether
+            the application was sponsored by another organization.
+          </p>
+        )}
+        <div className={styles.paginationRow}>
+          <button
+            className={styles.secondaryButton}
+            disabled={!canGoBack}
+            onClick={() => onPageChange(Math.max(0, page - 1))}
+            type="button"
+          >
+            Previous
+          </button>
+          <span>
+            {applications.total === 0
+              ? "0 applications"
+              : `${applications.offset + 1}-${Math.min(applications.offset + applications.limit, applications.total)} of ${applications.total}`}
+          </span>
+          <button
+            className={styles.secondaryButton}
+            disabled={!canGoForward}
+            onClick={() => onPageChange(page + 1)}
+            type="button"
+          >
+            Next
+          </button>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function OrganizationTeacherApplicationCard({
+  application,
+}: {
+  application: OrganizationTeacherApplicationItem;
+}) {
+  const requestedScope =
+    application.requested_course?.title ||
+    application.requested_organization?.name ||
+    formatUnderscoreLabel(application.requested_scope);
+  const latestAudit = application.audit.latest_event_type
+    ? `${formatUnderscoreLabel(application.audit.latest_event_type)}${
+        application.audit.latest_event_at ? ` at ${formatDateTime(application.audit.latest_event_at)}` : ""
+      }`
+    : "No audit event";
+
+  return (
+    <article className={styles.applicationCard}>
+      <div className={styles.sectionHeader}>
+        <div>
+          <h3>{application.applicant.name}</h3>
+          <p className={styles.muted}>{application.applicant.email}</p>
+        </div>
+        <StatusPill label={formatUnderscoreLabel(application.status)} tone={teacherApplicationStatusTone(application.status)} />
+      </div>
+
+      <div className={styles.metricGrid}>
+        <Metric label="Audit events" value={application.audit.event_count} />
+        <Metric label="Portfolio links" value={application.portfolio_links.length} />
+        <Metric label="Decided" value={application.decided_at ? "Yes" : "No"} />
+      </div>
+
+      <div className={styles.compactList}>
+        <div className={styles.compactRow}>
+          <span>Requested scope</span>
+          <strong>{requestedScope}</strong>
+        </div>
+        <div className={styles.compactRow}>
+          <span>Requested organization</span>
+          <strong>{application.requested_organization?.name || "Platform-wide"}</strong>
+        </div>
+        <div className={styles.compactRow}>
+          <span>Latest audit</span>
+          <strong>{latestAudit}</strong>
+        </div>
+        <div className={styles.compactRow}>
+          <span>Updated</span>
+          <strong>{formatDateTime(application.updated_at)}</strong>
+        </div>
+      </div>
+
+      <p className={styles.muted}>{application.experience_summary}</p>
+
+      {application.decision_reason || application.reviewer ? (
+        <div className={styles.compactList}>
+          {application.reviewer ? (
+            <div className={styles.compactRow}>
+              <span>Reviewer</span>
+              <strong>{application.reviewer.name}</strong>
+            </div>
+          ) : null}
+          {application.decision_reason ? (
+            <div className={styles.compactRow}>
+              <span>Decision reason</span>
+              <strong>{application.decision_reason}</strong>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className={styles.permissionRow}>
+        {application.sponsored_by_this_organization ? <span className={styles.permissionChip}>Sponsored here</span> : null}
+        {application.requested_for_this_organization ? <span className={styles.permissionChip}>Requested here</span> : null}
+        {application.audit.latest_reason ? <span className={styles.permissionChip}>Audit reason attached</span> : null}
+      </div>
+
+      {application.portfolio_links.length ? (
+        <div className={styles.portfolioList}>
+          {application.portfolio_links.slice(0, 3).map((link, index) => {
+            const href = safeExternalHref(link);
+            return href ? (
+              <a
+                className={styles.secondaryLink}
+                href={href}
+                key={`${link}-${index}`}
+                rel="noreferrer"
+                target="_blank"
+                title={link}
+              >
+                <ExternalLink size={16} aria-hidden />
+                Portfolio {index + 1}
+              </a>
+            ) : (
+              <span className={styles.permissionChip} key={`${link}-${index}`}>
+                Portfolio link unavailable
+              </span>
+            );
+          })}
+          {application.portfolio_links.length > 3 ? (
+            <span className={styles.permissionChip}>+{application.portfolio_links.length - 3} more</span>
+          ) : null}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 function OrganizationReportsContent({
   csvError,
   csvState,
@@ -1554,6 +2000,61 @@ function CourseErrorState({
   );
 }
 
+function TeacherApplicationsDeniedState({
+  capability,
+  organizationName,
+}: {
+  capability?: OrganizationCapability;
+  organizationName: string;
+}) {
+  return (
+    <section className={`${styles.panel} ${styles.singlePanel}`} role="status">
+      <div className={styles.panelHeader}>
+        <AlertTriangle size={20} aria-hidden />
+        <h2>Teacher applications unavailable</h2>
+      </div>
+      <p className={styles.muted}>
+        Your current session can see that {organizationName} exists, but it cannot open sponsored
+        teacher application tracking.
+      </p>
+      <div className={styles.missingList}>
+        <strong>Missing scoped permission</strong>
+        {(capability
+          ? missingOrganizationPermissions(capability)
+          : ["VIEW_ORG_TEACHER_APPLICATIONS", "NOMINATE_TEACHER_FOR_PLATFORM_REVIEW"]
+        ).map((permission) => (
+          <span key={permission}>{permission}</span>
+        ))}
+      </div>
+      <Link className={styles.secondaryLink} href="/organizations">
+        Back to organizations
+      </Link>
+    </section>
+  );
+}
+
+function TeacherApplicationErrorState({
+  error,
+  onRetry,
+}: {
+  error: RouteError | null;
+  onRetry: () => void;
+}) {
+  return (
+    <section className={styles.errorBox} role="status">
+      <AlertTriangle size={20} aria-hidden />
+      <span>
+        <strong>{error?.code || "teacher_application_error"}</strong>
+        <span>{error?.message || "Organization teacher applications could not be loaded."}</span>
+      </span>
+      <button className={styles.secondaryButton} onClick={onRetry} type="button">
+        <RefreshCw size={17} aria-hidden />
+        Retry
+      </button>
+    </section>
+  );
+}
+
 function ReportDeniedState({
   capability,
   organizationName,
@@ -1682,6 +2183,7 @@ function ActionCard({
   const coursesHref = `/organizations/${organizationId}/courses`;
   const membersHref = `/organizations/${organizationId}/members`;
   const reportHref = `/organizations/${organizationId}/reports`;
+  const teacherApplicationsHref = `/organizations/${organizationId}/teacher-applications`;
 
   return (
     <article className={`${styles.actionCard} ${enabled ? styles.enabledAction : styles.deniedAction}`}>
@@ -1719,6 +2221,11 @@ function ActionCard({
         <Link className={styles.primaryLink} href={reportHref}>
           <FileText size={17} aria-hidden />
           Open reports
+        </Link>
+      ) : enabled && capability.key === "teacher_applications" ? (
+        <Link className={styles.primaryLink} href={teacherApplicationsHref}>
+          <UserPlus size={17} aria-hidden />
+          Open teacher nominations
         </Link>
       ) : (
         <button className={styles.secondaryButton} disabled type="button">
@@ -1815,6 +2322,44 @@ function Metric({ label, value }: { label: string; value: number | string }) {
 
 function formatUnderscoreLabel(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function teacherApplicationStatusTone(status: string): "good" | "neutral" | "warn" {
+  if (status === "approved") {
+    return "good";
+  }
+
+  if (status === "needs_changes" || status === "rejected") {
+    return "warn";
+  }
+
+  return "neutral";
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) {
+    return "Unknown";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function safeExternalHref(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function SignedOutState({ redirect }: { redirect: string }) {

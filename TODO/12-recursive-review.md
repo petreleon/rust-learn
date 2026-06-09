@@ -143,3 +143,9 @@ represented in this folder.
       `/organizations/[organizationId]/members` now shows direct, delegated,
       and effective permission summaries plus view-only operator states while
       leaving invite, role mutation, removal, and audit history open.
+- [x] Organization teacher nomination work could have turned into another raw
+      applicant-id form; `/organizations/[organizationId]/teacher-applications`
+      now ships the real sponsored/requested application tracking view with
+      search, status filters, applicant labels, audit hints, and denied/empty/
+      error/mobile evidence while leaving nomination submission open until a
+      searchable applicant lookup exists.

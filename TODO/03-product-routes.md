@@ -191,6 +191,14 @@
         ownership changes, and reward-policy authoring remain open management
         work.
 - [ ] Build teacher nomination and sponsored-application tracking.
+  - [x] `/organizations/[organizationId]/teacher-applications` now consumes
+        `GET /api/organizations/{organizationId}/teacher-applications` to show
+        sponsored/requested application tracking with search, status filters,
+        pagination, applicant context, requested scope labels, portfolio links,
+        audit hints, submitted/approved states, dashboard navigation, and
+        signed-out/denied/empty/backend-failure states.
+  - [ ] Nomination submission remains open until searchable applicant lookup
+        prevents raw user id entry.
 - [ ] Build organization reward reports with date filters, CSV exports,
       approved amounts, payouts, failures, and reconciliation indicators.
   - [x] `/organizations/[organizationId]/reports` now consumes the existing

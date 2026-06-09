@@ -108,6 +108,18 @@ screens pretend to be complete.
         permissions, delegated organization permissions, effective
         permissions, and operator action booleans. Invite, role mutation,
         removal, and audit-history behavior remain separate contracts.
+- [x] Define an organization-scoped teacher application tracking contract
+      before marking sponsored-application visibility complete.
+  - [x] `GET /api/organizations/{organizationId}/teacher-applications`
+        returns to platform or organization-scoped
+        `VIEW_ORG_TEACHER_APPLICATIONS` or
+        `NOMINATE_TEACHER_FOR_PLATFORM_REVIEW` users and includes
+        `total/limit/offset/search/status`, organization labels, applicant
+        names/emails, requested scope, requested organization/course labels,
+        sponsor/requested-here booleans, portfolio links, status, reviewer,
+        decision reason, audit summary, dashboard summary counts, and operator
+        action booleans. A searchable applicant lookup remains open before
+        nomination submission should become a normal product form.
 - [ ] Define upload-job or media-processing status APIs before the teacher
       upload UI promises progress or retry visibility.
 - [ ] Define searchable user, organization, course, application, reward,

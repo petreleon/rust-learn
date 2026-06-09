@@ -1,6 +1,9 @@
 use crate::config::constants::permissions::Permissions;
 use crate::config::constants::roles::Roles;
-use crate::db::schema::{user_role_course, user_role_organization, user_role_platform};
+use crate::db::schema::{
+    courses, organizations, teacher_application_audit_events, teacher_applications,
+    user_role_course, user_role_organization, user_role_platform, users,
+};
 use crate::models::role::{CourseRole, OrganizationRole, PlatformRole};
 use crate::models::teacher_application::{
     NewTeacherApplication, NewTeacherApplicationAuditEvent, TeacherApplication,
@@ -19,6 +22,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum TeacherApplicationError {
@@ -78,6 +82,95 @@ pub struct ListTeacherApplicationsRequest {
     pub organization_sponsor_id: Option<i32>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct OrganizationTeacherApplicationsRequest {
+    pub status: Option<String>,
+    pub search: Option<String>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct OrganizationTeacherApplicationsResponse {
+    pub organization: OrganizationTeacherApplicationsOrganization,
+    pub applications: Vec<OrganizationTeacherApplicationItem>,
+    pub summary: TeacherApplicationDashboardSummary,
+    pub operator_permissions: OrganizationTeacherApplicationPermissions,
+    pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
+    pub status: Option<String>,
+    pub search: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct OrganizationTeacherApplicationsOrganization {
+    pub id: i32,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct OrganizationTeacherApplicationItem {
+    pub id: i64,
+    pub applicant: TeacherApplicationUserSummary,
+    pub requested_scope: String,
+    pub requested_organization: Option<TeacherApplicationOrganizationSummary>,
+    pub requested_course: Option<TeacherApplicationCourseSummary>,
+    pub sponsored_by_this_organization: bool,
+    pub requested_for_this_organization: bool,
+    pub experience_summary: String,
+    pub portfolio_links: Vec<String>,
+    pub status: String,
+    pub reviewer: Option<TeacherApplicationUserSummary>,
+    pub decision_reason: Option<String>,
+    pub audit: TeacherApplicationAuditSummary,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub decided_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TeacherApplicationUserSummary {
+    pub id: i32,
+    pub name: String,
+    pub email: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TeacherApplicationOrganizationSummary {
+    pub id: i32,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TeacherApplicationCourseSummary {
+    pub id: i32,
+    pub title: String,
+}
+
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct TeacherApplicationAuditSummary {
+    pub event_count: usize,
+    pub latest_event_type: Option<String>,
+    pub latest_event_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub latest_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct TeacherApplicationDashboardSummary {
+    pub approved: i64,
+    pub needs_changes: i64,
+    pub rejected: i64,
+    pub submitted: i64,
+    pub total: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct OrganizationTeacherApplicationPermissions {
+    pub can_view_applications: bool,
+    pub can_nominate_teachers: bool,
 }
 
 pub async fn submit_application(
@@ -282,6 +375,103 @@ pub async fn list_applications(
     .map_err(TeacherApplicationError::from)
 }
 
+pub async fn list_organization_applications(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    organization_id: i32,
+    request: OrganizationTeacherApplicationsRequest,
+) -> Result<OrganizationTeacherApplicationsResponse, TeacherApplicationError> {
+    let organization = organizations::table
+        .find(organization_id)
+        .select((organizations::id, organizations::name))
+        .first::<(i32, String)>(conn)
+        .await
+        .map_err(TeacherApplicationError::from)?;
+
+    let can_view_applications = user_has_platform_or_organization_permission(
+        conn,
+        actor_user_id,
+        organization_id,
+        Permissions::VIEW_ORG_TEACHER_APPLICATIONS,
+    )
+    .await?;
+    let can_nominate_teachers = user_has_platform_or_organization_permission(
+        conn,
+        actor_user_id,
+        organization_id,
+        Permissions::NOMINATE_TEACHER_FOR_PLATFORM_REVIEW,
+    )
+    .await?;
+
+    if !can_view_applications && !can_nominate_teachers {
+        return Err(TeacherApplicationError::PermissionDenied(
+            Permissions::VIEW_ORG_TEACHER_APPLICATIONS.to_string(),
+        ));
+    }
+
+    let status = match request.status {
+        Some(status) => Some(normalize_status(&status)?),
+        None => None,
+    };
+    let search = normalize_optional_text(request.search);
+    let limit = request.limit.unwrap_or(25).clamp(1, 100);
+    let offset = request.offset.unwrap_or(0).max(0);
+
+    let applications = teacher_applications::table
+        .filter(
+            teacher_applications::organization_sponsor_id
+                .eq(Some(organization_id))
+                .or(teacher_applications::requested_organization_id.eq(Some(organization_id))),
+        )
+        .order(teacher_applications::created_at.desc())
+        .then_order_by(teacher_applications::id.desc())
+        .load::<TeacherApplication>(conn)
+        .await
+        .map_err(TeacherApplicationError::from)?;
+
+    let summary = teacher_application_summary(&applications);
+    let context = build_organization_application_context(conn, &applications).await?;
+    let mut items = applications
+        .iter()
+        .map(|application| organization_application_item(application, organization_id, &context))
+        .collect::<Vec<_>>();
+
+    if let Some(status) = status.as_deref() {
+        items.retain(|application| application.status == status);
+    }
+    if let Some(search) = search.as_deref() {
+        let normalized = search.to_lowercase();
+        items.retain(|application| {
+            organization_application_matches_search(application, &normalized)
+        });
+    }
+
+    let total = items.len() as i64;
+    let applications = items
+        .into_iter()
+        .skip(offset as usize)
+        .take(limit as usize)
+        .collect::<Vec<_>>();
+
+    Ok(OrganizationTeacherApplicationsResponse {
+        organization: OrganizationTeacherApplicationsOrganization {
+            id: organization.0,
+            name: organization.1,
+        },
+        applications,
+        summary,
+        operator_permissions: OrganizationTeacherApplicationPermissions {
+            can_view_applications,
+            can_nominate_teachers,
+        },
+        total,
+        limit,
+        offset,
+        status,
+        search,
+    })
+}
+
 pub async fn decide_application(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
@@ -371,6 +561,235 @@ pub async fn list_audit_events(
     teacher_application_repository::list_audit_events(conn, application_id)
         .await
         .map_err(TeacherApplicationError::from)
+}
+
+struct OrganizationApplicationContext {
+    users: BTreeMap<i32, TeacherApplicationUserSummary>,
+    organizations: BTreeMap<i32, String>,
+    courses: BTreeMap<i32, String>,
+    audits: BTreeMap<i64, TeacherApplicationAuditSummary>,
+}
+
+async fn build_organization_application_context(
+    conn: &mut AsyncPgConnection,
+    applications: &[TeacherApplication],
+) -> Result<OrganizationApplicationContext, TeacherApplicationError> {
+    let user_ids = applications
+        .iter()
+        .flat_map(|application| [Some(application.applicant_user_id), application.reviewer_id])
+        .flatten()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let users = if user_ids.is_empty() {
+        BTreeMap::new()
+    } else {
+        users::table
+            .filter(users::id.eq_any(&user_ids))
+            .select((users::id, users::name, users::email))
+            .load::<(i32, String, String)>(conn)
+            .await
+            .map_err(TeacherApplicationError::from)?
+            .into_iter()
+            .map(|(id, name, email)| (id, TeacherApplicationUserSummary { id, name, email }))
+            .collect()
+    };
+
+    let organization_ids = applications
+        .iter()
+        .flat_map(|application| {
+            [
+                application.requested_organization_id,
+                application.organization_sponsor_id,
+            ]
+        })
+        .flatten()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let organizations = if organization_ids.is_empty() {
+        BTreeMap::new()
+    } else {
+        organizations::table
+            .filter(organizations::id.eq_any(&organization_ids))
+            .select((organizations::id, organizations::name))
+            .load::<(i32, String)>(conn)
+            .await
+            .map_err(TeacherApplicationError::from)?
+            .into_iter()
+            .collect()
+    };
+
+    let course_ids = applications
+        .iter()
+        .filter_map(|application| application.requested_course_id)
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect::<Vec<_>>();
+    let courses = if course_ids.is_empty() {
+        BTreeMap::new()
+    } else {
+        courses::table
+            .filter(courses::id.eq_any(&course_ids))
+            .select((courses::id, courses::title))
+            .load::<(i32, String)>(conn)
+            .await
+            .map_err(TeacherApplicationError::from)?
+            .into_iter()
+            .collect()
+    };
+
+    let application_ids = applications
+        .iter()
+        .map(|application| application.id)
+        .collect::<Vec<_>>();
+    let audits = if application_ids.is_empty() {
+        BTreeMap::new()
+    } else {
+        let audit_events = teacher_application_audit_events::table
+            .filter(teacher_application_audit_events::application_id.eq_any(&application_ids))
+            .order(teacher_application_audit_events::created_at.asc())
+            .then_order_by(teacher_application_audit_events::id.asc())
+            .load::<TeacherApplicationAuditEvent>(conn)
+            .await
+            .map_err(TeacherApplicationError::from)?;
+        build_audit_summaries(audit_events)
+    };
+
+    Ok(OrganizationApplicationContext {
+        users,
+        organizations,
+        courses,
+        audits,
+    })
+}
+
+fn organization_application_item(
+    application: &TeacherApplication,
+    organization_id: i32,
+    context: &OrganizationApplicationContext,
+) -> OrganizationTeacherApplicationItem {
+    OrganizationTeacherApplicationItem {
+        id: application.id,
+        applicant: context
+            .users
+            .get(&application.applicant_user_id)
+            .cloned()
+            .unwrap_or(TeacherApplicationUserSummary {
+                id: application.applicant_user_id,
+                name: "Unknown applicant".to_string(),
+                email: "unknown@example.invalid".to_string(),
+            }),
+        requested_scope: application.requested_scope.clone(),
+        requested_organization: application.requested_organization_id.map(|id| {
+            TeacherApplicationOrganizationSummary {
+                id,
+                name: context
+                    .organizations
+                    .get(&id)
+                    .cloned()
+                    .unwrap_or_else(|| format!("Organization {id}")),
+            }
+        }),
+        requested_course: application.requested_course_id.map(|id| {
+            TeacherApplicationCourseSummary {
+                id,
+                title: context
+                    .courses
+                    .get(&id)
+                    .cloned()
+                    .unwrap_or_else(|| format!("Course {id}")),
+            }
+        }),
+        sponsored_by_this_organization: application.organization_sponsor_id
+            == Some(organization_id),
+        requested_for_this_organization: application.requested_organization_id
+            == Some(organization_id),
+        experience_summary: application.experience_summary.clone(),
+        portfolio_links: portfolio_links_from_json(&application.portfolio_links),
+        status: application.status.clone(),
+        reviewer: application
+            .reviewer_id
+            .and_then(|reviewer_id| context.users.get(&reviewer_id).cloned()),
+        decision_reason: application.decision_reason.clone(),
+        audit: context
+            .audits
+            .get(&application.id)
+            .cloned()
+            .unwrap_or_default(),
+        created_at: application.created_at,
+        updated_at: application.updated_at,
+        decided_at: application.decided_at,
+    }
+}
+
+fn build_audit_summaries(
+    audit_events: Vec<TeacherApplicationAuditEvent>,
+) -> BTreeMap<i64, TeacherApplicationAuditSummary> {
+    let mut summaries = BTreeMap::<i64, TeacherApplicationAuditSummary>::new();
+    for event in audit_events {
+        let summary = summaries.entry(event.application_id).or_default();
+        summary.event_count += 1;
+        summary.latest_event_type = Some(event.event_type);
+        summary.latest_event_at = Some(event.created_at);
+        summary.latest_reason = event.reason;
+    }
+    summaries
+}
+
+fn teacher_application_summary(
+    applications: &[TeacherApplication],
+) -> TeacherApplicationDashboardSummary {
+    let mut summary = TeacherApplicationDashboardSummary::default();
+    for application in applications {
+        summary.total += 1;
+        match application.status.as_str() {
+            TEACHER_APPLICATION_STATUS_APPROVED => summary.approved += 1,
+            TEACHER_APPLICATION_STATUS_NEEDS_CHANGES => summary.needs_changes += 1,
+            TEACHER_APPLICATION_STATUS_REJECTED => summary.rejected += 1,
+            TEACHER_APPLICATION_STATUS_SUBMITTED => summary.submitted += 1,
+            _ => {}
+        }
+    }
+    summary
+}
+
+fn organization_application_matches_search(
+    application: &OrganizationTeacherApplicationItem,
+    search: &str,
+) -> bool {
+    application.applicant.name.to_lowercase().contains(search)
+        || application.applicant.email.to_lowercase().contains(search)
+        || application
+            .experience_summary
+            .to_lowercase()
+            .contains(search)
+        || application.status.to_lowercase().contains(search)
+        || application.requested_scope.to_lowercase().contains(search)
+        || application
+            .requested_course
+            .as_ref()
+            .is_some_and(|course| course.title.to_lowercase().contains(search))
+        || application
+            .requested_organization
+            .as_ref()
+            .is_some_and(|organization| organization.name.to_lowercase().contains(search))
+}
+
+async fn user_has_platform_or_organization_permission(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    organization_id: i32,
+    permission: Permissions,
+) -> Result<bool, TeacherApplicationError> {
+    let permission_name = permission.to_string();
+    if user_permission_platform_request(conn, user_id, &permission_name).await? {
+        return Ok(true);
+    }
+    Ok(
+        user_permission_organization_request(conn, user_id, organization_id, &permission_name)
+            .await?,
+    )
 }
 
 async fn assign_approved_teaching_bundle(
@@ -668,6 +1087,31 @@ fn clean_portfolio_links(portfolio_links: Option<Vec<String>>) -> Vec<String> {
         .map(|link| link.trim().to_string())
         .filter(|link| !link.is_empty())
         .collect()
+}
+
+fn portfolio_links_from_json(portfolio_links: &serde_json::Value) -> Vec<String> {
+    portfolio_links
+        .as_array()
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|item| item.as_str())
+                .map(|link| link.trim().to_string())
+                .filter(|link| !link.is_empty())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn normalize_optional_text(value: Option<String>) -> Option<String> {
+    value.and_then(|text| {
+        let trimmed = text.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
 }
 
 fn normalize_scope(scope: &str) -> Result<String, TeacherApplicationError> {

@@ -52,6 +52,68 @@ export type TeacherApplicationDashboardSummary = {
   total: number;
 };
 
+export type OrganizationTeacherApplicationUser = {
+  email: string;
+  id: number;
+  name: string;
+};
+
+export type OrganizationTeacherApplicationOrganization = {
+  id: number;
+  name: string;
+};
+
+export type OrganizationTeacherApplicationCourse = {
+  id: number;
+  title: string;
+};
+
+export type OrganizationTeacherApplicationAuditSummary = {
+  event_count: number;
+  latest_event_at: string | null;
+  latest_event_type: string | null;
+  latest_reason: string | null;
+};
+
+export type OrganizationTeacherApplicationItem = {
+  applicant: OrganizationTeacherApplicationUser;
+  audit: OrganizationTeacherApplicationAuditSummary;
+  created_at: string;
+  decided_at: string | null;
+  decision_reason: string | null;
+  experience_summary: string;
+  id: number;
+  portfolio_links: string[];
+  requested_course: OrganizationTeacherApplicationCourse | null;
+  requested_for_this_organization: boolean;
+  requested_organization: OrganizationTeacherApplicationOrganization | null;
+  requested_scope: string;
+  reviewer: OrganizationTeacherApplicationUser | null;
+  sponsored_by_this_organization: boolean;
+  status: string;
+  updated_at: string;
+};
+
+export type OrganizationTeacherApplicationOperatorPermissions = {
+  can_nominate_teachers: boolean;
+  can_view_applications: boolean;
+};
+
+export type OrganizationTeacherApplicationList = {
+  applications: OrganizationTeacherApplicationItem[];
+  limit: number;
+  offset: number;
+  operator_permissions: OrganizationTeacherApplicationOperatorPermissions;
+  organization: {
+    id: number;
+    name: string;
+  };
+  search: string | null;
+  status: string | null;
+  summary: TeacherApplicationDashboardSummary;
+  total: number;
+};
+
 export type OrganizationCourseRewardDashboardRow = {
   approved_amount_total: string;
   approved_reward_count: number;
@@ -215,6 +277,14 @@ export type OrganizationMemberListOptions = OrganizationRequestOptions & {
   permission?: string | null;
   role?: string | null;
   search?: string | null;
+};
+
+export type OrganizationTeacherApplicationListOptions = OrganizationRequestOptions & {
+  limit?: number;
+  offset?: number;
+  organizationId: number;
+  search?: string | null;
+  status?: string | null;
 };
 
 type OrganizationErrorEnvelope = {
@@ -466,6 +536,41 @@ export async function fetchOrganizationMembers({
   return organizationJsonRequest({
     apiRoot,
     path: `/organizations/${organizationId}/members${suffix ? `?${suffix}` : ""}`,
+    timeoutMs,
+    token,
+  });
+}
+
+export async function fetchOrganizationTeacherApplications({
+  apiRoot = "/api",
+  limit,
+  offset,
+  organizationId,
+  search,
+  status,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: OrganizationTeacherApplicationListOptions): Promise<OrganizationTeacherApplicationList> {
+  const query = new URLSearchParams();
+  const normalizedSearch = search?.trim();
+  if (normalizedSearch) {
+    query.set("search", normalizedSearch);
+  }
+  const normalizedStatus = status?.trim();
+  if (normalizedStatus) {
+    query.set("status", normalizedStatus);
+  }
+  if (typeof limit === "number") {
+    query.set("limit", String(limit));
+  }
+  if (typeof offset === "number") {
+    query.set("offset", String(offset));
+  }
+
+  const suffix = query.toString();
+  return organizationJsonRequest({
+    apiRoot,
+    path: `/organizations/${organizationId}/teacher-applications${suffix ? `?${suffix}` : ""}`,
     timeoutMs,
     token,
   });

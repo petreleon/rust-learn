@@ -41,6 +41,16 @@ routine work.
         permission summaries. Editing, publishing, ownership changes, and
         reward-policy authoring remain separate route work.
 - [ ] Teacher nomination and sponsored application contracts.
+  - [x] `GET /api/organizations/{organizationId}/teacher-applications`
+        returns organization-scoped sponsored/requested teacher applications
+        with search, status filtering, pagination, applicant labels, requested
+        scope labels, portfolio links, submitted/decided states, reviewer and
+        decision context, audit summary, dashboard summary counts, and operator
+        permission booleans. Existing `POST /api/organizations/{id}/teacher-applications`
+        remains the nomination mutation contract.
+  - [ ] Searchable applicant lookup and duplicate/decided nomination conflict
+        UX are still needed before normal operators should submit nominations
+        from the product UI.
 - [ ] Organization reward reports with filters, pagination, CSV export, payout
       failures, and reconciliation indicators.
   - [x] Existing all-time organization reward dashboard contract is now used by
@@ -79,6 +89,14 @@ routine work.
         open management work.
 - [ ] `/organizations/[organizationId]/teacher-applications` nominations and
       sponsored application tracking.
+  - [x] Shows organization-sponsored/requested application tracking from the
+        scoped contract, including dashboard navigation, search/status filters,
+        pagination, applicant names/emails, requested scope context, portfolio
+        links, audit counts/latest event, submitted and approved/decided rows,
+        operator permission chips, signed-out, denied, empty, and retryable
+        backend-failure states.
+  - [ ] Nomination submission remains open until the frontend has a searchable
+        applicant picker instead of raw user id entry.
 - [x] `/organizations/[organizationId]/reports` reward reports and exports.
   - [x] Shows all-time reward candidates, approved rewards, approved amount,
         sponsored teacher application summary, report-scoped wallet balance,
@@ -156,6 +174,11 @@ routine work.
         and course summaries through organization scope without needing the
         teacher to be an organization admin.
 - [ ] Teacher nomination already exists or is already decided.
+  - [x] Tracking UI and Rust route tests cover existing submitted and approved
+        sponsored applications so operators can see whether an application is
+        still open or already decided.
+  - [ ] Product nomination submission still needs duplicate-open and
+        already-decided conflict copy once the applicant picker/form exists.
 - [ ] CSV export is empty, slow, denied, or fails after request starts.
   - [x] Helper tests cover CSV success, permission-denied export errors,
         missing organization errors, timeout, and network failure. Rendered QA
@@ -195,6 +218,14 @@ routine work.
         permission, view-only empty member data, and backend `500` retry state.
         BrowserMCP was unavailable in this runtime (`Transport closed`), so
         Playwright supplied rendered evidence.
+  - [x] Playwright QA covers
+        `/organizations/[organizationId]/teacher-applications` desktop
+        populated tracking, dashboard-to-teacher-nominations navigation,
+        search/status filter interaction, mobile first viewport/no-overflow,
+        missing teacher-application permission, empty tracking data, and
+        backend `500` retry state. The in-app Browser runtime loaded but did
+        not expose `browser.documentation()` or `browser.tabs`, so Playwright
+        supplied rendered evidence.
 - [ ] Tests for multi-org user, report-only user, wallet-denied user,
       invite-denied user, empty report, and failed CSV download.
   - [x] Frontend helper tests cover multi-org summaries, report/wallet/member
@@ -219,6 +250,16 @@ routine work.
         successful operator/member summaries, permission-denied, missing
         organization, backend `5xx`, timeout, and network failure
         normalization.
+  - [x] Rust API tests cover
+        `GET /api/organizations/{organizationId}/teacher-applications` route
+        behavior for organization-scoped access, submitted/approved sponsored
+        application tracking, search/status filtering, applicant/requested
+        scope/audit summaries, operator permission booleans, and outsider
+        `403`.
+  - [x] Frontend helper tests cover organization teacher-application tracking
+        filters, successful applicant/status/audit/operator summaries,
+        permission-denied, missing organization, backend `5xx`, timeout, and
+        network failure normalization.
 - [ ] Docker Compose E2E path: organization dashboard, member/report action,
       CSV or wallet audit, log scan.
 - [ ] Kubernetes smoke path loads organization routes and verifies selected

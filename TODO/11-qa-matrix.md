@@ -20,6 +20,16 @@ work complete.
 
 ### Recent Route Evidence
 
+- [x] `/organizations/[organizationId]/teacher-applications` rendered QA
+      covers populated desktop tracking, dashboard-to-teacher-nominations
+      navigation, search/status filter interaction, mobile first
+      viewport/no-overflow, missing teacher-application permission, empty
+      tracking data, and backend `500` retry state. Normal populated, mobile,
+      denied, and empty flows had no relevant console errors; the backend
+      failure fixture intentionally produced `500` resource console evidence.
+      The in-app Browser runtime loaded but did not expose
+      `browser.documentation()` or `browser.tabs`, so Playwright supplied
+      screenshots and interaction proof.
 - [x] `/organizations/[organizationId]/members` rendered QA covers populated
       desktop member list, dashboard-to-members navigation, search/role filter
       interaction, mobile first viewport/no-overflow, missing member-view

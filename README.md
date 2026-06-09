@@ -275,6 +275,21 @@ labels, member names and emails, email/KYC readiness, role labels, direct
 permissions, active delegated organization permissions, effective permissions,
 and operator permission booleans for the member directory.
 
+### Organization teacher application API
+
+Organization operators with platform or organization-scoped
+`VIEW_ORG_TEACHER_APPLICATIONS` or
+`NOMINATE_TEACHER_FOR_PLATFORM_REVIEW` can read
+`GET /api/organizations/{id}/teacher-applications`. The response supports
+`search`, `status`, `limit`, and `offset` and includes organization labels,
+applicant names and emails, requested scope, requested organization/course
+labels, portfolio links, status, reviewer and decision context, audit summary,
+dashboard summary counts, and operator permission booleans for sponsored
+application tracking. Nomination submission still uses
+`POST /api/organizations/{id}/teacher-applications`; product UI submission
+should wait for searchable applicant lookup so operators do not type raw user
+ids.
+
 ### Reporting exports
 
 Platform administrators can read `GET /api/reports/platform/summary` and export

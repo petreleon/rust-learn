@@ -1,6 +1,7 @@
 .summaryGrid,
 .filterPanel,
 .courseFilterPanel,
+.applicationFilterPanel,
 .memberFilterPanel,
 .organizationSection,
 .workspaceHero,
@@ -20,6 +21,7 @@
 .summaryCard,
 .filterPanel,
 .memberFilterPanel,
+.applicationFilterPanel,
 .organizationCard,
 .workspaceHero,
 .panel,
@@ -97,6 +99,20 @@
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
 }
 
+.applicationFilterPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.28fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
+}
+
 .filterPanel label {
   display: grid;
   gap: 7px;
@@ -105,6 +121,7 @@
 }
 
 .courseFilterPanel label,
+.applicationFilterPanel label,
 .memberFilterPanel label {
   display: grid;
   gap: 7px;
@@ -116,6 +133,8 @@
 .filterPanel select,
 .courseFilterPanel input,
 .courseFilterPanel select,
+.applicationFilterPanel input,
+.applicationFilterPanel select,
 .memberFilterPanel input,
 .memberFilterPanel select {
   width: 100%;
@@ -130,6 +149,7 @@
 
 .filterPanel input,
 .courseFilterPanel input,
+.applicationFilterPanel input,
 .memberFilterPanel input {
   border: 0;
   padding: 0;
@@ -137,6 +157,7 @@
 
 .filterPanel select,
 .courseFilterPanel select,
+.applicationFilterPanel select,
 .memberFilterPanel select {
   padding: 0 12px;
 }
@@ -400,6 +421,8 @@
 .reportGrid,
 .compactList,
 .courseGrid,
+.applicationGrid,
+.portfolioList,
 .memberGrid {
   display: grid;
   gap: 12px;
@@ -410,11 +433,13 @@
 }
 
 .courseGrid,
+.applicationGrid,
 .memberGrid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .courseCard,
+.applicationCard,
 .memberCard {
   display: grid;
   gap: 12px;
@@ -425,6 +450,7 @@
 }
 
 .courseCard h3,
+.applicationCard h3,
 .memberCard h3 {
   color: #172033;
   font-size: 1.02rem;
@@ -460,6 +486,13 @@
 .compactRow strong {
   color: #172033;
   text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.portfolioList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .filterActions,
@@ -555,6 +588,7 @@
   .actionGrid,
   .reportGrid,
   .courseGrid,
+  .applicationGrid,
   .memberGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -562,6 +596,7 @@
   .twoColumn,
   .filterPanel,
   .courseFilterPanel,
+  .applicationFilterPanel,
   .memberFilterPanel {
     grid-template-columns: 1fr;
   }
@@ -573,6 +608,7 @@
   .metricGrid,
   .reportGrid,
   .courseGrid,
+  .applicationGrid,
   .memberGrid {
     grid-template-columns: 1fr;
   }
@@ -592,6 +628,7 @@
   .summaryCard,
     .filterPanel,
     .courseFilterPanel,
+    .applicationFilterPanel,
     .memberFilterPanel,
     .organizationCard,
     .workspaceHero,
