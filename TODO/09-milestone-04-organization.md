@@ -13,8 +13,12 @@ routine work.
 - [ ] If reports show numbers without filters, export state, or reconciliation
       context, reject the dashboard.
 - [ ] If member permissions are presented as role names only, reject the UI.
-- [ ] If wallet budget actions do not explain permission, balance, and audit
+- [x] If wallet budget actions do not explain permission, balance, and audit
       effects, reject the flow.
+  - [x] `/organizations/[organizationId]/wallet` explains visible balance,
+        uncredited approved rewards, permission chips, audit coverage, and
+        non-reservation semantics before operators use wallet-linked reward
+        actions.
 
 ## Backend Contracts
 
@@ -58,7 +62,13 @@ routine work.
         `GET /api/reports/organizations/{organizationId}/reward-dashboard` and
         `.csv`. Date filters, pagination, payout-failure drill-downs, and
         reconciliation rows remain open backend contract work.
-- [ ] Organization wallet audit and budget contract.
+- [x] Organization wallet audit and budget contract.
+  - [x] Existing wallet endpoints now have frontend helper coverage and a Rust
+        regression for
+        `GET /api/wallets/organizations/{organizationId}/audit`, including
+        source-organization reward rows, payout token links, internal ledger
+        rows, `needs_wallet_credit` reconciliation status, and outsider `403`.
+        Budget mutation remains separate reward-budget route work.
 
 ## Routes And Screens
 
@@ -107,7 +117,11 @@ routine work.
         backend-failure, and stale organization states without raw id entry.
         Date-filtered, paginated, payout-failure, reconciliation, and wallet
         audit details remain open until their contracts exist.
-- [ ] `/organizations/[organizationId]/wallet` wallet, budget, and audit.
+- [x] `/organizations/[organizationId]/wallet` wallet, budget, and audit.
+  - [x] Route loads the organization wallet audit, shows linked/missing/error/
+        denied states, links missing wallets when `MANAGE_ORG_WALLETS` is
+        present, and renders wallet balance, ledger rows, budget constraints,
+        reward-credit reconciliation, token links, and compensation rows.
 - [ ] `/organizations/[organizationId]/settings` scoped settings and
       permission-aware actions.
 
@@ -156,12 +170,16 @@ routine work.
   - [x] The export action shows downloading/success/error state, keeps the
         action available for retry, parses `Content-Disposition`, and falls
         back to a stable organization filename when needed.
-- [ ] Show wallet balance, audit rows, reward credits, token links, and
+- [x] Show wallet balance, audit rows, reward credits, token links, and
       reconciliation indicators.
   - [x] Report-scoped wallet balance summary is visible to users with report
-        access. Wallet audit rows, reward credits, token links, and
-        reconciliation indicators remain open wallet/report contract work.
-- [ ] Explain organization budget constraints before reward-related actions.
+        access, and the wallet route now shows wallet audit rows, reward
+        credits, token transaction links, compensation rows, and
+        reconciliation indicators from the audit contract.
+- [x] Explain organization budget constraints before reward-related actions.
+  - [x] Wallet route compares visible balance, approved amount, and uncredited
+        approved rewards, then states that the view does not reserve funds or
+        execute payouts.
 
 ## Organization Edge Cases
 
@@ -191,12 +209,14 @@ routine work.
         missing organization errors, timeout, and network failure. Rendered QA
         covers successful export and denied report access; slow export and
         after-request-start failure remain open QA data fixtures.
-- [ ] Wallet exists but audit load fails.
+- [x] Wallet exists but audit load fails.
+  - [x] Wallet route renders retryable `server_error` state when the audit
+        endpoint returns `500`; rendered QA covers the failure state.
 - [ ] Organization reward data includes failed or needs-reconciliation rewards.
 
 ## Acceptance Evidence
 
-- [ ] Desktop and mobile checks for organization dashboard, members, courses,
+- [x] Desktop and mobile checks for organization dashboard, members, courses,
       reports, wallet, and denied state.
   - [x] Browser plus Playwright QA covers `/organizations` desktop
         multi-organization selector, delegated search/filter interaction,
@@ -240,6 +260,10 @@ routine work.
         backend `500` retry state. The in-app Browser runtime loaded but did
         not expose `browser.documentation()` or `browser.tabs`, so Playwright
         supplied rendered evidence.
+  - [x] Browser QA covers `/organizations/[organizationId]/wallet` through
+        the real login form, populated desktop audit, missing-wallet link
+        interaction, retryable audit `500`, missing wallet permission, and
+        mobile first viewport/no-overflow. Console warnings/errors were clean.
 - [ ] Tests for multi-org user, report-only user, wallet-denied user,
       invite-denied user, empty report, and failed CSV download.
   - [x] Frontend helper tests cover multi-org summaries, report/wallet/member
@@ -279,6 +303,11 @@ routine work.
         filters, successful applicant/status/audit/operator summaries,
         permission-denied, missing organization, backend `5xx`, timeout, and
         network failure normalization.
+  - [x] Rust API tests cover organization wallet audit for source-organization
+        rewards, payout token links, internal ledger rows, read access via
+        `VIEW_ORG_REWARD_REPORTS`, and outsider `403`. Frontend helper tests
+        cover audit/link parsing plus missing wallet, permission-denied,
+        backend `5xx`, timeout, and network failure normalization.
 - [ ] Docker Compose E2E path: organization dashboard, member/report action,
       CSV or wallet audit, log scan.
 - [ ] Kubernetes smoke path loads organization routes and verifies selected

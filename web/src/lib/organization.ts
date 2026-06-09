@@ -214,6 +214,80 @@ export type OrganizationRewardDashboard = {
   wallets: OrganizationWalletBalanceRow[];
 };
 
+export type OrganizationWalletSummary = {
+  id: number;
+  organization_id: number | null;
+  owner_type: "organization" | "user";
+  user_id: number | null;
+  value: string;
+};
+
+export type OrganizationWalletLinkResult = {
+  created: boolean;
+  wallet: OrganizationWalletSummary;
+};
+
+export type OrganizationWalletInternalTransactionAudit = {
+  amount: string;
+  created_at: string;
+  internal_transaction_id: number;
+  transaction_id: number;
+  transaction_type: string;
+};
+
+export type OrganizationWalletExternalTransactionAudit = {
+  amount: string;
+  blockchain_address: string;
+  chain_id: number | null;
+  contract_address: string | null;
+  event_type: string | null;
+  external_transaction_id: number;
+  from_address: string | null;
+  log_index: number | null;
+  reward_candidate_id: number | null;
+  to_address: string | null;
+  transaction_hash: string | null;
+  transaction_id: number;
+};
+
+export type OrganizationWalletRewardRecordAudit = {
+  approved_amount: string | null;
+  candidate_status: string;
+  created_at: string;
+  external_transaction_id: number | null;
+  internal_transaction_id: number | null;
+  notification_id: number | null;
+  notified_at: string | null;
+  payout_record_id: number | null;
+  payout_transaction_id: number | null;
+  reconciliation_status: string;
+  reward_candidate_id: number;
+  updated_at: string;
+  wallet_credit_record_id: number | null;
+  wallet_credit_transaction_id: number | null;
+};
+
+export type OrganizationWalletCompensationRecordAudit = {
+  amount: string;
+  created_at: string;
+  created_by_user_id: number;
+  id: number;
+  idempotency_key: string;
+  internal_transaction_id: number;
+  reason: string;
+  reward_candidate_id: number;
+  transaction_id: number;
+  wallet_id: number;
+};
+
+export type OrganizationWalletAudit = {
+  compensation_records: OrganizationWalletCompensationRecordAudit[];
+  external_transactions: OrganizationWalletExternalTransactionAudit[];
+  internal_transactions: OrganizationWalletInternalTransactionAudit[];
+  reward_records: OrganizationWalletRewardRecordAudit[];
+  wallet: OrganizationWalletSummary;
+};
+
 export type OrganizationCourseTeacher = {
   id: number;
   name: string;
@@ -333,6 +407,10 @@ export type OrganizationRequestOptions = {
 };
 
 export type OrganizationReportOptions = OrganizationRequestOptions & {
+  organizationId: number;
+};
+
+export type OrganizationWalletOptions = OrganizationRequestOptions & {
   organizationId: number;
 };
 
@@ -533,6 +611,35 @@ export async function fetchOrganizationDashboard({
   });
 }
 
+export async function fetchOrganizationWalletAudit({
+  apiRoot = "/api",
+  organizationId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: OrganizationWalletOptions): Promise<OrganizationWalletAudit> {
+  return organizationJsonRequest({
+    apiRoot,
+    path: `/wallets/organizations/${organizationId}/audit`,
+    timeoutMs,
+    token,
+  });
+}
+
+export async function linkOrganizationWallet({
+  apiRoot = "/api",
+  organizationId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: OrganizationWalletOptions): Promise<OrganizationWalletLinkResult> {
+  return organizationJsonRequest({
+    apiRoot,
+    path: `/wallets/organizations/${organizationId}/link`,
+    method: "POST",
+    timeoutMs,
+    token,
+  });
+}
+
 export async function downloadOrganizationRewardDashboardCsv({
   apiRoot = "/api",
   organizationId,
@@ -672,25 +779,29 @@ export async function fetchOrganizationTeacherApplications({
 async function organizationJsonRequest<T>({
   accept = "application/json, text/plain",
   apiRoot,
+  method,
   path,
   timeoutMs,
   token,
 }: OrganizationRequestOptions & {
   accept?: string;
+  method?: string;
   path: string;
 }): Promise<T> {
-  const response = await organizationRawRequest({ accept, apiRoot, path, timeoutMs, token });
+  const response = await organizationRawRequest({ accept, apiRoot, method, path, timeoutMs, token });
   return (await response.json()) as T;
 }
 
 async function organizationRawRequest({
   accept = "application/json, text/plain",
   apiRoot = "/api",
+  method = "GET",
   path,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   token,
 }: OrganizationRequestOptions & {
   accept?: string;
+  method?: string;
   path: string;
 }): Promise<Response> {
   const trimmedToken = token.trim();
@@ -707,6 +818,7 @@ async function organizationRawRequest({
         Accept: accept,
         Authorization: `Bearer ${trimmedToken}`,
       },
+      method,
       signal: controller.signal,
     });
 

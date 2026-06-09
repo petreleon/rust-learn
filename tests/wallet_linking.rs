@@ -17,7 +17,7 @@ use rust_learn::models::course::NewCourse;
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_candidate::{
     NewRewardCandidate, REWARD_EVENT_COURSE_COMPLETION, REWARD_SOURCE_COURSE,
-    REWARD_STATUS_WALLET_CREDITED,
+    REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_WALLET_CREDITED,
 };
 use rust_learn::models::role::{OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;
@@ -431,6 +431,211 @@ async fn organization_wallet_manager_can_link_and_read_org_wallet() {
         .await
         .expect("wallet count query should succeed");
     assert_eq!(count, 1);
+}
+
+#[actix_web::test]
+async fn organization_wallet_audit_includes_source_org_reward_rows_and_gates_access() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+    let mut conn = setup_conn(&pool).await;
+    let org_admin = create_test_user(&mut conn, "wallet_org_audit_admin").await;
+    let org_reporter = create_test_user(&mut conn, "wallet_org_audit_reporter").await;
+    let stranger = create_test_user(&mut conn, "wallet_org_audit_stranger").await;
+    let student = create_test_user(&mut conn, "wallet_org_audit_student").await;
+    let submitter = create_test_user(&mut conn, "wallet_org_audit_submitter").await;
+    let org = create_test_organization(&mut conn).await;
+    let course_id = create_test_course(&mut conn).await;
+    assign_organization_role(&mut conn, org_admin.id(), org.id, "ADMIN").await;
+    assign_organization_permission_role(
+        &mut conn,
+        org_reporter.id(),
+        org.id,
+        Permissions::VIEW_ORG_REWARD_REPORTS,
+    )
+    .await;
+    let wallet = wallet_service::link_organization_wallet(&mut conn, org.id)
+        .await
+        .expect("organization wallet should link")
+        .wallet;
+
+    let amount = BigDecimal::from(75);
+    diesel::update(wallets::table.find(wallet.id))
+        .set(wallets::value.eq(amount.clone()))
+        .execute(&mut conn)
+        .await
+        .expect("failed to seed organization wallet balance");
+
+    let internal_transaction_id: i64 = diesel::insert_into(internal_transactions::table)
+        .values((
+            internal_transactions::wallet_id.eq(wallet.id),
+            internal_transactions::amount.eq(amount.clone()),
+        ))
+        .returning(internal_transactions::id)
+        .get_result(&mut conn)
+        .await
+        .expect("failed to create organization internal transaction");
+    let wallet_transaction_id: i64 = diesel::insert_into(transactions::table)
+        .values(transactions::type_.eq("organization_budget_adjustment"))
+        .returning(transactions::id)
+        .get_result(&mut conn)
+        .await
+        .expect("failed to create organization wallet transaction");
+    diesel::insert_into(transactions_internal_transactions::table)
+        .values((
+            transactions_internal_transactions::transaction_id.eq(wallet_transaction_id),
+            transactions_internal_transactions::internal_transaction_id.eq(internal_transaction_id),
+        ))
+        .execute(&mut conn)
+        .await
+        .expect("failed to link organization internal transaction");
+
+    let candidate_id: i64 = diesel::insert_into(reward_candidates::table)
+        .values(NewRewardCandidate {
+            course_id,
+            student_user_id: student.id(),
+            submitter_user_id: submitter.id(),
+            source_scope: REWARD_SOURCE_COURSE.to_string(),
+            source_organization_id: Some(org.id),
+            event_type: REWARD_EVENT_COURSE_COMPLETION.to_string(),
+            idempotency_key: unique_string("wallet_org_audit_candidate"),
+            evidence: json!({ "completion_percentage": 100 }),
+            status: REWARD_STATUS_TOKEN_CONFIRMED.to_string(),
+        })
+        .returning(reward_candidates::id)
+        .get_result(&mut conn)
+        .await
+        .expect("failed to create organization reward candidate");
+    diesel::update(reward_candidates::table.find(candidate_id))
+        .set((
+            reward_candidates::approved_amount.eq(Some(amount.clone())),
+            reward_candidates::amount_reviewer_user_id.eq(Some(org_admin.id())),
+            reward_candidates::amount_decided_at.eq(Some(Utc::now())),
+        ))
+        .execute(&mut conn)
+        .await
+        .expect("failed to mark organization reward amount");
+
+    let payout_transaction_id: i64 = diesel::insert_into(transactions::table)
+        .values(transactions::type_.eq("reward_payout"))
+        .returning(transactions::id)
+        .get_result(&mut conn)
+        .await
+        .expect("failed to create organization reward payout transaction");
+    let external_transaction_id: i64 = diesel::insert_into(external_transactions::table)
+        .values((
+            external_transactions::amount.eq(amount.clone()),
+            external_transactions::blockchain_address.eq("0xorgstudent"),
+            external_transactions::chain_id.eq(Some(31337_i64)),
+            external_transactions::contract_address.eq(Some("0xorgcontract")),
+            external_transactions::transaction_hash.eq(Some(unique_string("wallet_org_audit_tx"))),
+            external_transactions::log_index.eq(Some(1_i64)),
+            external_transactions::event_type.eq(Some("Transfer")),
+            external_transactions::from_address.eq(Some("0xorgtreasury")),
+            external_transactions::to_address.eq(Some("0xorgstudent")),
+        ))
+        .returning(external_transactions::id)
+        .get_result(&mut conn)
+        .await
+        .expect("failed to create organization reward external transaction");
+    diesel::insert_into(transactions_external_transactions::table)
+        .values((
+            transactions_external_transactions::transaction_id.eq(payout_transaction_id),
+            transactions_external_transactions::external_transaction_id.eq(external_transaction_id),
+        ))
+        .execute(&mut conn)
+        .await
+        .expect("failed to link organization external transaction");
+    let payout_record_id: i64 = diesel::insert_into(reward_payout_records::table)
+        .values((
+            reward_payout_records::reward_candidate_id.eq(candidate_id),
+            reward_payout_records::transaction_id.eq(payout_transaction_id),
+            reward_payout_records::external_transaction_id.eq(external_transaction_id),
+        ))
+        .returning(reward_payout_records::id)
+        .get_result(&mut conn)
+        .await
+        .expect("failed to create organization reward payout record");
+    drop(conn);
+
+    let app = test::init_service(wallet_test_app(pool.clone())).await;
+
+    let forbidden_req = test::TestRequest::get()
+        .uri(&format!("/api/wallets/organizations/{}/audit", org.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(stranger.id())),
+        ))
+        .to_request();
+    let forbidden_resp = test::call_service(&app, forbidden_req).await;
+    assert_eq!(forbidden_resp.status(), StatusCode::FORBIDDEN);
+
+    let reporter_req = test::TestRequest::get()
+        .uri(&format!("/api/wallets/organizations/{}/audit", org.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(org_reporter.id())),
+        ))
+        .to_request();
+    let reporter_resp = test::call_service(&app, reporter_req).await;
+    assert_eq!(reporter_resp.status(), StatusCode::OK);
+    let audit: Value = test::read_body_json(reporter_resp).await;
+
+    assert_eq!(audit["wallet"]["id"], wallet.id);
+    assert_eq!(audit["wallet"]["owner_type"], "organization");
+    assert_eq!(audit["wallet"]["organization_id"], org.id);
+    assert_eq!(audit["wallet"]["value"], "75");
+
+    let internal = audit["internal_transactions"]
+        .as_array()
+        .expect("organization internal audit rows");
+    assert_eq!(internal.len(), 1);
+    assert_eq!(
+        internal[0]["internal_transaction_id"],
+        internal_transaction_id
+    );
+    assert_eq!(internal[0]["transaction_id"], wallet_transaction_id);
+    assert_eq!(
+        internal[0]["transaction_type"],
+        "organization_budget_adjustment"
+    );
+    assert_eq!(internal[0]["amount"], "75");
+
+    let external = audit["external_transactions"]
+        .as_array()
+        .expect("organization external audit rows");
+    assert_eq!(external.len(), 1);
+    assert_eq!(
+        external[0]["external_transaction_id"],
+        external_transaction_id
+    );
+    assert_eq!(external[0]["transaction_id"], payout_transaction_id);
+    assert_eq!(external[0]["reward_candidate_id"], candidate_id);
+    assert_eq!(external[0]["amount"], "75");
+
+    let reward_records = audit["reward_records"]
+        .as_array()
+        .expect("organization reward audit rows");
+    assert_eq!(reward_records.len(), 1);
+    assert_eq!(reward_records[0]["reward_candidate_id"], candidate_id);
+    assert_eq!(
+        reward_records[0]["candidate_status"],
+        REWARD_STATUS_TOKEN_CONFIRMED
+    );
+    assert_eq!(
+        reward_records[0]["reconciliation_status"],
+        "needs_wallet_credit"
+    );
+    assert_eq!(reward_records[0]["approved_amount"], "75");
+    assert_eq!(reward_records[0]["payout_record_id"], payout_record_id);
+    assert_eq!(
+        reward_records[0]["payout_transaction_id"],
+        payout_transaction_id
+    );
+    assert_eq!(
+        reward_records[0]["external_transaction_id"],
+        external_transaction_id
+    );
+    assert!(reward_records[0]["wallet_credit_record_id"].is_null());
 }
 
 #[actix_web::test]

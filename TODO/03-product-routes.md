@@ -212,8 +212,14 @@
         empty, and backend-failure states. Date filters, pagination, payout
         failure drill-down, reconciliation indicators, and wallet audit remain
         open contract work.
-- [ ] Build organization wallet and budget views with transaction history and
+- [x] Build organization wallet and budget views with transaction history and
       permission-aware actions.
+  - [x] `/organizations/[organizationId]/wallet` now consumes the existing
+        organization wallet audit/link contracts, shows wallet balance,
+        internal ledger rows, reward-credit reconciliation, token links,
+        compensation adjustments, missing-wallet link action, denied state,
+        retryable audit failure, and mobile no-overflow layout. Future
+        reward-budget mutation controls remain separate route work.
 
 ## Platform Admin Experience
 

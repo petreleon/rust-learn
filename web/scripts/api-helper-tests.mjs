@@ -361,6 +361,126 @@ test("organization report helpers normalize permission, missing, timeout, and ne
   );
 });
 
+test("organization wallet helpers parse audit JSON and link results", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(init.headers.Authorization, "Bearer org-token");
+    assert.equal(init.headers.Accept, "application/json, text/plain");
+    if (url === "/api/wallets/organizations/7/audit") {
+      assert.equal(init.method, "GET");
+      return jsonResponse(organizationWalletAuditFixture());
+    }
+    assert.equal(url, "/api/wallets/organizations/7/link");
+    assert.equal(init.method, "POST");
+    return jsonResponse(
+      {
+        created: false,
+        wallet: organizationWalletAuditFixture().wallet,
+      },
+      { status: 200 },
+    );
+  });
+
+  const audit = await organization.fetchOrganizationWalletAudit({
+    organizationId: 7,
+    token: "org-token",
+  });
+  const linkResult = await organization.linkOrganizationWallet({
+    organizationId: 7,
+    token: "org-token",
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(audit.wallet.owner_type, "organization");
+  assert.equal(audit.wallet.value, "125");
+  assert.equal(audit.internal_transactions[0].transaction_type, "organization_budget_adjustment");
+  assert.equal(audit.external_transactions[0].transaction_hash, "0xabc123456789def0abc123456789def0abc12345");
+  assert.equal(audit.reward_records[0].reconciliation_status, "needs_wallet_credit");
+  assert.equal(audit.compensation_records[0].reason, "Manual reconciliation");
+  assert.equal(linkResult.created, false);
+  assert.equal(linkResult.wallet.id, audit.wallet.id);
+});
+
+test("organization wallet helpers normalize missing, denied, server, timeout, and network errors", async () => {
+  mockFetch(() => textResponse("Wallet not linked", { status: 404 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationWalletAudit({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "not_found",
+      errorClass: organization.OrganizationRequestError,
+      status: 404,
+    },
+  );
+
+  mockFetch(() => textResponse("User does not have organization wallet access", { status: 403 }));
+
+  await assertRequestError(
+    organization.linkOrganizationWallet({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "permission_denied",
+      errorClass: organization.OrganizationRequestError,
+      status: 403,
+    },
+  );
+
+  mockFetch(() => textResponse("Failed to load wallet audit", { status: 500 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationWalletAudit({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "server_error",
+      errorClass: organization.OrganizationRequestError,
+      status: 500,
+    },
+  );
+
+  mockFetch((_url, init) => {
+    return new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      });
+    });
+  });
+
+  await assertRequestError(
+    organization.fetchOrganizationWalletAudit({
+      organizationId: 7,
+      timeoutMs: 1,
+      token: "org-token",
+    }),
+    {
+      code: "timeout",
+      errorClass: organization.OrganizationRequestError,
+      status: 0,
+    },
+  );
+
+  mockFetch(() => {
+    throw new TypeError("fetch failed");
+  });
+
+  await assertRequestError(
+    organization.fetchOrganizationWalletAudit({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "network_error",
+      errorClass: organization.OrganizationRequestError,
+      status: 0,
+    },
+  );
+});
+
 test("organization course helpers send filters and parse operator summaries", async () => {
   const calls = mockFetch((url, init) => {
     assert.equal(
@@ -1907,6 +2027,75 @@ function organizationRewardDashboardFixture() {
         wallet_id: 4,
       },
     ],
+  };
+}
+
+function organizationWalletAuditFixture() {
+  return {
+    compensation_records: [
+      {
+        amount: "5",
+        created_at: "2026-06-09T12:00:00Z",
+        created_by_user_id: 1,
+        id: 12,
+        idempotency_key: "manual-reconciliation-12",
+        internal_transaction_id: 30,
+        reason: "Manual reconciliation",
+        reward_candidate_id: 91,
+        transaction_id: 29,
+        wallet_id: 4,
+      },
+    ],
+    external_transactions: [
+      {
+        amount: "40",
+        blockchain_address: "0xlearn",
+        chain_id: 31337,
+        contract_address: "0xtoken",
+        event_type: "reward_payout",
+        external_transaction_id: 20,
+        from_address: "0xtreasury",
+        log_index: 1,
+        reward_candidate_id: 91,
+        to_address: "0xstudent",
+        transaction_hash: "0xabc123456789def0abc123456789def0abc12345",
+        transaction_id: 19,
+      },
+    ],
+    internal_transactions: [
+      {
+        amount: "125",
+        created_at: "2026-06-09T10:00:00Z",
+        internal_transaction_id: 18,
+        transaction_id: 17,
+        transaction_type: "organization_budget_adjustment",
+      },
+    ],
+    reward_records: [
+      {
+        approved_amount: "40",
+        candidate_status: "token_confirmed",
+        created_at: "2026-06-09T09:00:00Z",
+        external_transaction_id: 20,
+        internal_transaction_id: null,
+        notification_id: null,
+        notified_at: null,
+        payout_record_id: 21,
+        payout_transaction_id: 19,
+        reconciliation_status: "needs_wallet_credit",
+        reward_candidate_id: 91,
+        updated_at: "2026-06-09T11:00:00Z",
+        wallet_credit_record_id: null,
+        wallet_credit_transaction_id: null,
+      },
+    ],
+    wallet: {
+      id: 4,
+      organization_id: 7,
+      owner_type: "organization",
+      user_id: null,
+      value: "125",
+    },
   };
 }
 

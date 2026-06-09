@@ -123,6 +123,10 @@ represented in this folder.
 - [x] Teacher enrollment management needed a learner-context contract before a
       real UI could replace raw request/user id forms; the enrollment
       workspace now exposes scoped request and roster summaries.
+- [x] Organization wallet UX needed to prove missing-wallet, audit-failure,
+      wallet-denied, reconciliation-attention, token-link, and mobile overflow
+      states together; the wallet route now has helper tests, a Rust audit
+      access regression, and rendered Browser QA through the real login flow.
 - [x] Enrollment UI could have overclaimed student progress; the route now
       shows explicit unsupported progress and reward-eligibility cues while
       leaving `/teach/courses/[courseId]/students` open.

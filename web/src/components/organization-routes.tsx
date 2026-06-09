@@ -30,11 +30,13 @@ import {
   enabledOrganizationCapabilities,
   fetchOrganizationCourses,
   fetchOrganizationDashboard,
+  fetchOrganizationWalletAudit,
   fetchOrganizationMembers,
   fetchOrganizationRewardDashboard,
   fetchOrganizationTeacherApplications,
   filterOrganizationWorkspace,
   findOrganizationWorkspaceItem,
+  linkOrganizationWallet,
   missingOrganizationPermissions,
   OrganizationRequestError,
   type OrganizationCapability,
@@ -48,6 +50,8 @@ import {
   type OrganizationRewardDashboard,
   type OrganizationTeacherApplicationItem,
   type OrganizationTeacherApplicationList,
+  type OrganizationWalletAudit,
+  type OrganizationWalletRewardRecordAudit,
   type OrganizationWorkspaceItem,
   type OrganizationWorkspaceSummary,
 } from "@/lib/organization";
@@ -75,6 +79,8 @@ type CourseLoadState = "idle" | "loading" | "success" | "error";
 type MemberLoadState = "idle" | "loading" | "success" | "error";
 type TeacherApplicationLoadState = "idle" | "loading" | "success" | "error";
 type DashboardLoadState = "idle" | "loading" | "success" | "error";
+type WalletLoadState = "idle" | "loading" | "success" | "missing" | "error";
+type WalletLinkState = "idle" | "linking" | "success" | "error";
 
 const capabilityFilters: Array<{ label: string; value: CapabilityFilter }> = [
   { label: "All access", value: "all" },
@@ -105,7 +111,7 @@ const actionDescriptions: Record<OrganizationCapabilityKey, string> = {
   reports: "Inspect reward volume, sponsored applications, wallet balances, and CSV exports.",
   settings: "Review scoped organization settings when settings contracts are available.",
   teacher_applications: "Track sponsored teacher applications, decisions, applicant context, and audit hints.",
-  wallet: "Review budget, wallet state, and audit rows when wallet contracts are available.",
+  wallet: "Review wallet balance, budget readiness, reward credits, token links, and audit rows.",
 };
 
 const emptyWorkspace: OrganizationWorkspaceSummary = {
@@ -897,6 +903,154 @@ export function OrganizationReportsRoute({ organizationId }: { organizationId: s
           report={report}
           reportError={reportError}
           reportLoadState={reportLoadState}
+        />
+      ) : null}
+    </ProductShell>
+  );
+}
+
+export function OrganizationWalletRoute({ organizationId }: { organizationId: string }) {
+  const route = useOrganizationSession();
+  const numericOrganizationId = Number.parseInt(organizationId, 10);
+  const invalidOrganizationId = !/^\d+$/.test(organizationId) || !Number.isFinite(numericOrganizationId);
+  const organization = useMemo(
+    () =>
+      route.session && !invalidOrganizationId
+        ? findOrganizationWorkspaceItem(route.session, numericOrganizationId)
+        : null,
+    [invalidOrganizationId, numericOrganizationId, route.session],
+  );
+  const workspace = useMemo(
+    () => (route.session ? buildOrganizationWorkspace(route.session) : emptyWorkspace),
+    [route.session],
+  );
+  const canManageWallets = Boolean(organization?.effectivePermissions.includes("MANAGE_ORG_WALLETS"));
+  const canManageBudget = Boolean(organization?.effectivePermissions.includes("MANAGE_ORG_REWARD_BUDGET"));
+  const canViewReports = Boolean(organization?.effectivePermissions.includes("VIEW_ORG_REWARD_REPORTS"));
+  const canViewWallet = canManageWallets || canManageBudget || canViewReports;
+  const walletCapability = organization?.capabilities.find((capability) => capability.key === "wallet");
+  const [audit, setAudit] = useState<OrganizationWalletAudit | null>(null);
+  const [walletError, setWalletError] = useState<RouteError | null>(null);
+  const [walletLoadState, setWalletLoadState] = useState<WalletLoadState>("idle");
+  const [linkError, setLinkError] = useState<RouteError | null>(null);
+  const [linkState, setLinkState] = useState<WalletLinkState>("idle");
+  const notice = organizationNotice(route.error || walletError || linkError);
+
+  const loadWallet = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token || invalidOrganizationId || !organization || !canViewWallet) {
+      return;
+    }
+
+    setWalletError(null);
+    setWalletLoadState("loading");
+
+    try {
+      const nextAudit = await fetchOrganizationWalletAudit({
+        organizationId: organization.id,
+        token,
+      });
+      setAudit(nextAudit);
+      setWalletLoadState("success");
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      if (routeError.status === 401) {
+        clearStoredSessionToken();
+      }
+
+      if (routeError.status === 404 && /wallet not linked/i.test(routeError.message)) {
+        setAudit(null);
+        setWalletError(null);
+        setWalletLoadState("missing");
+        return;
+      }
+
+      setAudit(null);
+      setWalletError(routeError);
+      setWalletLoadState("error");
+    }
+  }, [canViewWallet, invalidOrganizationId, organization]);
+
+  useEffect(() => {
+    if (route.session && organization && canViewWallet) {
+      const timeout = window.setTimeout(() => {
+        setAudit(null);
+        setLinkError(null);
+        setLinkState("idle");
+        setWalletError(null);
+        setWalletLoadState("idle");
+        void loadWallet();
+      }, 0);
+      return () => window.clearTimeout(timeout);
+    }
+
+    return undefined;
+  }, [canViewWallet, loadWallet, organization, route.session]);
+
+  async function linkWallet() {
+    const token = readStoredSessionToken();
+    if (!token || !organization) {
+      setLinkError({ code: "missing_token", message: "Sign in again before linking this wallet.", status: 401 });
+      setLinkState("error");
+      return;
+    }
+
+    setLinkError(null);
+    setLinkState("linking");
+
+    try {
+      await linkOrganizationWallet({
+        organizationId: organization.id,
+        token,
+      });
+      setLinkState("success");
+      await loadWallet();
+    } catch (nextError) {
+      setLinkError(normalizeRouteError(nextError));
+      setLinkState("error");
+    }
+  }
+
+  return (
+    <ProductShell
+      activeNav="organizations"
+      breadcrumbs={[
+        { href: "/session", label: "Workspace" },
+        { href: "/organizations", label: "Organizations" },
+        {
+          href: organization ? `/organizations/${organization.id}` : undefined,
+          label: organization?.name || "Organization",
+        },
+        { label: "Wallet" },
+      ]}
+      description="Organization wallet balance, budget readiness, reward-credit audit, token links, and permission-aware wallet actions."
+      eyebrow="Organization"
+      isSignedIn={route.hasToken || Boolean(route.session)}
+      notice={notice}
+      onSignOut={route.signOut}
+      session={route.session}
+      statusItems={<OrganizationStatus workspace={workspace} />}
+      title={organization?.name ? `${organization.name} wallet` : "Organization wallet"}
+    >
+      {route.loadState === "idle" && !route.session ? <SignedOutState redirect={`/organizations/${organizationId}/wallet`} /> : null}
+      {route.loadState === "loading" ? <LoadingState /> : null}
+      {route.error ? <ErrorState error={route.error} redirect={`/organizations/${organizationId}/wallet`} /> : null}
+      {route.session && (invalidOrganizationId || !organization) ? <MissingOrganizationState /> : null}
+      {route.session && organization && !canViewWallet ? (
+        <WalletDeniedState capability={walletCapability} organizationName={organization.name} />
+      ) : null}
+      {route.session && organization && canViewWallet ? (
+        <OrganizationWalletContent
+          audit={audit}
+          canManageBudget={canManageBudget}
+          canManageWallets={canManageWallets}
+          linkError={linkError}
+          linkState={linkState}
+          loadState={walletLoadState}
+          onLinkWallet={linkWallet}
+          onRefresh={loadWallet}
+          organization={organization}
+          walletError={walletError}
         />
       ) : null}
     </ProductShell>
@@ -2073,6 +2227,432 @@ function OrganizationReportsContent({
   );
 }
 
+function OrganizationWalletContent({
+  audit,
+  canManageBudget,
+  canManageWallets,
+  linkError,
+  linkState,
+  loadState,
+  onLinkWallet,
+  onRefresh,
+  organization,
+  walletError,
+}: {
+  audit: OrganizationWalletAudit | null;
+  canManageBudget: boolean;
+  canManageWallets: boolean;
+  linkError: RouteError | null;
+  linkState: WalletLinkState;
+  loadState: WalletLoadState;
+  onLinkWallet: () => void;
+  onRefresh: () => void;
+  organization: OrganizationWorkspaceItem;
+  walletError: RouteError | null;
+}) {
+  if (loadState === "loading" || loadState === "idle") {
+    return (
+      <section className={`${styles.panel} ${styles.singlePanel}`} aria-live="polite">
+        <div className={styles.panelHeader}>
+          <Loader2 className={styles.spin} size={20} aria-hidden />
+          <h2>Loading wallet audit</h2>
+        </div>
+        <div className={styles.skeletonGrid} aria-hidden>
+          <div className={styles.skeleton} />
+          <div className={styles.skeleton} />
+          <div className={styles.skeleton} />
+        </div>
+      </section>
+    );
+  }
+
+  if (loadState === "error") {
+    return <WalletErrorState error={walletError} onRetry={onRefresh} />;
+  }
+
+  if (loadState === "missing") {
+    return (
+      <MissingOrganizationWalletState
+        canManageWallets={canManageWallets}
+        linkError={linkError}
+        linkState={linkState}
+        onLinkWallet={onLinkWallet}
+        onRefresh={onRefresh}
+        organization={organization}
+      />
+    );
+  }
+
+  if (!audit) {
+    return null;
+  }
+
+  const walletBalance = numericAmount(audit.wallet.value);
+  const approvedAmountTotal = sumAmounts(audit.reward_records.map((record) => record.approved_amount));
+  const uncreditedAmountTotal = sumAmounts(
+    audit.reward_records
+      .filter((record) => record.wallet_credit_record_id === null)
+      .map((record) => record.approved_amount),
+  );
+  const attentionRecords = audit.reward_records.filter((record) =>
+    walletRewardNeedsAttention(record.reconciliation_status),
+  );
+  const budgetTone = uncreditedAmountTotal > walletBalance ? "warn" : "good";
+  const hasAuditRows =
+    audit.internal_transactions.length > 0 ||
+    audit.external_transactions.length > 0 ||
+    audit.reward_records.length > 0 ||
+    audit.compensation_records.length > 0;
+
+  return (
+    <>
+      <section className={styles.workspaceHero}>
+        <div className={styles.workspaceTitleBlock}>
+          <Link className={styles.backLink} href={`/organizations/${organization.id}`}>
+            <ArrowLeft size={17} aria-hidden />
+            {organization.name}
+          </Link>
+          <p className={styles.eyebrow}>Wallet and budget</p>
+          <h2>Organization wallet audit</h2>
+          <p className={styles.muted}>
+            Wallet audit rows combine internal ledger entries, token payout references, source
+            organization reward records, and compensation adjustments from the current backend
+            contract.
+          </p>
+        </div>
+        <div className={styles.actionRow}>
+          <button className={styles.secondaryButton} onClick={onRefresh} type="button">
+            <RefreshCw size={17} aria-hidden />
+            Refresh
+          </button>
+          {canManageWallets ? (
+            <button
+              className={styles.secondaryButton}
+              disabled={linkState === "linking"}
+              onClick={onLinkWallet}
+              type="button"
+            >
+              {linkState === "linking" ? (
+                <Loader2 className={styles.spin} size={17} aria-hidden />
+              ) : (
+                <CreditCard size={17} aria-hidden />
+              )}
+              Relink wallet
+            </button>
+          ) : null}
+        </div>
+        <div className={styles.permissionRow}>
+          {canManageWallets ? <span className={styles.permissionChip}>Can manage wallets</span> : null}
+          {canManageBudget ? <span className={styles.permissionChip}>Can manage reward budget</span> : null}
+          {!canManageWallets && !canManageBudget ? <span className={styles.permissionChip}>Read-only wallet audit</span> : null}
+          {linkState === "success" ? (
+            <StatusPill icon={<CheckCircle2 size={16} aria-hidden />} label="Wallet linked" tone="good" />
+          ) : null}
+        </div>
+        {linkError ? (
+          <section className={styles.inlineError} role="status">
+            <AlertTriangle size={17} aria-hidden />
+            <span>{linkError.message}</span>
+          </section>
+        ) : null}
+      </section>
+
+      <section className={styles.summaryGrid}>
+        <SummaryCard icon={<CreditCard size={20} aria-hidden />} label="Wallet balance" value={formatTokenAmount(audit.wallet.value)} />
+        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Reward audit rows" value={audit.reward_records.length} />
+        <SummaryCard icon={<AlertTriangle size={20} aria-hidden />} label="Needs attention" value={attentionRecords.length} />
+        <SummaryCard icon={<FileText size={20} aria-hidden />} label="Ledger rows" value={audit.internal_transactions.length} />
+      </section>
+
+      <section className={styles.twoColumn}>
+        <section className={styles.panel}>
+          <div className={styles.sectionHeader}>
+            <h2>Budget constraints</h2>
+            <StatusPill label={budgetTone === "warn" ? "Review balance" : "Balance visible"} tone={budgetTone} />
+          </div>
+          <div className={styles.metricGrid}>
+            <Metric label="Approved amount" value={formatTokenAmount(approvedAmountTotal)} />
+            <Metric label="Uncredited approved" value={formatTokenAmount(uncreditedAmountTotal)} />
+            <Metric label="Balance" value={formatTokenAmount(walletBalance)} />
+          </div>
+          <p className={styles.muted}>
+            Compare visible balance with uncredited approved rewards before reward-budget actions.
+            This view does not reserve funds or execute payouts; it gives operators the current
+            audit context.
+          </p>
+        </section>
+
+        <section className={styles.panel}>
+          <div className={styles.sectionHeader}>
+            <h2>Audit coverage</h2>
+            <StatusPill label={hasAuditRows ? "Rows available" : "Empty audit"} tone={hasAuditRows ? "good" : "neutral"} />
+          </div>
+          <div className={styles.metricGrid}>
+            <Metric label="Internal ledger" value={audit.internal_transactions.length} />
+            <Metric label="Token links" value={audit.external_transactions.length} />
+            <Metric label="Compensations" value={audit.compensation_records.length} />
+          </div>
+          <p className={styles.muted}>
+            Empty audit rows are valid for a newly linked wallet. Reward-credit and payout rows
+            appear after reward execution records are created.
+          </p>
+        </section>
+      </section>
+
+      <section className={styles.panel}>
+        <div className={styles.sectionHeader}>
+          <h2>Reward credit audit</h2>
+          <StatusPill label={`${attentionRecords.length} attention`} tone={attentionRecords.length ? "warn" : "good"} />
+        </div>
+        {audit.reward_records.length ? (
+          <div className={styles.reportGrid}>
+            {audit.reward_records.slice(0, 8).map((record) => (
+              <OrganizationWalletRewardCard
+                externalTransaction={audit.external_transactions.find(
+                  (external) => external.external_transaction_id === record.external_transaction_id,
+                )}
+                key={record.reward_candidate_id}
+                record={record}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className={styles.muted}>No reward credit rows are associated with this organization wallet yet.</p>
+        )}
+      </section>
+
+      <section className={styles.twoColumn}>
+        <section className={styles.panel}>
+          <div className={styles.sectionHeader}>
+            <h2>Internal ledger</h2>
+            <StatusPill label={`${audit.internal_transactions.length} rows`} tone={audit.internal_transactions.length ? "good" : "neutral"} />
+          </div>
+          {audit.internal_transactions.length ? (
+            <div className={styles.compactList}>
+              {audit.internal_transactions.slice(0, 8).map((transaction) => (
+                <article className={styles.compactRow} key={transaction.internal_transaction_id}>
+                  <span>
+                    <StatusPill label={formatUnderscoreLabel(transaction.transaction_type)} tone="neutral" />
+                    {formatDateTime(transaction.created_at)}
+                  </span>
+                  <strong>{formatTokenAmount(transaction.amount)}</strong>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className={styles.muted}>No internal ledger rows are available for this wallet yet.</p>
+          )}
+        </section>
+
+        <section className={styles.panel}>
+          <div className={styles.sectionHeader}>
+            <h2>Token transaction links</h2>
+            <StatusPill label={`${audit.external_transactions.length} links`} tone={audit.external_transactions.length ? "good" : "neutral"} />
+          </div>
+          {audit.external_transactions.length ? (
+            <div className={styles.compactList}>
+              {audit.external_transactions.slice(0, 8).map((transaction) => (
+                <article className={styles.compactRow} key={transaction.external_transaction_id}>
+                  <span>
+                    <StatusPill label={transaction.event_type || "External transaction"} tone="neutral" />
+                    {transaction.transaction_hash ? shortHash(transaction.transaction_hash) : transaction.blockchain_address}
+                  </span>
+                  <strong>{formatTokenAmount(transaction.amount)}</strong>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className={styles.muted}>No token payout or deposit transaction links are attached yet.</p>
+          )}
+        </section>
+      </section>
+
+      {audit.compensation_records.length ? (
+        <section className={styles.panel}>
+          <div className={styles.sectionHeader}>
+            <h2>Compensation adjustments</h2>
+            <StatusPill label={`${audit.compensation_records.length} adjustments`} tone="warn" />
+          </div>
+          <div className={styles.reportGrid}>
+            {audit.compensation_records.slice(0, 6).map((record) => (
+              <article className={styles.reportCard} key={record.id}>
+                <h3>{record.reason}</h3>
+                <div className={styles.metricGrid}>
+                  <Metric label="Amount" value={formatTokenAmount(record.amount)} />
+                  <Metric label="Created" value={formatDateTime(record.created_at)} />
+                  <Metric label="Reward" value="Adjustment" />
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </>
+  );
+}
+
+function OrganizationWalletRewardCard({
+  externalTransaction,
+  record,
+}: {
+  externalTransaction?: OrganizationWalletAudit["external_transactions"][number];
+  record: OrganizationWalletRewardRecordAudit;
+}) {
+  const needsAttention = walletRewardNeedsAttention(record.reconciliation_status);
+  const explorerUrl = externalTransaction ? tokenExplorerUrl(externalTransaction) : null;
+  return (
+    <article className={styles.reportCard}>
+      <div className={styles.sectionHeader}>
+        <h3>{formatUnderscoreLabel(record.candidate_status)}</h3>
+        <StatusPill label={formatUnderscoreLabel(record.reconciliation_status)} tone={needsAttention ? "warn" : "good"} />
+      </div>
+      <div className={styles.metricGrid}>
+        <Metric label="Approved amount" value={formatTokenAmount(record.approved_amount)} />
+        <Metric label="Wallet credit" value={record.wallet_credit_record_id ? "Recorded" : "Missing"} />
+        <Metric label="Updated" value={formatDateTime(record.updated_at)} />
+      </div>
+      {explorerUrl && externalTransaction?.transaction_hash ? (
+        <a
+          className={styles.secondaryLink}
+          href={explorerUrl}
+          rel="noreferrer"
+          target="_blank"
+        >
+          <ExternalLink size={17} aria-hidden />
+          Token tx {shortHash(externalTransaction.transaction_hash)}
+        </a>
+      ) : externalTransaction?.transaction_hash ? (
+        <span className={styles.permissionChip}>
+          Token tx {shortHash(externalTransaction.transaction_hash)}
+        </span>
+      ) : externalTransaction ? (
+        <span className={styles.permissionChip}>Token transfer recorded</span>
+      ) : (
+        <span className={styles.permissionChip}>No token link yet</span>
+      )}
+    </article>
+  );
+}
+
+function MissingOrganizationWalletState({
+  canManageWallets,
+  linkError,
+  linkState,
+  onLinkWallet,
+  onRefresh,
+  organization,
+}: {
+  canManageWallets: boolean;
+  linkError: RouteError | null;
+  linkState: WalletLinkState;
+  onLinkWallet: () => void;
+  onRefresh: () => void;
+  organization: OrganizationWorkspaceItem;
+}) {
+  return (
+    <section className={`${styles.panel} ${styles.singlePanel}`} role="status">
+      <div className={styles.panelHeader}>
+        <CreditCard size={20} aria-hidden />
+        <h2>Wallet not linked</h2>
+      </div>
+      <p className={styles.muted}>
+        {organization.name} does not have an organization wallet attached yet. Link the wallet
+        before relying on balance, reward-credit, or token reconciliation views.
+      </p>
+      <div className={styles.actionRow}>
+        {canManageWallets ? (
+          <button
+            className={styles.primaryButton}
+            disabled={linkState === "linking"}
+            onClick={onLinkWallet}
+            type="button"
+          >
+            {linkState === "linking" ? (
+              <Loader2 className={styles.spin} size={17} aria-hidden />
+            ) : (
+              <CreditCard size={17} aria-hidden />
+            )}
+            Link organization wallet
+          </button>
+        ) : (
+          <span className={styles.permissionChip}>Wallet manager required</span>
+        )}
+        <button className={styles.secondaryButton} onClick={onRefresh} type="button">
+          <RefreshCw size={17} aria-hidden />
+          Refresh
+        </button>
+      </div>
+      {!canManageWallets ? (
+        <div className={styles.missingList}>
+          <strong>Missing scoped permission</strong>
+          <span>MANAGE_ORG_WALLETS</span>
+        </div>
+      ) : null}
+      {linkError ? (
+        <section className={styles.inlineError} role="status">
+          <AlertTriangle size={17} aria-hidden />
+          <span>{linkError.message}</span>
+        </section>
+      ) : null}
+    </section>
+  );
+}
+
+function WalletDeniedState({
+  capability,
+  organizationName,
+}: {
+  capability?: OrganizationCapability;
+  organizationName: string;
+}) {
+  return (
+    <section className={`${styles.panel} ${styles.singlePanel}`} role="status">
+      <div className={styles.panelHeader}>
+        <AlertTriangle size={20} aria-hidden />
+        <h2>Organization wallet unavailable</h2>
+      </div>
+      <p className={styles.muted}>
+        Your current session can open {organizationName}, but it cannot view wallet balance,
+        budget, or audit rows.
+      </p>
+      <div className={styles.missingList}>
+        <strong>Missing scoped permission</strong>
+        {(capability
+          ? missingOrganizationPermissions(capability)
+          : ["MANAGE_ORG_WALLETS", "MANAGE_ORG_REWARD_BUDGET", "VIEW_ORG_REWARD_REPORTS"]
+        ).map((permission) => (
+          <span key={permission}>{permission}</span>
+        ))}
+      </div>
+      <Link className={styles.secondaryLink} href="/organizations">
+        Back to organizations
+      </Link>
+    </section>
+  );
+}
+
+function WalletErrorState({
+  error,
+  onRetry,
+}: {
+  error: RouteError | null;
+  onRetry: () => void;
+}) {
+  return (
+    <section className={styles.errorBox} role="status">
+      <AlertTriangle size={20} aria-hidden />
+      <span>
+        <strong>{error?.code || "wallet_error"}</strong>
+        <span>{error?.message || "Organization wallet audit could not be loaded."}</span>
+      </span>
+      <button className={styles.secondaryButton} onClick={onRetry} type="button">
+        <RefreshCw size={17} aria-hidden />
+        Retry
+      </button>
+    </section>
+  );
+}
+
 function MembersDeniedState({
   capability,
   organizationName,
@@ -2387,6 +2967,7 @@ function ActionCard({
   const membersHref = `/organizations/${organizationId}/members`;
   const reportHref = `/organizations/${organizationId}/reports`;
   const teacherApplicationsHref = `/organizations/${organizationId}/teacher-applications`;
+  const walletHref = `/organizations/${organizationId}/wallet`;
 
   return (
     <article className={`${styles.actionCard} ${enabled ? styles.enabledAction : styles.deniedAction}`}>
@@ -2429,6 +3010,11 @@ function ActionCard({
         <Link className={styles.primaryLink} href={teacherApplicationsHref}>
           <UserPlus size={17} aria-hidden />
           Open teacher nominations
+        </Link>
+      ) : enabled && capability.key === "wallet" ? (
+        <Link className={styles.primaryLink} href={walletHref}>
+          <CreditCard size={17} aria-hidden />
+          Open wallet
         </Link>
       ) : (
         <button className={styles.secondaryButton} disabled type="button">
@@ -2805,6 +3391,43 @@ function formatTokenAmount(value: string | number | null | undefined) {
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 2,
   }).format(numericValue);
+}
+
+function numericAmount(value: string | number | null | undefined): number {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : 0;
+}
+
+function sumAmounts(values: Array<string | number | null | undefined>): number {
+  return values.reduce<number>((total, value) => total + numericAmount(value), 0);
+}
+
+function walletRewardNeedsAttention(status: string) {
+  return !["reconciled", "closed_without_payout"].includes(status);
+}
+
+function shortHash(value: string) {
+  if (value.length <= 14) {
+    return value;
+  }
+
+  return `${value.slice(0, 8)}...${value.slice(-6)}`;
+}
+
+function tokenExplorerUrl(transaction: OrganizationWalletAudit["external_transactions"][number]) {
+  if (!transaction.transaction_hash) {
+    return null;
+  }
+
+  if (transaction.chain_id === 1 || transaction.chain_id === null) {
+    return `https://etherscan.io/tx/${transaction.transaction_hash}`;
+  }
+
+  if (transaction.chain_id === 11155111) {
+    return `https://sepolia.etherscan.io/tx/${transaction.transaction_hash}`;
+  }
+
+  return null;
 }
 
 function triggerCsvDownload(body: string, filename: string) {

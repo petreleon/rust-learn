@@ -34,14 +34,15 @@ Organization product routes now include `/organizations`,
 `/organizations/[organizationId]/members`, and
 `/organizations/[organizationId]/courses`, and
 `/organizations/[organizationId]/reports`, and
-`/organizations/[organizationId]/teacher-applications`. `/organizations` uses
-the current session's organization scopes to show multi-organization workspace
-cards, role-only memberships, delegated organization access, search,
-capability filtering, summary counts, signed-out state, and no-organization
-denied state without asking users to type raw ids. The organization dashboard
-route shows the selected organization, role labels, direct/delegated/effective
-permission counts, permission-derived available action capabilities, real
-dashboard summary metrics from
+`/organizations/[organizationId]/teacher-applications`, and
+`/organizations/[organizationId]/wallet`. `/organizations` uses the current
+session's organization scopes to show multi-organization workspace cards,
+role-only memberships, delegated organization access, search, capability
+filtering, summary counts, signed-out state, and no-organization denied state
+without asking users to type raw ids. The organization dashboard route shows
+the selected organization, role labels, direct/delegated/effective permission
+counts, permission-derived available action capabilities, real dashboard
+summary metrics from
 `GET /api/organizations/{organizationId}/dashboard`, attention alerts, gated
 dashboard sections with missing permissions, enabled reports, courses, members,
 and teacher nomination actions when matching scoped permissions are present,
@@ -67,9 +68,16 @@ applications route loads
 sponsored/requested application tracking with search, status filters,
 pagination, applicant labels, requested scope context, portfolio links, audit
 hints, submitted/decided rows, empty state, denied state, and retryable
-backend-failure state. Date filters, report pagination, payout-failure
-drill-downs, reconciliation rows, invite/role-change/removal/audit actions,
-course editing/publishing, teacher nomination submission, wallet audit, and
+backend-failure state. The wallet route loads
+`GET /api/wallets/organizations/{organizationId}/audit`, links missing
+organization wallets through
+`POST /api/wallets/organizations/{organizationId}/link` when scoped wallet
+management is available, and shows balance, internal ledger rows, reward
+credit reconciliation, token transaction links, compensation adjustments,
+budget-readiness copy, signed-out, denied, missing-wallet, retryable
+backend-failure, and mobile no-overflow states. Date filters, report
+pagination, payout-failure drill-downs, invite/role-change/removal/audit
+actions, course editing/publishing, teacher nomination submission, and
 budget-detail data remain explicit backend-contract work before those routes
 become full operator workflows.
 

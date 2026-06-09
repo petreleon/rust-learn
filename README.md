@@ -208,7 +208,11 @@ Authenticated users can create and read their own internal wallet link with
 can link or read another user wallet with `/api/wallets/users/{id}` routes.
 Organization wallet managers can link and read organization wallets with
 `/api/wallets/organizations/{id}` routes. Link endpoints are idempotent and
-return the existing wallet on repeated calls.
+return the existing wallet on repeated calls. Wallet audit endpoints are
+available at `/api/wallets/me/audit`, `/api/wallets/users/{id}/audit`, and
+`/api/wallets/organizations/{id}/audit`; organization wallet audit reads are
+available to organization wallet managers, reward-budget managers, and
+organization reward-report viewers.
 
 Authenticated users can move LearnToken between their centralized platform
 wallet and an Ethereum wallet with `POST /api/wallets/me/deposits` and
