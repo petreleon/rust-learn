@@ -220,6 +220,62 @@ export type PlatformTeacherApplicationsResponse = {
   total: number;
 };
 
+export type PlatformRewardCandidateUser = {
+  email: string;
+  id: number;
+  name: string;
+};
+
+export type PlatformRewardCandidateCourse = {
+  id: number;
+  title: string;
+};
+
+export type PlatformRewardCandidateItem = {
+  approved_amount: string | null;
+  course: PlatformRewardCandidateCourse;
+  created_at: string;
+  event_type: string;
+  id: number;
+  source_organization_id: number | null;
+  source_scope: string;
+  status: string;
+  student: PlatformRewardCandidateUser;
+  submitter: PlatformRewardCandidateUser;
+  teacher_approver: PlatformRewardCandidateUser | null;
+  teacher_decision_reason: string | null;
+  updated_at: string;
+};
+
+export type PlatformRewardCandidatePermissions = {
+  can_approve_amount: boolean;
+  can_view_candidates: boolean;
+};
+
+export type PlatformRewardCandidatesResponse = {
+  candidates: PlatformRewardCandidateItem[];
+  limit: number;
+  offset: number;
+  operator_permissions: PlatformRewardCandidatePermissions;
+  search: string | null;
+  status: string | null;
+  total: number;
+};
+
+export type RewardAuditEvent = {
+  actor_user_id: number | null;
+  created_at: string;
+  event_type: string;
+  from_status: string | null;
+  id: number;
+  metadata: Record<string, unknown>;
+  reason: string | null;
+  reward_candidate_id: number;
+  to_status: string;
+};
+
+export type RewardCandidateAmountDecisionStatus = "approved" | "rejected";
+
 export type SystemLiveness = {
   status: string;
 };
@@ -503,6 +559,89 @@ export async function decideTeacherApplication({
     }),
     method: "PUT",
     path: `/teacher-applications/${applicationId}/decision`,
+    timeoutMs,
+    token,
+  });
+}
+
+export async function fetchPlatformRewardCandidates({
+  apiRoot = "/api",
+  limit,
+  offset,
+  search,
+  status,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: AdminRequestOptions & {
+  limit?: number;
+  offset?: number;
+  search?: string | null;
+  status?: string | null;
+}): Promise<PlatformRewardCandidatesResponse> {
+  const query = new URLSearchParams();
+  const normalizedSearch = search?.trim();
+  if (normalizedSearch) {
+    query.set("search", normalizedSearch);
+  }
+  if (status) {
+    query.set("status", status);
+  }
+  if (typeof limit === "number") {
+    query.set("limit", String(limit));
+  }
+  if (typeof offset === "number") {
+    query.set("offset", String(offset));
+  }
+
+  const suffix = query.toString();
+  return adminJsonRequest({
+    apiRoot,
+    path: `/reward-candidates/review${suffix ? `?${suffix}` : ""}`,
+    timeoutMs,
+    token,
+  });
+}
+
+export async function decideRewardAmount({
+  apiRoot = "/api",
+  candidateId,
+  status,
+  approvedAmount,
+  decisionReason,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: AdminRequestOptions & {
+  candidateId: number;
+  status: RewardCandidateAmountDecisionStatus;
+  approvedAmount?: string | null;
+  decisionReason?: string | null;
+}): Promise<PlatformRewardCandidateItem> {
+  const body: Record<string, unknown> = {
+    status,
+    decision_reason: decisionReason?.trim() || null,
+  };
+  if (status === "approved" && approvedAmount != null) {
+    body.approved_amount = approvedAmount;
+  }
+  return adminJsonRequest({
+    apiRoot,
+    body: JSON.stringify(body),
+    method: "PUT",
+    path: `/reward-candidates/${candidateId}/amount-decision`,
+    timeoutMs,
+    token,
+  });
+}
+
+export async function fetchRewardCandidateAudit({
+  apiRoot = "/api",
+  candidateId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: AdminRequestOptions & { candidateId: number }): Promise<RewardAuditEvent[]> {
+  return adminJsonRequest({
+    apiRoot,
+    path: `/reward-candidates/${candidateId}/audit`,
     timeoutMs,
     token,
   });

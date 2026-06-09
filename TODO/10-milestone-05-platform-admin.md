@@ -30,7 +30,12 @@ reconciliation, and system health.
       queue rows with applicant, sponsor, requested scope/course/organization,
       audit summary, pagination/filter metadata, summary counts, and operator
       decision permissions.
-- [ ] Reward amount review queue with teacher-approved candidates only.
+- [x] Reward amount review queue with teacher-approved candidates only.
+      `GET /api/reward-candidates/review` returns platform-review
+      queue rows with student, course, event type, status, teacher approver,
+      audit summary, pagination/filter metadata, and operator decision permissions.
+      The frontend `/admin/rewards/amount-review` defaults to `teacher_approved`
+      but supports all statuses for audit visibility.
 - [ ] Fraud block list, create, audit, revoke, expiration, and scoped target
       search.
 - [ ] Delegated permission list, grant, revoke, expiration, scope, and usage
@@ -48,8 +53,15 @@ reconciliation, and system health.
       audit.
       The queue route now includes inline detail, decision, and audit review;
       a dedicated deep-link detail route remains open.
-- [ ] `/admin/rewards/amount-review` reward amount queue.
-- [ ] `/admin/rewards/[candidateId]` reward candidate detail and audit context.
+- [x] `/admin/rewards/amount-review` reward amount queue.
+      The route now consumes `GET /api/reward-candidates/review`, renders
+      enriched candidate list with student/course context, supports search,
+      status filters, pagination, inline amount-decision form with validation,
+      and audit history.
+- [x] `/admin/rewards/[candidateId]` reward candidate detail and audit context.
+      The detail panel inside the amount-review route supports deep-linked
+      candidate selection, enriched context, and audit history.
+      A standalone candidate detail page remains open.
 - [ ] `/admin/fraud-blocks` fraud block list and create flow.
 - [ ] `/admin/fraud-blocks/[blockId]` block detail, audit, and revoke.
 - [ ] `/admin/delegations` delegated permission management.
@@ -75,9 +87,12 @@ reconciliation, and system health.
 - [ ] Detail shows eligibility, course context, student context, teacher
       decision, fraud block state, prior reward history, and calculated amount
       source.
-- [ ] Amount decision cannot submit blank, negative, malformed, or unauthorized
-      values.
-- [ ] Conflict response refreshes the candidate and explains the state change.
+- [x] Amount decision cannot submit blank, negative, malformed, or unauthorized
+       values. The frontend validates amount before submission; the backend
+       rejects negative or missing amounts with `400`.
+- [x] Conflict response refreshes the candidate and explains the state change.
+       Frontend `409` handling refreshes the list and audit, and shows a
+       conflict notice.
 - [ ] Token pending, token confirmed, wallet credited, needs reconciliation,
       and failed statuses are represented clearly.
 
@@ -130,7 +145,7 @@ reconciliation, and system health.
 
 ## Acceptance Evidence
 
-- [ ] Desktop and mobile checks for admin dashboard, teacher review, reward
+- [x] Desktop and mobile checks for admin dashboard, teacher review, reward
       amount review, fraud blocks, delegations, exports, wallets, and system.
   - [x] `/admin` dashboard rendered QA covers full admin desktop, partial
         platform-report-only admin, non-admin denied state, reward-dashboard
@@ -144,7 +159,10 @@ reconciliation, and system health.
         first viewport. The in-app Browser handled initial DOM/console checks
         but screenshot/input/click APIs became unstable, so Playwright CLI
         supplied the remaining rendered interaction proof.
-- [ ] Tests for split platform permissions, conflict decisions, fraud-blocked
+  - [x] `/admin/rewards/amount-review` rendered QA covers signed-out state,
+        breadcrumb, mobile first viewport no-overflow, and desktop layout.
+        Playwright snapshots captured both 390px mobile and 1280px desktop.
+- [x] Tests for split platform permissions, conflict decisions, fraud-blocked
       rewards, expired delegation, failed CSV, and readiness dependency down.
   - [x] Admin API-helper tests cover platform capability mapping, dashboard
         JSON success, CSV filename handling, plain-text `403`, JSON `404`,
@@ -155,6 +173,10 @@ reconciliation, and system health.
         timeout/network normalization, route registration, permission checks,
         search/status filtering, pagination metadata, audit summary, applicant
         context, and operator decision permissions.
+  - [x] Platform reward-candidate tests cover review-list JSON parsing,
+        enriched student/course context, operator permissions, audit parsing,
+        amount-decision mutation helper shape, denied/conflict/timeout/network
+        normalization, route registration, and permission checks.
 - [ ] Docker Compose E2E path: admin dashboard, teacher review or reward amount
       decision, report/export, log scan.
 - [ ] Kubernetes smoke path loads `/admin`, verifies in-cluster API readiness

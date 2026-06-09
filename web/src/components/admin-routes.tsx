@@ -28,13 +28,16 @@ import { hasPlatformAdminAccess } from "@/lib/access";
 import {
   AdminRequestError,
   buildPlatformAdminWorkspace,
+  decideRewardAmount,
   decideTeacherApplication,
   downloadPlatformCsv,
-  fetchPlatformTeacherApplications,
   fetchPlatformFraudDashboard,
+  fetchPlatformRewardCandidates,
   fetchPlatformRewardDashboard,
   fetchPlatformSummary,
   fetchPlatformSystemStatus,
+  fetchPlatformTeacherApplications,
+  fetchRewardCandidateAudit,
   fetchTeacherApplicationAudit,
   missingPlatformPermissions,
   platformCapabilityDefinitions,
@@ -46,10 +49,13 @@ import {
   type PlatformCsvReport,
   type PlatformFraudDashboard,
   type PlatformReportSummary,
+  type PlatformRewardCandidateItem,
+  type PlatformRewardCandidatesResponse,
   type PlatformRewardDashboard,
   type PlatformSystemStatus,
   type PlatformTeacherApplicationItem,
   type PlatformTeacherApplicationsResponse,
+  type RewardAuditEvent,
   type TeacherApplicationAuditEvent,
   type TeacherApplicationStatus,
 } from "@/lib/admin";
@@ -643,6 +649,361 @@ export function AdminTeacherApplicationsRoute() {
             }}
             icon={<UserCheck size={20} aria-hidden />}
             title="Teacher application review unavailable"
+          />
+        )
+      ) : null}
+    </ProductShell>
+  );
+}
+
+export function AdminRewardAmountReviewRoute() {
+  const route = useAdminSession();
+  const workspace = useMemo(
+    () => (route.session ? buildPlatformAdminWorkspace(route.session) : emptyWorkspace),
+    [route.session],
+  );
+  const allowed = route.session ? hasPlatformAdminAccess(route.session) : false;
+  const canView = hasPlatformPermission(workspace, "VIEW_REWARD_AUDIT");
+  const canApprove = hasPlatformPermission(workspace, "APPROVE_REWARD_AMOUNT");
+  const [candidates, setCandidates] = useState<PlatformRewardCandidatesResponse | null>(null);
+  const [candidateError, setCandidateError] = useState<RouteError | null>(null);
+  const [candidateState, setCandidateState] = useState<SectionState>("idle");
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("teacher_approved");
+  const [offset, setOffset] = useState(0);
+  const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(null);
+  const [auditEvents, setAuditEvents] = useState<RewardAuditEvent[]>([]);
+  const [auditError, setAuditError] = useState<RouteError | null>(null);
+  const [auditState, setAuditState] = useState<SectionState>("idle");
+  const [decisionAmount, setDecisionAmount] = useState("");
+  const [decisionReason, setDecisionReason] = useState("");
+  const [decisionStatus, setDecisionStatus] = useState<"approved" | "rejected">("approved");
+  const [decisionError, setDecisionError] = useState<RouteError | null>(null);
+  const [decisionState, setDecisionState] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const selectedCandidate =
+    candidates?.candidates.find((c) => c.id === selectedCandidateId) || candidates?.candidates[0] || null;
+
+  const loadCandidates = useCallback(async () => {
+    const token = route.token;
+    if (!route.session || !token || !allowed || !canView) {
+      return;
+    }
+    setCandidateState("loading");
+    setCandidateError(null);
+    try {
+      const response = await fetchPlatformRewardCandidates({
+        limit: ADMIN_TEACHER_APPLICATION_PAGE_SIZE,
+        offset,
+        search: appliedSearch,
+        status: statusFilter,
+        token,
+      });
+      setCandidates(response);
+      setCandidateState("success");
+      setSelectedCandidateId((current) => {
+        if (current && response.candidates.some((c) => c.id === current)) {
+          return current;
+        }
+        return response.candidates[0]?.id || null;
+      });
+    } catch (error) {
+      setCandidates(null);
+      setCandidateError(normalizeRouteError(error, "Reward candidate review queue could not be loaded."));
+      setCandidateState("error");
+    }
+  }, [allowed, appliedSearch, canView, offset, route.session, route.token, statusFilter]);
+
+  const loadAudit = useCallback(
+    async (candidateId: number) => {
+      const token = route.token;
+      if (!token || !canView) {
+        return;
+      }
+      setAuditState("loading");
+      setAuditError(null);
+      try {
+        const events = await fetchRewardCandidateAudit({ candidateId, token });
+        setAuditEvents(events);
+        setAuditState("success");
+      } catch (error) {
+        setAuditEvents([]);
+        setAuditError(normalizeRouteError(error, "Reward candidate audit could not be loaded."));
+        setAuditState("error");
+      }
+    },
+    [canView, route.token],
+  );
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadCandidates(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadCandidates]);
+
+  useEffect(() => {
+    if (!selectedCandidate?.id) {
+      const timeout = window.setTimeout(() => {
+        setAuditEvents([]);
+        setAuditState("idle");
+      }, 0);
+      return () => window.clearTimeout(timeout);
+    }
+    const timeout = window.setTimeout(() => void loadAudit(selectedCandidate.id), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadAudit, selectedCandidate?.id]);
+
+  function applyFilters() {
+    setOffset(0);
+    setAppliedSearch(searchInput.trim());
+  }
+
+  function resetFilters() {
+    setSearchInput("");
+    setAppliedSearch("");
+    setStatusFilter("teacher_approved");
+    setOffset(0);
+  }
+
+  async function submitDecision(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = route.token;
+    if (!token || !selectedCandidate) {
+      return;
+    }
+    const trimmedReason = decisionReason.trim();
+    const trimmedAmount = decisionAmount.trim();
+    if (!trimmedReason) {
+      setDecisionError({
+        code: "validation_error",
+        message: "Add a decision reason before changing a candidate.",
+        status: 400,
+      });
+      setDecisionState("error");
+      return;
+    }
+    if (decisionStatus === "approved" && (!trimmedAmount || Number.isNaN(Number(trimmedAmount)) || Number(trimmedAmount) < 0)) {
+      setDecisionError({
+        code: "validation_error",
+        message: "Enter a valid non-negative approved amount.",
+        status: 400,
+      });
+      setDecisionState("error");
+      return;
+    }
+    setDecisionError(null);
+    setDecisionState("submitting");
+    try {
+      await decideRewardAmount({
+        candidateId: selectedCandidate.id,
+        decisionReason: trimmedReason,
+        status: decisionStatus,
+        approvedAmount: decisionStatus === "approved" ? trimmedAmount : null,
+        token,
+      });
+      setDecisionReason("");
+      setDecisionAmount("");
+      setDecisionState("success");
+      await loadCandidates();
+      if (selectedCandidate.id) {
+        await loadAudit(selectedCandidate.id);
+      }
+    } catch (error) {
+      const routeError = normalizeRouteError(error, "Reward amount decision could not be saved.");
+      setDecisionError(routeError);
+      setDecisionState("error");
+      if (routeError.status === 409) {
+        await loadCandidates();
+        if (selectedCandidate.id) {
+          await loadAudit(selectedCandidate.id);
+        }
+      }
+    }
+  }
+
+  const notice: ShellNotice | null =
+    decisionState === "success"
+      ? {
+          message: "The candidate was refreshed with the latest decision state.",
+          title: "Decision saved",
+          tone: "success",
+        }
+      : decisionState === "error" && decisionError
+        ? {
+            message: decisionError.message,
+            title: decisionError.status === 409 ? "Candidate changed" : "Decision failed",
+            tone: decisionError.status === 403 || decisionError.status === 409 ? "warn" : "error",
+          }
+        : null;
+
+  const statusOptions: Array<{ label: string; value: string }> = [
+    { label: "All statuses", value: "" },
+    { label: "Pending teacher approval", value: "pending_teacher_approval" },
+    { label: "Teacher approved", value: "teacher_approved" },
+    { label: "Amount approved", value: "amount_approved" },
+    { label: "Amount rejected", value: "amount_rejected" },
+    { label: "Token pending", value: "token_pending" },
+    { label: "Token confirmed", value: "token_confirmed" },
+    { label: "Wallet credited", value: "wallet_credited" },
+    { label: "Needs reconciliation", value: "needs_reconciliation" },
+    { label: "Failed", value: "failed" },
+  ];
+
+  return (
+    <ProductShell
+      activeNav="admin"
+      breadcrumbs={[
+        { label: "Admin", href: "/admin" },
+        { label: "Reward amount review" },
+      ]}
+      description="Review teacher-approved reward candidates, set approved amounts, and inspect audit history."
+      eyebrow="Platform admin"
+      isSignedIn={route.hasToken}
+      notice={notice}
+      onSignOut={route.signOut}
+      session={route.session}
+      statusItems={
+        <>
+          <StatusPill label={route.loadState === "loading" ? "Resolving session" : canView ? "Review access" : "Review gated"} />
+          <StatusPill label={`${candidates?.total ?? 0} candidates`} />
+          <StatusPill label={canApprove ? "Approve enabled" : "Approve gated"} tone={canApprove ? "good" : "neutral"} />
+        </>
+      }
+      title="Reward amount review"
+    >
+      {route.loadState === "idle" && !route.session ? <SignedOutState /> : null}
+      {route.loadState === "loading" ? <LoadingState /> : null}
+      {route.error ? <SessionErrorState error={route.error} /> : null}
+      {route.session && !allowed ? <AdminDeniedState workspace={workspace} /> : null}
+
+      {route.session && allowed ? (
+        canView ? (
+          <div className={styles.stack}>
+            <section className={styles.summaryGrid} aria-label="Reward candidate summary">
+              <SummaryCard icon={<UserCheck size={20} aria-hidden />} label="Teacher approved" value={candidates?.candidates.filter((c) => c.status === "teacher_approved").length ?? 0} />
+              <SummaryCard icon={<CheckCircle2 size={20} aria-hidden />} label="Amount approved" value={candidates?.candidates.filter((c) => c.status === "amount_approved").length ?? 0} />
+              <SummaryCard icon={<XCircle size={20} aria-hidden />} label="Amount rejected" value={candidates?.candidates.filter((c) => c.status === "amount_rejected").length ?? 0} />
+              <SummaryCard icon={<Clock3 size={20} aria-hidden />} label="Token pending" value={candidates?.candidates.filter((c) => c.status === "token_pending").length ?? 0} />
+              <SummaryCard icon={<FileText size={20} aria-hidden />} label={candidateState === "loading" ? "Loading" : "Total visible"} value={candidates?.total ?? 0} />
+            </section>
+            <section className={styles.filterPanel} aria-label="Reward candidate filters">
+              <label>
+                <span>Search</span>
+                <span className={styles.inputWithIcon}>
+                  <Search size={17} aria-hidden />
+                  <input
+                    onChange={(event) => setSearchInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        applyFilters();
+                      }
+                    }}
+                    placeholder="Student, course, candidate ID"
+                    type="search"
+                    value={searchInput}
+                  />
+                </span>
+              </label>
+              <label>
+                <span>Status</span>
+                <select onChange={(event) => { setStatusFilter(event.target.value); setOffset(0); }} value={statusFilter}>
+                  {statusOptions.map((option) => (
+                    <option key={option.label} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className={styles.filterActions}>
+                <button className={styles.primaryButton} onClick={applyFilters} type="button">
+                  <Search size={16} aria-hidden />
+                  Apply
+                </button>
+                <button className={styles.secondaryButton} onClick={resetFilters} type="button">
+                  Reset
+                </button>
+                <button className={styles.secondaryButton} disabled={candidateState === "loading"} onClick={loadCandidates} type="button">
+                  {candidateState === "loading" ? <Loader2 className={styles.spin} size={16} aria-hidden /> : <RefreshCw size={16} aria-hidden />}
+                  Refresh
+                </button>
+              </div>
+            </section>
+            {candidateState === "loading" || candidateState === "idle" ? <PanelLoading title="Loading reward candidates" /> : null}
+            {candidateState === "error" ? <PanelError error={candidateError} onRetry={loadCandidates} title="Reward candidate queue failed" /> : null}
+            {candidateState === "success" && candidates ? (
+              <div className={styles.twoColumnWide}>
+                <section className={styles.panel}>
+                  <div className={styles.panelHeader}>
+                    <Landmark size={20} aria-hidden />
+                    <div>
+                      <h2>Review queue</h2>
+                      <p>{candidates.total} candidate{candidates.total === 1 ? "" : "s"} match the current filters.</p>
+                    </div>
+                  </div>
+                  {candidates.candidates.length ? (
+                    <div className={styles.rowList}>
+                      {candidates.candidates.map((candidate) => (
+                        <article className={`${styles.compactRow} ${selectedCandidateId === candidate.id ? styles.selectedRow : ""}`} key={candidate.id}>
+                          <div>
+                            <strong>{candidate.student.name}</strong>
+                            <span>{candidate.student.email}</span>
+                            <small>{candidate.course.title} · {formatUnderscoreLabel(candidate.event_type)}</small>
+                          </div>
+                          <div className={styles.rowMeta}>
+                            <StatusPill label={formatUnderscoreLabel(candidate.status)} tone={candidateStatusTone(candidate.status)} />
+                            <span>{formatDate(candidate.updated_at)}</span>
+                            <button aria-label={`Review ${candidate.student.name}`} className={styles.secondaryButton} onClick={() => setSelectedCandidateId(candidate.id)} type="button">
+                              Review
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState text="No reward candidates match these filters." />
+                  )}
+                  <div className={styles.paginationRow}>
+                    <button className={styles.secondaryButton} disabled={offset <= 0} onClick={() => setOffset(Math.max(0, offset - candidates.limit))} type="button">
+                      Previous
+                    </button>
+                    <span>
+                      Showing {candidates.candidates.length ? offset + 1 : 0}-{Math.min(offset + candidates.candidates.length, candidates.total)} of {candidates.total}
+                    </span>
+                    <button className={styles.secondaryButton} disabled={offset + candidates.limit >= candidates.total} onClick={() => setOffset(offset + candidates.limit)} type="button">
+                      Next
+                    </button>
+                  </div>
+                </section>
+                <RewardCandidateDetail
+                  candidate={selectedCandidate}
+                  auditError={auditError}
+                  auditEvents={auditEvents}
+                  auditState={auditState}
+                  canApprove={canApprove}
+                  decisionAmount={decisionAmount}
+                  decisionError={decisionError}
+                  decisionReason={decisionReason}
+                  decisionState={decisionState}
+                  decisionStatus={decisionStatus}
+                  onDecisionAmountChange={setDecisionAmount}
+                  onDecisionReasonChange={setDecisionReason}
+                  onDecisionStatusChange={setDecisionStatus}
+                  onRefreshAudit={() => selectedCandidate ? void loadAudit(selectedCandidate.id) : undefined}
+                  onSubmitDecision={submitDecision}
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <GatedPanel
+            capability={{
+              enabled: false,
+              key: "reward_amount_review",
+              label: "Reward amount review",
+              permissions: ["VIEW_REWARD_AUDIT"],
+            }}
+            icon={<Landmark size={20} aria-hidden />}
+            title="Reward amount review unavailable"
           />
         )
       ) : null}
@@ -1935,4 +2296,186 @@ function statusTone(status: TeacherApplicationStatus): "good" | "neutral" | "war
 
 function isFinalApplicationStatus(status: TeacherApplicationStatus) {
   return status === "approved" || status === "rejected";
+}
+
+function candidateStatusTone(status: string): "good" | "neutral" | "warn" {
+  if (status === "amount_approved" || status === "wallet_credited" || status === "token_confirmed" || status === "completed") {
+    return "good";
+  }
+  if (status === "teacher_approved" || status === "pending_teacher_approval" || status === "token_pending" || status === "needs_reconciliation") {
+    return "warn";
+  }
+  if (status === "amount_rejected" || status === "teacher_rejected" || status === "failed") {
+    return "warn";
+  }
+  return "neutral";
+}
+
+function RewardCandidateDetail({
+  candidate,
+  auditError,
+  auditEvents,
+  auditState,
+  canApprove,
+  decisionAmount,
+  decisionError,
+  decisionReason,
+  decisionState,
+  decisionStatus,
+  onDecisionAmountChange,
+  onDecisionReasonChange,
+  onDecisionStatusChange,
+  onRefreshAudit,
+  onSubmitDecision,
+}: {
+  candidate: PlatformRewardCandidateItem | null;
+  auditError: RouteError | null;
+  auditEvents: RewardAuditEvent[];
+  auditState: SectionState;
+  canApprove: boolean;
+  decisionAmount: string;
+  decisionError: RouteError | null;
+  decisionReason: string;
+  decisionState: "idle" | "submitting" | "success" | "error";
+  decisionStatus: "approved" | "rejected";
+  onDecisionAmountChange: (value: string) => void;
+  onDecisionReasonChange: (value: string) => void;
+  onDecisionStatusChange: (value: "approved" | "rejected") => void;
+  onRefreshAudit: () => void;
+  onSubmitDecision: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  if (!candidate) {
+    return (
+      <section className={styles.panel}>
+        <div className={styles.panelHeader}>
+          <Landmark size={20} aria-hidden />
+          <div>
+            <h2>Candidate detail</h2>
+            <p>Select a candidate from the queue to inspect context and audit history.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const isFinal = candidate.status !== "teacher_approved" && candidate.status !== "pending_teacher_approval";
+  const canSubmitDecision =
+    !isFinal &&
+    decisionReason.trim().length > 0 &&
+    (decisionStatus === "rejected" || (decisionStatus === "approved" && canApprove && decisionAmount.trim().length > 0 && !Number.isNaN(Number(decisionAmount)) && Number(decisionAmount) >= 0)) &&
+    decisionState !== "submitting";
+
+  return (
+    <section className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <Landmark size={20} aria-hidden />
+        <div>
+          <h2>Candidate {candidate.id}</h2>
+          <p>{candidate.student.name} · {candidate.student.email}</p>
+        </div>
+        <StatusPill label={formatUnderscoreLabel(candidate.status)} tone={candidateStatusTone(candidate.status)} />
+      </div>
+
+      <div className={styles.detailGrid}>
+        <ContextRow label="Student" value={candidate.student.name} />
+        <ContextRow label="Course" value={candidate.course.title} />
+        <ContextRow label="Event type" value={formatUnderscoreLabel(candidate.event_type)} />
+        <ContextRow label="Submitter" value={candidate.submitter.name} />
+        <ContextRow label="Teacher approver" value={candidate.teacher_approver?.name || "No approver yet"} />
+        <ContextRow label="Teacher decision" value={candidate.teacher_decision_reason || "No reason recorded"} />
+        <ContextRow label="Approved amount" value={candidate.approved_amount ?? "Not set"} />
+        <ContextRow label="Created" value={formatDate(candidate.created_at)} />
+        <ContextRow label="Updated" value={formatDate(candidate.updated_at)} />
+      </div>
+
+      <div className={styles.textBlock}>
+        <h3>Audit history</h3>
+        <button className={styles.secondaryButton} disabled={auditState === "loading"} onClick={onRefreshAudit} type="button">
+          {auditState === "loading" ? <Loader2 className={styles.spin} size={15} aria-hidden /> : <RefreshCw size={15} aria-hidden />}
+          Refresh
+        </button>
+        {auditState === "loading" || auditState === "idle" ? (
+          <p className={styles.muted}>Loading audit events.</p>
+        ) : null}
+        {auditState === "error" ? (
+          <div className={styles.inlineError} role="alert">
+            <AlertTriangle size={16} aria-hidden />
+            <span>{auditError?.message || "Audit history could not be loaded."}</span>
+          </div>
+        ) : null}
+        {auditState === "success" && auditEvents.length ? (
+          <ol className={styles.auditList}>
+            {auditEvents.map((event) => (
+              <li key={event.id}>
+                <strong>{formatUnderscoreLabel(event.event_type)}</strong>
+                <span>
+                  {event.from_status ? `${formatUnderscoreLabel(event.from_status)} -> ` : ""}
+                  {formatUnderscoreLabel(event.to_status)} · {formatDate(event.created_at)}
+                </span>
+                {event.reason ? <small>{event.reason}</small> : null}
+              </li>
+            ))}
+          </ol>
+        ) : null}
+        {auditState === "success" && !auditEvents.length ? <EmptyState text="No audit events were returned for this candidate." /> : null}
+      </div>
+
+      <form className={styles.decisionForm} onSubmit={onSubmitDecision}>
+        <div className={styles.subsectionHeader}>
+          <h3>Amount decision</h3>
+          {isFinal ? <StatusPill label="Final state" tone="neutral" /> : null}
+        </div>
+        <label>
+          <span>Decision status</span>
+          <select
+            disabled={isFinal}
+            onChange={(event) => onDecisionStatusChange(event.target.value as "approved" | "rejected")}
+            value={decisionStatus}
+          >
+            <option disabled={!canApprove} value="approved">Approve amount</option>
+            <option value="rejected">Reject</option>
+          </select>
+        </label>
+        {!canApprove ? (
+          <p className={styles.muted}>Approve amount requires the APPROVE_REWARD_AMOUNT platform permission.</p>
+        ) : null}
+        {decisionStatus === "approved" ? (
+          <label>
+            <span>Approved amount</span>
+            <input
+              disabled={isFinal}
+              onChange={(event) => onDecisionAmountChange(event.target.value)}
+              placeholder="0.00"
+              type="text"
+              value={decisionAmount}
+            />
+          </label>
+        ) : null}
+        <label>
+          <span>Decision reason</span>
+          <textarea
+            disabled={isFinal}
+            onChange={(event) => onDecisionReasonChange(event.target.value)}
+            placeholder="Explain the amount decision or rejection reason."
+            rows={4}
+            value={decisionReason}
+          />
+        </label>
+        {!isFinal && !decisionReason.trim() ? (
+          <p className={styles.muted}>A decision reason is required before saving.</p>
+        ) : null}
+        {decisionError ? (
+          <div className={styles.inlineError} role="alert">
+            <AlertTriangle size={16} aria-hidden />
+            <span>{decisionError.message}</span>
+          </div>
+        ) : null}
+        <button className={styles.primaryButton} disabled={!canSubmitDecision} type="submit">
+          {decisionState === "submitting" ? <Loader2 className={styles.spin} size={16} aria-hidden /> : <Send size={16} aria-hidden />}
+          Save decision
+        </button>
+        {isFinal ? <p className={styles.muted}>This candidate is in a final state and cannot be changed from this screen.</p> : null}
+      </form>
+    </section>
+  );
 }

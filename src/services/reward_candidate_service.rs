@@ -34,7 +34,7 @@ use chrono::Utc;
 use diesel::dsl::exists;
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
 #[derive(Debug, Clone, Deserialize)]
@@ -64,6 +64,61 @@ pub struct ListRewardCandidatesRequest {
     pub student_user_id: Option<i32>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct PlatformRewardCandidatesRequest {
+    pub status: Option<String>,
+    pub search: Option<String>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlatformRewardCandidateUserSummary {
+    pub id: i32,
+    pub name: String,
+    pub email: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlatformRewardCandidateCourseSummary {
+    pub id: i32,
+    pub title: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlatformRewardCandidateItem {
+    pub id: i64,
+    pub student: PlatformRewardCandidateUserSummary,
+    pub course: PlatformRewardCandidateCourseSummary,
+    pub event_type: String,
+    pub status: String,
+    pub teacher_approver: Option<PlatformRewardCandidateUserSummary>,
+    pub teacher_decision_reason: Option<String>,
+    pub approved_amount: Option<String>,
+    pub submitter: PlatformRewardCandidateUserSummary,
+    pub source_organization_id: Option<i32>,
+    pub source_scope: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlatformRewardCandidatePermissions {
+    pub can_view_candidates: bool,
+    pub can_approve_amount: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlatformRewardCandidatesResponse {
+    pub candidates: Vec<PlatformRewardCandidateItem>,
+    pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
+    pub status: Option<String>,
+    pub search: Option<String>,
+    pub operator_permissions: PlatformRewardCandidatePermissions,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -1065,4 +1120,193 @@ fn normalize_idempotency_key(
             event_type, course_id, student_user_id
         )),
     }
+}
+
+pub async fn list_platform_reward_candidates(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    request: PlatformRewardCandidatesRequest,
+) -> Result<PlatformRewardCandidatesResponse, RewardCandidateError> {
+    ensure_platform_permission(conn, actor_user_id, Permissions::VIEW_REWARD_AUDIT).await?;
+
+    let status = match request.status {
+        Some(ref s) => Some(normalize_reward_status(s)?),
+        None => None,
+    };
+    let search = request
+        .search
+        .as_ref()
+        .map(|s| s.trim().to_lowercase())
+        .filter(|s| !s.is_empty());
+    let limit = request.limit.unwrap_or(25).clamp(1, 100);
+    let offset = request.offset.unwrap_or(0).max(0);
+
+    let can_approve_amount = user_permission_platform_request(
+        conn,
+        actor_user_id,
+        &Permissions::APPROVE_REWARD_AMOUNT.to_string(),
+    )
+    .await?;
+
+    let candidates = reward_candidate_repository::list_candidates(
+        conn,
+        RewardCandidateFilter {
+            course_id: None,
+            student_user_id: None,
+            status: status.clone(),
+            limit: None,
+            offset: None,
+        },
+    )
+    .await
+    .map_err(RewardCandidateError::from)?;
+
+    let _total_all = reward_candidate_repository::count_candidates(
+        conn,
+        RewardCandidateFilter {
+            course_id: None,
+            student_user_id: None,
+            status: status.clone(),
+            limit: None,
+            offset: None,
+        },
+    )
+    .await
+    .map_err(RewardCandidateError::from)?;
+
+    let mut items = build_platform_reward_candidate_items(conn, &candidates).await?;
+
+    if let Some(ref s) = search {
+        items.retain(|item| {
+            item.student.name.to_lowercase().contains(s)
+                || item.student.email.to_lowercase().contains(s)
+                || item.course.title.to_lowercase().contains(s)
+                || format!("{}", item.id).contains(s)
+        });
+    }
+
+    let total = items.len() as i64;
+    let paged = items
+        .into_iter()
+        .skip(offset as usize)
+        .take(limit as usize)
+        .collect::<Vec<_>>();
+
+    Ok(PlatformRewardCandidatesResponse {
+        candidates: paged,
+        total,
+        limit,
+        offset,
+        status,
+        search,
+        operator_permissions: PlatformRewardCandidatePermissions {
+            can_view_candidates: true,
+            can_approve_amount,
+        },
+    })
+}
+
+async fn build_platform_reward_candidate_items(
+    conn: &mut AsyncPgConnection,
+    candidates: &[RewardCandidate],
+) -> Result<Vec<PlatformRewardCandidateItem>, RewardCandidateError> {
+    if candidates.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let user_ids: Vec<i32> = candidates
+        .iter()
+        .flat_map(|c| {
+            let mut ids = vec![c.student_user_id, c.submitter_user_id];
+            if let Some(tid) = c.teacher_approver_user_id {
+                ids.push(tid);
+            }
+            ids
+        })
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
+
+    let course_ids: Vec<i32> = candidates
+        .iter()
+        .map(|c| c.course_id)
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
+
+    let users = users::table
+        .filter(users::id.eq_any(&user_ids))
+        .select((users::id, users::name, users::email))
+        .load::<(i32, String, String)>(conn)
+        .await
+        .map_err(RewardCandidateError::from)?
+        .into_iter()
+        .map(|(id, name, email)| (id, PlatformRewardCandidateUserSummary { id, name, email }))
+        .collect::<std::collections::HashMap<i32, PlatformRewardCandidateUserSummary>>();
+
+    let courses = courses::table
+        .filter(courses::id.eq_any(&course_ids))
+        .select((courses::id, courses::title))
+        .load::<(i32, String)>(conn)
+        .await
+        .map_err(RewardCandidateError::from)?
+        .into_iter()
+        .map(|(id, title)| (id, PlatformRewardCandidateCourseSummary { id, title }))
+        .collect::<std::collections::HashMap<i32, PlatformRewardCandidateCourseSummary>>();
+
+    let items = candidates
+        .iter()
+        .map(|c| PlatformRewardCandidateItem {
+            id: c.id,
+            student: users.get(&c.student_user_id).cloned().unwrap_or_else(|| {
+                PlatformRewardCandidateUserSummary {
+                    id: c.student_user_id,
+                    name: format!("Student {}", c.student_user_id),
+                    email: String::new(),
+                }
+            }),
+            course: courses.get(&c.course_id).cloned().unwrap_or_else(|| {
+                PlatformRewardCandidateCourseSummary {
+                    id: c.course_id,
+                    title: format!("Course {}", c.course_id),
+                }
+            }),
+            event_type: c.event_type.clone(),
+            status: c.status.clone(),
+            teacher_approver: c
+                .teacher_approver_user_id
+                .and_then(|id| users.get(&id).cloned()),
+            teacher_decision_reason: c.teacher_decision_reason.clone(),
+            approved_amount: c.approved_amount.as_ref().map(|a| a.to_string()),
+            submitter: users.get(&c.submitter_user_id).cloned().unwrap_or_else(|| {
+                PlatformRewardCandidateUserSummary {
+                    id: c.submitter_user_id,
+                    name: format!("Submitter {}", c.submitter_user_id),
+                    email: String::new(),
+                }
+            }),
+            source_organization_id: c.source_organization_id,
+            source_scope: c.source_scope.clone(),
+            created_at: c.created_at,
+            updated_at: c.updated_at,
+        })
+        .collect();
+
+    Ok(items)
+}
+
+pub async fn list_reward_candidate_audit(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    candidate_id: i64,
+) -> Result<Vec<crate::models::reward_audit_event::RewardAuditEvent>, RewardCandidateError> {
+    ensure_platform_permission(conn, actor_user_id, Permissions::VIEW_REWARD_AUDIT).await?;
+
+    let candidate = reward_candidate_repository::find_candidate(conn, candidate_id)
+        .await
+        .map_err(RewardCandidateError::from)?;
+
+    reward_audit_event_repository::list_reward_audit_events(conn, candidate.id)
+        .await
+        .map_err(RewardCandidateError::from)
 }

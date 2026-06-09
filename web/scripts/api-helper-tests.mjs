@@ -291,6 +291,105 @@ test("platform teacher application helpers normalize denied, conflict, timeout, 
   });
 });
 
+test("platform reward candidate helpers parse review list, audit, and amount decision", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(init.headers.Authorization, "Bearer admin-token");
+    if (url === "/api/reward-candidates/review?status=teacher_approved&limit=8&offset=0") {
+      return jsonResponse(platformRewardCandidatesFixture());
+    }
+    if (url === "/api/reward-candidates/101/audit") {
+      return jsonResponse(platformRewardCandidateAuditFixture());
+    }
+    if (url === "/api/reward-candidates/101/amount-decision") {
+      assert.equal(init.method, "PUT");
+      assert.equal(init.headers["Content-Type"], "application/json");
+      const body = JSON.parse(init.body);
+      assert.equal(body.status, "approved");
+      assert.equal(body.decision_reason, "Platform approved 25 tokens.");
+      assert.equal(body.approved_amount, "25");
+      return jsonResponse(platformRewardCandidatesFixture().candidates[0]);
+    }
+    throw new Error(`Unexpected URL ${url}`);
+  });
+
+  const list = await admin.fetchPlatformRewardCandidates({
+    limit: 8,
+    offset: 0,
+    status: "teacher_approved",
+    token: "admin-token",
+  });
+  const auditEvents = await admin.fetchRewardCandidateAudit({
+    candidateId: 101,
+    token: "admin-token",
+  });
+  const decision = await admin.decideRewardAmount({
+    candidateId: 101,
+    status: "approved",
+    approvedAmount: "25",
+    decisionReason: " Platform approved 25 tokens. ",
+    token: "admin-token",
+  });
+
+  assert.equal(calls.length, 3);
+  assert.equal(list.total, 2);
+  assert.equal(list.candidates[0].student.name, "Student One");
+  assert.equal(list.candidates[0].course.title, "Async Rust");
+  assert.equal(list.operator_permissions.can_approve_amount, true);
+  assert.equal(auditEvents[0].event_type, "candidate_submitted");
+  assert.equal(decision.id, 101);
+});
+
+test("platform reward candidate helpers normalize denied, conflict, timeout, and network errors", async () => {
+  mockFetch(() => textResponse("User does not have reward candidate permission", { status: 403 }));
+
+  await assertRequestError(admin.fetchPlatformRewardCandidates({ token: "admin-token" }), {
+    code: "permission_denied",
+    errorClass: admin.AdminRequestError,
+    status: 403,
+  });
+
+  mockFetch(() => textResponse("reward amount can be decided only after teacher approval", { status: 409 }));
+
+  await assertRequestError(
+    admin.decideRewardAmount({
+      candidateId: 101,
+      status: "approved",
+      approvedAmount: "25",
+      decisionReason: "Already decided.",
+      token: "admin-token",
+    }),
+    {
+      code: "conflict",
+      errorClass: admin.AdminRequestError,
+      status: 409,
+    },
+  );
+
+  mockFetch((_url, init) => {
+    return new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      });
+    });
+  });
+
+  await assertRequestError(admin.fetchRewardCandidateAudit({ candidateId: 101, timeoutMs: 1, token: "admin-token" }), {
+    code: "timeout",
+    errorClass: admin.AdminRequestError,
+    status: 0,
+  });
+
+  mockFetch(() => {
+    throw new TypeError("fetch failed");
+  });
+
+  await assertRequestError(admin.fetchPlatformRewardCandidates({ token: "admin-token" }), {
+    code: "network_error",
+    errorClass: admin.AdminRequestError,
+    status: 0,
+  });
+});
+
 test("platform admin helpers normalize missing token, denied, missing, server, timeout, and network errors", async () => {
   await assertRequestError(admin.fetchPlatformSummary({ token: " " }), {
     code: "missing_token",
@@ -3054,6 +3153,79 @@ function teacherRewardCandidatesFixture() {
       teacher_decided_at: null,
       teacher_decision_reason: null,
       updated_at: "2026-01-05T10:00:00Z",
+    },
+  ];
+}
+
+function platformRewardCandidatesFixture() {
+  return {
+    candidates: [
+      {
+        id: 101,
+        student: { id: 77, name: "Student One", email: "student1@example.test" },
+        course: { id: 9, title: "Async Rust" },
+        event_type: "course_completion",
+        status: "teacher_approved",
+        teacher_approver: { id: 42, name: "Teacher Ada", email: "ada@example.test" },
+        teacher_decision_reason: "Completed all labs.",
+        approved_amount: null,
+        submitter: { id: 42, name: "Teacher Ada", email: "ada@example.test" },
+        source_organization_id: null,
+        source_scope: "course",
+        created_at: "2026-01-04T10:00:00Z",
+        updated_at: "2026-01-04T10:00:00Z",
+      },
+      {
+        id: 102,
+        student: { id: 90, name: "Student Two", email: "student2@example.test" },
+        course: { id: 9, title: "Async Rust" },
+        event_type: "assessment_completion",
+        status: "teacher_approved",
+        teacher_approver: { id: 42, name: "Teacher Ada", email: "ada@example.test" },
+        teacher_decision_reason: "Assessment score above threshold.",
+        approved_amount: null,
+        submitter: { id: 42, name: "Teacher Ada", email: "ada@example.test" },
+        source_organization_id: 7,
+        source_scope: "organization",
+        created_at: "2026-01-05T10:00:00Z",
+        updated_at: "2026-01-05T10:00:00Z",
+      },
+    ],
+    limit: 8,
+    offset: 0,
+    operator_permissions: {
+      can_approve_amount: true,
+      can_view_candidates: true,
+    },
+    search: null,
+    status: "teacher_approved",
+    total: 2,
+  };
+}
+
+function platformRewardCandidateAuditFixture() {
+  return [
+    {
+      actor_user_id: 42,
+      created_at: "2026-01-04T10:00:00Z",
+      event_type: "candidate_submitted",
+      from_status: null,
+      id: 501,
+      metadata: { course_id: 9, student_user_id: 77 },
+      reason: null,
+      reward_candidate_id: 101,
+      to_status: "pending_teacher_approval",
+    },
+    {
+      actor_user_id: 42,
+      created_at: "2026-01-04T11:00:00Z",
+      event_type: "teacher_decision",
+      from_status: "pending_teacher_approval",
+      id: 502,
+      metadata: {},
+      reason: "Completed all labs.",
+      reward_candidate_id: 101,
+      to_status: "teacher_approved",
     },
   ];
 }

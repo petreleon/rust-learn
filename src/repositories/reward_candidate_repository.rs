@@ -88,6 +88,27 @@ pub async fn list_candidates(
         .await
 }
 
+pub async fn count_candidates(
+    conn: &mut AsyncPgConnection,
+    filter: RewardCandidateFilter,
+) -> QueryResult<i64> {
+    let mut query = reward_candidates::table.into_boxed();
+
+    if let Some(course_id) = filter.course_id {
+        query = query.filter(reward_candidates::course_id.eq(course_id));
+    }
+
+    if let Some(student_user_id) = filter.student_user_id {
+        query = query.filter(reward_candidates::student_user_id.eq(student_user_id));
+    }
+
+    if let Some(status) = filter.status {
+        query = query.filter(reward_candidates::status.eq(status));
+    }
+
+    query.count().get_result(conn).await
+}
+
 pub async fn update_teacher_decision(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
