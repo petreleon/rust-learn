@@ -51,7 +51,7 @@ navigation.
       workspace switcher, account menu, notification entry, and route title.
 - [x] Add mobile navigation that does not hide primary actions behind tiny text
       or overflow-prone controls.
-- [ ] Add breadcrumbs or contextual back links for nested learner, teacher,
+- [x] Add breadcrumbs or contextual back links for nested learner, teacher,
       organization, and platform admin routes.
 - [x] Add route-level loading skeletons that preserve layout stability.
 - [x] Add global toast/status area for success, retryable errors, session
@@ -72,15 +72,15 @@ navigation.
 
 ## Edge Cases
 
-- [ ] User logs out with unsaved form state.
+- [x] User logs out with unsaved form state.
 - [x] Token expires while current-user request is in flight.
-- [ ] Token expires after route data loads but before a mutation.
+- [x] Token expires after route data loads but before a mutation.
 - [x] User has no memberships and no courses.
 - [x] User has only course-scoped permissions and no organization membership.
-- [ ] User has multiple organizations and a stale workspace selection.
-- [ ] User has delegated permission that expires during the session.
+- [x] User has multiple organizations and a stale workspace selection.
+- [x] User has delegated permission that expires during the session.
 - [x] API root differs between local browser, Docker Compose, and Kubernetes.
-- [ ] Browser refresh on a deep link preserves intended route after auth.
+- [x] Browser refresh on a deep link preserves intended route after auth.
 
 ## Acceptance Evidence
 

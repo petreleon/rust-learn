@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { type ReactNode } from "react";
 import { accessSummary } from "@/lib/access";
 import { type CurrentSession } from "@/lib/session";
@@ -72,10 +73,40 @@ export function ProductShell({
   statusItems,
   title,
 }: ProductShellProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+
   const workspaceOptions = buildWorkspaceOptions(session);
   const accountLabel = session?.user.name || (isSignedIn ? "Resolving" : "Account");
   const navItems = buildNavItems(session);
   const showOperationsConsole = Boolean(session && accessSummary(session).platformAdmin);
+
+  const currentWorkspaceValue = (() => {
+    if (!session) return "";
+    const orgMatch = pathname.match(/^\/organizations\/(\d+)/);
+    if (orgMatch) {
+      return `organization:${orgMatch[1]}`;
+    }
+    const courseMatch = pathname.match(/^\/courses\/(\d+)/);
+    if (courseMatch) {
+      return `course:${courseMatch[1]}`;
+    }
+    return `user:${session.user.id}`;
+  })();
+
+  const handleWorkspaceChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value;
+    if (!value) return;
+
+    const [type, id] = value.split(":");
+    if (type === "organization") {
+      router.push(`/organizations/${id}`);
+    } else if (type === "course") {
+      router.push(`/courses/${id}`);
+    } else {
+      router.push("/session");
+    }
+  };
 
   return (
     <main className={styles.page}>
@@ -108,7 +139,12 @@ export function ProductShell({
         <div className={styles.toolbar}>
           <label className={styles.workspaceControl}>
             <span>Workspace</span>
-            <select aria-label="Workspace" disabled={workspaceOptions.length === 0}>
+            <select
+              aria-label="Workspace"
+              disabled={workspaceOptions.length === 0}
+              value={currentWorkspaceValue}
+              onChange={handleWorkspaceChange}
+            >
               {workspaceOptions.length ? (
                 workspaceOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -141,6 +177,8 @@ export function ProductShell({
         <MobileMenu
           activeNav={activeNav}
           accountLabel={accountLabel}
+          currentWorkspaceValue={currentWorkspaceValue}
+          handleWorkspaceChange={handleWorkspaceChange}
           isSignedIn={isSignedIn}
           navItems={navItems}
           onSignOut={onSignOut}
@@ -232,6 +270,8 @@ function AccountMenu({
 function MobileMenu({
   accountLabel,
   activeNav,
+  currentWorkspaceValue,
+  handleWorkspaceChange,
   isSignedIn,
   navItems,
   onSignOut,
@@ -241,6 +281,8 @@ function MobileMenu({
 }: {
   accountLabel: string;
   activeNav: ActiveNav;
+  currentWorkspaceValue: string;
+  handleWorkspaceChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
   isSignedIn: boolean;
   navItems: NavItem[];
   onSignOut?: () => void;
@@ -271,7 +313,12 @@ function MobileMenu({
         })}
         <label className={styles.mobileWorkspace}>
           <span>Workspace</span>
-          <select aria-label="Mobile workspace" disabled={workspaceOptions.length === 0}>
+          <select
+            aria-label="Mobile workspace"
+            disabled={workspaceOptions.length === 0}
+            value={currentWorkspaceValue}
+            onChange={handleWorkspaceChange}
+          >
             {workspaceOptions.length ? (
               workspaceOptions.map((option) => (
                 <option key={option.value} value={option.value}>

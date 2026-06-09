@@ -140,6 +140,24 @@ export default function TeacherApplicationPage() {
     window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
   }, [draft, draftReady]);
 
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const isDirty =
+        draft.experienceSummary.trim() !== "" ||
+        draft.portfolioLinks.trim() !== "" ||
+        draft.requestedCourseId !== "" ||
+        draft.requestedOrganizationId !== "" ||
+        draft.requestedScope !== "platform";
+
+      if (isDirty && formVisible && submitState !== "success") {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [draft, formVisible, submitState]);
+
   const application = snapshot.application;
   const canSubmitApplication = Boolean(session?.platform.effective_permissions.includes(submitPermission));
   const formVisible = Boolean(!application || (application.status === "rejected" && showRejectedForm));
@@ -152,6 +170,19 @@ export default function TeacherApplicationPage() {
   const notice = routeNotice(error, submitError);
 
   function signOut() {
+    const isDirty =
+      draft.experienceSummary.trim() !== "" ||
+      draft.portfolioLinks.trim() !== "" ||
+      draft.requestedCourseId !== "" ||
+      draft.requestedOrganizationId !== "" ||
+      draft.requestedScope !== "platform";
+
+    if (isDirty && formVisible && submitState !== "success") {
+      if (!window.confirm("You have unsaved changes in your teacher application. Are you sure you want to sign out?")) {
+        return;
+      }
+    }
+
     clearStoredSessionToken();
     setHasToken(false);
     setSession(null);

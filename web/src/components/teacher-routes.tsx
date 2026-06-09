@@ -519,7 +519,32 @@ export function TeacherCourseContentRoute({ courseId }: { courseId: string }) {
     return () => window.clearTimeout(timeout);
   }, [loadContentRoute]);
 
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const isDirty =
+        chapterDraft.title.trim() !== "" ||
+        contentDraft.data.trim() !== "";
+
+      if (isDirty && actionState !== "saving") {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [chapterDraft.title, contentDraft.data, actionState]);
+
   function signOut() {
+    const isDirty =
+      chapterDraft.title.trim() !== "" ||
+      contentDraft.data.trim() !== "";
+
+    if (isDirty && actionState !== "saving") {
+      if (!window.confirm("You have unsaved changes in your course content draft. Are you sure you want to sign out?")) {
+        return;
+      }
+    }
+
     clearStoredSessionToken();
     setHasToken(false);
     setSession(null);

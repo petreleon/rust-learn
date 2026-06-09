@@ -57,7 +57,7 @@ application.
 
 ## First Frontend Milestones
 
-- [ ] [Milestone 1](06-milestone-01-app-shell-auth.md): App shell, auth screens,
+- [x] [Milestone 1](06-milestone-01-app-shell-auth.md): App shell, auth screens,
       current-user context, route guards, and permission-aware navigation.
 - [ ] [Milestone 2](07-milestone-02-learner.md): Learner dashboard, course
       discovery, course detail, reward history, and wallet summary.
