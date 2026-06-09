@@ -65,9 +65,9 @@ reconciliation, and system health.
 - [x] `/admin/fraud-blocks` fraud block list and create flow.
 - [x] `/admin/fraud-blocks/[blockId]` block detail, audit, and revoke.
 - [x] `/admin/delegations` delegated permission management.
-- [ ] `/admin/exports` report exports and CSV downloads.
-- [ ] `/admin/wallets` wallet reconciliation and transaction audit.
-- [ ] `/admin/system` readiness, health, and runtime status.
+- [x] `/admin/exports` report exports and CSV downloads.
+- [x] `/admin/wallets` wallet reconciliation and transaction audit.
+- [x] `/admin/system` readiness, health, and runtime status.
 
 ## Teacher Application Review
 
