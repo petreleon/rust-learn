@@ -257,6 +257,15 @@ query parameters. The response includes `courses`, `total`, `limit`, `offset`,
 `search`, and `organization_id` so learners and organization views can paginate
 and filter discovery results consistently.
 
+### Organization dashboard API
+
+Organization operators with any organization dashboard access can read
+`GET /api/organizations/{id}/dashboard`. The response includes organization
+health, member and course counts, sponsored teacher-application counts, reward
+volume, approved amount totals, failed/reconciliation reward counts,
+organization wallet balance, operator permission booleans, gated-section
+missing-permission lists, and dashboard alerts for triage.
+
 ### Organization course API
 
 Organization operators with platform or organization-scoped `VIEW_ORGANIZATION`

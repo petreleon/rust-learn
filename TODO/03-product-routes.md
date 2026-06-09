@@ -158,7 +158,7 @@
 
 ## Organization Experience
 
-- [ ] Build an organization dashboard with member counts, course activity,
+- [x] Build an organization dashboard with member counts, course activity,
       teacher applications, reward volume, wallet balance, and alerts.
   - [x] `/organizations` now opens a real organization workspace selector from
         the current session with multi-org cards, search, capability filters,
@@ -167,9 +167,13 @@
   - [x] `/organizations/[organizationId]` now opens a session-scope
         organization dashboard shell with permission-derived available
         actions, missing-permission explanations, disabled contract-pending
-        action buttons, and stale organization handling. Full member counts,
-        course activity, reports, wallet, and alert metrics remain open until
-        backend contracts exist.
+        action buttons, and stale organization handling.
+  - [x] `/organizations/[organizationId]` now consumes
+        `GET /api/organizations/{organizationId}/dashboard` for organization
+        health, member/course/application/reward/wallet summary cards,
+        attention alerts, operational signals, gated dashboard sections,
+        retryable backend failure, basic-member gated sections, and desktop/
+        mobile no-overflow rendered evidence.
 - [ ] Build member management for invites, roles, scoped permissions, and
       removal flows.
   - [x] `/organizations/[organizationId]/members` now consumes

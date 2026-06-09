@@ -145,6 +145,112 @@ test("filterOrganizationWorkspace searches permissions and preserves stale-route
   assert.equal(organization.findOrganizationWorkspaceItem(sessionFixture, 404), null);
 });
 
+test("organization dashboard helper parses triage summaries", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/organizations/7/dashboard");
+    assert.equal(init.headers.Authorization, "Bearer org-token");
+    assert.equal(init.headers.Accept, "application/json, text/plain");
+    return jsonResponse(organizationDashboardFixture());
+  });
+
+  const result = await organization.fetchOrganizationDashboard({
+    organizationId: 7,
+    token: "org-token",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(result.organization.name, "Ferris Academy");
+  assert.equal(result.health.status, "attention");
+  assert.equal(result.members.total, 3);
+  assert.equal(result.courses.published, 1);
+  assert.equal(result.teacher_applications.submitted, 2);
+  assert.equal(result.rewards.approved_amount_total, "40");
+  assert.equal(result.wallet.balance_total, "125");
+  assert.equal(result.operator_permissions.can_view_reports, true);
+  assert.equal(result.alerts[0].kind, "teacher_applications_submitted");
+});
+
+test("organization dashboard helper normalizes denied, missing, server, timeout, and network errors", async () => {
+  mockFetch(() => textResponse("User does not have permission to view organization dashboard", { status: 403 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationDashboard({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "permission_denied",
+      errorClass: organization.OrganizationRequestError,
+      status: 403,
+    },
+  );
+
+  mockFetch(() => textResponse("Organization not found", { status: 404 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationDashboard({
+      organizationId: 404,
+      token: "org-token",
+    }),
+    {
+      code: "not_found",
+      errorClass: organization.OrganizationRequestError,
+      status: 404,
+    },
+  );
+
+  mockFetch(() => textResponse("Failed to fetch organization dashboard", { status: 500 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationDashboard({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "server_error",
+      errorClass: organization.OrganizationRequestError,
+      status: 500,
+    },
+  );
+
+  mockFetch((_url, init) => {
+    return new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      });
+    });
+  });
+
+  await assertRequestError(
+    organization.fetchOrganizationDashboard({
+      organizationId: 7,
+      timeoutMs: 1,
+      token: "org-token",
+    }),
+    {
+      code: "timeout",
+      errorClass: organization.OrganizationRequestError,
+      status: 0,
+    },
+  );
+
+  mockFetch(() => {
+    throw new TypeError("fetch failed");
+  });
+
+  await assertRequestError(
+    organization.fetchOrganizationDashboard({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "network_error",
+      errorClass: organization.OrganizationRequestError,
+      status: 0,
+    },
+  );
+});
+
 test("organization report helpers parse dashboard JSON and CSV exports", async () => {
   const calls = mockFetch((url, init) => {
     assert.equal(init.headers.Authorization, "Bearer org-token");
@@ -1692,6 +1798,82 @@ function organizationSessionFixture() {
         scope_type: "organization",
       },
     ],
+  };
+}
+
+function organizationDashboardFixture() {
+  return {
+    alerts: [
+      {
+        action_href: "/organizations/7/teacher-applications",
+        action_label: "Open teacher nominations",
+        kind: "teacher_applications_submitted",
+        message: "2 sponsored teacher applications are awaiting platform review.",
+        severity: "warning",
+      },
+    ],
+    courses: {
+      approved: 0,
+      archived: 0,
+      available: true,
+      draft: 1,
+      missing_permissions: [],
+      needs_changes: 1,
+      published: 1,
+      submitted: 0,
+      suspended: 0,
+      total: 3,
+    },
+    health: {
+      alert_count: 1,
+      status: "attention",
+    },
+    members: {
+      available: true,
+      delegated_permission_count: 1,
+      kyc_ready_count: 1,
+      missing_permissions: [],
+      total: 3,
+      verified_email_count: 2,
+    },
+    operator_permissions: {
+      can_manage_reward_budget: true,
+      can_manage_wallets: true,
+      can_nominate_teachers: true,
+      can_view_courses: true,
+      can_view_dashboard: true,
+      can_view_members: true,
+      can_view_reports: true,
+      can_view_teacher_applications: true,
+    },
+    organization: {
+      id: 7,
+      name: "Ferris Academy",
+    },
+    rewards: {
+      approved_amount_total: "40",
+      approved_reward_count: 2,
+      available: true,
+      failed_count: 1,
+      missing_permissions: [],
+      needs_reconciliation_count: 0,
+      reward_candidate_count: 4,
+    },
+    teacher_applications: {
+      approved: 1,
+      available: true,
+      missing_permissions: [],
+      needs_changes: 0,
+      rejected: 0,
+      submitted: 2,
+      total: 3,
+    },
+    wallet: {
+      available: true,
+      balance_total: "125",
+      missing_permissions: [],
+      wallet_count: 1,
+    },
   };
 }
 

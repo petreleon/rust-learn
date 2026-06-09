@@ -120,6 +120,16 @@ screens pretend to be complete.
         decision reason, audit summary, dashboard summary counts, and operator
         action booleans. A searchable applicant lookup remains open before
         nomination submission should become a normal product form.
+- [x] Define an organization dashboard summary contract before marking
+      organization health and triage metrics complete.
+  - [x] `GET /api/organizations/{organizationId}/dashboard` returns to users
+        with organization dashboard access and includes organization labels,
+        health status, member counts, course lifecycle counts, sponsored
+        teacher-application counts, reward volume, approved amount totals,
+        failed/reconciliation reward counts, organization wallet balance,
+        operator permission booleans, gated-section missing-permission lists,
+        and alert actions for teacher applications, course changes, reward
+        reconciliation, and missing wallets.
 - [ ] Define upload-job or media-processing status APIs before the teacher
       upload UI promises progress or retry visibility.
 - [ ] Define searchable user, organization, course, application, reward,

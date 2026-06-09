@@ -71,8 +71,11 @@ routine work.
   - [x] Session-scope dashboard shell shows selected organization, role labels,
         direct/delegated/effective permission counts, available action
         capabilities, denied action explanations, and stale organization state.
-        Full organization health metrics remain open until backend contracts
-        exist.
+  - [x] Dashboard consumes `GET /api/organizations/{organizationId}/dashboard`
+        and shows organization health, member count, course lifecycle activity,
+        pending teacher applications, reward volume, approved amount, wallet
+        balance, attention alerts, operational signals, gated dashboard
+        sections, and retryable backend-failure state.
 - [ ] `/organizations/[organizationId]/members` member management.
   - [x] Shows the organization member directory from the scoped member
         contract, including filters, pagination, role labels, direct and
@@ -110,8 +113,12 @@ routine work.
 
 ## Organization Dashboard
 
-- [ ] Show organization health, member count, active courses, pending teacher
+- [x] Show organization health, member count, active courses, pending teacher
       applications, reward volume, wallet balance, and alerts.
+  - [x] The dashboard summary endpoint and frontend route cover full admin
+        visibility, basic-member gated reports/wallet/teacher-application
+        sections, missing-permission explanations, alert links, and retryable
+        backend `500` behavior.
 - [x] Show quick actions only when scoped permissions allow them.
 - [x] Explain denied quick actions with the missing scoped permission.
 - [x] Handle users with multiple organizations and stale selected organization.
@@ -199,6 +206,13 @@ routine work.
         validated the main signed-in flow; Playwright supplied alternate
         session and mobile evidence after Browser could not reliably switch
         session storage.
+  - [x] Playwright QA covers `/organizations/[organizationId]` dashboard
+        desktop admin summary, refresh interaction, attention alerts, basic
+        member gated dashboard sections, backend `500` retry state, and mobile
+        first viewport/no-overflow. BrowserMCP was unavailable
+        (`Transport closed`), so Playwright supplied screenshots and
+        interaction proof; the backend failure fixture intentionally produced
+        `500` resource console evidence.
   - [x] Playwright QA covers `/organizations/[organizationId]/reports`
         desktop populated report, CSV download/status, dashboard-to-report
         navigation, mobile first viewport/no-overflow, report-only access
@@ -250,6 +264,11 @@ routine work.
         successful operator/member summaries, permission-denied, missing
         organization, backend `5xx`, timeout, and network failure
         normalization.
+  - [x] Rust API tests cover the organization dashboard route for full
+        admin summaries, basic-member gated sensitive sections, and outsider
+        `403`. Frontend helper tests cover dashboard JSON parsing,
+        permission-denied, missing organization, backend `5xx`, timeout, and
+        network failure normalization.
   - [x] Rust API tests cover
         `GET /api/organizations/{organizationId}/teacher-applications` route
         behavior for organization-scoped access, submitted/approved sponsored

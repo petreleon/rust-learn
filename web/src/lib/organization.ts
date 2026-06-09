@@ -39,6 +39,81 @@ export type OrganizationWorkspaceSummary = {
   walletScopeCount: number;
 };
 
+export type OrganizationDashboardAlert = {
+  action_href: string | null;
+  action_label: string | null;
+  kind: string;
+  message: string;
+  severity: string;
+};
+
+export type OrganizationDashboardSectionGate = {
+  available: boolean;
+  missing_permissions: string[];
+};
+
+export type OrganizationDashboardMemberSummary = OrganizationDashboardSectionGate & {
+  delegated_permission_count: number;
+  kyc_ready_count: number;
+  total: number;
+  verified_email_count: number;
+};
+
+export type OrganizationDashboardCourseSummary = OrganizationDashboardSectionGate & {
+  approved: number;
+  archived: number;
+  draft: number;
+  needs_changes: number;
+  published: number;
+  submitted: number;
+  suspended: number;
+  total: number;
+};
+
+export type OrganizationDashboardTeacherApplicationSummary = OrganizationDashboardSectionGate & TeacherApplicationDashboardSummary;
+
+export type OrganizationDashboardRewardSummary = OrganizationDashboardSectionGate & {
+  approved_amount_total: string;
+  approved_reward_count: number;
+  failed_count: number;
+  needs_reconciliation_count: number;
+  reward_candidate_count: number;
+};
+
+export type OrganizationDashboardWalletSummary = OrganizationDashboardSectionGate & {
+  balance_total: string;
+  wallet_count: number;
+};
+
+export type OrganizationDashboardOperatorPermissions = {
+  can_manage_reward_budget: boolean;
+  can_manage_wallets: boolean;
+  can_nominate_teachers: boolean;
+  can_view_courses: boolean;
+  can_view_dashboard: boolean;
+  can_view_members: boolean;
+  can_view_reports: boolean;
+  can_view_teacher_applications: boolean;
+};
+
+export type OrganizationDashboardSummary = {
+  alerts: OrganizationDashboardAlert[];
+  courses: OrganizationDashboardCourseSummary;
+  health: {
+    alert_count: number;
+    status: string;
+  };
+  members: OrganizationDashboardMemberSummary;
+  operator_permissions: OrganizationDashboardOperatorPermissions;
+  organization: {
+    id: number;
+    name: string;
+  };
+  rewards: OrganizationDashboardRewardSummary;
+  teacher_applications: OrganizationDashboardTeacherApplicationSummary;
+  wallet: OrganizationDashboardWalletSummary;
+};
+
 export type OrganizationFilter = {
   capability: OrganizationCapabilityKey | "all" | "delegated";
   search: string;
@@ -261,6 +336,10 @@ export type OrganizationReportOptions = OrganizationRequestOptions & {
   organizationId: number;
 };
 
+export type OrganizationDashboardOptions = OrganizationRequestOptions & {
+  organizationId: number;
+};
+
 export type OrganizationCourseListOptions = OrganizationRequestOptions & {
   lifecycleStatus?: string | null;
   limit?: number;
@@ -435,6 +514,20 @@ export async function fetchOrganizationRewardDashboard({
   return organizationJsonRequest({
     apiRoot,
     path: `/reports/organizations/${organizationId}/reward-dashboard`,
+    timeoutMs,
+    token,
+  });
+}
+
+export async function fetchOrganizationDashboard({
+  apiRoot = "/api",
+  organizationId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: OrganizationDashboardOptions): Promise<OrganizationDashboardSummary> {
+  return organizationJsonRequest({
+    apiRoot,
+    path: `/organizations/${organizationId}/dashboard`,
     timeoutMs,
     token,
   });

@@ -29,6 +29,7 @@ import {
   downloadOrganizationRewardDashboardCsv,
   enabledOrganizationCapabilities,
   fetchOrganizationCourses,
+  fetchOrganizationDashboard,
   fetchOrganizationMembers,
   fetchOrganizationRewardDashboard,
   fetchOrganizationTeacherApplications,
@@ -40,6 +41,8 @@ import {
   type OrganizationCapabilityKey,
   type OrganizationCourseList,
   type OrganizationCourseListItem,
+  type OrganizationDashboardAlert,
+  type OrganizationDashboardSummary,
   type OrganizationMemberList,
   type OrganizationMemberListItem,
   type OrganizationRewardDashboard,
@@ -71,6 +74,7 @@ type ReportLoadState = "idle" | "loading" | "success" | "error";
 type CourseLoadState = "idle" | "loading" | "success" | "error";
 type MemberLoadState = "idle" | "loading" | "success" | "error";
 type TeacherApplicationLoadState = "idle" | "loading" | "success" | "error";
+type DashboardLoadState = "idle" | "loading" | "success" | "error";
 
 const capabilityFilters: Array<{ label: string; value: CapabilityFilter }> = [
   { label: "All access", value: "all" },
@@ -257,7 +261,51 @@ export function OrganizationDashboardRoute({ organizationId }: { organizationId:
     () => (route.session ? buildOrganizationWorkspace(route.session) : emptyWorkspace),
     [route.session],
   );
-  const notice = organizationNotice(route.error);
+  const [dashboard, setDashboard] = useState<OrganizationDashboardSummary | null>(null);
+  const [dashboardError, setDashboardError] = useState<RouteError | null>(null);
+  const [dashboardLoadState, setDashboardLoadState] = useState<DashboardLoadState>("idle");
+  const notice = organizationNotice(route.error || dashboardError);
+
+  const loadDashboard = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token || invalidOrganizationId || !organization) {
+      return;
+    }
+
+    setDashboardError(null);
+    setDashboardLoadState("loading");
+
+    try {
+      const nextDashboard = await fetchOrganizationDashboard({
+        organizationId: organization.id,
+        token,
+      });
+      setDashboard(nextDashboard);
+      setDashboardLoadState("success");
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      if (routeError.status === 401) {
+        clearStoredSessionToken();
+      }
+      setDashboard(null);
+      setDashboardError(routeError);
+      setDashboardLoadState("error");
+    }
+  }, [invalidOrganizationId, organization]);
+
+  useEffect(() => {
+    if (route.session && organization) {
+      const timeout = window.setTimeout(() => {
+        setDashboard(null);
+        setDashboardError(null);
+        setDashboardLoadState("idle");
+        void loadDashboard();
+      }, 0);
+      return () => window.clearTimeout(timeout);
+    }
+
+    return undefined;
+  }, [loadDashboard, organization, route.session]);
 
   return (
     <ProductShell
@@ -280,7 +328,15 @@ export function OrganizationDashboardRoute({ organizationId }: { organizationId:
       {route.loadState === "loading" ? <LoadingState /> : null}
       {route.error ? <ErrorState error={route.error} redirect="/organizations" /> : null}
       {route.session && (invalidOrganizationId || !organization) ? <MissingOrganizationState /> : null}
-      {route.session && organization ? <OrganizationDashboard organization={organization} /> : null}
+      {route.session && organization ? (
+        <OrganizationDashboard
+          dashboard={dashboard}
+          dashboardError={dashboardError}
+          dashboardLoadState={dashboardLoadState}
+          onRefreshDashboard={loadDashboard}
+          organization={organization}
+        />
+      ) : null}
     </ProductShell>
   );
 }
@@ -847,9 +903,25 @@ export function OrganizationReportsRoute({ organizationId }: { organizationId: s
   );
 }
 
-function OrganizationDashboard({ organization }: { organization: OrganizationWorkspaceItem }) {
+function OrganizationDashboard({
+  dashboard,
+  dashboardError,
+  dashboardLoadState,
+  onRefreshDashboard,
+  organization,
+}: {
+  dashboard: OrganizationDashboardSummary | null;
+  dashboardError: RouteError | null;
+  dashboardLoadState: DashboardLoadState;
+  onRefreshDashboard: () => void;
+  organization: OrganizationWorkspaceItem;
+}) {
   const enabledCapabilities = enabledOrganizationCapabilities(organization);
   const deniedCapabilities = organization.capabilities.filter((capability) => !capability.enabled);
+  const pendingTeacherApplications = dashboard
+    ? dashboard.teacher_applications.submitted + dashboard.teacher_applications.needs_changes
+    : 0;
+  const walletBalance = dashboard?.wallet.available ? formatTokenAmount(dashboard.wallet.balance_total) : "Gated";
 
   return (
     <>
@@ -862,10 +934,16 @@ function OrganizationDashboard({ organization }: { organization: OrganizationWor
           <p className={styles.eyebrow}>Selected workspace</p>
           <h2>{organization.name}</h2>
           <p className={styles.muted}>
-            This view is resolved from your current session. Member lists, report rows, wallet audit,
-            and nomination history remain backend-contract work before those screens can become
-            full workflows.
+            This dashboard combines the resolved session scope with the organization dashboard
+            contract so operators can see attention items before opening member, course, report,
+            wallet, or nomination workspaces.
           </p>
+        </div>
+        <div className={styles.actionRow}>
+          <button className={styles.secondaryButton} onClick={onRefreshDashboard} type="button">
+            <RefreshCw size={17} aria-hidden />
+            Refresh
+          </button>
         </div>
         <div className={styles.permissionRow}>
           {organization.roles.length ? (
@@ -873,15 +951,72 @@ function OrganizationDashboard({ organization }: { organization: OrganizationWor
           ) : (
             <span className={styles.permissionChip}>No role label</span>
           )}
+          {dashboard ? (
+            <StatusPill label={formatUnderscoreLabel(dashboard.health.status)} tone={dashboard.health.status === "attention" ? "warn" : "good"} />
+          ) : null}
         </div>
       </section>
 
-      <section className={styles.summaryGrid}>
-        <SummaryCard icon={<ShieldCheck size={20} aria-hidden />} label="Effective permissions" value={organization.effectivePermissionCount} />
-        <SummaryCard icon={<Building2 size={20} aria-hidden />} label="Direct permissions" value={organization.directPermissionCount} />
-        <SummaryCard icon={<Users size={20} aria-hidden />} label="Available actions" value={enabledCapabilities.length} />
-        <SummaryCard icon={<CheckCircle2 size={20} aria-hidden />} label="Delegated permissions" value={organization.delegatedPermissionCount} />
-      </section>
+      {dashboardLoadState === "loading" || dashboardLoadState === "idle" ? (
+        <section className={`${styles.panel} ${styles.singlePanel}`} aria-live="polite">
+          <div className={styles.panelHeader}>
+            <Loader2 className={styles.spin} size={20} aria-hidden />
+            <h2>Loading dashboard summary</h2>
+          </div>
+          <div className={styles.skeletonGrid} aria-hidden>
+            <div className={styles.skeleton} />
+            <div className={styles.skeleton} />
+            <div className={styles.skeleton} />
+          </div>
+        </section>
+      ) : null}
+
+      {dashboardLoadState === "error" ? (
+        <DashboardErrorState error={dashboardError} onRetry={onRefreshDashboard} />
+      ) : null}
+
+      {dashboard ? (
+        <>
+          <section className={styles.summaryGrid}>
+            <SummaryCard icon={<Users size={20} aria-hidden />} label="Members" value={dashboard.members.available ? dashboard.members.total : "Gated"} />
+            <SummaryCard icon={<BookOpen size={20} aria-hidden />} label="Courses" value={dashboard.courses.available ? dashboard.courses.total : "Gated"} />
+            <SummaryCard icon={<UserPlus size={20} aria-hidden />} label="Pending teacher apps" value={dashboard.teacher_applications.available ? pendingTeacherApplications : "Gated"} />
+            <SummaryCard icon={<CreditCard size={20} aria-hidden />} label="Wallet balance" value={walletBalance} />
+          </section>
+
+          <section className={styles.twoColumn}>
+            <section className={styles.panel}>
+              <div className={styles.sectionHeader}>
+                <h2>Attention items</h2>
+                <StatusPill label={`${dashboard.health.alert_count} visible`} tone={dashboard.health.status === "attention" ? "warn" : "good"} />
+              </div>
+              <div className={styles.compactList}>
+                {dashboard.alerts.map((alert) => (
+                  <DashboardAlertCard alert={alert} key={`${alert.kind}-${alert.message}`} />
+                ))}
+              </div>
+            </section>
+
+            <section className={styles.panel}>
+              <div className={styles.sectionHeader}>
+                <h2>Operational signals</h2>
+                <StatusPill label={dashboard.rewards.available ? "Reports visible" : "Reports gated"} tone={dashboard.rewards.available ? "good" : "warn"} />
+              </div>
+              <div className={styles.metricGrid}>
+                <Metric label="Published courses" value={dashboard.courses.available ? dashboard.courses.published : "Gated"} />
+                <Metric label="Reward candidates" value={dashboard.rewards.available ? dashboard.rewards.reward_candidate_count : "Gated"} />
+                <Metric label="Approved amount" value={dashboard.rewards.available ? formatTokenAmount(dashboard.rewards.approved_amount_total) : "Gated"} />
+              </div>
+              <div className={styles.metricGrid}>
+                <Metric label="Verified members" value={dashboard.members.available ? dashboard.members.verified_email_count : "Gated"} />
+                <Metric label="Needs changes" value={dashboard.courses.available ? dashboard.courses.needs_changes : "Gated"} />
+                <Metric label="Wallets" value={dashboard.wallet.available ? dashboard.wallet.wallet_count : "Gated"} />
+              </div>
+              <PermissionGateList dashboard={dashboard} />
+            </section>
+          </section>
+        </>
+      ) : null}
 
       <section className={styles.twoColumn}>
         <section className={styles.panel}>
@@ -923,6 +1058,52 @@ function OrganizationDashboard({ organization }: { organization: OrganizationWor
         </div>
       </section>
     </>
+  );
+}
+
+function DashboardAlertCard({ alert }: { alert: OrganizationDashboardAlert }) {
+  const tone = alert.severity === "warning" ? "warn" : "good";
+  return (
+    <article className={styles.compactRow}>
+      <span>
+        <StatusPill label={formatUnderscoreLabel(alert.kind)} tone={tone} />
+        {alert.message}
+      </span>
+      {alert.action_href && alert.action_label ? (
+        <Link className={styles.secondaryLink} href={alert.action_href}>
+          {alert.action_label}
+        </Link>
+      ) : null}
+    </article>
+  );
+}
+
+function PermissionGateList({ dashboard }: { dashboard: OrganizationDashboardSummary }) {
+  const gatedSections = [
+    { label: "Members", section: dashboard.members },
+    { label: "Courses", section: dashboard.courses },
+    { label: "Teacher applications", section: dashboard.teacher_applications },
+    { label: "Reports", section: dashboard.rewards },
+    { label: "Wallet", section: dashboard.wallet },
+  ].filter((item) => !item.section.available);
+
+  if (!gatedSections.length) {
+    return (
+      <div className={styles.permissionRow}>
+        <span className={styles.permissionChip}>All dashboard sections visible</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.missingList}>
+      <strong>Gated dashboard sections</strong>
+      {gatedSections.map((item) => (
+        <span key={item.label}>
+          {item.label}: {item.section.missing_permissions.join(", ")}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -1937,6 +2118,28 @@ function MemberErrorState({
       <span>
         <strong>{error?.code || "member_error"}</strong>
         <span>{error?.message || "Organization members could not be loaded."}</span>
+      </span>
+      <button className={styles.secondaryButton} onClick={onRetry} type="button">
+        <RefreshCw size={17} aria-hidden />
+        Retry
+      </button>
+    </section>
+  );
+}
+
+function DashboardErrorState({
+  error,
+  onRetry,
+}: {
+  error: RouteError | null;
+  onRetry: () => void;
+}) {
+  return (
+    <section className={styles.errorBox} role="status">
+      <AlertTriangle size={20} aria-hidden />
+      <span>
+        <strong>{error?.code || "dashboard_error"}</strong>
+        <span>{error?.message || "Organization dashboard summary could not be loaded."}</span>
       </span>
       <button className={styles.secondaryButton} onClick={onRetry} type="button">
         <RefreshCw size={17} aria-hidden />

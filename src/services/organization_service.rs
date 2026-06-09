@@ -1,16 +1,29 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{
-    courses_organizations, delegated_permissions, organization_roles, organizations,
-    role_permission_organization, user_role_organization, users,
+    courses, courses_organizations, delegated_permissions, organization_roles, organizations,
+    reward_candidates, role_permission_organization, teacher_applications, user_role_organization,
+    users, wallets,
 };
 use crate::db::DbPool;
-use crate::models::course::Course;
+use crate::models::course::{
+    Course, COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED, COURSE_STATUS_DRAFT,
+    COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
+    COURSE_STATUS_SUSPENDED,
+};
 use crate::models::courses_organizations::NewCourseOrganization;
 use crate::models::organization::{NewOrganization, Organization, UpdateOrganization};
+use crate::models::reward_candidate::{REWARD_STATUS_FAILED, REWARD_STATUS_NEEDS_RECONCILIATION};
+use crate::models::teacher_application::{
+    TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
+    TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
+};
 use crate::repositories::organization_repository::assign_role_to_user_in_organization;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
+use crate::services::reporting_service::organization_reward_dashboard;
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use diesel::dsl::{exists, select};
 use diesel::prelude::*;
 use diesel::result::Error as DieselError;
 use diesel_async::{AsyncConnection, RunQueryDsl};
@@ -76,6 +89,122 @@ pub enum OrganizationMemberListError {
     PermissionDenied,
     NotFound,
     Database(DieselError),
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationDashboardResponse {
+    pub organization: OrganizationDashboardOrganization,
+    pub health: OrganizationDashboardHealth,
+    pub members: OrganizationDashboardMemberSummary,
+    pub courses: OrganizationDashboardCourseSummary,
+    pub teacher_applications: OrganizationDashboardTeacherApplicationSummary,
+    pub rewards: OrganizationDashboardRewardSummary,
+    pub wallet: OrganizationDashboardWalletSummary,
+    pub operator_permissions: OrganizationDashboardOperatorPermissions,
+    pub alerts: Vec<OrganizationDashboardAlert>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationDashboardOrganization {
+    pub id: i32,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationDashboardHealth {
+    pub status: String,
+    pub alert_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationDashboardMemberSummary {
+    pub available: bool,
+    pub missing_permissions: Vec<String>,
+    pub total: i64,
+    pub verified_email_count: i64,
+    pub kyc_ready_count: i64,
+    pub delegated_permission_count: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationDashboardCourseSummary {
+    pub available: bool,
+    pub missing_permissions: Vec<String>,
+    pub total: i64,
+    pub draft: i64,
+    pub submitted: i64,
+    pub needs_changes: i64,
+    pub approved: i64,
+    pub published: i64,
+    pub suspended: i64,
+    pub archived: i64,
+}
+
+#[derive(Debug, Serialize, Default)]
+pub struct OrganizationDashboardTeacherApplicationSummary {
+    pub available: bool,
+    pub missing_permissions: Vec<String>,
+    pub total: i64,
+    pub submitted: i64,
+    pub needs_changes: i64,
+    pub approved: i64,
+    pub rejected: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationDashboardRewardSummary {
+    pub available: bool,
+    pub missing_permissions: Vec<String>,
+    pub reward_candidate_count: i64,
+    pub approved_reward_count: i64,
+    pub approved_amount_total: String,
+    pub failed_count: i64,
+    pub needs_reconciliation_count: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationDashboardWalletSummary {
+    pub available: bool,
+    pub missing_permissions: Vec<String>,
+    pub wallet_count: i64,
+    pub balance_total: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationDashboardOperatorPermissions {
+    pub can_view_dashboard: bool,
+    pub can_view_members: bool,
+    pub can_view_courses: bool,
+    pub can_view_reports: bool,
+    pub can_view_teacher_applications: bool,
+    pub can_nominate_teachers: bool,
+    pub can_manage_wallets: bool,
+    pub can_manage_reward_budget: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationDashboardAlert {
+    pub severity: String,
+    pub kind: String,
+    pub message: String,
+    pub action_label: Option<String>,
+    pub action_href: Option<String>,
+}
+
+#[derive(Debug)]
+pub enum OrganizationDashboardError {
+    PermissionDenied,
+    NotFound,
+    Database(DieselError),
+}
+
+impl From<DieselError> for OrganizationDashboardError {
+    fn from(error: DieselError) -> Self {
+        match error {
+            DieselError::NotFound => OrganizationDashboardError::NotFound,
+            other => OrganizationDashboardError::Database(other),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -208,6 +337,145 @@ pub async fn list_organization_members(
     })
 }
 
+pub async fn get_organization_dashboard(
+    conn: &mut diesel_async::AsyncPgConnection,
+    actor_user_id: i32,
+    organization_id: i32,
+) -> Result<OrganizationDashboardResponse, OrganizationDashboardError> {
+    let organization = organizations::table
+        .find(organization_id)
+        .first::<Organization>(conn)
+        .await
+        .map_err(OrganizationDashboardError::from)?;
+
+    let can_view_dashboard =
+        user_has_organization_dashboard_access(conn, actor_user_id, organization_id)
+            .await
+            .map_err(OrganizationDashboardError::from)?;
+    if !can_view_dashboard {
+        return Err(OrganizationDashboardError::PermissionDenied);
+    }
+
+    let can_view_members = user_has_platform_or_organization_permission(
+        conn,
+        actor_user_id,
+        organization_id,
+        Permissions::VIEW_ORGANIZATION,
+    )
+    .await
+    .map_err(OrganizationDashboardError::from)?;
+    let can_view_courses = can_view_members;
+    let can_view_reports = user_has_platform_or_organization_permission(
+        conn,
+        actor_user_id,
+        organization_id,
+        Permissions::VIEW_ORG_REWARD_REPORTS,
+    )
+    .await
+    .map_err(OrganizationDashboardError::from)?;
+    let can_view_teacher_applications = user_has_platform_or_organization_permission(
+        conn,
+        actor_user_id,
+        organization_id,
+        Permissions::VIEW_ORG_TEACHER_APPLICATIONS,
+    )
+    .await
+    .map_err(OrganizationDashboardError::from)?;
+    let can_nominate_teachers = user_has_platform_or_organization_permission(
+        conn,
+        actor_user_id,
+        organization_id,
+        Permissions::NOMINATE_TEACHER_FOR_PLATFORM_REVIEW,
+    )
+    .await
+    .map_err(OrganizationDashboardError::from)?;
+    let can_manage_wallets = user_has_platform_or_organization_permission(
+        conn,
+        actor_user_id,
+        organization_id,
+        Permissions::MANAGE_ORG_WALLETS,
+    )
+    .await
+    .map_err(OrganizationDashboardError::from)?;
+    let can_manage_reward_budget = user_has_platform_or_organization_permission(
+        conn,
+        actor_user_id,
+        organization_id,
+        Permissions::MANAGE_ORG_REWARD_BUDGET,
+    )
+    .await
+    .map_err(OrganizationDashboardError::from)?;
+
+    let operator_permissions = OrganizationDashboardOperatorPermissions {
+        can_view_dashboard,
+        can_view_members,
+        can_view_courses,
+        can_view_reports,
+        can_view_teacher_applications,
+        can_nominate_teachers,
+        can_manage_wallets,
+        can_manage_reward_budget,
+    };
+
+    let members = if can_view_members {
+        organization_dashboard_member_summary(conn, organization_id).await?
+    } else {
+        gated_member_summary()
+    };
+    let courses = if can_view_courses {
+        organization_dashboard_course_summary(conn, organization_id).await?
+    } else {
+        gated_course_summary()
+    };
+    let teacher_applications = if can_view_teacher_applications || can_nominate_teachers {
+        organization_dashboard_teacher_application_summary(conn, organization_id).await?
+    } else {
+        gated_teacher_application_summary()
+    };
+    let rewards = if can_view_reports {
+        organization_dashboard_reward_summary(conn, organization_id).await?
+    } else {
+        gated_reward_summary()
+    };
+    let wallet = if can_view_reports || can_manage_wallets || can_manage_reward_budget {
+        organization_dashboard_wallet_summary(conn, organization_id).await?
+    } else {
+        gated_wallet_summary()
+    };
+
+    let alerts = organization_dashboard_alerts(
+        organization_id,
+        &courses,
+        &teacher_applications,
+        &rewards,
+        &wallet,
+        &operator_permissions,
+    );
+    let health = OrganizationDashboardHealth {
+        status: if alerts.iter().any(|alert| alert.severity == "warning") {
+            "attention".to_string()
+        } else {
+            "active".to_string()
+        },
+        alert_count: alerts.len(),
+    };
+
+    Ok(OrganizationDashboardResponse {
+        organization: OrganizationDashboardOrganization {
+            id: organization.id,
+            name: organization.name,
+        },
+        health,
+        members,
+        courses,
+        teacher_applications,
+        rewards,
+        wallet,
+        operator_permissions,
+        alerts,
+    })
+}
+
 pub struct CreateOrganizationDto {
     pub name: String,
     pub website_link: Option<String>,
@@ -326,6 +594,335 @@ pub async fn assign_role(
         Err(diesel::result::Error::NotFound) => Err("Role or User not found".to_string()),
         Err(e) => Err(format!("Error assigning role: {}", e)),
     }
+}
+
+async fn organization_dashboard_member_summary(
+    conn: &mut diesel_async::AsyncPgConnection,
+    organization_id: i32,
+) -> Result<OrganizationDashboardMemberSummary, OrganizationDashboardError> {
+    let members = build_organization_member_builders(conn, organization_id).await?;
+    let total = members.len() as i64;
+    let verified_email_count = members
+        .values()
+        .filter(|member| member.email_verified)
+        .count() as i64;
+    let kyc_ready_count = members
+        .values()
+        .filter(|member| member.kyc_verified)
+        .count() as i64;
+
+    let now: DateTime<Utc> = Utc::now();
+    let delegated_permission_count = delegated_permissions::table
+        .filter(delegated_permissions::scope_type.eq("organization"))
+        .filter(delegated_permissions::organization_id.eq(Some(organization_id)))
+        .filter(delegated_permissions::course_id.is_null())
+        .filter(delegated_permissions::revoked_at.is_null())
+        .filter(
+            delegated_permissions::expires_at
+                .is_null()
+                .or(delegated_permissions::expires_at.gt(now)),
+        )
+        .count()
+        .get_result::<i64>(conn)
+        .await?;
+
+    Ok(OrganizationDashboardMemberSummary {
+        available: true,
+        missing_permissions: vec![],
+        total,
+        verified_email_count,
+        kyc_ready_count,
+        delegated_permission_count,
+    })
+}
+
+async fn organization_dashboard_course_summary(
+    conn: &mut diesel_async::AsyncPgConnection,
+    organization_id: i32,
+) -> Result<OrganizationDashboardCourseSummary, OrganizationDashboardError> {
+    let statuses = courses_organizations::table
+        .inner_join(courses::table.on(courses_organizations::course_id.eq(courses::id)))
+        .filter(courses_organizations::organization_id.eq(organization_id))
+        .select(courses::lifecycle_status)
+        .load::<String>(conn)
+        .await?;
+
+    let mut summary = OrganizationDashboardCourseSummary {
+        available: true,
+        missing_permissions: vec![],
+        total: statuses.len() as i64,
+        draft: 0,
+        submitted: 0,
+        needs_changes: 0,
+        approved: 0,
+        published: 0,
+        suspended: 0,
+        archived: 0,
+    };
+
+    for status in statuses {
+        match status.as_str() {
+            COURSE_STATUS_DRAFT => summary.draft += 1,
+            COURSE_STATUS_SUBMITTED => summary.submitted += 1,
+            COURSE_STATUS_NEEDS_CHANGES => summary.needs_changes += 1,
+            COURSE_STATUS_APPROVED => summary.approved += 1,
+            COURSE_STATUS_PUBLISHED => summary.published += 1,
+            COURSE_STATUS_SUSPENDED => summary.suspended += 1,
+            COURSE_STATUS_ARCHIVED => summary.archived += 1,
+            _ => {}
+        }
+    }
+
+    Ok(summary)
+}
+
+async fn organization_dashboard_teacher_application_summary(
+    conn: &mut diesel_async::AsyncPgConnection,
+    organization_id: i32,
+) -> Result<OrganizationDashboardTeacherApplicationSummary, OrganizationDashboardError> {
+    let statuses = teacher_applications::table
+        .filter(
+            teacher_applications::organization_sponsor_id
+                .eq(Some(organization_id))
+                .or(teacher_applications::requested_organization_id.eq(Some(organization_id))),
+        )
+        .select(teacher_applications::status)
+        .load::<String>(conn)
+        .await?;
+
+    let mut summary = OrganizationDashboardTeacherApplicationSummary {
+        available: true,
+        missing_permissions: vec![],
+        ..Default::default()
+    };
+    summary.total = statuses.len() as i64;
+    for status in statuses {
+        match status.as_str() {
+            TEACHER_APPLICATION_STATUS_SUBMITTED => summary.submitted += 1,
+            TEACHER_APPLICATION_STATUS_NEEDS_CHANGES => summary.needs_changes += 1,
+            TEACHER_APPLICATION_STATUS_APPROVED => summary.approved += 1,
+            TEACHER_APPLICATION_STATUS_REJECTED => summary.rejected += 1,
+            _ => {}
+        }
+    }
+
+    Ok(summary)
+}
+
+async fn organization_dashboard_reward_summary(
+    conn: &mut diesel_async::AsyncPgConnection,
+    organization_id: i32,
+) -> Result<OrganizationDashboardRewardSummary, OrganizationDashboardError> {
+    let reward_dashboard = organization_reward_dashboard(conn, organization_id).await?;
+    let course_ids = courses_organizations::table
+        .filter(courses_organizations::organization_id.eq(organization_id))
+        .select(courses_organizations::course_id)
+        .load::<i32>(conn)
+        .await?;
+
+    let statuses = if course_ids.is_empty() {
+        Vec::new()
+    } else {
+        reward_candidates::table
+            .filter(reward_candidates::course_id.eq_any(&course_ids))
+            .select(reward_candidates::status)
+            .load::<String>(conn)
+            .await?
+    };
+    let failed_count = statuses
+        .iter()
+        .filter(|status| status.as_str() == REWARD_STATUS_FAILED)
+        .count() as i64;
+    let needs_reconciliation_count = statuses
+        .iter()
+        .filter(|status| status.as_str() == REWARD_STATUS_NEEDS_RECONCILIATION)
+        .count() as i64;
+
+    Ok(OrganizationDashboardRewardSummary {
+        available: true,
+        missing_permissions: vec![],
+        reward_candidate_count: reward_dashboard.course_reward_count,
+        approved_reward_count: reward_dashboard.approved_reward_count,
+        approved_amount_total: reward_dashboard.approved_amount_total,
+        failed_count,
+        needs_reconciliation_count,
+    })
+}
+
+async fn organization_dashboard_wallet_summary(
+    conn: &mut diesel_async::AsyncPgConnection,
+    organization_id: i32,
+) -> Result<OrganizationDashboardWalletSummary, OrganizationDashboardError> {
+    let balances = wallets::table
+        .filter(wallets::organization_id.eq(Some(organization_id)))
+        .filter(wallets::user_id.is_null())
+        .select(wallets::value)
+        .load::<BigDecimal>(conn)
+        .await?;
+    let balance_total = balances
+        .iter()
+        .cloned()
+        .fold(BigDecimal::from(0), |total, balance| total + balance);
+
+    Ok(OrganizationDashboardWalletSummary {
+        available: true,
+        missing_permissions: vec![],
+        wallet_count: balances.len() as i64,
+        balance_total: balance_total.to_string(),
+    })
+}
+
+fn gated_member_summary() -> OrganizationDashboardMemberSummary {
+    OrganizationDashboardMemberSummary {
+        available: false,
+        missing_permissions: vec![Permissions::VIEW_ORGANIZATION.to_string()],
+        total: 0,
+        verified_email_count: 0,
+        kyc_ready_count: 0,
+        delegated_permission_count: 0,
+    }
+}
+
+fn gated_course_summary() -> OrganizationDashboardCourseSummary {
+    OrganizationDashboardCourseSummary {
+        available: false,
+        missing_permissions: vec![Permissions::VIEW_ORGANIZATION.to_string()],
+        total: 0,
+        draft: 0,
+        submitted: 0,
+        needs_changes: 0,
+        approved: 0,
+        published: 0,
+        suspended: 0,
+        archived: 0,
+    }
+}
+
+fn gated_teacher_application_summary() -> OrganizationDashboardTeacherApplicationSummary {
+    OrganizationDashboardTeacherApplicationSummary {
+        available: false,
+        missing_permissions: vec![
+            Permissions::VIEW_ORG_TEACHER_APPLICATIONS.to_string(),
+            Permissions::NOMINATE_TEACHER_FOR_PLATFORM_REVIEW.to_string(),
+        ],
+        ..Default::default()
+    }
+}
+
+fn gated_reward_summary() -> OrganizationDashboardRewardSummary {
+    OrganizationDashboardRewardSummary {
+        available: false,
+        missing_permissions: vec![Permissions::VIEW_ORG_REWARD_REPORTS.to_string()],
+        reward_candidate_count: 0,
+        approved_reward_count: 0,
+        approved_amount_total: "0".to_string(),
+        failed_count: 0,
+        needs_reconciliation_count: 0,
+    }
+}
+
+fn gated_wallet_summary() -> OrganizationDashboardWalletSummary {
+    OrganizationDashboardWalletSummary {
+        available: false,
+        missing_permissions: vec![
+            Permissions::MANAGE_ORG_WALLETS.to_string(),
+            Permissions::MANAGE_ORG_REWARD_BUDGET.to_string(),
+            Permissions::VIEW_ORG_REWARD_REPORTS.to_string(),
+        ],
+        wallet_count: 0,
+        balance_total: "0".to_string(),
+    }
+}
+
+fn organization_dashboard_alerts(
+    organization_id: i32,
+    courses: &OrganizationDashboardCourseSummary,
+    teacher_applications: &OrganizationDashboardTeacherApplicationSummary,
+    rewards: &OrganizationDashboardRewardSummary,
+    wallet: &OrganizationDashboardWalletSummary,
+    permissions: &OrganizationDashboardOperatorPermissions,
+) -> Vec<OrganizationDashboardAlert> {
+    let mut alerts = Vec::new();
+    if teacher_applications.available && teacher_applications.submitted > 0 {
+        alerts.push(OrganizationDashboardAlert {
+            severity: "warning".to_string(),
+            kind: "teacher_applications_submitted".to_string(),
+            message: format!(
+                "{} sponsored teacher {} awaiting platform review.",
+                teacher_applications.submitted,
+                if teacher_applications.submitted == 1 {
+                    "application is"
+                } else {
+                    "applications are"
+                }
+            ),
+            action_label: Some("Open teacher nominations".to_string()),
+            action_href: Some(format!(
+                "/organizations/{organization_id}/teacher-applications"
+            )),
+        });
+    }
+
+    if courses.available && courses.needs_changes > 0 {
+        alerts.push(OrganizationDashboardAlert {
+            severity: "warning".to_string(),
+            kind: "courses_need_changes".to_string(),
+            message: format!(
+                "{} sponsored course {} marked needs changes.",
+                courses.needs_changes,
+                if courses.needs_changes == 1 {
+                    "is"
+                } else {
+                    "are"
+                }
+            ),
+            action_label: Some("Open courses".to_string()),
+            action_href: Some(format!("/organizations/{organization_id}/courses")),
+        });
+    }
+
+    if rewards.available && rewards.failed_count + rewards.needs_reconciliation_count > 0 {
+        let reward_attention_count = rewards.failed_count + rewards.needs_reconciliation_count;
+        alerts.push(OrganizationDashboardAlert {
+            severity: "warning".to_string(),
+            kind: "reward_reconciliation".to_string(),
+            message: if reward_attention_count == 1 {
+                "1 reward record has failed or needs reconciliation.".to_string()
+            } else {
+                format!(
+                    "{reward_attention_count} reward records have failed or need reconciliation."
+                )
+            },
+            action_label: Some("Open reports".to_string()),
+            action_href: Some(format!("/organizations/{organization_id}/reports")),
+        });
+    }
+
+    if wallet.available
+        && wallet.wallet_count == 0
+        && (permissions.can_manage_wallets || permissions.can_manage_reward_budget)
+    {
+        alerts.push(OrganizationDashboardAlert {
+            severity: "warning".to_string(),
+            kind: "wallet_missing".to_string(),
+            message: "No organization wallet is configured for reward budget operations."
+                .to_string(),
+            action_label: None,
+            action_href: None,
+        });
+    }
+
+    if alerts.is_empty() {
+        alerts.push(OrganizationDashboardAlert {
+            severity: "info".to_string(),
+            kind: "no_attention_items".to_string(),
+            message: "No dashboard attention items are visible for this session.".to_string(),
+            action_label: None,
+            action_href: None,
+        });
+    }
+
+    alerts
 }
 
 async fn build_organization_member_builders(
@@ -509,6 +1106,51 @@ async fn user_has_platform_or_organization_permission(
     }
 
     user_permission_organization_request(conn, user_id, organization_id, &permission_name).await
+}
+
+async fn user_has_organization_dashboard_access(
+    conn: &mut diesel_async::AsyncPgConnection,
+    user_id: i32,
+    organization_id: i32,
+) -> QueryResult<bool> {
+    if user_has_platform_or_organization_permission(
+        conn,
+        user_id,
+        organization_id,
+        Permissions::VIEW_ORGANIZATION,
+    )
+    .await?
+    {
+        return Ok(true);
+    }
+
+    let has_role = select(exists(
+        user_role_organization::table
+            .filter(user_role_organization::user_id.eq(Some(user_id)))
+            .filter(user_role_organization::organization_id.eq(Some(organization_id))),
+    ))
+    .get_result::<bool>(conn)
+    .await?;
+    if has_role {
+        return Ok(true);
+    }
+
+    let now: DateTime<Utc> = Utc::now();
+    select(exists(
+        delegated_permissions::table
+            .filter(delegated_permissions::grantee_user_id.eq(user_id))
+            .filter(delegated_permissions::scope_type.eq("organization"))
+            .filter(delegated_permissions::organization_id.eq(Some(organization_id)))
+            .filter(delegated_permissions::course_id.is_null())
+            .filter(delegated_permissions::revoked_at.is_null())
+            .filter(
+                delegated_permissions::expires_at
+                    .is_null()
+                    .or(delegated_permissions::expires_at.gt(now)),
+            ),
+    ))
+    .get_result::<bool>(conn)
+    .await
 }
 
 fn member_matches_query(

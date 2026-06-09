@@ -20,6 +20,14 @@ work complete.
 
 ### Recent Route Evidence
 
+- [x] `/organizations/[organizationId]` dashboard rendered QA covers desktop
+      admin summary, refresh interaction, attention alerts, operational
+      signals, basic-member gated dashboard sections, backend `500` retry
+      state, and mobile first viewport/no-overflow. Admin, basic-member, and
+      mobile flows had no relevant console errors; the backend failure fixture
+      intentionally produced `500` resource console evidence. BrowserMCP was
+      unavailable (`Transport closed`), so Playwright supplied screenshots and
+      interaction proof.
 - [x] `/organizations/[organizationId]/teacher-applications` rendered QA
       covers populated desktop tracking, dashboard-to-teacher-nominations
       navigation, search/status filter interaction, mobile first
