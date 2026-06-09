@@ -329,7 +329,8 @@ async fn platform_teacher_application_review_contract_returns_context_and_filter
 
     let application = response
         .applications
-        .get(0)
+        .as_slice()
+        .first()
         .expect("filtered application should be returned");
     assert_eq!(application.id, submitted.id);
     assert_eq!(application.applicant.id, submitted_applicant.id());
