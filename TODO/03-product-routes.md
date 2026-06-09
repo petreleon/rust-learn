@@ -177,6 +177,13 @@
 - [ ] Build teacher nomination and sponsored-application tracking.
 - [ ] Build organization reward reports with date filters, CSV exports,
       approved amounts, payouts, failures, and reconciliation indicators.
+  - [x] `/organizations/[organizationId]/reports` now consumes the existing
+        all-time organization reward dashboard and CSV contracts, shows reward
+        volume, approved amount, sponsored application summary, report-scoped
+        wallet balance, course reward volume, export status, refresh, denied,
+        empty, and backend-failure states. Date filters, pagination, payout
+        failure drill-down, reconciliation indicators, and wallet audit remain
+        open contract work.
 - [ ] Build organization wallet and budget views with transaction history and
       permission-aware actions.
 

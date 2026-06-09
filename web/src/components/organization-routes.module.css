@@ -100,12 +100,16 @@
 .organizationTop,
 .permissionRow,
 .capabilityRow,
+.actionRow,
 .primaryLink,
+.primaryButton,
 .secondaryLink,
 .secondaryButton,
 .statusPill,
 .backLink,
 .actionHeader,
+.compactRow,
+.inlineError,
 .errorBox {
   display: flex;
   align-items: center;
@@ -121,6 +125,7 @@
 }
 
 .secondaryButton,
+.primaryButton,
 .primaryLink,
 .secondaryLink,
 .backLink {
@@ -137,12 +142,14 @@
   text-decoration: none;
 }
 
+.primaryButton,
 .primaryLink {
   border-color: #1f6f8b;
   color: #ffffff;
   background: #1f6f8b;
 }
 
+.primaryButton:disabled,
 .secondaryButton:disabled {
   color: #94a3b8;
   background: #f8fafc;
@@ -234,7 +241,8 @@
 }
 
 .permissionRow,
-.capabilityRow {
+.capabilityRow,
+.actionRow {
   flex-wrap: wrap;
   gap: 7px;
 }
@@ -340,6 +348,55 @@
   align-items: center;
 }
 
+.reportGrid,
+.compactList {
+  display: grid;
+  gap: 12px;
+}
+
+.reportGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.reportCard {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.reportCard h3 {
+  color: #172033;
+  font-size: 1rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.compactRow {
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 8px;
+  padding: 11px 12px;
+  color: #334155;
+  background: #f8fafc;
+}
+
+.compactRow strong {
+  color: #172033;
+}
+
+.inlineError {
+  gap: 8px;
+  width: fit-content;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 9px 11px;
+  color: #991b1b;
+  background: #fff1f2;
+}
+
 .missingList strong {
   width: 100%;
   color: #78350f;
@@ -402,7 +459,8 @@
 @media (max-width: 1060px) {
   .summaryGrid,
   .organizationGrid,
-  .actionGrid {
+  .actionGrid,
+  .reportGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -415,7 +473,8 @@
 @media (max-width: 680px) {
   .organizationGrid,
   .actionGrid,
-  .metricGrid {
+  .metricGrid,
+  .reportGrid {
     grid-template-columns: 1fr;
   }
 
@@ -449,6 +508,7 @@
   }
 
   .primaryLink,
+  .primaryButton,
   .secondaryLink,
   .secondaryButton,
   .backLink {

@@ -101,6 +101,11 @@ screens pretend to be complete.
   - [x] Teacher course dashboard/list now has pagination and title/lifecycle
         filtering metadata. Enrollment, reward, report, audit, and reusable
         table contracts remain open.
+  - [x] Organization reward reports have an existing all-time JSON and CSV
+        contract at
+        `GET /api/reports/organizations/{organizationId}/reward-dashboard` and
+        `.csv`; the frontend now labels it as all-time instead of pretending
+        date filters, pagination, payout failures, or reconciliation rows exist.
 - [ ] Define wallet operation response states for MetaMask-required,
       platform-gas, tax, insufficient funds, pending deposit, confirmed
       deposit, retirement, and reconciliation cases.

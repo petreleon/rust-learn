@@ -88,6 +88,12 @@
         Browser validated the main login and signed-in selector/dashboard
         flow; Playwright supplied alternate session and mobile evidence after
         Browser could not reliably switch session storage for no-org state.
+  - [x] Playwright QA covers `/organizations/[organizationId]/reports`
+        populated desktop report, CSV export/download status, dashboard
+        Open-reports navigation, mobile no-overflow layout, missing report
+        permission, empty report data, and backend `500` retry state. BrowserMCP
+        returned `Transport closed` for this runtime, so Playwright supplied
+        the rendered evidence.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
@@ -155,6 +161,9 @@
         capability derivation, delegated organization access, role-only
         membership visibility, delegated search/filtering, and stale
         organization lookup.
+  - [x] Frontend helper tests cover organization reward report dashboard JSON,
+        CSV body and filename parsing, permission-denied and missing-report
+        text errors, timeout, and network failure normalization.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.

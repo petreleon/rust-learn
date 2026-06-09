@@ -145,6 +145,116 @@ test("filterOrganizationWorkspace searches permissions and preserves stale-route
   assert.equal(organization.findOrganizationWorkspaceItem(sessionFixture, 404), null);
 });
 
+test("organization report helpers parse dashboard JSON and CSV exports", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(init.headers.Authorization, "Bearer org-token");
+    if (url === "/api/reports/organizations/7/reward-dashboard") {
+      assert.equal(init.headers.Accept, "application/json, text/plain");
+      return jsonResponse(organizationRewardDashboardFixture());
+    }
+    assert.equal(url, "/api/reports/organizations/7/reward-dashboard.csv");
+    assert.equal(init.headers.Accept, "text/csv, text/plain");
+    return textResponse("section,metric,value\norganization,organization_name,Ferris Academy\n", {
+      headers: {
+        "content-disposition": 'attachment; filename="organization-7-reward-dashboard.csv"',
+      },
+    });
+  });
+
+  const dashboard = await organization.fetchOrganizationRewardDashboard({
+    organizationId: 7,
+    token: "org-token",
+  });
+  const csv = await organization.downloadOrganizationRewardDashboardCsv({
+    organizationId: 7,
+    token: "org-token",
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(dashboard.organization_name, "Ferris Academy");
+  assert.equal(dashboard.courses[0].course_title, "Rust Ownership Lab");
+  assert.equal(dashboard.wallets[0].balance, "125");
+  assert.equal(csv.filename, "organization-7-reward-dashboard.csv");
+  assert.match(csv.body, /organization_name,Ferris Academy/);
+});
+
+test("organization report helpers normalize permission, missing, timeout, and network errors", async () => {
+  mockFetch(() => textResponse("User does not have organization reward report permission", { status: 403 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationRewardDashboard({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "permission_denied",
+      errorClass: organization.OrganizationRequestError,
+      status: 403,
+    },
+  );
+
+  mockFetch(() =>
+    jsonResponse(
+      {
+        error: {
+          code: "not_found",
+          message: "Organization not found",
+        },
+      },
+      { status: 404 },
+    ),
+  );
+
+  await assertRequestError(
+    organization.downloadOrganizationRewardDashboardCsv({
+      organizationId: 404,
+      token: "org-token",
+    }),
+    {
+      code: "not_found",
+      errorClass: organization.OrganizationRequestError,
+      status: 404,
+    },
+  );
+
+  mockFetch((_url, init) => {
+    return new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      });
+    });
+  });
+
+  await assertRequestError(
+    organization.fetchOrganizationRewardDashboard({
+      organizationId: 7,
+      timeoutMs: 1,
+      token: "org-token",
+    }),
+    {
+      code: "timeout",
+      errorClass: organization.OrganizationRequestError,
+      status: 0,
+    },
+  );
+
+  mockFetch(() => {
+    throw new TypeError("fetch failed");
+  });
+
+  await assertRequestError(
+    organization.fetchOrganizationRewardDashboard({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "network_error",
+      errorClass: organization.OrganizationRequestError,
+      status: 0,
+    },
+  );
+});
+
 test("loginWithPassword parses JSON token success", async () => {
   const calls = mockFetch((url, init) => {
     assert.equal(url, "/api/auth/login");
@@ -1147,9 +1257,9 @@ function jsonResponse(body, { status = 200 } = {}) {
   });
 }
 
-function textResponse(body, { status = 200 } = {}) {
+function textResponse(body, { headers = {}, status = 200 } = {}) {
   return new Response(body, {
-    headers: { "content-type": "text/plain" },
+    headers: { "content-type": "text/plain", ...headers },
     status,
   });
 }
@@ -1239,6 +1349,39 @@ function organizationSessionFixture() {
         organization_name: "Rust Guild",
         permission: "NOMINATE_TEACHER_FOR_PLATFORM_REVIEW",
         scope_type: "organization",
+      },
+    ],
+  };
+}
+
+function organizationRewardDashboardFixture() {
+  return {
+    approved_amount_total: "40",
+    approved_reward_count: 2,
+    course_reward_count: 3,
+    courses: [
+      {
+        approved_amount_total: "40",
+        approved_reward_count: 2,
+        course_id: 9,
+        course_title: "Rust Ownership Lab",
+        reward_candidate_count: 3,
+      },
+    ],
+    organization_id: 7,
+    organization_name: "Ferris Academy",
+    sponsored_teacher_applications: {
+      approved: 1,
+      needs_changes: 0,
+      rejected: 0,
+      submitted: 2,
+      total: 3,
+    },
+    wallet_balance_total: "125",
+    wallets: [
+      {
+        balance: "125",
+        wallet_id: 4,
       },
     ],
   };

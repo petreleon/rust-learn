@@ -32,6 +32,11 @@ routine work.
 - [ ] Teacher nomination and sponsored application contracts.
 - [ ] Organization reward reports with filters, pagination, CSV export, payout
       failures, and reconciliation indicators.
+  - [x] Existing all-time organization reward dashboard contract is now used by
+        the frontend through
+        `GET /api/reports/organizations/{organizationId}/reward-dashboard` and
+        `.csv`. Date filters, pagination, payout-failure drill-downs, and
+        reconciliation rows remain open backend contract work.
 - [ ] Organization wallet audit and budget contract.
 
 ## Routes And Screens
@@ -51,7 +56,13 @@ routine work.
 - [ ] `/organizations/[organizationId]/courses` organization courses.
 - [ ] `/organizations/[organizationId]/teacher-applications` nominations and
       sponsored application tracking.
-- [ ] `/organizations/[organizationId]/reports` reward reports and exports.
+- [x] `/organizations/[organizationId]/reports` reward reports and exports.
+  - [x] Shows all-time reward candidates, approved rewards, approved amount,
+        sponsored teacher application summary, report-scoped wallet balance,
+        course reward volume, CSV export, refresh, signed-out, denied, empty,
+        backend-failure, and stale organization states without raw id entry.
+        Date-filtered, paginated, payout-failure, reconciliation, and wallet
+        audit details remain open until their contracts exist.
 - [ ] `/organizations/[organizationId]/wallet` wallet, budget, and audit.
 - [ ] `/organizations/[organizationId]/settings` scoped settings and
       permission-aware actions.
@@ -83,22 +94,37 @@ routine work.
 ## Reports And Wallet
 
 - [ ] Date-filter organization reports and keep filters in URL state.
-- [ ] Show empty reports, denied reports, failed reports, and stale report
+- [x] Show empty reports, denied reports, failed reports, and stale report
       refresh behavior.
-- [ ] Download CSV with visible status, retry, and failure messaging.
+  - [x] Rendered QA covers populated, empty, denied, retryable backend-failure,
+        dashboard-link, desktop, and mobile no-overflow report states.
+- [x] Download CSV with visible status, retry, and failure messaging.
+  - [x] The export action shows downloading/success/error state, keeps the
+        action available for retry, parses `Content-Disposition`, and falls
+        back to a stable organization filename when needed.
 - [ ] Show wallet balance, audit rows, reward credits, token links, and
       reconciliation indicators.
+  - [x] Report-scoped wallet balance summary is visible to users with report
+        access. Wallet audit rows, reward credits, token links, and
+        reconciliation indicators remain open wallet/report contract work.
 - [ ] Explain organization budget constraints before reward-related actions.
 
 ## Organization Edge Cases
 
 - [ ] User has member view but not invite/manage permissions.
-- [ ] User has report permission but not wallet permission.
+- [x] User has report permission but not wallet permission.
+  - [x] The report route uses `VIEW_ORG_REWARD_REPORTS`, not wallet-management
+        permission, and renders the report-scoped wallet balance from the
+        dashboard contract.
 - [x] User belongs to multiple organizations with different permissions.
 - [ ] A course belongs to an organization but is managed by a course-scoped
       teacher outside the organization admin set.
 - [ ] Teacher nomination already exists or is already decided.
 - [ ] CSV export is empty, slow, denied, or fails after request starts.
+  - [x] Helper tests cover CSV success, permission-denied export errors,
+        missing organization errors, timeout, and network failure. Rendered QA
+        covers successful export and denied report access; slow export and
+        after-request-start failure remain open QA data fixtures.
 - [ ] Wallet exists but audit load fails.
 - [ ] Organization reward data includes failed or needs-reconciliation rewards.
 
@@ -114,12 +140,22 @@ routine work.
         validated the main signed-in flow; Playwright supplied alternate
         session and mobile evidence after Browser could not reliably switch
         session storage.
+  - [x] Playwright QA covers `/organizations/[organizationId]/reports`
+        desktop populated report, CSV download/status, dashboard-to-report
+        navigation, mobile first viewport/no-overflow, report-only access
+        without wallet-management permission, missing report permission,
+        empty report data, and backend `500` retry state. BrowserMCP was
+        unavailable in this runtime (`Transport closed`), so Playwright
+        supplied rendered evidence.
 - [ ] Tests for multi-org user, report-only user, wallet-denied user,
       invite-denied user, empty report, and failed CSV download.
   - [x] Frontend helper tests cover multi-org summaries, report/wallet/member
         capability derivation, delegated teacher nomination, course reward
         scope, role-only membership visibility, delegated search/filtering, and
         stale organization lookup.
+  - [x] Frontend helper tests cover organization report dashboard JSON parsing,
+        CSV body/filename parsing, permission-denied report errors, missing
+        reports, timeout, and network failure normalization.
 - [ ] Docker Compose E2E path: organization dashboard, member/report action,
       CSV or wallet audit, log scan.
 - [ ] Kubernetes smoke path loads organization routes and verifies selected

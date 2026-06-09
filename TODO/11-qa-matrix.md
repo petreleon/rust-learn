@@ -18,6 +18,17 @@ work complete.
 - [ ] Route transitions preserve or intentionally discard dirty state with
       visible confirmation.
 
+### Recent Route Evidence
+
+- [x] `/organizations/[organizationId]/reports` rendered QA covers populated
+      desktop report, CSV download/status, dashboard-to-report navigation,
+      mobile first viewport/no-overflow, missing report permission, empty
+      report data, and backend `500` retry state. Normal populated, mobile,
+      denied, and empty flows had no relevant console errors; the backend
+      failure fixture intentionally produced `500` resource console evidence.
+      BrowserMCP was unavailable (`Transport closed`), so Playwright supplied
+      screenshots and interaction proof.
+
 ## API Helper Contract Checks
 
 - [ ] JSON success with expected shape.
@@ -115,4 +126,3 @@ work complete.
       is touched.
 - [ ] Port-forward or ingress path is tested with desktop and mobile browser
       where practical.
-

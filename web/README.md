@@ -29,19 +29,27 @@ from effective permissions instead of role labels, and show contextual denied
 states when the current user lacks the required learner, teacher, organization,
 or platform access signal.
 
-Organization product routes now include `/organizations` and
-`/organizations/[organizationId]`. `/organizations` uses the current session's
-organization scopes to show multi-organization workspace cards, role-only
-memberships, delegated organization access, search, capability filtering,
-summary counts, signed-out state, and no-organization denied state without
-asking users to type raw ids. The organization dashboard route shows the
-selected organization, role labels, direct/delegated/effective permission
+Organization product routes now include `/organizations`,
+`/organizations/[organizationId]`, and
+`/organizations/[organizationId]/reports`. `/organizations` uses the current
+session's organization scopes to show multi-organization workspace cards,
+role-only memberships, delegated organization access, search, capability
+filtering, summary counts, signed-out state, and no-organization denied state
+without asking users to type raw ids. The organization dashboard route shows
+the selected organization, role labels, direct/delegated/effective permission
 counts, permission-derived available action capabilities, missing scoped
-permission explanations, disabled contract-pending action buttons, and stale
-organization handling. Member lists, course activity, teacher nomination rows,
-reports/CSV exports, wallet audit, budget data, and organization health metrics
-remain explicit backend-contract work before those routes become full operator
-workflows.
+permission explanations, an enabled reports action when
+`VIEW_ORG_REWARD_REPORTS` is present, disabled contract-pending action buttons,
+and stale organization handling. The reports route loads
+`GET /api/reports/organizations/{organizationId}/reward-dashboard`, exports
+`GET /api/reports/organizations/{organizationId}/reward-dashboard.csv`, and
+shows all-time reward volume, approved amount, sponsored teacher application
+summary, report-scoped wallet balance, course reward volume, export state,
+empty state, denied state, and retryable backend-failure state. Date filters,
+pagination, payout-failure drill-downs, reconciliation rows, member lists,
+course activity, teacher nomination rows, wallet audit, budget data, and
+organization health metrics remain explicit backend-contract work before those
+routes become full operator workflows.
 
 Teacher product routes now include `/teach`, `/teach/apply`,
 `/teach/courses`, `/teach/courses/[courseId]`, and

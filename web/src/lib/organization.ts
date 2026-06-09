@@ -43,6 +43,75 @@ export type OrganizationFilter = {
   search: string;
 };
 
+export type TeacherApplicationDashboardSummary = {
+  approved: number;
+  needs_changes: number;
+  rejected: number;
+  submitted: number;
+  total: number;
+};
+
+export type OrganizationCourseRewardDashboardRow = {
+  approved_amount_total: string;
+  approved_reward_count: number;
+  course_id: number;
+  course_title: string;
+  reward_candidate_count: number;
+};
+
+export type OrganizationWalletBalanceRow = {
+  balance: string;
+  wallet_id: number;
+};
+
+export type OrganizationRewardDashboard = {
+  approved_amount_total: string;
+  approved_reward_count: number;
+  course_reward_count: number;
+  courses: OrganizationCourseRewardDashboardRow[];
+  organization_id: number;
+  organization_name: string;
+  sponsored_teacher_applications: TeacherApplicationDashboardSummary;
+  wallet_balance_total: string;
+  wallets: OrganizationWalletBalanceRow[];
+};
+
+export type OrganizationCsvDownload = {
+  body: string;
+  filename: string;
+};
+
+export type OrganizationRequestOptions = {
+  apiRoot?: string;
+  timeoutMs?: number;
+  token: string;
+};
+
+export type OrganizationReportOptions = OrganizationRequestOptions & {
+  organizationId: number;
+};
+
+type OrganizationErrorEnvelope = {
+  error?: {
+    code?: string;
+    message?: string;
+  };
+};
+
+export class OrganizationRequestError extends Error {
+  status: number;
+  code: string;
+
+  constructor(message: string, status: number, code: string) {
+    super(message);
+    this.name = "OrganizationRequestError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+const DEFAULT_TIMEOUT_MS = 10000;
+
 const capabilityPermissions: Array<{
   key: OrganizationCapabilityKey;
   label: string;
@@ -162,6 +231,154 @@ export function enabledOrganizationCapabilities(organization: OrganizationWorksp
 
 export function missingOrganizationPermissions(capability: OrganizationCapability) {
   return capability.permissions;
+}
+
+export async function fetchOrganizationRewardDashboard({
+  apiRoot = "/api",
+  organizationId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: OrganizationReportOptions): Promise<OrganizationRewardDashboard> {
+  return organizationJsonRequest({
+    apiRoot,
+    path: `/reports/organizations/${organizationId}/reward-dashboard`,
+    timeoutMs,
+    token,
+  });
+}
+
+export async function downloadOrganizationRewardDashboardCsv({
+  apiRoot = "/api",
+  organizationId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: OrganizationReportOptions): Promise<OrganizationCsvDownload> {
+  const response = await organizationRawRequest({
+    apiRoot,
+    path: `/reports/organizations/${organizationId}/reward-dashboard.csv`,
+    timeoutMs,
+    token,
+    accept: "text/csv, text/plain",
+  });
+  const body = await response.text();
+
+  return {
+    body,
+    filename: filenameFromContentDisposition(response.headers.get("content-disposition")) ||
+      `organization-${organizationId}-reward-dashboard.csv`,
+  };
+}
+
+async function organizationJsonRequest<T>({
+  accept = "application/json, text/plain",
+  apiRoot,
+  path,
+  timeoutMs,
+  token,
+}: OrganizationRequestOptions & {
+  accept?: string;
+  path: string;
+}): Promise<T> {
+  const response = await organizationRawRequest({ accept, apiRoot, path, timeoutMs, token });
+  return (await response.json()) as T;
+}
+
+async function organizationRawRequest({
+  accept = "application/json, text/plain",
+  apiRoot = "/api",
+  path,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: OrganizationRequestOptions & {
+  accept?: string;
+  path: string;
+}): Promise<Response> {
+  const trimmedToken = token.trim();
+  if (!trimmedToken) {
+    throw new OrganizationRequestError("A sign-in token is required.", 401, "missing_token");
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(`${apiRoot}${path}`, {
+      headers: {
+        Accept: accept,
+        Authorization: `Bearer ${trimmedToken}`,
+      },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw await organizationErrorFromResponse(response);
+    }
+
+    return response;
+  } catch (error) {
+    if (error instanceof OrganizationRequestError) {
+      throw error;
+    }
+
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new OrganizationRequestError("Organization request timed out.", 0, "timeout");
+    }
+
+    throw new OrganizationRequestError("Organization request failed before the API responded.", 0, "network_error");
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function organizationErrorFromResponse(response: Response) {
+  const fallbackCode = codeFromStatus(response.status);
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    const body = (await response.json()) as OrganizationErrorEnvelope;
+    return new OrganizationRequestError(
+      body.error?.message || response.statusText || "Organization request failed.",
+      response.status,
+      body.error?.code || fallbackCode,
+    );
+  }
+
+  const text = await response.text();
+  return new OrganizationRequestError(
+    text || response.statusText || "Organization request failed.",
+    response.status,
+    fallbackCode,
+  );
+}
+
+function codeFromStatus(status: number) {
+  if (status === 401) {
+    return "unauthorized";
+  }
+  if (status === 403) {
+    return "permission_denied";
+  }
+  if (status === 404) {
+    return "not_found";
+  }
+  if (status >= 500) {
+    return "server_error";
+  }
+  return "organization_error";
+}
+
+function filenameFromContentDisposition(header: string | null) {
+  if (!header) {
+    return null;
+  }
+
+  const quoted = header.match(/filename="([^"]+)"/i);
+  if (quoted?.[1]) {
+    return quoted[1];
+  }
+
+  const bare = header.match(/filename=([^;]+)/i);
+  return bare?.[1]?.trim() || null;
 }
 
 function buildOrganizationWorkspaceItem(organization: OrganizationSessionScope): OrganizationWorkspaceItem {
