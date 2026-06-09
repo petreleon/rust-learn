@@ -68,6 +68,16 @@
         state, reward evidence display, mobile permission-denied state, hidden
         internal operations console for non-admin product sessions, absence of
         amount-review language, and no horizontal overflow.
+  - [x] Browser plus Playwright QA covers
+        `/teach/courses/[courseId]/rewards` signed-out state, authenticated
+        course-workspace-to-rewards navigation, teacher approval interaction,
+        status filter/all-status fallback learner display, stale `409`
+        conflict refresh copy, mobile permission-denied state, hidden internal
+        operations console for non-admin product sessions, absence of
+        amount-review language, hidden raw learner/candidate ids, and no
+        horizontal overflow. Browser screenshot capture and mobile text entry
+        were unavailable in this runtime, so Playwright supplied screenshot and
+        mobile denied evidence.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
@@ -127,6 +137,10 @@
   - [x] Rust API tests cover `GET /api/courses/teaching/{courseId}/students`
         response shape, enrolled learners, unsupported progress flags, content
         totals, reward evidence counts/latest status, and outsider `403`.
+  - [x] Frontend helper tests cover teacher reward-candidate status filters,
+        response parsing, teacher decision request bodies, permission errors,
+        stale `409` conflict text errors, and missing-candidate `404`
+        normalization.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.

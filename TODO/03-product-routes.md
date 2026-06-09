@@ -111,8 +111,8 @@
         controls.
   - [x] `/teach/courses` lists owned or permitted teaching courses with title
         search, lifecycle filtering, empty/error states, mobile layout, and
-        disabled placeholders for unfinished course workspace, enrollment, and
-        reward-review routes.
+        permission-aware links to the course workspace, enrollment, student,
+        and reward-review routes.
   - [x] `/teach/courses/[courseId]` opens a real course workspace with
         lifecycle, ownership, teacher roles, action permissions, structured
         chapters/content, processing state, roster pressure, reward review
@@ -130,6 +130,11 @@
         the course workspace, shows enrolled learners, content totals,
         unsupported lesson-progress state, latest enrollment state, and reward
         evidence/counts without raw learner id entry.
+  - [x] `/teach/courses/[courseId]/rewards` opens real reward review from
+        course cards and the course workspace, filters course-scoped reward
+        candidates by status, maps visible learners to names, hides raw ids
+        when learner context is unavailable, submits teacher approval/rejection
+        decisions only, and refreshes after stale `409` conflicts.
 - [ ] Build course creation and editing flows for title, description, content,
       settings, publishing state, organization ownership, and reward policy.
   - [x] Structured chapter and text/article content creation is covered by
@@ -142,6 +147,9 @@
       removals, and waitlist states.
 - [ ] Build reward candidate submission and course-scoped teacher approval
       flows without exposing unnecessary platform amount controls.
+  - [x] Course-scoped teacher approval/rejection review is covered by
+        `/teach/courses/[courseId]/rewards`. Reward candidate submission
+        remains open as a product flow.
 - [x] Build student progress views that connect completion evidence to reward
       candidate decisions.
   - [x] Current route connects enrolled learners to reward-candidate evidence

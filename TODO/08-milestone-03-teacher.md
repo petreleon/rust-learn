@@ -62,8 +62,13 @@ admin controls.
         course/content totals, explicit unsupported lesson-progress fields,
         latest join-request status, and reward-candidate evidence/counts for
         each learner.
-- [ ] Course reward candidate queue and teacher-decision endpoints with
+- [x] Course reward candidate queue and teacher-decision endpoints with
       conflict handling.
+  - [x] Existing `GET /api/courses/{courseId}/reward-candidates` and
+        `PUT /api/courses/{courseId}/reward-candidates/{candidateId}/teacher-decision`
+        contracts are consumed by the product route. Teacher decisions accept
+        only teacher approval/rejection statuses, stale candidates return
+        `409`, and platform amount review remains a separate endpoint.
 
 ## Routes And Screens
 
@@ -81,9 +86,9 @@ admin controls.
         raw organization, course, or application ids.
 - [x] `/teach/courses` owned or permitted courses list.
   - [x] Product list supports title search, lifecycle filtering, mobile
-        layout, empty state, backend failure state, and scoped action chips.
-        Deeper workspace/enrollment/reward routes remain disabled instead of
-        linking to unfinished screens.
+        layout, empty state, backend failure state, scoped action chips, and
+        links to workspace, enrollments, students, and rewards when the current
+        session has the matching course permission.
 - [x] `/teach/courses/[courseId]` course workspace.
   - [x] Real product route loads `GET /api/me` and
         `GET /api/courses/teaching/{courseId}`; it shows lifecycle,
@@ -112,7 +117,14 @@ admin controls.
         workspace, shows enrolled learners, content totals, unsupported lesson
         progress, latest enrollment state, and reward evidence without raw
         learner id entry.
-- [ ] `/teach/courses/[courseId]/rewards` reward candidate review.
+- [x] `/teach/courses/[courseId]/rewards` reward candidate review.
+  - [x] Real product route loads `GET /api/me`,
+        `GET /api/courses/teaching/{courseId}/students`, and
+        `GET /api/courses/{courseId}/reward-candidates`, links from course
+        cards and the course workspace, filters candidates by status, maps
+        student ids to teacher-visible learner names when available, avoids
+        raw id display when learners are unavailable, and submits only
+        teacher approval/rejection decisions.
 
 ## Teacher Application
 
@@ -162,12 +174,17 @@ admin controls.
   - [x] Roster cards show learner identity, access state, course roles,
         latest join-request status, and explicit "not tracked yet" progress
         and reward-eligibility cues until the student-progress route exists.
-- [ ] Show reward candidates filtered by status and course.
-- [ ] Allow teacher approval/rejection only with course-scoped permission.
-- [ ] Keep reward amount review absent from teacher course screens unless the
+- [x] Show reward candidates filtered by status and course.
+- [x] Allow teacher approval/rejection only with course-scoped permission.
+- [x] Keep reward amount review absent from teacher course screens unless the
       same user also has separate platform permission, and then route them to
       platform admin context.
-- [ ] On stale candidate state, show conflict and refresh path.
+  - [x] Teacher reward review records only course-scoped teacher evidence
+        decisions. It does not render payout amount inputs or platform amount
+        decision actions.
+- [x] On stale candidate state, show conflict and refresh path.
+  - [x] Frontend helper tests normalize `409` text errors and rendered QA
+        verifies the visible conflict message plus queue refresh copy.
 
 ## Teacher Edge Cases
 
@@ -215,6 +232,15 @@ admin controls.
         navigation, unsupported progress state, reward evidence display,
         mobile permission-denied state, hidden internal operations console, no
         amount-review language, no console errors, and no horizontal overflow.
+  - [x] `/teach/courses/[courseId]/rewards` evidence: Browser signed-in
+        course-workspace-to-rewards navigation, Browser teacher-approval
+        decision interaction, Browser stale `409` conflict refresh, Browser
+        signed-out state, Playwright screenshot evidence for desktop reward
+        review and conflict state, Playwright mobile `403` denied state, hidden
+        internal operations console, no raw learner/candidate id display, no
+        amount-review language, and no horizontal overflow. Browser screenshot
+        capture and mobile text entry were blocked by the Browser runtime, so
+        Playwright supplied screenshot/mobile evidence.
 - [ ] Tests for approved teacher, applicant-only user, course-scoped teacher,
       denied teacher route, stale reward candidate, and failed upload state.
   - [x] Teacher application tests cover current-user snapshot, duplicate open
@@ -243,6 +269,10 @@ admin controls.
         enrolled learner visibility, unsupported lesson-progress flags, content
         totals, reward-candidate counts/latest evidence, outsider `403`,
         frontend helper parsing, and frontend helper text-error normalization.
+  - [x] Teacher reward-review tests cover frontend helper status filters,
+        reward-candidate response parsing, teacher decision request bodies,
+        permission errors, stale `409` conflicts, and missing-candidate `404`
+        text-error normalization.
 - [ ] Docker Compose E2E path: teacher application or teacher login, course
       workspace, content/upload state, reward candidate decision, log scan.
 - [ ] Kubernetes smoke path loads `/teach`, `/teach/apply`, and one course

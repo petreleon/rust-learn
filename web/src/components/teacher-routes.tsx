@@ -32,8 +32,10 @@ import {
 import {
   createTeacherChapter,
   createTeacherContent,
+  decideTeacherRewardCandidate,
   decideTeacherJoinRequest,
   fetchMyTeacherApplication,
+  fetchTeacherRewardCandidates,
   fetchTeachingCourseEnrollments,
   fetchTeachingCourseStudents,
   fetchTeachingCourseWorkspace,
@@ -51,6 +53,10 @@ import {
   type TeacherCourseWorkspaceContent,
   type TeacherCourseWorkspaceResponse,
   type TeacherCoursesResponse,
+  type TeacherEnrollmentUserSummary,
+  type TeacherRewardCandidate,
+  type TeacherRewardCandidateDecisionStatus,
+  type TeacherRewardCandidateStatusFilter,
 } from "@/lib/teacher";
 import styles from "./teacher-routes.module.css";
 
@@ -127,6 +133,24 @@ type DecisionDraft = {
 const defaultDecisionDraft: DecisionDraft = {
   reason: "",
   status: "approved",
+};
+
+const rewardStatusOptions: TeacherRewardCandidateStatusFilter[] = [
+  "pending_teacher_approval",
+  "teacher_approved",
+  "teacher_rejected",
+  "failed",
+  "all",
+];
+
+type RewardDecisionDraft = {
+  reason: string;
+  status: TeacherRewardCandidateDecisionStatus;
+};
+
+const defaultRewardDecisionDraft: RewardDecisionDraft = {
+  reason: "",
+  status: "teacher_approved",
 };
 
 const submitTeacherApplicationPermission = "SUBMIT_TEACHER_APPLICATION";
@@ -994,6 +1018,204 @@ export function TeacherCourseStudentsRoute({ courseId }: { courseId: string }) {
   );
 }
 
+export function TeacherCourseRewardsRoute({ courseId }: { courseId: string }) {
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionState, setActionState] = useState<ActionState>("idle");
+  const [candidates, setCandidates] = useState<TeacherRewardCandidate[]>([]);
+  const [decisionDrafts, setDecisionDrafts] = useState<Record<number, RewardDecisionDraft>>({});
+  const [error, setError] = useState<RouteError | null>(null);
+  const [hasToken, setHasToken] = useState(false);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [session, setSession] = useState<CurrentSession | null>(null);
+  const [statusFilter, setStatusFilter] = useState<TeacherRewardCandidateStatusFilter>("pending_teacher_approval");
+  const [students, setStudents] = useState<TeacherCourseStudentsResponse | null>(null);
+
+  const loadRewardsRoute = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token) {
+      setHasToken(false);
+      setSession(null);
+      setStudents(null);
+      setCandidates([]);
+      setError(null);
+      setLoadState("idle");
+      return;
+    }
+
+    setHasToken(true);
+    setLoadState("loading");
+    setError(null);
+
+    try {
+      const [nextSession, nextStudents, nextCandidates] = await Promise.all([
+        fetchCurrentSession({ token }),
+        fetchTeachingCourseStudents({ courseId, token }),
+        fetchTeacherRewardCandidates({ courseId, status: statusFilter, token }),
+      ]);
+      setSession(nextSession);
+      setStudents(nextStudents);
+      setCandidates(nextCandidates);
+      setLoadState("success");
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      if (routeError.status === 401) {
+        clearStoredSessionToken();
+        setHasToken(false);
+      }
+      setSession(null);
+      setStudents(null);
+      setCandidates([]);
+      setError(routeError);
+      setLoadState("error");
+    }
+  }, [courseId, statusFilter]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadRewardsRoute(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadRewardsRoute]);
+
+  function signOut() {
+    clearStoredSessionToken();
+    setHasToken(false);
+    setSession(null);
+    setStudents(null);
+    setCandidates([]);
+    setError(null);
+    setLoadState("idle");
+  }
+
+  function updateDecisionDraft(candidateId: number, draft: RewardDecisionDraft) {
+    setDecisionDrafts((current) => ({
+      ...current,
+      [candidateId]: draft,
+    }));
+  }
+
+  async function submitRewardDecision(candidate: TeacherRewardCandidate, event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = readStoredSessionToken();
+    const draft = decisionDrafts[candidate.id] || defaultRewardDecisionDraft;
+    if (!token) {
+      setActionMessage("Sign in again before deciding reward candidates.");
+      return;
+    }
+
+    setActionState("saving");
+    setActionMessage(null);
+    try {
+      await decideTeacherRewardCandidate({
+        candidateId: candidate.id,
+        courseId,
+        payload: {
+          decision_reason: draft.reason.trim() || null,
+          status: draft.status,
+        },
+        token,
+      });
+      setDecisionDrafts((current) => {
+        const next = { ...current };
+        delete next[candidate.id];
+        return next;
+      });
+      setActionMessage("Reward candidate decision saved.");
+      await loadRewardsRoute();
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      setActionMessage(
+        routeError.status === 409
+          ? `${routeError.message} The queue has been refreshed.`
+          : routeError.message,
+      );
+      if (routeError.status === 409) {
+        await loadRewardsRoute();
+      }
+    } finally {
+      setActionState("idle");
+    }
+  }
+
+  const courseTitle = students?.course.title || "Reward review";
+  return (
+    <ProductShell
+      activeNav="teach"
+      breadcrumbs={[
+        { href: "/session", label: "Workspace" },
+        { href: "/teach", label: "Teach" },
+        { href: "/teach/courses", label: "Courses" },
+        { href: `/teach/courses/${courseId}`, label: courseTitle },
+        { label: "Rewards" },
+      ]}
+      description="Review course-scoped reward evidence and apply teacher decisions without platform payout controls."
+      eyebrow="Teacher rewards"
+      isSignedIn={hasToken || Boolean(session)}
+      notice={routeNotice(error)}
+      onSignOut={signOut}
+      session={session}
+      statusItems={
+        students ? (
+          <>
+            <StatusLine icon={<Clock3 size={16} aria-hidden />} label={`${students.course.reward_queue.pending_teacher_count} pending`} tone={students.course.reward_queue.pending_teacher_count ? "warn" : "neutral"} />
+            <StatusLine icon={<Trophy size={16} aria-hidden />} label={`${candidates.length} shown`} tone={candidates.length ? "good" : "neutral"} />
+          </>
+        ) : null
+      }
+      title={courseTitle}
+    >
+      {loadState === "loading" ? (
+        <StatePanel
+          detail="Loading reward candidates, learner context, and course-scoped permissions."
+          icon={<Loader2 className={styles.spin} size={22} aria-hidden />}
+          title="Loading reward review"
+        />
+      ) : null}
+
+      {loadState === "idle" ? (
+        <StatePanel
+          action={
+            <Link className={styles.primaryLink} href={`/login?redirect=/teach/courses/${courseId}/rewards`}>
+              <LogIn size={18} aria-hidden />
+              Sign in
+            </Link>
+          }
+          detail="Reward review loads from your signed-in teaching session."
+          icon={<LogIn size={22} aria-hidden />}
+          title="Sign in required"
+        />
+      ) : null}
+
+      {loadState === "error" && error ? (
+        <section className={`${styles.errorBox} ${styles.singlePanel}`} role="status">
+          <AlertCircle size={18} aria-hidden />
+          <span>
+            <strong>{error.code}</strong>
+            {error.message}
+          </span>
+          <button className={styles.secondaryButton} type="button" onClick={() => void loadRewardsRoute()}>
+            <RefreshCw size={17} aria-hidden />
+            Retry
+          </button>
+        </section>
+      ) : null}
+
+      {loadState === "success" && students ? (
+        <RewardReviewView
+          actionMessage={actionMessage}
+          actionState={actionState}
+          candidates={candidates}
+          decisionDrafts={decisionDrafts}
+          onDecisionDraftChange={updateDecisionDraft}
+          onRefresh={() => void loadRewardsRoute()}
+          onStatusFilterChange={setStatusFilter}
+          onSubmitDecision={submitRewardDecision}
+          statusFilter={statusFilter}
+          students={students}
+        />
+      ) : null}
+    </ProductShell>
+  );
+}
+
 function DashboardView({
   application,
   canSubmitApplication,
@@ -1114,6 +1336,9 @@ function CoursesView({
 function WorkspaceView({ workspace }: { workspace: TeacherCourseWorkspaceResponse }) {
   const totals = workspaceSummary(workspace);
   const organizationNames = workspace.course.organizations.map((organization) => organization.name).join(", ") || "Personal course";
+  const canViewRewards =
+    workspace.course.permissions.can_view_reward_candidates ||
+    workspace.course.permissions.can_approve_reward_candidates;
   return (
     <>
       <section className={styles.workspaceHero}>
@@ -1132,7 +1357,7 @@ function WorkspaceView({ workspace }: { workspace: TeacherCourseWorkspaceRespons
           <PermissionChip enabled={workspace.course.permissions.can_manage_settings} label="Settings" />
           <PermissionChip enabled={workspace.course.permissions.can_manage_content} label="Content" />
           <PermissionChip enabled={workspace.course.permissions.can_manage_enrollments} label="Enrollments" />
-          <PermissionChip enabled={workspace.course.permissions.can_approve_reward_candidates} label="Rewards" />
+          <PermissionChip enabled={canViewRewards} label="Rewards" />
         </div>
       </section>
 
@@ -1705,9 +1930,236 @@ function StudentProgressCard({ student }: { student: TeacherCourseStudentProgres
   );
 }
 
+function RewardReviewView({
+  actionMessage,
+  actionState,
+  candidates,
+  decisionDrafts,
+  onDecisionDraftChange,
+  onRefresh,
+  onStatusFilterChange,
+  onSubmitDecision,
+  statusFilter,
+  students,
+}: {
+  actionMessage: string | null;
+  actionState: ActionState;
+  candidates: TeacherRewardCandidate[];
+  decisionDrafts: Record<number, RewardDecisionDraft>;
+  onDecisionDraftChange: (candidateId: number, draft: RewardDecisionDraft) => void;
+  onRefresh: () => void;
+  onStatusFilterChange: (status: TeacherRewardCandidateStatusFilter) => void;
+  onSubmitDecision: (candidate: TeacherRewardCandidate, event: FormEvent<HTMLFormElement>) => void;
+  statusFilter: TeacherRewardCandidateStatusFilter;
+  students: TeacherCourseStudentsResponse;
+}) {
+  const learnersById = useMemo(
+    () => new Map(students.students.map((student) => [student.user.id, student.user])),
+    [students.students],
+  );
+  const canApprove = students.course.permissions.can_approve_reward_candidates;
+  const canView = canApprove || students.course.permissions.can_view_reward_candidates;
+  const pendingShown = candidates.filter((candidate) => candidate.status === "pending_teacher_approval").length;
+  const decidedShown = candidates.filter(
+    (candidate) => candidate.status === "teacher_approved" || candidate.status === "teacher_rejected",
+  ).length;
+
+  return (
+    <>
+      <section className={styles.workspaceHero}>
+        <Link className={styles.secondaryLink} href={`/teach/courses/${students.course.id}`}>
+          <ArrowLeft size={17} aria-hidden />
+          Course workspace
+        </Link>
+        <div className={styles.workspaceTitleBlock}>
+          <p className={styles.eyebrow}>{statusLabel(students.course.lifecycle_status)}</p>
+          <h2>Reward review</h2>
+          <p className={styles.muted}>
+            Review learner evidence for this course and apply the teacher decision. Platform payout controls stay in admin workflows.
+          </p>
+        </div>
+        <div className={styles.permissionRow} aria-label="Reward permissions">
+          <PermissionChip enabled={canView} label="View rewards" />
+          <PermissionChip enabled={canApprove} label="Teacher decision" />
+        </div>
+      </section>
+
+      <section className={styles.summaryGrid}>
+        <SummaryCard icon={<Clock3 size={20} aria-hidden />} label="Pending queue" value={students.course.reward_queue.pending_teacher_count} tone={students.course.reward_queue.pending_teacher_count ? "warn" : "neutral"} />
+        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Shown now" value={candidates.length} tone={candidates.length ? "good" : "neutral"} />
+        <SummaryCard icon={<CheckCircle2 size={20} aria-hidden />} label="Decided shown" value={decidedShown} tone={decidedShown ? "good" : "neutral"} />
+        <SummaryCard icon={<AlertCircle size={20} aria-hidden />} label="Failed queue" value={students.course.reward_queue.failed_count} tone={students.course.reward_queue.failed_count ? "warn" : "neutral"} />
+      </section>
+
+      <section className={`${styles.warningPanel} ${styles.singlePanel}`}>
+        <div className={styles.panelHeader}>
+          <ShieldCheck size={18} aria-hidden />
+          <h2>Review boundary</h2>
+        </div>
+        <p>
+          This page records teacher approval or rejection only. Financial review remains separated from the course workspace.
+        </p>
+      </section>
+
+      {actionMessage ? (
+        <section className={`${styles.warningPanel} ${styles.singlePanel}`} role="status">
+          <div className={styles.panelHeader}>
+            <AlertCircle size={18} aria-hidden />
+            <h2>Reward update</h2>
+          </div>
+          <p>{actionMessage}</p>
+        </section>
+      ) : null}
+
+      <section className={styles.filterPanel}>
+        <label>
+          <span>Status</span>
+          <select
+            value={statusFilter}
+            onChange={(event) => onStatusFilterChange(event.target.value as TeacherRewardCandidateStatusFilter)}
+          >
+            {rewardStatusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status === "all" ? "All statuses" : statusLabel(status)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button className={styles.secondaryButton} type="button" onClick={onRefresh}>
+          <RefreshCw size={17} aria-hidden />
+          Refresh
+        </button>
+      </section>
+
+      <section className={styles.courseSection}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2>Reward candidates</h2>
+            <p className={styles.muted}>
+              {statusFilter === "all" ? "Showing all visible candidates." : `Showing ${statusLabel(statusFilter)} candidates.`}
+            </p>
+          </div>
+          <span className={`${styles.statusPill} ${pendingShown ? styles.warn : styles.neutral}`}>
+            {pendingShown} pending shown
+          </span>
+        </div>
+        {candidates.length ? (
+          <div className={styles.enrollmentList}>
+            {candidates.map((candidate) => (
+              <RewardCandidateCard
+                actionState={actionState}
+                canApprove={canApprove}
+                candidate={candidate}
+                draft={decisionDrafts[candidate.id] || defaultRewardDecisionDraft}
+                key={candidate.id}
+                learner={learnersById.get(candidate.student_user_id) || null}
+                onDraftChange={(draft) => onDecisionDraftChange(candidate.id, draft)}
+                onSubmit={(event) => onSubmitDecision(candidate, event)}
+              />
+            ))}
+          </div>
+        ) : (
+          <StatePanel
+            detail="No reward candidates match this course filter."
+            icon={<CheckCircle2 size={22} aria-hidden />}
+            title="No matching candidates"
+          />
+        )}
+      </section>
+    </>
+  );
+}
+
+function RewardCandidateCard({
+  actionState,
+  canApprove,
+  candidate,
+  draft,
+  learner,
+  onDraftChange,
+  onSubmit,
+}: {
+  actionState: ActionState;
+  canApprove: boolean;
+  candidate: TeacherRewardCandidate;
+  draft: RewardDecisionDraft;
+  learner: TeacherEnrollmentUserSummary | null;
+  onDraftChange: (draft: RewardDecisionDraft) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  const canDecide = canApprove && candidate.status === "pending_teacher_approval";
+  return (
+    <article className={styles.enrollmentCard}>
+      <div className={styles.courseTop}>
+        <div>
+          <p className={styles.eyebrow}>{learner?.email || "Learner details unavailable"}</p>
+          <h3>{learner?.name || "Learner unavailable"}</h3>
+        </div>
+        <span className={`${styles.statusPill} ${styles[rewardCandidateTone(candidate.status)]}`}>
+          {statusLabel(candidate.status)}
+        </span>
+      </div>
+
+      <div className={styles.detailList}>
+        <DetailLine label="Event" value={statusLabel(candidate.event_type)} />
+        <DetailLine label="Evidence" value={summarizeEvidence(candidate.evidence)} />
+        <DetailLine label="Source" value={statusLabel(candidate.source_scope)} />
+        <DetailLine label="Created" value={formatDateTime(candidate.created_at)} />
+        <DetailLine label="Updated" value={formatDateTime(candidate.updated_at)} />
+        {candidate.teacher_decided_at ? <DetailLine label="Teacher decided" value={formatDateTime(candidate.teacher_decided_at)} /> : null}
+        {candidate.teacher_decision_reason ? <DetailLine label="Teacher reason" value={candidate.teacher_decision_reason} /> : null}
+      </div>
+
+      {canDecide ? (
+        <form className={styles.decisionForm} onSubmit={onSubmit}>
+          <label>
+            <span>Teacher decision</span>
+            <select
+              disabled={actionState === "saving"}
+              onChange={(event) =>
+                onDraftChange({
+                  ...draft,
+                  status: event.target.value as TeacherRewardCandidateDecisionStatus,
+                })
+              }
+              value={draft.status}
+            >
+              <option value="teacher_approved">Approve evidence</option>
+              <option value="teacher_rejected">Reject evidence</option>
+            </select>
+          </label>
+          <label>
+            <span>Reason</span>
+            <textarea
+              disabled={actionState === "saving"}
+              onChange={(event) => onDraftChange({ ...draft, reason: event.target.value })}
+              placeholder="Decision reason"
+              rows={3}
+              value={draft.reason}
+            />
+          </label>
+          <button className={styles.primaryButton} disabled={actionState === "saving"} type="submit">
+            <Send size={17} aria-hidden />
+            Apply teacher decision
+          </button>
+        </form>
+      ) : (
+        <p className={styles.muted}>
+          {candidate.status === "pending_teacher_approval"
+            ? "This session can view the candidate but cannot apply the teacher decision."
+            : "Teacher review is already recorded or this candidate has moved to later processing."}
+        </p>
+      )}
+    </article>
+  );
+}
+
 function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspaceResponse }) {
   const canViewStudents =
     workspace.course.permissions.can_manage_enrollments ||
+    workspace.course.permissions.can_view_reward_candidates ||
+    workspace.course.permissions.can_approve_reward_candidates;
+  const canViewRewards =
     workspace.course.permissions.can_view_reward_candidates ||
     workspace.course.permissions.can_approve_reward_candidates;
   const actions = [
@@ -1739,11 +2191,11 @@ function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspace
       label: "Student progress",
     },
     {
-      detail: workspace.course.permissions.can_approve_reward_candidates
-        ? "Reward candidate review is intentionally separate from platform payout approval."
-        : "This session cannot approve student reward candidates.",
-      enabled: workspace.course.permissions.can_approve_reward_candidates,
-      href: null,
+      detail: canViewRewards
+        ? "Review course-scoped reward evidence without platform payout controls."
+        : "This session cannot view student reward candidates.",
+      enabled: canViewRewards,
+      href: `/teach/courses/${workspace.course.id}/rewards`,
       icon: <Trophy size={17} aria-hidden />,
       label: "Reward review",
     },
@@ -1939,6 +2391,9 @@ function CourseCard({ course }: { course: TeacherCourseDashboardItem }) {
     course.permissions.can_manage_enrollments ||
     course.permissions.can_view_reward_candidates ||
     course.permissions.can_approve_reward_candidates;
+  const canViewRewards =
+    course.permissions.can_view_reward_candidates ||
+    course.permissions.can_approve_reward_candidates;
   return (
     <article className={styles.courseCard}>
       <div className={styles.courseTop}>
@@ -1966,7 +2421,7 @@ function CourseCard({ course }: { course: TeacherCourseDashboardItem }) {
       <div className={styles.permissionRow} aria-label="Course actions">
         <PermissionChip enabled={course.permissions.can_manage_content} label="Content" />
         <PermissionChip enabled={course.permissions.can_manage_enrollments} label="Enrollments" />
-        <PermissionChip enabled={course.permissions.can_approve_reward_candidates} label="Rewards" />
+        <PermissionChip enabled={canViewRewards} label="Rewards" />
         <PermissionChip enabled={course.permissions.can_manage_settings} label="Settings" />
       </div>
 
@@ -1992,10 +2447,17 @@ function CourseCard({ course }: { course: TeacherCourseDashboardItem }) {
             Students
           </Link>
         ) : null}
-        <button className={styles.secondaryButton} disabled type="button" title="Reward review route is next">
-          <Trophy size={16} aria-hidden />
-          Rewards
-        </button>
+        {canViewRewards ? (
+          <Link className={styles.secondaryLink} href={`/teach/courses/${course.id}/rewards`}>
+            <Trophy size={16} aria-hidden />
+            Rewards
+          </Link>
+        ) : (
+          <button className={styles.secondaryButton} disabled type="button" title="Reward candidate permission required">
+            <Trophy size={16} aria-hidden />
+            Rewards
+          </button>
+        )}
       </div>
     </article>
   );
@@ -2239,8 +2701,68 @@ function joinRequestTone(status: string) {
   return "neutral";
 }
 
+function rewardCandidateTone(status: string) {
+  if (
+    status === "teacher_approved" ||
+    status === "amount_approved" ||
+    status === "token_confirmed" ||
+    status === "wallet_credited" ||
+    status === "completed"
+  ) {
+    return "good";
+  }
+
+  if (
+    status === "pending_teacher_approval" ||
+    status === "teacher_rejected" ||
+    status === "amount_rejected" ||
+    status === "needs_reconciliation" ||
+    status === "failed"
+  ) {
+    return "warn";
+  }
+
+  return "neutral";
+}
+
 function statusLabel(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function summarizeEvidence(evidence: unknown) {
+  if (evidence === null || typeof evidence === "undefined") {
+    return "Evidence recorded";
+  }
+
+  if (typeof evidence === "string") {
+    return evidence.trim() || "Evidence recorded";
+  }
+
+  if (typeof evidence === "number" || typeof evidence === "boolean") {
+    return String(evidence);
+  }
+
+  if (Array.isArray(evidence)) {
+    return evidence.length ? `${evidence.length} evidence item${evidence.length === 1 ? "" : "s"}` : "Evidence recorded";
+  }
+
+  if (typeof evidence === "object") {
+    const entries = Object.entries(evidence as Record<string, unknown>)
+      .filter(([key, value]) => isSafeEvidenceKey(key) && isSimpleEvidenceValue(value))
+      .slice(0, 3)
+      .map(([key, value]) => `${statusLabel(key)}: ${String(value)}`);
+    return entries.length ? entries.join(", ") : "Evidence recorded";
+  }
+
+  return "Evidence recorded";
+}
+
+function isSafeEvidenceKey(key: string) {
+  return !/(^id$|_id$|user_id|student|learner|candidate)/i.test(key);
+}
+
+function isSimpleEvidenceValue(value: unknown) {
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean";
 }
 
 function formatDateTime(value: string) {

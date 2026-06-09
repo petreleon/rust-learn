@@ -129,3 +129,8 @@ represented in this folder.
 - [x] Student progress could have become fake completion math; the students
       route now exposes enrolled learners, content totals, and reward evidence
       while explicitly marking persisted lesson progress unsupported.
+- [x] Teacher reward review could have leaked raw candidate/student ids or
+      blurred teacher evidence decisions with platform amount review; the
+      rewards route now maps visible learners to names, falls back without raw
+      ids when learner context is unavailable, submits only teacher
+      approval/rejection, and shows stale `409` refresh copy.

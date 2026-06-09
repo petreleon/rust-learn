@@ -791,6 +791,108 @@ test("fetchTeachingCourseStudents normalizes permission and missing-course error
   );
 });
 
+test("teacher reward helpers fetch filtered candidates and send teacher decisions only", async () => {
+  const calls = mockFetch((url, init) => {
+    if (url === "/api/courses/9/reward-candidates?limit=10&status=pending_teacher_approval") {
+      assert.equal(init.method, "GET");
+      assert.equal(init.headers.Authorization, "Bearer teacher-token");
+      return jsonResponse(teacherRewardCandidatesFixture());
+    }
+
+    assert.equal(url, "/api/courses/9/reward-candidates/71/teacher-decision");
+    assert.equal(init.method, "PUT");
+    assert.equal(init.headers.Authorization, "Bearer teacher-token");
+    assert.equal(init.headers["Content-Type"], "application/json");
+    assert.deepEqual(JSON.parse(init.body), {
+      decision_reason: "Evidence matches the course policy.",
+      status: "teacher_approved",
+    });
+    return jsonResponse({
+      ...teacherRewardCandidatesFixture()[0],
+      status: "teacher_approved",
+      teacher_decided_at: "2026-01-04T11:00:00Z",
+      teacher_decision_reason: "Evidence matches the course policy.",
+    });
+  });
+
+  const candidates = await teacher.fetchTeacherRewardCandidates({
+    courseId: 9,
+    limit: 10,
+    status: "pending_teacher_approval",
+    token: "teacher-token",
+  });
+  const decision = await teacher.decideTeacherRewardCandidate({
+    candidateId: 71,
+    courseId: 9,
+    payload: {
+      decision_reason: "Evidence matches the course policy.",
+      status: "teacher_approved",
+    },
+    token: "teacher-token",
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(candidates.length, 2);
+  assert.equal(candidates[0].status, "pending_teacher_approval");
+  assert.deepEqual(candidates[0].evidence, { completion_percentage: 100, lesson_id: 14 });
+  assert.equal(decision.status, "teacher_approved");
+  assert.equal(decision.teacher_decision_reason, "Evidence matches the course policy.");
+});
+
+test("teacher reward helpers normalize permission, conflict, and missing-candidate errors", async () => {
+  mockFetch(() => textResponse("User does not have reward candidate permission", { status: 403 }));
+
+  await assertRequestError(
+    teacher.fetchTeacherRewardCandidates({
+      courseId: 9,
+      token: "teacher-token",
+    }),
+    {
+      code: "permission_denied",
+      errorClass: teacher.TeacherRequestError,
+      status: 403,
+    },
+  );
+
+  mockFetch(() => textResponse("reward candidate has already left teacher approval", { status: 409 }));
+
+  await assertRequestError(
+    teacher.decideTeacherRewardCandidate({
+      candidateId: 71,
+      courseId: 9,
+      payload: {
+        decision_reason: null,
+        status: "teacher_rejected",
+      },
+      token: "teacher-token",
+    }),
+    {
+      code: "conflict",
+      errorClass: teacher.TeacherRequestError,
+      status: 409,
+    },
+  );
+
+  mockFetch(() => textResponse("Reward candidate not found", { status: 404 }));
+
+  await assertRequestError(
+    teacher.decideTeacherRewardCandidate({
+      candidateId: 404,
+      courseId: 9,
+      payload: {
+        decision_reason: "No matching evidence.",
+        status: "teacher_rejected",
+      },
+      token: "teacher-token",
+    }),
+    {
+      code: "not_found",
+      errorClass: teacher.TeacherRequestError,
+      status: 404,
+    },
+  );
+});
+
 test("teacher chapter and content authoring helpers send structured JSON", async () => {
   const calls = mockFetch((url, init) => {
     if (url === "/api/courses/9/chapters") {
@@ -1311,4 +1413,51 @@ function teacherCourseStudentsFixture() {
     teacher_roles: ["TEACHER"],
     total: 1,
   };
+}
+
+function teacherRewardCandidatesFixture() {
+  return [
+    {
+      amount_decided_at: null,
+      amount_decision_reason: null,
+      amount_reviewer_user_id: null,
+      approved_amount: null,
+      course_id: 9,
+      created_at: "2026-01-04T10:00:00Z",
+      event_type: "course_completion",
+      evidence: { completion_percentage: 100, lesson_id: 14 },
+      id: 71,
+      idempotency_key: "course-9-student-77-completion",
+      source_organization_id: null,
+      source_scope: "course",
+      status: "pending_teacher_approval",
+      student_user_id: 77,
+      submitter_user_id: 42,
+      teacher_approver_user_id: null,
+      teacher_decided_at: null,
+      teacher_decision_reason: null,
+      updated_at: "2026-01-04T10:00:00Z",
+    },
+    {
+      amount_decided_at: null,
+      amount_decision_reason: null,
+      amount_reviewer_user_id: null,
+      approved_amount: null,
+      course_id: 9,
+      created_at: "2026-01-05T10:00:00Z",
+      event_type: "assessment_completion",
+      evidence: { score_percentage: 94 },
+      id: 72,
+      idempotency_key: "course-9-student-90-assessment",
+      source_organization_id: 7,
+      source_scope: "organization",
+      status: "pending_teacher_approval",
+      student_user_id: 90,
+      submitter_user_id: 42,
+      teacher_approver_user_id: null,
+      teacher_decided_at: null,
+      teacher_decision_reason: null,
+      updated_at: "2026-01-05T10:00:00Z",
+    },
+  ];
 }

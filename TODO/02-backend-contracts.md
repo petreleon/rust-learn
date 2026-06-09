@@ -77,6 +77,13 @@ screens pretend to be complete.
         learners to teachers with enrollment or reward visibility permission,
         content totals, explicit unsupported progress fields, latest enrollment
         state, and real reward-candidate evidence/counts per learner.
+- [x] Define course-scoped teacher reward candidate list and decision
+      contracts before marking reward review complete.
+  - [x] `GET /api/courses/{courseId}/reward-candidates` supports course and
+        status-filtered candidate lists, while
+        `PUT /api/courses/{courseId}/reward-candidates/{candidateId}/teacher-decision`
+        records only teacher approval/rejection decisions. Stale candidates
+        return a text `409` that the frontend normalizes and refreshes from.
 - [ ] Define upload-job or media-processing status APIs before the teacher
       upload UI promises progress or retry visibility.
 - [ ] Define searchable user, organization, course, application, reward,

@@ -120,6 +120,37 @@ export type TeacherStudentRewardCandidateSummary = {
   updated_at: string;
 };
 
+export type TeacherRewardCandidate = {
+  amount_decided_at: string | null;
+  amount_decision_reason: string | null;
+  amount_reviewer_user_id: number | null;
+  approved_amount: string | null;
+  course_id: number;
+  created_at: string;
+  event_type: string;
+  evidence: unknown;
+  id: number;
+  idempotency_key: string;
+  source_organization_id: number | null;
+  source_scope: string;
+  status: string;
+  student_user_id: number;
+  submitter_user_id: number;
+  teacher_approver_user_id: number | null;
+  teacher_decided_at: string | null;
+  teacher_decision_reason: string | null;
+  updated_at: string;
+};
+
+export type TeacherRewardCandidateStatusFilter =
+  | "all"
+  | "pending_teacher_approval"
+  | "teacher_approved"
+  | "teacher_rejected"
+  | "failed";
+
+export type TeacherRewardCandidateDecisionStatus = "teacher_approved" | "teacher_rejected";
+
 export type TeacherCourseJoinRequestPage = {
   limit: number;
   offset: number;
@@ -307,6 +338,14 @@ export type TeacherCourseEnrollmentOptions = TeacherRequestOptions & {
   status?: string;
 };
 
+export type TeacherRewardCandidateListOptions = TeacherRequestOptions & {
+  courseId: number | string;
+  limit?: number;
+  offset?: number;
+  status?: TeacherRewardCandidateStatusFilter | string;
+  studentUserId?: number;
+};
+
 export type CreateTeacherChapterPayload = {
   order: number;
   title: string;
@@ -343,6 +382,17 @@ export type DecideTeacherJoinRequestOptions = TeacherRequestOptions & {
 export type RemoveTeacherEnrollmentOptions = TeacherRequestOptions & {
   courseId: number | string;
   userId: number | string;
+};
+
+export type DecideTeacherRewardCandidatePayload = {
+  decision_reason?: string | null;
+  status: TeacherRewardCandidateDecisionStatus;
+};
+
+export type DecideTeacherRewardCandidateOptions = TeacherRequestOptions & {
+  candidateId: number | string;
+  courseId: number | string;
+  payload: DecideTeacherRewardCandidatePayload;
 };
 
 export type TeacherEnrollmentRemovalResponse = {
@@ -457,6 +507,38 @@ export async function fetchTeachingCourseStudents({
   });
 }
 
+export async function fetchTeacherRewardCandidates({
+  apiRoot = "/api",
+  courseId,
+  limit = 25,
+  offset,
+  status,
+  studentUserId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: TeacherRewardCandidateListOptions): Promise<TeacherRewardCandidate[]> {
+  const query = new URLSearchParams();
+  query.set("limit", String(limit));
+  if (typeof offset === "number") {
+    query.set("offset", String(offset));
+  }
+  const trimmedStatus = status?.trim();
+  if (trimmedStatus && trimmedStatus !== "all") {
+    query.set("status", trimmedStatus);
+  }
+  if (typeof studentUserId === "number") {
+    query.set("student_user_id", String(studentUserId));
+  }
+
+  const suffix = query.toString();
+  return teacherJsonRequest<TeacherRewardCandidate[]>({
+    method: "GET",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/reward-candidates${suffix ? `?${suffix}` : ""}`,
+  });
+}
+
 export async function createTeacherChapter({
   apiRoot = "/api",
   courseId,
@@ -504,6 +586,23 @@ export async function decideTeacherJoinRequest({
     timeoutMs,
     token,
     url: `${apiRoot}/courses/${courseId}/join-requests/${requestId}/decision`,
+  });
+}
+
+export async function decideTeacherRewardCandidate({
+  apiRoot = "/api",
+  candidateId,
+  courseId,
+  payload,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: DecideTeacherRewardCandidateOptions): Promise<TeacherRewardCandidate> {
+  return teacherJsonRequest<TeacherRewardCandidate>({
+    body: JSON.stringify(payload),
+    method: "PUT",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/reward-candidates/${candidateId}/teacher-decision`,
   });
 }
 
