@@ -69,7 +69,7 @@ application.
 - [ ] [Milestone 5](10-milestone-05-platform-admin.md): Platform admin
       dashboard, teacher review, reward amount review, fraud blocks,
       delegations, exports, and reconciliation.
-- [ ] [Milestone 6](13-milestone-06-ops-deprecation.md): Move operations
+- [x] [Milestone 6](13-milestone-06-ops-deprecation.md): Move operations
       console to `/ops`, add product-route Docker Compose/Kubernetes smoke
       checks, and update documentation.
 

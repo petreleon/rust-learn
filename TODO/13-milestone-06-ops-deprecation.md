@@ -6,15 +6,15 @@ routes are verified.
 
 ## Self-Criticism Before Building
 
-- [ ] If `/` still opens the operations console after product routes exist,
+- [x] If `/` still opens the operations console after product routes exist,
       reject the migration.
-- [ ] If `/ops` is removed before equivalent product flows are verified, reject
+- [x] If `/ops` is removed before equivalent product flows are verified, reject
       the migration.
-- [ ] If operations controls remain mixed into learner, teacher, organization,
+- [x] If operations controls remain mixed into learner, teacher, organization,
       or admin navigation, reject the shell.
-- [ ] If smoke tests still search only for operations-console text, reject the
+- [x] If smoke tests still search only for operations-console text, reject the
       verification.
-- [ ] If `/ops` exposes sensitive controls without appropriate session and
+- [x] If `/ops` exposes sensitive controls without appropriate session and
       permission handling, reject the route.
 
 ## Migration Tasks

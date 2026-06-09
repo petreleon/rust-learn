@@ -6,13 +6,13 @@ navigation.
 
 ## Self-Criticism Before Building
 
-- [ ] If the first screen still feels like an API console, reject the design.
-- [ ] If normal users must paste JWTs or toggle permissions, reject the flow.
-- [ ] If navigation is based on role labels instead of resolved permissions and
+- [x] If the first screen still feels like an API console, reject the design.
+- [x] If normal users must paste JWTs or toggle permissions, reject the flow.
+- [x] If navigation is based on role labels instead of resolved permissions and
       scopes, reject the implementation.
-- [ ] If a deep link flashes unauthorized content before current-user loading
+- [x] If a deep link flashes unauthorized content before current-user loading
       finishes, reject the route guard.
-- [ ] If mobile users cannot see where they are, who they are, and what to do
+- [x] If mobile users cannot see where they are, who they are, and what to do
       next in the first viewport, reject the layout.
 
 ## Backend Contracts
