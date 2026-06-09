@@ -13,18 +13,78 @@ use crate::utils::request_auth::authenticated_user_id;
 use crate::utils::s3_utils::S3State;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use diesel::{ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+async fn ensure_chapter_belongs_to_course(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    chapter_id: i32,
+) -> Result<(), HttpResponse> {
+    match chapters::table
+        .filter(chapters::id.eq(chapter_id))
+        .filter(chapters::course_id.eq(course_id))
+        .select(chapters::id)
+        .first::<i32>(conn)
+        .await
+    {
+        Ok(_) => Ok(()),
+        Err(diesel::result::Error::NotFound) => {
+            Err(HttpResponse::NotFound().body("Chapter not found"))
+        }
+        Err(e) => {
+            log::error!(
+                "event=content_chapter_scope_check_failed course_id={} chapter_id={} error={}",
+                course_id,
+                chapter_id,
+                e
+            );
+            Err(HttpResponse::InternalServerError().body("Failed to fetch chapter"))
+        }
+    }
+}
+
+async fn ensure_content_belongs_to_chapter(
+    conn: &mut AsyncPgConnection,
+    chapter_id: i32,
+    content_id: i32,
+) -> Result<(), HttpResponse> {
+    match contents::table
+        .filter(contents::id.eq(content_id))
+        .filter(contents::chapter_id.eq(chapter_id))
+        .select(contents::id)
+        .first::<i32>(conn)
+        .await
+    {
+        Ok(_) => Ok(()),
+        Err(diesel::result::Error::NotFound) => {
+            Err(HttpResponse::NotFound().body("Content not found"))
+        }
+        Err(e) => {
+            log::error!(
+                "event=content_scope_check_failed chapter_id={} content_id={} error={}",
+                chapter_id,
+                content_id,
+                e
+            );
+            Err(HttpResponse::InternalServerError().body("Failed to fetch content"))
+        }
+    }
+}
 
 // #[get("/chapters/{id}/contents")]
 async fn list_contents(
     path: web::Path<(i32, i32)>, // course_id, chapter_id
     pool: web::Data<DbPool>,
 ) -> impl Responder {
-    let (_course_id, chapter_id) = path.into_inner();
+    let (course_id, chapter_id) = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
+    if let Err(response) = ensure_chapter_belongs_to_course(&mut conn, course_id, chapter_id).await
+    {
+        return response;
+    }
 
     let result = contents::table
         .filter(contents::chapter_id.eq(chapter_id))
@@ -63,6 +123,10 @@ async fn create_content(
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
+    if let Err(response) = ensure_chapter_belongs_to_course(&mut conn, course_id, chapter_id).await
+    {
+        return response;
+    }
 
     let new_content = NewContent {
         chapter_id,
@@ -139,10 +203,19 @@ struct UploadRequest {
 
 async fn get_upload_url(
     path: web::Path<(i32, i32)>, // course_id, chapter_id
+    pool: web::Data<DbPool>,
     s3: Option<web::Data<S3State>>,
     req: web::Json<UploadRequest>,
 ) -> impl Responder {
     let (course_id, chapter_id) = path.into_inner();
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+    if let Err(response) = ensure_chapter_belongs_to_course(&mut conn, course_id, chapter_id).await
+    {
+        return response;
+    }
 
     if req.content_type.trim().is_empty() {
         return HttpResponse::BadRequest().body("content_type is required");
@@ -207,11 +280,20 @@ async fn update_content(
     pool: web::Data<DbPool>,
     req: web::Json<UpdateContent>,
 ) -> impl Responder {
-    let (_course_id, _chapter_id, content_id) = path.into_inner();
+    let (course_id, chapter_id, content_id) = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
+    if let Err(response) = ensure_chapter_belongs_to_course(&mut conn, course_id, chapter_id).await
+    {
+        return response;
+    }
+    if let Err(response) =
+        ensure_content_belongs_to_chapter(&mut conn, chapter_id, content_id).await
+    {
+        return response;
+    }
 
     let result = diesel::update(contents::table.find(content_id))
         .set(&*req)
@@ -236,11 +318,20 @@ async fn delete_content(
     path: web::Path<(i32, i32, i32)>,
     pool: web::Data<DbPool>,
 ) -> impl Responder {
-    let (_course_id, _chapter_id, content_id) = path.into_inner();
+    let (course_id, chapter_id, content_id) = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
+    if let Err(response) = ensure_chapter_belongs_to_course(&mut conn, course_id, chapter_id).await
+    {
+        return response;
+    }
+    if let Err(response) =
+        ensure_content_belongs_to_chapter(&mut conn, chapter_id, content_id).await
+    {
+        return response;
+    }
 
     let result = diesel::delete(contents::table.find(content_id))
         .execute(&mut conn)

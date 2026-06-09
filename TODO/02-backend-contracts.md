@@ -59,6 +59,11 @@ screens pretend to be complete.
         publication status, display state, and latest processing status/error.
         Per-content publication status is explicitly unsupported until the
         course content schema stores it.
+- [x] Harden existing chapter/content authoring endpoints so frontend routes
+      can trust course-scoped paths.
+  - [x] `GET`/`POST` content, content update/delete, and upload-url handlers
+        now verify that path chapters belong to path courses and that path
+        content belongs to path chapters before returning or mutating data.
 - [ ] Define upload-job or media-processing status APIs before the teacher
       upload UI promises progress or retry visibility.
 - [ ] Define searchable user, organization, course, application, reward,

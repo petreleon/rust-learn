@@ -637,6 +637,99 @@ test("fetchTeachingCourseWorkspace normalizes permission and missing-course text
   });
 });
 
+test("teacher chapter and content authoring helpers send structured JSON", async () => {
+  const calls = mockFetch((url, init) => {
+    if (url === "/api/courses/9/chapters") {
+      assert.equal(init.method, "POST");
+      assert.equal(init.headers.Authorization, "Bearer teacher-token");
+      assert.equal(init.headers["Content-Type"], "application/json");
+      assert.deepEqual(JSON.parse(init.body), {
+        order: 3,
+        title: "Ownership practice",
+      });
+      return jsonResponse({
+        course_id: 9,
+        id: 15,
+        order: 3,
+        title: "Ownership practice",
+      }, { status: 201 });
+    }
+
+    assert.equal(url, "/api/courses/9/chapters/15/contents");
+    assert.equal(init.method, "POST");
+    assert.equal(init.headers.Authorization, "Bearer teacher-token");
+    assert.equal(init.headers["Content-Type"], "application/json");
+    assert.deepEqual(JSON.parse(init.body), {
+      content_type: "article",
+      data: "Lesson body",
+      order: 1,
+    });
+    return jsonResponse({
+      chapter_id: 15,
+      content_type: "article",
+      data: "Lesson body",
+      id: 22,
+      order: 1,
+    }, { status: 201 });
+  });
+
+  const chapter = await teacher.createTeacherChapter({
+    courseId: 9,
+    payload: {
+      order: 3,
+      title: "Ownership practice",
+    },
+    token: "teacher-token",
+  });
+  const content = await teacher.createTeacherContent({
+    chapterId: chapter.id,
+    courseId: 9,
+    payload: {
+      content_type: "article",
+      data: "Lesson body",
+      order: 1,
+    },
+    token: "teacher-token",
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(chapter.title, "Ownership practice");
+  assert.equal(content.data, "Lesson body");
+});
+
+test("teacher authoring helpers normalize permission and invalid chapter errors", async () => {
+  mockFetch(() => textResponse("User does not have permission to access this course", { status: 403 }));
+
+  await assertRequestError(
+    teacher.createTeacherChapter({
+      courseId: 9,
+      payload: { order: 1, title: "Blocked" },
+      token: "teacher-token",
+    }),
+    {
+      code: "permission_denied",
+      errorClass: teacher.TeacherRequestError,
+      status: 403,
+    },
+  );
+
+  mockFetch(() => textResponse("Chapter not found", { status: 404 }));
+
+  await assertRequestError(
+    teacher.createTeacherContent({
+      chapterId: 99,
+      courseId: 9,
+      payload: { content_type: "article", data: "Nope", order: 1 },
+      token: "teacher-token",
+    }),
+    {
+      code: "not_found",
+      errorClass: teacher.TeacherRequestError,
+      status: 404,
+    },
+  );
+});
+
 test("submitTeacherApplication sends JSON payload and parses created application", async () => {
   const payload = {
     experience_summary: "I teach Rust fundamentals and review project work.",

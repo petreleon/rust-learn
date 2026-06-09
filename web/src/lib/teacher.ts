@@ -87,6 +87,21 @@ export type TeacherCourseWorkspaceContent = {
   publication_status: string;
 };
 
+export type TeacherChapter = {
+  course_id: number;
+  id: number;
+  order: number;
+  title: string;
+};
+
+export type TeacherContent = {
+  chapter_id: number;
+  content_type: string;
+  data: string | null;
+  id: number;
+  order: number;
+};
+
 export type TeacherCourseOrganization = {
   id: number;
   name: string;
@@ -174,6 +189,28 @@ export type TeacherCourseWorkspaceOptions = TeacherRequestOptions & {
   courseId: number | string;
 };
 
+export type CreateTeacherChapterPayload = {
+  order: number;
+  title: string;
+};
+
+export type CreateTeacherChapterOptions = TeacherRequestOptions & {
+  courseId: number | string;
+  payload: CreateTeacherChapterPayload;
+};
+
+export type CreateTeacherContentPayload = {
+  content_type: string;
+  data?: string | null;
+  order: number;
+};
+
+export type CreateTeacherContentOptions = TeacherRequestOptions & {
+  chapterId: number | string;
+  courseId: number | string;
+  payload: CreateTeacherContentPayload;
+};
+
 export type SubmitTeacherApplicationOptions = TeacherRequestOptions & {
   payload: SubmitTeacherApplicationPayload;
 };
@@ -235,6 +272,39 @@ export async function fetchTeachingCourseWorkspace({
     timeoutMs,
     token,
     url: `${apiRoot}/courses/teaching/${courseId}`,
+  });
+}
+
+export async function createTeacherChapter({
+  apiRoot = "/api",
+  courseId,
+  payload,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: CreateTeacherChapterOptions): Promise<TeacherChapter> {
+  return teacherJsonRequest<TeacherChapter>({
+    body: JSON.stringify(payload),
+    method: "POST",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/chapters`,
+  });
+}
+
+export async function createTeacherContent({
+  apiRoot = "/api",
+  chapterId,
+  courseId,
+  payload,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: CreateTeacherContentOptions): Promise<TeacherContent> {
+  return teacherJsonRequest<TeacherContent>({
+    body: JSON.stringify(payload),
+    method: "POST",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/chapters/${chapterId}/contents`,
   });
 }
 

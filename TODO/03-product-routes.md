@@ -117,8 +117,16 @@
         lifecycle, ownership, teacher roles, action permissions, structured
         chapters/content, processing state, roster pressure, reward review
         pressure, signed-out state, and permission failure state.
+  - [x] `/teach/courses/[courseId]/content` opens real content authoring from
+        the course workspace, creates chapters and text/article content through
+        structured forms, refreshes the outline after successful saves, and
+        disables creation when the user lacks course content permission.
 - [ ] Build course creation and editing flows for title, description, content,
       settings, publishing state, organization ownership, and reward policy.
+  - [x] Structured chapter and text/article content creation is covered by
+        `/teach/courses/[courseId]/content`; title, description, settings,
+        publishing state, organization ownership, reward policy, destructive
+        editing, and media upload remain open.
 - [ ] Build content upload UI with progress, validation, processing status,
       retry, and failure explanation.
 - [ ] Build enrollment and roster management screens for requests, approvals,

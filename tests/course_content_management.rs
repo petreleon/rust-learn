@@ -3,9 +3,9 @@ use actix_web::{test, web, App};
 use chrono::NaiveDate;
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::db::schema::{courses, upload_jobs};
+use rust_learn::db::schema::{chapters, courses, upload_jobs};
 use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::models::chapter::Chapter;
+use rust_learn::models::chapter::{Chapter, NewChapter};
 use rust_learn::models::content::Content;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::role::CourseRole;
@@ -77,6 +77,22 @@ async fn test_course_content_lifecycle() {
         .get_result::<Course>(&mut conn)
         .await
         .unwrap();
+    let other_course = diesel::insert_into(courses::table)
+        .values(&NewCourse {
+            title: unique_string("OtherContentCourse"),
+        })
+        .get_result::<Course>(&mut conn)
+        .await
+        .unwrap();
+    let other_chapter = diesel::insert_into(chapters::table)
+        .values(NewChapter {
+            course_id: other_course.id,
+            title: "Other course chapter".to_string(),
+            order: 1,
+        })
+        .get_result::<Chapter>(&mut conn)
+        .await
+        .unwrap();
 
     force_assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER").await;
     force_assign_course_role(&mut conn, student.id(), course.id, "STUDENT").await;
@@ -145,6 +161,22 @@ async fn test_course_content_lifecycle() {
     let content: Content = test::read_body_json(resp).await;
     assert_eq!(content.data.unwrap(), "Welcome to the course");
 
+    // 3b. Teacher cannot use their course permission with a chapter from another course.
+    let req = test::TestRequest::post()
+        .uri(&format!(
+            "/courses/{}/chapters/{}/contents",
+            course.id, other_chapter.id
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", teacher_token)))
+        .set_json(serde_json::json!({
+            "order": 1,
+            "content_type": "text",
+            "data": "Cross-course write"
+        }))
+        .to_request();
+    let resp = app.call(req).await.unwrap();
+    assert_eq!(resp.status(), actix_web::http::StatusCode::NOT_FOUND);
+
     // 4. Student lists content through VIEW_CONTENT
     let req = test::TestRequest::get()
         .uri(&format!(
@@ -157,6 +189,16 @@ async fn test_course_content_lifecycle() {
     assert!(resp.status().is_success());
     let listed_content: Vec<Content> = test::read_body_json(resp).await;
     assert_eq!(listed_content.len(), 1);
+
+    let req = test::TestRequest::get()
+        .uri(&format!(
+            "/courses/{}/chapters/{}/contents",
+            course.id, other_chapter.id
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", teacher_token)))
+        .to_request();
+    let resp = app.call(req).await.unwrap();
+    assert_eq!(resp.status(), actix_web::http::StatusCode::NOT_FOUND);
 
     // 5. User without course content permission cannot list content
     let req = test::TestRequest::get()

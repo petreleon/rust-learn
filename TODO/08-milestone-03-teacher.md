@@ -41,6 +41,11 @@ admin controls.
         publication status, display state, and latest processing status/error.
         Per-content publication remains explicitly unsupported until the schema
         stores that state.
+- [x] Existing chapter/content mutation endpoints enforce course ownership for
+      authoring paths.
+  - [x] Chapter/content list, create, update, delete, and upload-url paths now
+        verify that the path chapter belongs to the path course, and that
+        updated/deleted content belongs to the path chapter before acting.
 - [ ] Upload URL and media-processing status contract, including queued,
       processing, failed, retried, and complete states.
 - [ ] Enrollment request list and decision endpoints with pagination.
@@ -74,7 +79,14 @@ admin controls.
         state, roster pressure, reward review pressure, signed-out state, and
         permission failure state without raw id forms or platform amount-review
         controls.
-- [ ] `/teach/courses/[courseId]/content` course content authoring.
+- [x] `/teach/courses/[courseId]/content` course content authoring.
+  - [x] Real product route loads `GET /api/me` and
+        `GET /api/courses/teaching/{courseId}`, creates chapters through
+        `POST /api/courses/{courseId}/chapters`, creates text/article content
+        through `POST /api/courses/{courseId}/chapters/{chapterId}/contents`,
+        refreshes the structured outline after success, keeps chapter
+        selection human-readable, and disables authoring actions when the
+        session lacks course content permission.
 - [ ] `/teach/courses/[courseId]/enrollments` enrollment queue and roster.
 - [ ] `/teach/courses/[courseId]/students` student progress.
 - [ ] `/teach/courses/[courseId]/rewards` reward candidate review.
@@ -103,7 +115,14 @@ admin controls.
 - [x] Show structured chapter/content outline instead of freeform API fields.
 - [ ] Allow only permitted actions for create, edit, publish, archive, and
       settings.
-- [ ] Use structured chapter/content editing instead of freeform API fields.
+  - [x] Chapter and text/article content creation are permission-aware in the
+        content authoring route. Editing, publishing, archiving, destructive
+        actions, and settings remain open.
+- [x] Use structured chapter/content authoring instead of freeform API fields.
+  - [x] `/teach/courses/[courseId]/content` replaces raw course/chapter id
+        entry with structured chapter creation and a chapter-title select for
+        text/article content creation. Upload/media authoring stays open until
+        the upload route is built.
 - [ ] Show upload URL expiry and retry path.
 - [x] Show worker processing states after video processing is queued.
   - [x] The workspace detail payload and UI surface latest display state,
@@ -154,6 +173,12 @@ admin controls.
         structured content outline, failed-processing state, scoped permission
         failure state, no internal operations console text, no amount-review
         language, no console errors, and no horizontal overflow.
+  - [x] `/teach/courses/[courseId]/content` evidence: Browser signed-out
+        desktop and mobile smoke plus mocked Playwright authenticated desktop
+        authoring from course workspace to content route, chapter creation,
+        text/article content creation, mobile no-edit-permission disabled
+        state, hidden internal operations console, no amount-review language,
+        no console errors, and no horizontal overflow.
 - [ ] Tests for approved teacher, applicant-only user, course-scoped teacher,
       denied teacher route, stale reward candidate, and failed upload state.
   - [x] Teacher application tests cover current-user snapshot, duplicate open
@@ -168,6 +193,10 @@ admin controls.
         inherited publication status, content display state, outsider `403`,
         route registration, frontend helper parsing, and frontend helper
         `403`/`404` text-error normalization.
+  - [x] Teacher content authoring tests cover frontend helper request bodies,
+        helper `403`/invalid-chapter error normalization, chapter creation,
+        text/article content creation, and backend cross-course
+        chapter/content path guardrails.
 - [ ] Docker Compose E2E path: teacher application or teacher login, course
       workspace, content/upload state, reward candidate decision, log scan.
 - [ ] Kubernetes smoke path loads `/teach`, `/teach/apply`, and one course

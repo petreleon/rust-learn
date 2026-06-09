@@ -30,7 +30,8 @@ states when the current user lacks the required learner, teacher, organization,
 or platform access signal.
 
 Teacher product routes now include `/teach`, `/teach/apply`,
-`/teach/courses`, and `/teach/courses/[courseId]`. `/teach` loads `GET /api/me`,
+`/teach/courses`, `/teach/courses/[courseId]`, and
+`/teach/courses/[courseId]/content`. `/teach` loads `GET /api/me`,
 `GET /api/courses/teaching`, and `GET /api/teacher-applications/me` to show
 application status, teaching course health, lifecycle state, content readiness,
 enrollment pressure, reward review pressure, and scoped action permissions.
@@ -40,8 +41,13 @@ course workspace. The workspace loads `GET /api/courses/teaching/{courseId}`
 and shows lifecycle, ownership, teacher roles, action permissions, structured
 chapters/content, data-present flags, inherited content publication state,
 latest processing status/error, roster pressure, and reward review pressure.
-Enrollment and reward-review actions remain disabled until those deeper routes
-exist, and teacher screens do not expose platform amount-review controls.
+The content authoring route loads the same workspace detail, creates chapters
+through `POST /api/courses/{courseId}/chapters`, creates text/article content
+through `POST /api/courses/{courseId}/chapters/{chapterId}/contents`, refreshes
+the outline after successful saves, and disables authoring controls when the
+session lacks course content permission. Enrollment and reward-review actions
+remain disabled until those deeper routes exist, and teacher screens do not
+expose platform amount-review controls.
 `GET /api/courses/teaching` returns
 `total/limit/offset/search/lifecycle_status`, organization labels, content
 summaries, reward-policy summaries, roster counts, reward queue counts, and
@@ -51,9 +57,10 @@ permission booleans for the current teacher scope. `/teach/apply` loads
 portfolio links in session storage, and renders new, submitted, needs-changes,
 approved, rejected, duplicate-conflict, signed-out, and backend-failure states.
 Organization and course scope choices come from the resolved session context so
-teachers and applicants do not type raw internal ids. Content editing/upload,
-enrollment decision queues, student progress, and reward candidate decision
-screens remain future product routes.
+teachers and applicants do not type raw internal ids. Media upload, upload
+retry/progress, destructive content editing, enrollment decision queues,
+student progress, and reward candidate decision screens remain future product
+routes.
 
 Learner product routes now include `/learn`, `/courses`, `/rewards`, and
 `/wallet`. `/learn` is the learner dashboard. It loads `GET /api/me`, enrolled

@@ -111,3 +111,12 @@ represented in this folder.
 - [x] Browser-only QA is not enough for authenticated learner states because
       the current in-app Browser path does not expose network interception or
       storage setup; mocked Playwright QA is required for this checkpoint.
+- [x] Teacher content authoring needed a real route rather than another
+      operations-console form; `/teach/courses/[courseId]/content` now creates
+      chapters and text/article content from structured, permission-aware UI.
+- [x] Content authoring could have overclaimed upload/media support; upload
+      URL expiry, progress, retry, and media processing recovery remain open
+      TODOs until their route and runtime evidence exist.
+- [x] Rereading the authoring paths exposed a backend ownership edge case:
+      content handlers now reject mismatched course/chapter/content path
+      combinations, with regression coverage.

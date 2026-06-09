@@ -29,6 +29,8 @@ import {
   SessionRequestError,
 } from "@/lib/session";
 import {
+  createTeacherChapter,
+  createTeacherContent,
   fetchMyTeacherApplication,
   fetchTeachingCourseWorkspace,
   fetchTeachingCourses,
@@ -56,6 +58,20 @@ type CourseQuery = {
   search: string;
 };
 
+type ChapterDraft = {
+  order: string;
+  title: string;
+};
+
+type ContentDraft = {
+  chapterId: string;
+  contentType: string;
+  data: string;
+  order: string;
+};
+
+type ActionState = "idle" | "saving";
+
 const emptyApplicationSnapshot: TeacherApplicationSnapshot = {
   application: null,
   audit_events: [],
@@ -73,6 +89,18 @@ const emptyCourses: TeacherCoursesResponse = {
 const defaultCourseQuery: CourseQuery = {
   lifecycleStatus: "all",
   search: "",
+};
+
+const defaultChapterDraft: ChapterDraft = {
+  order: "1",
+  title: "",
+};
+
+const defaultContentDraft: ContentDraft = {
+  chapterId: "",
+  contentType: "article",
+  data: "",
+  order: "1",
 };
 
 const submitTeacherApplicationPermission = "SUBMIT_TEACHER_APPLICATION";
@@ -385,6 +413,217 @@ export function TeacherCourseWorkspaceRoute({ courseId }: { courseId: string }) 
   );
 }
 
+export function TeacherCourseContentRoute({ courseId }: { courseId: string }) {
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionState, setActionState] = useState<ActionState>("idle");
+  const [chapterDraft, setChapterDraft] = useState<ChapterDraft>(defaultChapterDraft);
+  const [contentDraft, setContentDraft] = useState<ContentDraft>(defaultContentDraft);
+  const [error, setError] = useState<RouteError | null>(null);
+  const [hasToken, setHasToken] = useState(false);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [session, setSession] = useState<CurrentSession | null>(null);
+  const [workspace, setWorkspace] = useState<TeacherCourseWorkspaceResponse | null>(null);
+
+  const loadContentRoute = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token) {
+      setHasToken(false);
+      setSession(null);
+      setWorkspace(null);
+      setError(null);
+      setLoadState("idle");
+      return;
+    }
+
+    setHasToken(true);
+    setLoadState("loading");
+    setError(null);
+
+    try {
+      const [nextSession, nextWorkspace] = await Promise.all([
+        fetchCurrentSession({ token }),
+        fetchTeachingCourseWorkspace({ courseId, token }),
+      ]);
+      setSession(nextSession);
+      setWorkspace(nextWorkspace);
+      setContentDraft((current) => ({
+        ...current,
+        chapterId: current.chapterId || nextWorkspace.chapters[0]?.id.toString() || "",
+      }));
+      setLoadState("success");
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      if (routeError.status === 401) {
+        clearStoredSessionToken();
+        setHasToken(false);
+      }
+      setSession(null);
+      setWorkspace(null);
+      setError(routeError);
+      setLoadState("error");
+    }
+  }, [courseId]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadContentRoute(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadContentRoute]);
+
+  function signOut() {
+    clearStoredSessionToken();
+    setHasToken(false);
+    setSession(null);
+    setWorkspace(null);
+    setError(null);
+    setLoadState("idle");
+  }
+
+  async function submitChapter(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = readStoredSessionToken();
+    const title = chapterDraft.title.trim();
+    const orderText = chapterDraft.order.trim();
+    const order = Number(orderText);
+    if (!token || !title || !orderText || !Number.isFinite(order) || order < 0) {
+      setActionMessage("Chapter title and a non-negative order are required.");
+      return;
+    }
+
+    setActionState("saving");
+    setActionMessage(null);
+    try {
+      await createTeacherChapter({
+        courseId,
+        payload: { order, title },
+        token,
+      });
+      setChapterDraft(defaultChapterDraft);
+      setActionMessage("Chapter created.");
+      await loadContentRoute();
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      setActionMessage(routeError.message);
+    } finally {
+      setActionState("idle");
+    }
+  }
+
+  async function submitContent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = readStoredSessionToken();
+    const chapterId = contentDraft.chapterId;
+    const orderText = contentDraft.order.trim();
+    const order = Number(orderText);
+    const data = contentDraft.data.trim();
+    if (!token || !chapterId || !orderText || !Number.isFinite(order) || order < 0 || !data) {
+      setActionMessage("Chapter, a non-negative order, and lesson body are required.");
+      return;
+    }
+
+    setActionState("saving");
+    setActionMessage(null);
+    try {
+      await createTeacherContent({
+        chapterId,
+        courseId,
+        payload: {
+          content_type: contentDraft.contentType,
+          data,
+          order,
+        },
+        token,
+      });
+      setContentDraft((current) => ({ ...current, data: "", order: "1" }));
+      setActionMessage("Content item created.");
+      await loadContentRoute();
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      setActionMessage(routeError.message);
+    } finally {
+      setActionState("idle");
+    }
+  }
+
+  const courseTitle = workspace?.course.title || "Course content";
+  return (
+    <ProductShell
+      activeNav="teach"
+      breadcrumbs={[
+        { href: "/session", label: "Workspace" },
+        { href: "/teach", label: "Teach" },
+        { href: "/teach/courses", label: "Courses" },
+        { href: `/teach/courses/${courseId}`, label: courseTitle },
+        { label: "Content" },
+      ]}
+      description="Structured chapter and text lesson authoring for course-scoped teachers."
+      eyebrow="Teacher content"
+      isSignedIn={hasToken || Boolean(session)}
+      notice={routeNotice(error)}
+      onSignOut={signOut}
+      session={session}
+      statusItems={
+        workspace ? (
+          <>
+            <StatusLine icon={<BookOpen size={16} aria-hidden />} label={`${workspace.chapters.length} chapter${workspace.chapters.length === 1 ? "" : "s"}`} tone={workspace.chapters.length ? "good" : "warn"} />
+            <StatusLine icon={<FileText size={16} aria-hidden />} label={`${workspaceSummary(workspace).contentCount} content item${workspaceSummary(workspace).contentCount === 1 ? "" : "s"}`} tone={workspaceSummary(workspace).contentCount ? "good" : "warn"} />
+          </>
+        ) : null
+      }
+      title={courseTitle}
+    >
+      {loadState === "loading" ? (
+        <StatePanel
+          detail="Loading course content structure and authoring permissions."
+          icon={<Loader2 className={styles.spin} size={22} aria-hidden />}
+          title="Loading content authoring"
+        />
+      ) : null}
+
+      {loadState === "idle" ? (
+        <StatePanel
+          action={
+            <Link className={styles.primaryLink} href={`/login?redirect=/teach/courses/${courseId}/content`}>
+              <LogIn size={18} aria-hidden />
+              Sign in
+            </Link>
+          }
+          detail="Content authoring loads from your signed-in teaching session."
+          icon={<LogIn size={22} aria-hidden />}
+          title="Sign in required"
+        />
+      ) : null}
+
+      {loadState === "error" && error ? (
+        <section className={`${styles.errorBox} ${styles.singlePanel}`} role="status">
+          <AlertCircle size={18} aria-hidden />
+          <span>
+            <strong>{error.code}</strong>
+            {error.message}
+          </span>
+          <button className={styles.secondaryButton} type="button" onClick={() => void loadContentRoute()}>
+            <RefreshCw size={17} aria-hidden />
+            Retry
+          </button>
+        </section>
+      ) : null}
+
+      {loadState === "success" && workspace ? (
+        <ContentAuthoringView
+          actionMessage={actionMessage}
+          actionState={actionState}
+          chapterDraft={chapterDraft}
+          contentDraft={contentDraft}
+          onChapterDraftChange={setChapterDraft}
+          onContentDraftChange={setContentDraft}
+          onSubmitChapter={submitChapter}
+          onSubmitContent={submitContent}
+          workspace={workspace}
+        />
+      ) : null}
+    </ProductShell>
+  );
+}
+
 function DashboardView({
   application,
   canSubmitApplication,
@@ -563,13 +802,169 @@ function WorkspaceView({ workspace }: { workspace: TeacherCourseWorkspaceRespons
   );
 }
 
+function ContentAuthoringView({
+  actionMessage,
+  actionState,
+  chapterDraft,
+  contentDraft,
+  onChapterDraftChange,
+  onContentDraftChange,
+  onSubmitChapter,
+  onSubmitContent,
+  workspace,
+}: {
+  actionMessage: string | null;
+  actionState: ActionState;
+  chapterDraft: ChapterDraft;
+  contentDraft: ContentDraft;
+  onChapterDraftChange: (draft: ChapterDraft) => void;
+  onContentDraftChange: (draft: ContentDraft) => void;
+  onSubmitChapter: (event: FormEvent<HTMLFormElement>) => void;
+  onSubmitContent: (event: FormEvent<HTMLFormElement>) => void;
+  workspace: TeacherCourseWorkspaceResponse;
+}) {
+  const canManageContent = workspace.course.permissions.can_manage_content;
+  return (
+    <>
+      <section className={styles.workspaceHero}>
+        <Link className={styles.secondaryLink} href={`/teach/courses/${workspace.course.id}`}>
+          <ArrowLeft size={17} aria-hidden />
+          Course workspace
+        </Link>
+        <div className={styles.workspaceTitleBlock}>
+          <p className={styles.eyebrow}>{statusLabel(workspace.course.lifecycle_status)}</p>
+          <h2>Content authoring</h2>
+          <p className={styles.muted}>
+            Create chapters and text lessons from structured forms. Upload, processing retry, and destructive editing controls remain separate until their contracts are complete.
+          </p>
+        </div>
+      </section>
+
+      {actionMessage ? (
+        <section className={`${styles.warningPanel} ${styles.singlePanel}`} role="status">
+          <div className={styles.panelHeader}>
+            <AlertCircle size={18} aria-hidden />
+            <h2>Authoring update</h2>
+          </div>
+          <p>{actionMessage}</p>
+        </section>
+      ) : null}
+
+      <section className={styles.twoColumn}>
+        <form className={styles.authoringForm} onSubmit={onSubmitChapter}>
+          <div className={styles.panelHeader}>
+            <BookOpen size={20} aria-hidden />
+            <h2>Create chapter</h2>
+          </div>
+          <label>
+            <span>Title</span>
+            <input
+              disabled={!canManageContent || actionState === "saving"}
+              maxLength={120}
+              onChange={(event) => onChapterDraftChange({ ...chapterDraft, title: event.target.value })}
+              placeholder="Chapter title"
+              value={chapterDraft.title}
+            />
+          </label>
+          <label>
+            <span>Order</span>
+            <input
+              disabled={!canManageContent || actionState === "saving"}
+              min="0"
+              onChange={(event) => onChapterDraftChange({ ...chapterDraft, order: event.target.value })}
+              type="number"
+              value={chapterDraft.order}
+            />
+          </label>
+          <button className={styles.primaryButton} disabled={!canManageContent || actionState === "saving"} type="submit">
+            <Send size={17} aria-hidden />
+            Create chapter
+          </button>
+          {!canManageContent ? <p className={styles.muted}>This session can view content structure but cannot author course content.</p> : null}
+        </form>
+
+        <form className={styles.authoringForm} onSubmit={onSubmitContent}>
+          <div className={styles.panelHeader}>
+            <FileText size={20} aria-hidden />
+            <h2>Create text content</h2>
+          </div>
+          <label>
+            <span>Chapter</span>
+            <select
+              disabled={!canManageContent || actionState === "saving" || !workspace.chapters.length}
+              onChange={(event) => onContentDraftChange({ ...contentDraft, chapterId: event.target.value })}
+              value={contentDraft.chapterId || workspace.chapters[0]?.id.toString() || ""}
+            >
+              {workspace.chapters.length ? (
+                workspace.chapters.map((chapter) => (
+                  <option key={chapter.id} value={chapter.id}>
+                    {chapter.title}
+                  </option>
+                ))
+              ) : (
+                <option value="">Create a chapter first</option>
+              )}
+            </select>
+          </label>
+          <label>
+            <span>Type</span>
+            <select
+              disabled={!canManageContent || actionState === "saving"}
+              onChange={(event) => onContentDraftChange({ ...contentDraft, contentType: event.target.value })}
+              value={contentDraft.contentType}
+            >
+              <option value="article">Article</option>
+              <option value="text">Text lesson</option>
+            </select>
+          </label>
+          <label>
+            <span>Order</span>
+            <input
+              disabled={!canManageContent || actionState === "saving"}
+              min="0"
+              onChange={(event) => onContentDraftChange({ ...contentDraft, order: event.target.value })}
+              type="number"
+              value={contentDraft.order}
+            />
+          </label>
+          <label>
+            <span>Lesson body</span>
+            <textarea
+              disabled={!canManageContent || actionState === "saving" || !workspace.chapters.length}
+              onChange={(event) => onContentDraftChange({ ...contentDraft, data: event.target.value })}
+              placeholder="Write the lesson content"
+              rows={5}
+              value={contentDraft.data}
+            />
+          </label>
+          <button className={styles.primaryButton} disabled={!canManageContent || actionState === "saving" || !workspace.chapters.length} type="submit">
+            <Send size={17} aria-hidden />
+            Create content
+          </button>
+        </form>
+      </section>
+
+      <section className={styles.courseSection}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2>Current structure</h2>
+            <p className={styles.muted}>New chapters and text content appear here after the workspace refreshes.</p>
+          </div>
+        </div>
+        <ChapterList chapters={workspace.chapters} />
+      </section>
+    </>
+  );
+}
+
 function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspaceResponse }) {
   const actions = [
     {
       detail: workspace.course.permissions.can_manage_content
-        ? "Content editing and upload controls need the next authoring form and upload contract before enabling."
+        ? "Create chapters and text lessons from structured forms; upload and destructive editing stay separate."
         : "This session cannot manage course content.",
       enabled: workspace.course.permissions.can_manage_content,
+      href: `/teach/courses/${workspace.course.id}/content`,
       icon: <FileText size={17} aria-hidden />,
       label: "Content authoring",
     },
@@ -578,6 +973,7 @@ function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspace
         ? "Enrollment queue route is next; this workspace shows current pressure without making decisions here."
         : "This session cannot manage enrollment decisions.",
       enabled: workspace.course.permissions.can_manage_enrollments,
+      href: null,
       icon: <Users size={17} aria-hidden />,
       label: "Enrollment queue",
     },
@@ -586,6 +982,7 @@ function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspace
         ? "Reward candidate review is intentionally separate from platform payout approval."
         : "This session cannot approve student reward candidates.",
       enabled: workspace.course.permissions.can_approve_reward_candidates,
+      href: null,
       icon: <Trophy size={17} aria-hidden />,
       label: "Reward review",
     },
@@ -604,6 +1001,12 @@ function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspace
             <div>
               <strong>{action.label}</strong>
               <p>{action.detail}</p>
+              {action.enabled && action.href ? (
+                <Link className={styles.secondaryLink} href={action.href}>
+                  <FileText size={16} aria-hidden />
+                  Open
+                </Link>
+              ) : null}
             </div>
           </article>
         ))}
