@@ -15,6 +15,7 @@ const learner = await importTranspiled("src/lib/learner.ts");
 const organization = await importTranspiled("src/lib/organization.ts");
 const teacher = await importTranspiled("src/lib/teacher.ts");
 const admin = await importTranspiled("src/lib/admin.ts");
+const access = await importTranspiled("src/lib/access.ts");
 
 test("fetchCurrentSession parses JSON success and sends bearer token", async () => {
   const calls = mockFetch((url, init) => {
@@ -3056,3 +3057,27 @@ function teacherRewardCandidatesFixture() {
     },
   ];
 }
+
+test("accessSummary returns false for learner/teacher/org/admin when session is null", () => {
+  const summary = access.accessSummary(null);
+  assert.equal(summary.learner, false);
+  assert.equal(summary.teacher, false);
+  assert.equal(summary.organization, false);
+  assert.equal(summary.platformAdmin, false);
+});
+
+test("accessSummary parses permissions and workspace scopes correctly", () => {
+  const sampleSession = {
+    user: { id: 42, email_verified: true, name: "Alice", email: "alice@example.test", kyc_verified: false },
+    platform: { roles: [], effective_permissions: ["SUBMIT_TEACHER_APPLICATION"] },
+    organizations: [],
+    courses: [],
+    delegated_permissions: [],
+  };
+
+  const summary = access.accessSummary(sampleSession);
+  assert.equal(summary.learner, true);
+  assert.equal(summary.teacher, true); // True because of SUBMIT_TEACHER_APPLICATION
+  assert.equal(summary.organization, false);
+  assert.equal(summary.platformAdmin, false);
+});
