@@ -19,6 +19,7 @@ import { ProductShell, type ShellNotice } from "@/components/product-shell";
 import {
   fetchCourseCatalog,
   fetchCourseDetail,
+  fetchCourseLearning,
   fetchMyWallet,
   fetchRewardHistory,
   LearnerRequestError,
@@ -27,6 +28,8 @@ import {
   type CourseCatalogDetail,
   type CourseCatalogItem,
   type CourseCatalogResponse,
+  type CourseLearningContent,
+  type CourseLearningResponse,
   type RewardHistoryEntry,
   type WalletSummary,
 } from "@/lib/learner";
@@ -443,6 +446,242 @@ export function LearnerCourseDetailRoute({ courseId }: { courseId: string }) {
   );
 }
 
+export function LearnerCourseLearnRoute({ courseId }: { courseId: string }) {
+  const numericCourseId = Number(courseId);
+  const validCourseId = Number.isInteger(numericCourseId) && numericCourseId > 0;
+  const [hasToken, setHasToken] = useState(false);
+  const [session, setSession] = useState<CurrentSession | null>(null);
+  const [learning, setLearning] = useState<CourseLearningResponse | null>(null);
+  const [selectedContentId, setSelectedContentId] = useState<number | null>(null);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [error, setError] = useState<RouteError | null>(null);
+
+  const loadRoute = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token) {
+      setHasToken(false);
+      setSession(null);
+      setLearning(null);
+      setError(null);
+      setLoadState("idle");
+      return;
+    }
+
+    if (!validCourseId) {
+      setHasToken(true);
+      setLearning(null);
+      setError({
+        code: "not_found",
+        message: "Course not found.",
+        status: 404,
+      });
+      setLoadState("error");
+      return;
+    }
+
+    setHasToken(true);
+    setLoadState("loading");
+    setError(null);
+
+    try {
+      const nextSession = await fetchCurrentSession({ token });
+      setSession(nextSession);
+
+      const nextLearning = await fetchCourseLearning({ courseId: numericCourseId, token });
+      setLearning(nextLearning);
+      setSelectedContentId(nextLearning.active_content_id);
+      setLoadState("success");
+    } catch (nextError) {
+      const requestError = normalizeRouteError(nextError);
+      if (
+        requestError.status === 401 ||
+        (nextError instanceof SessionRequestError && requestError.status === 404)
+      ) {
+        clearStoredSessionToken();
+        setHasToken(false);
+        setSession(null);
+      }
+      setLearning(null);
+      setError({
+        code: requestError.code,
+        message: requestError.message,
+        status: requestError.status,
+      });
+      setLoadState("error");
+    }
+  }, [numericCourseId, validCourseId]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadRoute(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadRoute]);
+
+  function signOut() {
+    clearStoredSessionToken();
+    setHasToken(false);
+    setSession(null);
+    setLearning(null);
+    setError(null);
+    setLoadState("idle");
+  }
+
+  const selectedContent = findLearningContent(learning, selectedContentId);
+  const statusLabel = loadState === "loading" ? "Loading" : selectedContent ? humanize(selectedContent.display_state) : "Lesson";
+
+  return (
+    <ProductShell
+      activeNav="learn"
+      breadcrumbs={[
+        { href: "/session", label: "Workspace" },
+        { href: "/learn", label: "Learner" },
+        { href: "/courses", label: "Courses" },
+        { href: `/courses/${courseId}`, label: learning?.course.title || "Course detail" },
+        { label: "Learn" },
+      ]}
+      description="Course outline, lesson content, and media availability."
+      eyebrow="Learner"
+      isSignedIn={hasToken || Boolean(session)}
+      notice={learnerNotice(error, "courses")}
+      onSignOut={signOut}
+      session={session}
+      statusItems={<StatusPill label={statusLabel} tone={selectedContent ? contentStateTone(selectedContent.display_state) : "neutral"} />}
+      title={learning?.course.title || "Course learning"}
+    >
+      {loadState === "idle" && !session ? <SignedOutState redirect={`/courses/${courseId}/learn`} /> : null}
+      {loadState === "loading" ? <LoadingState /> : null}
+      {error ? <ErrorState error={error} onRetry={loadRoute} redirect={`/courses/${courseId}/learn`} /> : null}
+      {loadState === "success" && learning ? (
+        <CourseLearningContentView
+          learning={learning}
+          selectedContent={selectedContent}
+          selectedContentId={selectedContentId}
+          onSelectContent={setSelectedContentId}
+        />
+      ) : null}
+    </ProductShell>
+  );
+}
+
+function CourseLearningContentView({
+  learning,
+  onSelectContent,
+  selectedContent,
+  selectedContentId,
+}: {
+  learning: CourseLearningResponse;
+  onSelectContent: (contentId: number) => void;
+  selectedContent: CourseLearningContent | null;
+  selectedContentId: number | null;
+}) {
+  const allContents = learning.chapters.flatMap((chapter) => chapter.contents);
+  const selectedIndex = selectedContent
+    ? allContents.findIndex((content) => content.id === selectedContent.id)
+    : -1;
+  const previousContent = selectedIndex > 0 ? allContents[selectedIndex - 1] : null;
+  const nextContent = selectedIndex >= 0 && selectedIndex < allContents.length - 1 ? allContents[selectedIndex + 1] : null;
+
+  return (
+    <>
+      <section className={styles.contentGrid}>
+        <SummaryCard icon={<BookOpen size={20} aria-hidden />} label="Chapters" value={learning.chapters.length} />
+        <SummaryCard icon={<FileText size={20} aria-hidden />} label="Lessons" value={allContents.length} />
+        <SummaryCard
+          icon={<CheckCircle size={20} aria-hidden />}
+          label="Progress"
+          value={learning.progress_supported ? "Tracked" : "Local only"}
+        />
+      </section>
+
+      <section className={styles.learningLayout}>
+        <aside className={styles.lessonOutline} aria-label="Course outline">
+          <div className={styles.panelHeader}>
+            <BookOpen size={20} aria-hidden />
+            <h2>Outline</h2>
+          </div>
+          {learning.chapters.length ? (
+            learning.chapters.map((chapter) => (
+              <div className={styles.lessonChapter} key={chapter.id}>
+                <h3>{chapter.title}</h3>
+                {chapter.contents.length ? (
+                  <div className={styles.lessonList}>
+                    {chapter.contents.map((content) => (
+                      <button
+                        aria-pressed={selectedContentId === content.id}
+                        className={`${styles.lessonButton} ${selectedContentId === content.id ? styles.activeLesson : ""}`}
+                        key={content.id}
+                        type="button"
+                        onClick={() => onSelectContent(content.id)}
+                      >
+                        <span>{content.order + 1}. {humanize(content.content_type)}</span>
+                        <StatusPill label={humanize(content.display_state)} tone={contentStateTone(content.display_state)} />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className={styles.muted}>No lessons in this chapter yet.</p>
+                )}
+              </div>
+            ))
+          ) : (
+            <p className={styles.muted}>No course outline is available yet.</p>
+          )}
+        </aside>
+
+        <section className={styles.lessonReader}>
+          {selectedContent ? (
+            <>
+              <div className={styles.sectionHeader}>
+                <h2>{humanize(selectedContent.content_type)}</h2>
+                <StatusPill label={humanize(selectedContent.display_state)} tone={contentStateTone(selectedContent.display_state)} />
+              </div>
+              <LessonContentBody content={selectedContent} />
+              <div className={styles.actionRow}>
+                <button
+                  className={styles.secondaryButton}
+                  disabled={!previousContent}
+                  type="button"
+                  onClick={() => previousContent ? onSelectContent(previousContent.id) : undefined}
+                >
+                  <ArrowLeft size={18} aria-hidden />
+                  Previous
+                </button>
+                <button
+                  className={styles.secondaryButton}
+                  disabled={!nextContent}
+                  type="button"
+                  onClick={() => nextContent ? onSelectContent(nextContent.id) : undefined}
+                >
+                  Next
+                </button>
+              </div>
+            </>
+          ) : (
+            <EmptyState detail="Course content has not been published yet." title="No lesson selected" />
+          )}
+        </section>
+      </section>
+    </>
+  );
+}
+
+function LessonContentBody({ content }: { content: CourseLearningContent }) {
+  if (content.display_state === "ready" && isReadableTextContent(content.content_type) && content.data) {
+    return <article className={styles.lessonText}>{content.data}</article>;
+  }
+
+  const stateCopy = lessonStateCopy(content);
+  return (
+    <article className={styles.statePanel}>
+      <div className={styles.panelHeader}>
+        <AlertTriangle size={20} aria-hidden />
+        <h3>{stateCopy.title}</h3>
+      </div>
+      <p className={styles.muted}>{stateCopy.detail}</p>
+      {content.processing_error ? <p className={styles.muted}>Last error: {content.processing_error}</p> : null}
+    </article>
+  );
+}
+
 function CourseDetailContent({
   detail,
   joining,
@@ -496,6 +735,12 @@ function CourseDetailContent({
               {joining ? <Loader2 className={styles.spin} size={18} aria-hidden /> : <CheckCircle size={18} aria-hidden />}
               Request join
             </button>
+          ) : null}
+          {course.access.can_view_content && course.content.has_content ? (
+            <Link className={styles.primaryLink} href={`/courses/${course.id}/learn`}>
+              <BookOpen size={18} aria-hidden />
+              Start learning
+            </Link>
           ) : null}
           {course.access.can_view_rewards ? (
             <Link className={styles.secondaryLink} href="/rewards">
@@ -1097,6 +1342,69 @@ function enrollmentTone(status: string): "bad" | "good" | "neutral" | "warn" {
     return "bad";
   }
   return "neutral";
+}
+
+function contentStateTone(status: string): "bad" | "good" | "neutral" | "warn" {
+  if (status === "ready") {
+    return "good";
+  }
+  if (status === "processing" || status === "uploaded" || status === "unprocessed_upload") {
+    return "warn";
+  }
+  if (status === "failed_processing" || status === "unavailable") {
+    return "bad";
+  }
+  return "neutral";
+}
+
+function findLearningContent(learning: CourseLearningResponse | null, contentId: number | null) {
+  if (!learning || contentId === null) {
+    return null;
+  }
+
+  return learning.chapters
+    .flatMap((chapter) => chapter.contents)
+    .find((content) => content.id === contentId) || null;
+}
+
+function isReadableTextContent(contentType: string) {
+  const normalized = contentType.trim().toLowerCase();
+  return normalized === "text" || normalized === "article" || normalized === "markdown";
+}
+
+function lessonStateCopy(content: CourseLearningContent) {
+  switch (content.display_state) {
+    case "processing":
+      return {
+        detail: "This media is still being processed. Check back after the worker finishes.",
+        title: "Processing media",
+      };
+    case "failed_processing":
+      return {
+        detail: "The media processor failed. Course staff need to retry or replace this upload.",
+        title: "Processing failed",
+      };
+    case "unprocessed_upload":
+      return {
+        detail: "The upload has not been attached or queued for processing yet.",
+        title: "Upload not ready",
+      };
+    case "uploaded":
+      return {
+        detail: "The file is uploaded, but this viewer does not yet stream the stored object.",
+        title: "Uploaded file",
+      };
+    case "unavailable":
+      return {
+        detail: "This lesson has no readable content data yet.",
+        title: "Content unavailable",
+      };
+    default:
+      return {
+        detail: "This content type is not rendered inline yet.",
+        title: "Content preview",
+      };
+  }
 }
 
 function plural(count: number) {

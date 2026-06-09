@@ -30,6 +30,13 @@ detail links, and `POST /api/courses/{courseId}/join-requests` for learner
 enrollment requests. `/courses/[courseId]` loads
 `GET /api/courses/catalog/{courseId}` and shows organization, teacher,
 content, syllabus, reward, enrollment, signed-out, and not-found states.
+`/courses/[courseId]/learn` loads
+`GET /api/courses/catalog/{courseId}/learn` and shows the course outline,
+selected lesson, text content, next/previous navigation, safe non-text
+not-rendered copy, media processing states, failed-processing errors,
+content-denied errors, and signed-out state. The contract returns
+`progress_supported=false`, so the current UI labels progress as local only
+until persisted completion endpoints exist.
 Authored course descriptions, topics, and prerequisites remain empty until the
 backend course schema stores them. `/rewards` loads
 `GET /api/reward-candidates/me/history`, supports human status filters, and

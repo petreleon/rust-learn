@@ -15,7 +15,7 @@ use crate::services::course_enrollment_service::{
 };
 use crate::services::course_service::{
     create_course_with_invites_for_actor, discover_courses, discover_learner_course_catalog,
-    get_learner_course_detail, update_course_for_actor,
+    get_learner_course_detail, get_learner_course_learning, update_course_for_actor,
     update_course_lifecycle as update_course_lifecycle_status, CourseCreationError,
     CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest, CourseUpdateError,
     LearnerCourseCatalogError, LearnerCourseCatalogQuery,
@@ -108,6 +108,9 @@ fn course_enrollment_error_response(error: CourseEnrollmentError) -> HttpRespons
 
 fn learner_course_catalog_error_response(error: LearnerCourseCatalogError) -> HttpResponse {
     match error {
+        LearnerCourseCatalogError::PermissionDenied(_) => {
+            HttpResponse::Forbidden().body("User does not have permission to view course content")
+        }
         LearnerCourseCatalogError::NotFound => HttpResponse::NotFound().body("Course not found"),
         LearnerCourseCatalogError::Database(message) => {
             log::error!("event=learner_course_catalog_failed error={}", message);
@@ -168,6 +171,26 @@ async fn list_learner_course_catalog(
 
     match discover_learner_course_catalog(&mut conn, requester.user_id, catalog_query).await {
         Ok(catalog) => HttpResponse::Ok().json(catalog),
+        Err(error) => learner_course_catalog_error_response(error),
+    }
+}
+
+async fn get_learner_course_learning_route(
+    req: HttpRequest,
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    let requester = match authenticated_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match get_learner_course_learning(&mut conn, requester.user_id, path.into_inner()).await {
+        Ok(learning) => HttpResponse::Ok().json(learning),
         Err(error) => learner_course_catalog_error_response(error),
     }
 }
@@ -569,6 +592,10 @@ pub fn course_scope() -> actix_web::Scope {
         .configure(crate::api::contents::config)
         .configure(crate::api::reward_candidates::configure_course_reward_candidate_routes)
         .service(web::resource("/catalog").route(web::get().to(list_learner_course_catalog)))
+        .service(
+            web::resource("/catalog/{id}/learn")
+                .route(web::get().to(get_learner_course_learning_route)),
+        )
         .service(
             web::resource("/catalog/{id}").route(web::get().to(get_learner_course_catalog_detail)),
         )

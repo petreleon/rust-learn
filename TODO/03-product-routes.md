@@ -55,8 +55,15 @@
         `GET /api/courses/catalog/{courseId}` and handles signed out, loading,
         success, request join, and course not found. Authored prerequisites stay
         open until the backend schema stores them.
-- [ ] Build a content/lesson viewer for course material, media processing
+- [x] Build a content/lesson viewer for course material, media processing
       states, completion tracking, and next-step navigation.
+  - [x] `/courses/[courseId]/learn` consumes the learner course-learning
+        contract, renders text lessons inline, shows safe document/video
+        not-rendered or processing copy, supports outline and next/previous
+        navigation, and separates signed-out, denied, and failed-processing
+        states.
+  - [ ] Persisted completion tracking and inline document/video streaming
+        remain open until the progress and media playback contracts exist.
 - [ ] Build assessment-taking screens when assessment endpoints are ready,
       including attempt state, results, and retry rules.
 - [x] Build learner reward history with candidate status, approved amount,

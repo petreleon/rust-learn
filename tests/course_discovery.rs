@@ -5,7 +5,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::schema::{
     chapters, contents, course_join_requests, courses, courses_organizations, organizations,
-    reward_policies,
+    reward_policies, upload_jobs,
 };
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::chapter::NewChapter;
@@ -18,6 +18,7 @@ use rust_learn::models::reward_policy::{
     NewRewardPolicy, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
 use rust_learn::models::role::{CourseRole, PlatformRole};
+use rust_learn::models::upload_job::NewUploadJob;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
 use rust_learn::models::user_role_platform::UserRolePlatform;
@@ -149,16 +150,54 @@ async fn create_content(
     content_type: &str,
     order: i32,
 ) {
+    create_content_with_data(conn, chapter_id, content_type, order, None).await;
+}
+
+async fn create_content_with_data(
+    conn: &mut AsyncPgConnection,
+    chapter_id: i32,
+    content_type: &str,
+    order: i32,
+    data: Option<&str>,
+) -> i32 {
     diesel::insert_into(contents::table)
         .values(NewContent {
             chapter_id,
             order,
             content_type: content_type.to_string(),
-            data: None,
+            data: data.map(ToString::to_string),
         })
+        .returning(contents::id)
+        .get_result(conn)
+        .await
+        .expect("failed to create content")
+}
+
+async fn create_upload_job(
+    conn: &mut AsyncPgConnection,
+    object_key: &str,
+    status: &str,
+    last_error: Option<&str>,
+) {
+    let job_id = diesel::insert_into(upload_jobs::table)
+        .values(NewUploadJob {
+            bucket: "course-materials",
+            object: object_key,
+            user_id: None,
+        })
+        .returning(upload_jobs::id)
+        .get_result::<i64>(conn)
+        .await
+        .expect("failed to create upload job");
+
+    diesel::update(upload_jobs::table.find(job_id))
+        .set((
+            upload_jobs::status.eq(status),
+            upload_jobs::last_error.eq(last_error.map(ToString::to_string)),
+        ))
         .execute(conn)
         .await
-        .expect("failed to create content");
+        .expect("failed to update upload job");
 }
 
 async fn create_course_reward_policy(
@@ -485,4 +524,121 @@ async fn learner_catalog_includes_own_draft_but_hides_unscoped_draft_detail() {
         .to_request();
     let outsider_resp = test::call_service(&app, outsider_req).await;
     assert_eq!(outsider_resp.status(), StatusCode::NOT_FOUND);
+}
+
+#[actix_web::test]
+async fn learner_learning_endpoint_returns_content_states_and_denies_unscoped_content() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+    let mut conn = setup_conn(&pool).await;
+
+    let learner = create_test_user(&mut conn).await;
+    let outsider = create_test_user(&mut conn).await;
+
+    let course = create_course(&mut conn, &unique_string("LearningCourse")).await;
+    publish_course(&mut conn, course.id).await;
+    assign_course_role(&mut conn, learner.id(), course.id, "STUDENT").await;
+    let later_chapter_id = create_chapter(&mut conn, course.id, "Module two", 1).await;
+    let later_content_id = create_content_with_data(
+        &mut conn,
+        later_chapter_id,
+        "text",
+        0,
+        Some("Later module."),
+    )
+    .await;
+    let chapter_id = create_chapter(&mut conn, course.id, "Module one", 0).await;
+    let text_content_id = create_content_with_data(
+        &mut conn,
+        chapter_id,
+        "text",
+        0,
+        Some("Welcome to ownership."),
+    )
+    .await;
+    let object_key = format!("courses/{}/chapters/{}/video.mp4", course.id, chapter_id);
+    let video_content_id =
+        create_content_with_data(&mut conn, chapter_id, "video", 1, Some(&object_key)).await;
+    create_upload_job(
+        &mut conn,
+        &object_key,
+        "failed",
+        Some("ffmpeg failed during thumbnail extraction"),
+    )
+    .await;
+    let empty_video_id = create_content_with_data(&mut conn, chapter_id, "video", 2, None).await;
+    drop(conn);
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .service(rust_learn::api::courses::course_scope()),
+    )
+    .await;
+
+    let req = test::TestRequest::get()
+        .uri(&format!("/courses/catalog/{}/learn", course.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(learner.id())),
+        ))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+    let body: Value = test::read_body_json(resp).await;
+    assert_eq!(body["course"]["id"].as_i64(), Some(i64::from(course.id)));
+    assert_eq!(
+        body["active_content_id"].as_i64(),
+        Some(i64::from(text_content_id))
+    );
+    assert_eq!(body["progress_supported"].as_bool(), Some(false));
+
+    let chapters = body["chapters"]
+        .as_array()
+        .expect("learning chapters array");
+    assert_eq!(chapters[0]["id"].as_i64(), Some(i64::from(chapter_id)));
+    assert_eq!(
+        chapters[1]["id"].as_i64(),
+        Some(i64::from(later_chapter_id))
+    );
+    assert_eq!(
+        chapters[1]["contents"][0]["id"].as_i64(),
+        Some(i64::from(later_content_id))
+    );
+
+    let contents = chapters[0]["contents"]
+        .as_array()
+        .expect("learning contents array");
+    assert_eq!(contents[0]["id"].as_i64(), Some(i64::from(text_content_id)));
+    assert_eq!(contents[0]["display_state"].as_str(), Some("ready"));
+    assert_eq!(contents[0]["data"].as_str(), Some("Welcome to ownership."));
+    assert_eq!(
+        contents[1]["id"].as_i64(),
+        Some(i64::from(video_content_id))
+    );
+    assert_eq!(
+        contents[1]["display_state"].as_str(),
+        Some("failed_processing")
+    );
+    assert_eq!(contents[1]["processing_status"].as_str(), Some("failed"));
+    assert_eq!(
+        contents[1]["processing_error"].as_str(),
+        Some("ffmpeg failed during thumbnail extraction")
+    );
+    assert_eq!(contents[2]["id"].as_i64(), Some(i64::from(empty_video_id)));
+    assert_eq!(
+        contents[2]["display_state"].as_str(),
+        Some("unprocessed_upload")
+    );
+
+    let denied_req = test::TestRequest::get()
+        .uri(&format!("/courses/catalog/{}/learn", course.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(outsider.id())),
+        ))
+        .to_request();
+    let denied_resp = test::call_service(&app, denied_req).await;
+    assert_eq!(denied_resp.status(), StatusCode::FORBIDDEN);
 }

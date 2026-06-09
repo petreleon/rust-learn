@@ -294,6 +294,65 @@ test("fetchCourseDetail and requestCourseJoin use learner course routes", async 
   assert.equal(joinRequest.status, "pending");
 });
 
+test("fetchCourseLearning parses lesson content states", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/catalog/7/learn");
+    assert.equal(init.headers.Authorization, "Bearer learner-token");
+    return jsonResponse({
+      active_content_id: 3,
+      chapters: [
+        {
+          contents: [
+            {
+              chapter_id: 2,
+              content_type: "text",
+              data: "Welcome to ownership.",
+              display_state: "ready",
+              id: 3,
+              order: 0,
+              processing_error: null,
+              processing_status: null,
+            },
+            {
+              chapter_id: 2,
+              content_type: "video",
+              data: "courses/7/chapters/2/video.mp4",
+              display_state: "failed_processing",
+              id: 4,
+              order: 1,
+              processing_error: "ffmpeg failed",
+              processing_status: "failed",
+            },
+          ],
+          id: 2,
+          order: 0,
+          title: "Intro",
+        },
+      ],
+      course: courseCatalogItemFixture(),
+      progress_supported: false,
+    });
+  });
+
+  const learning = await learner.fetchCourseLearning({ courseId: 7, token: "learner-token" });
+
+  assert.equal(calls.length, 1);
+  assert.equal(learning.active_content_id, 3);
+  assert.equal(learning.chapters[0].contents[0].display_state, "ready");
+  assert.equal(learning.chapters[0].contents[1].processing_error, "ffmpeg failed");
+  assert.equal(learning.progress_supported, false);
+});
+
+test("fetchCourseLearning normalizes content permission text errors", async () => {
+  mockFetch(() => textResponse("User does not have permission to view course content", { status: 403 }));
+
+  await assertRequestError(learner.fetchCourseLearning({ courseId: 7, token: "learner-token" }), {
+    code: "permission_denied",
+    errorClass: learner.LearnerRequestError,
+    status: 403,
+  });
+});
+
 test("fetchCourseDetail normalizes learner text not found errors", async () => {
   mockFetch(() => textResponse("Course not found", { status: 404 }));
 

@@ -71,6 +71,13 @@ export type CourseCatalogDetail = {
   prerequisites: string[];
 };
 
+export type CourseLearningResponse = {
+  active_content_id: number | null;
+  chapters: CourseLearningChapter[];
+  course: CourseCatalogItem;
+  progress_supported: boolean;
+};
+
 export type CourseCatalogOrganization = {
   id: number;
   name: string;
@@ -122,6 +129,24 @@ export type CourseCatalogContent = {
   content_type: string;
   id: number;
   order: number;
+};
+
+export type CourseLearningChapter = {
+  contents: CourseLearningContent[];
+  id: number;
+  order: number;
+  title: string;
+};
+
+export type CourseLearningContent = {
+  chapter_id: number;
+  content_type: string;
+  data: string | null;
+  display_state: string;
+  id: number;
+  order: number;
+  processing_error: string | null;
+  processing_status: string | null;
 };
 
 export type CourseJoinRequest = {
@@ -233,6 +258,19 @@ export async function fetchCourseDetail({
     timeoutMs,
     token,
     url: `${apiRoot}/courses/catalog/${courseId}`,
+  });
+}
+
+export async function fetchCourseLearning({
+  apiRoot = "/api",
+  courseId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: CourseDetailOptions): Promise<CourseLearningResponse> {
+  return learnerJsonRequest<CourseLearningResponse>({
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/catalog/${courseId}/learn`,
   });
 }
 

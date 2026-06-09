@@ -16,11 +16,18 @@ screens pretend to be complete.
         summaries/detail, organizations, teachers, content/chapter summaries,
         active course reward policy summary, enrollment state, request ability,
         and access flags.
+  - [x] `GET /api/courses/catalog/{courseId}/learn` now returns the
+        permission-scoped learner lesson contract: course summary, ordered
+        chapters, ordered content items, active first content, upload/media
+        display state, processing status/error, and `progress_supported`.
   - [ ] Course `description`, `topics`, and `prerequisites` are still
         nullable/empty because the current course schema does not store them.
         Add schema fields before treating those as authored course content.
 - [ ] Define learner course-progress and content-completion endpoints before
       building the learner dashboard as more than static cards.
+  - [x] The lesson-viewer contract explicitly reports
+        `progress_supported=false` so the frontend does not pretend persisted
+        progress exists.
 - [ ] Define assessment APIs before marking assessment-taking screens complete.
 - [ ] Define notification list/read APIs before making notification UX a core
       navigation feature.

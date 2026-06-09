@@ -2,6 +2,7 @@
 .contentGrid,
 .section,
 .catalogPanel,
+.learningLayout,
 .errorPanel {
   width: min(1180px, 100%);
   margin: 0 auto;
@@ -11,6 +12,8 @@
 .summaryCard,
 .itemCard,
 .catalogPanel,
+.lessonOutline,
+.lessonReader,
 .errorPanel {
   border: 1px solid #d8e0ea;
   border-radius: 8px;
@@ -87,6 +90,76 @@
   display: grid;
   gap: 12px;
   margin-top: 24px;
+}
+
+.learningLayout {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.lessonOutline,
+.lessonReader {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 16px;
+}
+
+.lessonChapter {
+  display: grid;
+  gap: 8px;
+}
+
+.lessonChapter h3 {
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.lessonList {
+  display: grid;
+  gap: 8px;
+}
+
+.lessonButton {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 8px;
+  color: #172033;
+  background: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+}
+
+.lessonButton span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.lessonButton:hover,
+.activeLesson {
+  border-color: #1f6f8b;
+  background: #f0fbfc;
+}
+
+.lessonText {
+  min-height: 220px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 16px;
+  color: #334155;
+  background: #f8fafc;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .sectionHeader {
@@ -368,6 +441,7 @@
 @media (max-width: 860px) {
   .contentGrid,
   .itemGrid,
+  .learningLayout,
   .searchForm,
   .skeletonGrid {
     grid-template-columns: 1fr;

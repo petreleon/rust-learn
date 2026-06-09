@@ -16,6 +16,11 @@
         navigation, request-join success, mobile menu/no-overflow, signed-out
         state, and `/courses/[courseId]` not-found state preserving the
         signed-in shell.
+  - [x] Browser plus mocked Playwright QA covers
+        `/courses/[courseId]/learn` signed-out state, authenticated desktop
+        lesson switching, mobile no-overflow first viewport, failed media
+        processing state, and learner content `403` preserving the signed-in
+        shell.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
@@ -27,6 +32,11 @@
   - [x] Rust API tests cover learner course catalog/detail response shape,
         visibility, pending state, own draft access, and hidden unscoped draft
         detail.
+  - [x] Frontend helper tests cover learner course-learning success and
+        permission text-error normalization.
+  - [x] Rust API tests cover learner course-learning response shape, active
+        content selection, media processing state mapping, and unscoped learner
+        content `403`.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.

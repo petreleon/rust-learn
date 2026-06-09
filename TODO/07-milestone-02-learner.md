@@ -33,6 +33,13 @@ progress, inspect rewards, and understand wallet state.
         contract and chapter/content summaries. `description`, `topics`, and
         `prerequisites` remain nullable/empty until the course schema supports
         them.
+- [x] Learner lesson endpoint with course summary, ordered chapters, ordered
+      content items, active first lesson, upload/media display state, and
+      scoped content permission errors.
+  - [x] `GET /api/courses/catalog/{courseId}/learn` returns text-ready,
+        uploaded, processing, failed-processing, unprocessed-upload, and
+        unavailable states while keeping persisted progress explicitly
+        unsupported.
 - [ ] Learner dashboard endpoint with enrollments, progress, due work,
       notifications, reward summary, and wallet summary.
 - [ ] Course progress and content-completion endpoints.
@@ -64,8 +71,12 @@ progress, inspect rewards, and understand wallet state.
   - [x] Detail route shows organization, teacher, content summary, syllabus,
         reward policy summary, enrollment state, request-join action, signed
         out state, and course-level not-found/error handling.
-- [ ] `/courses/[courseId]/learn` lesson/content viewer with next-step
+- [x] `/courses/[courseId]/learn` lesson/content viewer with next-step
       navigation.
+  - [x] The route consumes
+        `GET /api/courses/catalog/{courseId}/learn`, renders outline,
+        selected lesson, next/previous actions, signed-out state, denied
+        state, and media-processing failures without raw ids.
 - [x] `/rewards` learner reward history.
 - [ ] `/wallet` learner wallet summary, link action, deposits, retirements, and
       audit/history.
@@ -121,10 +132,18 @@ progress, inspect rewards, and understand wallet state.
 
 - [ ] Render content type states: text, document, video, unprocessed upload,
       processing, failed processing, and unavailable object.
+  - [x] Text lessons render inline. Video/media states render ready, uploaded,
+        unprocessed upload, processing, failed processing, and unavailable
+        product copy.
+  - [ ] Inline document preview and video streaming remain open; non-text ready
+        content currently shows a safe not-rendered-yet state.
 - [ ] Preserve progress when navigation changes or the session refreshes.
-- [ ] Handle content access denied separately from missing content.
-- [ ] Show next lesson and course outline without layout shift.
-- [ ] Defer assessment UI until assessment APIs exist, but keep route structure
+  - [x] Local selected lesson state changes with outline and next/previous
+        actions. Persisted completion/progress waits for the progress
+        endpoint.
+- [x] Handle content access denied separately from missing content.
+- [x] Show next lesson and course outline without layout shift.
+- [x] Defer assessment UI until assessment APIs exist, but keep route structure
       ready.
 
 ## Learner Edge Cases
@@ -141,7 +160,9 @@ progress, inspect rewards, and understand wallet state.
 - [ ] Reconciliation repairs state while learner is on the page.
   - [x] `/rewards` exposes `needs_reconciliation` as a help-needed status.
 - [ ] A learner has rewards from courses they can no longer access.
-- [ ] Slow or failed media processing does not trap the learner.
+- [x] Slow or failed media processing does not trap the learner.
+  - [x] Processing and failed-processing states remain navigable and expose
+        staff-facing retry/replace copy without blocking the outline.
 
 ## Acceptance Evidence
 
@@ -153,6 +174,9 @@ progress, inspect rewards, and understand wallet state.
   - [x] Playwright screenshots captured for `/courses` catalog, mobile catalog
         menu, `/courses/[courseId]` detail flow, request-join success, signed
         out state, and course-detail `404` state.
+  - [x] Browser/Playwright screenshots captured for
+        `/courses/[courseId]/learn` desktop lesson switching, mobile first
+        viewport, denied content state, and signed-out state.
 - [ ] Tests for empty learner, enrolled learner, unverified learner, denied
       course access, and reward status transitions.
   - [x] API-helper tests cover learner reward-history success/filtering, wallet
@@ -162,6 +186,10 @@ progress, inspect rewards, and understand wallet state.
         draft detail.
   - [x] API-helper tests cover course catalog filters, course detail, join
         request, and detail `404` normalization.
+  - [x] API-helper tests cover learner course-learning success and text `403`
+        normalization.
+  - [x] Rust API tests cover learner course-learning response shape, active
+        content, media state mapping, and unscoped learner `403`.
 - [ ] Docker Compose E2E path: login/register, open learner dashboard, open
       course detail, inspect rewards, inspect wallet, scan recent logs.
 - [ ] Kubernetes smoke path loads `/learn`, `/courses`, and `/rewards` product
@@ -169,29 +197,35 @@ progress, inspect rewards, and understand wallet state.
 
 ## Current Checkpoint Traceability
 
-Route: `/courses`, `/courses/[courseId]`, `/rewards`, `/wallet`
+Route: `/courses`, `/courses/[courseId]`, `/courses/[courseId]/learn`,
+`/rewards`, `/wallet`
 Persona: learner
 Primary job: discover visible courses, inspect course detail, request
-enrollment, inspect reward status, and prepare a wallet for credits.
+enrollment, open course lessons, inspect reward status, and prepare a wallet
+for credits.
 Backend contracts: `GET /api/me`, `GET /api/reward-candidates/me/history`,
 `GET /api/courses/catalog`, `GET /api/courses/catalog/{courseId}`,
+`GET /api/courses/catalog/{courseId}/learn`,
 `POST /api/courses/{courseId}/join-requests`, `GET /api/wallets/me`,
 `POST /api/wallets/me/link`.
 Permission and scope rules: resolved session and course effective permissions;
 wallet self-access is allowed by backend; reward history only returns permitted
-course reward rows.
+course reward rows; lesson viewing requires scoped `VIEW_CONTENT`.
 Shared components: `ProductShell`, learner route bundle, session helper.
 Data helper: `web/src/lib/learner.ts`.
 States: signed out, loading, success, empty, catalog filters, pending
-enrollment, request-join success, course not found, unlinked wallet, link
-success, text/JSON error, timeout/network, session expired.
+enrollment, request-join success, course not found, lesson ready, uploaded
+media, processing media, failed processing, unavailable content, content
+permission denied, unlinked wallet, link success, text/JSON error,
+timeout/network, session expired.
 Edge cases: unscoped draft hidden from learner catalog, own draft visible by
 course role, course-detail `404` keeps signed-in shell, unlinked wallet, wallet
 link retry, token transaction without wallet credit, reconciliation-needed
-rewards.
+rewards, learner lesson `403` keeps signed-in shell.
 Rendered proof: in-app Browser signed-out smoke; standalone Playwright
 mocked authenticated desktop/mobile checks because Browser lacks interception.
 API-helper proof: `npm run test:api-helpers`.
+Rust proof: `./scripts/run-host-tests.sh cargo test --test course_discovery`.
 Compose proof: deferred until this learner slice is deployed into Compose.
 Kubernetes proof: deferred until this learner slice is deployed into the
 Kubernetes web image.

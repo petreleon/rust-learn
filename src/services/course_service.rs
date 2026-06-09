@@ -1,7 +1,8 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{
     chapters, contents, course_join_requests, course_roles, courses, courses_organizations,
-    organizations, pending_course_organization_invites, reward_policies, user_role_course, users,
+    organizations, pending_course_organization_invites, reward_policies, upload_jobs,
+    user_role_course, users,
 };
 use crate::models::course::{
     Course, NewCourse, UpdateCourse, COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED,
@@ -81,6 +82,14 @@ pub struct LearnerCourseDetailResponse {
 }
 
 #[derive(Debug, Serialize)]
+pub struct LearnerCourseLearningResponse {
+    pub course: LearnerCourseCatalogItem,
+    pub chapters: Vec<LearnerCourseLearningChapter>,
+    pub active_content_id: Option<i32>,
+    pub progress_supported: bool,
+}
+
+#[derive(Debug, Serialize)]
 pub struct LearnerCourseCatalogItem {
     pub id: i32,
     pub title: String,
@@ -156,8 +165,29 @@ pub struct LearnerCourseCatalogContent {
     pub content_type: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct LearnerCourseLearningChapter {
+    pub id: i32,
+    pub title: String,
+    pub order: i32,
+    pub contents: Vec<LearnerCourseLearningContent>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LearnerCourseLearningContent {
+    pub id: i32,
+    pub chapter_id: i32,
+    pub order: i32,
+    pub content_type: String,
+    pub data: Option<String>,
+    pub display_state: String,
+    pub processing_status: Option<String>,
+    pub processing_error: Option<String>,
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum LearnerCourseCatalogError {
+    PermissionDenied(String),
     NotFound,
     Database(String),
 }
@@ -412,6 +442,53 @@ pub async fn get_learner_course_detail(
     })
 }
 
+pub async fn get_learner_course_learning(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    course_id: i32,
+) -> Result<LearnerCourseLearningResponse, LearnerCourseCatalogError> {
+    let course = courses::table
+        .find(course_id)
+        .first::<Course>(conn)
+        .await
+        .map_err(LearnerCourseCatalogError::from)?;
+
+    if !course_visible_to_learner(conn, actor_user_id, &course).await? {
+        return Err(LearnerCourseCatalogError::NotFound);
+    }
+
+    let content_permission = Permissions::VIEW_CONTENT;
+    if !user_has_permission_for_course_context(conn, actor_user_id, course_id, &content_permission)
+        .await?
+    {
+        return Err(LearnerCourseCatalogError::PermissionDenied(
+            content_permission.to_string(),
+        ));
+    }
+
+    let course = build_learner_course_catalog_item(conn, actor_user_id, course).await?;
+    let chapters = load_learner_course_learning_chapters(conn, course_id).await?;
+    let active_content_id = chapters
+        .iter()
+        .flat_map(|chapter| {
+            chapter
+                .contents
+                .iter()
+                .map(move |content| (chapter.order, chapter.id, content.order, content.id))
+        })
+        .min_by_key(|(chapter_order, chapter_id, content_order, content_id)| {
+            (*chapter_order, *chapter_id, *content_order, *content_id)
+        })
+        .map(|(_, _, _, content_id)| content_id);
+
+    Ok(LearnerCourseLearningResponse {
+        course,
+        chapters,
+        active_content_id,
+        progress_supported: false,
+    })
+}
+
 fn course_title_search_pattern(search: &str) -> String {
     let mut escaped = String::with_capacity(search.len());
     for ch in search.chars() {
@@ -440,6 +517,120 @@ impl From<diesel::result::Error> for LearnerCourseCatalogError {
             other => LearnerCourseCatalogError::Database(other.to_string()),
         }
     }
+}
+
+async fn load_learner_course_learning_chapters(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+) -> Result<Vec<LearnerCourseLearningChapter>, LearnerCourseCatalogError> {
+    let chapter_rows = chapters::table
+        .filter(chapters::course_id.eq(course_id))
+        .order(chapters::order.asc())
+        .then_order_by(chapters::id.asc())
+        .select((chapters::id, chapters::title, chapters::order))
+        .load::<(i32, String, i32)>(conn)
+        .await
+        .map_err(LearnerCourseCatalogError::from)?;
+
+    let mut result = Vec::with_capacity(chapter_rows.len());
+    for (id, title, order) in chapter_rows {
+        let content_rows = contents::table
+            .filter(contents::chapter_id.eq(id))
+            .order(contents::order.asc())
+            .then_order_by(contents::id.asc())
+            .select((
+                contents::id,
+                contents::chapter_id,
+                contents::order,
+                contents::content_type,
+                contents::data,
+            ))
+            .load::<(i32, i32, i32, String, Option<String>)>(conn)
+            .await
+            .map_err(LearnerCourseCatalogError::from)?;
+
+        let mut learning_contents = Vec::with_capacity(content_rows.len());
+        for (id, chapter_id, order, content_type, data) in content_rows {
+            let processing = load_latest_content_processing(conn, data.as_deref()).await?;
+            let display_state = content_display_state(&content_type, data.as_deref(), &processing);
+            learning_contents.push(LearnerCourseLearningContent {
+                id,
+                chapter_id,
+                order,
+                content_type,
+                data,
+                display_state,
+                processing_status: processing.as_ref().map(|(status, _)| status.clone()),
+                processing_error: processing.and_then(|(_, error)| error),
+            });
+        }
+
+        result.push(LearnerCourseLearningChapter {
+            id,
+            title,
+            order,
+            contents: learning_contents,
+        });
+    }
+
+    Ok(result)
+}
+
+async fn load_latest_content_processing(
+    conn: &mut AsyncPgConnection,
+    object_key: Option<&str>,
+) -> Result<Option<(String, Option<String>)>, LearnerCourseCatalogError> {
+    let Some(object_key) = object_key.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(None);
+    };
+
+    upload_jobs::table
+        .filter(upload_jobs::object.eq(object_key))
+        .order(upload_jobs::created_at.desc())
+        .select((upload_jobs::status, upload_jobs::last_error))
+        .first::<(String, Option<String>)>(conn)
+        .await
+        .optional()
+        .map_err(LearnerCourseCatalogError::from)
+}
+
+fn content_display_state(
+    content_type: &str,
+    data: Option<&str>,
+    processing: &Option<(String, Option<String>)>,
+) -> String {
+    let normalized_type = content_type.trim().to_ascii_lowercase();
+    let has_data = data.map(str::trim).is_some_and(|value| !value.is_empty());
+
+    if !has_data {
+        if is_media_content_type(&normalized_type) {
+            return "unprocessed_upload".to_string();
+        }
+        return "unavailable".to_string();
+    }
+
+    if let Some((status, _)) = processing {
+        return match status.as_str() {
+            "queued" | "processing" => "processing".to_string(),
+            "failed" => "failed_processing".to_string(),
+            "done" => "ready".to_string(),
+            _ => "uploaded".to_string(),
+        };
+    }
+
+    if is_media_content_type(&normalized_type) {
+        return "uploaded".to_string();
+    }
+
+    "ready".to_string()
+}
+
+fn is_media_content_type(content_type: &str) -> bool {
+    content_type == "video"
+        || content_type.starts_with("video/")
+        || content_type == "document"
+        || content_type == "pdf"
+        || content_type.starts_with("application/pdf")
 }
 
 async fn build_learner_course_catalog_item(
