@@ -29,6 +29,20 @@ from effective permissions instead of role labels, and show contextual denied
 states when the current user lacks the required learner, teacher, organization,
 or platform access signal.
 
+Organization product routes now include `/organizations` and
+`/organizations/[organizationId]`. `/organizations` uses the current session's
+organization scopes to show multi-organization workspace cards, role-only
+memberships, delegated organization access, search, capability filtering,
+summary counts, signed-out state, and no-organization denied state without
+asking users to type raw ids. The organization dashboard route shows the
+selected organization, role labels, direct/delegated/effective permission
+counts, permission-derived available action capabilities, missing scoped
+permission explanations, disabled contract-pending action buttons, and stale
+organization handling. Member lists, course activity, teacher nomination rows,
+reports/CSV exports, wallet audit, budget data, and organization health metrics
+remain explicit backend-contract work before those routes become full operator
+workflows.
+
 Teacher product routes now include `/teach`, `/teach/apply`,
 `/teach/courses`, `/teach/courses/[courseId]`, and
 `/teach/courses/[courseId]/content`, and

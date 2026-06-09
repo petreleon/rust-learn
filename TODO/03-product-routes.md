@@ -160,6 +160,16 @@
 
 - [ ] Build an organization dashboard with member counts, course activity,
       teacher applications, reward volume, wallet balance, and alerts.
+  - [x] `/organizations` now opens a real organization workspace selector from
+        the current session with multi-org cards, search, capability filters,
+        delegated access indicators, role-only membership visibility, and
+        denied/signed-out states.
+  - [x] `/organizations/[organizationId]` now opens a session-scope
+        organization dashboard shell with permission-derived available
+        actions, missing-permission explanations, disabled contract-pending
+        action buttons, and stale organization handling. Full member counts,
+        course activity, reports, wallet, and alert metrics remain open until
+        backend contracts exist.
 - [ ] Build member management for invites, roles, scoped permissions, and
       removal flows.
 - [ ] Build organization course management for sponsored courses, publishing

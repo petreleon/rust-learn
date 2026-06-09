@@ -7,6 +7,11 @@ screens pretend to be complete.
       email verification status, platform permissions, organization
       memberships, course enrollments, and delegated permissions for route
       guards.
+  - [x] Organization workspace routes now consume the existing organization
+        membership scopes from `GET /api/me` for selector cards, dashboard
+        permissions, role-only visibility, delegated access, and stale
+        workspace handling. Organization health, members, reports, wallet, and
+        nomination rows still require dedicated contracts.
 - [x] Define course discovery/detail payloads rich enough for product pages:
       description, owner organization, lifecycle status, enrollment state,
       syllabus/chapter summary, teacher metadata, media availability, and reward

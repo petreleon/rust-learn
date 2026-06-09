@@ -12,6 +12,7 @@ const compiledDir = mkdtempSync(path.join(tmpdir(), "rustlearn-api-helper-tests-
 const session = await importTranspiled("src/lib/session.ts");
 const auth = await importTranspiled("src/lib/auth.ts");
 const learner = await importTranspiled("src/lib/learner.ts");
+const organization = await importTranspiled("src/lib/organization.ts");
 const teacher = await importTranspiled("src/lib/teacher.ts");
 
 test("fetchCurrentSession parses JSON success and sends bearer token", async () => {
@@ -90,6 +91,58 @@ test("fetchCurrentSession normalizes timeout and network failure", async () => {
     errorClass: session.SessionRequestError,
     status: 0,
   });
+});
+
+test("buildOrganizationWorkspace keeps multi-org capability signals honest", () => {
+  const workspace = organization.buildOrganizationWorkspace(organizationSessionFixture());
+
+  assert.equal(workspace.total, 3);
+  assert.equal(workspace.reportScopeCount, 1);
+  assert.equal(workspace.managementScopeCount, 2);
+  assert.equal(workspace.walletScopeCount, 1);
+  assert.equal(workspace.teacherNominationScopeCount, 1);
+  assert.equal(workspace.courseRewardScopeCount, 1);
+  assert.equal(workspace.delegatedOrganizationCount, 1);
+
+  const academy = workspace.organizations.find((item) => item.name === "Ferris Academy");
+  assert.equal(academy.capabilities.find((item) => item.key === "reports").enabled, true);
+  assert.equal(academy.capabilities.find((item) => item.key === "members").enabled, true);
+  assert.equal(academy.capabilities.find((item) => item.key === "wallet").enabled, true);
+
+  const guild = workspace.organizations.find((item) => item.name === "Rust Guild");
+  assert.equal(guild.delegatedPermissionCount, 1);
+  assert.equal(guild.capabilities.find((item) => item.key === "teacher_applications").enabled, true);
+  assert.equal(guild.capabilities.find((item) => item.key === "course_rewards").enabled, true);
+
+  const roleOnly = workspace.organizations.find((item) => item.name === "Role Only Org");
+  assert.equal(roleOnly.roles[0], "ORG_MEMBER");
+  assert.equal(roleOnly.effectivePermissionCount, 0);
+});
+
+test("filterOrganizationWorkspace searches permissions and preserves stale-route misses", () => {
+  const sessionFixture = organizationSessionFixture();
+  const workspace = organization.buildOrganizationWorkspace(sessionFixture);
+
+  assert.deepEqual(
+    organization
+      .filterOrganizationWorkspace(workspace.organizations, {
+        capability: "reports",
+        search: "",
+      })
+      .map((item) => item.name),
+    ["Ferris Academy"],
+  );
+  assert.deepEqual(
+    organization
+      .filterOrganizationWorkspace(workspace.organizations, {
+        capability: "delegated",
+        search: "nominate",
+      })
+      .map((item) => item.name),
+    ["Rust Guild"],
+  );
+  assert.equal(organization.findOrganizationWorkspaceItem(sessionFixture, 7).name, "Ferris Academy");
+  assert.equal(organization.findOrganizationWorkspaceItem(sessionFixture, 404), null);
 });
 
 test("loginWithPassword parses JSON token success", async () => {
@@ -1131,6 +1184,63 @@ function currentSessionFixture() {
     organizations: [],
     courses: [],
     delegated_permissions: [],
+  };
+}
+
+function organizationSessionFixture() {
+  return {
+    ...currentSessionFixture(),
+    organizations: [
+      {
+        id: 7,
+        name: "Ferris Academy",
+        roles: ["ORG_ADMIN"],
+        direct_permissions: [
+          "INVITE_USER_TO_ORGANIZATION",
+          "MANAGE_ORG_WALLETS",
+          "VIEW_ORG_REWARD_REPORTS",
+        ],
+        delegated_permissions: [],
+        effective_permissions: [
+          "INVITE_USER_TO_ORGANIZATION",
+          "MANAGE_ORG_WALLETS",
+          "VIEW_ORG_REWARD_REPORTS",
+        ],
+      },
+      {
+        id: 8,
+        name: "Rust Guild",
+        roles: [],
+        direct_permissions: ["SUBMIT_ORG_COURSE_REWARD_EVENT"],
+        delegated_permissions: ["NOMINATE_TEACHER_FOR_PLATFORM_REVIEW"],
+        effective_permissions: [
+          "NOMINATE_TEACHER_FOR_PLATFORM_REVIEW",
+          "SUBMIT_ORG_COURSE_REWARD_EVENT",
+        ],
+      },
+      {
+        id: 9,
+        name: "Role Only Org",
+        roles: ["ORG_MEMBER"],
+        direct_permissions: [],
+        delegated_permissions: [],
+        effective_permissions: [],
+      },
+    ],
+    delegated_permissions: [
+      {
+        course_id: null,
+        course_lifecycle_status: null,
+        course_title: null,
+        expires_at: null,
+        grantor_user_id: 1,
+        id: 51,
+        organization_id: 8,
+        organization_name: "Rust Guild",
+        permission: "NOMINATE_TEACHER_FOR_PLATFORM_REVIEW",
+        scope_type: "organization",
+      },
+    ],
   };
 }
 

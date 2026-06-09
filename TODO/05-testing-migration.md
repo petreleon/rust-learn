@@ -78,6 +78,16 @@
         horizontal overflow. Browser screenshot capture and mobile text entry
         were unavailable in this runtime, so Playwright supplied screenshot and
         mobile denied evidence.
+  - [x] Browser plus Playwright QA covers `/organizations` signed-out state,
+        authenticated desktop multi-org selector, delegated organization
+        search/filter interaction, role-only organization visibility,
+        `/organizations/[organizationId]` permission dashboard, disabled
+        contract-pending action buttons, missing scoped permission copy, stale
+        organization route without raw id leakage, mobile selector
+        first-viewport/no-overflow, and mobile no-organization denied state.
+        Browser validated the main login and signed-in selector/dashboard
+        flow; Playwright supplied alternate session and mobile evidence after
+        Browser could not reliably switch session storage for no-org state.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
@@ -141,6 +151,10 @@
         response parsing, teacher decision request bodies, permission errors,
         stale `409` conflict text errors, and missing-candidate `404`
         normalization.
+  - [x] Frontend helper tests cover organization workspace summaries,
+        capability derivation, delegated organization access, role-only
+        membership visibility, delegated search/filtering, and stale
+        organization lookup.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.

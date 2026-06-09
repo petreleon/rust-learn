@@ -1,0 +1,461 @@
+.summaryGrid,
+.filterPanel,
+.organizationSection,
+.workspaceHero,
+.twoColumn,
+.panel,
+.errorBox {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.summaryCard,
+.filterPanel,
+.organizationCard,
+.workspaceHero,
+.panel,
+.actionCard,
+.errorBox {
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
+}
+
+.summaryCard {
+  display: grid;
+  gap: 9px;
+  min-height: 128px;
+  padding: 16px;
+}
+
+.summaryCard strong {
+  color: #172033;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.summaryCard span:last-child {
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 830;
+}
+
+.smallIcon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 8px;
+  color: #0f5f6f;
+  background: #dff6f2;
+}
+
+.filterPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 0.34fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.filterPanel label {
+  display: grid;
+  gap: 7px;
+  color: #172033;
+  font-weight: 830;
+}
+
+.filterPanel input,
+.filterPanel select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #172033;
+  background: #ffffff;
+  font: inherit;
+  font-weight: 680;
+}
+
+.filterPanel input {
+  border: 0;
+  padding: 0;
+}
+
+.filterPanel select {
+  padding: 0 12px;
+}
+
+.inputWithIcon,
+.panelHeader,
+.sectionHeader,
+.organizationTop,
+.permissionRow,
+.capabilityRow,
+.primaryLink,
+.secondaryLink,
+.secondaryButton,
+.statusPill,
+.backLink,
+.actionHeader,
+.errorBox {
+  display: flex;
+  align-items: center;
+}
+
+.inputWithIcon {
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+}
+
+.secondaryButton,
+.primaryLink,
+.secondaryLink,
+.backLink {
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #172033;
+  background: #ffffff;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.primaryLink {
+  border-color: #1f6f8b;
+  color: #ffffff;
+  background: #1f6f8b;
+}
+
+.secondaryButton:disabled {
+  color: #94a3b8;
+  background: #f8fafc;
+  cursor: not-allowed;
+}
+
+.organizationSection {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.organizationGrid,
+.actionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.organizationCard,
+.panel,
+.workspaceHero,
+.actionCard,
+.errorBox {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.organizationCard {
+  align-content: start;
+}
+
+.organizationTop,
+.actionHeader {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.organizationTop h3,
+.actionHeader h3,
+.workspaceTitleBlock h2 {
+  color: #172033;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.organizationTop h3,
+.actionHeader h3 {
+  font-size: 1.08rem;
+}
+
+.workspaceTitleBlock h2 {
+  font-size: 1.55rem;
+}
+
+.muted,
+.actionHeader p {
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metricCard {
+  display: grid;
+  gap: 4px;
+  min-height: 62px;
+  border-radius: 8px;
+  padding: 10px;
+  color: #334155;
+  background: #f8fafc;
+}
+
+.metricCard strong {
+  color: #172033;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.metricCard span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 820;
+}
+
+.permissionRow,
+.capabilityRow {
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.permissionChip,
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 0 11px;
+  color: #334155;
+  background: #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.permissionChip {
+  color: #334155;
+  background: #eef2ff;
+}
+
+.good {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.neutral {
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.warn {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.workspaceHero {
+  margin-bottom: 18px;
+}
+
+.workspaceTitleBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.eyebrow {
+  color: #0f766e;
+  font-size: 0.76rem;
+  font-weight: 880;
+  text-transform: uppercase;
+}
+
+.twoColumn {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.singlePanel {
+  width: min(760px, 100%);
+}
+
+.panelHeader,
+.sectionHeader {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sectionHeader {
+  justify-content: space-between;
+}
+
+.panelHeader h2,
+.sectionHeader h2 {
+  color: #172033;
+  font-size: 1.08rem;
+}
+
+.actionCard {
+  align-content: start;
+  box-shadow: none;
+}
+
+.enabledAction {
+  border-color: #b7e4d1;
+  background: #fbfffd;
+}
+
+.deniedAction {
+  border-color: #fde68a;
+  background: #fffdf2;
+}
+
+.missingList,
+.permissionList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+
+.missingList strong {
+  width: 100%;
+  color: #78350f;
+  font-size: 0.84rem;
+}
+
+.missingList span,
+.permissionList span {
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: #334155;
+  background: #f1f5f9;
+  font-size: 0.78rem;
+  font-weight: 820;
+  overflow-wrap: anywhere;
+}
+
+.errorBox {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  border-color: #fecaca;
+  color: #991b1b;
+  background: #fff1f2;
+}
+
+.errorBox span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.skeletonGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.skeleton {
+  height: 48px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e2e8f0, #f8fafc, #e2e8f0);
+  background-size: 220% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+@media (max-width: 1060px) {
+  .summaryGrid,
+  .organizationGrid,
+  .actionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .twoColumn,
+  .filterPanel {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .organizationGrid,
+  .actionGrid,
+  .metricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summaryCard {
+    min-height: 104px;
+  }
+
+  .summaryCard strong {
+    font-size: 1.6rem;
+  }
+
+  .summaryCard,
+  .filterPanel,
+  .organizationCard,
+  .workspaceHero,
+  .panel,
+  .actionCard,
+  .errorBox {
+    padding: 15px;
+  }
+
+  .sectionHeader,
+  .organizationTop,
+  .actionHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .primaryLink,
+  .secondaryLink,
+  .secondaryButton,
+  .backLink {
+    width: 100%;
+  }
+
+  .errorBox {
+    grid-template-columns: 1fr;
+  }
+}

@@ -18,8 +18,12 @@ routine work.
 
 ## Backend Contracts
 
-- [ ] Organization current-user memberships with scoped permissions and display
+- [x] Organization current-user memberships with scoped permissions and display
       labels.
+  - [x] `/organizations` and `/organizations/[organizationId]` now use
+        `GET /api/me` organization scopes, names, roles, direct permissions,
+        delegated permissions, and effective permissions. Full dashboard,
+        member, report, wallet, and nomination data remain separate contracts.
 - [ ] Organization dashboard summary: members, courses, teacher applications,
       reward volume, wallet balance, alerts, and pending actions.
 - [ ] Member list, invite, role, scoped-permission, and removal contracts.
@@ -32,8 +36,17 @@ routine work.
 
 ## Routes And Screens
 
-- [ ] `/organizations` workspace selector for multi-org users.
-- [ ] `/organizations/[organizationId]` organization dashboard.
+- [x] `/organizations` workspace selector for multi-org users.
+  - [x] Shows organization cards from the current session, role-only
+        memberships, delegated access, summary counts, search, capability
+        filtering, empty/denied state, and dashboard links without raw id
+        display.
+- [x] `/organizations/[organizationId]` organization dashboard.
+  - [x] Session-scope dashboard shell shows selected organization, role labels,
+        direct/delegated/effective permission counts, available action
+        capabilities, denied action explanations, and stale organization state.
+        Full organization health metrics remain open until backend contracts
+        exist.
 - [ ] `/organizations/[organizationId]/members` member management.
 - [ ] `/organizations/[organizationId]/courses` organization courses.
 - [ ] `/organizations/[organizationId]/teacher-applications` nominations and
@@ -47,11 +60,15 @@ routine work.
 
 - [ ] Show organization health, member count, active courses, pending teacher
       applications, reward volume, wallet balance, and alerts.
-- [ ] Show quick actions only when scoped permissions allow them.
-- [ ] Explain denied quick actions with the missing scoped permission.
-- [ ] Handle users with multiple organizations and stale selected organization.
+- [x] Show quick actions only when scoped permissions allow them.
+- [x] Explain denied quick actions with the missing scoped permission.
+- [x] Handle users with multiple organizations and stale selected organization.
 - [ ] Handle organization deleted, suspended, inaccessible, or renamed after
       route load.
+  - [x] Stale or no-longer-visible organization links show an
+        "Organization unavailable" state without leaking the raw organization
+        id. Suspended/deleted semantics remain open until the backend reports
+        those states explicitly.
 
 ## Member And Permission Management
 
@@ -77,7 +94,7 @@ routine work.
 
 - [ ] User has member view but not invite/manage permissions.
 - [ ] User has report permission but not wallet permission.
-- [ ] User belongs to multiple organizations with different permissions.
+- [x] User belongs to multiple organizations with different permissions.
 - [ ] A course belongs to an organization but is managed by a course-scoped
       teacher outside the organization admin set.
 - [ ] Teacher nomination already exists or is already decided.
@@ -89,10 +106,21 @@ routine work.
 
 - [ ] Desktop and mobile checks for organization dashboard, members, courses,
       reports, wallet, and denied state.
+  - [x] Browser plus Playwright QA covers `/organizations` desktop
+        multi-organization selector, delegated search/filter interaction,
+        `/organizations/[organizationId]` capability dashboard, mobile
+        selector first viewport/no-overflow, mobile no-organization denied
+        state, and stale organization route without raw id leakage. Browser
+        validated the main signed-in flow; Playwright supplied alternate
+        session and mobile evidence after Browser could not reliably switch
+        session storage.
 - [ ] Tests for multi-org user, report-only user, wallet-denied user,
       invite-denied user, empty report, and failed CSV download.
+  - [x] Frontend helper tests cover multi-org summaries, report/wallet/member
+        capability derivation, delegated teacher nomination, course reward
+        scope, role-only membership visibility, delegated search/filtering, and
+        stale organization lookup.
 - [ ] Docker Compose E2E path: organization dashboard, member/report action,
       CSV or wallet audit, log scan.
 - [ ] Kubernetes smoke path loads organization routes and verifies selected
       workspace behavior with no console errors or horizontal overflow.
-

@@ -1,5 +1,5 @@
-import { WorkspaceRoute } from "@/components/workspace-route";
+import { OrganizationIndexRoute } from "@/components/organization-routes";
 
 export default function OrganizationWorkspacePage() {
-  return <WorkspaceRoute kind="organizations" />;
+  return <OrganizationIndexRoute />;
 }

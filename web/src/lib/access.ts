@@ -107,7 +107,12 @@ export function hasTeacherCourseAccess(course: CourseSessionScope) {
 }
 
 export function hasOrganizationAccess(organization: OrganizationSessionScope) {
-  return hasAnyScopePermission(organization, organizationPermissions);
+  return (
+    organization.roles.length > 0 ||
+    organization.direct_permissions.length > 0 ||
+    organization.delegated_permissions.length > 0 ||
+    hasAnyScopePermission(organization, organizationPermissions)
+  );
 }
 
 export function hasPlatformAdminAccess(session: CurrentSession) {
