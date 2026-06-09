@@ -20,6 +20,7 @@ import {
   fetchCourseCatalog,
   fetchCourseDetail,
   fetchCourseLearning,
+  fetchLearnerDashboard,
   fetchMyWallet,
   fetchRewardHistory,
   LearnerRequestError,
@@ -30,6 +31,7 @@ import {
   type CourseCatalogResponse,
   type CourseLearningContent,
   type CourseLearningResponse,
+  type LearnerDashboardSnapshot,
   type RewardHistoryEntry,
   type WalletSummary,
 } from "@/lib/learner";
@@ -43,7 +45,8 @@ import {
 import styles from "./learner-routes.module.css";
 
 type LoadState = "idle" | "loading" | "success" | "error";
-type LearnerRouteKind = "courses" | "rewards" | "wallet";
+type LearnerProductRouteKind = "courses" | "rewards" | "wallet";
+type LearnerRouteKind = "dashboard" | LearnerProductRouteKind;
 type EnrollmentStatusFilter = "all" | "available" | "pending" | "waitlisted" | "enrolled" | "rejected" | "unavailable";
 type RewardStatusFilter =
   | "all"
@@ -61,7 +64,96 @@ type RouteError = {
   status: number;
 };
 
-export function LearnerProductRoute({ kind }: { kind: LearnerRouteKind }) {
+export function LearnerDashboardRoute() {
+  const [hasToken, setHasToken] = useState(false);
+  const [session, setSession] = useState<CurrentSession | null>(null);
+  const [dashboard, setDashboard] = useState<LearnerDashboardSnapshot | null>(null);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [error, setError] = useState<RouteError | null>(null);
+
+  const loadRoute = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token) {
+      setHasToken(false);
+      setSession(null);
+      setDashboard(null);
+      setError(null);
+      setLoadState("idle");
+      return;
+    }
+
+    setHasToken(true);
+    setLoadState("loading");
+    setError(null);
+
+    try {
+      const [nextSession, nextDashboard] = await Promise.all([
+        fetchCurrentSession({ token }),
+        fetchLearnerDashboard({ token }),
+      ]);
+      setSession(nextSession);
+      setDashboard(nextDashboard);
+      setLoadState("success");
+    } catch (nextError) {
+      const requestError = normalizeRouteError(nextError);
+      if (requestError.status === 401 || requestError.status === 404) {
+        clearStoredSessionToken();
+        setHasToken(false);
+      }
+      setSession(null);
+      setDashboard(null);
+      setError({
+        code: requestError.code,
+        message: requestError.message,
+        status: requestError.status,
+      });
+      setLoadState("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadRoute(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadRoute]);
+
+  function signOut() {
+    clearStoredSessionToken();
+    setHasToken(false);
+    setSession(null);
+    setDashboard(null);
+    setError(null);
+    setLoadState("idle");
+  }
+
+  const statusLabel = loadState === "loading" ? "Loading" : session ? "Dashboard ready" : "Sign in required";
+
+  return (
+    <ProductShell
+      activeNav="learn"
+      breadcrumbs={[
+        { href: "/session", label: "Workspace" },
+        { label: "Learner" },
+      ]}
+      description="Continue learning, inspect rewards, and keep your wallet ready."
+      eyebrow="Learner"
+      isSignedIn={hasToken || Boolean(session)}
+      notice={learnerNotice(error, "dashboard")}
+      onSignOut={signOut}
+      session={session}
+      statusItems={<StatusPill label={statusLabel} tone={session ? "good" : "neutral"} />}
+      title="Learner dashboard"
+    >
+      {loadState === "idle" && !session ? <SignedOutState redirect="/learn" /> : null}
+      {loadState === "loading" ? <LoadingState /> : null}
+      {error ? <ErrorState error={error} onRetry={loadRoute} redirect="/learn" /> : null}
+      {loadState === "success" && session && dashboard ? (
+        <LearnerDashboardContent dashboard={dashboard} onRefresh={loadRoute} session={session} />
+      ) : null}
+    </ProductShell>
+  );
+}
+
+export function LearnerProductRoute({ kind }: { kind: LearnerProductRouteKind }) {
   const config = routeConfig[kind];
   const [hasToken, setHasToken] = useState(false);
   const [session, setSession] = useState<CurrentSession | null>(null);
@@ -559,6 +651,217 @@ export function LearnerCourseLearnRoute({ courseId }: { courseId: string }) {
         />
       ) : null}
     </ProductShell>
+  );
+}
+
+function LearnerDashboardContent({
+  dashboard,
+  onRefresh,
+  session,
+}: {
+  dashboard: LearnerDashboardSnapshot;
+  onRefresh: () => void;
+  session: CurrentSession;
+}) {
+  const enrolledCourses = dashboard.enrolled_catalog.courses;
+  const recommendedCourses = dashboard.recommended_catalog.courses;
+  const continueCourse = enrolledCourses.find((course) => course.access.can_view_content && course.content.has_content) || null;
+  const rewardSummary = useMemo(() => summarizeRewards(dashboard.reward_history), [dashboard.reward_history]);
+  const progressLabel = continueCourse ? "Not tracked" : "No lesson";
+
+  return (
+    <>
+      <section className={styles.dashboardGrid}>
+        <SummaryCard icon={<BookOpen size={20} aria-hidden />} label="Enrolled courses" value={dashboard.enrolled_catalog.total} />
+        <SummaryCard icon={<CheckCircle size={20} aria-hidden />} label="Progress" value={progressLabel} />
+        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Recent rewards" value={dashboard.reward_history.length} />
+        <SummaryCard icon={<CreditCard size={20} aria-hidden />} label="Wallet" value={dashboard.wallet ? "Linked" : "Unlinked"} />
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2>Next step</h2>
+          <button className={styles.iconAction} aria-label="Refresh learner dashboard" type="button" onClick={onRefresh}>
+            <RefreshCw size={18} aria-hidden />
+          </button>
+        </div>
+        {continueCourse ? (
+          <article className={styles.itemCard}>
+            <div className={styles.itemHeader}>
+              <h3>{continueCourse.title}</h3>
+              <StatusPill label="Continue" tone="good" />
+            </div>
+            <p className={styles.muted}>
+              Progress tracking is not available yet. You can still open the next available lesson from the course outline.
+            </p>
+            <div className={styles.metaRow}>
+              <span>{courseOrganizationLabel(continueCourse)}</span>
+              <span>{courseContentLabel(continueCourse)}</span>
+              <span>{continueCourse.rewards.available ? "Rewards available" : "No active rewards"}</span>
+            </div>
+            <div className={styles.actionRow}>
+              <Link className={styles.primaryLink} href={`/courses/${continueCourse.id}/learn`}>
+                <BookOpen size={18} aria-hidden />
+                Continue learning
+              </Link>
+              <Link className={styles.secondaryLink} href={`/courses/${continueCourse.id}`}>
+                Course details
+              </Link>
+            </div>
+          </article>
+        ) : (
+          <EmptyState
+            actionHref="/courses"
+            actionLabel={enrolledCourses.length ? "Open courses" : "Find courses"}
+            detail={
+              enrolledCourses.length
+                ? "Your current courses do not have viewable content yet."
+                : "Choose a course from the catalog to start building your learner workspace."
+            }
+            title={enrolledCourses.length ? "No lesson ready" : "Start with a course"}
+          />
+        )}
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2>Enrolled courses</h2>
+          <StatusPill label={`${enrolledCourses.length} shown`} tone="neutral" />
+        </div>
+        {enrolledCourses.length ? (
+          <div className={styles.itemGrid}>
+            {enrolledCourses.map((course) => (
+              <DashboardCourseCard course={course} key={course.id} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            actionHref="/courses"
+            actionLabel="Browse catalog"
+            detail="Enrolled courses appear here after course staff approve access or assign you directly."
+            title="No enrolled courses"
+          />
+        )}
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2>Rewards and wallet</h2>
+          <StatusPill label={rewardSummary.needsHelp ? "Needs attention" : "Ready"} tone={rewardSummary.needsHelp ? "warn" : "neutral"} />
+        </div>
+        <div className={styles.itemGrid}>
+          <DashboardRewardPanel rewardCount={dashboard.reward_history.length} summary={rewardSummary} />
+          <DashboardWalletPanel wallet={dashboard.wallet} />
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2>Recommended courses</h2>
+          <StatusPill label={`${recommendedCourses.length} available`} tone="neutral" />
+        </div>
+        {recommendedCourses.length ? (
+          <div className={styles.itemGrid}>
+            {recommendedCourses.map((course) => (
+              <DashboardCourseCard course={course} key={course.id} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            detail={
+              session.courses.length
+                ? "No additional available courses are visible right now."
+                : "Published courses will appear here when they are visible to learners."
+            }
+            title="No recommendations yet"
+          />
+        )}
+      </section>
+    </>
+  );
+}
+
+function DashboardCourseCard({ course }: { course: CourseCatalogItem }) {
+  return (
+    <article className={styles.itemCard}>
+      <div className={styles.itemHeader}>
+        <h3>{course.title}</h3>
+        <StatusPill label={humanize(course.enrollment.state)} tone={enrollmentTone(course.enrollment.state)} />
+      </div>
+      <div className={styles.metaRow}>
+        <span>{courseOrganizationLabel(course)}</span>
+        <span>{courseTeacherLabel(course)}</span>
+        <span>{courseContentLabel(course)}</span>
+      </div>
+      <p className={styles.muted}>{course.enrollment.reason || "Open course details for enrollment and reward requirements."}</p>
+      <div className={styles.actionRow}>
+        {course.access.can_view_content && course.content.has_content ? (
+          <Link className={styles.primaryLink} href={`/courses/${course.id}/learn`}>
+            <BookOpen size={18} aria-hidden />
+            Learn
+          </Link>
+        ) : null}
+        <Link className={styles.secondaryLink} href={`/courses/${course.id}`}>
+          Details
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function DashboardRewardPanel({
+  rewardCount,
+  summary,
+}: {
+  rewardCount: number;
+  summary: ReturnType<typeof summarizeRewards>;
+}) {
+  return (
+    <article className={styles.itemCard}>
+      <div className={styles.itemHeader}>
+        <h3>Reward status</h3>
+        <StatusPill label={`${rewardCount} recent`} tone={rewardCount ? "good" : "neutral"} />
+      </div>
+      <div className={styles.detailList}>
+        <span>{summary.pendingTeacher} waiting for teacher review</span>
+        <span>{summary.processing} processing or amount-approved</span>
+        <span>{summary.credited} credited to wallet</span>
+        <span>{summary.needsHelp} need help</span>
+      </div>
+      <div className={styles.actionRow}>
+        <Link className={styles.secondaryLink} href="/rewards">
+          View rewards
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function DashboardWalletPanel({ wallet }: { wallet: WalletSummary | null }) {
+  return (
+    <article className={styles.itemCard}>
+      <div className={styles.itemHeader}>
+        <h3>Wallet readiness</h3>
+        <StatusPill label={wallet ? "Linked" : "Unlinked"} tone={wallet ? "good" : "warn"} />
+      </div>
+      {wallet ? (
+        <>
+          <p className={styles.muted}>Approved rewards can be credited to this wallet.</p>
+          <strong className={styles.walletValue}>{wallet.value}</strong>
+          <div className={styles.metaRow}>
+            <span>{wallet.owner_type}</span>
+            <span>{wallet.organization_id ? "Organization wallet" : "Personal wallet"}</span>
+          </div>
+        </>
+      ) : (
+        <p className={styles.muted}>Link your RustLearn wallet before approved rewards can be credited.</p>
+      )}
+      <div className={styles.actionRow}>
+        <Link className={wallet ? styles.secondaryLink : styles.primaryLink} href="/wallet">
+          {wallet ? "Open wallet" : "Link wallet"}
+        </Link>
+      </div>
+    </article>
   );
 }
 
@@ -1274,6 +1577,46 @@ function StatusPill({
   return <span className={`${styles.statusPill} ${styles[tone]}`}>{label}</span>;
 }
 
+function summarizeRewards(rewards: RewardHistoryEntry[]) {
+  return rewards.reduce(
+    (summary, reward) => {
+      if (reward.status === "pending_teacher_approval") {
+        summary.pendingTeacher += 1;
+      }
+      if (reward.status.includes("token") || reward.status === "amount_approved") {
+        summary.processing += 1;
+      }
+      if (reward.wallet_credit) {
+        summary.credited += 1;
+      }
+      if (reward.status === "failed" || reward.status === "needs_reconciliation") {
+        summary.needsHelp += 1;
+      }
+      return summary;
+    },
+    {
+      credited: 0,
+      needsHelp: 0,
+      pendingTeacher: 0,
+      processing: 0,
+    },
+  );
+}
+
+function courseOrganizationLabel(course: CourseCatalogItem) {
+  return course.organizations.map((organization) => organization.name).join(", ") || "Independent";
+}
+
+function courseTeacherLabel(course: CourseCatalogItem) {
+  return course.teachers.map((teacher) => teacher.name).join(", ") || "Teacher pending";
+}
+
+function courseContentLabel(course: CourseCatalogItem) {
+  return course.content.has_content
+    ? `${course.content.chapter_count} chapters, ${course.content.content_count} items`
+    : "Content pending";
+}
+
 function learnerNotice(error: RouteError | null, kind: LearnerRouteKind): ShellNotice | null {
   if (!error) {
     return null;
@@ -1487,6 +1830,11 @@ const enrollmentFilterOptions: Array<{ label: string; value: EnrollmentStatusFil
 ];
 
 const routeConfig = {
+  dashboard: {
+    description: "Continue learning, inspect rewards, and keep your wallet ready.",
+    href: "/learn",
+    title: "Learner dashboard",
+  },
   courses: {
     description: "Search courses, review enrollment state, and request access.",
     href: "/courses",

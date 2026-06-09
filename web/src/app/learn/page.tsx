@@ -1,5 +1,5 @@
-import { WorkspaceRoute } from "@/components/workspace-route";
+import { LearnerDashboardRoute } from "@/components/learner-routes";
 
 export default function LearnerWorkspacePage() {
-  return <WorkspaceRoute kind="learn" />;
+  return <LearnerDashboardRoute />;
 }

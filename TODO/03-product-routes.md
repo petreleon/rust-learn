@@ -40,6 +40,12 @@
       reward status, wallet summary, and recent notifications.
   - [x] Add learner dashboard onward navigation to courses, rewards, and wallet
         product routes.
+  - [x] `/learn` now renders a real learner dashboard from existing learner
+        contracts: enrolled courses, continue-learning action, reward summary,
+        wallet readiness, recommendations, signed-out state, and first-run
+        empty state.
+  - [ ] Persisted progress, due work, notification list, and last-activity data
+        remain open until those backend contracts exist.
 - [x] Build course discovery with search, filters, organization/course
       metadata, reward availability, and enrollment calls to action.
   - [x] Add a `/courses` product route that shows current course access and

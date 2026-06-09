@@ -71,6 +71,13 @@ export type CourseCatalogDetail = {
   prerequisites: string[];
 };
 
+export type LearnerDashboardSnapshot = {
+  enrolled_catalog: CourseCatalogResponse;
+  recommended_catalog: CourseCatalogResponse;
+  reward_history: RewardHistoryEntry[];
+  wallet: WalletSummary | null;
+};
+
 export type CourseLearningResponse = {
   active_content_id: number | null;
   chapters: CourseLearningChapter[];
@@ -209,6 +216,50 @@ export type CourseDetailOptions = LearnerRequestOptions & {
 const DEFAULT_TIMEOUT_MS = 10000;
 const DEFAULT_COURSE_CATALOG_LIMIT = 30;
 const DEFAULT_REWARD_HISTORY_LIMIT = 25;
+const DEFAULT_DASHBOARD_COURSE_LIMIT = 6;
+const DEFAULT_DASHBOARD_RECOMMENDED_LIMIT = 3;
+const DEFAULT_DASHBOARD_REWARD_LIMIT = 6;
+
+export async function fetchLearnerDashboard({
+  apiRoot = "/api",
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: LearnerRequestOptions): Promise<LearnerDashboardSnapshot> {
+  const [enrolledCatalog, recommendedCatalog, rewardHistory, wallet] = await Promise.all([
+    fetchCourseCatalog({
+      apiRoot,
+      enrollmentStatus: "enrolled",
+      limit: DEFAULT_DASHBOARD_COURSE_LIMIT,
+      timeoutMs,
+      token,
+    }),
+    fetchCourseCatalog({
+      apiRoot,
+      enrollmentStatus: "available",
+      limit: DEFAULT_DASHBOARD_RECOMMENDED_LIMIT,
+      timeoutMs,
+      token,
+    }),
+    fetchRewardHistory({
+      apiRoot,
+      limit: DEFAULT_DASHBOARD_REWARD_LIMIT,
+      timeoutMs,
+      token,
+    }),
+    fetchMyWallet({
+      apiRoot,
+      timeoutMs,
+      token,
+    }),
+  ]);
+
+  return {
+    enrolled_catalog: enrolledCatalog,
+    recommended_catalog: recommendedCatalog,
+    reward_history: rewardHistory,
+    wallet,
+  };
+}
 
 export async function fetchCourseCatalog({
   apiRoot = "/api",

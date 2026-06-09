@@ -25,6 +25,9 @@ screens pretend to be complete.
         Add schema fields before treating those as authored course content.
 - [ ] Define learner course-progress and content-completion endpoints before
       building the learner dashboard as more than static cards.
+  - [x] The `/learn` frontend dashboard currently composes existing learner
+        catalog, reward-history, wallet, and session contracts; it labels
+        progress as not tracked instead of inventing completion state.
   - [x] The lesson-viewer contract explicitly reports
         `progress_supported=false` so the frontend does not pretend persisted
         progress exists.

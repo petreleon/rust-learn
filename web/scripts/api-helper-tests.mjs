@@ -246,6 +246,77 @@ test("fetchCourseCatalog sends learner filters and parses summaries", async () =
   assert.equal(catalog.courses[0].enrollment.state, "available");
 });
 
+test("fetchLearnerDashboard aggregates learner-safe route data", async () => {
+  const enrolledCourse = {
+    ...courseCatalogItemFixture(),
+    enrollment: {
+      ...courseCatalogItemFixture().enrollment,
+      can_request_join: false,
+      reason: "You are enrolled.",
+      roles: ["STUDENT"],
+      state: "enrolled",
+    },
+  };
+  const calls = mockFetch((url, init) => {
+    assert.equal(init.headers.Authorization, "Bearer learner-token");
+    if (url === "/api/courses/catalog?limit=6&enrollment_status=enrolled") {
+      return jsonResponse({
+        courses: [enrolledCourse],
+        enrollment_status: "enrolled",
+        lifecycle_status: null,
+        limit: 6,
+        offset: 0,
+        organization_id: null,
+        reward_available: null,
+        search: null,
+        total: 1,
+      });
+    }
+    if (url === "/api/courses/catalog?limit=3&enrollment_status=available") {
+      return jsonResponse({
+        courses: [courseCatalogItemFixture()],
+        enrollment_status: "available",
+        lifecycle_status: null,
+        limit: 3,
+        offset: 0,
+        organization_id: null,
+        reward_available: null,
+        search: null,
+        total: 1,
+      });
+    }
+    if (url === "/api/reward-candidates/me/history?limit=6") {
+      return jsonResponse([
+        {
+          approved_amount: null,
+          course_id: 7,
+          course_title: "Rust Ownership",
+          created_at: "2026-01-01T10:00:00Z",
+          event_type: "course_completion",
+          reward_candidate_id: 101,
+          status: "pending_teacher_approval",
+          token_transaction: null,
+          updated_at: "2026-01-01T10:00:00Z",
+          wallet_credit: null,
+        },
+      ]);
+    }
+    if (url === "/api/wallets/me") {
+      return textResponse("Wallet not linked", { status: 404 });
+    }
+    throw new Error(`Unexpected URL ${url}`);
+  });
+
+  const dashboard = await learner.fetchLearnerDashboard({ token: "learner-token" });
+
+  assert.equal(calls.length, 4);
+  assert.equal(dashboard.enrolled_catalog.total, 1);
+  assert.equal(dashboard.enrolled_catalog.courses[0].enrollment.state, "enrolled");
+  assert.equal(dashboard.recommended_catalog.courses[0].enrollment.state, "available");
+  assert.equal(dashboard.reward_history[0].status, "pending_teacher_approval");
+  assert.equal(dashboard.wallet, null);
+});
+
 test("fetchCourseDetail and requestCourseJoin use learner course routes", async () => {
   mockFetch((url, init) => {
     assert.equal(url, "/api/courses/catalog/7");

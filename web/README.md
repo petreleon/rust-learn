@@ -23,11 +23,18 @@ from effective permissions instead of role labels, and show contextual denied
 states when the current user lacks the required learner, teacher, organization,
 or platform access signal.
 
-Learner product routes now include `/courses`, `/rewards`, and `/wallet`.
-`/courses` loads `GET /api/courses/catalog`, supports title search,
-enrollment filters, reward-only filtering, refresh, visible course cards,
-detail links, and `POST /api/courses/{courseId}/join-requests` for learner
-enrollment requests. `/courses/[courseId]` loads
+Learner product routes now include `/learn`, `/courses`, `/rewards`, and
+`/wallet`. `/learn` is the learner dashboard. It loads `GET /api/me`, enrolled
+and recommended `GET /api/courses/catalog` slices,
+`GET /api/reward-candidates/me/history`, and `GET /api/wallets/me` in a
+client-side aggregate so learners see enrolled courses, a continue-learning
+action, reward status, wallet readiness, recommendations, signed-out state, and
+first-run empty state. Persisted progress, due work, last activity, and
+notifications stay visibly untracked until those backend contracts exist.
+`/courses` loads `GET /api/courses/catalog`, supports title search, enrollment
+filters, reward-only filtering, refresh, visible course cards, detail links,
+and `POST /api/courses/{courseId}/join-requests` for learner enrollment
+requests. `/courses/[courseId]` loads
 `GET /api/courses/catalog/{courseId}` and shows organization, teacher,
 content, syllabus, reward, enrollment, signed-out, and not-found states.
 `/courses/[courseId]/learn` loads

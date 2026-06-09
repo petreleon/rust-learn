@@ -42,6 +42,9 @@ progress, inspect rewards, and understand wallet state.
         unsupported.
 - [ ] Learner dashboard endpoint with enrollments, progress, due work,
       notifications, reward summary, and wallet summary.
+  - [x] `/learn` now composes the existing learner-safe contracts
+        (`GET /api/me`, course catalog, reward history, and self-wallet) into
+        a real dashboard while a dedicated dashboard endpoint remains open.
 - [ ] Course progress and content-completion endpoints.
 - [ ] Reward history endpoint with status labels, amounts, wallet credit,
       token transaction, reconciliation, and failure reasons.
@@ -56,9 +59,12 @@ progress, inspect rewards, and understand wallet state.
 
 ## Routes And Screens
 
-- [ ] `/learn` learner dashboard.
+- [x] `/learn` learner dashboard.
   - [x] `/learn` now routes learners to `/courses`, `/rewards`, and `/wallet`
         from the product workspace.
+  - [x] `/learn` now shows enrolled courses, continue-learning action,
+        reward summary, wallet readiness, recommended courses, signed-out
+        state, and first-run empty state from real learner contracts.
 - [x] `/courses` course discovery with search, filters, sort, pagination, and
       empty state.
   - [x] `/courses` product route exists with current course access, useful
@@ -91,18 +97,22 @@ progress, inspect rewards, and understand wallet state.
       blocked/suspended/archived course states.
   - [x] Show current course scopes and lifecycle status from the resolved
         session while progress/last-activity contracts are still missing.
-- [ ] Show "continue learning" action only when content is available and the
+- [x] Show "continue learning" action only when content is available and the
       user has access.
 - [ ] Show due or pending work when assessment/content contracts exist.
 - [ ] Show reward summary by human status: pending teacher review, approved
       amount pending, token processing, wallet credited, needs help, failed.
   - [x] `/rewards` shows human status, next step, wallet credit, token
         transaction, and reconciliation/failed copy.
+  - [x] `/learn` summarizes recent reward records by teacher review,
+        processing, credited, and needs-help buckets.
 - [ ] Show wallet state with plain next step: link wallet, wait for deposit,
       retry, contact support, or view audit.
   - [x] `/wallet` shows linked/unlinked states, link action, retryable refresh,
         and action-specific success/error notices.
-- [ ] Show useful first-run empty state with course discovery call to action.
+- [x] `/learn` shows linked/unlinked wallet readiness and links to the wallet
+      route for the next action.
+- [x] Show useful first-run empty state with course discovery call to action.
 
 ## Course Discovery And Detail
 
@@ -177,6 +187,9 @@ progress, inspect rewards, and understand wallet state.
   - [x] Browser/Playwright screenshots captured for
         `/courses/[courseId]/learn` desktop lesson switching, mobile first
         viewport, denied content state, and signed-out state.
+  - [x] Browser/Playwright screenshots captured for `/learn` authenticated
+        dashboard, mobile first viewport, empty first-run state, and signed-out
+        state.
 - [ ] Tests for empty learner, enrolled learner, unverified learner, denied
       course access, and reward status transitions.
   - [x] API-helper tests cover learner reward-history success/filtering, wallet
@@ -190,6 +203,9 @@ progress, inspect rewards, and understand wallet state.
         normalization.
   - [x] Rust API tests cover learner course-learning response shape, active
         content, media state mapping, and unscoped learner `403`.
+  - [x] API-helper tests cover the `/learn` dashboard aggregate across
+        enrolled catalog, recommended catalog, recent rewards, and unlinked
+        wallet `404`.
 - [ ] Docker Compose E2E path: login/register, open learner dashboard, open
       course detail, inspect rewards, inspect wallet, scan recent logs.
 - [ ] Kubernetes smoke path loads `/learn`, `/courses`, and `/rewards` product
@@ -197,8 +213,8 @@ progress, inspect rewards, and understand wallet state.
 
 ## Current Checkpoint Traceability
 
-Route: `/courses`, `/courses/[courseId]`, `/courses/[courseId]/learn`,
-`/rewards`, `/wallet`
+Route: `/learn`, `/courses`, `/courses/[courseId]`,
+`/courses/[courseId]/learn`, `/rewards`, `/wallet`
 Persona: learner
 Primary job: discover visible courses, inspect course detail, request
 enrollment, open course lessons, inspect reward status, and prepare a wallet
@@ -214,14 +230,15 @@ course reward rows; lesson viewing requires scoped `VIEW_CONTENT`.
 Shared components: `ProductShell`, learner route bundle, session helper.
 Data helper: `web/src/lib/learner.ts`.
 States: signed out, loading, success, empty, catalog filters, pending
-enrollment, request-join success, course not found, lesson ready, uploaded
-media, processing media, failed processing, unavailable content, content
-permission denied, unlinked wallet, link success, text/JSON error,
-timeout/network, session expired.
+enrollment, dashboard continue-learning, dashboard first-run empty, request-join
+success, course not found, lesson ready, uploaded media, processing media,
+failed processing, unavailable content, content permission denied, unlinked
+wallet, link success, text/JSON error, timeout/network, session expired.
 Edge cases: unscoped draft hidden from learner catalog, own draft visible by
 course role, course-detail `404` keeps signed-in shell, unlinked wallet, wallet
 link retry, token transaction without wallet credit, reconciliation-needed
-rewards, learner lesson `403` keeps signed-in shell.
+rewards, learner lesson `403` keeps signed-in shell, dashboard does not pretend
+persisted progress exists.
 Rendered proof: in-app Browser signed-out smoke; standalone Playwright
 mocked authenticated desktop/mobile checks because Browser lacks interception.
 API-helper proof: `npm run test:api-helpers`.
