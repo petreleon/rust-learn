@@ -20,6 +20,15 @@ work complete.
 
 ### Recent Route Evidence
 
+- [x] `/organizations/[organizationId]/courses` rendered QA covers populated
+      desktop course list, dashboard-to-courses navigation, search/lifecycle/
+      reward filter interaction, mobile first viewport/no-overflow, missing
+      course-list permission, empty course data, and backend `500` retry state.
+      Normal populated, mobile, denied, and empty flows had no relevant console
+      errors; the backend failure fixture intentionally produced `500`
+      resource console evidence. BrowserMCP was unavailable
+      (`Transport closed`), so Playwright supplied screenshots and interaction
+      proof.
 - [x] `/organizations/[organizationId]/reports` rendered QA covers populated
       desktop report, CSV download/status, dashboard-to-report navigation,
       mobile first viewport/no-overflow, missing report permission, empty

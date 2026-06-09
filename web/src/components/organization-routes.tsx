@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   ArrowLeft,
+  BookOpen,
   Building2,
   CheckCircle2,
   CreditCard,
@@ -26,6 +27,7 @@ import {
   buildOrganizationWorkspace,
   downloadOrganizationRewardDashboardCsv,
   enabledOrganizationCapabilities,
+  fetchOrganizationCourses,
   fetchOrganizationRewardDashboard,
   filterOrganizationWorkspace,
   findOrganizationWorkspaceItem,
@@ -33,6 +35,8 @@ import {
   OrganizationRequestError,
   type OrganizationCapability,
   type OrganizationCapabilityKey,
+  type OrganizationCourseList,
+  type OrganizationCourseListItem,
   type OrganizationRewardDashboard,
   type OrganizationWorkspaceItem,
   type OrganizationWorkspaceSummary,
@@ -57,9 +61,11 @@ type RouteError = {
 type CapabilityFilter = OrganizationCapabilityKey | "all" | "delegated";
 type CsvState = "idle" | "downloading" | "success" | "error";
 type ReportLoadState = "idle" | "loading" | "success" | "error";
+type CourseLoadState = "idle" | "loading" | "success" | "error";
 
 const capabilityFilters: Array<{ label: string; value: CapabilityFilter }> = [
   { label: "All access", value: "all" },
+  { label: "Courses", value: "courses" },
   { label: "Reports", value: "reports" },
   { label: "Members", value: "members" },
   { label: "Wallet", value: "wallet" },
@@ -70,6 +76,7 @@ const capabilityFilters: Array<{ label: string; value: CapabilityFilter }> = [
 ];
 
 const actionIcons: Record<OrganizationCapabilityKey, ReactNode> = {
+  courses: <BookOpen size={19} aria-hidden />,
   course_rewards: <Trophy size={19} aria-hidden />,
   members: <Users size={19} aria-hidden />,
   reports: <FileText size={19} aria-hidden />,
@@ -79,6 +86,7 @@ const actionIcons: Record<OrganizationCapabilityKey, ReactNode> = {
 };
 
 const actionDescriptions: Record<OrganizationCapabilityKey, string> = {
+  courses: "Inspect sponsored courses, lifecycle, teacher coverage, enrollment pressure, and reward policy status.",
   course_rewards: "Submit organization-backed course reward events when the route contract is added.",
   members: "Invite, review, and update organization members when member contracts are available.",
   reports: "Inspect reward volume, sponsored applications, wallet balances, and CSV exports.",
@@ -97,6 +105,19 @@ const emptyWorkspace: OrganizationWorkspaceSummary = {
   total: 0,
   walletScopeCount: 0,
 };
+
+const organizationCourseLifecycleOptions = [
+  { label: "All lifecycles", value: "" },
+  { label: "Draft", value: "draft" },
+  { label: "Submitted", value: "submitted" },
+  { label: "Needs changes", value: "needs_changes" },
+  { label: "Approved", value: "approved" },
+  { label: "Published", value: "published" },
+  { label: "Suspended", value: "suspended" },
+  { label: "Archived", value: "archived" },
+];
+
+const ORGANIZATION_COURSE_PAGE_SIZE = 6;
 
 export function OrganizationIndexRoute() {
   const route = useOrganizationSession();
@@ -222,6 +243,150 @@ export function OrganizationDashboardRoute({ organizationId }: { organizationId:
       {route.error ? <ErrorState error={route.error} redirect="/organizations" /> : null}
       {route.session && (invalidOrganizationId || !organization) ? <MissingOrganizationState /> : null}
       {route.session && organization ? <OrganizationDashboard organization={organization} /> : null}
+    </ProductShell>
+  );
+}
+
+export function OrganizationCoursesRoute({ organizationId }: { organizationId: string }) {
+  const route = useOrganizationSession();
+  const numericOrganizationId = Number.parseInt(organizationId, 10);
+  const invalidOrganizationId = !/^\d+$/.test(organizationId) || !Number.isFinite(numericOrganizationId);
+  const organization = useMemo(
+    () =>
+      route.session && !invalidOrganizationId
+        ? findOrganizationWorkspaceItem(route.session, numericOrganizationId)
+        : null,
+    [invalidOrganizationId, numericOrganizationId, route.session],
+  );
+  const workspace = useMemo(
+    () => (route.session ? buildOrganizationWorkspace(route.session) : emptyWorkspace),
+    [route.session],
+  );
+  const coursesCapability = organization?.capabilities.find((capability) => capability.key === "courses");
+  const canViewCourses = Boolean(coursesCapability?.enabled);
+  const [courseError, setCourseError] = useState<RouteError | null>(null);
+  const [courseLoadState, setCourseLoadState] = useState<CourseLoadState>("idle");
+  const [courses, setCourses] = useState<OrganizationCourseList | null>(null);
+  const [draftSearch, setDraftSearch] = useState("");
+  const [lifecycleStatus, setLifecycleStatus] = useState("");
+  const [page, setPage] = useState(0);
+  const [rewardFilter, setRewardFilter] = useState<"all" | "rewarded" | "unrewarded">("all");
+  const [search, setSearch] = useState("");
+  const notice = organizationNotice(route.error || courseError);
+
+  const loadCourses = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token || invalidOrganizationId || !organization || !canViewCourses) {
+      return;
+    }
+
+    setCourseError(null);
+    setCourseLoadState("loading");
+
+    try {
+      const nextCourses = await fetchOrganizationCourses({
+        lifecycleStatus,
+        limit: ORGANIZATION_COURSE_PAGE_SIZE,
+        offset: page * ORGANIZATION_COURSE_PAGE_SIZE,
+        organizationId: organization.id,
+        rewardAvailable:
+          rewardFilter === "all" ? null : rewardFilter === "rewarded",
+        search,
+        token,
+      });
+      setCourses(nextCourses);
+      setCourseLoadState("success");
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      if (routeError.status === 401 || routeError.status === 404) {
+        clearStoredSessionToken();
+      }
+      setCourses(null);
+      setCourseError(routeError);
+      setCourseLoadState("error");
+    }
+  }, [canViewCourses, invalidOrganizationId, lifecycleStatus, organization, page, rewardFilter, search]);
+
+  useEffect(() => {
+    if (route.session && organization && canViewCourses) {
+      const timeout = window.setTimeout(() => {
+        setCourseError(null);
+        setCourseLoadState("idle");
+        setCourses(null);
+        void loadCourses();
+      }, 0);
+      return () => window.clearTimeout(timeout);
+    }
+
+    return undefined;
+  }, [canViewCourses, loadCourses, organization, route.session]);
+
+  function applyFilters() {
+    setPage(0);
+    setSearch(draftSearch);
+  }
+
+  function resetFilters() {
+    setDraftSearch("");
+    setLifecycleStatus("");
+    setPage(0);
+    setRewardFilter("all");
+    setSearch("");
+  }
+
+  return (
+    <ProductShell
+      activeNav="organizations"
+      breadcrumbs={[
+        { href: "/session", label: "Workspace" },
+        { href: "/organizations", label: "Organizations" },
+        {
+          href: organization ? `/organizations/${organization.id}` : undefined,
+          label: organization?.name || "Organization",
+        },
+        { label: "Courses" },
+      ]}
+      description="Organization-sponsored courses, lifecycle state, teacher coverage, enrollment pressure, content readiness, and reward policy status."
+      eyebrow="Organization"
+      isSignedIn={route.hasToken || Boolean(route.session)}
+      notice={notice}
+      onSignOut={route.signOut}
+      session={route.session}
+      statusItems={<OrganizationStatus workspace={workspace} />}
+      title={organization?.name ? `${organization.name} courses` : "Organization courses"}
+    >
+      {route.loadState === "idle" && !route.session ? <SignedOutState redirect={`/organizations/${organizationId}/courses`} /> : null}
+      {route.loadState === "loading" ? <LoadingState /> : null}
+      {route.error ? <ErrorState error={route.error} redirect={`/organizations/${organizationId}/courses`} /> : null}
+      {route.session && (invalidOrganizationId || !organization) ? <MissingOrganizationState /> : null}
+      {route.session && organization && !canViewCourses ? (
+        <CoursesDeniedState capability={coursesCapability} organizationName={organization.name} />
+      ) : null}
+      {route.session && organization && canViewCourses ? (
+        <OrganizationCoursesContent
+          courses={courses}
+          draftSearch={draftSearch}
+          lifecycleStatus={lifecycleStatus}
+          loadState={courseLoadState}
+          onApplyFilters={applyFilters}
+          onDraftSearchChange={setDraftSearch}
+          onLifecycleStatusChange={(nextStatus) => {
+            setLifecycleStatus(nextStatus);
+            setPage(0);
+          }}
+          onPageChange={setPage}
+          onRefresh={loadCourses}
+          onResetFilters={resetFilters}
+          onRewardFilterChange={(nextFilter) => {
+            setRewardFilter(nextFilter);
+            setPage(0);
+          }}
+          organization={organization}
+          page={page}
+          routeError={courseError}
+          rewardFilter={rewardFilter}
+        />
+      ) : null}
     </ProductShell>
   );
 }
@@ -440,6 +605,262 @@ function OrganizationDashboard({ organization }: { organization: OrganizationWor
   );
 }
 
+function OrganizationCoursesContent({
+  courses,
+  draftSearch,
+  lifecycleStatus,
+  loadState,
+  onApplyFilters,
+  onDraftSearchChange,
+  onLifecycleStatusChange,
+  onPageChange,
+  onRefresh,
+  onResetFilters,
+  onRewardFilterChange,
+  organization,
+  page,
+  routeError,
+  rewardFilter,
+}: {
+  courses: OrganizationCourseList | null;
+  draftSearch: string;
+  lifecycleStatus: string;
+  loadState: CourseLoadState;
+  onApplyFilters: () => void;
+  onDraftSearchChange: (value: string) => void;
+  onLifecycleStatusChange: (value: string) => void;
+  onPageChange: (page: number) => void;
+  onRefresh: () => void;
+  onResetFilters: () => void;
+  onRewardFilterChange: (value: "all" | "rewarded" | "unrewarded") => void;
+  organization: OrganizationWorkspaceItem;
+  page: number;
+  routeError: RouteError | null;
+  rewardFilter: "all" | "rewarded" | "unrewarded";
+}) {
+  if (loadState === "loading" || loadState === "idle") {
+    return (
+      <section className={`${styles.panel} ${styles.singlePanel}`} aria-live="polite">
+        <div className={styles.panelHeader}>
+          <Loader2 className={styles.spin} size={20} aria-hidden />
+          <h2>Loading organization courses</h2>
+        </div>
+        <div className={styles.skeletonGrid} aria-hidden>
+          <div className={styles.skeleton} />
+          <div className={styles.skeleton} />
+          <div className={styles.skeleton} />
+        </div>
+      </section>
+    );
+  }
+
+  if (loadState === "error") {
+    return <CourseErrorState error={routeError} onRetry={onRefresh} />;
+  }
+
+  if (!courses) {
+    return null;
+  }
+
+  const activePolicyCount = courses.courses.reduce(
+    (sum, course) => sum + course.rewards.active_policy_count,
+    0,
+  );
+  const pendingJoinCount = courses.courses.reduce(
+    (sum, course) => sum + course.roster.pending_join_request_count,
+    0,
+  );
+  const pendingRewardCount = courses.courses.reduce(
+    (sum, course) => sum + course.reward_queue.pending_teacher_count,
+    0,
+  );
+  const totalPages = Math.max(1, Math.ceil(courses.total / courses.limit));
+  const canGoBack = courses.offset > 0;
+  const canGoForward = courses.offset + courses.limit < courses.total;
+
+  return (
+    <>
+      <section className={styles.workspaceHero}>
+        <div className={styles.workspaceTitleBlock}>
+          <Link className={styles.backLink} href={`/organizations/${organization.id}`}>
+            <ArrowLeft size={17} aria-hidden />
+            {organization.name}
+          </Link>
+          <p className={styles.eyebrow}>Organization courses</p>
+          <h2>Sponsored course workspace</h2>
+          <p className={styles.muted}>
+            Courses load from the organization-scoped course contract. Editing, publishing, and
+            organization-course ownership changes remain separate route work.
+          </p>
+        </div>
+        <div className={styles.actionRow}>
+          <button className={styles.secondaryButton} onClick={onRefresh} type="button">
+            <RefreshCw size={17} aria-hidden />
+            Refresh
+          </button>
+        </div>
+      </section>
+
+      <section className={styles.summaryGrid}>
+        <SummaryCard icon={<BookOpen size={20} aria-hidden />} label="Matching courses" value={courses.total} />
+        <SummaryCard icon={<FileText size={20} aria-hidden />} label="Reward policies" value={activePolicyCount} />
+        <SummaryCard icon={<Users size={20} aria-hidden />} label="Pending joins" value={pendingJoinCount} />
+        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Reward queue" value={pendingRewardCount} />
+      </section>
+
+      <section className={styles.courseFilterPanel} aria-label="Organization course filters">
+        <label>
+          <span>Search courses</span>
+          <span className={styles.inputWithIcon}>
+            <Search size={17} aria-hidden />
+            <input
+              onChange={(event) => onDraftSearchChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  onApplyFilters();
+                }
+              }}
+              placeholder="Title"
+              type="search"
+              value={draftSearch}
+            />
+          </span>
+        </label>
+        <label>
+          <span>Lifecycle</span>
+          <select
+            aria-label="Course lifecycle filter"
+            onChange={(event) => onLifecycleStatusChange(event.target.value)}
+            value={lifecycleStatus}
+          >
+            {organizationCourseLifecycleOptions.map((option) => (
+              <option key={option.label} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Rewards</span>
+          <select
+            aria-label="Course reward filter"
+            onChange={(event) =>
+              onRewardFilterChange(event.target.value as "all" | "rewarded" | "unrewarded")
+            }
+            value={rewardFilter}
+          >
+            <option value="all">All reward states</option>
+            <option value="rewarded">Reward policy active</option>
+            <option value="unrewarded">No active policy</option>
+          </select>
+        </label>
+        <div className={styles.filterActions}>
+          <button className={styles.primaryButton} onClick={onApplyFilters} type="button">
+            <Search size={17} aria-hidden />
+            Apply
+          </button>
+          <button className={styles.secondaryButton} onClick={onResetFilters} type="button">
+            <RefreshCw size={17} aria-hidden />
+            Reset
+          </button>
+        </div>
+      </section>
+
+      <section className={styles.panel}>
+        <div className={styles.sectionHeader}>
+          <h2>Course list</h2>
+          <StatusPill label={`Page ${page + 1} of ${totalPages}`} tone="neutral" />
+        </div>
+        {courses.courses.length ? (
+          <div className={styles.courseGrid}>
+            {courses.courses.map((course) => (
+              <OrganizationCourseCard course={course} key={course.id} />
+            ))}
+          </div>
+        ) : (
+          <p className={styles.muted}>
+            No organization courses match these filters. Reset filters or check whether the course is
+            attached to this organization.
+          </p>
+        )}
+        <div className={styles.paginationRow}>
+          <button
+            className={styles.secondaryButton}
+            disabled={!canGoBack}
+            onClick={() => onPageChange(Math.max(0, page - 1))}
+            type="button"
+          >
+            Previous
+          </button>
+          <span>
+            {courses.total === 0
+              ? "0 courses"
+              : `${courses.offset + 1}-${Math.min(courses.offset + courses.limit, courses.total)} of ${courses.total}`}
+          </span>
+          <button
+            className={styles.secondaryButton}
+            disabled={!canGoForward}
+            onClick={() => onPageChange(page + 1)}
+            type="button"
+          >
+            Next
+          </button>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function OrganizationCourseCard({ course }: { course: OrganizationCourseListItem }) {
+  const teacherNames = course.teachers.map((teacher) => teacher.name).join(", ");
+  const rewardEvents = course.rewards.event_types.length
+    ? course.rewards.event_types.map(formatUnderscoreLabel).join(", ")
+    : "No active reward policy";
+
+  return (
+    <article className={styles.courseCard}>
+      <div className={styles.sectionHeader}>
+        <div>
+          <h3>{course.title}</h3>
+          <p className={styles.muted}>{teacherNames || "No teacher assigned"}</p>
+        </div>
+        <StatusPill label={formatUnderscoreLabel(course.lifecycle_status)} tone={course.lifecycle_status === "published" ? "good" : "neutral"} />
+      </div>
+      <div className={styles.metricGrid}>
+        <Metric label="Chapters" value={course.content.chapter_count} />
+        <Metric label="Lessons" value={course.content.content_count} />
+        <Metric label="Students" value={course.roster.enrolled_student_count} />
+      </div>
+      <div className={styles.metricGrid}>
+        <Metric label="Pending joins" value={course.roster.pending_join_request_count} />
+        <Metric label="Reward review" value={course.reward_queue.pending_teacher_count} />
+        <Metric label="Approved queue" value={course.reward_queue.teacher_approved_count} />
+      </div>
+      <div className={styles.compactList}>
+        <div className={styles.compactRow}>
+          <span>Reward status</span>
+          <strong>{rewardEvents}</strong>
+        </div>
+        <div className={styles.compactRow}>
+          <span>Content types</span>
+          <strong>{course.content.content_types.length ? course.content.content_types.join(", ") : "None yet"}</strong>
+        </div>
+      </div>
+      <div className={styles.permissionRow}>
+        {course.permissions.can_manage_enrollments ? <span className={styles.permissionChip}>Can review joins</span> : null}
+        {course.permissions.can_submit_reward_events ? <span className={styles.permissionChip}>Can submit rewards</span> : null}
+        {course.permissions.can_create_courses ? <span className={styles.permissionChip}>Can create courses</span> : null}
+        {!course.permissions.can_manage_enrollments &&
+        !course.permissions.can_submit_reward_events &&
+        !course.permissions.can_create_courses ? (
+          <span className={styles.permissionChip}>View only</span>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
 function OrganizationReportsContent({
   csvError,
   csvState,
@@ -603,6 +1024,60 @@ function OrganizationReportsContent({
   );
 }
 
+function CoursesDeniedState({
+  capability,
+  organizationName,
+}: {
+  capability?: OrganizationCapability;
+  organizationName: string;
+}) {
+  return (
+    <section className={`${styles.panel} ${styles.singlePanel}`} role="status">
+      <div className={styles.panelHeader}>
+        <AlertTriangle size={20} aria-hidden />
+        <h2>Organization courses unavailable</h2>
+      </div>
+      <p className={styles.muted}>
+        Your current session can see that {organizationName} exists, but it cannot open the
+        organization course list.
+      </p>
+      <div className={styles.missingList}>
+        <strong>Missing scoped permission</strong>
+        {(capability ? missingOrganizationPermissions(capability) : ["VIEW_ORGANIZATION"]).map(
+          (permission) => (
+            <span key={permission}>{permission}</span>
+          ),
+        )}
+      </div>
+      <Link className={styles.secondaryLink} href="/organizations">
+        Back to organizations
+      </Link>
+    </section>
+  );
+}
+
+function CourseErrorState({
+  error,
+  onRetry,
+}: {
+  error: RouteError | null;
+  onRetry: () => void;
+}) {
+  return (
+    <section className={styles.errorBox} role="status">
+      <AlertTriangle size={20} aria-hidden />
+      <span>
+        <strong>{error?.code || "course_error"}</strong>
+        <span>{error?.message || "Organization courses could not be loaded."}</span>
+      </span>
+      <button className={styles.secondaryButton} onClick={onRetry} type="button">
+        <RefreshCw size={17} aria-hidden />
+        Retry
+      </button>
+    </section>
+  );
+}
+
 function ReportDeniedState({
   capability,
   organizationName,
@@ -728,6 +1203,7 @@ function ActionCard({
   enabled: boolean;
   organizationId: number;
 }) {
+  const coursesHref = `/organizations/${organizationId}/courses`;
   const reportHref = `/organizations/${organizationId}/reports`;
 
   return (
@@ -752,7 +1228,12 @@ function ActionCard({
           ))}
         </div>
       )}
-      {enabled && capability.key === "reports" ? (
+      {enabled && capability.key === "courses" ? (
+        <Link className={styles.primaryLink} href={coursesHref}>
+          <BookOpen size={17} aria-hidden />
+          Open courses
+        </Link>
+      ) : enabled && capability.key === "reports" ? (
         <Link className={styles.primaryLink} href={reportHref}>
           <FileText size={17} aria-hidden />
           Open reports
@@ -848,6 +1329,10 @@ function Metric({ label, value }: { label: string; value: number | string }) {
       <span>{label}</span>
     </span>
   );
+}
+
+function formatUnderscoreLabel(value: string) {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function SignedOutState({ redirect }: { redirect: string }) {

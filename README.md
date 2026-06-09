@@ -257,6 +257,15 @@ query parameters. The response includes `courses`, `total`, `limit`, `offset`,
 `search`, and `organization_id` so learners and organization views can paginate
 and filter discovery results consistently.
 
+### Organization course API
+
+Organization operators with platform or organization-scoped `VIEW_ORGANIZATION`
+can read `GET /api/organizations/{id}/courses`. The response supports
+`search`, `lifecycle_status`, `reward_available`, `limit`, and `offset` and
+includes organization labels, course lifecycle, teacher labels, content
+summaries, roster counts, reward-policy summaries, reward queue counts, and
+operator permission booleans for the organization course workspace.
+
 ### Reporting exports
 
 Platform administrators can read `GET /api/reports/platform/summary` and export

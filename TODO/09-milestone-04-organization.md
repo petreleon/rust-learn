@@ -27,8 +27,13 @@ routine work.
 - [ ] Organization dashboard summary: members, courses, teacher applications,
       reward volume, wallet balance, alerts, and pending actions.
 - [ ] Member list, invite, role, scoped-permission, and removal contracts.
-- [ ] Organization course list with lifecycle, enrollment, teacher, and reward
+- [x] Organization course list with lifecycle, enrollment, teacher, and reward
       policy summary.
+  - [x] `GET /api/organizations/{organizationId}/courses` returns an
+        organization-scoped course list with search, lifecycle, reward-policy,
+        pagination, teacher, content, roster, reward queue, and operator
+        permission summaries. Editing, publishing, ownership changes, and
+        reward-policy authoring remain separate route work.
 - [ ] Teacher nomination and sponsored application contracts.
 - [ ] Organization reward reports with filters, pagination, CSV export, payout
       failures, and reconciliation indicators.
@@ -53,7 +58,13 @@ routine work.
         Full organization health metrics remain open until backend contracts
         exist.
 - [ ] `/organizations/[organizationId]/members` member management.
-- [ ] `/organizations/[organizationId]/courses` organization courses.
+- [x] `/organizations/[organizationId]/courses` organization courses.
+  - [x] Shows organization-sponsored course summaries from the scoped course
+        contract, including filters, pagination, lifecycle badges, teacher
+        coverage, content readiness, enrollment pressure, reward queue
+        pressure, permission chips, signed-out, denied, empty, and retryable
+        backend-failure states. Course editing and publishing controls remain
+        open management work.
 - [ ] `/organizations/[organizationId]/teacher-applications` nominations and
       sponsored application tracking.
 - [x] `/organizations/[organizationId]/reports` reward reports and exports.
@@ -117,8 +128,12 @@ routine work.
         permission, and renders the report-scoped wallet balance from the
         dashboard contract.
 - [x] User belongs to multiple organizations with different permissions.
-- [ ] A course belongs to an organization but is managed by a course-scoped
+- [x] A course belongs to an organization but is managed by a course-scoped
       teacher outside the organization admin set.
+  - [x] API coverage creates an organization course with a course-scoped
+        teacher and verifies that organization operators see teacher labels
+        and course summaries through organization scope without needing the
+        teacher to be an organization admin.
 - [ ] Teacher nomination already exists or is already decided.
 - [ ] CSV export is empty, slow, denied, or fails after request starts.
   - [x] Helper tests cover CSV success, permission-denied export errors,
@@ -147,6 +162,12 @@ routine work.
         empty report data, and backend `500` retry state. BrowserMCP was
         unavailable in this runtime (`Transport closed`), so Playwright
         supplied rendered evidence.
+  - [x] Playwright QA covers `/organizations/[organizationId]/courses`
+        desktop populated course list, dashboard-to-courses navigation,
+        search/lifecycle/reward filters, mobile no-overflow layout, missing
+        course-list permission, empty course data, and backend `500` retry
+        state. BrowserMCP was unavailable in this runtime (`Transport closed`),
+        so Playwright supplied rendered evidence.
 - [ ] Tests for multi-org user, report-only user, wallet-denied user,
       invite-denied user, empty report, and failed CSV download.
   - [x] Frontend helper tests cover multi-org summaries, report/wallet/member
@@ -156,6 +177,13 @@ routine work.
   - [x] Frontend helper tests cover organization report dashboard JSON parsing,
         CSV body/filename parsing, permission-denied report errors, missing
         reports, timeout, and network failure normalization.
+  - [x] Rust API tests cover organization-scoped course listing for an
+        organization operator, including filters, teacher/content/roster/reward
+        summaries, permission booleans, and outsider `403`.
+  - [x] Frontend helper tests cover organization course-list filters,
+        successful operator summaries, permission-denied, missing
+        organization, backend `5xx`, timeout, and network failure
+        normalization.
 - [ ] Docker Compose E2E path: organization dashboard, member/report action,
       CSV or wallet audit, log scan.
 - [ ] Kubernetes smoke path loads organization routes and verifies selected

@@ -1,6 +1,7 @@
 import type { CurrentSession, OrganizationSessionScope } from "@/lib/session";
 
 export type OrganizationCapabilityKey =
+  | "courses"
   | "members"
   | "reports"
   | "wallet"
@@ -76,6 +77,74 @@ export type OrganizationRewardDashboard = {
   wallets: OrganizationWalletBalanceRow[];
 };
 
+export type OrganizationCourseTeacher = {
+  id: number;
+  name: string;
+};
+
+export type OrganizationCourseContentSummary = {
+  chapter_count: number;
+  content_count: number;
+  content_types: string[];
+  has_content: boolean;
+};
+
+export type OrganizationCourseRewardSummary = {
+  active_policy_count: number;
+  available: boolean;
+  event_types: string[];
+  payment_strategies: string[];
+  token_amounts: string[];
+};
+
+export type OrganizationCourseRosterSummary = {
+  enrolled_student_count: number;
+  pending_join_request_count: number;
+  waitlisted_join_request_count: number;
+};
+
+export type OrganizationCourseRewardQueueSummary = {
+  failed_count: number;
+  pending_teacher_count: number;
+  teacher_approved_count: number;
+};
+
+export type OrganizationCoursePermissionSummary = {
+  can_create_courses: boolean;
+  can_manage_course_settings: boolean;
+  can_manage_enrollments: boolean;
+  can_manage_reward_budget: boolean;
+  can_submit_reward_events: boolean;
+  can_view_courses: boolean;
+  can_view_reward_reports: boolean;
+};
+
+export type OrganizationCourseListItem = {
+  content: OrganizationCourseContentSummary;
+  id: number;
+  lifecycle_status: string;
+  permissions: OrganizationCoursePermissionSummary;
+  reward_queue: OrganizationCourseRewardQueueSummary;
+  rewards: OrganizationCourseRewardSummary;
+  roster: OrganizationCourseRosterSummary;
+  teachers: OrganizationCourseTeacher[];
+  title: string;
+};
+
+export type OrganizationCourseList = {
+  courses: OrganizationCourseListItem[];
+  lifecycle_status: string | null;
+  limit: number;
+  offset: number;
+  organization: {
+    id: number;
+    name: string;
+  };
+  reward_available: boolean | null;
+  search: string | null;
+  total: number;
+};
+
 export type OrganizationCsvDownload = {
   body: string;
   filename: string;
@@ -89,6 +158,15 @@ export type OrganizationRequestOptions = {
 
 export type OrganizationReportOptions = OrganizationRequestOptions & {
   organizationId: number;
+};
+
+export type OrganizationCourseListOptions = OrganizationRequestOptions & {
+  lifecycleStatus?: string | null;
+  limit?: number;
+  offset?: number;
+  organizationId: number;
+  rewardAvailable?: boolean | null;
+  search?: string | null;
 };
 
 type OrganizationErrorEnvelope = {
@@ -117,6 +195,11 @@ const capabilityPermissions: Array<{
   label: string;
   permissions: string[];
 }> = [
+  {
+    key: "courses",
+    label: "Courses",
+    permissions: ["VIEW_ORGANIZATION"],
+  },
   {
     key: "members",
     label: "Members",
@@ -267,6 +350,45 @@ export async function downloadOrganizationRewardDashboardCsv({
     filename: filenameFromContentDisposition(response.headers.get("content-disposition")) ||
       `organization-${organizationId}-reward-dashboard.csv`,
   };
+}
+
+export async function fetchOrganizationCourses({
+  apiRoot = "/api",
+  lifecycleStatus,
+  limit,
+  offset,
+  organizationId,
+  rewardAvailable,
+  search,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: OrganizationCourseListOptions): Promise<OrganizationCourseList> {
+  const query = new URLSearchParams();
+  const normalizedSearch = search?.trim();
+  if (normalizedSearch) {
+    query.set("search", normalizedSearch);
+  }
+  const normalizedLifecycleStatus = lifecycleStatus?.trim();
+  if (normalizedLifecycleStatus) {
+    query.set("lifecycle_status", normalizedLifecycleStatus);
+  }
+  if (typeof rewardAvailable === "boolean") {
+    query.set("reward_available", String(rewardAvailable));
+  }
+  if (typeof limit === "number") {
+    query.set("limit", String(limit));
+  }
+  if (typeof offset === "number") {
+    query.set("offset", String(offset));
+  }
+
+  const suffix = query.toString();
+  return organizationJsonRequest({
+    apiRoot,
+    path: `/organizations/${organizationId}/courses${suffix ? `?${suffix}` : ""}`,
+    timeoutMs,
+    token,
+  });
 }
 
 async function organizationJsonRequest<T>({

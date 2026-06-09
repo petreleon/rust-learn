@@ -174,6 +174,15 @@
       removal flows.
 - [ ] Build organization course management for sponsored courses, publishing
       status, enrollment trends, and reward policy visibility.
+  - [x] `/organizations/[organizationId]/courses` now consumes
+        `GET /api/organizations/{organizationId}/courses` to show
+        organization-sponsored course summaries with search, lifecycle and
+        reward filters, pagination, teacher labels, content readiness,
+        enrollment pressure, reward queue pressure, reward policy visibility,
+        permission chips, dashboard navigation, and signed-out/denied/empty/
+        backend-failure states. Editing, publishing, organization-course
+        ownership changes, and reward-policy authoring remain open management
+        work.
 - [ ] Build teacher nomination and sponsored-application tracking.
 - [ ] Build organization reward reports with date filters, CSV exports,
       approved amounts, payouts, failures, and reconciliation indicators.

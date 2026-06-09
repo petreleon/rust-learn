@@ -89,6 +89,16 @@ screens pretend to be complete.
         `PUT /api/courses/{courseId}/reward-candidates/{candidateId}/teacher-decision`
         records only teacher approval/rejection decisions. Stale candidates
         return a text `409` that the frontend normalizes and refreshes from.
+- [x] Define an organization-scoped course list contract before marking
+      organization course visibility complete.
+  - [x] `GET /api/organizations/{organizationId}/courses` returns to platform
+        or organization-scoped `VIEW_ORGANIZATION` users and includes
+        `total/limit/offset/search/lifecycle_status/reward_available`,
+        organization labels, course lifecycle, teacher labels, content
+        summaries, roster counts, reward-policy summaries, reward queue counts,
+        and operator permission booleans. Course editing, publishing,
+        organization ownership changes, and reward-policy authoring remain
+        separate contracts.
 - [ ] Define upload-job or media-processing status APIs before the teacher
       upload UI promises progress or retry visibility.
 - [ ] Define searchable user, organization, course, application, reward,

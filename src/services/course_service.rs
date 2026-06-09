@@ -110,6 +110,15 @@ pub struct TeacherCourseDashboardQuery {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OrganizationCourseListQuery {
+    pub search: Option<String>,
+    pub lifecycle_status: Option<String>,
+    pub reward_available: Option<bool>,
+    pub limit: i64,
+    pub offset: i64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TeacherCourseEnrollmentQuery {
     pub status: Option<String>,
     pub limit: i64,
@@ -124,6 +133,31 @@ pub struct TeacherCourseDashboardResponse {
     pub offset: i64,
     pub search: Option<String>,
     pub lifecycle_status: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationCourseListResponse {
+    pub organization: LearnerCourseCatalogOrganization,
+    pub courses: Vec<OrganizationCourseListItem>,
+    pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
+    pub search: Option<String>,
+    pub lifecycle_status: Option<String>,
+    pub reward_available: Option<bool>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct OrganizationCourseListItem {
+    pub id: i32,
+    pub title: String,
+    pub lifecycle_status: String,
+    pub teachers: Vec<LearnerCourseCatalogTeacher>,
+    pub content: LearnerCourseContentSummary,
+    pub rewards: LearnerCourseRewardSummary,
+    pub roster: TeacherCourseRosterSummary,
+    pub reward_queue: TeacherCourseRewardQueueSummary,
+    pub permissions: OrganizationCoursePermissionSummary,
 }
 
 #[derive(Debug, Serialize)]
@@ -307,6 +341,17 @@ pub struct TeacherCoursePermissionSummary {
     pub can_manage_reward_rules: bool,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct OrganizationCoursePermissionSummary {
+    pub can_view_courses: bool,
+    pub can_create_courses: bool,
+    pub can_manage_course_settings: bool,
+    pub can_manage_enrollments: bool,
+    pub can_submit_reward_events: bool,
+    pub can_view_reward_reports: bool,
+    pub can_manage_reward_budget: bool,
+}
+
 #[derive(Debug, Serialize)]
 pub struct LearnerCourseCatalogItem {
     pub id: i32,
@@ -417,6 +462,13 @@ pub enum LearnerCourseCatalogError {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum TeacherCourseDashboardError {
+    PermissionDenied(String),
+    NotFound,
+    Database(String),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum OrganizationCourseListError {
     PermissionDenied(String),
     NotFound,
     Database(String),
@@ -543,6 +595,31 @@ impl TeacherCourseDashboardQuery {
         TeacherCourseDashboardQuery {
             search,
             lifecycle_status,
+            limit,
+            offset,
+        }
+    }
+}
+
+impl OrganizationCourseListQuery {
+    pub fn new(
+        search: Option<String>,
+        lifecycle_status: Option<String>,
+        reward_available: Option<bool>,
+        limit: Option<i64>,
+        offset: Option<i64>,
+    ) -> Self {
+        let search = normalize_optional_string(search);
+        let lifecycle_status = normalize_optional_string(lifecycle_status);
+        let limit = limit
+            .unwrap_or(DEFAULT_COURSE_LIMIT)
+            .clamp(1, MAX_COURSE_LIMIT);
+        let offset = offset.unwrap_or(0).max(0);
+
+        OrganizationCourseListQuery {
+            search,
+            lifecycle_status,
+            reward_available,
             limit,
             offset,
         }
@@ -689,6 +766,89 @@ pub async fn discover_teacher_course_dashboard(
         offset: dashboard_query.offset,
         search: dashboard_query.search,
         lifecycle_status: dashboard_query.lifecycle_status,
+    })
+}
+
+pub async fn discover_organization_courses(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    organization_id: i32,
+    list_query: OrganizationCourseListQuery,
+) -> Result<OrganizationCourseListResponse, OrganizationCourseListError> {
+    if !user_has_platform_or_organization_permission(
+        conn,
+        actor_user_id,
+        organization_id,
+        Permissions::VIEW_ORGANIZATION,
+    )
+    .await?
+    {
+        return Err(OrganizationCourseListError::PermissionDenied(
+            Permissions::VIEW_ORGANIZATION.to_string(),
+        ));
+    }
+
+    let (organization_id, organization_name) = organizations::table
+        .find(organization_id)
+        .select((organizations::id, organizations::name))
+        .first::<(i32, String)>(conn)
+        .await
+        .map_err(OrganizationCourseListError::from)?;
+
+    let mut course_query = courses_organizations::table
+        .inner_join(courses::table.on(courses_organizations::course_id.eq(courses::id)))
+        .filter(courses_organizations::organization_id.eq(organization_id))
+        .into_boxed();
+
+    if let Some(search) = list_query.search.as_deref() {
+        let pattern = course_title_search_pattern(search);
+        course_query = course_query.filter(courses::title.ilike(pattern).escape(LIKE_ESCAPE_CHAR));
+    }
+
+    if let Some(status) = list_query.lifecycle_status.as_deref() {
+        course_query = course_query.filter(courses::lifecycle_status.eq(status));
+    }
+
+    let candidate_courses = course_query
+        .order(courses_organizations::order.asc())
+        .then_order_by(courses::id.asc())
+        .select(Course::as_select())
+        .load::<Course>(conn)
+        .await
+        .map_err(OrganizationCourseListError::from)?;
+
+    let permissions =
+        build_organization_course_permissions(conn, actor_user_id, organization_id).await?;
+    let mut items = Vec::new();
+    for course in candidate_courses {
+        let item = build_organization_course_list_item(conn, course, permissions.clone()).await?;
+        if let Some(reward_available) = list_query.reward_available {
+            if item.rewards.available != reward_available {
+                continue;
+            }
+        }
+        items.push(item);
+    }
+
+    let total = items.len() as i64;
+    let courses = items
+        .into_iter()
+        .skip(list_query.offset as usize)
+        .take(list_query.limit as usize)
+        .collect();
+
+    Ok(OrganizationCourseListResponse {
+        organization: LearnerCourseCatalogOrganization {
+            id: organization_id,
+            name: organization_name,
+        },
+        courses,
+        total,
+        limit: list_query.limit,
+        offset: list_query.offset,
+        search: list_query.search,
+        lifecycle_status: list_query.lifecycle_status,
+        reward_available: list_query.reward_available,
     })
 }
 
@@ -1030,6 +1190,53 @@ impl From<LearnerCourseCatalogError> for TeacherCourseDashboardError {
     }
 }
 
+impl From<diesel::result::Error> for OrganizationCourseListError {
+    fn from(error: diesel::result::Error) -> Self {
+        match error {
+            diesel::result::Error::NotFound => OrganizationCourseListError::NotFound,
+            other => OrganizationCourseListError::Database(other.to_string()),
+        }
+    }
+}
+
+impl From<LearnerCourseCatalogError> for OrganizationCourseListError {
+    fn from(error: LearnerCourseCatalogError) -> Self {
+        match error {
+            LearnerCourseCatalogError::Database(message) => {
+                OrganizationCourseListError::Database(message)
+            }
+            LearnerCourseCatalogError::NotFound => {
+                OrganizationCourseListError::Database("course not found".to_string())
+            }
+            LearnerCourseCatalogError::PermissionDenied(permission) => {
+                OrganizationCourseListError::Database(format!(
+                    "unexpected permission error while building organization courses: {}",
+                    permission
+                ))
+            }
+        }
+    }
+}
+
+impl From<TeacherCourseDashboardError> for OrganizationCourseListError {
+    fn from(error: TeacherCourseDashboardError) -> Self {
+        match error {
+            TeacherCourseDashboardError::PermissionDenied(permission) => {
+                OrganizationCourseListError::Database(format!(
+                    "unexpected permission error while building organization courses: {}",
+                    permission
+                ))
+            }
+            TeacherCourseDashboardError::NotFound => {
+                OrganizationCourseListError::Database("course not found".to_string())
+            }
+            TeacherCourseDashboardError::Database(message) => {
+                OrganizationCourseListError::Database(message)
+            }
+        }
+    }
+}
+
 async fn load_learner_course_learning_chapters(
     conn: &mut AsyncPgConnection,
     course_id: i32,
@@ -1175,6 +1382,30 @@ async fn build_learner_course_catalog_item(
         rewards,
         enrollment,
         access,
+    })
+}
+
+async fn build_organization_course_list_item(
+    conn: &mut AsyncPgConnection,
+    course: Course,
+    permissions: OrganizationCoursePermissionSummary,
+) -> Result<OrganizationCourseListItem, OrganizationCourseListError> {
+    let teachers = load_learner_course_teachers(conn, course.id).await?;
+    let content = load_learner_course_content_summary(conn, course.id).await?;
+    let rewards = load_learner_course_reward_summary(conn, course.id).await?;
+    let roster = load_teacher_course_roster_summary(conn, course.id).await?;
+    let reward_queue = load_teacher_course_reward_queue_summary(conn, course.id).await?;
+
+    Ok(OrganizationCourseListItem {
+        id: course.id,
+        title: course.title,
+        lifecycle_status: course.lifecycle_status,
+        teachers,
+        content,
+        rewards,
+        roster,
+        reward_queue,
+        permissions,
     })
 }
 
@@ -1460,6 +1691,97 @@ async fn courses_for_organizations(
         .load::<i32>(conn)
         .await
         .map_err(TeacherCourseDashboardError::from)
+}
+
+async fn user_has_platform_or_organization_permission(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    organization_id: i32,
+    permission: Permissions,
+) -> Result<bool, OrganizationCourseListError> {
+    let permission_name = permission.to_string();
+    if user_permission_platform_request(conn, actor_user_id, &permission_name)
+        .await
+        .map_err(OrganizationCourseListError::from)?
+    {
+        return Ok(true);
+    }
+
+    user_permission_organization_request(conn, actor_user_id, organization_id, &permission_name)
+        .await
+        .map_err(OrganizationCourseListError::from)
+}
+
+async fn build_organization_course_permissions(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    organization_id: i32,
+) -> Result<OrganizationCoursePermissionSummary, OrganizationCourseListError> {
+    Ok(OrganizationCoursePermissionSummary {
+        can_view_courses: user_has_platform_or_organization_permission(
+            conn,
+            actor_user_id,
+            organization_id,
+            Permissions::VIEW_ORGANIZATION,
+        )
+        .await?,
+        can_create_courses: user_has_platform_or_organization_permission(
+            conn,
+            actor_user_id,
+            organization_id,
+            Permissions::CREATE_COURSE,
+        )
+        .await?,
+        can_manage_course_settings: user_has_platform_or_organization_permission(
+            conn,
+            actor_user_id,
+            organization_id,
+            Permissions::MANAGE_ORG_SETTINGS,
+        )
+        .await?
+            || user_has_platform_or_organization_permission(
+                conn,
+                actor_user_id,
+                organization_id,
+                Permissions::MANAGE_COURSE_SETTINGS,
+            )
+            .await?,
+        can_manage_enrollments: user_has_platform_or_organization_permission(
+            conn,
+            actor_user_id,
+            organization_id,
+            Permissions::APPROVE_COURSE_JOIN_REQUESTS,
+        )
+        .await?
+            || user_has_platform_or_organization_permission(
+                conn,
+                actor_user_id,
+                organization_id,
+                Permissions::MANAGE_COURSE_ENROLLMENTS,
+            )
+            .await?,
+        can_submit_reward_events: user_has_platform_or_organization_permission(
+            conn,
+            actor_user_id,
+            organization_id,
+            Permissions::SUBMIT_ORG_COURSE_REWARD_EVENT,
+        )
+        .await?,
+        can_view_reward_reports: user_has_platform_or_organization_permission(
+            conn,
+            actor_user_id,
+            organization_id,
+            Permissions::VIEW_ORG_REWARD_REPORTS,
+        )
+        .await?,
+        can_manage_reward_budget: user_has_platform_or_organization_permission(
+            conn,
+            actor_user_id,
+            organization_id,
+            Permissions::MANAGE_ORG_REWARD_BUDGET,
+        )
+        .await?,
+    })
 }
 
 async fn build_teacher_course_permissions(

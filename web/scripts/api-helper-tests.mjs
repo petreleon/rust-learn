@@ -255,6 +255,119 @@ test("organization report helpers normalize permission, missing, timeout, and ne
   );
 });
 
+test("organization course helpers send filters and parse operator summaries", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(
+      url,
+      "/api/organizations/7/courses?search=rust&lifecycle_status=published&reward_available=true&limit=6&offset=6",
+    );
+    assert.equal(init.headers.Authorization, "Bearer org-token");
+    assert.equal(init.headers.Accept, "application/json, text/plain");
+    return jsonResponse(organizationCoursesFixture());
+  });
+
+  const result = await organization.fetchOrganizationCourses({
+    lifecycleStatus: "published",
+    limit: 6,
+    offset: 6,
+    organizationId: 7,
+    rewardAvailable: true,
+    search: " rust ",
+    token: "org-token",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(result.organization.name, "Ferris Academy");
+  assert.equal(result.total, 1);
+  assert.equal(result.courses[0].title, "Rust Ownership Lab");
+  assert.equal(result.courses[0].teachers[0].name, "Ada Teacher");
+  assert.equal(result.courses[0].content.content_count, 4);
+  assert.equal(result.courses[0].roster.pending_join_request_count, 2);
+  assert.equal(result.courses[0].rewards.available, true);
+  assert.equal(result.courses[0].permissions.can_submit_reward_events, true);
+});
+
+test("organization course helpers normalize denied, missing, server, timeout, and network errors", async () => {
+  mockFetch(() => textResponse("User does not have permission to view organization courses", { status: 403 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationCourses({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "permission_denied",
+      errorClass: organization.OrganizationRequestError,
+      status: 403,
+    },
+  );
+
+  mockFetch(() => textResponse("Organization not found", { status: 404 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationCourses({
+      organizationId: 404,
+      token: "org-token",
+    }),
+    {
+      code: "not_found",
+      errorClass: organization.OrganizationRequestError,
+      status: 404,
+    },
+  );
+
+  mockFetch(() => textResponse("Failed to fetch organization courses", { status: 500 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationCourses({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "server_error",
+      errorClass: organization.OrganizationRequestError,
+      status: 500,
+    },
+  );
+
+  mockFetch((_url, init) => {
+    return new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      });
+    });
+  });
+
+  await assertRequestError(
+    organization.fetchOrganizationCourses({
+      organizationId: 7,
+      timeoutMs: 1,
+      token: "org-token",
+    }),
+    {
+      code: "timeout",
+      errorClass: organization.OrganizationRequestError,
+      status: 0,
+    },
+  );
+
+  mockFetch(() => {
+    throw new TypeError("fetch failed");
+  });
+
+  await assertRequestError(
+    organization.fetchOrganizationCourses({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "network_error",
+      errorClass: organization.OrganizationRequestError,
+      status: 0,
+    },
+  );
+});
+
 test("loginWithPassword parses JSON token success", async () => {
   const calls = mockFetch((url, init) => {
     assert.equal(url, "/api/auth/login");
@@ -1308,12 +1421,14 @@ function organizationSessionFixture() {
         direct_permissions: [
           "INVITE_USER_TO_ORGANIZATION",
           "MANAGE_ORG_WALLETS",
+          "VIEW_ORGANIZATION",
           "VIEW_ORG_REWARD_REPORTS",
         ],
         delegated_permissions: [],
         effective_permissions: [
           "INVITE_USER_TO_ORGANIZATION",
           "MANAGE_ORG_WALLETS",
+          "VIEW_ORGANIZATION",
           "VIEW_ORG_REWARD_REPORTS",
         ],
       },
@@ -1384,6 +1499,61 @@ function organizationRewardDashboardFixture() {
         wallet_id: 4,
       },
     ],
+  };
+}
+
+function organizationCoursesFixture() {
+  return {
+    courses: [
+      {
+        content: {
+          chapter_count: 2,
+          content_count: 4,
+          content_types: ["article", "video"],
+          has_content: true,
+        },
+        id: 9,
+        lifecycle_status: "published",
+        permissions: {
+          can_create_courses: true,
+          can_manage_course_settings: true,
+          can_manage_enrollments: true,
+          can_manage_reward_budget: true,
+          can_submit_reward_events: true,
+          can_view_courses: true,
+          can_view_reward_reports: true,
+        },
+        reward_queue: {
+          failed_count: 0,
+          pending_teacher_count: 1,
+          teacher_approved_count: 2,
+        },
+        rewards: {
+          active_policy_count: 1,
+          available: true,
+          event_types: ["manual_completion"],
+          payment_strategies: ["mint"],
+          token_amounts: ["25"],
+        },
+        roster: {
+          enrolled_student_count: 8,
+          pending_join_request_count: 2,
+          waitlisted_join_request_count: 0,
+        },
+        teachers: [{ id: 4, name: "Ada Teacher" }],
+        title: "Rust Ownership Lab",
+      },
+    ],
+    lifecycle_status: "published",
+    limit: 6,
+    offset: 6,
+    organization: {
+      id: 7,
+      name: "Ferris Academy",
+    },
+    reward_available: true,
+    search: "rust",
+    total: 1,
   };
 }
 

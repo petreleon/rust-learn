@@ -134,3 +134,8 @@ represented in this folder.
       rewards route now maps visible learners to names, falls back without raw
       ids when learner context is unavailable, submits only teacher
       approval/rejection, and shows stale `409` refresh copy.
+- [x] Organization course work could have overclaimed full management when only
+      a visibility contract was ready; `/organizations/[organizationId]/courses`
+      now delivers the real scoped course list, filters, summaries, permission
+      chips, and denied/empty/error/mobile evidence while leaving editing,
+      publishing, ownership changes, and reward-policy authoring open.
