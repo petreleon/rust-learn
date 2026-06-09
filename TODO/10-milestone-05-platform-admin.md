@@ -62,9 +62,9 @@ reconciliation, and system health.
       The detail panel inside the amount-review route supports deep-linked
       candidate selection, enriched context, and audit history.
       A standalone candidate detail page remains open.
-- [ ] `/admin/fraud-blocks` fraud block list and create flow.
-- [ ] `/admin/fraud-blocks/[blockId]` block detail, audit, and revoke.
-- [ ] `/admin/delegations` delegated permission management.
+- [x] `/admin/fraud-blocks` fraud block list and create flow.
+- [x] `/admin/fraud-blocks/[blockId]` block detail, audit, and revoke.
+- [x] `/admin/delegations` delegated permission management.
 - [ ] `/admin/exports` report exports and CSV downloads.
 - [ ] `/admin/wallets` wallet reconciliation and transaction audit.
 - [ ] `/admin/system` readiness, health, and runtime status.
