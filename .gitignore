@@ -12,3 +12,4 @@
 
 # Generated local Kubernetes development secrets
 k8s/overlays/dev/secrets.patch.yaml
+.playwright-mcp/
