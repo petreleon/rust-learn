@@ -28,9 +28,12 @@ import { hasPlatformAdminAccess } from "@/lib/access";
 import {
   AdminRequestError,
   buildPlatformAdminWorkspace,
+  createFraudBlock,
   decideRewardAmount,
   decideTeacherApplication,
   downloadPlatformCsv,
+  fetchFraudBlockAudit,
+  fetchFraudBlocks,
   fetchPlatformFraudDashboard,
   fetchPlatformRewardCandidates,
   fetchPlatformRewardDashboard,
@@ -42,6 +45,11 @@ import {
   missingPlatformPermissions,
   platformCapabilityDefinitions,
   platformCapabilityEnabled,
+  revokeFraudBlock,
+  type FraudBlockAuditEvent,
+  type FraudBlockCreateOptions,
+  type FraudBlockItem,
+  type FraudBlockStatus,
   type PlatformAdminWorkspace,
   type PlatformCapability,
   type PlatformCapabilityKey,
@@ -1009,6 +1017,612 @@ export function AdminRewardAmountReviewRoute() {
       ) : null}
     </ProductShell>
   );
+}
+
+const ADMIN_FRAUD_BLOCK_PAGE_SIZE = 10;
+
+export function AdminFraudBlocksRoute() {
+  const route = useAdminSession();
+  const workspace = useMemo(
+    () => (route.session ? buildPlatformAdminWorkspace(route.session) : emptyWorkspace),
+    [route.session],
+  );
+  const allowed = route.session ? hasPlatformAdminAccess(route.session) : false;
+  const canView = hasAnyPlatformPermission(workspace, [
+    "VIEW_REWARD_AUDIT",
+    "MANAGE_REWARD_FRAUD_BLOCKS",
+  ]);
+  const canCreate = hasAnyPlatformPermission(workspace, [
+    "MANAGE_REWARD_FRAUD_BLOCKS",
+    "BLOCK_REWARD_TEACHER",
+    "BLOCK_REWARD_ORGANIZATION",
+  ]);
+  const canRevoke = hasPlatformPermission(workspace, "MANAGE_REWARD_FRAUD_BLOCKS");
+  const [blocks, setBlocks] = useState<{ blocks: FraudBlockItem[]; limit: number; offset: number; total: number } | null>(null);
+  const [blocksError, setBlocksError] = useState<RouteError | null>(null);
+  const [blocksState, setBlocksState] = useState<SectionState>("idle");
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [scopeFilter, setScopeFilter] = useState("");
+  const [activeFilter, setActiveFilter] = useState<boolean | null>(true);
+  const [offset, setOffset] = useState(0);
+  const [selectedBlockId, setSelectedBlockId] = useState<number | null>(null);
+  const [auditEvents, setAuditEvents] = useState<FraudBlockAuditEvent[]>([]);
+  const [auditError, setAuditError] = useState<RouteError | null>(null);
+  const [auditState, setAuditState] = useState<SectionState>("idle");
+  const [createScopeType, setCreateScopeType] = useState("");
+  const [createTargetId, setCreateTargetId] = useState("");
+  const [createReason, setCreateReason] = useState("");
+  const [createEvidence, setCreateEvidence] = useState("");
+  const [createError, setCreateError] = useState<RouteError | null>(null);
+  const [createState, setCreateState] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [revokeError, setRevokeError] = useState<RouteError | null>(null);
+  const [revokeState, setRevokeState] = useState<"idle" | "submitting" | "success" | "error">("idle");
+
+  const selectedBlock = blocks?.blocks.find((b) => b.id === selectedBlockId) || blocks?.blocks[0] || null;
+
+  const loadBlocks = useCallback(async () => {
+    const token = route.token;
+    if (!route.session || !token || !allowed || !canView) {
+      return;
+    }
+    setBlocksState("loading");
+    setBlocksError(null);
+    try {
+      const response = await fetchFraudBlocks({
+        active: activeFilter,
+        limit: ADMIN_FRAUD_BLOCK_PAGE_SIZE,
+        offset,
+        scope_type: scopeFilter || null,
+        token,
+      });
+      setBlocks(response);
+      setBlocksState("success");
+      setSelectedBlockId((current) => {
+        if (current && response.blocks.some((b) => b.id === current)) {
+          return current;
+        }
+        return response.blocks[0]?.id || null;
+      });
+    } catch (error) {
+      setBlocks(null);
+      setBlocksError(normalizeRouteError(error, "Fraud blocks could not be loaded."));
+      setBlocksState("error");
+    }
+  }, [allowed, activeFilter, canView, offset, route.session, route.token, scopeFilter]);
+
+  const loadAudit = useCallback(
+    async (blockId: number) => {
+      const token = route.token;
+      if (!token || !canView) {
+        return;
+      }
+      setAuditState("loading");
+      setAuditError(null);
+      try {
+        const events = await fetchFraudBlockAudit({ blockId, token });
+        setAuditEvents(events);
+        setAuditState("success");
+      } catch (error) {
+        setAuditEvents([]);
+        setAuditError(normalizeRouteError(error, "Fraud block audit could not be loaded."));
+        setAuditState("error");
+      }
+    },
+    [canView, route.token],
+  );
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadBlocks(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadBlocks]);
+
+  useEffect(() => {
+    if (!selectedBlock?.id) {
+      const timeout = window.setTimeout(() => {
+        setAuditEvents([]);
+        setAuditState("idle");
+      }, 0);
+      return () => window.clearTimeout(timeout);
+    }
+    const timeout = window.setTimeout(() => void loadAudit(selectedBlock.id), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadAudit, selectedBlock?.id]);
+
+  function applyFilters() {
+    setOffset(0);
+    setAppliedSearch(searchInput.trim());
+  }
+
+  function resetFilters() {
+    setSearchInput("");
+    setAppliedSearch("");
+    setScopeFilter("");
+    setActiveFilter(true);
+    setOffset(0);
+  }
+
+  function blockStatus(block: FraudBlockItem): FraudBlockStatus {
+    if (block.revoked_at) return "revoked";
+    if (block.expires_at && new Date(block.expires_at) <= new Date()) return "expired";
+    return "active";
+  }
+
+  function canSubmitCreate() {
+    return (
+      createScopeType.trim().length > 0 &&
+      createReason.trim().length > 0 &&
+      createState !== "submitting"
+    );
+  }
+
+  async function submitCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = route.token;
+    if (!token) return;
+    const trimmedReason = createReason.trim();
+    if (!trimmedReason) {
+      setCreateError({ code: "validation_error", message: "A reason is required.", status: 400 });
+      setCreateState("error");
+      return;
+    }
+    if (!createScopeType) {
+      setCreateError({ code: "validation_error", message: "Select a scope type.", status: 400 });
+      setCreateState("error");
+      return;
+    }
+    const id = createTargetId.trim();
+    setCreateError(null);
+    setCreateState("submitting");
+    try {
+      const options: FraudBlockCreateOptions = {
+        scope_type: createScopeType,
+        reason: trimmedReason,
+        token,
+      };
+      if (id) {
+        if (createScopeType === "teacher" && !Number.isNaN(Number(id))) {
+          options.teacher_user_id = Number(id);
+        } else if (createScopeType === "organization" && !Number.isNaN(Number(id))) {
+          options.organization_id = Number(id);
+        } else if (createScopeType === "course" && !Number.isNaN(Number(id))) {
+          options.course_id = Number(id);
+        } else if (createScopeType === "reward_policy" && !Number.isNaN(Number(id))) {
+          options.reward_policy_id = Number(id);
+        }
+      }
+      if (createEvidence.trim()) {
+        options.evidence_reference = createEvidence.trim();
+      }
+      await createFraudBlock(options);
+      setCreateState("success");
+      setCreateReason("");
+      setCreateTargetId("");
+      setCreateEvidence("");
+      setCreateScopeType("");
+      await loadBlocks();
+    } catch (error) {
+      const routeError = normalizeRouteError(error, "Fraud block could not be created.");
+      setCreateError(routeError);
+      setCreateState("error");
+    }
+  }
+
+  async function submitRevoke(blockId: number) {
+    const token = route.token;
+    if (!token) return;
+    setRevokeError(null);
+    setRevokeState("submitting");
+    try {
+      await revokeFraudBlock({ blockId, token });
+      setRevokeState("success");
+      await loadBlocks();
+      if (selectedBlock?.id === blockId) {
+        await loadAudit(blockId);
+      }
+    } catch (error) {
+      const routeError = normalizeRouteError(error, "Fraud block could not be revoked.");
+      setRevokeError(routeError);
+      setRevokeState("error");
+    }
+  }
+
+  const notice: ShellNotice | null =
+    createState === "success"
+      ? { message: "The fraud block was created.", title: "Block created", tone: "success" }
+      : createState === "error" && createError
+        ? { message: createError.message, title: "Create failed", tone: createError.status === 403 ? "warn" : "error" }
+        : revokeState === "success"
+          ? { message: "The fraud block was revoked.", title: "Block revoked", tone: "success" }
+          : revokeState === "error" && revokeError
+            ? { message: revokeError.message, title: "Revoke failed", tone: revokeError.status === 403 ? "warn" : "error" }
+            : null;
+
+  const scopeOptions = [
+    { label: "All scopes", value: "" },
+    { label: "Teacher", value: "teacher" },
+    { label: "Organization", value: "organization" },
+    { label: "Course", value: "course" },
+    { label: "Reward policy", value: "reward_policy" },
+  ];
+
+  const activeOptions = [
+    { label: "Active", value: "true" },
+    { label: "Inactive", value: "false" },
+    { label: "All", value: "" },
+  ];
+
+  return (
+    <ProductShell
+      activeNav="admin"
+      breadcrumbs={[
+        { label: "Admin", href: "/admin" },
+        { label: "Fraud blocks" },
+      ]}
+      description="Manage reward fraud blocks by scope, create new blocks, revoke existing ones, and inspect audit history."
+      eyebrow="Platform admin"
+      isSignedIn={route.hasToken}
+      notice={notice}
+      onSignOut={route.signOut}
+      session={route.session}
+      statusItems={
+        <>
+          <StatusPill label={route.loadState === "loading" ? "Resolving session" : canView ? "Fraud access" : "Fraud gated"} />
+          <StatusPill label={`${blocks?.total ?? 0} blocks`} />
+          <StatusPill label={canCreate ? "Create enabled" : "Create gated"} tone={canCreate ? "good" : "neutral"} />
+        </>
+      }
+      title="Fraud blocks"
+    >
+      {route.loadState === "idle" && !route.session ? <SignedOutState /> : null}
+      {route.loadState === "loading" ? <LoadingState /> : null}
+      {route.error ? <SessionErrorState error={route.error} /> : null}
+      {route.session && !allowed ? <AdminDeniedState workspace={workspace} /> : null}
+
+      {route.session && allowed ? (
+        canView ? (
+          <div className={styles.stack}>
+            <section className={styles.filterPanel} aria-label="Fraud block filters">
+              <label>
+                <span>Search</span>
+                <span className={styles.inputWithIcon}>
+                  <Search size={17} aria-hidden />
+                  <input
+                    onChange={(event) => setSearchInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        applyFilters();
+                      }
+                    }}
+                    placeholder="Block ID, reason"
+                    type="search"
+                    value={searchInput}
+                  />
+                </span>
+              </label>
+              <label>
+                <span>Scope</span>
+                <select onChange={(event) => { setScopeFilter(event.target.value); setOffset(0); }} value={scopeFilter}>
+                  {scopeOptions.map((option) => (
+                    <option key={option.label} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Status</span>
+                <select
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setActiveFilter(value === "" ? null : value === "true");
+                    setOffset(0);
+                  }}
+                  value={activeFilter === true ? "true" : activeFilter === false ? "false" : ""}
+                >
+                  {activeOptions.map((option) => (
+                    <option key={option.label} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className={styles.filterActions}>
+                <button className={styles.primaryButton} onClick={applyFilters} type="button">
+                  <Search size={16} aria-hidden />
+                  Apply
+                </button>
+                <button className={styles.secondaryButton} onClick={resetFilters} type="button">
+                  Reset
+                </button>
+                <button className={styles.secondaryButton} disabled={blocksState === "loading"} onClick={loadBlocks} type="button">
+                  {blocksState === "loading" ? <Loader2 className={styles.spin} size={16} aria-hidden /> : <RefreshCw size={16} aria-hidden />}
+                  Refresh
+                </button>
+              </div>
+            </section>
+            {blocksState === "loading" || blocksState === "idle" ? <PanelLoading title="Loading fraud blocks" /> : null}
+            {blocksState === "error" ? <PanelError error={blocksError} onRetry={loadBlocks} title="Fraud blocks failed" /> : null}
+            {blocksState === "success" && blocks ? (
+              <div className={styles.twoColumnWide}>
+                <section className={styles.panel}>
+                  <div className={styles.panelHeader}>
+                    <ShieldAlert size={20} aria-hidden />
+                    <div>
+                      <h2>Fraud block list</h2>
+                      <p>{blocks.total} block{blocks.total === 1 ? "" : "s"} match the current filters.</p>
+                    </div>
+                  </div>
+                  {blocks.blocks.length ? (
+                    <div className={styles.rowList}>
+                      {blocks.blocks.map((block) => (
+                        <article
+                          className={`${styles.compactRow} ${selectedBlockId === block.id ? styles.selectedRow : ""}`}
+                          key={block.id}
+                        >
+                          <div>
+                            <strong>Block #{block.id}</strong>
+                            <span>{block.reason}</span>
+                            <small>
+                              {formatUnderscoreLabel(block.scope_type)} · {targetLabel(block)} · {formatDate(block.created_at)}
+                            </small>
+                          </div>
+                          <div className={styles.rowMeta}>
+                            <StatusPill label={formatUnderscoreLabel(blockStatus(block))} tone={blockStatus(block) === "active" ? "warn" : "neutral"} />
+                            <span>{formatDate(block.updated_at)}</span>
+                            <button
+                              aria-label={`Inspect block ${block.id}`}
+                              className={styles.secondaryButton}
+                              onClick={() => setSelectedBlockId(block.id)}
+                              type="button"
+                            >
+                              Inspect
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState text="No fraud blocks match these filters." />
+                  )}
+                  <div className={styles.paginationRow}>
+                    <button className={styles.secondaryButton} disabled={offset <= 0} onClick={() => setOffset(Math.max(0, offset - blocks.limit))} type="button">
+                      Previous
+                    </button>
+                    <span>
+                      Showing {blocks.blocks.length ? offset + 1 : 0}-{Math.min(offset + blocks.blocks.length, blocks.total)} of {blocks.total}
+                    </span>
+                    <button className={styles.secondaryButton} disabled={offset + blocks.limit >= blocks.total} onClick={() => setOffset(offset + blocks.limit)} type="button">
+                      Next
+                    </button>
+                  </div>
+                </section>
+                <FraudBlockDetail
+                  block={selectedBlock}
+                  auditError={auditError}
+                  auditEvents={auditEvents}
+                  auditState={auditState}
+                  canRevoke={canRevoke}
+                  createError={createError}
+                  createEvidence={createEvidence}
+                  createReason={createReason}
+                  createScopeType={createScopeType}
+                  createState={createState}
+                  createTargetId={createTargetId}
+                  onCreateEvidenceChange={setCreateEvidence}
+                  onCreateReasonChange={setCreateReason}
+                  onCreateScopeTypeChange={setCreateScopeType}
+                  onCreateTargetIdChange={setCreateTargetId}
+                  onRefreshAudit={() => selectedBlock ? void loadAudit(selectedBlock.id) : undefined}
+                  onRevoke={submitRevoke}
+                  onSubmitCreate={submitCreate}
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <GatedPanel
+            capability={{
+              enabled: false,
+              key: "fraud_blocks",
+              label: "Fraud blocks",
+              permissions: ["VIEW_REWARD_AUDIT", "MANAGE_REWARD_FRAUD_BLOCKS"],
+            }}
+            icon={<ShieldAlert size={20} aria-hidden />}
+            title="Fraud blocks unavailable"
+          />
+        )
+      ) : null}
+    </ProductShell>
+  );
+}
+
+function FraudBlockDetail({
+  block,
+  auditError,
+  auditEvents,
+  auditState,
+  canRevoke,
+  createError,
+  createEvidence,
+  createReason,
+  createScopeType,
+  createState,
+  createTargetId,
+  onCreateEvidenceChange,
+  onCreateReasonChange,
+  onCreateScopeTypeChange,
+  onCreateTargetIdChange,
+  onRefreshAudit,
+  onRevoke,
+  onSubmitCreate,
+}: {
+  block: FraudBlockItem | null;
+  auditError: RouteError | null;
+  auditEvents: FraudBlockAuditEvent[];
+  auditState: SectionState;
+  canRevoke: boolean;
+  createError: RouteError | null;
+  createEvidence: string;
+  createReason: string;
+  createScopeType: string;
+  createState: "idle" | "submitting" | "success" | "error";
+  createTargetId: string;
+  onCreateEvidenceChange: (value: string) => void;
+  onCreateReasonChange: (value: string) => void;
+  onCreateScopeTypeChange: (value: string) => void;
+  onCreateTargetIdChange: (value: string) => void;
+  onRefreshAudit: () => void;
+  onRevoke: (blockId: number) => void;
+  onSubmitCreate: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  const scopeCreateOptions = [
+    { label: "Select scope…", value: "" },
+    { label: "Teacher", value: "teacher" },
+    { label: "Organization", value: "organization" },
+    { label: "Course", value: "course" },
+    { label: "Reward policy", value: "reward_policy" },
+  ];
+
+  return (
+    <section className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <ShieldAlert size={20} aria-hidden />
+        <div>
+          <h2>{block ? `Block ${block.id}` : "Create block"}</h2>
+          <p>{block ? "Inspect context and audit history." : "Add a new fraud block."}</p>
+        </div>
+        {block ? <StatusPill label={block.revoked_at ? "Revoked" : block.expires_at && new Date(block.expires_at) <= new Date() ? "Expired" : "Active"} tone={block.revoked_at ? "neutral" : "warn"} /> : null}
+      </div>
+
+      {!block ? (
+        <form className={styles.decisionForm} onSubmit={onSubmitCreate}>
+          <div className={styles.subsectionHeader}>
+            <h3>New fraud block</h3>
+          </div>
+          <label>
+            <span>Scope type</span>
+            <select onChange={(event) => onCreateScopeTypeChange(event.target.value)} value={createScopeType}>
+              {scopeCreateOptions.map((option) => (
+                <option key={option.label} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>Target ID</span>
+            <input
+              onChange={(event) => onCreateTargetIdChange(event.target.value)}
+              placeholder="Optional numeric ID for the scope target"
+              type="text"
+              value={createTargetId}
+            />
+          </label>
+          <label>
+            <span>Reason</span>
+            <textarea
+              onChange={(event) => onCreateReasonChange(event.target.value)}
+              placeholder="Explain why this fraud block is being created."
+              rows={4}
+              value={createReason}
+            />
+          </label>
+          <label>
+            <span>Evidence reference</span>
+            <input
+              onChange={(event) => onCreateEvidenceChange(event.target.value)}
+              placeholder="Optional case or ticket reference"
+              type="text"
+              value={createEvidence}
+            />
+          </label>
+          {createError ? (
+            <div className={styles.inlineError} role="alert">
+              <AlertTriangle size={16} aria-hidden />
+              <span>{createError.message}</span>
+            </div>
+          ) : null}
+          <button className={styles.primaryButton} disabled={createState === "submitting" || !createScopeType || !createReason.trim()} type="submit">
+            {createState === "submitting" ? <Loader2 className={styles.spin} size={16} aria-hidden /> : <Send size={16} aria-hidden />}
+            Create block
+          </button>
+        </form>
+      ) : null}
+
+      {block ? (
+        <>
+          <div className={styles.detailGrid}>
+            <ContextRow label="Scope type" value={formatUnderscoreLabel(block.scope_type)} />
+            <ContextRow label="Target" value={targetLabel(block)} />
+            <ContextRow label="Reason" value={block.reason} />
+            <ContextRow label="Evidence" value={block.evidence_reference || "None"} />
+            <ContextRow label="Created" value={formatDate(block.created_at)} />
+            <ContextRow label="Updated" value={formatDate(block.updated_at)} />
+          </div>
+          <div className={styles.textBlock}>
+            <h3>Audit history</h3>
+            <button className={styles.secondaryButton} disabled={auditState === "loading"} onClick={onRefreshAudit} type="button">
+              {auditState === "loading" ? <Loader2 className={styles.spin} size={15} aria-hidden /> : <RefreshCw size={15} aria-hidden />}
+              Refresh
+            </button>
+            {auditState === "loading" || auditState === "idle" ? (
+              <p className={styles.muted}>Loading audit events.</p>
+            ) : null}
+            {auditState === "error" ? (
+              <div className={styles.inlineError} role="alert">
+                <AlertTriangle size={16} aria-hidden />
+                <span>{auditError?.message || "Audit history could not be loaded."}</span>
+              </div>
+            ) : null}
+            {auditState === "success" && auditEvents.length ? (
+              <ol className={styles.auditList}>
+                {auditEvents.map((event) => (
+                  <li key={event.id}>
+                    <strong>{formatUnderscoreLabel(event.event_type)}</strong>
+                    <span>{formatDate(event.created_at)}</span>
+                    {event.reason ? <small>{event.reason}</small> : null}
+                  </li>
+                ))}
+              </ol>
+            ) : null}
+            {auditState === "success" && !auditEvents.length ? <EmptyState text="No audit events were returned for this block." /> : null}
+          </div>
+          {!block.revoked_at && canRevoke ? (
+            <div className={styles.textBlock}>
+              <h3>Revoke block</h3>
+              <button className={styles.primaryButton} disabled={false} onClick={() => onRevoke(block.id)} type="button">
+                Revoke
+              </button>
+            </div>
+          ) : null}
+          {block.revoked_at ? (
+            <p className={styles.muted}>This block was revoked and cannot be changed.</p>
+          ) : null}
+          {!block.revoked_at && !canRevoke ? (
+            <p className={styles.muted}>Revoke requires the MANAGE_REWARD_FRAUD_BLOCKS permission.</p>
+          ) : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function targetLabel(block: FraudBlockItem | PlatformFraudDashboard["active_blocks"][number]) {
+  if (block.teacher_user_id) {
+    return `Teacher user ${block.teacher_user_id}`;
+  }
+  if (block.organization_id) {
+    return `Organization ${block.organization_id}`;
+  }
+  if (block.course_id) {
+    return `Course ${block.course_id}`;
+  }
+  if (block.reward_policy_id) {
+    return `Reward policy ${block.reward_policy_id}`;
+  }
+  return "Scope target unavailable";
 }
 
 function SummaryPanel({
@@ -2253,22 +2867,6 @@ function dependencyLabel(name: string) {
     return "Ethereum";
   }
   return formatUnderscoreLabel(name);
-}
-
-function targetLabel(block: PlatformFraudDashboard["active_blocks"][number]) {
-  if (block.teacher_user_id) {
-    return `Teacher user ${block.teacher_user_id}`;
-  }
-  if (block.organization_id) {
-    return `Organization ${block.organization_id}`;
-  }
-  if (block.course_id) {
-    return `Course ${block.course_id}`;
-  }
-  if (block.reward_policy_id) {
-    return `Reward policy ${block.reward_policy_id}`;
-  }
-  return "Scope target unavailable";
 }
 
 function scopeTargetLabel(application: PlatformTeacherApplicationItem) {

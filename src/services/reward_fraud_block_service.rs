@@ -44,6 +44,14 @@ pub struct ListRewardFraudBlocksRequest {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct ListRewardFraudBlocksResponse {
+    pub blocks: Vec<RewardFraudBlock>,
+    pub limit: i64,
+    pub offset: i64,
+    pub total: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct RewardFraudBlockAuditEvent {
     pub fraud_block_id: i64,
     pub event_type: String,
@@ -131,7 +139,7 @@ pub async fn list_reward_fraud_blocks(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     request: ListRewardFraudBlocksRequest,
-) -> Result<Vec<RewardFraudBlock>, RewardFraudBlockError> {
+) -> Result<ListRewardFraudBlocksResponse, RewardFraudBlockError> {
     ensure_reward_fraud_report_permission(conn, actor_user_id).await?;
 
     let scope_type = request
@@ -140,7 +148,7 @@ pub async fn list_reward_fraud_blocks(
         .map(normalize_scope_type)
         .transpose()?;
 
-    reward_fraud_block_repository::list_reward_fraud_blocks(
+    let (blocks, total) = reward_fraud_block_repository::list_reward_fraud_blocks(
         conn,
         reward_fraud_block_repository::RewardFraudBlockFilter {
             scope_type,
@@ -154,7 +162,17 @@ pub async fn list_reward_fraud_blocks(
         },
     )
     .await
-    .map_err(RewardFraudBlockError::from)
+    .map_err(RewardFraudBlockError::from)?;
+
+    let limit = request.limit.unwrap_or(100).clamp(1, 500);
+    let offset = request.offset.unwrap_or(0).max(0);
+
+    Ok(ListRewardFraudBlocksResponse {
+        blocks,
+        limit,
+        offset,
+        total,
+    })
 }
 
 pub async fn reward_fraud_block_audit_history(

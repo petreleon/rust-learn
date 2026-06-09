@@ -128,6 +128,56 @@ export type PlatformFraudDashboard = {
   active_total: number;
 };
 
+export type FraudBlockStatus = "active" | "revoked" | "expired";
+
+export type FraudBlockItem = {
+  course_id: number | null;
+  created_at: string;
+  created_by_user_id: number;
+  evidence_reference: string | null;
+  expires_at: string | null;
+  id: number;
+  organization_id: number | null;
+  reason: string;
+  reward_policy_id: number | null;
+  revoked_at: string | null;
+  revoked_by_user_id: number | null;
+  scope_type: string;
+  teacher_user_id: number | null;
+  updated_at: string;
+};
+
+export type FraudBlockAuditEvent = {
+  actor_user_id: number | null;
+  created_at: string;
+  event_type: string;
+  fraud_block_id: number;
+  id: number;
+  reason: string | null;
+};
+
+export type FraudBlockListOptions = AdminRequestOptions & {
+  scope_type?: string | null;
+  active?: boolean | null;
+  limit?: number;
+  offset?: number;
+};
+
+export type FraudBlockCreateOptions = AdminRequestOptions & {
+  scope_type: string;
+  teacher_user_id?: number | null;
+  organization_id?: number | null;
+  course_id?: number | null;
+  reward_policy_id?: number | null;
+  reason: string;
+  evidence_reference?: string | null;
+  expires_at?: string | null;
+};
+
+export type FraudBlockRevokeOptions = AdminRequestOptions & {
+  blockId: number;
+};
+
 export type TeacherApplicationStatus = "submitted" | "needs_changes" | "approved" | "rejected";
 
 export type TeacherApplicationScope = "platform" | "organization" | "course";
@@ -491,6 +541,98 @@ export async function fetchPlatformFraudDashboard({
   return adminJsonRequest({
     apiRoot,
     path: "/reports/platform/fraud-dashboard",
+    timeoutMs,
+    token,
+  });
+}
+
+export async function fetchFraudBlocks({
+  apiRoot = "/api",
+  scope_type,
+  active,
+  limit,
+  offset,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: FraudBlockListOptions): Promise<{ blocks: FraudBlockItem[]; limit: number; offset: number; total: number }> {
+  const query = new URLSearchParams();
+  if (scope_type) {
+    query.set("scope_type", scope_type);
+  }
+  if (typeof active === "boolean") {
+    query.set("active", String(active));
+  }
+  if (typeof limit === "number") {
+    query.set("limit", String(limit));
+  }
+  if (typeof offset === "number") {
+    query.set("offset", String(offset));
+  }
+  const suffix = query.toString();
+  return adminJsonRequest({
+    apiRoot,
+    path: `/reward-fraud-blocks${suffix ? `?${suffix}` : ""}`,
+    timeoutMs,
+    token,
+  });
+}
+
+export async function createFraudBlock({
+  apiRoot = "/api",
+  course_id,
+  evidence_reference,
+  expires_at,
+  organization_id,
+  reason,
+  reward_policy_id,
+  scope_type,
+  teacher_user_id,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: FraudBlockCreateOptions): Promise<FraudBlockItem> {
+  return adminJsonRequest({
+    apiRoot,
+    body: JSON.stringify({
+      course_id: course_id ?? null,
+      evidence_reference: evidence_reference?.trim() || null,
+      expires_at: expires_at ?? null,
+      organization_id: organization_id ?? null,
+      reason: reason.trim(),
+      reward_policy_id: reward_policy_id ?? null,
+      scope_type,
+      teacher_user_id: teacher_user_id ?? null,
+    }),
+    method: "POST",
+    path: "/reward-fraud-blocks",
+    timeoutMs,
+    token,
+  });
+}
+
+export async function revokeFraudBlock({
+  apiRoot = "/api",
+  blockId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: FraudBlockRevokeOptions): Promise<FraudBlockItem> {
+  return adminJsonRequest({
+    apiRoot,
+    method: "PUT",
+    path: `/reward-fraud-blocks/${blockId}/revoke`,
+    timeoutMs,
+    token,
+  });
+}
+
+export async function fetchFraudBlockAudit({
+  apiRoot = "/api",
+  blockId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: AdminRequestOptions & { blockId: number }): Promise<FraudBlockAuditEvent[]> {
+  return adminJsonRequest({
+    apiRoot,
+    path: `/reward-fraud-blocks/${blockId}/audit`,
     timeoutMs,
     token,
   });

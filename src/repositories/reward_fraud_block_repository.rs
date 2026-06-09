@@ -36,11 +36,48 @@ pub async fn find_reward_fraud_block(
 pub async fn list_reward_fraud_blocks(
     conn: &mut AsyncPgConnection,
     filter: RewardFraudBlockFilter,
-) -> QueryResult<Vec<RewardFraudBlock>> {
+) -> QueryResult<(Vec<RewardFraudBlock>, i64)> {
     let now = Utc::now();
-    let mut query = reward_fraud_blocks::table.into_boxed();
+    let limit = filter.limit.unwrap_or(100).clamp(1, 500);
+    let offset = filter.offset.unwrap_or(0).max(0);
 
-    if let Some(scope_type) = filter.scope_type {
+    let mut count_query = reward_fraud_blocks::table.into_boxed();
+    if let Some(scope_type) = &filter.scope_type {
+        count_query = count_query.filter(reward_fraud_blocks::scope_type.eq(scope_type));
+    }
+    if let Some(teacher_user_id) = filter.teacher_user_id {
+        count_query = count_query.filter(reward_fraud_blocks::teacher_user_id.eq(Some(teacher_user_id)));
+    }
+    if let Some(organization_id) = filter.organization_id {
+        count_query = count_query.filter(reward_fraud_blocks::organization_id.eq(Some(organization_id)));
+    }
+    if let Some(course_id) = filter.course_id {
+        count_query = count_query.filter(reward_fraud_blocks::course_id.eq(Some(course_id)));
+    }
+    if let Some(reward_policy_id) = filter.reward_policy_id {
+        count_query = count_query.filter(reward_fraud_blocks::reward_policy_id.eq(Some(reward_policy_id)));
+    }
+    if let Some(active) = filter.active {
+        if active {
+            count_query = count_query
+                .filter(reward_fraud_blocks::revoked_at.is_null())
+                .filter(
+                    reward_fraud_blocks::expires_at
+                        .is_null()
+                        .or(reward_fraud_blocks::expires_at.gt(now)),
+                );
+        } else {
+            count_query = count_query.filter(
+                reward_fraud_blocks::revoked_at
+                    .is_not_null()
+                    .or(reward_fraud_blocks::expires_at.le(now)),
+            );
+        }
+    }
+    let total = count_query.count().get_result::<i64>(conn).await?;
+
+    let mut query = reward_fraud_blocks::table.into_boxed();
+    if let Some(scope_type) = &filter.scope_type {
         query = query.filter(reward_fraud_blocks::scope_type.eq(scope_type));
     }
     if let Some(teacher_user_id) = filter.teacher_user_id {
@@ -73,12 +110,13 @@ pub async fn list_reward_fraud_blocks(
         }
     }
 
-    query
+    let blocks = query
         .order(reward_fraud_blocks::created_at.desc())
-        .limit(filter.limit.unwrap_or(100).clamp(1, 500))
-        .offset(filter.offset.unwrap_or(0).max(0))
+        .limit(limit)
+        .offset(offset)
         .load(conn)
-        .await
+        .await?;
+    Ok((blocks, total))
 }
 
 pub async fn revoke_reward_fraud_block(

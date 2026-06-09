@@ -68,7 +68,7 @@ async fn list_reward_fraud_blocks(
     )
     .await
     {
-        Ok(blocks) => HttpResponse::Ok().json(blocks),
+        Ok(response) => HttpResponse::Ok().json(response),
         Err(error) => reward_fraud_block_error_response(error),
     }
 }
