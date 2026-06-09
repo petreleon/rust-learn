@@ -28,6 +28,7 @@ import {
   downloadOrganizationRewardDashboardCsv,
   enabledOrganizationCapabilities,
   fetchOrganizationCourses,
+  fetchOrganizationMembers,
   fetchOrganizationRewardDashboard,
   filterOrganizationWorkspace,
   findOrganizationWorkspaceItem,
@@ -37,6 +38,8 @@ import {
   type OrganizationCapabilityKey,
   type OrganizationCourseList,
   type OrganizationCourseListItem,
+  type OrganizationMemberList,
+  type OrganizationMemberListItem,
   type OrganizationRewardDashboard,
   type OrganizationWorkspaceItem,
   type OrganizationWorkspaceSummary,
@@ -62,6 +65,7 @@ type CapabilityFilter = OrganizationCapabilityKey | "all" | "delegated";
 type CsvState = "idle" | "downloading" | "success" | "error";
 type ReportLoadState = "idle" | "loading" | "success" | "error";
 type CourseLoadState = "idle" | "loading" | "success" | "error";
+type MemberLoadState = "idle" | "loading" | "success" | "error";
 
 const capabilityFilters: Array<{ label: string; value: CapabilityFilter }> = [
   { label: "All access", value: "all" },
@@ -88,7 +92,7 @@ const actionIcons: Record<OrganizationCapabilityKey, ReactNode> = {
 const actionDescriptions: Record<OrganizationCapabilityKey, string> = {
   courses: "Inspect sponsored courses, lifecycle, teacher coverage, enrollment pressure, and reward policy status.",
   course_rewards: "Submit organization-backed course reward events when the route contract is added.",
-  members: "Invite, review, and update organization members when member contracts are available.",
+  members: "Inspect organization members, role labels, scoped permissions, and management readiness.",
   reports: "Inspect reward volume, sponsored applications, wallet balances, and CSV exports.",
   settings: "Review scoped organization settings when settings contracts are available.",
   teacher_applications: "Nominate teachers and track sponsored applications when nomination contracts are available.",
@@ -118,6 +122,26 @@ const organizationCourseLifecycleOptions = [
 ];
 
 const ORGANIZATION_COURSE_PAGE_SIZE = 6;
+const ORGANIZATION_MEMBER_PAGE_SIZE = 8;
+
+const organizationMemberRoleOptions = [
+  { label: "All roles", value: "" },
+  { label: "Super admin", value: "SUPER_ADMIN" },
+  { label: "Admin", value: "ADMIN" },
+  { label: "Moderator", value: "MODERATOR" },
+  { label: "Teacher", value: "TEACHER" },
+  { label: "Student", value: "STUDENT" },
+];
+
+const organizationMemberPermissionOptions = [
+  { label: "All permissions", value: "" },
+  { label: "Can view organization", value: "VIEW_ORGANIZATION" },
+  { label: "Can invite members", value: "INVITE_USER_TO_ORGANIZATION" },
+  { label: "Can manage members", value: "MANAGE_ORG_MEMBERS" },
+  { label: "Can assign roles", value: "ASSIGN_ROLES_TO_ORG_USERS" },
+  { label: "Can view reward reports", value: "VIEW_ORG_REWARD_REPORTS" },
+  { label: "Can manage wallets", value: "MANAGE_ORG_WALLETS" },
+];
 
 export function OrganizationIndexRoute() {
   const route = useOrganizationSession();
@@ -243,6 +267,149 @@ export function OrganizationDashboardRoute({ organizationId }: { organizationId:
       {route.error ? <ErrorState error={route.error} redirect="/organizations" /> : null}
       {route.session && (invalidOrganizationId || !organization) ? <MissingOrganizationState /> : null}
       {route.session && organization ? <OrganizationDashboard organization={organization} /> : null}
+    </ProductShell>
+  );
+}
+
+export function OrganizationMembersRoute({ organizationId }: { organizationId: string }) {
+  const route = useOrganizationSession();
+  const numericOrganizationId = Number.parseInt(organizationId, 10);
+  const invalidOrganizationId = !/^\d+$/.test(organizationId) || !Number.isFinite(numericOrganizationId);
+  const organization = useMemo(
+    () =>
+      route.session && !invalidOrganizationId
+        ? findOrganizationWorkspaceItem(route.session, numericOrganizationId)
+        : null,
+    [invalidOrganizationId, numericOrganizationId, route.session],
+  );
+  const workspace = useMemo(
+    () => (route.session ? buildOrganizationWorkspace(route.session) : emptyWorkspace),
+    [route.session],
+  );
+  const membersCapability = organization?.capabilities.find((capability) => capability.key === "members");
+  const canViewMembers = Boolean(membersCapability?.enabled);
+  const [draftSearch, setDraftSearch] = useState("");
+  const [memberError, setMemberError] = useState<RouteError | null>(null);
+  const [memberLoadState, setMemberLoadState] = useState<MemberLoadState>("idle");
+  const [members, setMembers] = useState<OrganizationMemberList | null>(null);
+  const [page, setPage] = useState(0);
+  const [permissionFilter, setPermissionFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const notice = organizationNotice(route.error || memberError);
+
+  const loadMembers = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token || invalidOrganizationId || !organization || !canViewMembers) {
+      return;
+    }
+
+    setMemberError(null);
+    setMemberLoadState("loading");
+
+    try {
+      const nextMembers = await fetchOrganizationMembers({
+        limit: ORGANIZATION_MEMBER_PAGE_SIZE,
+        offset: page * ORGANIZATION_MEMBER_PAGE_SIZE,
+        organizationId: organization.id,
+        permission: permissionFilter,
+        role: roleFilter,
+        search,
+        token,
+      });
+      setMembers(nextMembers);
+      setMemberLoadState("success");
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      if (routeError.status === 401 || routeError.status === 404) {
+        clearStoredSessionToken();
+      }
+      setMembers(null);
+      setMemberError(routeError);
+      setMemberLoadState("error");
+    }
+  }, [canViewMembers, invalidOrganizationId, organization, page, permissionFilter, roleFilter, search]);
+
+  useEffect(() => {
+    if (route.session && organization && canViewMembers) {
+      const timeout = window.setTimeout(() => {
+        setMemberError(null);
+        setMemberLoadState("idle");
+        setMembers(null);
+        void loadMembers();
+      }, 0);
+      return () => window.clearTimeout(timeout);
+    }
+
+    return undefined;
+  }, [canViewMembers, loadMembers, organization, route.session]);
+
+  function applyFilters() {
+    setPage(0);
+    setSearch(draftSearch);
+  }
+
+  function resetFilters() {
+    setDraftSearch("");
+    setPage(0);
+    setPermissionFilter("");
+    setRoleFilter("");
+    setSearch("");
+  }
+
+  return (
+    <ProductShell
+      activeNav="organizations"
+      breadcrumbs={[
+        { href: "/session", label: "Workspace" },
+        { href: "/organizations", label: "Organizations" },
+        {
+          href: organization ? `/organizations/${organization.id}` : undefined,
+          label: organization?.name || "Organization",
+        },
+        { label: "Members" },
+      ]}
+      description="Organization members, role labels, direct and delegated scoped permissions, and operator action readiness."
+      eyebrow="Organization"
+      isSignedIn={route.hasToken || Boolean(route.session)}
+      notice={notice}
+      onSignOut={route.signOut}
+      session={route.session}
+      statusItems={<OrganizationStatus workspace={workspace} />}
+      title={organization?.name ? `${organization.name} members` : "Organization members"}
+    >
+      {route.loadState === "idle" && !route.session ? <SignedOutState redirect={`/organizations/${organizationId}/members`} /> : null}
+      {route.loadState === "loading" ? <LoadingState /> : null}
+      {route.error ? <ErrorState error={route.error} redirect={`/organizations/${organizationId}/members`} /> : null}
+      {route.session && (invalidOrganizationId || !organization) ? <MissingOrganizationState /> : null}
+      {route.session && organization && !canViewMembers ? (
+        <MembersDeniedState capability={membersCapability} organizationName={organization.name} />
+      ) : null}
+      {route.session && organization && canViewMembers ? (
+        <OrganizationMembersContent
+          draftSearch={draftSearch}
+          loadState={memberLoadState}
+          members={members}
+          onApplyFilters={applyFilters}
+          onDraftSearchChange={setDraftSearch}
+          onPageChange={setPage}
+          onPermissionFilterChange={(nextPermission) => {
+            setPermissionFilter(nextPermission);
+            setPage(0);
+          }}
+          onRefresh={loadMembers}
+          onResetFilters={resetFilters}
+          onRoleFilterChange={(nextRole) => {
+            setRoleFilter(nextRole);
+            setPage(0);
+          }}
+          organization={organization}
+          page={page}
+          permissionFilter={permissionFilter}
+          roleFilter={roleFilter}
+          routeError={memberError}
+        />
+      ) : null}
     </ProductShell>
   );
 }
@@ -602,6 +769,261 @@ function OrganizationDashboard({ organization }: { organization: OrganizationWor
         </div>
       </section>
     </>
+  );
+}
+
+function OrganizationMembersContent({
+  draftSearch,
+  loadState,
+  members,
+  onApplyFilters,
+  onDraftSearchChange,
+  onPageChange,
+  onPermissionFilterChange,
+  onRefresh,
+  onResetFilters,
+  onRoleFilterChange,
+  organization,
+  page,
+  permissionFilter,
+  roleFilter,
+  routeError,
+}: {
+  draftSearch: string;
+  loadState: MemberLoadState;
+  members: OrganizationMemberList | null;
+  onApplyFilters: () => void;
+  onDraftSearchChange: (value: string) => void;
+  onPageChange: (page: number) => void;
+  onPermissionFilterChange: (value: string) => void;
+  onRefresh: () => void;
+  onResetFilters: () => void;
+  onRoleFilterChange: (value: string) => void;
+  organization: OrganizationWorkspaceItem;
+  page: number;
+  permissionFilter: string;
+  roleFilter: string;
+  routeError: RouteError | null;
+}) {
+  if (loadState === "loading" || loadState === "idle") {
+    return (
+      <section className={`${styles.panel} ${styles.singlePanel}`} aria-live="polite">
+        <div className={styles.panelHeader}>
+          <Loader2 className={styles.spin} size={20} aria-hidden />
+          <h2>Loading organization members</h2>
+        </div>
+        <div className={styles.skeletonGrid} aria-hidden>
+          <div className={styles.skeleton} />
+          <div className={styles.skeleton} />
+          <div className={styles.skeleton} />
+        </div>
+      </section>
+    );
+  }
+
+  if (loadState === "error") {
+    return <MemberErrorState error={routeError} onRetry={onRefresh} />;
+  }
+
+  if (!members) {
+    return null;
+  }
+
+  const delegatedCount = members.members.filter((member) => member.delegated_permission_count > 0).length;
+  const verifiedEmailCount = members.members.filter((member) => member.email_verified).length;
+  const kycReadyCount = members.members.filter((member) => member.kyc_verified).length;
+  const totalPages = Math.max(1, Math.ceil(members.total / members.limit));
+  const canGoBack = members.offset > 0;
+  const canGoForward = members.offset + members.limit < members.total;
+
+  return (
+    <>
+      <section className={styles.workspaceHero}>
+        <div className={styles.workspaceTitleBlock}>
+          <Link className={styles.backLink} href={`/organizations/${organization.id}`}>
+            <ArrowLeft size={17} aria-hidden />
+            {organization.name}
+          </Link>
+          <p className={styles.eyebrow}>Organization members</p>
+          <h2>Member directory</h2>
+          <p className={styles.muted}>
+            Members load from the organization-scoped directory contract. Invite, role-change,
+            removal, and audit-history actions remain separate route work.
+          </p>
+        </div>
+        <div className={styles.actionRow}>
+          <button className={styles.secondaryButton} onClick={onRefresh} type="button">
+            <RefreshCw size={17} aria-hidden />
+            Refresh
+          </button>
+        </div>
+        <div className={styles.permissionRow}>
+          {members.operator_permissions.can_invite_members ? <span className={styles.permissionChip}>Can invite</span> : null}
+          {members.operator_permissions.can_manage_members ? <span className={styles.permissionChip}>Can manage members</span> : null}
+          {members.operator_permissions.can_assign_roles ? <span className={styles.permissionChip}>Can assign roles</span> : null}
+          {!members.operator_permissions.can_invite_members &&
+          !members.operator_permissions.can_manage_members &&
+          !members.operator_permissions.can_assign_roles ? (
+            <span className={styles.permissionChip}>View-only directory</span>
+          ) : null}
+        </div>
+      </section>
+
+      <section className={styles.summaryGrid}>
+        <SummaryCard icon={<Users size={20} aria-hidden />} label="Matching members" value={members.total} />
+        <SummaryCard icon={<ShieldCheck size={20} aria-hidden />} label="Delegated access" value={delegatedCount} />
+        <SummaryCard icon={<CheckCircle2 size={20} aria-hidden />} label="Verified emails" value={verifiedEmailCount} />
+        <SummaryCard icon={<Building2 size={20} aria-hidden />} label="KYC ready" value={kycReadyCount} />
+      </section>
+
+      <section className={styles.memberFilterPanel} aria-label="Organization member filters">
+        <label>
+          <span>Search members</span>
+          <span className={styles.inputWithIcon}>
+            <Search size={17} aria-hidden />
+            <input
+              onChange={(event) => onDraftSearchChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  onApplyFilters();
+                }
+              }}
+              placeholder="Name, email, role, or permission"
+              type="search"
+              value={draftSearch}
+            />
+          </span>
+        </label>
+        <label>
+          <span>Role</span>
+          <select
+            aria-label="Organization member role filter"
+            onChange={(event) => onRoleFilterChange(event.target.value)}
+            value={roleFilter}
+          >
+            {organizationMemberRoleOptions.map((option) => (
+              <option key={option.label} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Permission</span>
+          <select
+            aria-label="Organization member permission filter"
+            onChange={(event) => onPermissionFilterChange(event.target.value)}
+            value={permissionFilter}
+          >
+            {organizationMemberPermissionOptions.map((option) => (
+              <option key={option.label} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className={styles.filterActions}>
+          <button className={styles.primaryButton} onClick={onApplyFilters} type="button">
+            <Search size={17} aria-hidden />
+            Apply
+          </button>
+          <button className={styles.secondaryButton} onClick={onResetFilters} type="button">
+            <RefreshCw size={17} aria-hidden />
+            Reset
+          </button>
+        </div>
+      </section>
+
+      <section className={styles.panel}>
+        <div className={styles.sectionHeader}>
+          <h2>Member list</h2>
+          <StatusPill label={`Page ${page + 1} of ${totalPages}`} tone="neutral" />
+        </div>
+        {members.members.length ? (
+          <div className={styles.memberGrid}>
+            {members.members.map((member) => (
+              <OrganizationMemberCard member={member} key={member.id} />
+            ))}
+          </div>
+        ) : (
+          <p className={styles.muted}>
+            No organization members match these filters. Reset filters or check whether the member
+            still has a role in this organization.
+          </p>
+        )}
+        <div className={styles.paginationRow}>
+          <button
+            className={styles.secondaryButton}
+            disabled={!canGoBack}
+            onClick={() => onPageChange(Math.max(0, page - 1))}
+            type="button"
+          >
+            Previous
+          </button>
+          <span>
+            {members.total === 0
+              ? "0 members"
+              : `${members.offset + 1}-${Math.min(members.offset + members.limit, members.total)} of ${members.total}`}
+          </span>
+          <button
+            className={styles.secondaryButton}
+            disabled={!canGoForward}
+            onClick={() => onPageChange(page + 1)}
+            type="button"
+          >
+            Next
+          </button>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function OrganizationMemberCard({ member }: { member: OrganizationMemberListItem }) {
+  const previewPermissions = member.effective_permissions.slice(0, 4);
+  const remainingPermissions = member.effective_permissions.length - previewPermissions.length;
+
+  return (
+    <article className={styles.memberCard}>
+      <div className={styles.sectionHeader}>
+        <div>
+          <h3>{member.name}</h3>
+          <p className={styles.muted}>{member.email}</p>
+        </div>
+        <StatusPill label={member.roles[0] ? formatUnderscoreLabel(member.roles[0]) : "No role"} tone="neutral" />
+      </div>
+      <div className={styles.metricGrid}>
+        <Metric label="Direct" value={member.direct_permission_count} />
+        <Metric label="Delegated" value={member.delegated_permission_count} />
+        <Metric label="Effective" value={member.effective_permission_count} />
+      </div>
+      <div className={styles.compactList}>
+        <div className={styles.compactRow}>
+          <span>Email</span>
+          <strong>{member.email_verified ? "Verified" : "Pending"}</strong>
+        </div>
+        <div className={styles.compactRow}>
+          <span>KYC</span>
+          <strong>{member.kyc_verified ? "Ready" : "Not verified"}</strong>
+        </div>
+      </div>
+      <div className={styles.permissionRow}>
+        {member.roles.length ? (
+          member.roles.map((role) => <span className={styles.permissionChip} key={role}>{role}</span>)
+        ) : (
+          <span className={styles.permissionChip}>No role label</span>
+        )}
+      </div>
+      <div className={styles.permissionList}>
+        {previewPermissions.length ? (
+          previewPermissions.map((permission) => <span key={permission}>{permission}</span>)
+        ) : (
+          <span>No effective permissions</span>
+        )}
+        {remainingPermissions > 0 ? <span>+{remainingPermissions} more</span> : null}
+      </div>
+    </article>
   );
 }
 
@@ -1024,6 +1446,60 @@ function OrganizationReportsContent({
   );
 }
 
+function MembersDeniedState({
+  capability,
+  organizationName,
+}: {
+  capability?: OrganizationCapability;
+  organizationName: string;
+}) {
+  return (
+    <section className={`${styles.panel} ${styles.singlePanel}`} role="status">
+      <div className={styles.panelHeader}>
+        <AlertTriangle size={20} aria-hidden />
+        <h2>Organization members unavailable</h2>
+      </div>
+      <p className={styles.muted}>
+        Your current session can see that {organizationName} exists, but it cannot open the
+        organization member directory.
+      </p>
+      <div className={styles.missingList}>
+        <strong>Missing scoped permission</strong>
+        {(capability ? missingOrganizationPermissions(capability) : ["VIEW_ORGANIZATION"]).map(
+          (permission) => (
+            <span key={permission}>{permission}</span>
+          ),
+        )}
+      </div>
+      <Link className={styles.secondaryLink} href="/organizations">
+        Back to organizations
+      </Link>
+    </section>
+  );
+}
+
+function MemberErrorState({
+  error,
+  onRetry,
+}: {
+  error: RouteError | null;
+  onRetry: () => void;
+}) {
+  return (
+    <section className={styles.errorBox} role="status">
+      <AlertTriangle size={20} aria-hidden />
+      <span>
+        <strong>{error?.code || "member_error"}</strong>
+        <span>{error?.message || "Organization members could not be loaded."}</span>
+      </span>
+      <button className={styles.secondaryButton} onClick={onRetry} type="button">
+        <RefreshCw size={17} aria-hidden />
+        Retry
+      </button>
+    </section>
+  );
+}
+
 function CoursesDeniedState({
   capability,
   organizationName,
@@ -1204,6 +1680,7 @@ function ActionCard({
   organizationId: number;
 }) {
   const coursesHref = `/organizations/${organizationId}/courses`;
+  const membersHref = `/organizations/${organizationId}/members`;
   const reportHref = `/organizations/${organizationId}/reports`;
 
   return (
@@ -1232,6 +1709,11 @@ function ActionCard({
         <Link className={styles.primaryLink} href={coursesHref}>
           <BookOpen size={17} aria-hidden />
           Open courses
+        </Link>
+      ) : enabled && capability.key === "members" ? (
+        <Link className={styles.primaryLink} href={membersHref}>
+          <Users size={17} aria-hidden />
+          Open members
         </Link>
       ) : enabled && capability.key === "reports" ? (
         <Link className={styles.primaryLink} href={reportHref}>

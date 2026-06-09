@@ -266,6 +266,15 @@ includes organization labels, course lifecycle, teacher labels, content
 summaries, roster counts, reward-policy summaries, reward queue counts, and
 operator permission booleans for the organization course workspace.
 
+### Organization member API
+
+Organization operators with platform or organization-scoped `VIEW_ORGANIZATION`
+can read `GET /api/organizations/{id}/members`. The response supports
+`search`, `role`, `permission`, `limit`, and `offset` and includes organization
+labels, member names and emails, email/KYC readiness, role labels, direct
+permissions, active delegated organization permissions, effective permissions,
+and operator permission booleans for the member directory.
+
 ### Reporting exports
 
 Platform administrators can read `GET /api/reports/platform/summary` and export

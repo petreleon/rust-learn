@@ -172,6 +172,13 @@
         backend contracts exist.
 - [ ] Build member management for invites, roles, scoped permissions, and
       removal flows.
+  - [x] `/organizations/[organizationId]/members` now consumes
+        `GET /api/organizations/{organizationId}/members` to show a scoped
+        member directory with search, role and permission filters, pagination,
+        role labels, direct/delegated/effective permission summaries, operator
+        action readiness, dashboard navigation, and signed-out/denied/empty/
+        backend-failure states. Invite, role-change, removal, and audit-history
+        actions remain open management work.
 - [ ] Build organization course management for sponsored courses, publishing
       status, enrollment trends, and reward policy visibility.
   - [x] `/organizations/[organizationId]/courses` now consumes

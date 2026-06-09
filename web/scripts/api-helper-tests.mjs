@@ -368,6 +368,120 @@ test("organization course helpers normalize denied, missing, server, timeout, an
   );
 });
 
+test("organization member helpers send filters and parse permission summaries", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(
+      url,
+      "/api/organizations/7/members?search=ada&role=ADMIN&permission=VIEW_ORGANIZATION&limit=8&offset=8",
+    );
+    assert.equal(init.headers.Authorization, "Bearer org-token");
+    assert.equal(init.headers.Accept, "application/json, text/plain");
+    return jsonResponse(organizationMembersFixture());
+  });
+
+  const result = await organization.fetchOrganizationMembers({
+    limit: 8,
+    offset: 8,
+    organizationId: 7,
+    permission: "VIEW_ORGANIZATION",
+    role: "ADMIN",
+    search: " ada ",
+    token: "org-token",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(result.organization.name, "Ferris Academy");
+  assert.equal(result.total, 1);
+  assert.equal(result.operator_permissions.can_invite_members, true);
+  assert.equal(result.operator_permissions.can_assign_roles, false);
+  assert.equal(result.members[0].name, "Ada Admin");
+  assert.deepEqual(result.members[0].roles, ["ADMIN"]);
+  assert.equal(result.members[0].direct_permission_count, 3);
+  assert.equal(result.members[0].delegated_permissions[0], "VIEW_ORG_REWARD_REPORTS");
+  assert.equal(result.members[0].effective_permissions.includes("VIEW_ORGANIZATION"), true);
+});
+
+test("organization member helpers normalize denied, missing, server, timeout, and network errors", async () => {
+  mockFetch(() => textResponse("User does not have permission to view organization members", { status: 403 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationMembers({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "permission_denied",
+      errorClass: organization.OrganizationRequestError,
+      status: 403,
+    },
+  );
+
+  mockFetch(() => textResponse("Organization not found", { status: 404 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationMembers({
+      organizationId: 404,
+      token: "org-token",
+    }),
+    {
+      code: "not_found",
+      errorClass: organization.OrganizationRequestError,
+      status: 404,
+    },
+  );
+
+  mockFetch(() => textResponse("Failed to fetch organization members", { status: 500 }));
+
+  await assertRequestError(
+    organization.fetchOrganizationMembers({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "server_error",
+      errorClass: organization.OrganizationRequestError,
+      status: 500,
+    },
+  );
+
+  mockFetch((_url, init) => {
+    return new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      });
+    });
+  });
+
+  await assertRequestError(
+    organization.fetchOrganizationMembers({
+      organizationId: 7,
+      timeoutMs: 1,
+      token: "org-token",
+    }),
+    {
+      code: "timeout",
+      errorClass: organization.OrganizationRequestError,
+      status: 0,
+    },
+  );
+
+  mockFetch(() => {
+    throw new TypeError("fetch failed");
+  });
+
+  await assertRequestError(
+    organization.fetchOrganizationMembers({
+      organizationId: 7,
+      token: "org-token",
+    }),
+    {
+      code: "network_error",
+      errorClass: organization.OrganizationRequestError,
+      status: 0,
+    },
+  );
+});
+
 test("loginWithPassword parses JSON token success", async () => {
   const calls = mockFetch((url, init) => {
     assert.equal(url, "/api/auth/login");
@@ -1553,6 +1667,54 @@ function organizationCoursesFixture() {
     },
     reward_available: true,
     search: "rust",
+    total: 1,
+  };
+}
+
+function organizationMembersFixture() {
+  return {
+    limit: 8,
+    members: [
+      {
+        delegated_permission_count: 1,
+        delegated_permissions: ["VIEW_ORG_REWARD_REPORTS"],
+        direct_permission_count: 3,
+        direct_permissions: [
+          "INVITE_USER_TO_ORGANIZATION",
+          "MANAGE_ORG_MEMBERS",
+          "VIEW_ORGANIZATION",
+        ],
+        effective_permission_count: 4,
+        effective_permissions: [
+          "INVITE_USER_TO_ORGANIZATION",
+          "MANAGE_ORG_MEMBERS",
+          "VIEW_ORGANIZATION",
+          "VIEW_ORG_REWARD_REPORTS",
+        ],
+        email: "ada@example.test",
+        email_verified: true,
+        id: 14,
+        joined_at: "2026-06-09T10:00:00",
+        kyc_verified: true,
+        name: "Ada Admin",
+        roles: ["ADMIN"],
+      },
+    ],
+    offset: 8,
+    operator_permissions: {
+      can_assign_roles: false,
+      can_invite_members: true,
+      can_manage_members: true,
+      can_manage_settings: true,
+      can_view_members: true,
+    },
+    organization: {
+      id: 7,
+      name: "Ferris Academy",
+    },
+    permission: "VIEW_ORGANIZATION",
+    role: "ADMIN",
+    search: "ada",
     total: 1,
   };
 }

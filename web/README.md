@@ -31,6 +31,7 @@ or platform access signal.
 
 Organization product routes now include `/organizations`,
 `/organizations/[organizationId]`, and
+`/organizations/[organizationId]/members`, and
 `/organizations/[organizationId]/courses`, and
 `/organizations/[organizationId]/reports`. `/organizations` uses the current
 session's organization scopes to show multi-organization workspace cards,
@@ -46,16 +47,22 @@ and stale organization handling. The courses route loads
 sponsored course summaries with lifecycle and reward filters, teacher labels,
 content readiness, enrollment pressure, reward queue pressure, reward-policy
 visibility, permission chips, empty state, denied state, and retryable
+backend-failure state. The members route loads
+`GET /api/organizations/{organizationId}/members` and shows organization
+members with search, role and permission filters, pagination, email/KYC
+readiness, role labels, direct/delegated/effective permission summaries,
+operator action readiness, empty state, denied state, and retryable
 backend-failure state. The reports route loads
 `GET /api/reports/organizations/{organizationId}/reward-dashboard`, exports
 `GET /api/reports/organizations/{organizationId}/reward-dashboard.csv`, and
 shows all-time reward volume, approved amount, sponsored teacher application
 summary, report-scoped wallet balance, course reward volume, export state,
 empty state, denied state, and retryable backend-failure state. Date filters,
-pagination, payout-failure drill-downs, reconciliation rows, member lists,
-course editing/publishing, teacher nomination rows, wallet audit, budget data,
-and organization health metrics remain explicit backend-contract work before
-those routes become full operator workflows.
+pagination, payout-failure drill-downs, reconciliation rows,
+invite/role-change/removal/audit actions, course editing/publishing, teacher
+nomination rows, wallet audit, budget data, and organization health metrics
+remain explicit backend-contract work before those routes become full operator
+workflows.
 
 Teacher product routes now include `/teach`, `/teach/apply`,
 `/teach/courses`, `/teach/courses/[courseId]`, and

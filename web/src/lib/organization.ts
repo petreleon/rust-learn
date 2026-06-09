@@ -145,6 +145,45 @@ export type OrganizationCourseList = {
   total: number;
 };
 
+export type OrganizationMemberOperatorPermissions = {
+  can_assign_roles: boolean;
+  can_invite_members: boolean;
+  can_manage_members: boolean;
+  can_manage_settings: boolean;
+  can_view_members: boolean;
+};
+
+export type OrganizationMemberListItem = {
+  delegated_permission_count: number;
+  delegated_permissions: string[];
+  direct_permission_count: number;
+  direct_permissions: string[];
+  effective_permission_count: number;
+  effective_permissions: string[];
+  email: string;
+  email_verified: boolean;
+  id: number;
+  joined_at: string;
+  kyc_verified: boolean;
+  name: string;
+  roles: string[];
+};
+
+export type OrganizationMemberList = {
+  limit: number;
+  members: OrganizationMemberListItem[];
+  offset: number;
+  operator_permissions: OrganizationMemberOperatorPermissions;
+  organization: {
+    id: number;
+    name: string;
+  };
+  permission: string | null;
+  role: string | null;
+  search: string | null;
+  total: number;
+};
+
 export type OrganizationCsvDownload = {
   body: string;
   filename: string;
@@ -166,6 +205,15 @@ export type OrganizationCourseListOptions = OrganizationRequestOptions & {
   offset?: number;
   organizationId: number;
   rewardAvailable?: boolean | null;
+  search?: string | null;
+};
+
+export type OrganizationMemberListOptions = OrganizationRequestOptions & {
+  limit?: number;
+  offset?: number;
+  organizationId: number;
+  permission?: string | null;
+  role?: string | null;
   search?: string | null;
 };
 
@@ -203,7 +251,7 @@ const capabilityPermissions: Array<{
   {
     key: "members",
     label: "Members",
-    permissions: ["ASSIGN_ROLES_TO_ORG_USERS", "INVITE_USER_TO_ORGANIZATION", "MANAGE_ORG_MEMBERS"],
+    permissions: ["VIEW_ORGANIZATION"],
   },
   {
     key: "reports",
@@ -243,15 +291,7 @@ export function buildOrganizationWorkspace(session: CurrentSession): Organizatio
     courseRewardScopeCount: organizations.filter((organization) =>
       organization.capabilities.some((capability) => capability.key === "course_rewards" && capability.enabled),
     ).length,
-    managementScopeCount: organizations.filter((organization) =>
-      organization.capabilities.some(
-        (capability) =>
-          capability.enabled &&
-          (capability.key === "members" ||
-            capability.key === "teacher_applications" ||
-            capability.key === "settings"),
-      ),
-    ).length,
+    managementScopeCount: organizations.filter((organization) => organizationHasManagementScope(organization)).length,
     organizations,
     reportScopeCount: organizations.filter((organization) =>
       organization.capabilities.some((capability) => capability.key === "reports" && capability.enabled),
@@ -386,6 +426,46 @@ export async function fetchOrganizationCourses({
   return organizationJsonRequest({
     apiRoot,
     path: `/organizations/${organizationId}/courses${suffix ? `?${suffix}` : ""}`,
+    timeoutMs,
+    token,
+  });
+}
+
+export async function fetchOrganizationMembers({
+  apiRoot = "/api",
+  limit,
+  offset,
+  organizationId,
+  permission,
+  role,
+  search,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: OrganizationMemberListOptions): Promise<OrganizationMemberList> {
+  const query = new URLSearchParams();
+  const normalizedSearch = search?.trim();
+  if (normalizedSearch) {
+    query.set("search", normalizedSearch);
+  }
+  const normalizedRole = role?.trim();
+  if (normalizedRole) {
+    query.set("role", normalizedRole);
+  }
+  const normalizedPermission = permission?.trim();
+  if (normalizedPermission) {
+    query.set("permission", normalizedPermission);
+  }
+  if (typeof limit === "number") {
+    query.set("limit", String(limit));
+  }
+  if (typeof offset === "number") {
+    query.set("offset", String(offset));
+  }
+
+  const suffix = query.toString();
+  return organizationJsonRequest({
+    apiRoot,
+    path: `/organizations/${organizationId}/members${suffix ? `?${suffix}` : ""}`,
     timeoutMs,
     token,
   });
@@ -528,5 +608,18 @@ function hasOrganizationScopeSignal(organization: OrganizationSessionScope) {
     organization.direct_permissions.length > 0 ||
     organization.delegated_permissions.length > 0 ||
     organization.effective_permissions.length > 0
+  );
+}
+
+function organizationHasManagementScope(organization: OrganizationWorkspaceItem) {
+  return (
+    organization.effectivePermissions.some((permission) =>
+      ["ASSIGN_ROLES_TO_ORG_USERS", "INVITE_USER_TO_ORGANIZATION", "MANAGE_ORG_MEMBERS"].includes(permission),
+    ) ||
+    organization.capabilities.some(
+      (capability) =>
+        capability.enabled &&
+        (capability.key === "teacher_applications" || capability.key === "settings"),
+    )
   );
 }

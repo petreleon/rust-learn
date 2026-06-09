@@ -139,3 +139,7 @@ represented in this folder.
       now delivers the real scoped course list, filters, summaries, permission
       chips, and denied/empty/error/mobile evidence while leaving editing,
       publishing, ownership changes, and reward-policy authoring open.
+- [x] Organization member work could have repeated the role-name-only mistake;
+      `/organizations/[organizationId]/members` now shows direct, delegated,
+      and effective permission summaries plus view-only operator states while
+      leaving invite, role mutation, removal, and audit history open.

@@ -27,6 +27,12 @@ routine work.
 - [ ] Organization dashboard summary: members, courses, teacher applications,
       reward volume, wallet balance, alerts, and pending actions.
 - [ ] Member list, invite, role, scoped-permission, and removal contracts.
+  - [x] `GET /api/organizations/{organizationId}/members` returns an
+        organization-scoped member directory with search, role and permission
+        filters, pagination, role labels, direct/delegated/effective
+        permissions, email/KYC readiness, and operator action booleans.
+        Invite, role mutation, removal, and audit-history contracts remain
+        open.
 - [x] Organization course list with lifecycle, enrollment, teacher, and reward
       policy summary.
   - [x] `GET /api/organizations/{organizationId}/courses` returns an
@@ -58,6 +64,12 @@ routine work.
         Full organization health metrics remain open until backend contracts
         exist.
 - [ ] `/organizations/[organizationId]/members` member management.
+  - [x] Shows the organization member directory from the scoped member
+        contract, including filters, pagination, role labels, direct and
+        delegated permission chips, effective permission counts, operator
+        action readiness, dashboard navigation, signed-out, denied, empty, and
+        retryable backend-failure states. Invite, role-change, removal, and
+        audit-history actions remain open management work.
 - [x] `/organizations/[organizationId]/courses` organization courses.
   - [x] Shows organization-sponsored course summaries from the scoped course
         contract, including filters, pagination, lifecycle badges, teacher
@@ -94,12 +106,18 @@ routine work.
 
 ## Member And Permission Management
 
-- [ ] Search, filter, and paginate members.
+- [x] Search, filter, and paginate members.
+  - [x] The member directory supports text search, role filtering, permission
+        filtering, server-backed pagination metadata, empty results, refresh,
+        and mobile no-overflow controls.
 - [ ] Invite users with clear pending, accepted, expired, and failed states.
 - [ ] Assign organization roles only when hierarchy and scoped permissions
       allow it.
-- [ ] Show scoped permissions directly enough for operators to understand what
+- [x] Show scoped permissions directly enough for operators to understand what
       actions a member can perform.
+  - [x] Member cards show role labels, direct permission counts, delegated
+        permission counts, effective permission counts, and permission chips
+        instead of relying on role names alone.
 - [ ] Confirm destructive removal and show audit/history when available.
 
 ## Reports And Wallet
@@ -122,7 +140,10 @@ routine work.
 
 ## Organization Edge Cases
 
-- [ ] User has member view but not invite/manage permissions.
+- [x] User has member view but not invite/manage permissions.
+  - [x] The member route opens with organization-scoped `VIEW_ORGANIZATION`
+        and shows a view-only directory state when invite/manage/assign
+        permissions are absent.
 - [x] User has report permission but not wallet permission.
   - [x] The report route uses `VIEW_ORG_REWARD_REPORTS`, not wallet-management
         permission, and renders the report-scoped wallet balance from the
@@ -168,6 +189,12 @@ routine work.
         course-list permission, empty course data, and backend `500` retry
         state. BrowserMCP was unavailable in this runtime (`Transport closed`),
         so Playwright supplied rendered evidence.
+  - [x] Playwright QA covers `/organizations/[organizationId]/members`
+        desktop populated member list, dashboard-to-members navigation,
+        search/role filters, mobile no-overflow layout, missing member-view
+        permission, view-only empty member data, and backend `500` retry state.
+        BrowserMCP was unavailable in this runtime (`Transport closed`), so
+        Playwright supplied rendered evidence.
 - [ ] Tests for multi-org user, report-only user, wallet-denied user,
       invite-denied user, empty report, and failed CSV download.
   - [x] Frontend helper tests cover multi-org summaries, report/wallet/member
@@ -182,6 +209,14 @@ routine work.
         summaries, permission booleans, and outsider `403`.
   - [x] Frontend helper tests cover organization course-list filters,
         successful operator summaries, permission-denied, missing
+        organization, backend `5xx`, timeout, and network failure
+        normalization.
+  - [x] Rust API tests cover organization-scoped member listing for an
+        organization operator, including filters, role/direct/delegated/
+        effective permission summaries, operator action booleans, and outsider
+        `403`.
+  - [x] Frontend helper tests cover organization member-list filters,
+        successful operator/member summaries, permission-denied, missing
         organization, backend `5xx`, timeout, and network failure
         normalization.
 - [ ] Docker Compose E2E path: organization dashboard, member/report action,

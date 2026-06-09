@@ -99,6 +99,15 @@ screens pretend to be complete.
         and operator permission booleans. Course editing, publishing,
         organization ownership changes, and reward-policy authoring remain
         separate contracts.
+- [x] Define an organization-scoped member directory contract before marking
+      member visibility complete.
+  - [x] `GET /api/organizations/{organizationId}/members` returns to platform
+        or organization-scoped `VIEW_ORGANIZATION` users and includes
+        `total/limit/offset/search/role/permission`, organization labels,
+        member names/emails, email/KYC readiness, role labels, direct
+        permissions, delegated organization permissions, effective
+        permissions, and operator action booleans. Invite, role mutation,
+        removal, and audit-history behavior remain separate contracts.
 - [ ] Define upload-job or media-processing status APIs before the teacher
       upload UI promises progress or retry visibility.
 - [ ] Define searchable user, organization, course, application, reward,
