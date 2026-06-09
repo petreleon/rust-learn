@@ -43,6 +43,17 @@ of dashboard data. Teacher-application detail, amount-review decisions,
 fraud-block create/revoke, delegation management, and wallet reconciliation
 remain separate route work.
 
+`/admin/teacher-applications` is the platform teacher-review queue. It loads
+`GET /api/teacher-applications/review` plus
+`GET /api/teacher-applications/{applicationId}/audit`, filters applications by
+status and search, shows applicant/requested-scope/sponsor/portfolio context,
+renders audit history and decision notes, and saves review decisions through
+`PUT /api/teacher-applications/{applicationId}/decision`. Approve/reject
+controls are gated by `APPROVE_TEACHER_APPLICATION` and
+`REJECT_TEACHER_APPLICATION`; reviewers without those permissions can still
+request changes when `REVIEW_TEACHER_APPLICATIONS` is present. A dedicated
+deep-link detail page remains future route work.
+
 Organization product routes now include `/organizations`,
 `/organizations/[organizationId]`, and
 `/organizations/[organizationId]/members`, and

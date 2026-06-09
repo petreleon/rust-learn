@@ -3,6 +3,7 @@
 import {
   AlertTriangle,
   CheckCircle2,
+  Clock3,
   Database,
   Download,
   FileSpreadsheet,
@@ -11,6 +12,8 @@ import {
   Landmark,
   Loader2,
   RefreshCw,
+  Search,
+  Send,
   ShieldAlert,
   ShieldCheck,
   UserCheck,
@@ -20,16 +23,19 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { hasPlatformAdminAccess } from "@/lib/access";
 import {
   AdminRequestError,
   buildPlatformAdminWorkspace,
+  decideTeacherApplication,
   downloadPlatformCsv,
+  fetchPlatformTeacherApplications,
   fetchPlatformFraudDashboard,
   fetchPlatformRewardDashboard,
   fetchPlatformSummary,
   fetchPlatformSystemStatus,
+  fetchTeacherApplicationAudit,
   missingPlatformPermissions,
   platformCapabilityDefinitions,
   platformCapabilityEnabled,
@@ -42,6 +48,10 @@ import {
   type PlatformReportSummary,
   type PlatformRewardDashboard,
   type PlatformSystemStatus,
+  type PlatformTeacherApplicationItem,
+  type PlatformTeacherApplicationsResponse,
+  type TeacherApplicationAuditEvent,
+  type TeacherApplicationStatus,
 } from "@/lib/admin";
 import {
   clearStoredSessionToken,
@@ -120,6 +130,15 @@ const exportReports: Array<{
     label: "Delegations",
     report: "delegated_permissions",
   },
+];
+
+const ADMIN_TEACHER_APPLICATION_PAGE_SIZE = 8;
+const teacherApplicationStatusOptions: Array<{ label: string; value: TeacherApplicationStatus | "" }> = [
+  { label: "All statuses", value: "" },
+  { label: "Submitted", value: "submitted" },
+  { label: "Needs changes", value: "needs_changes" },
+  { label: "Approved", value: "approved" },
+  { label: "Rejected", value: "rejected" },
 ];
 
 const actionIcons: Record<PlatformCapabilityKey, LucideIcon> = {
@@ -359,6 +378,273 @@ export function AdminDashboardRoute() {
             <SystemPanel error={systemError} onRetry={loadDashboard} state={systemState} status={systemStatus} />
           </div>
         </div>
+      ) : null}
+    </ProductShell>
+  );
+}
+
+export function AdminTeacherApplicationsRoute() {
+  const route = useAdminSession();
+  const workspace = useMemo(
+    () => (route.session ? buildPlatformAdminWorkspace(route.session) : emptyWorkspace),
+    [route.session],
+  );
+  const allowed = route.session ? hasPlatformAdminAccess(route.session) : false;
+  const canReview = hasPlatformPermission(workspace, "REVIEW_TEACHER_APPLICATIONS");
+  const canApprove = hasPlatformPermission(workspace, "APPROVE_TEACHER_APPLICATION");
+  const canReject = hasPlatformPermission(workspace, "REJECT_TEACHER_APPLICATION");
+  const [applications, setApplications] = useState<PlatformTeacherApplicationsResponse | null>(null);
+  const [applicationError, setApplicationError] = useState<RouteError | null>(null);
+  const [applicationState, setApplicationState] = useState<SectionState>("idle");
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<TeacherApplicationStatus | "">("submitted");
+  const [offset, setOffset] = useState(0);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<number | null>(null);
+  const [auditEvents, setAuditEvents] = useState<TeacherApplicationAuditEvent[]>([]);
+  const [auditError, setAuditError] = useState<RouteError | null>(null);
+  const [auditState, setAuditState] = useState<SectionState>("idle");
+  const [decisionReason, setDecisionReason] = useState("");
+  const [decisionStatus, setDecisionStatus] = useState<Extract<TeacherApplicationStatus, "approved" | "needs_changes" | "rejected">>("needs_changes");
+  const [decisionError, setDecisionError] = useState<RouteError | null>(null);
+  const [decisionState, setDecisionState] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const selectedApplication =
+    applications?.applications.find((application) => application.id === selectedApplicationId) ||
+    applications?.applications[0] ||
+    null;
+
+  const loadApplications = useCallback(async () => {
+    const token = route.token;
+    if (!route.session || !token || !allowed || !canReview) {
+      return;
+    }
+
+    setApplicationState("loading");
+    setApplicationError(null);
+
+    try {
+      const response = await fetchPlatformTeacherApplications({
+        limit: ADMIN_TEACHER_APPLICATION_PAGE_SIZE,
+        offset,
+        search: appliedSearch,
+        status: statusFilter,
+        token,
+      });
+      setApplications(response);
+      setApplicationState("success");
+      setSelectedApplicationId((current) => {
+        if (current && response.applications.some((application) => application.id === current)) {
+          return current;
+        }
+        return response.applications[0]?.id || null;
+      });
+    } catch (error) {
+      setApplications(null);
+      setApplicationError(normalizeRouteError(error, "Teacher application review queue could not be loaded."));
+      setApplicationState("error");
+    }
+  }, [allowed, appliedSearch, canReview, offset, route.session, route.token, statusFilter]);
+
+  const loadAudit = useCallback(
+    async (applicationId: number) => {
+      const token = route.token;
+      if (!token || !canReview) {
+        return;
+      }
+
+      setAuditState("loading");
+      setAuditError(null);
+      try {
+        const events = await fetchTeacherApplicationAudit({ applicationId, token });
+        setAuditEvents(events);
+        setAuditState("success");
+      } catch (error) {
+        setAuditEvents([]);
+        setAuditError(normalizeRouteError(error, "Teacher application audit could not be loaded."));
+        setAuditState("error");
+      }
+    },
+    [canReview, route.token],
+  );
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadApplications(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadApplications]);
+
+  useEffect(() => {
+    if (!selectedApplication?.id) {
+      const timeout = window.setTimeout(() => {
+        setAuditEvents([]);
+        setAuditState("idle");
+      }, 0);
+      return () => window.clearTimeout(timeout);
+    }
+
+    const timeout = window.setTimeout(() => void loadAudit(selectedApplication.id), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadAudit, selectedApplication?.id]);
+
+  function applyFilters() {
+    setOffset(0);
+    setAppliedSearch(searchInput.trim());
+  }
+
+  function resetFilters() {
+    setSearchInput("");
+    setAppliedSearch("");
+    setStatusFilter("submitted");
+    setOffset(0);
+  }
+
+  async function submitDecision(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = route.token;
+    if (!token || !selectedApplication) {
+      return;
+    }
+
+    const trimmedReason = decisionReason.trim();
+    if (!trimmedReason) {
+      setDecisionError({
+        code: "validation_error",
+        message: "Add a decision reason before changing an application.",
+        status: 400,
+      });
+      setDecisionState("error");
+      return;
+    }
+
+    setDecisionError(null);
+    setDecisionState("submitting");
+
+    try {
+      await decideTeacherApplication({
+        applicationId: selectedApplication.id,
+        decisionReason: trimmedReason,
+        status: decisionStatus,
+        token,
+      });
+      setDecisionReason("");
+      setDecisionState("success");
+      await loadApplications();
+      await loadAudit(selectedApplication.id);
+    } catch (error) {
+      const routeError = normalizeRouteError(error, "Teacher application decision could not be saved.");
+      setDecisionError(routeError);
+      setDecisionState("error");
+      if (routeError.status === 409) {
+        await loadApplications();
+        await loadAudit(selectedApplication.id);
+      }
+    }
+  }
+
+  const notice: ShellNotice | null =
+    decisionState === "success"
+      ? {
+          message: "The application was refreshed with the latest decision state.",
+          title: "Decision saved",
+          tone: "success",
+        }
+      : decisionState === "error" && decisionError
+        ? {
+            message: decisionError.message,
+            title: decisionError.status === 409 ? "Application changed" : "Decision failed",
+            tone: decisionError.status === 403 || decisionError.status === 409 ? "warn" : "error",
+          }
+        : null;
+
+  return (
+    <ProductShell
+      activeNav="admin"
+      breadcrumbs={[
+        { label: "Admin", href: "/admin" },
+        { label: "Teacher applications" },
+      ]}
+      description="Review submitted teacher applications with applicant context, sponsor scope, audit history, and permission-gated decisions."
+      eyebrow="Platform admin"
+      isSignedIn={route.hasToken}
+      notice={notice}
+      onSignOut={route.signOut}
+      session={route.session}
+      statusItems={
+        <>
+          <StatusPill label={route.loadState === "loading" ? "Resolving session" : canReview ? "Review access" : "Review gated"} />
+          <StatusPill label={`${applications?.summary.submitted ?? 0} submitted`} tone={(applications?.summary.submitted ?? 0) ? "warn" : "neutral"} />
+          <StatusPill label={canApprove ? "Approve enabled" : "Approve gated"} tone={canApprove ? "good" : "neutral"} />
+        </>
+      }
+      title="Teacher application review"
+    >
+      {route.loadState === "idle" && !route.session ? <SignedOutState /> : null}
+      {route.loadState === "loading" ? <LoadingState /> : null}
+      {route.error ? <SessionErrorState error={route.error} /> : null}
+      {route.session && !allowed ? <AdminDeniedState workspace={workspace} /> : null}
+
+      {route.session && allowed ? (
+        canReview ? (
+          <div className={styles.stack}>
+            <TeacherApplicationSummaryPanel response={applications} state={applicationState} />
+            <TeacherApplicationFilterPanel
+              onApply={applyFilters}
+              onRefresh={loadApplications}
+              onReset={resetFilters}
+              searchInput={searchInput}
+              setSearchInput={setSearchInput}
+              setStatusFilter={(value) => {
+                setStatusFilter(value);
+                setOffset(0);
+              }}
+              state={applicationState}
+              statusFilter={statusFilter}
+            />
+            {applicationState === "loading" || applicationState === "idle" ? (
+              <PanelLoading title="Loading teacher applications" />
+            ) : null}
+            {applicationState === "error" ? (
+              <PanelError error={applicationError} onRetry={loadApplications} title="Teacher application queue failed" />
+            ) : null}
+            {applicationState === "success" && applications ? (
+              <div className={styles.twoColumnWide}>
+                <TeacherApplicationQueue
+                  applications={applications}
+                  offset={offset}
+                  onPage={(nextOffset) => setOffset(nextOffset)}
+                  onSelect={setSelectedApplicationId}
+                  selectedApplicationId={selectedApplication?.id || null}
+                />
+                <TeacherApplicationDetail
+                  application={selectedApplication}
+                  auditError={auditError}
+                  auditEvents={auditEvents}
+                  auditState={auditState}
+                  canApprove={canApprove}
+                  canReject={canReject}
+                  decisionError={decisionError}
+                  decisionReason={decisionReason}
+                  decisionState={decisionState}
+                  decisionStatus={decisionStatus}
+                  onDecisionReasonChange={setDecisionReason}
+                  onDecisionStatusChange={setDecisionStatus}
+                  onRefreshAudit={() => selectedApplication ? void loadAudit(selectedApplication.id) : undefined}
+                  onSubmitDecision={submitDecision}
+                />
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <GatedPanel
+            capability={{
+              enabled: false,
+              key: "teacher_applications",
+              label: "Teacher application review",
+              permissions: ["REVIEW_TEACHER_APPLICATIONS"],
+            }}
+            icon={<UserCheck size={20} aria-hidden />}
+            title="Teacher application review unavailable"
+          />
+        )
       ) : null}
     </ProductShell>
   );
@@ -878,6 +1164,394 @@ function RiskList({ dashboard }: { dashboard: PlatformRewardDashboard }) {
   );
 }
 
+function TeacherApplicationSummaryPanel({
+  response,
+  state,
+}: {
+  response: PlatformTeacherApplicationsResponse | null;
+  state: SectionState;
+}) {
+  const summary = response?.summary;
+
+  return (
+    <section className={styles.summaryGrid} aria-label="Teacher application review summary">
+      <SummaryCard icon={<UserCheck size={20} aria-hidden />} label="Submitted" value={summary?.submitted || 0} />
+      <SummaryCard icon={<Clock3 size={20} aria-hidden />} label="Needs changes" value={summary?.needs_changes || 0} />
+      <SummaryCard icon={<CheckCircle2 size={20} aria-hidden />} label="Approved" value={summary?.approved || 0} />
+      <SummaryCard icon={<XCircle size={20} aria-hidden />} label="Rejected" value={summary?.rejected || 0} />
+      <SummaryCard icon={<FileText size={20} aria-hidden />} label={state === "loading" ? "Loading" : "Total"} value={summary?.total || 0} />
+    </section>
+  );
+}
+
+function TeacherApplicationFilterPanel({
+  onApply,
+  onRefresh,
+  onReset,
+  searchInput,
+  setSearchInput,
+  setStatusFilter,
+  state,
+  statusFilter,
+}: {
+  onApply: () => void;
+  onRefresh: () => void;
+  onReset: () => void;
+  searchInput: string;
+  setSearchInput: (value: string) => void;
+  setStatusFilter: (value: TeacherApplicationStatus | "") => void;
+  state: SectionState;
+  statusFilter: TeacherApplicationStatus | "";
+}) {
+  return (
+    <section className={styles.filterPanel} aria-label="Teacher application filters">
+      <label>
+        <span>Search</span>
+        <span className={styles.inputWithIcon}>
+          <Search size={17} aria-hidden />
+          <input
+            onChange={(event) => setSearchInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                onApply();
+              }
+            }}
+            placeholder="Applicant, email, sponsor, course, status"
+            type="search"
+            value={searchInput}
+          />
+        </span>
+      </label>
+      <label>
+        <span>Status</span>
+        <select
+          onChange={(event) => setStatusFilter(event.target.value as TeacherApplicationStatus | "")}
+          value={statusFilter}
+        >
+          {teacherApplicationStatusOptions.map((option) => (
+            <option key={option.label} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className={styles.filterActions}>
+        <button className={styles.primaryButton} onClick={onApply} type="button">
+          <Search size={16} aria-hidden />
+          Apply
+        </button>
+        <button className={styles.secondaryButton} onClick={onReset} type="button">
+          Reset
+        </button>
+        <button className={styles.secondaryButton} disabled={state === "loading"} onClick={onRefresh} type="button">
+          {state === "loading" ? <Loader2 className={styles.spin} size={16} aria-hidden /> : <RefreshCw size={16} aria-hidden />}
+          Refresh
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function TeacherApplicationQueue({
+  applications,
+  offset,
+  onPage,
+  onSelect,
+  selectedApplicationId,
+}: {
+  applications: PlatformTeacherApplicationsResponse;
+  offset: number;
+  onPage: (offset: number) => void;
+  onSelect: (applicationId: number) => void;
+  selectedApplicationId: number | null;
+}) {
+  const hasPrevious = offset > 0;
+  const hasNext = offset + applications.limit < applications.total;
+
+  return (
+    <section className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <UserCheck size={20} aria-hidden />
+        <div>
+          <h2>Review queue</h2>
+          <p>
+            {applications.total} application{applications.total === 1 ? "" : "s"}{" "}
+            {applications.total === 1 ? "matches" : "match"} the current filters.
+          </p>
+        </div>
+      </div>
+
+      {applications.applications.length ? (
+        <div className={styles.rowList}>
+          {applications.applications.map((application) => (
+            <article
+              className={`${styles.compactRow} ${selectedApplicationId === application.id ? styles.selectedRow : ""}`}
+              key={application.id}
+            >
+              <div>
+                <strong>{application.applicant.name}</strong>
+                <span>{application.applicant.email}</span>
+                <small>
+                  {formatUnderscoreLabel(application.requested_scope)} · {scopeTargetLabel(application)}
+                </small>
+                <small>{application.experience_summary}</small>
+              </div>
+              <div className={styles.rowMeta}>
+                <StatusPill label={formatUnderscoreLabel(application.status)} tone={statusTone(application.status)} />
+                <span>{formatDate(application.updated_at)}</span>
+                <button
+                  aria-label={`Review ${application.applicant.name}`}
+                  className={styles.secondaryButton}
+                  onClick={() => onSelect(application.id)}
+                  type="button"
+                >
+                  Review
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <EmptyState text="No teacher applications match these filters." />
+      )}
+
+      <div className={styles.paginationRow}>
+        <button className={styles.secondaryButton} disabled={!hasPrevious} onClick={() => onPage(Math.max(0, offset - applications.limit))} type="button">
+          Previous
+        </button>
+        <span>
+          Showing {applications.applications.length ? offset + 1 : 0}-
+          {Math.min(offset + applications.applications.length, applications.total)} of {applications.total}
+        </span>
+        <button className={styles.secondaryButton} disabled={!hasNext} onClick={() => onPage(offset + applications.limit)} type="button">
+          Next
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function TeacherApplicationDetail({
+  application,
+  auditError,
+  auditEvents,
+  auditState,
+  canApprove,
+  canReject,
+  decisionError,
+  decisionReason,
+  decisionState,
+  decisionStatus,
+  onDecisionReasonChange,
+  onDecisionStatusChange,
+  onRefreshAudit,
+  onSubmitDecision,
+}: {
+  application: PlatformTeacherApplicationItem | null;
+  auditError: RouteError | null;
+  auditEvents: TeacherApplicationAuditEvent[];
+  auditState: SectionState;
+  canApprove: boolean;
+  canReject: boolean;
+  decisionError: RouteError | null;
+  decisionReason: string;
+  decisionState: "idle" | "submitting" | "success" | "error";
+  decisionStatus: Extract<TeacherApplicationStatus, "approved" | "needs_changes" | "rejected">;
+  onDecisionReasonChange: (value: string) => void;
+  onDecisionStatusChange: (value: Extract<TeacherApplicationStatus, "approved" | "needs_changes" | "rejected">) => void;
+  onRefreshAudit: () => void;
+  onSubmitDecision: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  if (!application) {
+    return (
+      <section className={styles.panel}>
+        <div className={styles.panelHeader}>
+          <UserCheck size={20} aria-hidden />
+          <div>
+            <h2>Application detail</h2>
+            <p>Select an application from the queue to inspect context and audit history.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const isFinal = isFinalApplicationStatus(application.status);
+  const canSubmitDecision =
+    !isFinal &&
+    decisionReason.trim().length > 0 &&
+    (decisionStatus === "needs_changes" || (decisionStatus === "approved" && canApprove) || (decisionStatus === "rejected" && canReject)) &&
+    decisionState !== "submitting";
+
+  return (
+    <section className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <FileText size={20} aria-hidden />
+        <div>
+          <h2>{application.applicant.name}</h2>
+          <p>{application.applicant.email}</p>
+        </div>
+        <StatusPill label={formatUnderscoreLabel(application.status)} tone={statusTone(application.status)} />
+      </div>
+
+      <div className={styles.detailGrid}>
+        <ContextRow label="Requested scope" value={formatUnderscoreLabel(application.requested_scope)} />
+        <ContextRow label="Target" value={scopeTargetLabel(application)} />
+        <ContextRow label="Sponsor" value={application.sponsor_organization?.name || "No sponsor recorded"} />
+        <ContextRow label="Submitted" value={formatDate(application.created_at)} />
+        <ContextRow label="Latest update" value={formatDate(application.updated_at)} />
+        <ContextRow label="Reviewer" value={application.reviewer?.name || "No reviewer yet"} />
+      </div>
+
+      <div className={styles.textBlock}>
+        <h3>Experience summary</h3>
+        <p>{application.experience_summary}</p>
+      </div>
+
+      <div className={styles.textBlock}>
+        <h3>Portfolio</h3>
+        {application.portfolio_links.length ? (
+          <div className={styles.linkList}>
+            {application.portfolio_links.map((link) => (
+              <a href={link} key={link} rel="noreferrer" target="_blank">
+                {link}
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p className={styles.muted}>No portfolio links were submitted.</p>
+        )}
+      </div>
+
+      {application.decision_reason ? (
+        <div className={styles.inlineNotice}>
+          <strong>Latest decision note</strong>
+          <span>{application.decision_reason}</span>
+        </div>
+      ) : null}
+
+      <AuditTimeline
+        auditError={auditError}
+        auditEvents={auditEvents}
+        auditState={auditState}
+        onRefreshAudit={onRefreshAudit}
+      />
+
+      <form className={styles.decisionForm} onSubmit={onSubmitDecision}>
+        <div className={styles.subsectionHeader}>
+          <h3>Decision</h3>
+          {isFinal ? <StatusPill label="Final state" tone="neutral" /> : null}
+        </div>
+        <label>
+          <span>Decision status</span>
+          <select
+            disabled={isFinal}
+            onChange={(event) =>
+              onDecisionStatusChange(event.target.value as Extract<TeacherApplicationStatus, "approved" | "needs_changes" | "rejected">)
+            }
+            value={decisionStatus}
+          >
+            <option value="needs_changes">Needs changes</option>
+            <option disabled={!canApprove} value="approved">
+              Approve
+            </option>
+            <option disabled={!canReject} value="rejected">
+              Reject
+            </option>
+          </select>
+        </label>
+        {!canApprove || !canReject ? (
+          <p className={styles.muted}>
+            Approve and reject require the matching platform permissions; requesting changes remains available to reviewers.
+          </p>
+        ) : null}
+        <label>
+          <span>Decision reason</span>
+          <textarea
+            disabled={isFinal}
+            onChange={(event) => onDecisionReasonChange(event.target.value)}
+            placeholder="Explain what changed, what is missing, or why the application is approved."
+            rows={4}
+            value={decisionReason}
+          />
+        </label>
+        {!isFinal && !decisionReason.trim() ? (
+          <p className={styles.muted}>A decision reason is required before saving.</p>
+        ) : null}
+        {decisionError ? (
+          <div className={styles.inlineError} role="alert">
+            <AlertTriangle size={16} aria-hidden />
+            <span>{decisionError.message}</span>
+          </div>
+        ) : null}
+        <button className={styles.primaryButton} disabled={!canSubmitDecision} type="submit">
+          {decisionState === "submitting" ? <Loader2 className={styles.spin} size={16} aria-hidden /> : <Send size={16} aria-hidden />}
+          Save decision
+        </button>
+        {isFinal ? <p className={styles.muted}>Approved and rejected applications are final in the current backend contract.</p> : null}
+      </form>
+    </section>
+  );
+}
+
+function AuditTimeline({
+  auditError,
+  auditEvents,
+  auditState,
+  onRefreshAudit,
+}: {
+  auditError: RouteError | null;
+  auditEvents: TeacherApplicationAuditEvent[];
+  auditState: SectionState;
+  onRefreshAudit: () => void;
+}) {
+  return (
+    <div className={styles.textBlock}>
+      <div className={styles.subsectionHeader}>
+        <h3>Audit history</h3>
+        <button className={styles.secondaryButton} disabled={auditState === "loading"} onClick={onRefreshAudit} type="button">
+          {auditState === "loading" ? <Loader2 className={styles.spin} size={15} aria-hidden /> : <RefreshCw size={15} aria-hidden />}
+          Refresh
+        </button>
+      </div>
+      {auditState === "loading" || auditState === "idle" ? (
+        <p className={styles.muted}>Loading audit events.</p>
+      ) : null}
+      {auditState === "error" ? (
+        <div className={styles.inlineError} role="alert">
+          <AlertTriangle size={16} aria-hidden />
+          <span>{auditError?.message || "Audit history could not be loaded."}</span>
+        </div>
+      ) : null}
+      {auditState === "success" && auditEvents.length ? (
+        <ol className={styles.auditList}>
+          {auditEvents.map((event) => (
+            <li key={event.id}>
+              <strong>{formatUnderscoreLabel(event.event_type)}</strong>
+              <span>
+                {event.from_status ? `${formatUnderscoreLabel(event.from_status)} -> ` : ""}
+                {formatUnderscoreLabel(event.to_status)} · {formatDate(event.created_at)}
+              </span>
+              {event.reason ? <small>{event.reason}</small> : null}
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {auditState === "success" && !auditEvents.length ? <EmptyState text="No audit events were returned for this application." /> : null}
+    </div>
+  );
+}
+
+function ContextRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={styles.contextRow}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
 function GatedPanel({
   capability,
   icon,
@@ -1234,4 +1908,31 @@ function targetLabel(block: PlatformFraudDashboard["active_blocks"][number]) {
     return `Reward policy ${block.reward_policy_id}`;
   }
   return "Scope target unavailable";
+}
+
+function scopeTargetLabel(application: PlatformTeacherApplicationItem) {
+  if (application.requested_course) {
+    return application.requested_course.title;
+  }
+  if (application.requested_organization) {
+    return application.requested_organization.name;
+  }
+  if (application.sponsor_organization) {
+    return application.sponsor_organization.name;
+  }
+  return "Platform scope";
+}
+
+function statusTone(status: TeacherApplicationStatus): "good" | "neutral" | "warn" {
+  if (status === "approved") {
+    return "good";
+  }
+  if (status === "submitted" || status === "needs_changes") {
+    return "warn";
+  }
+  return "neutral";
+}
+
+function isFinalApplicationStatus(status: TeacherApplicationStatus) {
+  return status === "approved" || status === "rejected";
 }

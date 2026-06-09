@@ -6,7 +6,8 @@ use crate::repositories::teacher_application_repository::{
 };
 use crate::services::teacher_application_service::{
     self, ListTeacherApplicationsRequest, OrganizationTeacherNominationRequest,
-    SubmitTeacherApplicationRequest, TeacherApplicationDecisionRequest, TeacherApplicationError,
+    PlatformTeacherApplicationsRequest, SubmitTeacherApplicationRequest,
+    TeacherApplicationDecisionRequest, TeacherApplicationError,
 };
 use crate::utils::notifications::NotificationsState;
 use crate::utils::request_auth::authenticated_user;
@@ -200,6 +201,32 @@ async fn list_applications(
     }
 }
 
+async fn list_platform_review_applications(
+    req: HttpRequest,
+    pool: web::Data<db::DbPool>,
+    query: web::Query<PlatformTeacherApplicationsRequest>,
+) -> impl Responder {
+    let requester = match authenticated_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match teacher_application_service::list_platform_applications(
+        &mut conn,
+        requester.user_id,
+        query.into_inner(),
+    )
+    .await
+    {
+        Ok(response) => HttpResponse::Ok().json(response),
+        Err(error) => service_error_response(error),
+    }
+}
+
 async fn get_my_application(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
     let requester = match authenticated_user(&req) {
         Ok(user) => user,
@@ -290,6 +317,7 @@ pub fn teacher_application_scope() -> actix_web::Scope {
                 .route(web::post().to(submit_application))
                 .route(web::get().to(list_applications)),
         )
+        .service(web::resource("/review").route(web::get().to(list_platform_review_applications)))
         .service(web::resource("/me").route(web::get().to(get_my_application)))
         .service(web::resource("/{id}/decision").route(web::put().to(decide_application)))
         .service(web::resource("/{id}/audit").route(web::get().to(list_audit_events)))

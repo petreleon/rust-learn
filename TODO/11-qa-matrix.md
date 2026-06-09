@@ -70,6 +70,16 @@ work complete.
       mobile first viewport/no-overflow at 390px. Full, partial, denied,
       backend-failure, CSV, and mobile flows had no relevant console errors;
       the in-app Browser supplied the interaction proof and mobile screenshot.
+- [x] `/admin/teacher-applications` rendered QA covers full platform reviewer
+      desktop, search/status filters, empty result, decision save with
+      post-decision audit visibility, review-only split permission, non-admin
+      denied state, backend `500` retry state, stale `409` conflict refresh,
+      and mobile first viewport/no-overflow at 390px with the filter action
+      visible. Full/mobile DOM checks had no relevant console errors; the
+      conflict fixture intentionally produced a `409` resource console entry.
+      The in-app Browser loaded and supplied initial DOM/console checks, but
+      screenshot/input/click APIs became unstable, so Playwright CLI supplied
+      screenshots and the remaining interaction proof.
 
 ## API Helper Contract Checks
 

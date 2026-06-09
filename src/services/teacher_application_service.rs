@@ -85,11 +85,31 @@ pub struct ListTeacherApplicationsRequest {
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
+pub struct PlatformTeacherApplicationsRequest {
+    pub status: Option<String>,
+    pub search: Option<String>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct OrganizationTeacherApplicationsRequest {
     pub status: Option<String>,
     pub search: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlatformTeacherApplicationsResponse {
+    pub applications: Vec<PlatformTeacherApplicationItem>,
+    pub summary: TeacherApplicationDashboardSummary,
+    pub operator_permissions: PlatformTeacherApplicationPermissions,
+    pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
+    pub status: Option<String>,
+    pub search: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -109,6 +129,25 @@ pub struct OrganizationTeacherApplicationsResponse {
 pub struct OrganizationTeacherApplicationsOrganization {
     pub id: i32,
     pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlatformTeacherApplicationItem {
+    pub id: i64,
+    pub applicant: TeacherApplicationUserSummary,
+    pub requested_scope: String,
+    pub requested_organization: Option<TeacherApplicationOrganizationSummary>,
+    pub requested_course: Option<TeacherApplicationCourseSummary>,
+    pub sponsor_organization: Option<TeacherApplicationOrganizationSummary>,
+    pub experience_summary: String,
+    pub portfolio_links: Vec<String>,
+    pub status: String,
+    pub reviewer: Option<TeacherApplicationUserSummary>,
+    pub decision_reason: Option<String>,
+    pub audit: TeacherApplicationAuditSummary,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub decided_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -171,6 +210,14 @@ pub struct TeacherApplicationDashboardSummary {
 pub struct OrganizationTeacherApplicationPermissions {
     pub can_view_applications: bool,
     pub can_nominate_teachers: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlatformTeacherApplicationPermissions {
+    pub can_view_applications: bool,
+    pub can_approve_applications: bool,
+    pub can_reject_applications: bool,
+    pub can_request_changes: bool,
 }
 
 pub async fn submit_application(
@@ -375,6 +422,81 @@ pub async fn list_applications(
     .map_err(TeacherApplicationError::from)
 }
 
+pub async fn list_platform_applications(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    request: PlatformTeacherApplicationsRequest,
+) -> Result<PlatformTeacherApplicationsResponse, TeacherApplicationError> {
+    ensure_platform_permission(
+        conn,
+        actor_user_id,
+        Permissions::REVIEW_TEACHER_APPLICATIONS,
+    )
+    .await?;
+
+    let status = match request.status {
+        Some(status) => Some(normalize_status(&status)?),
+        None => None,
+    };
+    let search = normalize_optional_text(request.search);
+    let limit = request.limit.unwrap_or(25).clamp(1, 100);
+    let offset = request.offset.unwrap_or(0).max(0);
+    let can_approve_applications = user_has_platform_permission(
+        conn,
+        actor_user_id,
+        Permissions::APPROVE_TEACHER_APPLICATION,
+    )
+    .await?;
+    let can_reject_applications =
+        user_has_platform_permission(conn, actor_user_id, Permissions::REJECT_TEACHER_APPLICATION)
+            .await?;
+
+    let applications = teacher_applications::table
+        .order(teacher_applications::created_at.desc())
+        .then_order_by(teacher_applications::id.desc())
+        .load::<TeacherApplication>(conn)
+        .await
+        .map_err(TeacherApplicationError::from)?;
+
+    let summary = teacher_application_summary(&applications);
+    let context = build_application_context(conn, &applications).await?;
+    let mut items = applications
+        .iter()
+        .map(|application| platform_application_item(application, &context))
+        .collect::<Vec<_>>();
+
+    if let Some(status) = status.as_deref() {
+        items.retain(|application| application.status == status);
+    }
+    if let Some(search) = search.as_deref() {
+        let normalized = search.to_lowercase();
+        items.retain(|application| platform_application_matches_search(application, &normalized));
+    }
+
+    let total = items.len() as i64;
+    let applications = items
+        .into_iter()
+        .skip(offset as usize)
+        .take(limit as usize)
+        .collect::<Vec<_>>();
+
+    Ok(PlatformTeacherApplicationsResponse {
+        applications,
+        summary,
+        operator_permissions: PlatformTeacherApplicationPermissions {
+            can_view_applications: true,
+            can_approve_applications,
+            can_reject_applications,
+            can_request_changes: true,
+        },
+        total,
+        limit,
+        offset,
+        status,
+        search,
+    })
+}
+
 pub async fn list_organization_applications(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
@@ -430,7 +552,7 @@ pub async fn list_organization_applications(
         .map_err(TeacherApplicationError::from)?;
 
     let summary = teacher_application_summary(&applications);
-    let context = build_organization_application_context(conn, &applications).await?;
+    let context = build_application_context(conn, &applications).await?;
     let mut items = applications
         .iter()
         .map(|application| organization_application_item(application, organization_id, &context))
@@ -570,7 +692,7 @@ struct OrganizationApplicationContext {
     audits: BTreeMap<i64, TeacherApplicationAuditSummary>,
 }
 
-async fn build_organization_application_context(
+async fn build_application_context(
     conn: &mut AsyncPgConnection,
     applications: &[TeacherApplication],
 ) -> Result<OrganizationApplicationContext, TeacherApplicationError> {
@@ -723,6 +845,70 @@ fn organization_application_item(
     }
 }
 
+fn platform_application_item(
+    application: &TeacherApplication,
+    context: &OrganizationApplicationContext,
+) -> PlatformTeacherApplicationItem {
+    PlatformTeacherApplicationItem {
+        id: application.id,
+        applicant: context
+            .users
+            .get(&application.applicant_user_id)
+            .cloned()
+            .unwrap_or(TeacherApplicationUserSummary {
+                id: application.applicant_user_id,
+                name: "Unknown applicant".to_string(),
+                email: "unknown@example.invalid".to_string(),
+            }),
+        requested_scope: application.requested_scope.clone(),
+        requested_organization: application.requested_organization_id.map(|id| {
+            TeacherApplicationOrganizationSummary {
+                id,
+                name: context
+                    .organizations
+                    .get(&id)
+                    .cloned()
+                    .unwrap_or_else(|| format!("Organization {id}")),
+            }
+        }),
+        requested_course: application.requested_course_id.map(|id| {
+            TeacherApplicationCourseSummary {
+                id,
+                title: context
+                    .courses
+                    .get(&id)
+                    .cloned()
+                    .unwrap_or_else(|| format!("Course {id}")),
+            }
+        }),
+        sponsor_organization: application.organization_sponsor_id.map(|id| {
+            TeacherApplicationOrganizationSummary {
+                id,
+                name: context
+                    .organizations
+                    .get(&id)
+                    .cloned()
+                    .unwrap_or_else(|| format!("Organization {id}")),
+            }
+        }),
+        experience_summary: application.experience_summary.clone(),
+        portfolio_links: portfolio_links_from_json(&application.portfolio_links),
+        status: application.status.clone(),
+        reviewer: application
+            .reviewer_id
+            .and_then(|reviewer_id| context.users.get(&reviewer_id).cloned()),
+        decision_reason: application.decision_reason.clone(),
+        audit: context
+            .audits
+            .get(&application.id)
+            .cloned()
+            .unwrap_or_default(),
+        created_at: application.created_at,
+        updated_at: application.updated_at,
+        decided_at: application.decided_at,
+    }
+}
+
 fn build_audit_summaries(
     audit_events: Vec<TeacherApplicationAuditEvent>,
 ) -> BTreeMap<i64, TeacherApplicationAuditSummary> {
@@ -774,6 +960,50 @@ fn organization_application_matches_search(
             .requested_organization
             .as_ref()
             .is_some_and(|organization| organization.name.to_lowercase().contains(search))
+}
+
+fn platform_application_matches_search(
+    application: &PlatformTeacherApplicationItem,
+    search: &str,
+) -> bool {
+    application.id.to_string().contains(search)
+        || application.applicant.id.to_string().contains(search)
+        || application.applicant.name.to_lowercase().contains(search)
+        || application.applicant.email.to_lowercase().contains(search)
+        || application
+            .experience_summary
+            .to_lowercase()
+            .contains(search)
+        || application.status.to_lowercase().contains(search)
+        || application.requested_scope.to_lowercase().contains(search)
+        || application.requested_course.as_ref().is_some_and(|course| {
+            course.id.to_string().contains(search) || course.title.to_lowercase().contains(search)
+        })
+        || application
+            .requested_organization
+            .as_ref()
+            .is_some_and(|organization| {
+                organization.id.to_string().contains(search)
+                    || organization.name.to_lowercase().contains(search)
+            })
+        || application
+            .sponsor_organization
+            .as_ref()
+            .is_some_and(|organization| {
+                organization.id.to_string().contains(search)
+                    || organization.name.to_lowercase().contains(search)
+            })
+}
+
+async fn user_has_platform_permission(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    permission: Permissions,
+) -> Result<bool, TeacherApplicationError> {
+    let permission_name = permission.to_string();
+    user_permission_platform_request(conn, user_id, &permission_name)
+        .await
+        .map_err(TeacherApplicationError::from)
 }
 
 async fn user_has_platform_or_organization_permission(

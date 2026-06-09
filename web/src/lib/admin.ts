@@ -128,6 +128,98 @@ export type PlatformFraudDashboard = {
   active_total: number;
 };
 
+export type TeacherApplicationStatus = "submitted" | "needs_changes" | "approved" | "rejected";
+
+export type TeacherApplicationScope = "platform" | "organization" | "course";
+
+export type TeacherApplication = {
+  applicant_user_id: number;
+  created_at: string;
+  decided_at: string | null;
+  decision_reason: string | null;
+  experience_summary: string;
+  id: number;
+  idempotency_key: string | null;
+  organization_sponsor_id: number | null;
+  portfolio_links: string[];
+  requested_course_id: number | null;
+  requested_organization_id: number | null;
+  requested_scope: TeacherApplicationScope;
+  reviewer_id: number | null;
+  status: TeacherApplicationStatus;
+  updated_at: string;
+};
+
+export type TeacherApplicationAuditEvent = {
+  actor_user_id: number | null;
+  application_id: number;
+  created_at: string;
+  event_type: string;
+  from_status: string | null;
+  id: number;
+  reason: string | null;
+  to_status: TeacherApplicationStatus;
+};
+
+export type PlatformTeacherApplicationUser = {
+  email: string;
+  id: number;
+  name: string;
+};
+
+export type PlatformTeacherApplicationOrganization = {
+  id: number;
+  name: string;
+};
+
+export type PlatformTeacherApplicationCourse = {
+  id: number;
+  title: string;
+};
+
+export type PlatformTeacherApplicationAuditSummary = {
+  event_count: number;
+  latest_event_at: string | null;
+  latest_event_type: string | null;
+  latest_reason: string | null;
+};
+
+export type PlatformTeacherApplicationItem = {
+  applicant: PlatformTeacherApplicationUser;
+  audit: PlatformTeacherApplicationAuditSummary;
+  created_at: string;
+  decided_at: string | null;
+  decision_reason: string | null;
+  experience_summary: string;
+  id: number;
+  portfolio_links: string[];
+  requested_course: PlatformTeacherApplicationCourse | null;
+  requested_organization: PlatformTeacherApplicationOrganization | null;
+  requested_scope: TeacherApplicationScope;
+  reviewer: PlatformTeacherApplicationUser | null;
+  sponsor_organization: PlatformTeacherApplicationOrganization | null;
+  status: TeacherApplicationStatus;
+  updated_at: string;
+};
+
+export type PlatformTeacherApplicationPermissions = {
+  can_approve_applications: boolean;
+  can_reject_applications: boolean;
+  can_request_changes: boolean;
+  can_view_applications: boolean;
+};
+
+export type PlatformTeacherApplicationsResponse = {
+  applications: PlatformTeacherApplicationItem[];
+  limit: number;
+  offset: number;
+  operator_permissions: PlatformTeacherApplicationPermissions;
+  search: string | null;
+  status: TeacherApplicationStatus | null;
+  summary: TeacherApplicationDashboardSummary;
+  total: number;
+};
+
 export type SystemLiveness = {
   status: string;
 };
@@ -186,6 +278,19 @@ type AdminRequestOptions = {
   apiRoot?: string;
   timeoutMs?: number;
   token?: string;
+};
+
+export type PlatformTeacherApplicationListOptions = AdminRequestOptions & {
+  limit?: number;
+  offset?: number;
+  search?: string | null;
+  status?: TeacherApplicationStatus | "" | null;
+};
+
+export type TeacherApplicationDecisionOptions = AdminRequestOptions & {
+  applicationId: number;
+  decisionReason?: string | null;
+  status: Extract<TeacherApplicationStatus, "approved" | "needs_changes" | "rejected">;
 };
 
 const DEFAULT_TIMEOUT_MS = 10000;
@@ -335,6 +440,74 @@ export async function fetchPlatformFraudDashboard({
   });
 }
 
+export async function fetchPlatformTeacherApplications({
+  apiRoot = "/api",
+  limit,
+  offset,
+  search,
+  status,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: PlatformTeacherApplicationListOptions): Promise<PlatformTeacherApplicationsResponse> {
+  const query = new URLSearchParams();
+  const normalizedSearch = search?.trim();
+  if (normalizedSearch) {
+    query.set("search", normalizedSearch);
+  }
+  if (status) {
+    query.set("status", status);
+  }
+  if (typeof limit === "number") {
+    query.set("limit", String(limit));
+  }
+  if (typeof offset === "number") {
+    query.set("offset", String(offset));
+  }
+
+  const suffix = query.toString();
+  return adminJsonRequest({
+    apiRoot,
+    path: `/teacher-applications/review${suffix ? `?${suffix}` : ""}`,
+    timeoutMs,
+    token,
+  });
+}
+
+export async function fetchTeacherApplicationAudit({
+  apiRoot = "/api",
+  applicationId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: AdminRequestOptions & { applicationId: number }): Promise<TeacherApplicationAuditEvent[]> {
+  return adminJsonRequest({
+    apiRoot,
+    path: `/teacher-applications/${applicationId}/audit`,
+    timeoutMs,
+    token,
+  });
+}
+
+export async function decideTeacherApplication({
+  apiRoot = "/api",
+  applicationId,
+  decisionReason,
+  status,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: TeacherApplicationDecisionOptions): Promise<TeacherApplication> {
+  return adminJsonRequest({
+    apiRoot,
+    body: JSON.stringify({
+      decision_reason: decisionReason?.trim() || null,
+      status,
+    }),
+    method: "PUT",
+    path: `/teacher-applications/${applicationId}/decision`,
+    timeoutMs,
+    token,
+  });
+}
+
 export async function downloadPlatformCsv({
   apiRoot = "/api",
   report,
@@ -380,26 +553,32 @@ export async function fetchPlatformSystemStatus({
 async function adminJsonRequest<T>({
   accept = "application/json, text/plain",
   apiRoot,
+  body,
+  method,
   path,
   timeoutMs,
   token,
 }: AdminRequestOptions & {
   accept?: string;
+  body?: string;
+  method?: string;
   path: string;
 }): Promise<T> {
-  const response = await adminRawRequest({ accept, apiRoot, path, timeoutMs, token });
+  const response = await adminRawRequest({ accept, apiRoot, body, method, path, timeoutMs, token });
   return (await response.json()) as T;
 }
 
 async function adminRawRequest({
   accept = "application/json, text/plain",
   apiRoot = "/api",
+  body,
   method = "GET",
   path,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   token,
 }: AdminRequestOptions & {
   accept?: string;
+  body?: string;
   method?: string;
   path: string;
 }): Promise<Response> {
@@ -411,6 +590,7 @@ async function adminRawRequest({
   return rawRequest({
     accept,
     apiRoot,
+    body,
     headers: {
       Authorization: `Bearer ${trimmedToken}`,
     },
@@ -446,6 +626,7 @@ async function rawRequest({
   accept,
   acceptedStatuses = [],
   apiRoot,
+  body,
   headers = {},
   method,
   path,
@@ -454,6 +635,7 @@ async function rawRequest({
   accept: string;
   acceptedStatuses?: number[];
   apiRoot: string;
+  body?: string;
   headers?: Record<string, string>;
   method: string;
   path: string;
@@ -464,8 +646,10 @@ async function rawRequest({
 
   try {
     const response = await fetch(`${apiRoot}${path}`, {
+      body,
       headers: {
         Accept: accept,
+        ...(body ? { "Content-Type": "application/json" } : {}),
         ...headers,
       },
       method,

@@ -114,6 +114,16 @@
         retry state. The in-app Browser runtime loaded but did not expose
         `browser.documentation()` or `browser.tabs`, so Playwright supplied the
         rendered evidence.
+  - [x] Browser plus Playwright CLI QA covers
+        `/admin/teacher-applications` full reviewer desktop queue/detail/audit,
+        search/status filters, empty state, decision save, post-decision audit
+        visibility, review-only split-permission save path, non-admin denied
+        state, backend `500` retry state, stale `409` conflict refresh, and
+        mobile 390px no-overflow with filter action visible in the first
+        viewport. Browser supplied initial DOM/console checks; its screenshot,
+        text input, and later click APIs timed out or hit virtual-clipboard
+        errors, so Playwright CLI supplied the remaining interaction and
+        screenshot evidence.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
@@ -210,6 +220,14 @@
         application tracking, search/status filtering, applicant/requested
         scope/audit summaries, operator permission booleans, and outsider
         `403`.
+  - [x] Frontend helper tests cover platform teacher-application review-list
+        filters, audit parsing, decision mutation body shape, denied `403`,
+        stale `409`, timeout, and network failure normalization.
+  - [x] Rust API/service tests cover
+        `GET /api/teacher-applications/review` route registration, platform
+        review permission checks, search/status filtering, pagination metadata,
+        applicant/sponsor/course context, audit summary, summary counts,
+        operator decision permissions, and outsider denial.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.

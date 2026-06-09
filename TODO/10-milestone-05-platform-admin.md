@@ -25,7 +25,11 @@ reconciliation, and system health.
       `GET /api/reports/platform/reward-dashboard`,
       `GET /api/reports/platform/fraud-dashboard`, `/health`, and `/ready`
       instead of inventing frontend-only metrics.
-- [ ] Teacher application queue with filters, detail, audit, and decisions.
+- [x] Teacher application queue with filters, detail, audit, and decisions.
+      `GET /api/teacher-applications/review` now returns platform-review
+      queue rows with applicant, sponsor, requested scope/course/organization,
+      audit summary, pagination/filter metadata, summary counts, and operator
+      decision permissions.
 - [ ] Reward amount review queue with teacher-approved candidates only.
 - [ ] Fraud block list, create, audit, revoke, expiration, and scoped target
       search.
@@ -39,9 +43,11 @@ reconciliation, and system health.
 ## Routes And Screens
 
 - [x] `/admin` platform admin dashboard.
-- [ ] `/admin/teacher-applications` review queue.
+- [x] `/admin/teacher-applications` review queue.
 - [ ] `/admin/teacher-applications/[applicationId]` detail, decision, and
       audit.
+      The queue route now includes inline detail, decision, and audit review;
+      a dedicated deep-link detail route remains open.
 - [ ] `/admin/rewards/amount-review` reward amount queue.
 - [ ] `/admin/rewards/[candidateId]` reward candidate detail and audit context.
 - [ ] `/admin/fraud-blocks` fraud block list and create flow.
@@ -53,11 +59,11 @@ reconciliation, and system health.
 
 ## Teacher Application Review
 
-- [ ] Queue supports status filters, search, pagination, stale refresh, and
+- [x] Queue supports status filters, search, pagination, stale refresh, and
       empty state.
-- [ ] Detail page shows applicant, requested scope, sponsor, portfolio links,
+- [x] Detail page shows applicant, requested scope, sponsor, portfolio links,
       current status, decision history, and audit events.
-- [ ] Decision form supports approve, needs changes, reject, required reasons,
+- [x] Decision form supports approve, needs changes, reject, required reasons,
       conflict handling, and post-decision audit visibility.
 - [ ] Approved scope clearly maps to the permission bundle or backend action
       that will be assigned.
@@ -104,10 +110,16 @@ reconciliation, and system health.
 
 ## Platform Admin Edge Cases
 
-- [ ] Admin has teacher-review permission but not reward-review permission.
+- [x] Admin has teacher-review permission but not reward-review permission.
+      Rendered QA covers a review-only platform operator who can request
+      changes but sees approve/reject actions disabled with missing-permission
+      copy.
 - [ ] Admin has reward-review permission but fraud block prevents action.
 - [ ] Application or reward candidate is decided by another reviewer while
       detail page is open.
+  - [x] Teacher application `409` conflict refreshes the selected application,
+        shows the concurrent reviewer, audit event, final state, and conflict
+        notice. Reward-candidate conflict coverage remains reward-route work.
 - [ ] Delegated permission expires between form open and submit.
 - [ ] Fraud block target is already blocked or revoked.
 - [ ] Export is large, empty, denied, slow, or fails after request starts.
@@ -124,12 +136,25 @@ reconciliation, and system health.
         platform-report-only admin, non-admin denied state, reward-dashboard
         backend `500` retry, CSV download status, and mobile first
         viewport/no-overflow at 390px with no relevant console warnings.
+  - [x] `/admin/teacher-applications` rendered QA covers full reviewer
+        desktop, search/status filters, empty state, decision save,
+        post-decision audit visibility, review-only split permission,
+        non-admin denied state, backend `500` retry, `409` conflict refresh,
+        and mobile 390px no-overflow with the filter action visible in the
+        first viewport. The in-app Browser handled initial DOM/console checks
+        but screenshot/input/click APIs became unstable, so Playwright CLI
+        supplied the remaining rendered interaction proof.
 - [ ] Tests for split platform permissions, conflict decisions, fraud-blocked
       rewards, expired delegation, failed CSV, and readiness dependency down.
   - [x] Admin API-helper tests cover platform capability mapping, dashboard
         JSON success, CSV filename handling, plain-text `403`, JSON `404`,
         backend `5xx`, timeout, network failure, missing token, and `/ready`
         dependency-down `503`.
+  - [x] Platform teacher-application tests cover review-list JSON parsing,
+        audit parsing, decision mutation helper shape, denied/conflict/
+        timeout/network normalization, route registration, permission checks,
+        search/status filtering, pagination metadata, audit summary, applicant
+        context, and operator decision permissions.
 - [ ] Docker Compose E2E path: admin dashboard, teacher review or reward amount
       decision, report/export, log scan.
 - [ ] Kubernetes smoke path loads `/admin`, verifies in-cluster API readiness

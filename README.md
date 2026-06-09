@@ -108,8 +108,11 @@ workflow console for teacher applications, reward decisions, reports, fraud
 blocks, delegations, exports, and local API debugging lives at `/ops` while the
 route-based product frontend replaces it. `/admin` is now a platform operator
 dashboard for summary metrics, reward audit, fraud controls, CSV exports, and
-health/readiness status; detail routes for decisions, delegation management,
-and wallet reconciliation remain separate product work.
+health/readiness status. `/admin/teacher-applications` is now a platform
+teacher-review queue with filters, inline applicant/sponsor detail, audit
+history, permission-gated decisions, conflict refresh, and mobile-first
+layout; reward amount review, delegation management, and wallet reconciliation
+remain separate product work.
 
 ## Prerequisites
 

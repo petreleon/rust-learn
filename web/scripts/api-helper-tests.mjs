@@ -182,6 +182,114 @@ test("platform CSV helper parses content disposition filename", async () => {
   assert.match(csv.body, /reward_candidates,total,9/);
 });
 
+test("platform teacher application helpers parse review list, audit, and decision mutation", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(init.headers.Authorization, "Bearer admin-token");
+    if (url === "/api/teacher-applications/review?search=Ada&status=submitted&limit=8&offset=0") {
+      assert.equal(init.headers.Accept, "application/json, text/plain");
+      return jsonResponse(platformTeacherApplicationsFixture());
+    }
+    if (url === "/api/teacher-applications/701/audit") {
+      assert.equal(init.headers.Accept, "application/json, text/plain");
+      return jsonResponse(platformTeacherApplicationAuditFixture());
+    }
+    if (url === "/api/teacher-applications/701/decision") {
+      assert.equal(init.method, "PUT");
+      assert.equal(init.headers["Content-Type"], "application/json");
+      assert.deepEqual(JSON.parse(init.body), {
+        decision_reason: "Missing course-level portfolio evidence.",
+        status: "needs_changes",
+      });
+      return jsonResponse({
+        ...platformTeacherApplicationsFixture().applications[0],
+        applicant_user_id: 77,
+        idempotency_key: null,
+        organization_sponsor_id: 7,
+        requested_course_id: 9,
+        requested_organization_id: null,
+        reviewer_id: 1,
+      });
+    }
+    throw new Error(`Unexpected URL ${url}`);
+  });
+
+  const list = await admin.fetchPlatformTeacherApplications({
+    limit: 8,
+    offset: 0,
+    search: " Ada ",
+    status: "submitted",
+    token: "admin-token",
+  });
+  const auditEvents = await admin.fetchTeacherApplicationAudit({
+    applicationId: 701,
+    token: "admin-token",
+  });
+  const decision = await admin.decideTeacherApplication({
+    applicationId: 701,
+    decisionReason: " Missing course-level portfolio evidence. ",
+    status: "needs_changes",
+    token: "admin-token",
+  });
+
+  assert.equal(calls.length, 3);
+  assert.equal(list.total, 1);
+  assert.equal(list.applications[0].applicant.name, "Ada Applicant");
+  assert.equal(list.applications[0].requested_course.title, "Async Rust Lab");
+  assert.equal(list.operator_permissions.can_approve_applications, true);
+  assert.equal(auditEvents[0].event_type, "submitted");
+  assert.equal(decision.id, 701);
+});
+
+test("platform teacher application helpers normalize denied, conflict, timeout, and network errors", async () => {
+  mockFetch(() => textResponse("User does not have the required permission", { status: 403 }));
+
+  await assertRequestError(admin.fetchPlatformTeacherApplications({ token: "admin-token" }), {
+    code: "permission_denied",
+    errorClass: admin.AdminRequestError,
+    status: 403,
+  });
+
+  mockFetch(() => textResponse("final teacher applications cannot be changed", { status: 409 }));
+
+  await assertRequestError(
+    admin.decideTeacherApplication({
+      applicationId: 701,
+      decisionReason: "Already decided.",
+      status: "approved",
+      token: "admin-token",
+    }),
+    {
+      code: "conflict",
+      errorClass: admin.AdminRequestError,
+      status: 409,
+    },
+  );
+
+  mockFetch((_url, init) => {
+    return new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      });
+    });
+  });
+
+  await assertRequestError(admin.fetchTeacherApplicationAudit({ applicationId: 701, timeoutMs: 1, token: "admin-token" }), {
+    code: "timeout",
+    errorClass: admin.AdminRequestError,
+    status: 0,
+  });
+
+  mockFetch(() => {
+    throw new TypeError("fetch failed");
+  });
+
+  await assertRequestError(admin.fetchPlatformTeacherApplications({ token: "admin-token" }), {
+    code: "network_error",
+    errorClass: admin.AdminRequestError,
+    status: 0,
+  });
+});
+
 test("platform admin helpers normalize missing token, denied, missing, server, timeout, and network errors", async () => {
   await assertRequestError(admin.fetchPlatformSummary({ token: " " }), {
     code: "missing_token",
@@ -2150,6 +2258,78 @@ function platformFraudDashboardFixture() {
     },
     active_total: 1,
   };
+}
+
+function platformTeacherApplicationsFixture() {
+  return {
+    applications: [
+      {
+        applicant: {
+          email: "ada@example.test",
+          id: 77,
+          name: "Ada Applicant",
+        },
+        audit: {
+          event_count: 1,
+          latest_event_at: "2026-01-05T10:00:00Z",
+          latest_event_type: "submitted",
+          latest_reason: null,
+        },
+        created_at: "2026-01-05T10:00:00Z",
+        decided_at: null,
+        decision_reason: null,
+        experience_summary: "Async Rust mentor with production examples.",
+        id: 701,
+        portfolio_links: ["https://example.test/ada"],
+        requested_course: {
+          id: 9,
+          title: "Async Rust Lab",
+        },
+        requested_organization: null,
+        requested_scope: "course",
+        reviewer: null,
+        sponsor_organization: {
+          id: 7,
+          name: "Ferris Academy",
+        },
+        status: "submitted",
+        updated_at: "2026-01-05T10:00:00Z",
+      },
+    ],
+    limit: 8,
+    offset: 0,
+    operator_permissions: {
+      can_approve_applications: true,
+      can_reject_applications: true,
+      can_request_changes: true,
+      can_view_applications: true,
+    },
+    search: "Ada",
+    status: "submitted",
+    summary: {
+      approved: 2,
+      needs_changes: 1,
+      rejected: 0,
+      submitted: 3,
+      total: 6,
+    },
+    total: 1,
+  };
+}
+
+function platformTeacherApplicationAuditFixture() {
+  return [
+    {
+      actor_user_id: 77,
+      application_id: 701,
+      created_at: "2026-01-05T10:00:00Z",
+      event_type: "submitted",
+      from_status: null,
+      id: 9001,
+      reason: null,
+      to_status: "submitted",
+    },
+  ];
 }
 
 function organizationSessionFixture() {

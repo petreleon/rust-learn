@@ -230,8 +230,12 @@
       dashboard, `/health`, and `/ready`; sections are permission-gated, CSV
       exports show download status, and the dashboard distinguishes teacher
       approval from platform amount review.
-- [ ] Build teacher application review with queue filters, detail review,
+- [x] Build teacher application review with queue filters, detail review,
       applicant history, sponsor context, decision reasons, and audit trail.
+      `/admin/teacher-applications` now uses the platform review contract for
+      filters, summary counts, inline detail, portfolio/sponsor context, audit
+      history, permission-gated decisions, required reasons, success refresh,
+      and conflict recovery.
 - [ ] Build reward amount review that is clearly separate from course teacher
       approval.
 - [ ] Build fraud-block management for teachers, organizations, courses, and
