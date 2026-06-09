@@ -933,6 +933,30 @@ export async function fetchRewardCandidateAudit({
   });
 }
 
+export type PlatformWalletReconciliationRow = {
+  balance: string;
+  external_transaction_count: number;
+  internal_transaction_count: number;
+  missing_credit_count: number;
+  missing_notification_count: number;
+  missing_payout_count: number;
+  needs_reconciliation_count: number;
+  organization_id: number | null;
+  owner_type: string;
+  reward_record_count: number;
+  user_id: number | null;
+  wallet_id: number;
+};
+
+export type PlatformWalletReconciliation = {
+  total_external_transactions: number;
+  total_internal_transactions: number;
+  total_needs_reconciliation: number;
+  total_reward_records: number;
+  total_wallets: number;
+  wallets: PlatformWalletReconciliationRow[];
+};
+
 export async function downloadPlatformCsv({
   apiRoot = "/api",
   report,
@@ -953,6 +977,19 @@ export async function downloadPlatformCsv({
     body,
     filename: filenameFromContentDisposition(response.headers.get("content-disposition")) || endpoint.filename,
   };
+}
+
+export async function fetchPlatformWalletReconciliation({
+  apiRoot = "/api",
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: AdminRequestOptions): Promise<PlatformWalletReconciliation> {
+  return adminJsonRequest({
+    apiRoot,
+    path: "/reports/platform/wallet-reconciliation",
+    timeoutMs,
+    token,
+  });
 }
 
 export async function fetchPlatformSystemStatus({

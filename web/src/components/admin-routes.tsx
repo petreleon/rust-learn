@@ -42,6 +42,7 @@ import {
   fetchPlatformSummary,
   fetchPlatformSystemStatus,
   fetchPlatformTeacherApplications,
+  fetchPlatformWalletReconciliation,
   fetchRewardCandidateAudit,
   fetchTeacherApplicationAudit,
   missingPlatformPermissions,
@@ -70,6 +71,7 @@ import {
   type PlatformSystemStatus,
   type PlatformTeacherApplicationItem,
   type PlatformTeacherApplicationsResponse,
+  type PlatformWalletReconciliation,
   type RewardAuditEvent,
   type TeacherApplicationAuditEvent,
   type TeacherApplicationStatus,
@@ -2033,6 +2035,10 @@ export function AdminWalletsRoute() {
   const [csvState, setCsvState] = useState<CsvState>("idle");
   const [csvError, setCsvError] = useState<RouteError | null>(null);
 
+  const [reconciliation, setReconciliation] = useState<PlatformWalletReconciliation | null>(null);
+  const [reconciliationState, setReconciliationState] = useState<SectionState>("idle");
+  const [reconciliationError, setReconciliationError] = useState<RouteError | null>(null);
+
   const loadSummary = useCallback(async () => {
     const token = route.token;
     if (!route.session || !token || !allowed || !canView) return;
@@ -2049,10 +2055,31 @@ export function AdminWalletsRoute() {
     }
   }, [allowed, canView, route.session, route.token]);
 
+  const loadReconciliation = useCallback(async () => {
+    const token = route.token;
+    if (!route.session || !token || !allowed || !canView) return;
+    setReconciliationState("loading");
+    setReconciliationError(null);
+    try {
+      const next = await fetchPlatformWalletReconciliation({ token });
+      setReconciliation(next);
+      setReconciliationState("success");
+    } catch (err) {
+      setReconciliation(null);
+      setReconciliationError(normalizeRouteError(err, "Wallet reconciliation could not be loaded."));
+      setReconciliationState("error");
+    }
+  }, [allowed, canView, route.session, route.token]);
+
   useEffect(() => {
     const timeout = window.setTimeout(() => void loadSummary(), 0);
     return () => window.clearTimeout(timeout);
   }, [loadSummary]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadReconciliation(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadReconciliation]);
 
   const handleDownload = async () => {
     const token = route.token;
@@ -2130,6 +2157,41 @@ export function AdminWalletsRoute() {
               </button>
               {!canExport ? <p className={styles.muted}>CSV download requires the EXPORT_DATA permission.</p> : null}
             </section>
+
+            {reconciliationState === "loading" || reconciliationState === "idle" ? <PanelLoading title="Loading reconciliation" /> : null}
+            {reconciliationState === "error" ? <PanelError error={reconciliationError} onRetry={loadReconciliation} title="Reconciliation failed" /> : null}
+            {reconciliationState === "success" && reconciliation ? (
+              <section className={styles.panel} aria-label="Wallet reconciliation">
+                <div className={styles.panelHeader}>
+                  <Landmark size={20} aria-hidden />
+                  <div>
+                    <h2>Wallet reconciliation</h2>
+                    <p>Internal ledger, reward records, and missing credits across all wallets.</p>
+                  </div>
+                </div>
+                <div className={styles.metricGrid}>
+                  <MetricCard label="Wallets" value={reconciliation.total_wallets} />
+                  <MetricCard label="Internal transactions" value={reconciliation.total_internal_transactions} />
+                  <MetricCard label="External transactions" value={reconciliation.total_external_transactions} />
+                  <MetricCard label="Reward records" value={reconciliation.total_reward_records} />
+                  <MetricCard label="Needs reconciliation" value={reconciliation.total_needs_reconciliation} tone={reconciliation.total_needs_reconciliation ? "warn" : "good"} />
+                </div>
+                <div className={styles.rowList}>
+                  {reconciliation.wallets.map((wallet) => (
+                    <article className={styles.compactRow} key={wallet.wallet_id}>
+                      <div>
+                        <strong>Wallet {wallet.wallet_id}</strong>
+                        <span>{wallet.owner_type}{wallet.user_id ? ` · User ${wallet.user_id}` : ""}{wallet.organization_id ? ` · Org ${wallet.organization_id}` : ""}</span>
+                        <small>Balance {wallet.balance} · {wallet.internal_transaction_count} internal · {wallet.external_transaction_count} external</small>
+                      </div>
+                      <div className={styles.rowMeta}>
+                        {wallet.needs_reconciliation_count ? <StatusPill label={`${wallet.needs_reconciliation_count} issues`} tone="warn" /> : <StatusPill label="OK" tone="good" />}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
         ) : (
           <GatedPanel

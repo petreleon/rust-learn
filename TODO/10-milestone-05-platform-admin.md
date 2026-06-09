@@ -41,7 +41,11 @@ reconciliation, and system health.
 - [ ] Delegated permission list, grant, revoke, expiration, scope, and usage
       audit.
 - [x] Export endpoints with CSV response handling and status/failure behavior.
-- [ ] Wallet reconciliation and transaction audit endpoints.
+- [x] Wallet reconciliation and transaction audit endpoints.
+      The backend now serves `GET /api/reports/platform/wallet-reconciliation` as JSON
+      with wallet rows, internal/external transaction counts, reward records, and
+      missing credit/notification/payout tallies. The frontend `AdminWalletsRoute`
+      consumes this and displays a metric grid plus a per-wallet issue list.
 - [x] Health/readiness and runtime status endpoints suitable for admin display.
       The web proxy now forwards `/ready` as well as `/health`.
 

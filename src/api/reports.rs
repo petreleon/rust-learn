@@ -9,7 +9,7 @@ use crate::services::reporting_service::{
     platform_fraud_dashboard, platform_fraud_dashboard_csv, platform_report_csv,
     platform_report_summary, platform_reward_approvals_csv, platform_reward_dashboard,
     platform_reward_dashboard_csv, platform_teacher_applications_csv, platform_token_payouts_csv,
-    platform_wallet_credits_csv,
+    platform_wallet_credits_csv, platform_wallet_reconciliation,
 };
 use actix_web::{web, HttpResponse, Responder};
 
@@ -181,6 +181,21 @@ async fn export_platform_token_payouts(pool: web::Data<db::DbPool>) -> impl Resp
                 err
             );
             HttpResponse::InternalServerError().body("Failed to export token payouts")
+        }
+    }
+}
+
+async fn get_platform_wallet_reconciliation(pool: web::Data<db::DbPool>) -> impl Responder {
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match platform_wallet_reconciliation(&mut conn).await {
+        Ok(data) => HttpResponse::Ok().json(data),
+        Err(err) => {
+            log::error!("event=report_load_failed scope=platform report=wallet_reconciliation error={:?}", err);
+            HttpResponse::InternalServerError().body("Failed to load wallet reconciliation")
         }
     }
 }
@@ -391,6 +406,11 @@ pub fn reports_scope() -> actix_web::Scope {
         .service(web::resource("/platform/delegated-permissions.csv").route(
             web::get().to(export_platform_delegated_permissions).wrap(
                 PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
+            ),
+        ))
+        .service(web::resource("/platform/wallet-reconciliation").route(
+            web::get().to(get_platform_wallet_reconciliation).wrap(
+                PlatformPermissionMiddleware::require(Permissions::MANAGE_WALLETS.to_string()),
             ),
         ))
         .service(web::resource("/organizations/{id}/summary").route(
