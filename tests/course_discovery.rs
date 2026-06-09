@@ -1,13 +1,25 @@
 use actix_web::{http::StatusCode, test, web, App};
+use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
+use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::db::schema::{courses, courses_organizations, organizations};
+use rust_learn::db::schema::{
+    chapters, contents, course_join_requests, courses, courses_organizations, organizations,
+    reward_policies,
+};
 use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::models::course::{Course, NewCourse};
+use rust_learn::models::chapter::NewChapter;
+use rust_learn::models::content::NewContent;
+use rust_learn::models::course::{Course, NewCourse, COURSE_STATUS_PUBLISHED};
+use rust_learn::models::course_join_request::{NewCourseJoinRequest, COURSE_JOIN_STATUS_PENDING};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::role::PlatformRole;
+use rust_learn::models::reward_policy::{
+    NewRewardPolicy, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
+};
+use rust_learn::models::role::{CourseRole, PlatformRole};
 use rust_learn::models::user::User;
+use rust_learn::models::user_role_course::UserRoleCourse;
 use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::utils::jwt_utils::create_jwt;
@@ -52,6 +64,20 @@ async fn assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_n
         .expect("failed to assign platform role");
 }
 
+async fn assign_course_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    course_id: i32,
+    role_name: &str,
+) {
+    let role_id = CourseRole::find_by_name(role_name, conn)
+        .await
+        .expect("course role should exist");
+    UserRoleCourse::assign(conn, user_id, course_id, role_id)
+        .await
+        .expect("failed to assign course role");
+}
+
 async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
     diesel::insert_into(courses::table)
         .values(NewCourse {
@@ -60,6 +86,14 @@ async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
         .get_result(conn)
         .await
         .expect("failed to create course")
+}
+
+async fn publish_course(conn: &mut AsyncPgConnection, course_id: i32) {
+    diesel::update(courses::table.find(course_id))
+        .set(courses::lifecycle_status.eq(COURSE_STATUS_PUBLISHED))
+        .execute(conn)
+        .await
+        .expect("failed to publish course");
 }
 
 async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organization {
@@ -89,6 +123,84 @@ async fn link_course_to_org(
         .execute(conn)
         .await
         .expect("failed to link course and organization");
+}
+
+async fn create_chapter(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    title: &str,
+    order: i32,
+) -> i32 {
+    diesel::insert_into(chapters::table)
+        .values(NewChapter {
+            course_id,
+            title: title.to_string(),
+            order,
+        })
+        .returning(chapters::id)
+        .get_result(conn)
+        .await
+        .expect("failed to create chapter")
+}
+
+async fn create_content(
+    conn: &mut AsyncPgConnection,
+    chapter_id: i32,
+    content_type: &str,
+    order: i32,
+) {
+    diesel::insert_into(contents::table)
+        .values(NewContent {
+            chapter_id,
+            order,
+            content_type: content_type.to_string(),
+            data: None,
+        })
+        .execute(conn)
+        .await
+        .expect("failed to create content");
+}
+
+async fn create_course_reward_policy(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    event_type: &str,
+) {
+    diesel::insert_into(reward_policies::table)
+        .values(NewRewardPolicy {
+            scope_type: REWARD_POLICY_SCOPE_COURSE.to_string(),
+            organization_id: None,
+            course_id: Some(course_id),
+            event_type: event_type.to_string(),
+            version: 1,
+            token_amount: BigDecimal::from(25),
+            multiplier: BigDecimal::from(1),
+            max_payout: None,
+            cooldown_seconds: 0,
+            payment_strategy: REWARD_PAYMENT_TREASURY_TRANSFER.to_string(),
+            active: true,
+            created_by_user_id: None,
+        })
+        .execute(conn)
+        .await
+        .expect("failed to create reward policy");
+}
+
+async fn create_pending_join_request(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    course_id: i32,
+) -> i64 {
+    diesel::insert_into(course_join_requests::table)
+        .values(NewCourseJoinRequest {
+            course_id,
+            requester_user_id: user_id,
+            status: COURSE_JOIN_STATUS_PENDING.to_string(),
+        })
+        .returning(course_join_requests::id)
+        .get_result(conn)
+        .await
+        .expect("failed to create join request")
 }
 
 fn token_for(user_id: i32) -> String {
@@ -216,4 +328,161 @@ async fn course_search_treats_like_wildcards_as_literal_text() {
         underscore_body["courses"][0]["title"].as_str(),
         Some(underscore_course.title.as_str())
     );
+}
+
+#[actix_web::test]
+async fn learner_catalog_returns_published_course_summaries_and_pending_state() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+    let mut conn = setup_conn(&pool).await;
+
+    let learner = create_test_user(&mut conn).await;
+    let teacher = create_test_user(&mut conn).await;
+    assign_platform_role(&mut conn, learner.id(), "USER").await;
+
+    let org = create_organization(&mut conn, &unique_string("CatalogOrg")).await;
+    let prefix = unique_string("CatalogCourse");
+    let published = create_course(&mut conn, &format!("{} Published Rust", prefix)).await;
+    let hidden_draft = create_course(&mut conn, &format!("{} Hidden Draft", prefix)).await;
+    publish_course(&mut conn, published.id).await;
+    link_course_to_org(&mut conn, published.id, org.id, 0).await;
+    link_course_to_org(&mut conn, hidden_draft.id, org.id, 1).await;
+    assign_course_role(&mut conn, teacher.id(), published.id, "TEACHER").await;
+    let chapter_id = create_chapter(&mut conn, published.id, "Getting started", 0).await;
+    create_content(&mut conn, chapter_id, "video", 0).await;
+    create_course_reward_policy(&mut conn, published.id, "course_completion").await;
+    let request_id = create_pending_join_request(&mut conn, learner.id(), published.id).await;
+    drop(conn);
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .service(rust_learn::api::courses::course_scope()),
+    )
+    .await;
+
+    let req = test::TestRequest::get()
+        .uri(&format!(
+            "/courses/catalog?search={}&reward_available=true&limit=10",
+            prefix
+        ))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(learner.id())),
+        ))
+        .to_request();
+    let resp = test::call_service(&app, req).await;
+    assert_eq!(resp.status(), StatusCode::OK);
+
+    let body: Value = test::read_body_json(resp).await;
+    assert_eq!(body["total"].as_i64(), Some(1));
+    let course = &body["courses"][0];
+    assert_eq!(course["id"].as_i64(), Some(i64::from(published.id)));
+    assert_eq!(course["title"].as_str(), Some(published.title.as_str()));
+    assert_eq!(
+        course["organizations"][0]["name"].as_str(),
+        Some(org.name.as_str())
+    );
+    assert_eq!(
+        course["teachers"][0]["name"].as_str(),
+        Some(teacher.name.as_str())
+    );
+    assert_eq!(course["content"]["chapter_count"].as_u64(), Some(1));
+    assert_eq!(course["content"]["content_count"].as_u64(), Some(1));
+    assert_eq!(
+        course["content"]["content_types"][0].as_str(),
+        Some("video")
+    );
+    assert_eq!(course["rewards"]["available"].as_bool(), Some(true));
+    assert_eq!(
+        course["rewards"]["event_types"][0].as_str(),
+        Some("course_completion")
+    );
+    assert_eq!(course["enrollment"]["state"].as_str(), Some("pending"));
+    assert_eq!(
+        course["enrollment"]["request_id"].as_i64(),
+        Some(request_id)
+    );
+    assert_eq!(
+        course["enrollment"]["can_request_join"].as_bool(),
+        Some(false)
+    );
+    assert_eq!(course["access"]["can_request_join"].as_bool(), Some(true));
+}
+
+#[actix_web::test]
+async fn learner_catalog_includes_own_draft_but_hides_unscoped_draft_detail() {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+    let mut conn = setup_conn(&pool).await;
+
+    let learner = create_test_user(&mut conn).await;
+    let outsider = create_test_user(&mut conn).await;
+    assign_platform_role(&mut conn, learner.id(), "USER").await;
+    assign_platform_role(&mut conn, outsider.id(), "USER").await;
+
+    let draft = create_course(&mut conn, &unique_string("OwnDraftCourse")).await;
+    assign_course_role(&mut conn, learner.id(), draft.id, "STUDENT").await;
+    let chapter_id = create_chapter(&mut conn, draft.id, "Draft module", 0).await;
+    create_content(&mut conn, chapter_id, "article", 0).await;
+    drop(conn);
+
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(pool.clone()))
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .service(rust_learn::api::courses::course_scope()),
+    )
+    .await;
+
+    let catalog_req = test::TestRequest::get()
+        .uri("/courses/catalog?enrollment_status=enrolled&limit=10")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(learner.id())),
+        ))
+        .to_request();
+    let catalog_resp = test::call_service(&app, catalog_req).await;
+    assert_eq!(catalog_resp.status(), StatusCode::OK);
+    let catalog_body: Value = test::read_body_json(catalog_resp).await;
+    let courses = catalog_body["courses"].as_array().expect("courses array");
+    let own_draft = courses
+        .iter()
+        .find(|course| course["id"].as_i64() == Some(i64::from(draft.id)))
+        .expect("own draft should be visible through course role");
+    assert_eq!(own_draft["enrollment"]["state"].as_str(), Some("enrolled"));
+    assert_eq!(
+        own_draft["content"]["content_types"][0].as_str(),
+        Some("article")
+    );
+
+    let detail_req = test::TestRequest::get()
+        .uri(&format!("/courses/catalog/{}", draft.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(learner.id())),
+        ))
+        .to_request();
+    let detail_resp = test::call_service(&app, detail_req).await;
+    assert_eq!(detail_resp.status(), StatusCode::OK);
+    let detail_body: Value = test::read_body_json(detail_resp).await;
+    assert_eq!(
+        detail_body["course"]["id"].as_i64(),
+        Some(i64::from(draft.id))
+    );
+    assert_eq!(
+        detail_body["chapters"][0]["contents"][0]["content_type"].as_str(),
+        Some("article")
+    );
+
+    let outsider_req = test::TestRequest::get()
+        .uri(&format!("/courses/catalog/{}", draft.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(outsider.id())),
+        ))
+        .to_request();
+    let outsider_resp = test::call_service(&app, outsider_req).await;
+    assert_eq!(outsider_resp.status(), StatusCode::NOT_FOUND);
 }

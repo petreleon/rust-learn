@@ -24,13 +24,19 @@ states when the current user lacks the required learner, teacher, organization,
 or platform access signal.
 
 Learner product routes now include `/courses`, `/rewards`, and `/wallet`.
-`/courses` shows current course access from the session and an honest
-catalog-readiness state until course discovery/detail contracts exist.
-`/rewards` loads `GET /api/reward-candidates/me/history`, supports human
-status filters, and separates teacher review, amount approval, token
-processing, wallet credit, reconciliation, and failed states. `/wallet` loads
-`GET /api/wallets/me`, treats `404 Wallet not linked` as an empty state, and
-uses `POST /api/wallets/me/link` for the self-service link action.
+`/courses` loads `GET /api/courses/catalog`, supports title search,
+enrollment filters, reward-only filtering, refresh, visible course cards,
+detail links, and `POST /api/courses/{courseId}/join-requests` for learner
+enrollment requests. `/courses/[courseId]` loads
+`GET /api/courses/catalog/{courseId}` and shows organization, teacher,
+content, syllabus, reward, enrollment, signed-out, and not-found states.
+Authored course descriptions, topics, and prerequisites remain empty until the
+backend course schema stores them. `/rewards` loads
+`GET /api/reward-candidates/me/history`, supports human status filters, and
+separates teacher review, amount approval, token processing, wallet credit,
+reconciliation, and failed states. `/wallet` loads `GET /api/wallets/me`,
+treats `404 Wallet not linked` as an empty state, and uses
+`POST /api/wallets/me/link` for the self-service link action.
 
 The shared product shell includes global status notices for session expiry and
 retryable workspace failures. Its account and mobile menus show delegated

@@ -17,13 +17,22 @@ progress, inspect rewards, and understand wallet state.
 
 ## Backend Contracts
 
-- [ ] Course discovery endpoint with search, filters, lifecycle status,
+- [x] Course discovery endpoint with search, filters, lifecycle status,
       organization, teacher, reward summary, and enrollment state.
   - [x] Current frontend refuses to fake discovery: `/courses` shows current
         session course access and a catalog-readiness state until this contract
         exists.
-- [ ] Course detail endpoint with syllabus, chapters, content summary, teacher,
+- [x] `GET /api/courses/catalog` now returns learner-visible published courses
+      plus scoped own courses with title search, organization filter,
+      lifecycle filter, enrollment filter, reward filter, organizations,
+      teachers, content summary, reward summary, enrollment state, and access
+      flags.
+- [x] Course detail endpoint with syllabus, chapters, content summary, teacher,
       organization, prerequisites, reward policy, and access requirements.
+  - [x] `GET /api/courses/catalog/{courseId}` returns the learner course
+        contract and chapter/content summaries. `description`, `topics`, and
+        `prerequisites` remain nullable/empty until the course schema supports
+        them.
 - [ ] Learner dashboard endpoint with enrollments, progress, due work,
       notifications, reward summary, and wallet summary.
 - [ ] Course progress and content-completion endpoints.
@@ -43,12 +52,18 @@ progress, inspect rewards, and understand wallet state.
 - [ ] `/learn` learner dashboard.
   - [x] `/learn` now routes learners to `/courses`, `/rewards`, and `/wallet`
         from the product workspace.
-- [ ] `/courses` course discovery with search, filters, sort, pagination, and
+- [x] `/courses` course discovery with search, filters, sort, pagination, and
       empty state.
   - [x] `/courses` product route exists with current course access, useful
         empty state, and honest catalog-readiness state.
-- [ ] `/courses/[courseId]` course detail with enrollment action and reward
+- [x] `/courses` now consumes the learner catalog contract with search,
+      enrollment filters, reward-only filter, refresh, empty state, detail
+      links, and request-join action.
+- [x] `/courses/[courseId]` course detail with enrollment action and reward
       policy explanation.
+  - [x] Detail route shows organization, teacher, content summary, syllabus,
+        reward policy summary, enrollment state, request-join action, signed
+        out state, and course-level not-found/error handling.
 - [ ] `/courses/[courseId]/learn` lesson/content viewer with next-step
       navigation.
 - [x] `/rewards` learner reward history.
@@ -81,14 +96,26 @@ progress, inspect rewards, and understand wallet state.
 ## Course Discovery And Detail
 
 - [ ] Search by title, organization, teacher, and topic when supported.
+  - [x] Title search is implemented. Teacher/topic search stays open because
+        those fields are not queryable in the current schema.
 - [ ] Filter by enrollment status, reward availability, organization, and
       lifecycle visibility.
+  - [x] Backend supports enrollment, reward, organization, and lifecycle
+        filters. `/courses` exposes enrollment and reward filters; organization
+        picker UI remains open until a learner-safe organization lookup is
+        available.
 - [ ] Explain unavailable enrollment: missing email verification, course not
       published, permission denied, suspended course, or request pending.
-- [ ] Show reward policy without implying guaranteed payout.
-- [ ] Show organization and teacher context without exposing admin-only data.
+  - [x] Pending, waitlisted, rejected, enrolled, unavailable/not-published, and
+        cannot-request states have product copy. Email-verification and
+        suspended-course specific explanations remain open.
+- [x] Show reward policy without implying guaranteed payout.
+- [x] Show organization and teacher context without exposing admin-only data.
 - [ ] Handle courses with no content, processing content, archived status, or
       unavailable reward policy.
+  - [x] No-content and unavailable reward states render. Processing media
+        state and richer archived/suspended treatment remain open for the
+        media-processing/status and lifecycle UX contracts.
 
 ## Lesson And Content Viewer
 
@@ -123,10 +150,18 @@ progress, inspect rewards, and understand wallet state.
   - [x] Browser/Playwright screenshots captured for `/courses`, `/rewards`,
         `/wallet` linked/unlinked states, and mobile menu during this
         checkpoint.
+  - [x] Playwright screenshots captured for `/courses` catalog, mobile catalog
+        menu, `/courses/[courseId]` detail flow, request-join success, signed
+        out state, and course-detail `404` state.
 - [ ] Tests for empty learner, enrolled learner, unverified learner, denied
       course access, and reward status transitions.
   - [x] API-helper tests cover learner reward-history success/filtering, wallet
         unlinked `404`, wallet link success, and wallet permission text error.
+  - [x] Rust API tests cover learner catalog summaries, pending enrollment
+        state, published visibility, own draft visibility, and hidden unscoped
+        draft detail.
+  - [x] API-helper tests cover course catalog filters, course detail, join
+        request, and detail `404` normalization.
 - [ ] Docker Compose E2E path: login/register, open learner dashboard, open
       course detail, inspect rewards, inspect wallet, scan recent logs.
 - [ ] Kubernetes smoke path loads `/learn`, `/courses`, and `/rewards` product
@@ -134,21 +169,26 @@ progress, inspect rewards, and understand wallet state.
 
 ## Current Checkpoint Traceability
 
-Route: `/courses`, `/rewards`, `/wallet`
+Route: `/courses`, `/courses/[courseId]`, `/rewards`, `/wallet`
 Persona: learner
-Primary job: understand current course access, inspect reward status, and
-prepare a wallet for credits.
+Primary job: discover visible courses, inspect course detail, request
+enrollment, inspect reward status, and prepare a wallet for credits.
 Backend contracts: `GET /api/me`, `GET /api/reward-candidates/me/history`,
-`GET /api/wallets/me`, `POST /api/wallets/me/link`.
+`GET /api/courses/catalog`, `GET /api/courses/catalog/{courseId}`,
+`POST /api/courses/{courseId}/join-requests`, `GET /api/wallets/me`,
+`POST /api/wallets/me/link`.
 Permission and scope rules: resolved session and course effective permissions;
 wallet self-access is allowed by backend; reward history only returns permitted
 course reward rows.
 Shared components: `ProductShell`, learner route bundle, session helper.
 Data helper: `web/src/lib/learner.ts`.
-States: signed out, loading, success, empty, unlinked wallet, link success,
-text/JSON error, timeout/network, session expired.
-Edge cases: missing catalog contract, unlinked wallet, wallet link retry,
-token transaction without wallet credit, reconciliation-needed rewards.
+States: signed out, loading, success, empty, catalog filters, pending
+enrollment, request-join success, course not found, unlinked wallet, link
+success, text/JSON error, timeout/network, session expired.
+Edge cases: unscoped draft hidden from learner catalog, own draft visible by
+course role, course-detail `404` keeps signed-in shell, unlinked wallet, wallet
+link retry, token transaction without wallet credit, reconciliation-needed
+rewards.
 Rendered proof: in-app Browser signed-out smoke; standalone Playwright
 mocked authenticated desktop/mobile checks because Browser lacks interception.
 API-helper proof: `npm run test:api-helpers`.

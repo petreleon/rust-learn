@@ -14,9 +14,11 @@ use crate::services::course_enrollment_service::{
     CourseJoinDecisionRequest,
 };
 use crate::services::course_service::{
-    create_course_with_invites_for_actor, discover_courses, update_course_for_actor,
+    create_course_with_invites_for_actor, discover_courses, discover_learner_course_catalog,
+    get_learner_course_detail, update_course_for_actor,
     update_course_lifecycle as update_course_lifecycle_status, CourseCreationError,
     CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest, CourseUpdateError,
+    LearnerCourseCatalogError, LearnerCourseCatalogQuery,
 };
 use crate::utils::notifications::NotificationsState;
 use crate::utils::request_auth::{authenticated_user, authenticated_user_id};
@@ -34,6 +36,17 @@ pub struct AssignRoleRequest {
 pub struct CourseDiscoveryParams {
     pub search: Option<String>,
     pub organization_id: Option<i32>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+#[derive(Deserialize)]
+pub struct LearnerCourseCatalogParams {
+    pub search: Option<String>,
+    pub organization_id: Option<i32>,
+    pub lifecycle_status: Option<String>,
+    pub enrollment_status: Option<String>,
+    pub reward_available: Option<bool>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
@@ -93,6 +106,16 @@ fn course_enrollment_error_response(error: CourseEnrollmentError) -> HttpRespons
     }
 }
 
+fn learner_course_catalog_error_response(error: LearnerCourseCatalogError) -> HttpResponse {
+    match error {
+        LearnerCourseCatalogError::NotFound => HttpResponse::NotFound().body("Course not found"),
+        LearnerCourseCatalogError::Database(message) => {
+            log::error!("event=learner_course_catalog_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to load course catalog")
+        }
+    }
+}
+
 async fn send_enrollment_notification_for_course(
     conn: &mut AsyncPgConnection,
     notifications: &NotificationsState,
@@ -116,6 +139,56 @@ async fn send_enrollment_notification_for_course(
             target_user_id,
             err
         );
+    }
+}
+
+async fn list_learner_course_catalog(
+    req: HttpRequest,
+    pool: web::Data<db::DbPool>,
+    query: web::Query<LearnerCourseCatalogParams>,
+) -> impl Responder {
+    let requester = match authenticated_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    let catalog_query = LearnerCourseCatalogQuery::new(
+        query.search.clone(),
+        query.organization_id,
+        query.lifecycle_status.clone(),
+        query.enrollment_status.clone(),
+        query.reward_available,
+        query.limit,
+        query.offset,
+    );
+
+    match discover_learner_course_catalog(&mut conn, requester.user_id, catalog_query).await {
+        Ok(catalog) => HttpResponse::Ok().json(catalog),
+        Err(error) => learner_course_catalog_error_response(error),
+    }
+}
+
+async fn get_learner_course_catalog_detail(
+    req: HttpRequest,
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    let requester = match authenticated_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match get_learner_course_detail(&mut conn, requester.user_id, path.into_inner()).await {
+        Ok(detail) => HttpResponse::Ok().json(detail),
+        Err(error) => learner_course_catalog_error_response(error),
     }
 }
 
@@ -495,6 +568,10 @@ pub fn course_scope() -> actix_web::Scope {
         .configure(crate::api::chapters::config)
         .configure(crate::api::contents::config)
         .configure(crate::api::reward_candidates::configure_course_reward_candidate_routes)
+        .service(web::resource("/catalog").route(web::get().to(list_learner_course_catalog)))
+        .service(
+            web::resource("/catalog/{id}").route(web::get().to(get_learner_course_catalog_detail)),
+        )
         .service(
             web::resource("")
                 .route(

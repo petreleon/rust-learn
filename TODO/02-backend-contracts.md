@@ -7,10 +7,18 @@ screens pretend to be complete.
       email verification status, platform permissions, organization
       memberships, course enrollments, and delegated permissions for route
       guards.
-- [ ] Define course discovery/detail payloads rich enough for product pages:
+- [x] Define course discovery/detail payloads rich enough for product pages:
       description, owner organization, lifecycle status, enrollment state,
       syllabus/chapter summary, teacher metadata, media availability, and reward
       policy summary.
+  - [x] `GET /api/courses/catalog` and
+        `GET /api/courses/catalog/{courseId}` now return learner-visible course
+        summaries/detail, organizations, teachers, content/chapter summaries,
+        active course reward policy summary, enrollment state, request ability,
+        and access flags.
+  - [ ] Course `description`, `topics`, and `prerequisites` are still
+        nullable/empty because the current course schema does not store them.
+        Add schema fields before treating those as authored course content.
 - [ ] Define learner course-progress and content-completion endpoints before
       building the learner dashboard as more than static cards.
 - [ ] Define assessment APIs before marking assessment-taking screens complete.

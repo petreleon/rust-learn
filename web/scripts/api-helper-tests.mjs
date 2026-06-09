@@ -212,6 +212,98 @@ test("fetchRewardHistory parses learner reward filters and JSON success", async 
   assert.equal(history[0].wallet_credit.amount, "12");
 });
 
+test("fetchCourseCatalog sends learner filters and parses summaries", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(
+      url,
+      "/api/courses/catalog?limit=5&reward_available=true&search=Rust&enrollment_status=available",
+    );
+    assert.equal(init.headers.Authorization, "Bearer learner-token");
+    return jsonResponse({
+      courses: [courseCatalogItemFixture()],
+      enrollment_status: "available",
+      lifecycle_status: null,
+      limit: 5,
+      offset: 0,
+      organization_id: null,
+      reward_available: true,
+      search: "Rust",
+      total: 1,
+    });
+  });
+
+  const catalog = await learner.fetchCourseCatalog({
+    enrollmentStatus: "available",
+    limit: 5,
+    rewardAvailable: true,
+    search: " Rust ",
+    token: "learner-token",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(catalog.total, 1);
+  assert.equal(catalog.courses[0].title, "Rust Ownership");
+  assert.equal(catalog.courses[0].enrollment.state, "available");
+});
+
+test("fetchCourseDetail and requestCourseJoin use learner course routes", async () => {
+  mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/catalog/7");
+    assert.equal(init.method, "GET");
+    assert.equal(init.headers.Authorization, "Bearer learner-token");
+    return jsonResponse({
+      chapters: [
+        {
+          contents: [{ content_type: "video", id: 3, order: 0 }],
+          id: 2,
+          order: 0,
+          title: "Intro",
+        },
+      ],
+      course: courseCatalogItemFixture(),
+      prerequisites: [],
+    });
+  });
+
+  const detail = await learner.fetchCourseDetail({ courseId: 7, token: "learner-token" });
+  assert.equal(detail.course.id, 7);
+  assert.equal(detail.chapters[0].contents[0].content_type, "video");
+
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/7/join-requests");
+    assert.equal(init.method, "POST");
+    assert.equal(init.headers.Authorization, "Bearer learner-token");
+    return jsonResponse(
+      {
+        course_id: 7,
+        created_at: "2026-01-01T10:00:00Z",
+        decided_at: null,
+        decision_reason: null,
+        id: 44,
+        requester_user_id: 1,
+        reviewer_user_id: null,
+        status: "pending",
+        updated_at: "2026-01-01T10:00:00Z",
+      },
+      { status: 201 },
+    );
+  });
+
+  const joinRequest = await learner.requestCourseJoin({ courseId: 7, token: "learner-token" });
+  assert.equal(calls.length, 1);
+  assert.equal(joinRequest.status, "pending");
+});
+
+test("fetchCourseDetail normalizes learner text not found errors", async () => {
+  mockFetch(() => textResponse("Course not found", { status: 404 }));
+
+  await assertRequestError(learner.fetchCourseDetail({ courseId: 404, token: "learner-token" }), {
+    code: "not_found",
+    errorClass: learner.LearnerRequestError,
+    status: 404,
+  });
+});
+
 test("fetchMyWallet returns null for unlinked wallet and parses linked wallet", async () => {
   mockFetch(() => textResponse("Wallet not linked", { status: 404 }));
 
@@ -336,5 +428,43 @@ function currentSessionFixture() {
     organizations: [],
     courses: [],
     delegated_permissions: [],
+  };
+}
+
+function courseCatalogItemFixture() {
+  return {
+    access: {
+      can_request_join: true,
+      can_view_content: true,
+      can_view_course: true,
+      can_view_rewards: false,
+    },
+    content: {
+      chapter_count: 1,
+      content_count: 1,
+      content_types: ["video"],
+      has_content: true,
+    },
+    description: null,
+    enrollment: {
+      can_request_join: true,
+      reason: "Enrollment can be requested.",
+      request_id: null,
+      roles: [],
+      state: "available",
+    },
+    id: 7,
+    lifecycle_status: "published",
+    organizations: [{ id: 1, name: "Rust Org" }],
+    rewards: {
+      active_policy_count: 1,
+      available: true,
+      event_types: ["course_completion"],
+      payment_strategies: ["treasury_transfer"],
+      token_amounts: ["25"],
+    },
+    teachers: [{ id: 2, name: "Teacher One" }],
+    title: "Rust Ownership",
+    topics: [],
   };
 }

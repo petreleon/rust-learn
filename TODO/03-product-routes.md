@@ -40,13 +40,21 @@
       reward status, wallet summary, and recent notifications.
   - [x] Add learner dashboard onward navigation to courses, rewards, and wallet
         product routes.
-- [ ] Build course discovery with search, filters, organization/course
+- [x] Build course discovery with search, filters, organization/course
       metadata, reward availability, and enrollment calls to action.
   - [x] Add a `/courses` product route that shows current course access and
         clearly defers full discovery until catalog data exists.
-- [ ] Build course detail pages with syllabus, instructor information,
+- [x] `/courses` now consumes `GET /api/courses/catalog`, renders title
+      search, enrollment filters, reward filter, organization/teacher/content
+      metadata, reward availability, empty states, detail links, and
+      request-join actions.
+- [x] Build course detail pages with syllabus, instructor information,
       prerequisites, reward policy summary, enrollment status, and access
       requirements.
+  - [x] `/courses/[courseId]` consumes
+        `GET /api/courses/catalog/{courseId}` and handles signed out, loading,
+        success, request join, and course not found. Authored prerequisites stay
+        open until the backend schema stores them.
 - [ ] Build a content/lesson viewer for course material, media processing
       states, completion tracking, and next-step navigation.
 - [ ] Build assessment-taking screens when assessment endpoints are ready,

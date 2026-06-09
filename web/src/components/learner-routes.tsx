@@ -2,9 +2,11 @@
 
 import {
   AlertTriangle,
+  ArrowLeft,
   BookOpen,
+  CheckCircle,
   CreditCard,
-  Filter,
+  FileText,
   Loader2,
   LogIn,
   RefreshCw,
@@ -12,13 +14,19 @@ import {
   Trophy,
 } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { ProductShell, type ShellNotice } from "@/components/product-shell";
 import {
+  fetchCourseCatalog,
+  fetchCourseDetail,
   fetchMyWallet,
   fetchRewardHistory,
   LearnerRequestError,
   linkMyWallet,
+  requestCourseJoin,
+  type CourseCatalogDetail,
+  type CourseCatalogItem,
+  type CourseCatalogResponse,
   type RewardHistoryEntry,
   type WalletSummary,
 } from "@/lib/learner";
@@ -26,7 +34,6 @@ import {
   clearStoredSessionToken,
   fetchCurrentSession,
   readStoredSessionToken,
-  type CourseSessionScope,
   type CurrentSession,
   SessionRequestError,
 } from "@/lib/session";
@@ -34,6 +41,7 @@ import styles from "./learner-routes.module.css";
 
 type LoadState = "idle" | "loading" | "success" | "error";
 type LearnerRouteKind = "courses" | "rewards" | "wallet";
+type EnrollmentStatusFilter = "all" | "available" | "pending" | "waitlisted" | "enrolled" | "rejected" | "unavailable";
 type RewardStatusFilter =
   | "all"
   | "pending_teacher_approval"
@@ -57,6 +65,12 @@ export function LearnerProductRoute({ kind }: { kind: LearnerRouteKind }) {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [error, setError] = useState<RouteError | null>(null);
   const [actionNotice, setActionNotice] = useState<ShellNotice | null>(null);
+  const [catalog, setCatalog] = useState<CourseCatalogResponse | null>(null);
+  const [courseEnrollmentFilter, setCourseEnrollmentFilter] = useState<EnrollmentStatusFilter>("all");
+  const [courseRewardOnly, setCourseRewardOnly] = useState(false);
+  const [courseSearch, setCourseSearch] = useState("");
+  const [courseSearchInput, setCourseSearchInput] = useState("");
+  const [joiningCourseId, setJoiningCourseId] = useState<number | null>(null);
   const [rewards, setRewards] = useState<RewardHistoryEntry[]>([]);
   const [rewardStatus, setRewardStatus] = useState<RewardStatusFilter>("all");
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
@@ -68,6 +82,7 @@ export function LearnerProductRoute({ kind }: { kind: LearnerRouteKind }) {
       setHasToken(false);
       setSession(null);
       setError(null);
+      setCatalog(null);
       setRewards([]);
       setWallet(null);
       setLoadState("idle");
@@ -87,16 +102,27 @@ export function LearnerProductRoute({ kind }: { kind: LearnerRouteKind }) {
               token,
             })
           : Promise.resolve([]);
+      const catalogPromise =
+        kind === "courses"
+          ? fetchCourseCatalog({
+              enrollmentStatus: courseEnrollmentFilter === "all" ? undefined : courseEnrollmentFilter,
+              rewardAvailable: courseRewardOnly ? true : undefined,
+              search: courseSearch,
+              token,
+            })
+          : Promise.resolve(null);
       const walletPromise = kind === "wallet" ? fetchMyWallet({ token }) : Promise.resolve(null);
 
-      const [nextSession, nextRewards, nextWallet] = await Promise.all([
+      const [nextSession, nextRewards, nextCatalog, nextWallet] = await Promise.all([
         sessionPromise,
         rewardsPromise,
+        catalogPromise,
         walletPromise,
       ]);
 
       setSession(nextSession);
       setRewards(nextRewards);
+      setCatalog(nextCatalog);
       setWallet(nextWallet);
       setLoadState("success");
     } catch (nextError) {
@@ -113,7 +139,7 @@ export function LearnerProductRoute({ kind }: { kind: LearnerRouteKind }) {
       });
       setLoadState("error");
     }
-  }, [kind, rewardStatus]);
+  }, [courseEnrollmentFilter, courseRewardOnly, courseSearch, kind, rewardStatus]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => void loadRoute(), 0);
@@ -126,6 +152,7 @@ export function LearnerProductRoute({ kind }: { kind: LearnerRouteKind }) {
     setSession(null);
     setError(null);
     setActionNotice(null);
+    setCatalog(null);
     setRewards([]);
     setWallet(null);
     setLoadState("idle");
@@ -152,7 +179,7 @@ export function LearnerProductRoute({ kind }: { kind: LearnerRouteKind }) {
       });
     } catch (nextError) {
       const requestError = normalizeRouteError(nextError);
-      if (requestError.status === 401 || requestError.status === 404) {
+      if (requestError.status === 401) {
         clearStoredSessionToken();
         setHasToken(false);
       }
@@ -164,6 +191,51 @@ export function LearnerProductRoute({ kind }: { kind: LearnerRouteKind }) {
     } finally {
       setWalletLinking(false);
     }
+  }
+
+  async function requestJoin(course: CourseCatalogItem) {
+    const token = readStoredSessionToken();
+    if (!token) {
+      setLoadState("idle");
+      return;
+    }
+
+    setJoiningCourseId(course.id);
+    setActionNotice(null);
+    try {
+      const joinRequest = await requestCourseJoin({ courseId: course.id, token });
+      setActionNotice({
+        message: `${course.title} is now ${humanize(joinRequest.status)} and waiting for course staff when review is required.`,
+        title: "Enrollment request sent",
+        tone: "success",
+      });
+      await loadRoute();
+    } catch (nextError) {
+      const requestError = normalizeRouteError(nextError);
+      if (requestError.status === 401 || requestError.status === 404) {
+        clearStoredSessionToken();
+        setHasToken(false);
+      }
+      setActionNotice({
+        message: requestError.message,
+        title: requestError.code,
+        tone: requestError.code === "timeout" || requestError.code === "network_error" ? "warn" : "error",
+      });
+    } finally {
+      setJoiningCourseId(null);
+    }
+  }
+
+  function applyCourseSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCourseSearch(courseSearchInput.trim());
+  }
+
+  function clearCourseFilters() {
+    setCourseEnrollmentFilter("all");
+    setCourseRewardOnly(false);
+    setCourseSearch("");
+    setCourseSearchInput("");
   }
 
   const notice = actionNotice || learnerNotice(error, kind);
@@ -189,7 +261,24 @@ export function LearnerProductRoute({ kind }: { kind: LearnerRouteKind }) {
       {loadState === "idle" && !session ? <SignedOutState redirect={config.href} /> : null}
       {loadState === "loading" ? <LoadingState /> : null}
       {error ? <ErrorState error={error} onRetry={loadRoute} redirect={config.href} /> : null}
-      {loadState === "success" && session && kind === "courses" ? <CoursesContent session={session} /> : null}
+      {loadState === "success" && session && kind === "courses" ? (
+        <CoursesContent
+          catalog={catalog}
+          enrollmentFilter={courseEnrollmentFilter}
+          joiningCourseId={joiningCourseId}
+          onApplySearch={applyCourseSearch}
+          onChangeEnrollmentFilter={setCourseEnrollmentFilter}
+          onChangeRewardOnly={setCourseRewardOnly}
+          onChangeSearchInput={setCourseSearchInput}
+          onClearFilters={clearCourseFilters}
+          onRefresh={loadRoute}
+          onRequestJoin={requestJoin}
+          rewardOnly={courseRewardOnly}
+          search={courseSearch}
+          searchInput={courseSearchInput}
+          session={session}
+        />
+      ) : null}
       {loadState === "success" && session && kind === "rewards" ? (
         <RewardsContent
           filter={rewardStatus}
@@ -209,81 +298,449 @@ export function LearnerProductRoute({ kind }: { kind: LearnerRouteKind }) {
   );
 }
 
-function CoursesContent({ session }: { session: CurrentSession }) {
-  const rewardCourseCount = session.courses.filter((course) =>
-    course.effective_permissions.includes("VIEW_COURSE_REWARD_STATUS"),
-  ).length;
+export function LearnerCourseDetailRoute({ courseId }: { courseId: string }) {
+  const numericCourseId = Number(courseId);
+  const validCourseId = Number.isInteger(numericCourseId) && numericCourseId > 0;
+  const [hasToken, setHasToken] = useState(false);
+  const [session, setSession] = useState<CurrentSession | null>(null);
+  const [detail, setDetail] = useState<CourseCatalogDetail | null>(null);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [error, setError] = useState<RouteError | null>(null);
+  const [actionNotice, setActionNotice] = useState<ShellNotice | null>(null);
+  const [joining, setJoining] = useState(false);
+
+  const loadRoute = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token) {
+      setHasToken(false);
+      setSession(null);
+      setDetail(null);
+      setError(null);
+      setLoadState("idle");
+      return;
+    }
+
+    if (!validCourseId) {
+      setHasToken(true);
+      setSession(null);
+      setDetail(null);
+      setError({
+        code: "not_found",
+        message: "Course not found.",
+        status: 404,
+      });
+      setLoadState("error");
+      return;
+    }
+
+    setHasToken(true);
+    setLoadState("loading");
+    setError(null);
+
+    try {
+      const nextSession = await fetchCurrentSession({ token });
+      setSession(nextSession);
+
+      const nextDetail = await fetchCourseDetail({ courseId: numericCourseId, token });
+      setDetail(nextDetail);
+      setLoadState("success");
+    } catch (nextError) {
+      const requestError = normalizeRouteError(nextError);
+      if (
+        requestError.status === 401 ||
+        (nextError instanceof SessionRequestError && requestError.status === 404)
+      ) {
+        clearStoredSessionToken();
+        setHasToken(false);
+        setSession(null);
+      }
+      setDetail(null);
+      setError({
+        code: requestError.code,
+        message: requestError.message,
+        status: requestError.status,
+      });
+      setLoadState("error");
+    }
+  }, [numericCourseId, validCourseId]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadRoute(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadRoute]);
+
+  function signOut() {
+    clearStoredSessionToken();
+    setHasToken(false);
+    setSession(null);
+    setDetail(null);
+    setError(null);
+    setActionNotice(null);
+    setLoadState("idle");
+  }
+
+  async function requestJoin(course: CourseCatalogItem) {
+    const token = readStoredSessionToken();
+    if (!token) {
+      setLoadState("idle");
+      return;
+    }
+
+    setJoining(true);
+    setActionNotice(null);
+    try {
+      const joinRequest = await requestCourseJoin({ courseId: course.id, token });
+      setActionNotice({
+        message: `${course.title} is now ${humanize(joinRequest.status)} and waiting for course staff when review is required.`,
+        title: "Enrollment request sent",
+        tone: "success",
+      });
+      await loadRoute();
+    } catch (nextError) {
+      const requestError = normalizeRouteError(nextError);
+      if (requestError.status === 401) {
+        clearStoredSessionToken();
+        setHasToken(false);
+      }
+      setActionNotice({
+        message: requestError.message,
+        title: requestError.code,
+        tone: requestError.code === "timeout" || requestError.code === "network_error" ? "warn" : "error",
+      });
+    } finally {
+      setJoining(false);
+    }
+  }
+
+  const notice = actionNotice || learnerNotice(error, "courses");
+  const statusLabel = loadState === "loading" ? "Loading" : detail ? humanize(detail.course.enrollment.state) : "Course access";
+
+  return (
+    <ProductShell
+      activeNav="learn"
+      breadcrumbs={[
+        { href: "/session", label: "Workspace" },
+        { href: "/learn", label: "Learner" },
+        { href: "/courses", label: "Courses" },
+        { label: detail?.course.title || "Course detail" },
+      ]}
+      description={detail?.course.description || "Course enrollment, content, teacher, organization, and reward context."}
+      eyebrow="Learner"
+      isSignedIn={hasToken || Boolean(session)}
+      notice={notice}
+      onSignOut={signOut}
+      session={session}
+      statusItems={<StatusPill label={statusLabel} tone={detail ? enrollmentTone(detail.course.enrollment.state) : "neutral"} />}
+      title={detail?.course.title || "Course detail"}
+    >
+      {loadState === "idle" && !session ? <SignedOutState redirect={`/courses/${courseId}`} /> : null}
+      {loadState === "loading" ? <LoadingState /> : null}
+      {error ? <ErrorState error={error} onRetry={loadRoute} redirect={`/courses/${courseId}`} /> : null}
+      {loadState === "success" && detail ? (
+        <CourseDetailContent detail={detail} joining={joining} onRequestJoin={requestJoin} />
+      ) : null}
+    </ProductShell>
+  );
+}
+
+function CourseDetailContent({
+  detail,
+  joining,
+  onRequestJoin,
+}: {
+  detail: CourseCatalogDetail;
+  joining: boolean;
+  onRequestJoin: (course: CourseCatalogItem) => void;
+}) {
+  const course = detail.course;
+  const organizationLabel = course.organizations.map((organization) => organization.name).join(", ") || "Independent";
+  const teacherLabel = course.teachers.map((teacher) => teacher.name).join(", ") || "Teacher pending";
+  const contentTypes = course.content.content_types.map(humanize).join(", ") || "Content pending";
+  const rewardLabel = course.rewards.available
+    ? `${course.rewards.active_policy_count} active ${plural(course.rewards.active_policy_count)}`
+    : "No active policy";
 
   return (
     <>
       <section className={styles.contentGrid}>
-        <SummaryCard icon={<BookOpen size={20} aria-hidden />} label="Current courses" value={session.courses.length} />
-        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Reward-ready" value={rewardCourseCount} />
-        <SummaryCard icon={<CreditCard size={20} aria-hidden />} label="Organizations" value={session.organizations.length} />
+        <SummaryCard icon={<BookOpen size={20} aria-hidden />} label="Chapters" value={course.content.chapter_count} />
+        <SummaryCard icon={<FileText size={20} aria-hidden />} label="Content items" value={course.content.content_count} />
+        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Rewards" value={rewardLabel} />
       </section>
 
       <section className={styles.catalogPanel}>
         <div className={styles.panelHeader}>
-          <Search size={20} aria-hidden />
-          <h2>Catalog opening soon</h2>
+          <BookOpen size={20} aria-hidden />
+          <h2>Overview</h2>
+          <StatusPill label={humanize(course.lifecycle_status)} tone={course.lifecycle_status === "published" ? "good" : "neutral"} />
         </div>
-        <p>
-          Your current course access appears below. Search, filters, enrollment state, teacher
-          context, and course detail need course catalog data before they can be shown accurately.
-        </p>
-        <div className={styles.disabledSearch} aria-disabled="true">
-          <span>
-            <Search size={17} aria-hidden />
-            Search courses
-          </span>
-          <span>
-            <Filter size={17} aria-hidden />
-            Filters
-          </span>
+        <div className={styles.metaRow}>
+          <span>{organizationLabel}</span>
+          <span>{teacherLabel}</span>
+          <span>{contentTypes}</span>
+        </div>
+        <div className={styles.detailList}>
+          <span>{course.enrollment.reason || humanize(course.enrollment.state)}</span>
+          {course.rewards.available ? (
+            <span>{course.rewards.event_types.map(humanize).join(", ")} rewards</span>
+          ) : null}
+          {detail.prerequisites.length ? <span>{detail.prerequisites.join(", ")}</span> : null}
+        </div>
+        <div className={styles.actionRow}>
+          <Link className={styles.secondaryLink} href="/courses">
+            <ArrowLeft size={18} aria-hidden />
+            Courses
+          </Link>
+          {course.enrollment.can_request_join ? (
+            <button className={styles.primaryLink} disabled={joining} type="button" onClick={() => onRequestJoin(course)}>
+              {joining ? <Loader2 className={styles.spin} size={18} aria-hidden /> : <CheckCircle size={18} aria-hidden />}
+              Request join
+            </button>
+          ) : null}
+          {course.access.can_view_rewards ? (
+            <Link className={styles.secondaryLink} href="/rewards">
+              <Trophy size={18} aria-hidden />
+              Rewards
+            </Link>
+          ) : null}
         </div>
       </section>
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2>Current course access</h2>
-          <StatusPill label={`${session.courses.length} visible`} tone="neutral" />
+          <h2>Syllabus</h2>
+          <StatusPill label={`${detail.chapters.length} chapters`} tone="neutral" />
         </div>
-        {session.courses.length ? (
+        {detail.chapters.length ? (
           <div className={styles.itemGrid}>
-            {session.courses.map((course) => (
-              <CourseAccessCard course={course} key={course.id} />
+            {detail.chapters.map((chapter) => (
+              <article className={styles.itemCard} key={chapter.id}>
+                <div className={styles.itemHeader}>
+                  <h3>{chapter.title}</h3>
+                  <StatusPill label={`#${chapter.order + 1}`} tone="neutral" />
+                </div>
+                {chapter.contents.length ? (
+                  <div className={styles.detailList}>
+                    {chapter.contents.map((content) => (
+                      <span key={content.id}>
+                        {content.order + 1}. {humanize(content.content_type)}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className={styles.muted}>No content items yet.</p>
+                )}
+              </article>
             ))}
           </div>
         ) : (
-          <EmptyState
-            actionHref="/learn"
-            actionLabel="Back to learner workspace"
-            detail="When the course catalog is available, this page should be the starting point for finding and joining courses."
-            title="No courses yet"
-          />
+          <EmptyState detail="Syllabus content has not been added yet." title="No syllabus yet" />
         )}
       </section>
     </>
   );
 }
 
-function CourseAccessCard({ course }: { course: CourseSessionScope }) {
-  const rewardVisible = course.effective_permissions.includes("VIEW_COURSE_REWARD_STATUS");
+function CoursesContent({
+  catalog,
+  enrollmentFilter,
+  joiningCourseId,
+  onApplySearch,
+  onChangeEnrollmentFilter,
+  onChangeRewardOnly,
+  onChangeSearchInput,
+  onClearFilters,
+  onRefresh,
+  onRequestJoin,
+  rewardOnly,
+  search,
+  searchInput,
+  session,
+}: {
+  catalog: CourseCatalogResponse | null;
+  enrollmentFilter: EnrollmentStatusFilter;
+  joiningCourseId: number | null;
+  onApplySearch: (event: FormEvent<HTMLFormElement>) => void;
+  onChangeEnrollmentFilter: (filter: EnrollmentStatusFilter) => void;
+  onChangeRewardOnly: (checked: boolean) => void;
+  onChangeSearchInput: (value: string) => void;
+  onClearFilters: () => void;
+  onRefresh: () => void;
+  onRequestJoin: (course: CourseCatalogItem) => void;
+  rewardOnly: boolean;
+  search: string;
+  searchInput: string;
+  session: CurrentSession;
+}) {
+  const courses = catalog?.courses || [];
+  const rewardCourseCount = courses.filter((course) => course.rewards.available).length;
+  const activeFilterCount = [search ? 1 : 0, enrollmentFilter !== "all" ? 1 : 0, rewardOnly ? 1 : 0].reduce(
+    (total, value) => total + value,
+    0,
+  );
+
+  return (
+    <>
+      <section className={styles.contentGrid}>
+        <SummaryCard icon={<BookOpen size={20} aria-hidden />} label="Catalog matches" value={catalog?.total ?? 0} />
+        <SummaryCard icon={<CheckCircle size={20} aria-hidden />} label="Current courses" value={session.courses.length} />
+        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Reward-ready" value={rewardCourseCount} />
+      </section>
+
+      <section className={styles.catalogPanel}>
+        <div className={styles.panelHeader}>
+          <Search size={20} aria-hidden />
+          <h2>Course catalog</h2>
+          <button className={styles.iconAction} aria-label="Refresh courses" type="button" onClick={onRefresh}>
+            <RefreshCw size={18} aria-hidden />
+          </button>
+        </div>
+
+        <form className={styles.searchForm} onSubmit={onApplySearch}>
+          <label className={styles.searchField}>
+            <Search size={18} aria-hidden />
+            <span className={styles.srOnly}>Search courses</span>
+            <input
+              placeholder="Search courses"
+              type="search"
+              value={searchInput}
+              onChange={(event) => onChangeSearchInput(event.target.value)}
+            />
+          </label>
+          <button className={styles.primaryLink} type="submit">
+            <Search size={18} aria-hidden />
+            Search
+          </button>
+        </form>
+
+        <div className={styles.filterBar} aria-label="Course filters">
+          {enrollmentFilterOptions.map((option) => (
+            <button
+              aria-pressed={enrollmentFilter === option.value}
+              className={`${styles.filterButton} ${enrollmentFilter === option.value ? styles.activeFilter : ""}`}
+              key={option.value}
+              type="button"
+              onClick={() => onChangeEnrollmentFilter(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+          <label className={`${styles.filterToggle} ${rewardOnly ? styles.activeToggle : ""}`}>
+            <input
+              checked={rewardOnly}
+              type="checkbox"
+              onChange={(event) => onChangeRewardOnly(event.target.checked)}
+            />
+            <Trophy size={17} aria-hidden />
+            Rewards
+          </label>
+          {activeFilterCount ? (
+            <button className={styles.secondaryButton} type="button" onClick={onClearFilters}>
+              Clear
+            </button>
+          ) : null}
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2>Courses</h2>
+          <StatusPill label={`${courses.length} shown`} tone="neutral" />
+        </div>
+        {courses.length ? (
+          <div className={styles.itemGrid}>
+            {courses.map((course) => (
+              <CourseCatalogCard
+                course={course}
+                joining={joiningCourseId === course.id}
+                key={course.id}
+                onRequestJoin={onRequestJoin}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            action={
+              activeFilterCount ? (
+                <button className={styles.secondaryButton} type="button" onClick={onClearFilters}>
+                  Clear filters
+                </button>
+              ) : undefined
+            }
+            detail={
+              activeFilterCount
+                ? "No visible courses match these filters."
+                : "Visible courses will appear after they are published or assigned to you."
+            }
+            title={activeFilterCount ? "No matching courses" : "No courses visible"}
+          />
+        )}
+      </section>
+
+      {session.courses.length ? (
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2>Current access</h2>
+            <StatusPill label={`${session.courses.length} scopes`} tone="neutral" />
+          </div>
+          <div className={styles.compactList}>
+            {session.courses.slice(0, 4).map((course) => (
+              <span key={course.id}>
+                {course.title} - {course.roles.length ? course.roles.join(", ") : "Direct access"}
+              </span>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </>
+  );
+}
+
+function CourseCatalogCard({
+  course,
+  joining,
+  onRequestJoin,
+}: {
+  course: CourseCatalogItem;
+  joining: boolean;
+  onRequestJoin: (course: CourseCatalogItem) => void;
+}) {
+  const organizationLabel = course.organizations.map((organization) => organization.name).join(", ") || "Independent";
+  const teacherLabel = course.teachers.map((teacher) => teacher.name).join(", ") || "Teacher pending";
+  const contentLabel = course.content.has_content
+    ? `${course.content.chapter_count} chapters, ${course.content.content_count} items`
+    : "Content pending";
+  const rewardLabel = course.rewards.available
+    ? `${course.rewards.active_policy_count} reward ${plural(course.rewards.active_policy_count)}`
+    : "No active rewards";
+
   return (
     <article className={styles.itemCard}>
       <div className={styles.itemHeader}>
         <h3>{course.title}</h3>
-        <StatusPill label={humanize(course.lifecycle_status)} tone={course.lifecycle_status === "published" ? "good" : "neutral"} />
+        <StatusPill label={humanize(course.enrollment.state)} tone={enrollmentTone(course.enrollment.state)} />
       </div>
       <div className={styles.metaRow}>
-        <span>{course.effective_permissions.length} permissions</span>
-        <span>{course.roles.length ? course.roles.join(", ") : "Direct access"}</span>
-        <span>{rewardVisible ? "Rewards visible" : "Rewards hidden"}</span>
+        <span>{humanize(course.lifecycle_status)}</span>
+        <span>{organizationLabel}</span>
+        <span>{teacherLabel}</span>
+      </div>
+      <div className={styles.detailList}>
+        <span>{contentLabel}</span>
+        <span>{rewardLabel}</span>
+        {course.enrollment.reason ? <span>{course.enrollment.reason}</span> : null}
       </div>
       <div className={styles.actionRow}>
-        <Link className={styles.secondaryLink} href="/rewards">
-          View rewards
+        <Link className={styles.secondaryLink} href={`/courses/${course.id}`}>
+          <BookOpen size={18} aria-hidden />
+          Details
         </Link>
+        {course.enrollment.can_request_join ? (
+          <button className={styles.primaryLink} disabled={joining} type="button" onClick={() => onRequestJoin(course)}>
+            {joining ? <Loader2 className={styles.spin} size={18} aria-hidden /> : <CheckCircle size={18} aria-hidden />}
+            Request join
+          </button>
+        ) : null}
       </div>
     </article>
   );
@@ -629,6 +1086,23 @@ function rewardTone(status: string): "bad" | "good" | "neutral" | "warn" {
   return "neutral";
 }
 
+function enrollmentTone(status: string): "bad" | "good" | "neutral" | "warn" {
+  if (status === "enrolled" || status === "available") {
+    return "good";
+  }
+  if (status === "pending" || status === "waitlisted") {
+    return "warn";
+  }
+  if (status === "rejected" || status === "unavailable") {
+    return "bad";
+  }
+  return "neutral";
+}
+
+function plural(count: number) {
+  return count === 1 ? "policy" : "policies";
+}
+
 function rewardNextStep(reward: RewardHistoryEntry) {
   switch (reward.status) {
     case "pending_teacher_approval":
@@ -694,9 +1168,19 @@ const rewardFilterOptions: Array<{ label: string; value: RewardStatusFilter }> =
   { label: "Failed", value: "failed" },
 ];
 
+const enrollmentFilterOptions: Array<{ label: string; value: EnrollmentStatusFilter }> = [
+  { label: "All", value: "all" },
+  { label: "Available", value: "available" },
+  { label: "Pending", value: "pending" },
+  { label: "Waitlisted", value: "waitlisted" },
+  { label: "Enrolled", value: "enrolled" },
+  { label: "Rejected", value: "rejected" },
+  { label: "Unavailable", value: "unavailable" },
+];
+
 const routeConfig = {
   courses: {
-    description: "Current learner course access and catalog readiness.",
+    description: "Search courses, review enrollment state, and request access.",
     href: "/courses",
     title: "Courses",
   },

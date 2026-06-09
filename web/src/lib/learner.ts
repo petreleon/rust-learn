@@ -39,6 +39,103 @@ export type WalletLinkResult = {
   wallet: WalletSummary;
 };
 
+export type CourseCatalogResponse = {
+  courses: CourseCatalogItem[];
+  enrollment_status: string | null;
+  lifecycle_status: string | null;
+  limit: number;
+  offset: number;
+  organization_id: number | null;
+  reward_available: boolean | null;
+  search: string | null;
+  total: number;
+};
+
+export type CourseCatalogItem = {
+  access: CourseAccessSummary;
+  content: CourseContentSummary;
+  description: string | null;
+  enrollment: CourseEnrollmentSummary;
+  id: number;
+  lifecycle_status: string;
+  organizations: CourseCatalogOrganization[];
+  rewards: CourseRewardSummary;
+  teachers: CourseCatalogTeacher[];
+  title: string;
+  topics: string[];
+};
+
+export type CourseCatalogDetail = {
+  chapters: CourseCatalogChapter[];
+  course: CourseCatalogItem;
+  prerequisites: string[];
+};
+
+export type CourseCatalogOrganization = {
+  id: number;
+  name: string;
+};
+
+export type CourseCatalogTeacher = {
+  id: number;
+  name: string;
+};
+
+export type CourseContentSummary = {
+  chapter_count: number;
+  content_count: number;
+  content_types: string[];
+  has_content: boolean;
+};
+
+export type CourseRewardSummary = {
+  active_policy_count: number;
+  available: boolean;
+  event_types: string[];
+  payment_strategies: string[];
+  token_amounts: string[];
+};
+
+export type CourseEnrollmentSummary = {
+  can_request_join: boolean;
+  reason: string | null;
+  request_id: number | null;
+  roles: string[];
+  state: string;
+};
+
+export type CourseAccessSummary = {
+  can_request_join: boolean;
+  can_view_content: boolean;
+  can_view_course: boolean;
+  can_view_rewards: boolean;
+};
+
+export type CourseCatalogChapter = {
+  contents: CourseCatalogContent[];
+  id: number;
+  order: number;
+  title: string;
+};
+
+export type CourseCatalogContent = {
+  content_type: string;
+  id: number;
+  order: number;
+};
+
+export type CourseJoinRequest = {
+  course_id: number;
+  created_at: string;
+  decided_at: string | null;
+  decision_reason: string | null;
+  id: number;
+  requester_user_id: number;
+  reviewer_user_id: number | null;
+  status: string;
+  updated_at: string;
+};
+
 type LearnerErrorEnvelope = {
   error?: {
     code?: string;
@@ -71,8 +168,87 @@ export type RewardHistoryOptions = LearnerRequestOptions & {
   status?: string;
 };
 
+export type CourseCatalogOptions = LearnerRequestOptions & {
+  enrollmentStatus?: string;
+  limit?: number;
+  offset?: number;
+  organizationId?: number;
+  rewardAvailable?: boolean;
+  search?: string;
+};
+
+export type CourseDetailOptions = LearnerRequestOptions & {
+  courseId: number;
+};
+
 const DEFAULT_TIMEOUT_MS = 10000;
+const DEFAULT_COURSE_CATALOG_LIMIT = 30;
 const DEFAULT_REWARD_HISTORY_LIMIT = 25;
+
+export async function fetchCourseCatalog({
+  apiRoot = "/api",
+  enrollmentStatus,
+  limit = DEFAULT_COURSE_CATALOG_LIMIT,
+  offset,
+  organizationId,
+  rewardAvailable,
+  search,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: CourseCatalogOptions): Promise<CourseCatalogResponse> {
+  const query = new URLSearchParams();
+  query.set("limit", String(limit));
+  if (typeof offset === "number") {
+    query.set("offset", String(offset));
+  }
+  if (typeof organizationId === "number") {
+    query.set("organization_id", String(organizationId));
+  }
+  if (typeof rewardAvailable === "boolean") {
+    query.set("reward_available", String(rewardAvailable));
+  }
+  const trimmedSearch = search?.trim();
+  if (trimmedSearch) {
+    query.set("search", trimmedSearch);
+  }
+  if (enrollmentStatus && enrollmentStatus !== "all") {
+    query.set("enrollment_status", enrollmentStatus);
+  }
+
+  const suffix = query.toString();
+  return learnerJsonRequest<CourseCatalogResponse>({
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/catalog${suffix ? `?${suffix}` : ""}`,
+  });
+}
+
+export async function fetchCourseDetail({
+  apiRoot = "/api",
+  courseId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: CourseDetailOptions): Promise<CourseCatalogDetail> {
+  return learnerJsonRequest<CourseCatalogDetail>({
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/catalog/${courseId}`,
+  });
+}
+
+export async function requestCourseJoin({
+  apiRoot = "/api",
+  courseId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: CourseDetailOptions): Promise<CourseJoinRequest> {
+  return learnerJsonRequest<CourseJoinRequest>({
+    method: "POST",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/join-requests`,
+  });
+}
 
 export async function fetchRewardHistory({
   apiRoot = "/api",

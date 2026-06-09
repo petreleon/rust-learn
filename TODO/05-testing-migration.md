@@ -12,12 +12,21 @@
   - [x] Mocked browser QA covers learner `/courses`, `/rewards`, `/wallet`,
         reward filter interaction, wallet unlinked empty state, wallet link
         success, and mobile menu interaction for this checkpoint.
+  - [x] Mocked Playwright QA covers `/courses` catalog search/filter, detail
+        navigation, request-join success, mobile menu/no-overflow, signed-out
+        state, and `/courses/[courseId]` not-found state preserving the
+        signed-in shell.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
   - [x] Frontend helper tests now cover session/auth JSON and text errors plus
         learner reward-history success/filtering, wallet `404`, wallet link
         success, and learner `403` text error normalization.
+  - [x] Frontend helper tests cover learner course catalog filters, course
+        detail success, request-join success, and course-detail text `404`.
+  - [x] Rust API tests cover learner course catalog/detail response shape,
+        visibility, pending state, own draft access, and hidden unscoped draft
+        detail.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.
