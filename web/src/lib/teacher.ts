@@ -64,6 +64,70 @@ export type TeacherCourseWorkspaceResponse = {
   teacher_roles: string[];
 };
 
+export type TeacherCourseEnrollmentWorkspaceResponse = {
+  course: TeacherCourseDashboardItem;
+  join_requests: TeacherCourseJoinRequestPage;
+  progress_supported: boolean;
+  reward_eligibility_supported: boolean;
+  roster: TeacherCourseRosterPage;
+  teacher_roles: string[];
+};
+
+export type TeacherCourseJoinRequestPage = {
+  limit: number;
+  offset: number;
+  requests: TeacherCourseJoinRequestItem[];
+  status: string | null;
+  total: number;
+};
+
+export type TeacherCourseJoinRequestItem = {
+  can_decide: boolean;
+  created_at: string;
+  decided_at: string | null;
+  decision_reason: string | null;
+  id: number;
+  requester: TeacherEnrollmentUserSummary;
+  reviewer: TeacherEnrollmentUserSummary | null;
+  status: string;
+  updated_at: string;
+};
+
+export type TeacherCourseJoinDecisionResponse = {
+  course_id: number;
+  created_at: string;
+  decided_at: string | null;
+  decision_reason: string | null;
+  id: number;
+  requester_user_id: number;
+  reviewer_user_id: number | null;
+  status: string;
+  updated_at: string;
+};
+
+export type TeacherCourseRosterPage = {
+  learners: TeacherCourseRosterLearner[];
+  total: number;
+};
+
+export type TeacherCourseRosterLearner = {
+  access_state: string;
+  can_remove: boolean;
+  latest_join_request_status: string | null;
+  progress_supported: boolean;
+  reward_eligibility_supported: boolean;
+  roles: string[];
+  user: TeacherEnrollmentUserSummary;
+};
+
+export type TeacherEnrollmentUserSummary = {
+  email: string;
+  email_verified: boolean;
+  id: number;
+  kyc_verified: boolean;
+  name: string;
+};
+
 export type TeacherCoursePublicationSummary = {
   content_publication_status_supported: boolean;
   course_lifecycle_status: string;
@@ -189,6 +253,13 @@ export type TeacherCourseWorkspaceOptions = TeacherRequestOptions & {
   courseId: number | string;
 };
 
+export type TeacherCourseEnrollmentOptions = TeacherRequestOptions & {
+  courseId: number | string;
+  limit?: number;
+  offset?: number;
+  status?: string;
+};
+
 export type CreateTeacherChapterPayload = {
   order: number;
   title: string;
@@ -209,6 +280,28 @@ export type CreateTeacherContentOptions = TeacherRequestOptions & {
   chapterId: number | string;
   courseId: number | string;
   payload: CreateTeacherContentPayload;
+};
+
+export type DecideTeacherJoinRequestPayload = {
+  decision_reason?: string | null;
+  status: "approved" | "rejected" | "waitlisted";
+};
+
+export type DecideTeacherJoinRequestOptions = TeacherRequestOptions & {
+  courseId: number | string;
+  payload: DecideTeacherJoinRequestPayload;
+  requestId: number | string;
+};
+
+export type RemoveTeacherEnrollmentOptions = TeacherRequestOptions & {
+  courseId: number | string;
+  userId: number | string;
+};
+
+export type TeacherEnrollmentRemovalResponse = {
+  course_id: number;
+  removed: boolean;
+  user_id: number;
 };
 
 export type SubmitTeacherApplicationOptions = TeacherRequestOptions & {
@@ -275,6 +368,34 @@ export async function fetchTeachingCourseWorkspace({
   });
 }
 
+export async function fetchTeachingCourseEnrollments({
+  apiRoot = "/api",
+  courseId,
+  limit = 25,
+  offset,
+  status,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: TeacherCourseEnrollmentOptions): Promise<TeacherCourseEnrollmentWorkspaceResponse> {
+  const query = new URLSearchParams();
+  query.set("limit", String(limit));
+  if (typeof offset === "number") {
+    query.set("offset", String(offset));
+  }
+  const trimmedStatus = status?.trim();
+  if (trimmedStatus) {
+    query.set("status", trimmedStatus);
+  }
+
+  const suffix = query.toString();
+  return teacherJsonRequest<TeacherCourseEnrollmentWorkspaceResponse>({
+    method: "GET",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/teaching/${courseId}/enrollments${suffix ? `?${suffix}` : ""}`,
+  });
+}
+
 export async function createTeacherChapter({
   apiRoot = "/api",
   courseId,
@@ -305,6 +426,38 @@ export async function createTeacherContent({
     timeoutMs,
     token,
     url: `${apiRoot}/courses/${courseId}/chapters/${chapterId}/contents`,
+  });
+}
+
+export async function decideTeacherJoinRequest({
+  apiRoot = "/api",
+  courseId,
+  payload,
+  requestId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: DecideTeacherJoinRequestOptions): Promise<TeacherCourseJoinDecisionResponse> {
+  return teacherJsonRequest<TeacherCourseJoinDecisionResponse>({
+    body: JSON.stringify(payload),
+    method: "PUT",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/join-requests/${requestId}/decision`,
+  });
+}
+
+export async function removeTeacherEnrollment({
+  apiRoot = "/api",
+  courseId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+  userId,
+}: RemoveTeacherEnrollmentOptions): Promise<TeacherEnrollmentRemovalResponse> {
+  return teacherJsonRequest<TeacherEnrollmentRemovalResponse>({
+    method: "DELETE",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/enrollments/${userId}`,
   });
 }
 

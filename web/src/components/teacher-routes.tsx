@@ -16,6 +16,7 @@ import {
   Send,
   ShieldCheck,
   Trophy,
+  UserMinus,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -31,13 +32,19 @@ import {
 import {
   createTeacherChapter,
   createTeacherContent,
+  decideTeacherJoinRequest,
   fetchMyTeacherApplication,
+  fetchTeachingCourseEnrollments,
   fetchTeachingCourseWorkspace,
   fetchTeachingCourses,
+  removeTeacherEnrollment,
   TeacherRequestError,
   type TeacherApplication,
   type TeacherApplicationSnapshot,
   type TeacherCourseDashboardItem,
+  type TeacherCourseEnrollmentWorkspaceResponse,
+  type TeacherCourseJoinRequestItem,
+  type TeacherCourseRosterLearner,
   type TeacherCourseWorkspaceContent,
   type TeacherCourseWorkspaceResponse,
   type TeacherCoursesResponse,
@@ -101,6 +108,22 @@ const defaultContentDraft: ContentDraft = {
   contentType: "article",
   data: "",
   order: "1",
+};
+
+const enrollmentStatusOptions = ["open", "pending", "waitlisted", "approved", "rejected", "all"] as const;
+
+type EnrollmentStatusFilter = (typeof enrollmentStatusOptions)[number];
+
+type DecisionStatus = "approved" | "rejected" | "waitlisted";
+
+type DecisionDraft = {
+  reason: string;
+  status: DecisionStatus;
+};
+
+const defaultDecisionDraft: DecisionDraft = {
+  reason: "",
+  status: "approved",
 };
 
 const submitTeacherApplicationPermission = "SUBMIT_TEACHER_APPLICATION";
@@ -624,6 +647,225 @@ export function TeacherCourseContentRoute({ courseId }: { courseId: string }) {
   );
 }
 
+export function TeacherCourseEnrollmentsRoute({ courseId }: { courseId: string }) {
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionState, setActionState] = useState<ActionState>("idle");
+  const [confirmRemovalUserId, setConfirmRemovalUserId] = useState<number | null>(null);
+  const [decisionDrafts, setDecisionDrafts] = useState<Record<number, DecisionDraft>>({});
+  const [error, setError] = useState<RouteError | null>(null);
+  const [hasToken, setHasToken] = useState(false);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [session, setSession] = useState<CurrentSession | null>(null);
+  const [statusFilter, setStatusFilter] = useState<EnrollmentStatusFilter>("open");
+  const [workspace, setWorkspace] = useState<TeacherCourseEnrollmentWorkspaceResponse | null>(null);
+
+  const loadEnrollmentRoute = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token) {
+      setHasToken(false);
+      setSession(null);
+      setWorkspace(null);
+      setError(null);
+      setLoadState("idle");
+      return;
+    }
+
+    setHasToken(true);
+    setLoadState("loading");
+    setError(null);
+
+    try {
+      const [nextSession, nextWorkspace] = await Promise.all([
+        fetchCurrentSession({ token }),
+        fetchTeachingCourseEnrollments({ courseId, status: statusFilter, token }),
+      ]);
+      setSession(nextSession);
+      setWorkspace(nextWorkspace);
+      setLoadState("success");
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      if (routeError.status === 401) {
+        clearStoredSessionToken();
+        setHasToken(false);
+      }
+      setSession(null);
+      setWorkspace(null);
+      setError(routeError);
+      setLoadState("error");
+    }
+  }, [courseId, statusFilter]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadEnrollmentRoute(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadEnrollmentRoute]);
+
+  function signOut() {
+    clearStoredSessionToken();
+    setHasToken(false);
+    setSession(null);
+    setWorkspace(null);
+    setError(null);
+    setLoadState("idle");
+  }
+
+  function updateDecisionDraft(requestId: number, draft: DecisionDraft) {
+    setDecisionDrafts((current) => ({
+      ...current,
+      [requestId]: draft,
+    }));
+  }
+
+  async function submitDecision(request: TeacherCourseJoinRequestItem, event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const token = readStoredSessionToken();
+    const draft = decisionDrafts[request.id] || defaultDecisionDraft;
+    if (!token) {
+      setActionMessage("Sign in again before deciding enrollment requests.");
+      return;
+    }
+
+    setActionState("saving");
+    setActionMessage(null);
+    try {
+      await decideTeacherJoinRequest({
+        courseId,
+        payload: {
+          decision_reason: draft.reason.trim() || null,
+          status: draft.status,
+        },
+        requestId: request.id,
+        token,
+      });
+      setDecisionDrafts((current) => {
+        const next = { ...current };
+        delete next[request.id];
+        return next;
+      });
+      setActionMessage("Enrollment request updated.");
+      await loadEnrollmentRoute();
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      setActionMessage(routeError.message);
+    } finally {
+      setActionState("idle");
+    }
+  }
+
+  async function removeLearner(learner: TeacherCourseRosterLearner) {
+    const token = readStoredSessionToken();
+    if (!token) {
+      setActionMessage("Sign in again before changing roster access.");
+      return;
+    }
+
+    if (confirmRemovalUserId !== learner.user.id) {
+      setConfirmRemovalUserId(learner.user.id);
+      setActionMessage(`Confirm removal for ${learner.user.name}.`);
+      return;
+    }
+
+    setActionState("saving");
+    setActionMessage(null);
+    try {
+      await removeTeacherEnrollment({
+        courseId,
+        token,
+        userId: learner.user.id,
+      });
+      setConfirmRemovalUserId(null);
+      setActionMessage("Learner removed from the course roster.");
+      await loadEnrollmentRoute();
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      setActionMessage(routeError.message);
+    } finally {
+      setActionState("idle");
+    }
+  }
+
+  const courseTitle = workspace?.course.title || "Course enrollments";
+  return (
+    <ProductShell
+      activeNav="teach"
+      breadcrumbs={[
+        { href: "/session", label: "Workspace" },
+        { href: "/teach", label: "Teach" },
+        { href: "/teach/courses", label: "Courses" },
+        { href: `/teach/courses/${courseId}`, label: courseTitle },
+        { label: "Enrollments" },
+      ]}
+      description="Review course join requests and roster access without raw learner ids."
+      eyebrow="Teacher enrollments"
+      isSignedIn={hasToken || Boolean(session)}
+      notice={routeNotice(error)}
+      onSignOut={signOut}
+      session={session}
+      statusItems={
+        workspace ? (
+          <>
+            <StatusLine icon={<Clock3 size={16} aria-hidden />} label={`${workspace.join_requests.total} request${workspace.join_requests.total === 1 ? "" : "s"}`} tone={workspace.join_requests.total ? "warn" : "neutral"} />
+            <StatusLine icon={<Users size={16} aria-hidden />} label={`${workspace.roster.total} learner${workspace.roster.total === 1 ? "" : "s"}`} tone={workspace.roster.total ? "good" : "neutral"} />
+          </>
+        ) : null
+      }
+      title={courseTitle}
+    >
+      {loadState === "loading" ? (
+        <StatePanel
+          detail="Loading enrollment requests, roster access, and course-scoped permissions."
+          icon={<Loader2 className={styles.spin} size={22} aria-hidden />}
+          title="Loading enrollments"
+        />
+      ) : null}
+
+      {loadState === "idle" ? (
+        <StatePanel
+          action={
+            <Link className={styles.primaryLink} href={`/login?redirect=/teach/courses/${courseId}/enrollments`}>
+              <LogIn size={18} aria-hidden />
+              Sign in
+            </Link>
+          }
+          detail="Enrollment management loads from your signed-in teaching session."
+          icon={<LogIn size={22} aria-hidden />}
+          title="Sign in required"
+        />
+      ) : null}
+
+      {loadState === "error" && error ? (
+        <section className={`${styles.errorBox} ${styles.singlePanel}`} role="status">
+          <AlertCircle size={18} aria-hidden />
+          <span>
+            <strong>{error.code}</strong>
+            {error.message}
+          </span>
+          <button className={styles.secondaryButton} type="button" onClick={() => void loadEnrollmentRoute()}>
+            <RefreshCw size={17} aria-hidden />
+            Retry
+          </button>
+        </section>
+      ) : null}
+
+      {loadState === "success" && workspace ? (
+        <EnrollmentWorkspaceView
+          actionMessage={actionMessage}
+          actionState={actionState}
+          confirmRemovalUserId={confirmRemovalUserId}
+          decisionDrafts={decisionDrafts}
+          onDecisionDraftChange={updateDecisionDraft}
+          onRefresh={() => void loadEnrollmentRoute()}
+          onRemoveLearner={(learner) => void removeLearner(learner)}
+          onStatusFilterChange={setStatusFilter}
+          onSubmitDecision={submitDecision}
+          statusFilter={statusFilter}
+          workspace={workspace}
+        />
+      ) : null}
+    </ProductShell>
+  );
+}
+
 function DashboardView({
   application,
   canSubmitApplication,
@@ -957,6 +1199,274 @@ function ContentAuthoringView({
   );
 }
 
+function EnrollmentWorkspaceView({
+  actionMessage,
+  actionState,
+  confirmRemovalUserId,
+  decisionDrafts,
+  onDecisionDraftChange,
+  onRefresh,
+  onRemoveLearner,
+  onStatusFilterChange,
+  onSubmitDecision,
+  statusFilter,
+  workspace,
+}: {
+  actionMessage: string | null;
+  actionState: ActionState;
+  confirmRemovalUserId: number | null;
+  decisionDrafts: Record<number, DecisionDraft>;
+  onDecisionDraftChange: (requestId: number, draft: DecisionDraft) => void;
+  onRefresh: () => void;
+  onRemoveLearner: (learner: TeacherCourseRosterLearner) => void;
+  onStatusFilterChange: (status: EnrollmentStatusFilter) => void;
+  onSubmitDecision: (request: TeacherCourseJoinRequestItem, event: FormEvent<HTMLFormElement>) => void;
+  statusFilter: EnrollmentStatusFilter;
+  workspace: TeacherCourseEnrollmentWorkspaceResponse;
+}) {
+  const openRequestCount =
+    workspace.course.roster.pending_join_request_count + workspace.course.roster.waitlisted_join_request_count;
+  return (
+    <>
+      <section className={styles.workspaceHero}>
+        <Link className={styles.secondaryLink} href={`/teach/courses/${workspace.course.id}`}>
+          <ArrowLeft size={17} aria-hidden />
+          Course workspace
+        </Link>
+        <div className={styles.workspaceTitleBlock}>
+          <p className={styles.eyebrow}>{statusLabel(workspace.course.lifecycle_status)}</p>
+          <h2>Enrollment queue</h2>
+          <p className={styles.muted}>
+            Review join requests, waitlist learners, approve access, and remove roster access from a course-scoped workspace.
+          </p>
+        </div>
+      </section>
+
+      <section className={styles.summaryGrid}>
+        <SummaryCard icon={<Clock3 size={20} aria-hidden />} label="Open requests" value={openRequestCount} tone={openRequestCount ? "warn" : "neutral"} />
+        <SummaryCard icon={<Users size={20} aria-hidden />} label="Enrolled learners" value={workspace.roster.total} tone={workspace.roster.total ? "good" : "neutral"} />
+        <SummaryCard icon={<CheckCircle2 size={20} aria-hidden />} label="Pending shown" value={workspace.join_requests.requests.filter((request) => request.status === "pending").length} tone="neutral" />
+        <SummaryCard icon={<ShieldCheck size={20} aria-hidden />} label="Teacher roles" value={workspace.teacher_roles.length} tone={workspace.teacher_roles.length ? "good" : "neutral"} />
+      </section>
+
+      {actionMessage ? (
+        <section className={`${styles.warningPanel} ${styles.singlePanel}`} role="status">
+          <div className={styles.panelHeader}>
+            <AlertCircle size={18} aria-hidden />
+            <h2>Enrollment update</h2>
+          </div>
+          <p>{actionMessage}</p>
+        </section>
+      ) : null}
+
+      <section className={styles.filterPanel} aria-label="Enrollment request filters">
+        <label>
+          <span>Request status</span>
+          <select
+            onChange={(event) => onStatusFilterChange(event.target.value as EnrollmentStatusFilter)}
+            value={statusFilter}
+          >
+            {enrollmentStatusOptions.map((status) => (
+              <option key={status} value={status}>
+                {statusLabel(status)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button className={styles.secondaryButton} type="button" onClick={onRefresh}>
+          <RefreshCw size={17} aria-hidden />
+          Refresh
+        </button>
+      </section>
+
+      {!workspace.progress_supported || !workspace.reward_eligibility_supported ? (
+        <section className={`${styles.warningPanel} ${styles.singlePanel}`}>
+          <div className={styles.panelHeader}>
+            <AlertCircle size={18} aria-hidden />
+            <h2>Roster signals</h2>
+          </div>
+          <p>
+            Persisted progress and reward eligibility are not available in this enrollment route yet; student progress stays in the next milestone route.
+          </p>
+        </section>
+      ) : null}
+
+      <section className={styles.courseSection}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2>Join requests</h2>
+            <p className={styles.muted}>Showing {statusLabel(workspace.join_requests.status || "all")} requests with learner context.</p>
+          </div>
+          <span className={`${styles.statusPill} ${workspace.join_requests.total ? styles.warn : styles.neutral}`}>
+            {workspace.join_requests.total} total
+          </span>
+        </div>
+        {workspace.join_requests.requests.length ? (
+          <div className={styles.enrollmentList}>
+            {workspace.join_requests.requests.map((request) => (
+              <EnrollmentRequestCard
+                actionState={actionState}
+                draft={decisionDrafts[request.id] || defaultDecisionDraft}
+                key={request.id}
+                onDraftChange={(draft) => onDecisionDraftChange(request.id, draft)}
+                onSubmit={(event) => onSubmitDecision(request, event)}
+                request={request}
+              />
+            ))}
+          </div>
+        ) : (
+          <StatePanel
+            detail="No learner join requests match this filter."
+            icon={<CheckCircle2 size={22} aria-hidden />}
+            title="No matching requests"
+          />
+        )}
+      </section>
+
+      <section className={styles.courseSection}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2>Roster</h2>
+            <p className={styles.muted}>Learners with course access. Removal uses a two-step confirmation.</p>
+          </div>
+          <span className={`${styles.statusPill} ${workspace.roster.total ? styles.good : styles.neutral}`}>
+            {workspace.roster.total} enrolled
+          </span>
+        </div>
+        {workspace.roster.learners.length ? (
+          <div className={styles.enrollmentList}>
+            {workspace.roster.learners.map((learner) => (
+              <RosterLearnerCard
+                actionState={actionState}
+                confirmRemoval={confirmRemovalUserId === learner.user.id}
+                key={learner.user.id}
+                learner={learner}
+                onRemove={() => onRemoveLearner(learner)}
+              />
+            ))}
+          </div>
+        ) : (
+          <StatePanel
+            detail="No enrolled learners are visible for this course."
+            icon={<Users size={22} aria-hidden />}
+            title="Roster is empty"
+          />
+        )}
+      </section>
+    </>
+  );
+}
+
+function EnrollmentRequestCard({
+  actionState,
+  draft,
+  onDraftChange,
+  onSubmit,
+  request,
+}: {
+  actionState: ActionState;
+  draft: DecisionDraft;
+  onDraftChange: (draft: DecisionDraft) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  request: TeacherCourseJoinRequestItem;
+}) {
+  return (
+    <article className={styles.enrollmentCard}>
+      <div className={styles.courseTop}>
+        <div>
+          <p className={styles.eyebrow}>{request.requester.email}</p>
+          <h3>{request.requester.name}</h3>
+        </div>
+        <span className={`${styles.statusPill} ${styles[joinRequestTone(request.status)]}`}>
+          {statusLabel(request.status)}
+        </span>
+      </div>
+
+      <div className={styles.detailList}>
+        <DetailLine label="Requested" value={formatDateTime(request.created_at)} />
+        <DetailLine label="Updated" value={formatDateTime(request.updated_at)} />
+        <DetailLine label="Email" value={request.requester.email_verified ? "Verified" : "Needs verification"} />
+        <DetailLine label="KYC" value={request.requester.kyc_verified ? "Verified" : "Not verified"} />
+        {request.decision_reason ? <DetailLine label="Reason" value={request.decision_reason} /> : null}
+      </div>
+
+      {request.can_decide ? (
+        <form className={styles.decisionForm} onSubmit={onSubmit}>
+          <label>
+            <span>Decision</span>
+            <select
+              disabled={actionState === "saving"}
+              onChange={(event) => onDraftChange({ ...draft, status: event.target.value as DecisionStatus })}
+              value={draft.status}
+            >
+              <option value="approved">Approve</option>
+              <option value="waitlisted">Waitlist</option>
+              <option value="rejected">Reject</option>
+            </select>
+          </label>
+          <label>
+            <span>Reason</span>
+            <textarea
+              disabled={actionState === "saving"}
+              onChange={(event) => onDraftChange({ ...draft, reason: event.target.value })}
+              placeholder="Decision reason"
+              rows={3}
+              value={draft.reason}
+            />
+          </label>
+          <button className={styles.primaryButton} disabled={actionState === "saving"} type="submit">
+            <Send size={17} aria-hidden />
+            Apply decision
+          </button>
+        </form>
+      ) : (
+        <p className={styles.muted}>This request has already been decided.</p>
+      )}
+    </article>
+  );
+}
+
+function RosterLearnerCard({
+  actionState,
+  confirmRemoval,
+  learner,
+  onRemove,
+}: {
+  actionState: ActionState;
+  confirmRemoval: boolean;
+  learner: TeacherCourseRosterLearner;
+  onRemove: () => void;
+}) {
+  return (
+    <article className={styles.enrollmentCard}>
+      <div className={styles.courseTop}>
+        <div>
+          <p className={styles.eyebrow}>{learner.user.email}</p>
+          <h3>{learner.user.name}</h3>
+        </div>
+        <span className={`${styles.statusPill} ${styles.good}`}>{statusLabel(learner.access_state)}</span>
+      </div>
+      <div className={styles.detailList}>
+        <DetailLine label="Roles" value={learner.roles.join(", ") || "Learner"} />
+        <DetailLine label="Latest request" value={learner.latest_join_request_status ? statusLabel(learner.latest_join_request_status) : "No request history"} />
+        <DetailLine label="Progress" value={learner.progress_supported ? "Tracked" : "Not tracked yet"} />
+        <DetailLine label="Reward eligibility" value={learner.reward_eligibility_supported ? "Tracked" : "Not tracked yet"} />
+      </div>
+      {learner.can_remove ? (
+        <div className={styles.rosterAction}>
+          {confirmRemoval ? (
+            <p className={styles.muted}>Confirm removal to revoke course access for this learner.</p>
+          ) : null}
+          <button className={confirmRemoval ? styles.primaryButton : styles.secondaryButton} disabled={actionState === "saving"} type="button" onClick={onRemove}>
+            <UserMinus size={17} aria-hidden />
+            {confirmRemoval ? "Confirm removal" : "Remove"}
+          </button>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
 function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspaceResponse }) {
   const actions = [
     {
@@ -970,10 +1480,10 @@ function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspace
     },
     {
       detail: workspace.course.permissions.can_manage_enrollments
-        ? "Enrollment queue route is next; this workspace shows current pressure without making decisions here."
+        ? "Review join requests and roster access from the enrollment workspace."
         : "This session cannot manage enrollment decisions.",
       enabled: workspace.course.permissions.can_manage_enrollments,
-      href: null,
+      href: `/teach/courses/${workspace.course.id}/enrollments`,
       icon: <Users size={17} aria-hidden />,
       label: "Enrollment queue",
     },
@@ -1003,7 +1513,7 @@ function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspace
               <p>{action.detail}</p>
               {action.enabled && action.href ? (
                 <Link className={styles.secondaryLink} href={action.href}>
-                  <FileText size={16} aria-hidden />
+                  {action.icon}
                   Open
                 </Link>
               ) : null}
@@ -1210,10 +1720,17 @@ function CourseCard({ course }: { course: TeacherCourseDashboardItem }) {
           <BriefcaseBusiness size={16} aria-hidden />
           Workspace
         </Link>
-        <button className={styles.secondaryButton} disabled type="button" title="Enrollment queue route is next">
-          <Users size={16} aria-hidden />
-          Enrollments
-        </button>
+        {course.permissions.can_manage_enrollments ? (
+          <Link className={styles.secondaryLink} href={`/teach/courses/${course.id}/enrollments`}>
+            <Users size={16} aria-hidden />
+            Enrollments
+          </Link>
+        ) : (
+          <button className={styles.secondaryButton} disabled type="button" title="Enrollment permission required">
+            <Users size={16} aria-hidden />
+            Enrollments
+          </button>
+        )}
         <button className={styles.secondaryButton} disabled type="button" title="Reward review route is next">
           <Trophy size={16} aria-hidden />
           Rewards
@@ -1449,6 +1966,30 @@ function lifecycleTone(status: string) {
   return "neutral";
 }
 
+function joinRequestTone(status: string) {
+  if (status === "approved") {
+    return "good";
+  }
+
+  if (status === "pending" || status === "waitlisted") {
+    return "warn";
+  }
+
+  return "neutral";
+}
+
 function statusLabel(value: string) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Date unavailable";
+  }
+
+  return date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }

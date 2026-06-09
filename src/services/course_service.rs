@@ -29,7 +29,7 @@ use crate::repositories::course_repository::user_permission_course_request;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
 use bigdecimal::BigDecimal;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::BoolExpressionMethods;
 use diesel::{EscapeExpressionMethods, PgTextExpressionMethods};
@@ -107,6 +107,13 @@ pub struct TeacherCourseDashboardQuery {
     pub offset: i64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TeacherCourseEnrollmentQuery {
+    pub status: Option<String>,
+    pub limit: i64,
+    pub offset: i64,
+}
+
 #[derive(Debug, Serialize)]
 pub struct TeacherCourseDashboardResponse {
     pub courses: Vec<TeacherCourseDashboardItem>,
@@ -136,6 +143,64 @@ pub struct TeacherCourseWorkspaceResponse {
     pub teacher_roles: Vec<String>,
     pub publication: TeacherCoursePublicationSummary,
     pub chapters: Vec<TeacherCourseWorkspaceChapter>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCourseEnrollmentWorkspaceResponse {
+    pub course: TeacherCourseDashboardItem,
+    pub teacher_roles: Vec<String>,
+    pub join_requests: TeacherCourseJoinRequestPage,
+    pub roster: TeacherCourseRosterPage,
+    pub progress_supported: bool,
+    pub reward_eligibility_supported: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCourseJoinRequestPage {
+    pub requests: Vec<TeacherCourseJoinRequestItem>,
+    pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
+    pub status: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCourseJoinRequestItem {
+    pub id: i64,
+    pub status: String,
+    pub requester: TeacherEnrollmentUserSummary,
+    pub reviewer: Option<TeacherEnrollmentUserSummary>,
+    pub decision_reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub decided_at: Option<DateTime<Utc>>,
+    pub can_decide: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCourseRosterPage {
+    pub learners: Vec<TeacherCourseRosterLearner>,
+    pub total: i64,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCourseRosterLearner {
+    pub user: TeacherEnrollmentUserSummary,
+    pub roles: Vec<String>,
+    pub latest_join_request_status: Option<String>,
+    pub access_state: String,
+    pub can_remove: bool,
+    pub progress_supported: bool,
+    pub reward_eligibility_supported: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherEnrollmentUserSummary {
+    pub id: i32,
+    pub name: String,
+    pub email: String,
+    pub email_verified: bool,
+    pub kyc_verified: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -430,6 +495,24 @@ impl TeacherCourseDashboardQuery {
     }
 }
 
+impl TeacherCourseEnrollmentQuery {
+    pub fn new(status: Option<String>, limit: Option<i64>, offset: Option<i64>) -> Self {
+        let status = normalize_optional_string(status)
+            .map(|value| value.to_ascii_lowercase())
+            .or_else(|| Some("open".to_string()));
+        let limit = limit
+            .unwrap_or(DEFAULT_COURSE_LIMIT)
+            .clamp(1, MAX_COURSE_LIMIT);
+        let offset = offset.unwrap_or(0).max(0);
+
+        TeacherCourseEnrollmentQuery {
+            status,
+            limit,
+            offset,
+        }
+    }
+}
+
 pub async fn discover_courses(
     conn: &mut AsyncPgConnection,
     discovery: CourseDiscoveryQuery,
@@ -586,6 +669,46 @@ pub async fn get_teacher_course_workspace(
         teacher_roles,
         publication,
         chapters,
+    })
+}
+
+pub async fn get_teacher_course_enrollment_workspace(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    course_id: i32,
+    enrollment_query: TeacherCourseEnrollmentQuery,
+) -> Result<TeacherCourseEnrollmentWorkspaceResponse, TeacherCourseDashboardError> {
+    let course = courses::table
+        .find(course_id)
+        .first::<Course>(conn)
+        .await
+        .map_err(TeacherCourseDashboardError::from)?;
+    let permissions = build_teacher_course_permissions(conn, actor_user_id, course.id).await?;
+    if !permissions.can_manage_enrollments {
+        return Err(TeacherCourseDashboardError::PermissionDenied(
+            "course enrollment management".to_string(),
+        ));
+    }
+
+    let can_manage_enrollments = permissions.can_manage_enrollments;
+    let teacher_roles = load_actor_course_roles(conn, actor_user_id, course.id).await?;
+    let join_requests = load_teacher_course_join_request_page(
+        conn,
+        course.id,
+        &enrollment_query,
+        can_manage_enrollments,
+    )
+    .await?;
+    let roster = load_teacher_course_roster_page(conn, course.id, can_manage_enrollments).await?;
+    let course = build_teacher_course_dashboard_item(conn, course, permissions).await?;
+
+    Ok(TeacherCourseEnrollmentWorkspaceResponse {
+        course,
+        teacher_roles,
+        join_requests,
+        roster,
+        progress_supported: false,
+        reward_eligibility_supported: false,
     })
 }
 
@@ -1341,6 +1464,186 @@ async fn count_course_join_requests_by_status(
         .count()
         .get_result::<i64>(conn)
         .await
+        .map_err(TeacherCourseDashboardError::from)
+}
+
+async fn load_teacher_course_join_request_page(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    query: &TeacherCourseEnrollmentQuery,
+    can_manage_enrollments: bool,
+) -> Result<TeacherCourseJoinRequestPage, TeacherCourseDashboardError> {
+    let mut count_query = course_join_requests::table.into_boxed();
+    count_query = count_query.filter(course_join_requests::course_id.eq(course_id));
+    count_query = apply_join_request_status_filter(count_query, query.status.as_deref());
+    let total = count_query.count().get_result::<i64>(conn).await?;
+
+    let mut list_query = course_join_requests::table.into_boxed();
+    list_query = list_query.filter(course_join_requests::course_id.eq(course_id));
+    list_query = apply_join_request_status_filter(list_query, query.status.as_deref());
+    let rows = list_query
+        .order(course_join_requests::updated_at.desc())
+        .then_order_by(course_join_requests::id.asc())
+        .limit(query.limit)
+        .offset(query.offset)
+        .load::<CourseJoinRequest>(conn)
+        .await?;
+
+    let mut requests = Vec::with_capacity(rows.len());
+    for request in rows {
+        let requester = load_teacher_enrollment_user_summary(conn, request.requester_user_id)
+            .await?
+            .ok_or_else(|| {
+                TeacherCourseDashboardError::Database(format!(
+                    "missing requester user for join request {}",
+                    request.id
+                ))
+            })?;
+        let reviewer = match request.reviewer_user_id {
+            Some(user_id) => load_teacher_enrollment_user_summary(conn, user_id).await?,
+            None => None,
+        };
+        let can_decide = can_manage_enrollments
+            && matches!(
+                request.status.as_str(),
+                COURSE_JOIN_STATUS_PENDING | COURSE_JOIN_STATUS_WAITLISTED
+            );
+
+        requests.push(TeacherCourseJoinRequestItem {
+            id: request.id,
+            status: request.status,
+            requester,
+            reviewer,
+            decision_reason: request.decision_reason,
+            created_at: request.created_at,
+            updated_at: request.updated_at,
+            decided_at: request.decided_at,
+            can_decide,
+        });
+    }
+
+    Ok(TeacherCourseJoinRequestPage {
+        requests,
+        total,
+        limit: query.limit,
+        offset: query.offset,
+        status: query.status.clone(),
+    })
+}
+
+fn apply_join_request_status_filter<'a>(
+    query: course_join_requests::BoxedQuery<'a, diesel::pg::Pg>,
+    status: Option<&'a str>,
+) -> course_join_requests::BoxedQuery<'a, diesel::pg::Pg> {
+    match status {
+        Some("all") | None => query,
+        Some("open") => query.filter(
+            course_join_requests::status
+                .eq_any([COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED]),
+        ),
+        Some(status) => query.filter(course_join_requests::status.eq(status)),
+    }
+}
+
+async fn load_teacher_course_roster_page(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    can_manage_enrollments: bool,
+) -> Result<TeacherCourseRosterPage, TeacherCourseDashboardError> {
+    let rows = user_role_course::table
+        .inner_join(
+            course_roles::table
+                .on(user_role_course::course_role_id.eq(course_roles::id.nullable())),
+        )
+        .inner_join(users::table.on(user_role_course::user_id.eq(users::id.nullable())))
+        .filter(user_role_course::course_id.eq(course_id))
+        .filter(course_roles::name.eq("STUDENT"))
+        .order(users::name.asc())
+        .then_order_by(users::id.asc())
+        .select((
+            users::id,
+            users::name,
+            users::email,
+            users::email_verified,
+            users::kyc_verified,
+        ))
+        .load::<(i32, String, String, bool, bool)>(conn)
+        .await?;
+
+    let mut learners = Vec::with_capacity(rows.len());
+    let mut seen_user_ids = BTreeSet::new();
+    for (id, name, email, email_verified, kyc_verified) in rows {
+        if !seen_user_ids.insert(id) {
+            continue;
+        }
+        let roles = load_actor_course_roles(conn, id, course_id).await?;
+        let latest_join_request_status =
+            load_latest_join_request_status(conn, course_id, id).await?;
+
+        learners.push(TeacherCourseRosterLearner {
+            user: TeacherEnrollmentUserSummary {
+                id,
+                name,
+                email,
+                email_verified,
+                kyc_verified,
+            },
+            roles,
+            latest_join_request_status,
+            access_state: "enrolled".to_string(),
+            can_remove: can_manage_enrollments,
+            progress_supported: false,
+            reward_eligibility_supported: false,
+        });
+    }
+
+    let total = learners.len() as i64;
+    Ok(TeacherCourseRosterPage { learners, total })
+}
+
+async fn load_teacher_enrollment_user_summary(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+) -> Result<Option<TeacherEnrollmentUserSummary>, TeacherCourseDashboardError> {
+    users::table
+        .find(user_id)
+        .select((
+            users::id,
+            users::name,
+            users::email,
+            users::email_verified,
+            users::kyc_verified,
+        ))
+        .first::<(i32, String, String, bool, bool)>(conn)
+        .await
+        .optional()
+        .map(|row| {
+            row.map(|(id, name, email, email_verified, kyc_verified)| {
+                TeacherEnrollmentUserSummary {
+                    id,
+                    name,
+                    email,
+                    email_verified,
+                    kyc_verified,
+                }
+            })
+        })
+        .map_err(TeacherCourseDashboardError::from)
+}
+
+async fn load_latest_join_request_status(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    user_id: i32,
+) -> Result<Option<String>, TeacherCourseDashboardError> {
+    course_join_requests::table
+        .filter(course_join_requests::course_id.eq(course_id))
+        .filter(course_join_requests::requester_user_id.eq(user_id))
+        .order(course_join_requests::updated_at.desc())
+        .select(course_join_requests::status)
+        .first::<String>(conn)
+        .await
+        .optional()
         .map_err(TeacherCourseDashboardError::from)
 }
 

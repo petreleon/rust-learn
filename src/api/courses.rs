@@ -16,11 +16,11 @@ use crate::services::course_enrollment_service::{
 use crate::services::course_service::{
     create_course_with_invites_for_actor, discover_courses, discover_learner_course_catalog,
     discover_teacher_course_dashboard, get_learner_course_detail, get_learner_course_learning,
-    get_teacher_course_workspace, update_course_for_actor,
+    get_teacher_course_enrollment_workspace, get_teacher_course_workspace, update_course_for_actor,
     update_course_lifecycle as update_course_lifecycle_status, CourseCreationError,
     CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest, CourseUpdateError,
     LearnerCourseCatalogError, LearnerCourseCatalogQuery, TeacherCourseDashboardError,
-    TeacherCourseDashboardQuery,
+    TeacherCourseDashboardQuery, TeacherCourseEnrollmentQuery,
 };
 use crate::utils::notifications::NotificationsState;
 use crate::utils::request_auth::{authenticated_user, authenticated_user_id};
@@ -57,6 +57,13 @@ pub struct LearnerCourseCatalogParams {
 pub struct TeacherCourseDashboardParams {
     pub search: Option<String>,
     pub lifecycle_status: Option<String>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+#[derive(Deserialize)]
+pub struct TeacherCourseEnrollmentParams {
+    pub status: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
@@ -239,6 +246,36 @@ async fn get_teacher_course_workspace_route(
     };
 
     match get_teacher_course_workspace(&mut conn, requester.user_id, path.into_inner()).await {
+        Ok(workspace) => HttpResponse::Ok().json(workspace),
+        Err(error) => teacher_course_dashboard_error_response(error),
+    }
+}
+
+async fn get_teacher_course_enrollment_workspace_route(
+    req: HttpRequest,
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+    query: web::Query<TeacherCourseEnrollmentParams>,
+) -> impl Responder {
+    let requester = match authenticated_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    let enrollment_query =
+        TeacherCourseEnrollmentQuery::new(query.status.clone(), query.limit, query.offset);
+    match get_teacher_course_enrollment_workspace(
+        &mut conn,
+        requester.user_id,
+        path.into_inner(),
+        enrollment_query,
+    )
+    .await
+    {
         Ok(workspace) => HttpResponse::Ok().json(workspace),
         Err(error) => teacher_course_dashboard_error_response(error),
     }
@@ -662,6 +699,10 @@ pub fn course_scope() -> actix_web::Scope {
         .configure(crate::api::reward_candidates::configure_course_reward_candidate_routes)
         .service(web::resource("/catalog").route(web::get().to(list_learner_course_catalog)))
         .service(web::resource("/teaching").route(web::get().to(list_teacher_course_dashboard)))
+        .service(
+            web::resource("/teaching/{id}/enrollments")
+                .route(web::get().to(get_teacher_course_enrollment_workspace_route)),
+        )
         .service(
             web::resource("/teaching/{id}")
                 .route(web::get().to(get_teacher_course_workspace_route)),

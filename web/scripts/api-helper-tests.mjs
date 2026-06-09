@@ -637,6 +637,106 @@ test("fetchTeachingCourseWorkspace normalizes permission and missing-course text
   });
 });
 
+test("teacher enrollment helpers fetch queue, decide requests, and remove learners", async () => {
+  const calls = mockFetch((url, init) => {
+    if (url === "/api/courses/teaching/9/enrollments?limit=10&status=open") {
+      assert.equal(init.method, "GET");
+      assert.equal(init.headers.Authorization, "Bearer teacher-token");
+      return jsonResponse(teacherCourseEnrollmentFixture());
+    }
+
+    if (url === "/api/courses/9/join-requests/55/decision") {
+      assert.equal(init.method, "PUT");
+      assert.equal(init.headers.Authorization, "Bearer teacher-token");
+      assert.equal(init.headers["Content-Type"], "application/json");
+      assert.deepEqual(JSON.parse(init.body), {
+        decision_reason: "Welcome to the cohort.",
+        status: "approved",
+      });
+      return jsonResponse({
+        course_id: 9,
+        created_at: "2026-01-02T10:00:00Z",
+        decided_at: "2026-01-02T11:00:00Z",
+        decision_reason: "Welcome to the cohort.",
+        id: 55,
+        requester_user_id: 88,
+        reviewer_user_id: 42,
+        status: "approved",
+        updated_at: "2026-01-02T11:00:00Z",
+      });
+    }
+
+    assert.equal(url, "/api/courses/9/enrollments/77");
+    assert.equal(init.method, "DELETE");
+    assert.equal(init.headers.Authorization, "Bearer teacher-token");
+    return jsonResponse({
+      course_id: 9,
+      removed: true,
+      user_id: 77,
+    });
+  });
+
+  const enrollments = await teacher.fetchTeachingCourseEnrollments({
+    courseId: 9,
+    limit: 10,
+    status: "open",
+    token: "teacher-token",
+  });
+  const decision = await teacher.decideTeacherJoinRequest({
+    courseId: 9,
+    payload: {
+      decision_reason: "Welcome to the cohort.",
+      status: "approved",
+    },
+    requestId: 55,
+    token: "teacher-token",
+  });
+  const removal = await teacher.removeTeacherEnrollment({
+    courseId: 9,
+    token: "teacher-token",
+    userId: 77,
+  });
+
+  assert.equal(calls.length, 3);
+  assert.equal(enrollments.join_requests.total, 2);
+  assert.equal(enrollments.join_requests.requests[0].requester.name, "Ada Learner");
+  assert.equal(enrollments.roster.learners[0].latest_join_request_status, "approved");
+  assert.equal(enrollments.progress_supported, false);
+  assert.equal(decision.status, "approved");
+  assert.equal(removal.removed, true);
+});
+
+test("teacher enrollment helpers normalize permission and missing enrollment errors", async () => {
+  mockFetch(() => textResponse("User does not have permission to view this teaching course", { status: 403 }));
+
+  await assertRequestError(
+    teacher.fetchTeachingCourseEnrollments({
+      courseId: 9,
+      token: "teacher-token",
+    }),
+    {
+      code: "permission_denied",
+      errorClass: teacher.TeacherRequestError,
+      status: 403,
+    },
+  );
+
+  mockFetch(() => textResponse("Course enrollment not found", { status: 404 }));
+
+  await assertRequestError(
+    teacher.removeTeacherEnrollment({
+      courseId: 9,
+      token: "teacher-token",
+      userId: 99,
+    }),
+    {
+      code: "not_found",
+      errorClass: teacher.TeacherRequestError,
+      status: 404,
+    },
+  );
+});
+
 test("teacher chapter and content authoring helpers send structured JSON", async () => {
   const calls = mockFetch((url, init) => {
     if (url === "/api/courses/9/chapters") {
@@ -1034,6 +1134,77 @@ function teacherCourseWorkspaceFixture() {
     publication: {
       content_publication_status_supported: false,
       course_lifecycle_status: "published",
+    },
+    teacher_roles: ["TEACHER"],
+  };
+}
+
+function teacherCourseEnrollmentFixture() {
+  return {
+    course: teacherCoursesFixture().courses[0],
+    join_requests: {
+      limit: 10,
+      offset: 0,
+      requests: [
+        {
+          can_decide: true,
+          created_at: "2026-01-02T10:00:00Z",
+          decided_at: null,
+          decision_reason: null,
+          id: 55,
+          requester: {
+            email: "ada@example.test",
+            email_verified: true,
+            id: 88,
+            kyc_verified: true,
+            name: "Ada Learner",
+          },
+          reviewer: null,
+          status: "pending",
+          updated_at: "2026-01-02T10:00:00Z",
+        },
+        {
+          can_decide: true,
+          created_at: "2026-01-03T10:00:00Z",
+          decided_at: null,
+          decision_reason: "Capacity review",
+          id: 56,
+          requester: {
+            email: "grace@example.test",
+            email_verified: true,
+            id: 89,
+            kyc_verified: false,
+            name: "Grace Learner",
+          },
+          reviewer: null,
+          status: "waitlisted",
+          updated_at: "2026-01-03T10:00:00Z",
+        },
+      ],
+      status: "open",
+      total: 2,
+    },
+    progress_supported: false,
+    reward_eligibility_supported: false,
+    roster: {
+      learners: [
+        {
+          access_state: "enrolled",
+          can_remove: true,
+          latest_join_request_status: "approved",
+          progress_supported: false,
+          reward_eligibility_supported: false,
+          roles: ["STUDENT"],
+          user: {
+            email: "linus@example.test",
+            email_verified: true,
+            id: 77,
+            kyc_verified: true,
+            name: "Linus Learner",
+          },
+        },
+      ],
+      total: 1,
     },
     teacher_roles: ["TEACHER"],
   };

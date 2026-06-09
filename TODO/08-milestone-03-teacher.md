@@ -48,7 +48,14 @@ admin controls.
         updated/deleted content belongs to the path chapter before acting.
 - [ ] Upload URL and media-processing status contract, including queued,
       processing, failed, retried, and complete states.
-- [ ] Enrollment request list and decision endpoints with pagination.
+- [x] Enrollment request list and decision endpoints with pagination.
+  - [x] `GET /api/courses/teaching/{courseId}/enrollments` returns a
+        course-scoped enrollment workspace for teachers with enrollment
+        permission: course summary, teacher roles, paginated join requests,
+        learner names/emails/readiness, roster learners, access state,
+        unsupported progress/reward-eligibility flags, and `open`/status/all
+        filtering. Existing decision and removal endpoints remain the mutation
+        contracts.
 - [ ] Student progress endpoint for teacher-visible course learners.
 - [ ] Course reward candidate queue and teacher-decision endpoints with
       conflict handling.
@@ -87,7 +94,13 @@ admin controls.
         refreshes the structured outline after success, keeps chapter
         selection human-readable, and disables authoring actions when the
         session lacks course content permission.
-- [ ] `/teach/courses/[courseId]/enrollments` enrollment queue and roster.
+- [x] `/teach/courses/[courseId]/enrollments` enrollment queue and roster.
+  - [x] Real product route loads `GET /api/me` and
+        `GET /api/courses/teaching/{courseId}/enrollments`, links from course
+        cards and workspace actions, filters request status, approves,
+        waitlists, or rejects join requests through structured controls,
+        removes roster access with two-step confirmation, and never asks
+        teachers to type learner or request ids.
 - [ ] `/teach/courses/[courseId]/students` student progress.
 - [ ] `/teach/courses/[courseId]/rewards` reward candidate review.
 
@@ -133,9 +146,12 @@ admin controls.
 
 ## Enrollment And Reward Review
 
-- [ ] Show enrollment requests with learner context, requested status, and
+- [x] Show enrollment requests with learner context, requested status, and
       decision actions.
-- [ ] Show roster with access state, progress, and reward eligibility cues.
+- [x] Show roster with access state, progress, and reward eligibility cues.
+  - [x] Roster cards show learner identity, access state, course roles,
+        latest join-request status, and explicit "not tracked yet" progress
+        and reward-eligibility cues until the student-progress route exists.
 - [ ] Show reward candidates filtered by status and course.
 - [ ] Allow teacher approval/rejection only with course-scoped permission.
 - [ ] Keep reward amount review absent from teacher course screens unless the
@@ -179,6 +195,11 @@ admin controls.
         text/article content creation, mobile no-edit-permission disabled
         state, hidden internal operations console, no amount-review language,
         no console errors, and no horizontal overflow.
+  - [x] `/teach/courses/[courseId]/enrollments` evidence: mocked Playwright
+        signed-out route, authenticated course-workspace-to-enrollment
+        navigation, join-request decision, roster two-step removal, mobile
+        permission-denied state, hidden internal operations console, no
+        amount-review language, no console errors, and no horizontal overflow.
 - [ ] Tests for approved teacher, applicant-only user, course-scoped teacher,
       denied teacher route, stale reward candidate, and failed upload state.
   - [x] Teacher application tests cover current-user snapshot, duplicate open
@@ -197,6 +218,12 @@ admin controls.
         helper `403`/invalid-chapter error normalization, chapter creation,
         text/article content creation, and backend cross-course
         chapter/content path guardrails.
+  - [x] Teacher enrollment tests cover the paginated enrollment workspace
+        contract, default open-request filtering, pending-only filtering,
+        learner context, roster access state, unsupported progress/reward
+        eligibility flags, permission denial, frontend helper parsing,
+        decision request bodies, removal request bodies, and text-error
+        normalization.
 - [ ] Docker Compose E2E path: teacher application or teacher login, course
       workspace, content/upload state, reward candidate decision, log scan.
 - [ ] Kubernetes smoke path loads `/teach`, `/teach/apply`, and one course

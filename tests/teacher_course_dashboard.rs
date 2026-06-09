@@ -12,7 +12,8 @@ use rust_learn::models::chapter::NewChapter;
 use rust_learn::models::content::NewContent;
 use rust_learn::models::course::{Course, NewCourse, COURSE_STATUS_PUBLISHED};
 use rust_learn::models::course_join_request::{
-    NewCourseJoinRequest, COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
+    NewCourseJoinRequest, COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING,
+    COURSE_JOIN_STATUS_WAITLISTED,
 };
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};
@@ -265,6 +266,13 @@ async fn teacher_course_dashboard_returns_scoped_course_health_and_queues() {
         COURSE_JOIN_STATUS_WAITLISTED,
     )
     .await;
+    create_join_request(
+        &mut conn,
+        student.id(),
+        course.id,
+        COURSE_JOIN_STATUS_APPROVED,
+    )
+    .await;
     create_reward_candidate(
         &mut conn,
         course.id,
@@ -406,6 +414,89 @@ async fn teacher_course_dashboard_returns_scoped_course_health_and_queues() {
         Some("ready")
     );
 
+    let enrollments_req = test::TestRequest::get()
+        .uri(&format!(
+            "/courses/teaching/{}/enrollments?limit=10",
+            course.id
+        ))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(teacher.id())),
+        ))
+        .to_request();
+    let enrollments_resp = test::call_service(&app, enrollments_req).await;
+    assert_eq!(enrollments_resp.status(), StatusCode::OK);
+    let enrollments_body: Value = test::read_body_json(enrollments_resp).await;
+    assert_eq!(
+        enrollments_body["course"]["id"].as_i64(),
+        Some(i64::from(course.id))
+    );
+    assert_eq!(
+        enrollments_body["join_requests"]["status"].as_str(),
+        Some("open")
+    );
+    assert_eq!(enrollments_body["join_requests"]["total"].as_i64(), Some(2));
+    let requests = enrollments_body["join_requests"]["requests"]
+        .as_array()
+        .expect("join requests array");
+    assert!(requests.iter().any(|request| {
+        request["requester"]["name"].as_str() == Some(pending_learner.name.as_str())
+            && request["status"].as_str() == Some(COURSE_JOIN_STATUS_PENDING)
+            && request["can_decide"].as_bool() == Some(true)
+    }));
+    assert!(requests.iter().any(|request| {
+        request["requester"]["name"].as_str() == Some(outsider.name.as_str())
+            && request["status"].as_str() == Some(COURSE_JOIN_STATUS_WAITLISTED)
+            && request["can_decide"].as_bool() == Some(true)
+    }));
+    assert_eq!(enrollments_body["roster"]["total"].as_i64(), Some(1));
+    assert_eq!(
+        enrollments_body["roster"]["learners"][0]["user"]["name"].as_str(),
+        Some(student.name.as_str())
+    );
+    assert_eq!(
+        enrollments_body["roster"]["learners"][0]["latest_join_request_status"].as_str(),
+        Some(COURSE_JOIN_STATUS_APPROVED)
+    );
+    assert_eq!(
+        enrollments_body["roster"]["learners"][0]["access_state"].as_str(),
+        Some("enrolled")
+    );
+    assert_eq!(
+        enrollments_body["roster"]["learners"][0]["can_remove"].as_bool(),
+        Some(true)
+    );
+    assert_eq!(
+        enrollments_body["progress_supported"].as_bool(),
+        Some(false)
+    );
+    assert_eq!(
+        enrollments_body["reward_eligibility_supported"].as_bool(),
+        Some(false)
+    );
+
+    let pending_only_req = test::TestRequest::get()
+        .uri(&format!(
+            "/courses/teaching/{}/enrollments?status=pending&limit=10",
+            course.id
+        ))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(teacher.id())),
+        ))
+        .to_request();
+    let pending_only_resp = test::call_service(&app, pending_only_req).await;
+    assert_eq!(pending_only_resp.status(), StatusCode::OK);
+    let pending_only_body: Value = test::read_body_json(pending_only_resp).await;
+    assert_eq!(
+        pending_only_body["join_requests"]["total"].as_i64(),
+        Some(1)
+    );
+    assert_eq!(
+        pending_only_body["join_requests"]["requests"][0]["status"].as_str(),
+        Some(COURSE_JOIN_STATUS_PENDING)
+    );
+
     let outsider_req = test::TestRequest::get()
         .uri("/courses/teaching?limit=10")
         .insert_header((
@@ -431,4 +522,14 @@ async fn teacher_course_dashboard_returns_scoped_course_health_and_queues() {
         .to_request();
     let outsider_workspace_resp = test::call_service(&app, outsider_workspace_req).await;
     assert_eq!(outsider_workspace_resp.status(), StatusCode::FORBIDDEN);
+
+    let outsider_enrollments_req = test::TestRequest::get()
+        .uri(&format!("/courses/teaching/{}/enrollments", course.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(outsider.id())),
+        ))
+        .to_request();
+    let outsider_enrollments_resp = test::call_service(&app, outsider_enrollments_req).await;
+    assert_eq!(outsider_enrollments_resp.status(), StatusCode::FORBIDDEN);
 }

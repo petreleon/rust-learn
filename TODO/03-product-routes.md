@@ -121,6 +121,11 @@
         the course workspace, creates chapters and text/article content through
         structured forms, refreshes the outline after successful saves, and
         disables creation when the user lacks course content permission.
+  - [x] `/teach/courses/[courseId]/enrollments` opens real enrollment
+        management from course cards and the course workspace, filters join
+        requests by status, approves/waitlists/rejects requests with decision
+        reasons, shows roster access state, and removes course access with
+        two-step confirmation without raw learner id entry.
 - [ ] Build course creation and editing flows for title, description, content,
       settings, publishing state, organization ownership, and reward policy.
   - [x] Structured chapter and text/article content creation is covered by
@@ -129,7 +134,7 @@
         editing, and media upload remain open.
 - [ ] Build content upload UI with progress, validation, processing status,
       retry, and failure explanation.
-- [ ] Build enrollment and roster management screens for requests, approvals,
+- [x] Build enrollment and roster management screens for requests, approvals,
       removals, and waitlist states.
 - [ ] Build reward candidate submission and course-scoped teacher approval
       flows without exposing unnecessary platform amount controls.

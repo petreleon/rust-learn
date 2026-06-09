@@ -64,6 +64,13 @@ screens pretend to be complete.
   - [x] `GET`/`POST` content, content update/delete, and upload-url handlers
         now verify that path chapters belong to path courses and that path
         content belongs to path chapters before returning or mutating data.
+- [x] Define a teacher enrollment workspace contract for join-request and
+      roster management.
+  - [x] `GET /api/courses/teaching/{courseId}/enrollments` returns only to
+        users with course-scoped enrollment permission and includes course
+        summary, teacher roles, paginated/filterable join requests, requester
+        and reviewer summaries, roster learners, access state, and explicit
+        unsupported progress/reward-eligibility flags.
 - [ ] Define upload-job or media-processing status APIs before the teacher
       upload UI promises progress or retry visibility.
 - [ ] Define searchable user, organization, course, application, reward,

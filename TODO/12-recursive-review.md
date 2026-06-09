@@ -120,3 +120,9 @@ represented in this folder.
 - [x] Rereading the authoring paths exposed a backend ownership edge case:
       content handlers now reject mismatched course/chapter/content path
       combinations, with regression coverage.
+- [x] Teacher enrollment management needed a learner-context contract before a
+      real UI could replace raw request/user id forms; the enrollment
+      workspace now exposes scoped request and roster summaries.
+- [x] Enrollment UI could have overclaimed student progress; the route now
+      shows explicit unsupported progress and reward-eligibility cues while
+      leaving `/teach/courses/[courseId]/students` open.

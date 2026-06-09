@@ -190,12 +190,14 @@
   align-content: start;
 }
 
-.chapterList {
+.chapterList,
+.enrollmentList {
   display: grid;
   gap: 14px;
 }
 
-.chapterCard {
+.chapterCard,
+.enrollmentCard {
   display: grid;
   gap: 14px;
   border: 1px solid #d8e0ea;
@@ -204,7 +206,8 @@
   background: #ffffff;
 }
 
-.chapterCard h3 {
+.chapterCard h3,
+.enrollmentCard h3 {
   margin-top: 4px;
   color: #172033;
   font-size: 1.08rem;
@@ -382,6 +385,53 @@
   resize: vertical;
 }
 
+.decisionForm {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 12px;
+}
+
+.decisionForm label {
+  display: grid;
+  gap: 7px;
+  color: #172033;
+  font-weight: 830;
+}
+
+.decisionForm select,
+.decisionForm textarea {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #172033;
+  background: #ffffff;
+  font: inherit;
+  font-weight: 680;
+}
+
+.decisionForm select {
+  padding: 0 12px;
+}
+
+.decisionForm textarea {
+  min-height: 96px;
+  padding: 12px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.rosterAction {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 12px;
+}
+
 .filterPanel input {
   border: 0;
   padding: 0;
@@ -496,6 +546,7 @@
   .panel,
   .courseCard,
   .chapterCard,
+  .enrollmentCard,
   .authoringForm,
   .filterPanel,
   .errorBox,
