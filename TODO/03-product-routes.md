@@ -126,6 +126,10 @@
         requests by status, approves/waitlists/rejects requests with decision
         reasons, shows roster access state, and removes course access with
         two-step confirmation without raw learner id entry.
+  - [x] `/teach/courses/[courseId]/students` opens real student progress from
+        the course workspace, shows enrolled learners, content totals,
+        unsupported lesson-progress state, latest enrollment state, and reward
+        evidence/counts without raw learner id entry.
 - [ ] Build course creation and editing flows for title, description, content,
       settings, publishing state, organization ownership, and reward policy.
   - [x] Structured chapter and text/article content creation is covered by
@@ -138,8 +142,11 @@
       removals, and waitlist states.
 - [ ] Build reward candidate submission and course-scoped teacher approval
       flows without exposing unnecessary platform amount controls.
-- [ ] Build student progress views that connect completion evidence to reward
+- [x] Build student progress views that connect completion evidence to reward
       candidate decisions.
+  - [x] Current route connects enrolled learners to reward-candidate evidence
+        and clearly labels lesson progress as not persisted yet. Persisted
+        content completion remains a backend contract gap.
 
 ## Organization Experience
 

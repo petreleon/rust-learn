@@ -71,6 +71,12 @@ screens pretend to be complete.
         summary, teacher roles, paginated/filterable join requests, requester
         and reviewer summaries, roster learners, access state, and explicit
         unsupported progress/reward-eligibility flags.
+- [x] Define a teacher-visible student progress/evidence contract without
+      inventing lesson completion data.
+  - [x] `GET /api/courses/teaching/{courseId}/students` returns enrolled
+        learners to teachers with enrollment or reward visibility permission,
+        content totals, explicit unsupported progress fields, latest enrollment
+        state, and real reward-candidate evidence/counts per learner.
 - [ ] Define upload-job or media-processing status APIs before the teacher
       upload UI promises progress or retry visibility.
 - [ ] Define searchable user, organization, course, application, reward,

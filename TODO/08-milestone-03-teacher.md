@@ -56,7 +56,12 @@ admin controls.
         unsupported progress/reward-eligibility flags, and `open`/status/all
         filtering. Existing decision and removal endpoints remain the mutation
         contracts.
-- [ ] Student progress endpoint for teacher-visible course learners.
+- [x] Student progress endpoint for teacher-visible course learners.
+  - [x] `GET /api/courses/teaching/{courseId}/students` returns enrolled
+        learners for teachers with enrollment or reward visibility permission,
+        course/content totals, explicit unsupported lesson-progress fields,
+        latest join-request status, and reward-candidate evidence/counts for
+        each learner.
 - [ ] Course reward candidate queue and teacher-decision endpoints with
       conflict handling.
 
@@ -101,7 +106,12 @@ admin controls.
         waitlists, or rejects join requests through structured controls,
         removes roster access with two-step confirmation, and never asks
         teachers to type learner or request ids.
-- [ ] `/teach/courses/[courseId]/students` student progress.
+- [x] `/teach/courses/[courseId]/students` student progress.
+  - [x] Real product route loads `GET /api/me` and
+        `GET /api/courses/teaching/{courseId}/students`, links from the course
+        workspace, shows enrolled learners, content totals, unsupported lesson
+        progress, latest enrollment state, and reward evidence without raw
+        learner id entry.
 - [ ] `/teach/courses/[courseId]/rewards` reward candidate review.
 
 ## Teacher Application
@@ -200,6 +210,11 @@ admin controls.
         navigation, join-request decision, roster two-step removal, mobile
         permission-denied state, hidden internal operations console, no
         amount-review language, no console errors, and no horizontal overflow.
+  - [x] `/teach/courses/[courseId]/students` evidence: mocked Playwright
+        signed-out route, authenticated course-workspace-to-students
+        navigation, unsupported progress state, reward evidence display,
+        mobile permission-denied state, hidden internal operations console, no
+        amount-review language, no console errors, and no horizontal overflow.
 - [ ] Tests for approved teacher, applicant-only user, course-scoped teacher,
       denied teacher route, stale reward candidate, and failed upload state.
   - [x] Teacher application tests cover current-user snapshot, duplicate open
@@ -224,6 +239,10 @@ admin controls.
         eligibility flags, permission denial, frontend helper parsing,
         decision request bodies, removal request bodies, and text-error
         normalization.
+  - [x] Teacher student-progress tests cover the scoped students endpoint,
+        enrolled learner visibility, unsupported lesson-progress flags, content
+        totals, reward-candidate counts/latest evidence, outsider `403`,
+        frontend helper parsing, and frontend helper text-error normalization.
 - [ ] Docker Compose E2E path: teacher application or teacher login, course
       workspace, content/upload state, reward candidate decision, log scan.
 - [ ] Kubernetes smoke path loads `/teach`, `/teach/apply`, and one course

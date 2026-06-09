@@ -497,6 +497,60 @@ async fn teacher_course_dashboard_returns_scoped_course_health_and_queues() {
         Some(COURSE_JOIN_STATUS_PENDING)
     );
 
+    let students_req = test::TestRequest::get()
+        .uri(&format!("/courses/teaching/{}/students", course.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(teacher.id())),
+        ))
+        .to_request();
+    let students_resp = test::call_service(&app, students_req).await;
+    assert_eq!(students_resp.status(), StatusCode::OK);
+    let students_body: Value = test::read_body_json(students_resp).await;
+    assert_eq!(
+        students_body["course"]["id"].as_i64(),
+        Some(i64::from(course.id))
+    );
+    assert_eq!(students_body["total"].as_i64(), Some(1));
+    assert_eq!(students_body["progress_supported"].as_bool(), Some(false));
+    assert_eq!(
+        students_body["reward_evidence_supported"].as_bool(),
+        Some(true)
+    );
+    let student_progress = &students_body["students"][0];
+    assert_eq!(
+        student_progress["user"]["name"].as_str(),
+        Some(student.name.as_str())
+    );
+    assert_eq!(
+        student_progress["progress"]["supported"].as_bool(),
+        Some(false)
+    );
+    assert_eq!(
+        student_progress["progress"]["total_content_count"].as_i64(),
+        Some(1)
+    );
+    assert_eq!(
+        student_progress["rewards"]["reward_candidate_count"].as_i64(),
+        Some(3)
+    );
+    assert_eq!(
+        student_progress["rewards"]["pending_teacher_count"].as_i64(),
+        Some(1)
+    );
+    assert_eq!(
+        student_progress["rewards"]["teacher_approved_count"].as_i64(),
+        Some(1)
+    );
+    assert_eq!(
+        student_progress["rewards"]["failed_count"].as_i64(),
+        Some(1)
+    );
+    assert_eq!(
+        student_progress["rewards"]["latest_candidate"]["status"].as_str(),
+        Some(REWARD_STATUS_FAILED)
+    );
+
     let outsider_req = test::TestRequest::get()
         .uri("/courses/teaching?limit=10")
         .insert_header((
@@ -532,4 +586,14 @@ async fn teacher_course_dashboard_returns_scoped_course_health_and_queues() {
         .to_request();
     let outsider_enrollments_resp = test::call_service(&app, outsider_enrollments_req).await;
     assert_eq!(outsider_enrollments_resp.status(), StatusCode::FORBIDDEN);
+
+    let outsider_students_req = test::TestRequest::get()
+        .uri(&format!("/courses/teaching/{}/students", course.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(outsider.id())),
+        ))
+        .to_request();
+    let outsider_students_resp = test::call_service(&app, outsider_students_req).await;
+    assert_eq!(outsider_students_resp.status(), StatusCode::FORBIDDEN);
 }

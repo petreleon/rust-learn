@@ -73,6 +73,53 @@ export type TeacherCourseEnrollmentWorkspaceResponse = {
   teacher_roles: string[];
 };
 
+export type TeacherCourseStudentsResponse = {
+  course: TeacherCourseDashboardItem;
+  progress_supported: boolean;
+  reward_evidence_supported: boolean;
+  students: TeacherCourseStudentProgressItem[];
+  teacher_roles: string[];
+  total: number;
+};
+
+export type TeacherCourseStudentProgressItem = {
+  access_state: string;
+  latest_join_request_status: string | null;
+  progress: TeacherStudentProgressSummary;
+  rewards: TeacherStudentRewardProgressSummary;
+  roles: string[];
+  user: TeacherEnrollmentUserSummary;
+};
+
+export type TeacherStudentProgressSummary = {
+  completed_content_count: number | null;
+  completion_percentage: number | null;
+  last_activity_at: string | null;
+  note: string;
+  supported: boolean;
+  total_content_count: number;
+};
+
+export type TeacherStudentRewardProgressSummary = {
+  completed_count: number;
+  failed_count: number;
+  latest_candidate: TeacherStudentRewardCandidateSummary | null;
+  pending_teacher_count: number;
+  reward_candidate_count: number;
+  teacher_approved_count: number;
+  teacher_rejected_count: number;
+};
+
+export type TeacherStudentRewardCandidateSummary = {
+  created_at: string;
+  event_type: string;
+  evidence: unknown;
+  id: number;
+  status: string;
+  teacher_decision_reason: string | null;
+  updated_at: string;
+};
+
 export type TeacherCourseJoinRequestPage = {
   limit: number;
   offset: number;
@@ -393,6 +440,20 @@ export async function fetchTeachingCourseEnrollments({
     timeoutMs,
     token,
     url: `${apiRoot}/courses/teaching/${courseId}/enrollments${suffix ? `?${suffix}` : ""}`,
+  });
+}
+
+export async function fetchTeachingCourseStudents({
+  apiRoot = "/api",
+  courseId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: TeacherCourseWorkspaceOptions): Promise<TeacherCourseStudentsResponse> {
+  return teacherJsonRequest<TeacherCourseStudentsResponse>({
+    method: "GET",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/teaching/${courseId}/students`,
   });
 }
 

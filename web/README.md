@@ -32,7 +32,8 @@ or platform access signal.
 Teacher product routes now include `/teach`, `/teach/apply`,
 `/teach/courses`, `/teach/courses/[courseId]`, and
 `/teach/courses/[courseId]/content`, and
-`/teach/courses/[courseId]/enrollments`. `/teach` loads `GET /api/me`,
+`/teach/courses/[courseId]/enrollments`, and
+`/teach/courses/[courseId]/students`. `/teach` loads `GET /api/me`,
 `GET /api/courses/teaching`, and `GET /api/teacher-applications/me` to show
 application status, teaching course health, lifecycle state, content readiness,
 enrollment pressure, reward review pressure, and scoped action permissions.
@@ -52,8 +53,12 @@ approves/waitlists/rejects requests through
 `PUT /api/courses/{courseId}/join-requests/{requestId}/decision`, shows roster
 access state, and removes learners with
 `DELETE /api/courses/{courseId}/enrollments/{userId}` after a two-step
-confirmation. Reward-review actions remain disabled until that deeper route
-exists, and teacher screens do not expose platform amount-review controls.
+confirmation. The students route loads
+`GET /api/courses/teaching/{courseId}/students` to show enrolled learners,
+content totals, unsupported persisted lesson progress, latest enrollment state,
+and reward-candidate evidence/counts. Reward-review actions remain disabled
+until that deeper route exists, and teacher screens do not expose platform
+amount-review controls.
 `GET /api/courses/teaching` returns
 `total/limit/offset/search/lifecycle_status`, organization labels, content
 summaries, reward-policy summaries, roster counts, reward queue counts, and
@@ -64,8 +69,8 @@ portfolio links in session storage, and renders new, submitted, needs-changes,
 approved, rejected, duplicate-conflict, signed-out, and backend-failure states.
 Organization and course scope choices come from the resolved session context so
 teachers and applicants do not type raw internal ids. Media upload, upload
-retry/progress, destructive content editing, student progress, and reward
-candidate decision screens remain future product routes.
+retry/progress, destructive content editing, persisted lesson-completion
+tracking, and reward candidate decision screens remain future product routes.
 
 Learner product routes now include `/learn`, `/courses`, `/rewards`, and
 `/wallet`. `/learn` is the learner dashboard. It loads `GET /api/me`, enrolled

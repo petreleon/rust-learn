@@ -126,3 +126,6 @@ represented in this folder.
 - [x] Enrollment UI could have overclaimed student progress; the route now
       shows explicit unsupported progress and reward-eligibility cues while
       leaving `/teach/courses/[courseId]/students` open.
+- [x] Student progress could have become fake completion math; the students
+      route now exposes enrolled learners, content totals, and reward evidence
+      while explicitly marking persisted lesson progress unsupported.

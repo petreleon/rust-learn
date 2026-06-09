@@ -35,6 +35,7 @@ import {
   decideTeacherJoinRequest,
   fetchMyTeacherApplication,
   fetchTeachingCourseEnrollments,
+  fetchTeachingCourseStudents,
   fetchTeachingCourseWorkspace,
   fetchTeachingCourses,
   removeTeacherEnrollment,
@@ -45,6 +46,8 @@ import {
   type TeacherCourseEnrollmentWorkspaceResponse,
   type TeacherCourseJoinRequestItem,
   type TeacherCourseRosterLearner,
+  type TeacherCourseStudentProgressItem,
+  type TeacherCourseStudentsResponse,
   type TeacherCourseWorkspaceContent,
   type TeacherCourseWorkspaceResponse,
   type TeacherCoursesResponse,
@@ -866,6 +869,131 @@ export function TeacherCourseEnrollmentsRoute({ courseId }: { courseId: string }
   );
 }
 
+export function TeacherCourseStudentsRoute({ courseId }: { courseId: string }) {
+  const [error, setError] = useState<RouteError | null>(null);
+  const [hasToken, setHasToken] = useState(false);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [session, setSession] = useState<CurrentSession | null>(null);
+  const [students, setStudents] = useState<TeacherCourseStudentsResponse | null>(null);
+
+  const loadStudentsRoute = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token) {
+      setHasToken(false);
+      setSession(null);
+      setStudents(null);
+      setError(null);
+      setLoadState("idle");
+      return;
+    }
+
+    setHasToken(true);
+    setLoadState("loading");
+    setError(null);
+
+    try {
+      const [nextSession, nextStudents] = await Promise.all([
+        fetchCurrentSession({ token }),
+        fetchTeachingCourseStudents({ courseId, token }),
+      ]);
+      setSession(nextSession);
+      setStudents(nextStudents);
+      setLoadState("success");
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      if (routeError.status === 401) {
+        clearStoredSessionToken();
+        setHasToken(false);
+      }
+      setSession(null);
+      setStudents(null);
+      setError(routeError);
+      setLoadState("error");
+    }
+  }, [courseId]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadStudentsRoute(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadStudentsRoute]);
+
+  function signOut() {
+    clearStoredSessionToken();
+    setHasToken(false);
+    setSession(null);
+    setStudents(null);
+    setError(null);
+    setLoadState("idle");
+  }
+
+  const courseTitle = students?.course.title || "Student progress";
+  return (
+    <ProductShell
+      activeNav="teach"
+      breadcrumbs={[
+        { href: "/session", label: "Workspace" },
+        { href: "/teach", label: "Teach" },
+        { href: "/teach/courses", label: "Courses" },
+        { href: `/teach/courses/${courseId}`, label: courseTitle },
+        { label: "Students" },
+      ]}
+      description="Teacher-visible learner roster with honest progress support and reward evidence."
+      eyebrow="Teacher students"
+      isSignedIn={hasToken || Boolean(session)}
+      notice={routeNotice(error)}
+      onSignOut={signOut}
+      session={session}
+      statusItems={
+        students ? (
+          <>
+            <StatusLine icon={<Users size={16} aria-hidden />} label={`${students.total} learner${students.total === 1 ? "" : "s"}`} tone={students.total ? "good" : "neutral"} />
+            <StatusLine icon={<Trophy size={16} aria-hidden />} label={students.reward_evidence_supported ? "Reward evidence" : "No reward evidence"} tone={students.reward_evidence_supported ? "good" : "neutral"} />
+          </>
+        ) : null
+      }
+      title={courseTitle}
+    >
+      {loadState === "loading" ? (
+        <StatePanel
+          detail="Loading learner roster, progress support, and reward evidence."
+          icon={<Loader2 className={styles.spin} size={22} aria-hidden />}
+          title="Loading student progress"
+        />
+      ) : null}
+
+      {loadState === "idle" ? (
+        <StatePanel
+          action={
+            <Link className={styles.primaryLink} href={`/login?redirect=/teach/courses/${courseId}/students`}>
+              <LogIn size={18} aria-hidden />
+              Sign in
+            </Link>
+          }
+          detail="Student progress loads from your signed-in teaching session."
+          icon={<LogIn size={22} aria-hidden />}
+          title="Sign in required"
+        />
+      ) : null}
+
+      {loadState === "error" && error ? (
+        <section className={`${styles.errorBox} ${styles.singlePanel}`} role="status">
+          <AlertCircle size={18} aria-hidden />
+          <span>
+            <strong>{error.code}</strong>
+            {error.message}
+          </span>
+          <button className={styles.secondaryButton} type="button" onClick={() => void loadStudentsRoute()}>
+            <RefreshCw size={17} aria-hidden />
+            Retry
+          </button>
+        </section>
+      ) : null}
+
+      {loadState === "success" && students ? <StudentProgressView students={students} /> : null}
+    </ProductShell>
+  );
+}
+
 function DashboardView({
   application,
   canSubmitApplication,
@@ -1467,7 +1595,121 @@ function RosterLearnerCard({
   );
 }
 
+function StudentProgressView({ students }: { students: TeacherCourseStudentsResponse }) {
+  const pendingRewardCount = students.students.reduce(
+    (total, student) => total + student.rewards.pending_teacher_count,
+    0,
+  );
+  const approvedRewardCount = students.students.reduce(
+    (total, student) => total + student.rewards.teacher_approved_count + student.rewards.completed_count,
+    0,
+  );
+  return (
+    <>
+      <section className={styles.workspaceHero}>
+        <Link className={styles.secondaryLink} href={`/teach/courses/${students.course.id}`}>
+          <ArrowLeft size={17} aria-hidden />
+          Course workspace
+        </Link>
+        <div className={styles.workspaceTitleBlock}>
+          <p className={styles.eyebrow}>{statusLabel(students.course.lifecycle_status)}</p>
+          <h2>Student progress</h2>
+          <p className={styles.muted}>
+            Review enrolled learners, progress support, and reward evidence without pretending lesson completion is stored.
+          </p>
+        </div>
+      </section>
+
+      <section className={styles.summaryGrid}>
+        <SummaryCard icon={<Users size={20} aria-hidden />} label="Learners" value={students.total} tone={students.total ? "good" : "neutral"} />
+        <SummaryCard icon={<FileText size={20} aria-hidden />} label="Course content" value={students.course.content.content_count} tone={students.course.content.has_content ? "good" : "warn"} />
+        <SummaryCard icon={<Clock3 size={20} aria-hidden />} label="Pending rewards" value={pendingRewardCount} tone={pendingRewardCount ? "warn" : "neutral"} />
+        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Approved evidence" value={approvedRewardCount} tone={approvedRewardCount ? "good" : "neutral"} />
+      </section>
+
+      {!students.progress_supported ? (
+        <section className={`${styles.warningPanel} ${styles.singlePanel}`}>
+          <div className={styles.panelHeader}>
+            <AlertCircle size={18} aria-hidden />
+            <h2>Progress tracking</h2>
+          </div>
+          <p>
+            Lesson completion is not persisted yet. This view shows enrolled learners and reward evidence that already exists.
+          </p>
+        </section>
+      ) : null}
+
+      <section className={styles.courseSection}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2>Learners</h2>
+            <p className={styles.muted}>Each card separates access, progress support, and reward evidence.</p>
+          </div>
+          <span className={`${styles.statusPill} ${students.total ? styles.good : styles.neutral}`}>
+            {students.total} total
+          </span>
+        </div>
+        {students.students.length ? (
+          <div className={styles.enrollmentList}>
+            {students.students.map((student) => (
+              <StudentProgressCard key={student.user.id} student={student} />
+            ))}
+          </div>
+        ) : (
+          <StatePanel
+            detail="No enrolled learners are visible for this course."
+            icon={<Users size={22} aria-hidden />}
+            title="No students yet"
+          />
+        )}
+      </section>
+    </>
+  );
+}
+
+function StudentProgressCard({ student }: { student: TeacherCourseStudentProgressItem }) {
+  const latestCandidate = student.rewards.latest_candidate;
+  return (
+    <article className={styles.enrollmentCard}>
+      <div className={styles.courseTop}>
+        <div>
+          <p className={styles.eyebrow}>{student.user.email}</p>
+          <h3>{student.user.name}</h3>
+        </div>
+        <span className={`${styles.statusPill} ${styles.good}`}>{statusLabel(student.access_state)}</span>
+      </div>
+
+      <div className={styles.metricGrid}>
+        <Metric label="Content total" value={student.progress.total_content_count} />
+        <Metric label="Pending rewards" value={student.rewards.pending_teacher_count} tone={student.rewards.pending_teacher_count ? "warn" : "neutral"} />
+        <Metric label="Approved" value={student.rewards.teacher_approved_count + student.rewards.completed_count} />
+        <Metric label="Failed" value={student.rewards.failed_count} tone={student.rewards.failed_count ? "warn" : "neutral"} />
+      </div>
+
+      <div className={styles.detailList}>
+        <DetailLine label="Roles" value={student.roles.join(", ") || "Learner"} />
+        <DetailLine label="Latest request" value={student.latest_join_request_status ? statusLabel(student.latest_join_request_status) : "No request history"} />
+        <DetailLine label="Lesson progress" value={student.progress.supported ? "Tracked" : student.progress.note} />
+        <DetailLine label="Completion" value={student.progress.completion_percentage === null ? "Not tracked yet" : `${student.progress.completion_percentage}%`} />
+        <DetailLine label="Reward candidates" value={String(student.rewards.reward_candidate_count)} />
+        {latestCandidate ? (
+          <>
+            <DetailLine label="Latest evidence" value={`${statusLabel(latestCandidate.event_type)} - ${statusLabel(latestCandidate.status)}`} />
+            <DetailLine label="Evidence updated" value={formatDateTime(latestCandidate.updated_at)} />
+          </>
+        ) : (
+          <DetailLine label="Latest evidence" value="No reward evidence yet" />
+        )}
+      </div>
+    </article>
+  );
+}
+
 function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspaceResponse }) {
+  const canViewStudents =
+    workspace.course.permissions.can_manage_enrollments ||
+    workspace.course.permissions.can_view_reward_candidates ||
+    workspace.course.permissions.can_approve_reward_candidates;
   const actions = [
     {
       detail: workspace.course.permissions.can_manage_content
@@ -1486,6 +1728,15 @@ function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspace
       href: `/teach/courses/${workspace.course.id}/enrollments`,
       icon: <Users size={17} aria-hidden />,
       label: "Enrollment queue",
+    },
+    {
+      detail: canViewStudents
+        ? "Review enrolled learners, progress support, and reward evidence."
+        : "This session cannot view course student progress.",
+      enabled: canViewStudents,
+      href: `/teach/courses/${workspace.course.id}/students`,
+      icon: <Users size={17} aria-hidden />,
+      label: "Student progress",
     },
     {
       detail: workspace.course.permissions.can_approve_reward_candidates
@@ -1684,6 +1935,10 @@ function CourseGrid({
 function CourseCard({ course }: { course: TeacherCourseDashboardItem }) {
   const pendingCount = course.roster.pending_join_request_count + course.roster.waitlisted_join_request_count;
   const statusTone = lifecycleTone(course.lifecycle_status);
+  const canViewStudents =
+    course.permissions.can_manage_enrollments ||
+    course.permissions.can_view_reward_candidates ||
+    course.permissions.can_approve_reward_candidates;
   return (
     <article className={styles.courseCard}>
       <div className={styles.courseTop}>
@@ -1731,6 +1986,12 @@ function CourseCard({ course }: { course: TeacherCourseDashboardItem }) {
             Enrollments
           </button>
         )}
+        {canViewStudents ? (
+          <Link className={styles.secondaryLink} href={`/teach/courses/${course.id}/students`}>
+            <Users size={16} aria-hidden />
+            Students
+          </Link>
+        ) : null}
         <button className={styles.secondaryButton} disabled type="button" title="Reward review route is next">
           <Trophy size={16} aria-hidden />
           Rewards

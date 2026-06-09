@@ -16,7 +16,8 @@ use crate::services::course_enrollment_service::{
 use crate::services::course_service::{
     create_course_with_invites_for_actor, discover_courses, discover_learner_course_catalog,
     discover_teacher_course_dashboard, get_learner_course_detail, get_learner_course_learning,
-    get_teacher_course_enrollment_workspace, get_teacher_course_workspace, update_course_for_actor,
+    get_teacher_course_enrollment_workspace, get_teacher_course_students,
+    get_teacher_course_workspace, update_course_for_actor,
     update_course_lifecycle as update_course_lifecycle_status, CourseCreationError,
     CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest, CourseUpdateError,
     LearnerCourseCatalogError, LearnerCourseCatalogQuery, TeacherCourseDashboardError,
@@ -277,6 +278,26 @@ async fn get_teacher_course_enrollment_workspace_route(
     .await
     {
         Ok(workspace) => HttpResponse::Ok().json(workspace),
+        Err(error) => teacher_course_dashboard_error_response(error),
+    }
+}
+
+async fn get_teacher_course_students_route(
+    req: HttpRequest,
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    let requester = match authenticated_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match get_teacher_course_students(&mut conn, requester.user_id, path.into_inner()).await {
+        Ok(students) => HttpResponse::Ok().json(students),
         Err(error) => teacher_course_dashboard_error_response(error),
     }
 }
@@ -702,6 +723,10 @@ pub fn course_scope() -> actix_web::Scope {
         .service(
             web::resource("/teaching/{id}/enrollments")
                 .route(web::get().to(get_teacher_course_enrollment_workspace_route)),
+        )
+        .service(
+            web::resource("/teaching/{id}/students")
+                .route(web::get().to(get_teacher_course_students_route)),
         )
         .service(
             web::resource("/teaching/{id}")

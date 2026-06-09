@@ -23,7 +23,8 @@ use crate::models::pending_course_organization_invites::{
     NewPendingCourseOrganizationInvite, PendingCourseOrganizationInvite,
 };
 use crate::models::reward_candidate::{
-    REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
+    REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+    REWARD_STATUS_TEACHER_APPROVED, REWARD_STATUS_TEACHER_REJECTED,
 };
 use crate::repositories::course_repository::user_permission_course_request;
 use crate::repositories::organization_repository::user_permission_organization_request;
@@ -36,6 +37,7 @@ use diesel::{EscapeExpressionMethods, PgTextExpressionMethods};
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Value;
 use std::collections::BTreeSet;
 
 const DEFAULT_COURSE_LIMIT: i64 = 25;
@@ -153,6 +155,58 @@ pub struct TeacherCourseEnrollmentWorkspaceResponse {
     pub roster: TeacherCourseRosterPage,
     pub progress_supported: bool,
     pub reward_eligibility_supported: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCourseStudentsResponse {
+    pub course: TeacherCourseDashboardItem,
+    pub teacher_roles: Vec<String>,
+    pub students: Vec<TeacherCourseStudentProgressItem>,
+    pub total: i64,
+    pub progress_supported: bool,
+    pub reward_evidence_supported: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCourseStudentProgressItem {
+    pub user: TeacherEnrollmentUserSummary,
+    pub roles: Vec<String>,
+    pub access_state: String,
+    pub latest_join_request_status: Option<String>,
+    pub progress: TeacherStudentProgressSummary,
+    pub rewards: TeacherStudentRewardProgressSummary,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherStudentProgressSummary {
+    pub supported: bool,
+    pub completed_content_count: Option<i64>,
+    pub total_content_count: usize,
+    pub completion_percentage: Option<f64>,
+    pub last_activity_at: Option<DateTime<Utc>>,
+    pub note: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherStudentRewardProgressSummary {
+    pub reward_candidate_count: i64,
+    pub pending_teacher_count: i64,
+    pub teacher_approved_count: i64,
+    pub teacher_rejected_count: i64,
+    pub completed_count: i64,
+    pub failed_count: i64,
+    pub latest_candidate: Option<TeacherStudentRewardCandidateSummary>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherStudentRewardCandidateSummary {
+    pub id: i64,
+    pub event_type: String,
+    pub status: String,
+    pub evidence: Value,
+    pub teacher_decision_reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize)]
@@ -709,6 +763,65 @@ pub async fn get_teacher_course_enrollment_workspace(
         roster,
         progress_supported: false,
         reward_eligibility_supported: false,
+    })
+}
+
+pub async fn get_teacher_course_students(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    course_id: i32,
+) -> Result<TeacherCourseStudentsResponse, TeacherCourseDashboardError> {
+    let course = courses::table
+        .find(course_id)
+        .first::<Course>(conn)
+        .await
+        .map_err(TeacherCourseDashboardError::from)?;
+    let permissions = build_teacher_course_permissions(conn, actor_user_id, course.id).await?;
+    let can_view_students = permissions.can_manage_enrollments
+        || permissions.can_view_reward_candidates
+        || permissions.can_approve_reward_candidates;
+    if !can_view_students {
+        return Err(TeacherCourseDashboardError::PermissionDenied(
+            "course student progress".to_string(),
+        ));
+    }
+
+    let teacher_roles = load_actor_course_roles(conn, actor_user_id, course.id).await?;
+    let content = load_learner_course_content_summary(conn, course.id).await?;
+    let roster =
+        load_teacher_course_roster_page(conn, course.id, permissions.can_manage_enrollments)
+            .await?;
+    let mut students = Vec::with_capacity(roster.learners.len());
+    for learner in roster.learners {
+        let rewards =
+            load_teacher_student_reward_progress(conn, course.id, learner.user.id).await?;
+        students.push(TeacherCourseStudentProgressItem {
+            user: learner.user,
+            roles: learner.roles,
+            access_state: learner.access_state,
+            latest_join_request_status: learner.latest_join_request_status,
+            progress: TeacherStudentProgressSummary {
+                supported: false,
+                completed_content_count: None,
+                total_content_count: content.content_count,
+                completion_percentage: None,
+                last_activity_at: None,
+                note: "Persisted lesson progress is not tracked yet.".to_string(),
+            },
+            rewards,
+        });
+    }
+
+    let total = students.len() as i64;
+    let course = build_teacher_course_dashboard_item(conn, course, permissions).await?;
+
+    Ok(TeacherCourseStudentsResponse {
+        course,
+        teacher_roles,
+        students,
+        total,
+        progress_supported: false,
+        reward_evidence_supported: true,
     })
 }
 
@@ -1644,6 +1757,127 @@ async fn load_latest_join_request_status(
         .first::<String>(conn)
         .await
         .optional()
+        .map_err(TeacherCourseDashboardError::from)
+}
+
+async fn load_teacher_student_reward_progress(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    student_user_id: i32,
+) -> Result<TeacherStudentRewardProgressSummary, TeacherCourseDashboardError> {
+    let reward_candidate_count =
+        count_student_reward_candidates(conn, course_id, student_user_id, None).await?;
+    let pending_teacher_count = count_student_reward_candidates(
+        conn,
+        course_id,
+        student_user_id,
+        Some(REWARD_STATUS_PENDING_TEACHER_APPROVAL),
+    )
+    .await?;
+    let teacher_approved_count = count_student_reward_candidates(
+        conn,
+        course_id,
+        student_user_id,
+        Some(REWARD_STATUS_TEACHER_APPROVED),
+    )
+    .await?;
+    let teacher_rejected_count = count_student_reward_candidates(
+        conn,
+        course_id,
+        student_user_id,
+        Some(REWARD_STATUS_TEACHER_REJECTED),
+    )
+    .await?;
+    let completed_count = count_student_reward_candidates(
+        conn,
+        course_id,
+        student_user_id,
+        Some(REWARD_STATUS_COMPLETED),
+    )
+    .await?;
+    let failed_count = count_student_reward_candidates(
+        conn,
+        course_id,
+        student_user_id,
+        Some(REWARD_STATUS_FAILED),
+    )
+    .await?;
+    let latest_candidate = reward_candidates::table
+        .filter(reward_candidates::course_id.eq(course_id))
+        .filter(reward_candidates::student_user_id.eq(student_user_id))
+        .order(reward_candidates::updated_at.desc())
+        .then_order_by(reward_candidates::id.desc())
+        .select((
+            reward_candidates::id,
+            reward_candidates::event_type,
+            reward_candidates::status,
+            reward_candidates::evidence,
+            reward_candidates::teacher_decision_reason,
+            reward_candidates::created_at,
+            reward_candidates::updated_at,
+        ))
+        .first::<(
+            i64,
+            String,
+            String,
+            Value,
+            Option<String>,
+            DateTime<Utc>,
+            DateTime<Utc>,
+        )>(conn)
+        .await
+        .optional()?
+        .map(
+            |(
+                id,
+                event_type,
+                status,
+                evidence,
+                teacher_decision_reason,
+                created_at,
+                updated_at,
+            )| {
+                TeacherStudentRewardCandidateSummary {
+                    id,
+                    event_type,
+                    status,
+                    evidence,
+                    teacher_decision_reason,
+                    created_at,
+                    updated_at,
+                }
+            },
+        );
+
+    Ok(TeacherStudentRewardProgressSummary {
+        reward_candidate_count,
+        pending_teacher_count,
+        teacher_approved_count,
+        teacher_rejected_count,
+        completed_count,
+        failed_count,
+        latest_candidate,
+    })
+}
+
+async fn count_student_reward_candidates(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    student_user_id: i32,
+    status: Option<&str>,
+) -> Result<i64, TeacherCourseDashboardError> {
+    let mut query = reward_candidates::table.into_boxed();
+    query = query
+        .filter(reward_candidates::course_id.eq(course_id))
+        .filter(reward_candidates::student_user_id.eq(student_user_id));
+    if let Some(status) = status {
+        query = query.filter(reward_candidates::status.eq(status));
+    }
+
+    query
+        .count()
+        .get_result::<i64>(conn)
+        .await
         .map_err(TeacherCourseDashboardError::from)
 }
 

@@ -62,6 +62,12 @@
         approval, roster two-step removal, mobile permission-denied state,
         hidden internal operations console for non-admin product sessions,
         absence of amount-review language, and no horizontal overflow.
+  - [x] Mocked Playwright QA covers
+        `/teach/courses/[courseId]/students` signed-out state, authenticated
+        course-workspace-to-students navigation, unsupported lesson-progress
+        state, reward evidence display, mobile permission-denied state, hidden
+        internal operations console for non-admin product sessions, absence of
+        amount-review language, and no horizontal overflow.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
@@ -115,6 +121,12 @@
         response shape, default open filtering, pending-only filtering,
         learner context, roster access state, unsupported progress/reward
         eligibility flags, and outsider `403`.
+  - [x] Frontend helper tests cover teacher student-progress parsing,
+        unsupported progress fields, reward evidence, permission errors, and
+        missing-course text-error normalization.
+  - [x] Rust API tests cover `GET /api/courses/teaching/{courseId}/students`
+        response shape, enrolled learners, unsupported progress flags, content
+        totals, reward evidence counts/latest status, and outsider `403`.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.

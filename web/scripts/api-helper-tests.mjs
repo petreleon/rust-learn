@@ -737,6 +737,60 @@ test("teacher enrollment helpers normalize permission and missing enrollment err
   );
 });
 
+test("fetchTeachingCourseStudents parses unsupported progress and reward evidence", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/teaching/9/students");
+    assert.equal(init.method, "GET");
+    assert.equal(init.headers.Authorization, "Bearer teacher-token");
+    return jsonResponse(teacherCourseStudentsFixture());
+  });
+
+  const students = await teacher.fetchTeachingCourseStudents({
+    courseId: 9,
+    token: "teacher-token",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(students.total, 1);
+  assert.equal(students.progress_supported, false);
+  assert.equal(students.reward_evidence_supported, true);
+  assert.equal(students.students[0].user.name, "Linus Learner");
+  assert.equal(students.students[0].progress.supported, false);
+  assert.equal(students.students[0].progress.total_content_count, 4);
+  assert.equal(students.students[0].rewards.pending_teacher_count, 1);
+  assert.equal(students.students[0].rewards.latest_candidate.status, "pending_teacher_approval");
+});
+
+test("fetchTeachingCourseStudents normalizes permission and missing-course errors", async () => {
+  mockFetch(() => textResponse("User does not have permission to view this teaching course", { status: 403 }));
+
+  await assertRequestError(
+    teacher.fetchTeachingCourseStudents({
+      courseId: 9,
+      token: "teacher-token",
+    }),
+    {
+      code: "permission_denied",
+      errorClass: teacher.TeacherRequestError,
+      status: 403,
+    },
+  );
+
+  mockFetch(() => textResponse("Course not found", { status: 404 }));
+
+  await assertRequestError(
+    teacher.fetchTeachingCourseStudents({
+      courseId: 404,
+      token: "teacher-token",
+    }),
+    {
+      code: "not_found",
+      errorClass: teacher.TeacherRequestError,
+      status: 404,
+    },
+  );
+});
+
 test("teacher chapter and content authoring helpers send structured JSON", async () => {
   const calls = mockFetch((url, init) => {
     if (url === "/api/courses/9/chapters") {
@@ -1207,5 +1261,54 @@ function teacherCourseEnrollmentFixture() {
       total: 1,
     },
     teacher_roles: ["TEACHER"],
+  };
+}
+
+function teacherCourseStudentsFixture() {
+  return {
+    course: teacherCoursesFixture().courses[0],
+    progress_supported: false,
+    reward_evidence_supported: true,
+    students: [
+      {
+        access_state: "enrolled",
+        latest_join_request_status: "approved",
+        progress: {
+          completed_content_count: null,
+          completion_percentage: null,
+          last_activity_at: null,
+          note: "Persisted lesson progress is not tracked yet.",
+          supported: false,
+          total_content_count: 4,
+        },
+        rewards: {
+          completed_count: 0,
+          failed_count: 0,
+          latest_candidate: {
+            created_at: "2026-01-04T10:00:00Z",
+            event_type: "course_completion",
+            evidence: { completion_percentage: 100 },
+            id: 71,
+            status: "pending_teacher_approval",
+            teacher_decision_reason: null,
+            updated_at: "2026-01-04T10:00:00Z",
+          },
+          pending_teacher_count: 1,
+          reward_candidate_count: 1,
+          teacher_approved_count: 0,
+          teacher_rejected_count: 0,
+        },
+        roles: ["STUDENT"],
+        user: {
+          email: "linus@example.test",
+          email_verified: true,
+          id: 77,
+          kyc_verified: true,
+          name: "Linus Learner",
+        },
+      },
+    ],
+    teacher_roles: ["TEACHER"],
+    total: 1,
   };
 }
