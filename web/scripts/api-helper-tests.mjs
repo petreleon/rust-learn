@@ -457,6 +457,16 @@ test("fetchMyWallet returns null for unlinked wallet and parses linked wallet", 
   assert.equal(wallet.value, "42");
 });
 
+test("fetchMyWallet normalizes plain text backend failures", async () => {
+  mockFetch(() => textResponse("Wallet database unavailable", { status: 500 }));
+
+  await assertRequestError(learner.fetchMyWallet({ token: "learner-token" }), {
+    code: "server_error",
+    errorClass: learner.LearnerRequestError,
+    status: 500,
+  });
+});
+
 test("fetchLearnerWallet aggregates wallet summary and reward credit history", async () => {
   const calls = mockFetch((url, init) => {
     assert.equal(init.headers.Authorization, "Bearer learner-token");

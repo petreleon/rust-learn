@@ -28,6 +28,11 @@
         state, linked desktop wallet credit history, unlinked mobile first
         viewport with link-wallet action visible, link-wallet success, and
         no horizontal overflow.
+  - [x] Browser plus mocked Playwright QA covers `/settings/account`
+        signed-out mobile state, linked desktop readiness, email-pending mobile
+        next step, wallet-error mobile next step, verified unlinked mobile
+        wallet next step, disabled notification defaults, and no horizontal
+        overflow.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
@@ -49,6 +54,8 @@
         wallet `404`.
   - [x] Frontend helper tests cover learner wallet aggregation across
         `GET /api/wallets/me` and recent reward credit history.
+  - [x] Frontend helper tests cover self-wallet plain text backend `500`
+        normalization used by account wallet-error UI.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.

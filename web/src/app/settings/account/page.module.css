@@ -1,4 +1,6 @@
-.grid,
+.summaryGrid,
+.nextStepPanel,
+.preferencePanel,
 .panel,
 .errorBox {
   width: min(1120px, 100%);
@@ -6,17 +8,90 @@
 }
 
 .panelHeader,
+.actionRow,
+.badgeRow,
 .statusPill,
 .statusLine,
 .primaryLink,
-.secondaryLink {
+.secondaryButton,
+.secondaryLink,
+.errorBox,
+.inlineStatus,
+.metricCard,
+.preferenceRow {
   display: flex;
   align-items: center;
 }
 
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.panel,
+.nextStepPanel,
+.preferencePanel,
+.errorBox {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 18px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
+}
+
+.singlePanel {
+  width: min(760px, 100%);
+}
+
+.nextStepPanel {
+  margin-bottom: 16px;
+  border-color: #b6d8e2;
+  background: #f2fbfc;
+}
+
+.profilePanel {
+  align-content: start;
+}
+
+.panelHeader,
+.actionRow,
+.badgeRow,
+.inlineStatus {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.panelHeader h2,
+.preferencePanel h2 {
+  font-size: 1.08rem;
+}
+
+.profileBlock,
+.checkList,
+.preferenceList {
+  display: grid;
+  gap: 12px;
+}
+
+.profileName {
+  font-size: 1.35rem;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.muted {
+  color: #64748b;
+  line-height: 1.5;
+}
+
 .primaryLink,
+.secondaryButton,
 .secondaryLink {
   justify-content: center;
+  gap: 8px;
   width: fit-content;
   min-height: 40px;
   border: 1px solid #cbd5e1;
@@ -33,6 +108,16 @@
   background: #1f6f8b;
 }
 
+.secondaryButton {
+  cursor: pointer;
+}
+
+.secondaryButton:hover,
+.secondaryLink:hover {
+  border-color: #9fb6c2;
+  background: #f8fafc;
+}
+
 .statusPill,
 .statusLine {
   gap: 7px;
@@ -43,59 +128,6 @@
   background: #e2e8f0;
   font-size: 0.82rem;
   font-weight: 850;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.panel,
-.errorBox {
-  display: grid;
-  gap: 14px;
-  border: 1px solid #d8e0ea;
-  border-radius: 8px;
-  padding: 18px;
-  background: #ffffff;
-  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
-}
-
-.panelHeader {
-  gap: 10px;
-}
-
-.panelHeader h2,
-.panel h2 {
-  font-size: 1.1rem;
-}
-
-.detailList {
-  display: grid;
-  gap: 12px;
-}
-
-.detailList div {
-  display: grid;
-  gap: 4px;
-}
-
-.detailList dt {
-  color: #64748b;
-  font-size: 0.78rem;
-  font-weight: 850;
-  text-transform: uppercase;
-}
-
-.detailList dd {
-  overflow-wrap: anywhere;
-  font-weight: 760;
-}
-
-.muted {
-  color: #64748b;
-  line-height: 1.5;
 }
 
 .good {
@@ -114,9 +146,101 @@
 }
 
 .errorBox {
+  grid-template-columns: auto minmax(0, 1fr) auto;
   border-color: #fecaca;
   color: #991b1b;
   background: #fff1f2;
+}
+
+.errorBox span {
+  display: grid;
+  gap: 2px;
+}
+
+.readinessItem {
+  display: grid;
+  gap: 8px;
+}
+
+.walletValue {
+  display: grid;
+  gap: 2px;
+}
+
+.walletValue strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.walletValue span {
+  color: #64748b;
+  font-weight: 760;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metricCard {
+  min-height: 68px;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 10px;
+  color: #334155;
+  background: #f8fafc;
+}
+
+.metricCard strong {
+  color: #172033;
+  font-size: 1.4rem;
+}
+
+.metricCard span {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.preferencePanel {
+  margin-top: 18px;
+}
+
+.preferenceRow {
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.preferenceRow input {
+  width: 18px;
+  height: 18px;
+  accent-color: #1f6f8b;
+}
+
+.preferenceRow input:disabled {
+  cursor: not-allowed;
+}
+
+.preferenceRow span {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.preferenceRow strong,
+.preferenceRow small {
+  overflow-wrap: anywhere;
+}
+
+.preferenceRow small {
+  color: #64748b;
+  line-height: 1.45;
 }
 
 .spin {
@@ -129,8 +253,33 @@
   }
 }
 
-@media (max-width: 780px) {
-  .grid {
+@media (max-width: 900px) {
+  .summaryGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .errorBox {
+    grid-template-columns: 1fr;
+  }
+
+  .actionRow,
+  .primaryLink,
+  .secondaryButton,
+  .secondaryLink {
+    width: 100%;
+  }
+
+  .metricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .metricCard {
+    justify-content: flex-start;
+  }
+
+  .preferenceRow {
+    align-items: flex-start;
   }
 }

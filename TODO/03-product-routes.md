@@ -33,6 +33,12 @@
       controls.
 - [x] Add account settings for profile data, email verification status, wallet
       connection status, and notification preferences.
+  - [x] `/settings/account` now shows current profile, email/KYC readiness,
+        self-wallet linked/unlinked/error state, workspace counts, mobile-first
+        next-step actions, and disabled notification defaults without exposing
+        raw user ids.
+  - [ ] Editable notification preference persistence remains open until
+        preference read/save endpoints exist.
 
 ## Learner Experience
 

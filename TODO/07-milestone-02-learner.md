@@ -97,6 +97,15 @@ progress, inspect rewards, and understand wallet state.
         action before metrics for unlinked mobile learners, and keeps deposits
         and retirements explicitly unavailable instead of pretending they work.
 - [ ] `/settings/account` learner profile and notification preferences.
+  - [x] `/settings/account` now loads current-session profile and self-wallet
+        state, removes raw user ids, shows verification and workspace
+        readiness, and surfaces the correct next step for signed-out,
+        email-pending, wallet-unlinked, and wallet-error states.
+  - [x] `/settings/account` shows notification defaults as disabled controls
+        with clear copy that preference editing is unavailable until the
+        backend save contract exists.
+  - [ ] Editable notification preference persistence remains open until the
+        backend exposes preference read/save endpoints.
 
 ## Learner Dashboard
 
@@ -206,6 +215,10 @@ progress, inspect rewards, and understand wallet state.
   - [x] Browser/Playwright screenshots captured for `/wallet` signed-out
         mobile state, linked desktop credit history, unlinked mobile first
         viewport with link action visible, and link-wallet success state.
+  - [x] Browser/Playwright screenshots captured for `/settings/account`
+        signed-out mobile state, linked desktop account readiness, email-pending
+        mobile next step, wallet-error mobile next step, and verified unlinked
+        mobile wallet-link next step.
 - [ ] Tests for empty learner, enrolled learner, unverified learner, denied
       course access, and reward status transitions.
   - [x] API-helper tests cover learner reward-history success/filtering, wallet
@@ -224,6 +237,8 @@ progress, inspect rewards, and understand wallet state.
         wallet `404`.
   - [x] API-helper tests cover the `/wallet` aggregate across self-wallet
         summary and recent reward credit history.
+  - [x] API-helper tests cover self-wallet plain text `500` normalization used
+        by `/settings/account` wallet-unavailable rendering.
 - [ ] Docker Compose E2E path: login/register, open learner dashboard, open
       course detail, inspect rewards, inspect wallet, scan recent logs.
 - [ ] Kubernetes smoke path loads `/learn`, `/courses`, and `/rewards` product
@@ -232,11 +247,11 @@ progress, inspect rewards, and understand wallet state.
 ## Current Checkpoint Traceability
 
 Route: `/learn`, `/courses`, `/courses/[courseId]`,
-`/courses/[courseId]/learn`, `/rewards`, `/wallet`
+`/courses/[courseId]/learn`, `/rewards`, `/wallet`, `/settings/account`
 Persona: learner
 Primary job: discover visible courses, inspect course detail, request
 enrollment, open course lessons, inspect reward status, and prepare a wallet
-for credits.
+for credits, while keeping account readiness understandable.
 Backend contracts: `GET /api/me`, `GET /api/reward-candidates/me/history`,
 `GET /api/courses/catalog`, `GET /api/courses/catalog/{courseId}`,
 `GET /api/courses/catalog/{courseId}/learn`,
@@ -252,7 +267,8 @@ enrollment, dashboard continue-learning, dashboard first-run empty, request-join
 success, course not found, lesson ready, uploaded media, processing media,
 failed processing, unavailable content, content permission denied, unlinked
 wallet, wallet credit history, token-confirmed reward without wallet credit,
-link success, text/JSON error, timeout/network, session expired.
+wallet unavailable, account verification next step, disabled notification
+preferences, link success, text/JSON error, timeout/network, session expired.
 Edge cases: unscoped draft hidden from learner catalog, own draft visible by
 course role, course-detail `404` keeps signed-in shell, unlinked wallet, wallet
 link retry, token transaction without wallet credit, reconciliation-needed
@@ -260,9 +276,12 @@ rewards, learner lesson `403` keeps signed-in shell, dashboard does not pretend
 persisted progress exists.
 Rendered proof: in-app Browser signed-out smoke; standalone Playwright mocked
 wallet signed-out mobile, linked desktop credit history, unlinked mobile first
-viewport/link action, and link success checks because Browser lacks reliable
-API interception for these states.
-API-helper proof: `npm run test:api-helpers` including `fetchLearnerWallet`.
+viewport/link action, link success checks, account signed-out mobile, account
+linked desktop, account email-pending mobile, account wallet-error mobile, and
+account verified/unlinked wallet next-step checks because Browser lacks
+reliable API interception for these states.
+API-helper proof: `npm run test:api-helpers` including `fetchLearnerWallet`
+and self-wallet plain text `500` normalization.
 Rust proof: `./scripts/run-host-tests.sh cargo test --test course_discovery`.
 Compose proof: deferred until this learner slice is deployed into Compose.
 Kubernetes proof: deferred until this learner slice is deployed into the

@@ -17,6 +17,12 @@ permissions, organization scopes, course scopes, and active delegated
 permissions for route-guard work. Manual bearer-token entry belongs in `/ops`,
 not in product routes.
 
+`/settings/account` loads `GET /api/me` plus `GET /api/wallets/me` to show
+profile details, email/KYC readiness, self-wallet linked/unlinked/error state,
+workspace counts, and mobile-first next-step actions. Notification preferences
+are shown as disabled defaults with explicit copy until the backend exposes
+preference read/save endpoints.
+
 The first permission-aware workspace routes are `/learn`, `/teach`,
 `/organizations`, and `/admin`. They all load `GET /api/me`, derive navigation
 from effective permissions instead of role labels, and show contextual denied
