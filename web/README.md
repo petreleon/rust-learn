@@ -29,24 +29,29 @@ from effective permissions instead of role labels, and show contextual denied
 states when the current user lacks the required learner, teacher, organization,
 or platform access signal.
 
-Teacher product routes now include `/teach`, `/teach/apply`, and
-`/teach/courses`. `/teach` loads `GET /api/me`,
+Teacher product routes now include `/teach`, `/teach/apply`,
+`/teach/courses`, and `/teach/courses/[courseId]`. `/teach` loads `GET /api/me`,
 `GET /api/courses/teaching`, and `GET /api/teacher-applications/me` to show
 application status, teaching course health, lifecycle state, content readiness,
 enrollment pressure, reward review pressure, and scoped action permissions.
 `/teach/courses` uses the same teaching-course contract with title search and
-lifecycle filtering. The route keeps course workspace, enrollment, and reward
-review actions disabled until those deeper product routes exist, and it does
-not expose teacher-side reward amount controls. `GET /api/courses/teaching`
-returns `total/limit/offset/search/lifecycle_status`, organization labels,
-content summaries, reward-policy summaries, roster counts, reward queue counts,
-and permission booleans for the current teacher scope. `/teach/apply` loads
+lifecycle filtering and links to `/teach/courses/[courseId]` for the real
+course workspace. The workspace loads `GET /api/courses/teaching/{courseId}`
+and shows lifecycle, ownership, teacher roles, action permissions, structured
+chapters/content, data-present flags, inherited content publication state,
+latest processing status/error, roster pressure, and reward review pressure.
+Enrollment and reward-review actions remain disabled until those deeper routes
+exist, and teacher screens do not expose platform amount-review controls.
+`GET /api/courses/teaching` returns
+`total/limit/offset/search/lifecycle_status`, organization labels, content
+summaries, reward-policy summaries, roster counts, reward queue counts, and
+permission booleans for the current teacher scope. `/teach/apply` loads
 `GET /api/me` and `GET /api/teacher-applications/me`, submits through
 `POST /api/teacher-applications`, preserves draft application text and
 portfolio links in session storage, and renders new, submitted, needs-changes,
 approved, rejected, duplicate-conflict, signed-out, and backend-failure states.
 Organization and course scope choices come from the resolved session context so
-teachers and applicants do not type raw internal ids. Content upload,
+teachers and applicants do not type raw internal ids. Content editing/upload,
 enrollment decision queues, student progress, and reward candidate decision
 screens remain future product routes.
 

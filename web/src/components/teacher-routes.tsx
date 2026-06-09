@@ -2,6 +2,7 @@
 
 import {
   AlertCircle,
+  ArrowLeft,
   BookOpen,
   BriefcaseBusiness,
   CheckCircle2,
@@ -29,11 +30,14 @@ import {
 } from "@/lib/session";
 import {
   fetchMyTeacherApplication,
+  fetchTeachingCourseWorkspace,
   fetchTeachingCourses,
   TeacherRequestError,
   type TeacherApplication,
   type TeacherApplicationSnapshot,
   type TeacherCourseDashboardItem,
+  type TeacherCourseWorkspaceContent,
+  type TeacherCourseWorkspaceResponse,
   type TeacherCoursesResponse,
 } from "@/lib/teacher";
 import styles from "./teacher-routes.module.css";
@@ -252,6 +256,135 @@ export function TeacherRoute({ view }: { view: TeacherRouteView }) {
   );
 }
 
+export function TeacherCourseWorkspaceRoute({ courseId }: { courseId: string }) {
+  const [error, setError] = useState<RouteError | null>(null);
+  const [hasToken, setHasToken] = useState(false);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [session, setSession] = useState<CurrentSession | null>(null);
+  const [workspace, setWorkspace] = useState<TeacherCourseWorkspaceResponse | null>(null);
+
+  const loadWorkspace = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token) {
+      setHasToken(false);
+      setSession(null);
+      setWorkspace(null);
+      setError(null);
+      setLoadState("idle");
+      return;
+    }
+
+    setHasToken(true);
+    setLoadState("loading");
+    setError(null);
+
+    try {
+      const [nextSession, nextWorkspace] = await Promise.all([
+        fetchCurrentSession({ token }),
+        fetchTeachingCourseWorkspace({ courseId, token }),
+      ]);
+      setSession(nextSession);
+      setWorkspace(nextWorkspace);
+      setLoadState("success");
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      if (routeError.status === 401 || routeError.status === 404) {
+        if (routeError.status === 401) {
+          clearStoredSessionToken();
+          setHasToken(false);
+        }
+      }
+      setSession(null);
+      setWorkspace(null);
+      setError(routeError);
+      setLoadState("error");
+    }
+  }, [courseId]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadWorkspace(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadWorkspace]);
+
+  function signOut() {
+    clearStoredSessionToken();
+    setHasToken(false);
+    setSession(null);
+    setWorkspace(null);
+    setError(null);
+    setLoadState("idle");
+  }
+
+  const workspaceTotals = workspace ? workspaceSummary(workspace) : null;
+  const courseTitle = workspace?.course.title || "Course workspace";
+
+  return (
+    <ProductShell
+      activeNav="teach"
+      breadcrumbs={[
+        { href: "/session", label: "Workspace" },
+        { href: "/teach", label: "Teach" },
+        { href: "/teach/courses", label: "Courses" },
+        { label: courseTitle },
+      ]}
+      description="Course-scoped teaching workspace for lifecycle, content structure, roster pressure, and reward review readiness."
+      eyebrow="Teacher course"
+      isSignedIn={hasToken || Boolean(session)}
+      notice={routeNotice(error)}
+      onSignOut={signOut}
+      session={session}
+      statusItems={
+        workspace && workspaceTotals ? (
+          <>
+            <StatusLine icon={<ShieldCheck size={16} aria-hidden />} label={statusLabel(workspace.course.lifecycle_status)} tone={lifecycleTone(workspace.course.lifecycle_status)} />
+            <StatusLine icon={<FileText size={16} aria-hidden />} label={`${workspaceTotals.contentCount} content item${workspaceTotals.contentCount === 1 ? "" : "s"}`} tone={workspaceTotals.contentCount ? "good" : "warn"} />
+            <StatusLine icon={<Trophy size={16} aria-hidden />} label={`${workspace.course.reward_queue.pending_teacher_count} reward review${workspace.course.reward_queue.pending_teacher_count === 1 ? "" : "s"}`} tone={workspace.course.reward_queue.pending_teacher_count ? "warn" : "neutral"} />
+          </>
+        ) : null
+      }
+      title={courseTitle}
+    >
+      {loadState === "loading" ? (
+        <StatePanel
+          detail="Loading course lifecycle, teaching permissions, chapters, content, processing signals, roster pressure, and reward queues."
+          icon={<Loader2 className={styles.spin} size={22} aria-hidden />}
+          title="Loading course workspace"
+        />
+      ) : null}
+
+      {loadState === "idle" ? (
+        <StatePanel
+          action={
+            <Link className={styles.primaryLink} href={`/login?redirect=/teach/courses/${courseId}`}>
+              <LogIn size={18} aria-hidden />
+              Sign in
+            </Link>
+          }
+          detail="Course workspaces load from your signed-in teaching session."
+          icon={<LogIn size={22} aria-hidden />}
+          title="Sign in required"
+        />
+      ) : null}
+
+      {loadState === "error" && error ? (
+        <section className={`${styles.errorBox} ${styles.singlePanel}`} role="status">
+          <AlertCircle size={18} aria-hidden />
+          <span>
+            <strong>{error.code}</strong>
+            {error.message}
+          </span>
+          <button className={styles.secondaryButton} type="button" onClick={() => void loadWorkspace()}>
+            <RefreshCw size={17} aria-hidden />
+            Retry
+          </button>
+        </section>
+      ) : null}
+
+      {loadState === "success" && workspace ? <WorkspaceView workspace={workspace} /> : null}
+    </ProductShell>
+  );
+}
+
 function DashboardView({
   application,
   canSubmitApplication,
@@ -366,6 +499,172 @@ function CoursesView({
         <CourseGrid courses={courses} emptyDetail="No teaching courses match the current filters." />
       </section>
     </>
+  );
+}
+
+function WorkspaceView({ workspace }: { workspace: TeacherCourseWorkspaceResponse }) {
+  const totals = workspaceSummary(workspace);
+  const organizationNames = workspace.course.organizations.map((organization) => organization.name).join(", ") || "Personal course";
+  return (
+    <>
+      <section className={styles.workspaceHero}>
+        <Link className={styles.secondaryLink} href="/teach/courses">
+          <ArrowLeft size={17} aria-hidden />
+          Teaching courses
+        </Link>
+        <div className={styles.workspaceTitleBlock}>
+          <p className={styles.eyebrow}>{organizationNames}</p>
+          <h2>{workspace.course.title}</h2>
+          <p className={styles.muted}>
+            Course lifecycle is {statusLabel(workspace.course.lifecycle_status)}. Individual content publication state is not stored yet, so content inherits the course lifecycle.
+          </p>
+        </div>
+        <div className={styles.permissionRow} aria-label="Workspace permissions">
+          <PermissionChip enabled={workspace.course.permissions.can_manage_settings} label="Settings" />
+          <PermissionChip enabled={workspace.course.permissions.can_manage_content} label="Content" />
+          <PermissionChip enabled={workspace.course.permissions.can_manage_enrollments} label="Enrollments" />
+          <PermissionChip enabled={workspace.course.permissions.can_approve_reward_candidates} label="Rewards" />
+        </div>
+      </section>
+
+      <section className={styles.summaryGrid}>
+        <SummaryCard icon={<FileText size={20} aria-hidden />} label="Content items" value={totals.contentCount} tone={totals.contentCount ? "neutral" : "warn"} />
+        <SummaryCard icon={<BookOpen size={20} aria-hidden />} label="Chapters" value={workspace.chapters.length} />
+        <SummaryCard icon={<Users size={20} aria-hidden />} label="Enrollment requests" value={workspace.course.roster.pending_join_request_count + workspace.course.roster.waitlisted_join_request_count} tone={workspace.course.roster.pending_join_request_count || workspace.course.roster.waitlisted_join_request_count ? "warn" : "neutral"} />
+        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Reward reviews" value={workspace.course.reward_queue.pending_teacher_count} tone={workspace.course.reward_queue.pending_teacher_count ? "warn" : "neutral"} />
+      </section>
+
+      <section className={styles.twoColumn}>
+        <WorkspaceActionPanel workspace={workspace} />
+        <section className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <ShieldCheck size={20} aria-hidden />
+            <h2>Publication and ownership</h2>
+          </div>
+          <div className={styles.detailList}>
+            <DetailLine label="Lifecycle" value={statusLabel(workspace.publication.course_lifecycle_status)} />
+            <DetailLine label="Teacher roles" value={workspace.teacher_roles.join(", ") || "Delegated permission"} />
+            <DetailLine label="Organizations" value={organizationNames} />
+            <DetailLine label="Per-content publication" value={workspace.publication.content_publication_status_supported ? "Supported" : "Inherited from course"} />
+          </div>
+        </section>
+      </section>
+
+      <section className={styles.courseSection}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2>Course content</h2>
+            <p className={styles.muted}>Structured chapters, content types, stored-data presence, and latest processing state.</p>
+          </div>
+        </div>
+        <ChapterList chapters={workspace.chapters} />
+      </section>
+    </>
+  );
+}
+
+function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspaceResponse }) {
+  const actions = [
+    {
+      detail: workspace.course.permissions.can_manage_content
+        ? "Content editing and upload controls need the next authoring form and upload contract before enabling."
+        : "This session cannot manage course content.",
+      enabled: workspace.course.permissions.can_manage_content,
+      icon: <FileText size={17} aria-hidden />,
+      label: "Content authoring",
+    },
+    {
+      detail: workspace.course.permissions.can_manage_enrollments
+        ? "Enrollment queue route is next; this workspace shows current pressure without making decisions here."
+        : "This session cannot manage enrollment decisions.",
+      enabled: workspace.course.permissions.can_manage_enrollments,
+      icon: <Users size={17} aria-hidden />,
+      label: "Enrollment queue",
+    },
+    {
+      detail: workspace.course.permissions.can_approve_reward_candidates
+        ? "Reward candidate review is intentionally separate from platform payout approval."
+        : "This session cannot approve student reward candidates.",
+      enabled: workspace.course.permissions.can_approve_reward_candidates,
+      icon: <Trophy size={17} aria-hidden />,
+      label: "Reward review",
+    },
+  ];
+
+  return (
+    <section className={styles.panel}>
+      <div className={styles.panelHeader}>
+        <BriefcaseBusiness size={20} aria-hidden />
+        <h2>Workspace actions</h2>
+      </div>
+      <div className={styles.priorityList}>
+        {actions.map((action) => (
+          <article className={styles.priorityItem} key={action.label}>
+            <span className={`${styles.smallIcon} ${action.enabled ? styles.good : styles.neutral}`}>{action.icon}</span>
+            <div>
+              <strong>{action.label}</strong>
+              <p>{action.detail}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ChapterList({ chapters }: { chapters: TeacherCourseWorkspaceResponse["chapters"] }) {
+  if (!chapters.length) {
+    return (
+      <section className={`${styles.panel} ${styles.singlePanel}`}>
+        <div className={styles.panelHeader}>
+          <BookOpen size={20} aria-hidden />
+          <h2>No chapters</h2>
+        </div>
+        <p className={styles.muted}>Create the first chapter after the content-authoring route is built.</p>
+      </section>
+    );
+  }
+
+  return (
+    <div className={styles.chapterList}>
+      {chapters.map((chapter) => (
+        <article className={styles.chapterCard} key={chapter.id}>
+          <div className={styles.courseTop}>
+            <div>
+              <p className={styles.eyebrow}>Chapter {chapter.order}</p>
+              <h3>{chapter.title}</h3>
+            </div>
+            <span className={`${styles.statusPill} ${styles.neutral}`}>{chapter.contents.length} item{chapter.contents.length === 1 ? "" : "s"}</span>
+          </div>
+          {chapter.contents.length ? (
+            <div className={styles.contentList}>
+              {chapter.contents.map((content) => (
+                <ContentRow content={content} key={content.id} />
+              ))}
+            </div>
+          ) : (
+            <p className={styles.muted}>No content items in this chapter yet.</p>
+          )}
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ContentRow({ content }: { content: TeacherCourseWorkspaceContent }) {
+  const tone = content.display_state === "failed_processing" ? "warn" : content.display_state === "ready" ? "good" : "neutral";
+  return (
+    <article className={styles.contentRow}>
+      <div>
+        <strong>{statusLabel(content.content_type)}</strong>
+        <p>
+          Order {content.order} - {content.data_present ? "Data recorded" : "No stored data"} - {statusLabel(content.publication_status)}
+        </p>
+      </div>
+      <span className={`${styles.statusPill} ${styles[tone]}`}>{statusLabel(content.display_state)}</span>
+      {content.processing_status ? <small>{statusLabel(content.processing_status)}</small> : null}
+      {content.processing_error ? <p className={styles.reviewNote}>{content.processing_error}</p> : null}
+    </article>
   );
 }
 
@@ -504,10 +803,10 @@ function CourseCard({ course }: { course: TeacherCourseDashboardItem }) {
       </div>
 
       <div className={styles.actionRow}>
-        <button className={styles.secondaryButton} disabled type="button" title="Course workspace route is next">
+        <Link className={styles.secondaryLink} href={`/teach/courses/${course.id}`}>
           <BriefcaseBusiness size={16} aria-hidden />
           Workspace
-        </button>
+        </Link>
         <button className={styles.secondaryButton} disabled type="button" title="Enrollment queue route is next">
           <Users size={16} aria-hidden />
           Enrollments
@@ -661,6 +960,24 @@ function dashboardTotals(courses: TeacherCourseDashboardItem[]) {
       pendingEnrollmentCount: 0,
       pendingRewardCount: 0,
       unhealthyCourseCount: 0,
+    },
+  );
+}
+
+function workspaceSummary(workspace: TeacherCourseWorkspaceResponse) {
+  return workspace.chapters.reduce(
+    (totals, chapter) => {
+      totals.contentCount += chapter.contents.length;
+      for (const content of chapter.contents) {
+        if (content.display_state === "failed_processing") {
+          totals.failedProcessingCount += 1;
+        }
+      }
+      return totals;
+    },
+    {
+      contentCount: 0,
+      failedProcessingCount: 0,
     },
   );
 }

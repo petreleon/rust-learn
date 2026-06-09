@@ -16,10 +16,11 @@ use crate::services::course_enrollment_service::{
 use crate::services::course_service::{
     create_course_with_invites_for_actor, discover_courses, discover_learner_course_catalog,
     discover_teacher_course_dashboard, get_learner_course_detail, get_learner_course_learning,
-    update_course_for_actor, update_course_lifecycle as update_course_lifecycle_status,
-    CourseCreationError, CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest,
-    CourseUpdateError, LearnerCourseCatalogError, LearnerCourseCatalogQuery,
-    TeacherCourseDashboardError, TeacherCourseDashboardQuery,
+    get_teacher_course_workspace, update_course_for_actor,
+    update_course_lifecycle as update_course_lifecycle_status, CourseCreationError,
+    CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest, CourseUpdateError,
+    LearnerCourseCatalogError, LearnerCourseCatalogQuery, TeacherCourseDashboardError,
+    TeacherCourseDashboardQuery,
 };
 use crate::utils::notifications::NotificationsState;
 use crate::utils::request_auth::{authenticated_user, authenticated_user_id};
@@ -130,6 +131,9 @@ fn learner_course_catalog_error_response(error: LearnerCourseCatalogError) -> Ht
 
 fn teacher_course_dashboard_error_response(error: TeacherCourseDashboardError) -> HttpResponse {
     match error {
+        TeacherCourseDashboardError::PermissionDenied(_) => HttpResponse::Forbidden()
+            .body("User does not have permission to view this teaching course"),
+        TeacherCourseDashboardError::NotFound => HttpResponse::NotFound().body("Course not found"),
         TeacherCourseDashboardError::Database(message) => {
             log::error!("event=teacher_course_dashboard_failed error={}", message);
             HttpResponse::InternalServerError().body("Failed to load teaching courses")
@@ -216,6 +220,26 @@ async fn list_teacher_course_dashboard(
 
     match discover_teacher_course_dashboard(&mut conn, requester.user_id, dashboard_query).await {
         Ok(catalog) => HttpResponse::Ok().json(catalog),
+        Err(error) => teacher_course_dashboard_error_response(error),
+    }
+}
+
+async fn get_teacher_course_workspace_route(
+    req: HttpRequest,
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    let requester = match authenticated_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match get_teacher_course_workspace(&mut conn, requester.user_id, path.into_inner()).await {
+        Ok(workspace) => HttpResponse::Ok().json(workspace),
         Err(error) => teacher_course_dashboard_error_response(error),
     }
 }
@@ -638,6 +662,10 @@ pub fn course_scope() -> actix_web::Scope {
         .configure(crate::api::reward_candidates::configure_course_reward_candidate_routes)
         .service(web::resource("/catalog").route(web::get().to(list_learner_course_catalog)))
         .service(web::resource("/teaching").route(web::get().to(list_teacher_course_dashboard)))
+        .service(
+            web::resource("/teaching/{id}")
+                .route(web::get().to(get_teacher_course_workspace_route)),
+        )
         .service(
             web::resource("/catalog/{id}/learn")
                 .route(web::get().to(get_learner_course_learning_route)),

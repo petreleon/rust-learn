@@ -51,6 +51,14 @@ screens pretend to be complete.
         queue counts, and action permission booleans. Candidate lookup starts
         from direct course roles, organization scope, active delegations, and
         platform scope before per-course permission summaries are built.
+- [x] Define a teacher course workspace/detail contract for structured
+      authoring context.
+  - [x] `GET /api/courses/teaching/{courseId}` returns the scoped course
+        summary, teacher roles, ownership labels, publication summary, ordered
+        chapters, ordered content items, data-present flags, inherited content
+        publication status, display state, and latest processing status/error.
+        Per-content publication status is explicitly unsupported until the
+        course content schema stores it.
 - [ ] Define upload-job or media-processing status APIs before the teacher
       upload UI promises progress or retry visibility.
 - [ ] Define searchable user, organization, course, application, reward,

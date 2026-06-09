@@ -57,6 +57,36 @@ export type TeacherCourseDashboardItem = {
   title: string;
 };
 
+export type TeacherCourseWorkspaceResponse = {
+  chapters: TeacherCourseWorkspaceChapter[];
+  course: TeacherCourseDashboardItem;
+  publication: TeacherCoursePublicationSummary;
+  teacher_roles: string[];
+};
+
+export type TeacherCoursePublicationSummary = {
+  content_publication_status_supported: boolean;
+  course_lifecycle_status: string;
+};
+
+export type TeacherCourseWorkspaceChapter = {
+  contents: TeacherCourseWorkspaceContent[];
+  id: number;
+  order: number;
+  title: string;
+};
+
+export type TeacherCourseWorkspaceContent = {
+  content_type: string;
+  data_present: boolean;
+  display_state: string;
+  id: number;
+  order: number;
+  processing_error: string | null;
+  processing_status: string | null;
+  publication_status: string;
+};
+
 export type TeacherCourseOrganization = {
   id: number;
   name: string;
@@ -140,6 +170,10 @@ export type TeacherCoursesOptions = TeacherRequestOptions & {
   search?: string;
 };
 
+export type TeacherCourseWorkspaceOptions = TeacherRequestOptions & {
+  courseId: number | string;
+};
+
 export type SubmitTeacherApplicationOptions = TeacherRequestOptions & {
   payload: SubmitTeacherApplicationPayload;
 };
@@ -187,6 +221,20 @@ export async function fetchTeachingCourses({
     timeoutMs,
     token,
     url: `${apiRoot}/courses/teaching${suffix ? `?${suffix}` : ""}`,
+  });
+}
+
+export async function fetchTeachingCourseWorkspace({
+  apiRoot = "/api",
+  courseId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: TeacherCourseWorkspaceOptions): Promise<TeacherCourseWorkspaceResponse> {
+  return teacherJsonRequest<TeacherCourseWorkspaceResponse>({
+    method: "GET",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/teaching/${courseId}`,
   });
 }
 

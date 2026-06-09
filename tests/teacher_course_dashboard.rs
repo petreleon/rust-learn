@@ -138,12 +138,17 @@ async fn create_chapter(conn: &mut AsyncPgConnection, course_id: i32, title: &st
         .expect("failed to create chapter")
 }
 
-async fn create_content(conn: &mut AsyncPgConnection, chapter_id: i32, content_type: &str) {
+async fn create_content(
+    conn: &mut AsyncPgConnection,
+    chapter_id: i32,
+    content_type: &str,
+    data: Option<&str>,
+) {
     diesel::insert_into(contents::table)
         .values(NewContent {
             chapter_id,
             content_type: content_type.to_string(),
-            data: None,
+            data: data.map(ToString::to_string),
             order: 0,
         })
         .execute(conn)
@@ -238,7 +243,13 @@ async fn teacher_course_dashboard_returns_scoped_course_health_and_queues() {
     assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER").await;
     assign_course_role(&mut conn, student.id(), course.id, "STUDENT").await;
     let chapter_id = create_chapter(&mut conn, course.id, "Dashboard chapter").await;
-    create_content(&mut conn, chapter_id, "article").await;
+    create_content(
+        &mut conn,
+        chapter_id,
+        "article",
+        Some("Workspace lesson text"),
+    )
+    .await;
     create_reward_policy(&mut conn, course.id).await;
     create_join_request(
         &mut conn,
@@ -351,6 +362,50 @@ async fn teacher_course_dashboard_returns_scoped_course_health_and_queues() {
         Some(true)
     );
 
+    let workspace_req = test::TestRequest::get()
+        .uri(&format!("/courses/teaching/{}", course.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(teacher.id())),
+        ))
+        .to_request();
+    let workspace_resp = test::call_service(&app, workspace_req).await;
+    assert_eq!(workspace_resp.status(), StatusCode::OK);
+    let workspace_body: Value = test::read_body_json(workspace_resp).await;
+    assert_eq!(
+        workspace_body["course"]["id"].as_i64(),
+        Some(i64::from(course.id))
+    );
+    assert_eq!(
+        workspace_body["publication"]["course_lifecycle_status"].as_str(),
+        Some(COURSE_STATUS_PUBLISHED)
+    );
+    assert_eq!(
+        workspace_body["publication"]["content_publication_status_supported"].as_bool(),
+        Some(false)
+    );
+    assert_eq!(workspace_body["teacher_roles"][0].as_str(), Some("TEACHER"));
+    assert_eq!(
+        workspace_body["chapters"][0]["title"].as_str(),
+        Some("Dashboard chapter")
+    );
+    assert_eq!(
+        workspace_body["chapters"][0]["contents"][0]["content_type"].as_str(),
+        Some("article")
+    );
+    assert_eq!(
+        workspace_body["chapters"][0]["contents"][0]["data_present"].as_bool(),
+        Some(true)
+    );
+    assert_eq!(
+        workspace_body["chapters"][0]["contents"][0]["publication_status"].as_str(),
+        Some("inherits_course_published")
+    );
+    assert_eq!(
+        workspace_body["chapters"][0]["contents"][0]["display_state"].as_str(),
+        Some("ready")
+    );
+
     let outsider_req = test::TestRequest::get()
         .uri("/courses/teaching?limit=10")
         .insert_header((
@@ -366,4 +421,14 @@ async fn teacher_course_dashboard_returns_scoped_course_health_and_queues() {
         .as_array()
         .expect("courses array")
         .is_empty());
+
+    let outsider_workspace_req = test::TestRequest::get()
+        .uri(&format!("/courses/teaching/{}", course.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(outsider.id())),
+        ))
+        .to_request();
+    let outsider_workspace_resp = test::call_service(&app, outsider_workspace_req).await;
+    assert_eq!(outsider_workspace_resp.status(), StatusCode::FORBIDDEN);
 }

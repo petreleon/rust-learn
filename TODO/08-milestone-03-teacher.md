@@ -33,8 +33,14 @@ admin controls.
         organization names, content and reward-policy summaries, roster
         pressure, reward queue counts, action permissions, and
         `total/limit/offset/search/lifecycle_status` metadata.
-- [ ] Course authoring detail payload with chapters, content, publication
+- [x] Course authoring detail payload with chapters, content, publication
       status, ownership, and reward policy summary.
+  - [x] `GET /api/courses/teaching/{courseId}` returns the scoped course
+        dashboard summary, current teacher roles, publication summary, ordered
+        chapters, ordered content items, data-present flags, inherited content
+        publication status, display state, and latest processing status/error.
+        Per-content publication remains explicitly unsupported until the schema
+        stores that state.
 - [ ] Upload URL and media-processing status contract, including queued,
       processing, failed, retried, and complete states.
 - [ ] Enrollment request list and decision endpoints with pagination.
@@ -61,7 +67,13 @@ admin controls.
         layout, empty state, backend failure state, and scoped action chips.
         Deeper workspace/enrollment/reward routes remain disabled instead of
         linking to unfinished screens.
-- [ ] `/teach/courses/[courseId]` course workspace.
+- [x] `/teach/courses/[courseId]` course workspace.
+  - [x] Real product route loads `GET /api/me` and
+        `GET /api/courses/teaching/{courseId}`; it shows lifecycle,
+        ownership, teacher roles, permissions, content structure, processing
+        state, roster pressure, reward review pressure, signed-out state, and
+        permission failure state without raw id forms or platform amount-review
+        controls.
 - [ ] `/teach/courses/[courseId]/content` course content authoring.
 - [ ] `/teach/courses/[courseId]/enrollments` enrollment queue and roster.
 - [ ] `/teach/courses/[courseId]/students` student progress.
@@ -86,13 +98,17 @@ admin controls.
 
 ## Course Authoring
 
-- [ ] Show lifecycle state: draft, submitted, needs changes, approved,
+- [x] Show lifecycle state: draft, submitted, needs changes, approved,
       published, archived, suspended.
+- [x] Show structured chapter/content outline instead of freeform API fields.
 - [ ] Allow only permitted actions for create, edit, publish, archive, and
       settings.
 - [ ] Use structured chapter/content editing instead of freeform API fields.
 - [ ] Show upload URL expiry and retry path.
-- [ ] Show worker processing states after video processing is queued.
+- [x] Show worker processing states after video processing is queued.
+  - [x] The workspace detail payload and UI surface latest display state,
+        processing status, and processing error for content items. Upload
+        retry controls remain open until the upload route is built.
 - [ ] Handle object upload success but content record failure, and content
       record success but processing failure.
 
@@ -133,6 +149,11 @@ admin controls.
         search/lifecycle filtering, no-access state, plain-text backend `500`
         state, no internal operations console text for non-admin sessions, no
         console errors, and no horizontal overflow.
+  - [x] `/teach/courses/[courseId]` evidence: Browser signed-out desktop and
+        mobile smoke, mocked Playwright course-list-to-workspace navigation,
+        structured content outline, failed-processing state, scoped permission
+        failure state, no internal operations console text, no amount-review
+        language, no console errors, and no horizontal overflow.
 - [ ] Tests for approved teacher, applicant-only user, course-scoped teacher,
       denied teacher route, stale reward candidate, and failed upload state.
   - [x] Teacher application tests cover current-user snapshot, duplicate open
@@ -142,6 +163,11 @@ admin controls.
         permission visibility, lifecycle status, content summary, roster queue,
         reward queue, action permissions, outsider empty result, route
         registration, and frontend helper text-error normalization.
+  - [x] Teacher course workspace tests cover scoped detail response shape,
+        teacher roles, publication summary, chapter/content structure,
+        inherited publication status, content display state, outsider `403`,
+        route registration, frontend helper parsing, and frontend helper
+        `403`/`404` text-error normalization.
 - [ ] Docker Compose E2E path: teacher application or teacher login, course
       workspace, content/upload state, reward candidate decision, log scan.
 - [ ] Kubernetes smoke path loads `/teach`, `/teach/apply`, and one course

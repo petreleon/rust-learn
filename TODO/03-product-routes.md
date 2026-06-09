@@ -113,6 +113,10 @@
         search, lifecycle filtering, empty/error states, mobile layout, and
         disabled placeholders for unfinished course workspace, enrollment, and
         reward-review routes.
+  - [x] `/teach/courses/[courseId]` opens a real course workspace with
+        lifecycle, ownership, teacher roles, action permissions, structured
+        chapters/content, processing state, roster pressure, reward review
+        pressure, signed-out state, and permission failure state.
 - [ ] Build course creation and editing flows for title, description, content,
       settings, publishing state, organization ownership, and reward policy.
 - [ ] Build content upload UI with progress, validation, processing status,

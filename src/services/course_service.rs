@@ -131,6 +131,40 @@ pub struct TeacherCourseDashboardItem {
 }
 
 #[derive(Debug, Serialize)]
+pub struct TeacherCourseWorkspaceResponse {
+    pub course: TeacherCourseDashboardItem,
+    pub teacher_roles: Vec<String>,
+    pub publication: TeacherCoursePublicationSummary,
+    pub chapters: Vec<TeacherCourseWorkspaceChapter>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCoursePublicationSummary {
+    pub course_lifecycle_status: String,
+    pub content_publication_status_supported: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCourseWorkspaceChapter {
+    pub id: i32,
+    pub title: String,
+    pub order: i32,
+    pub contents: Vec<TeacherCourseWorkspaceContent>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherCourseWorkspaceContent {
+    pub id: i32,
+    pub order: i32,
+    pub content_type: String,
+    pub data_present: bool,
+    pub publication_status: String,
+    pub display_state: String,
+    pub processing_status: Option<String>,
+    pub processing_error: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
 pub struct TeacherCourseRosterSummary {
     pub enrolled_student_count: i64,
     pub pending_join_request_count: i64,
@@ -264,6 +298,8 @@ pub enum LearnerCourseCatalogError {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum TeacherCourseDashboardError {
+    PermissionDenied(String),
+    NotFound,
     Database(String),
 }
 
@@ -519,6 +555,40 @@ pub async fn discover_teacher_course_dashboard(
     })
 }
 
+pub async fn get_teacher_course_workspace(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    course_id: i32,
+) -> Result<TeacherCourseWorkspaceResponse, TeacherCourseDashboardError> {
+    let course = courses::table
+        .find(course_id)
+        .first::<Course>(conn)
+        .await
+        .map_err(TeacherCourseDashboardError::from)?;
+    let permissions = build_teacher_course_permissions(conn, actor_user_id, course.id).await?;
+    if !permissions.has_teacher_access() {
+        return Err(TeacherCourseDashboardError::PermissionDenied(
+            "teaching course access".to_string(),
+        ));
+    }
+
+    let teacher_roles = load_actor_course_roles(conn, actor_user_id, course.id).await?;
+    let publication = TeacherCoursePublicationSummary {
+        course_lifecycle_status: course.lifecycle_status.clone(),
+        content_publication_status_supported: false,
+    };
+    let chapters =
+        load_teacher_course_workspace_chapters(conn, course.id, &course.lifecycle_status).await?;
+    let course = build_teacher_course_dashboard_item(conn, course, permissions).await?;
+
+    Ok(TeacherCourseWorkspaceResponse {
+        course,
+        teacher_roles,
+        publication,
+        chapters,
+    })
+}
+
 pub async fn discover_learner_course_catalog(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
@@ -698,7 +768,10 @@ impl From<diesel::result::Error> for LearnerCourseCatalogError {
 
 impl From<diesel::result::Error> for TeacherCourseDashboardError {
     fn from(error: diesel::result::Error) -> Self {
-        TeacherCourseDashboardError::Database(error.to_string())
+        match error {
+            diesel::result::Error::NotFound => TeacherCourseDashboardError::NotFound,
+            other => TeacherCourseDashboardError::Database(other.to_string()),
+        }
     }
 }
 
@@ -891,6 +964,68 @@ async fn build_teacher_course_dashboard_item(
         reward_queue,
         permissions,
     })
+}
+
+async fn load_teacher_course_workspace_chapters(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    course_lifecycle_status: &str,
+) -> Result<Vec<TeacherCourseWorkspaceChapter>, TeacherCourseDashboardError> {
+    let chapter_rows = chapters::table
+        .filter(chapters::course_id.eq(course_id))
+        .order(chapters::order.asc())
+        .then_order_by(chapters::id.asc())
+        .select((chapters::id, chapters::title, chapters::order))
+        .load::<(i32, String, i32)>(conn)
+        .await?;
+
+    let mut result = Vec::with_capacity(chapter_rows.len());
+    for (id, title, order) in chapter_rows {
+        let content_rows = contents::table
+            .filter(contents::chapter_id.eq(id))
+            .order(contents::order.asc())
+            .then_order_by(contents::id.asc())
+            .select((
+                contents::id,
+                contents::order,
+                contents::content_type,
+                contents::data,
+            ))
+            .load::<(i32, i32, String, Option<String>)>(conn)
+            .await?;
+        let mut workspace_contents = Vec::with_capacity(content_rows.len());
+
+        for (id, order, content_type, data) in content_rows {
+            let processing = load_latest_content_processing(conn, data.as_deref()).await?;
+            let display_state = content_display_state(&content_type, data.as_deref(), &processing);
+            workspace_contents.push(TeacherCourseWorkspaceContent {
+                id,
+                order,
+                content_type,
+                data_present: data
+                    .as_deref()
+                    .map(str::trim)
+                    .is_some_and(|value| !value.is_empty()),
+                publication_status: teacher_content_publication_status(course_lifecycle_status),
+                display_state,
+                processing_status: processing.as_ref().map(|(status, _)| status.clone()),
+                processing_error: processing.and_then(|(_, error)| error),
+            });
+        }
+
+        result.push(TeacherCourseWorkspaceChapter {
+            id,
+            title,
+            order,
+            contents: workspace_contents,
+        });
+    }
+
+    Ok(result)
+}
+
+fn teacher_content_publication_status(course_lifecycle_status: &str) -> String {
+    format!("inherits_course_{}", course_lifecycle_status)
 }
 
 async fn teacher_course_candidate_scope(

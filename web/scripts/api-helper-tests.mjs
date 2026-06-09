@@ -599,6 +599,44 @@ test("fetchTeachingCourses normalizes text backend failures", async () => {
   });
 });
 
+test("fetchTeachingCourseWorkspace parses structured authoring detail", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/teaching/9");
+    assert.equal(init.headers.Authorization, "Bearer teacher-token");
+    return jsonResponse(teacherCourseWorkspaceFixture());
+  });
+
+  const workspace = await teacher.fetchTeachingCourseWorkspace({
+    courseId: 9,
+    token: "teacher-token",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(workspace.course.title, "Rust Ownership Lab");
+  assert.equal(workspace.teacher_roles[0], "TEACHER");
+  assert.equal(workspace.publication.content_publication_status_supported, false);
+  assert.equal(workspace.chapters[0].contents[0].display_state, "ready");
+  assert.equal(workspace.chapters[0].contents[1].processing_status, "failed");
+});
+
+test("fetchTeachingCourseWorkspace normalizes permission and missing-course text errors", async () => {
+  mockFetch(() => textResponse("User does not have permission to view this teaching course", { status: 403 }));
+
+  await assertRequestError(teacher.fetchTeachingCourseWorkspace({ courseId: 10, token: "teacher-token" }), {
+    code: "permission_denied",
+    errorClass: teacher.TeacherRequestError,
+    status: 403,
+  });
+
+  mockFetch(() => textResponse("Course not found", { status: 404 }));
+
+  await assertRequestError(teacher.fetchTeachingCourseWorkspace({ courseId: 404, token: "teacher-token" }), {
+    code: "not_found",
+    errorClass: teacher.TeacherRequestError,
+    status: 404,
+  });
+});
+
 test("submitTeacherApplication sends JSON payload and parses created application", async () => {
   const payload = {
     experience_summary: "I teach Rust fundamentals and review project work.",
@@ -865,5 +903,45 @@ function teacherCoursesFixture() {
     offset: 0,
     search: "Rust",
     total: 1,
+  };
+}
+
+function teacherCourseWorkspaceFixture() {
+  return {
+    chapters: [
+      {
+        contents: [
+          {
+            content_type: "article",
+            data_present: true,
+            display_state: "ready",
+            id: 31,
+            order: 1,
+            processing_error: null,
+            processing_status: null,
+            publication_status: "inherits_course_published",
+          },
+          {
+            content_type: "video",
+            data_present: true,
+            display_state: "failed_processing",
+            id: 32,
+            order: 2,
+            processing_error: "Transcode failed",
+            processing_status: "failed",
+            publication_status: "inherits_course_published",
+          },
+        ],
+        id: 14,
+        order: 1,
+        title: "Ownership basics",
+      },
+    ],
+    course: teacherCoursesFixture().courses[0],
+    publication: {
+      content_publication_status_supported: false,
+      course_lifecycle_status: "published",
+    },
+    teacher_roles: ["TEACHER"],
   };
 }

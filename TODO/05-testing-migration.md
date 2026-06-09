@@ -43,6 +43,12 @@
         reloads after apply, no-access state, plain-text backend `500` state,
         hidden internal operations console for non-admin product sessions, and
         no horizontal overflow.
+  - [x] Browser plus mocked Playwright QA covers
+        `/teach/courses/[courseId]` signed-out desktop/mobile states,
+        course-list-to-workspace navigation, structured content outline,
+        failed-processing state, scoped `403` state, hidden internal
+        operations console for non-admin product sessions, absence of
+        amount-review language, and no horizontal overflow.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
@@ -78,6 +84,12 @@
         course-scoped teacher visibility, outsider empty results, lifecycle
         status, content summary, roster counts, reward queue counts, and action
         permission booleans.
+  - [x] Frontend helper tests cover teaching-course workspace detail parsing
+        plus plain-text `403` and `404` normalization.
+  - [x] Rust API tests cover `GET /api/courses/teaching/{courseId}` route
+        registration, scoped workspace response shape, teacher roles,
+        publication summary, chapter/content structure, inherited publication
+        status, display state, and outsider `403`.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.
