@@ -1944,6 +1944,205 @@ export function AdminExportsRoute() {
   );
 }
 
+export function AdminSystemRoute() {
+  const route = useAdminSession();
+  const workspace = useMemo(
+    () => (route.session ? buildPlatformAdminWorkspace(route.session) : emptyWorkspace),
+    [route.session],
+  );
+  const allowed = route.session ? hasPlatformAdminAccess(route.session) : false;
+  const canView = hasAnyPlatformPermission(workspace, ["VIEW_REPORT", "VIEW_AUDIT_LOGS", "VIEW_ANALYTICS_DASHBOARD"]);
+
+  const [status, setStatus] = useState<PlatformSystemStatus | null>(null);
+  const [error, setError] = useState<RouteError | null>(null);
+  const [state, setState] = useState<SectionState>("idle");
+
+  const loadStatus = useCallback(async () => {
+    setState("loading");
+    setError(null);
+    try {
+      const next = await fetchPlatformSystemStatus();
+      setStatus(next);
+      setState("success");
+    } catch (err) {
+      setStatus(null);
+      setError(normalizeRouteError(err, "System status could not be loaded."));
+      setState("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadStatus(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadStatus]);
+
+  return (
+    <ProductShell
+      activeNav="admin"
+      breadcrumbs={[
+        { label: "Admin", href: "/admin" },
+        { label: "System" },
+      ]}
+      description="API liveness and dependency readiness from the runtime health endpoints."
+      eyebrow="Platform admin"
+      isSignedIn={route.hasToken}
+      onSignOut={route.signOut}
+      session={route.session}
+      statusItems={
+        <>
+          <StatusPill label={route.loadState === "loading" ? "Resolving session" : canView ? "System access" : "System gated"} />
+          <StatusPill label={status?.liveness.status ? formatUnderscoreLabel(status.liveness.status) : "Checking"} />
+        </>
+      }
+      title="System status"
+    >
+      {route.loadState === "idle" && !route.session ? <SignedOutState /> : null}
+      {route.loadState === "loading" ? <LoadingState /> : null}
+      {route.error ? <SessionErrorState error={route.error} /> : null}
+      {route.session && !allowed ? <AdminDeniedState workspace={workspace} /> : null}
+
+      {route.session && allowed ? (
+        canView ? (
+          <SystemPanel error={error} onRetry={loadStatus} state={state} status={status} />
+        ) : (
+          <GatedPanel
+            capability={getCapability(workspace, "system")}
+            icon={<Database size={20} aria-hidden />}
+            title="System status unavailable"
+          />
+        )
+      ) : null}
+    </ProductShell>
+  );
+}
+
+export function AdminWalletsRoute() {
+  const route = useAdminSession();
+  const workspace = useMemo(
+    () => (route.session ? buildPlatformAdminWorkspace(route.session) : emptyWorkspace),
+    [route.session],
+  );
+  const allowed = route.session ? hasPlatformAdminAccess(route.session) : false;
+  const canView = hasAnyPlatformPermission(workspace, ["MANAGE_WALLETS", "VIEW_TRANSACTIONS", "VIEW_SENSITIVE_TRANSACTIONS"]);
+  const canExport = hasPlatformPermission(workspace, "EXPORT_DATA");
+
+  const [summary, setSummary] = useState<PlatformReportSummary | null>(null);
+  const [summaryState, setSummaryState] = useState<SectionState>("idle");
+  const [summaryError, setSummaryError] = useState<RouteError | null>(null);
+
+  const [csvState, setCsvState] = useState<CsvState>("idle");
+  const [csvError, setCsvError] = useState<RouteError | null>(null);
+
+  const loadSummary = useCallback(async () => {
+    const token = route.token;
+    if (!route.session || !token || !allowed || !canView) return;
+    setSummaryState("loading");
+    setSummaryError(null);
+    try {
+      const next = await fetchPlatformSummary({ token });
+      setSummary(next);
+      setSummaryState("success");
+    } catch (err) {
+      setSummary(null);
+      setSummaryError(normalizeRouteError(err, "Platform summary could not be loaded."));
+      setSummaryState("error");
+    }
+  }, [allowed, canView, route.session, route.token]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadSummary(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadSummary]);
+
+  const handleDownload = async () => {
+    const token = route.token;
+    if (!token || !canExport) return;
+    setCsvState("downloading");
+    setCsvError(null);
+    try {
+      const csv = await downloadPlatformCsv({ report: "wallet_credits", token });
+      startCsvDownload(csv);
+      setCsvState("success");
+      window.setTimeout(() => setCsvState("idle"), 3000);
+    } catch (error) {
+      setCsvError(normalizeRouteError(error, "Wallet credits CSV could not be downloaded."));
+      setCsvState("error");
+    }
+  };
+
+  return (
+    <ProductShell
+      activeNav="admin"
+      breadcrumbs={[
+        { label: "Admin", href: "/admin" },
+        { label: "Wallets" },
+      ]}
+      description="Platform wallet summary and transaction audit."
+      eyebrow="Platform admin"
+      isSignedIn={route.hasToken}
+      onSignOut={route.signOut}
+      session={route.session}
+      statusItems={
+        <>
+          <StatusPill label={route.loadState === "loading" ? "Resolving session" : canView ? "Wallet access" : "Wallet gated"} />
+          <StatusPill label={summary ? `${summary.total_wallets} wallets` : "Loading"} />
+        </>
+      }
+      title="Wallet audit"
+    >
+      {route.loadState === "idle" && !route.session ? <SignedOutState /> : null}
+      {route.loadState === "loading" ? <LoadingState /> : null}
+      {route.error ? <SessionErrorState error={route.error} /> : null}
+      {route.session && !allowed ? <AdminDeniedState workspace={workspace} /> : null}
+
+      {route.session && allowed ? (
+        canView ? (
+          <div className={styles.stack}>
+            {summaryState === "loading" || summaryState === "idle" ? <PanelLoading title="Loading wallet summary" /> : null}
+            {summaryState === "error" ? <PanelError error={summaryError} onRetry={loadSummary} title="Wallet summary failed" /> : null}
+            {summaryState === "success" && summary ? (
+              <section className={styles.summaryGrid} aria-label="Wallet summary">
+                <SummaryCard icon={<WalletCards size={20} aria-hidden />} label="Total wallets" value={summary.total_wallets} />
+              </section>
+            ) : null}
+            <section className={styles.panel}>
+              <div className={styles.panelHeader}>
+                <Download size={20} aria-hidden />
+                <div>
+                  <h2>Wallet credits CSV</h2>
+                  <p>Download wallet credit rows linked to internal transactions and notifications.</p>
+                </div>
+              </div>
+              {csvError ? (
+                <div className={styles.inlineError} role="alert">
+                  <AlertTriangle size={16} aria-hidden />
+                  <span>{csvError.message}</span>
+                </div>
+              ) : null}
+              <button
+                className={styles.secondaryButton}
+                disabled={csvState === "downloading" || !canExport}
+                onClick={handleDownload}
+                type="button"
+              >
+                {csvState === "downloading" ? <Loader2 className={styles.spin} size={16} aria-hidden /> : <Download size={16} aria-hidden />}
+                Download wallet credits CSV
+              </button>
+              {!canExport ? <p className={styles.muted}>CSV download requires the EXPORT_DATA permission.</p> : null}
+            </section>
+          </div>
+        ) : (
+          <GatedPanel
+            capability={getCapability(workspace, "wallets")}
+            icon={<WalletCards size={20} aria-hidden />}
+            title="Wallet audit unavailable"
+          />
+        )
+      ) : null}
+    </ProductShell>
+  );
+}
+
 function FraudBlockDetail({
   block,
   auditError,
