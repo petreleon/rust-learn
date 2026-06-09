@@ -140,6 +140,17 @@ export default function TeacherApplicationPage() {
     window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
   }, [draft, draftReady]);
 
+  const application = snapshot.application;
+  const canSubmitApplication = Boolean(session?.platform.effective_permissions.includes(submitPermission));
+  const formVisible = Boolean(!application || (application.status === "rejected" && showRejectedForm));
+  const workspaceSummary = useMemo(() => summarizeWorkspace(session), [session]);
+  const selectedOrganization = session?.organizations.find(
+    (organization) => String(organization.id) === draft.requestedOrganizationId,
+  );
+  const selectedCourse = session?.courses.find((course) => String(course.id) === draft.requestedCourseId);
+  const statusConfig = applicationStatusConfig(application);
+  const notice = routeNotice(error, submitError);
+
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       const isDirty =
@@ -157,17 +168,6 @@ export default function TeacherApplicationPage() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [draft, formVisible, submitState]);
-
-  const application = snapshot.application;
-  const canSubmitApplication = Boolean(session?.platform.effective_permissions.includes(submitPermission));
-  const formVisible = Boolean(!application || (application.status === "rejected" && showRejectedForm));
-  const workspaceSummary = useMemo(() => summarizeWorkspace(session), [session]);
-  const selectedOrganization = session?.organizations.find(
-    (organization) => String(organization.id) === draft.requestedOrganizationId,
-  );
-  const selectedCourse = session?.courses.find((course) => String(course.id) === draft.requestedCourseId);
-  const statusConfig = applicationStatusConfig(application);
-  const notice = routeNotice(error, submitError);
 
   function signOut() {
     const isDirty =
