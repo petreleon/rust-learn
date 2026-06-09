@@ -20,9 +20,9 @@ routes are verified.
 ## Migration Tasks
 
 - [x] Move the current single-page workflow console into `/ops`.
-- [ ] Keep `/ops` behind authentication and permission checks appropriate for
+- [x] Keep `/ops` behind authentication and permission checks appropriate for
       internal operators.
-- [ ] Preserve the API root control only where it is still useful for local
+- [x] Preserve the API root control only where it is still useful for local
       debugging.
 - [x] Remove manual permission toggles from product routes; keep them only in
       `/ops` if they remain valuable as a test harness.
@@ -41,43 +41,43 @@ Do not demote a console control until its product equivalent is verified.
       account routes.
 - [x] Permission checklist replaced by resolved permission state and
       permission-aware navigation.
-- [ ] Teacher application controls replaced by learner/teacher application and
+- [x] Teacher application controls replaced by learner/teacher application and
       platform review routes.
-- [ ] Reward candidate controls replaced by teacher course reward review and
+- [x] Reward candidate controls replaced by teacher course reward review and
       platform amount review routes.
-- [ ] Student reward history control replaced by learner reward history route.
-- [ ] Organization report controls replaced by organization reports route.
-- [ ] Fraud block controls replaced by platform fraud route.
-- [ ] Delegation controls replaced by platform delegation route.
-- [ ] CSV export controls replaced by organization/platform export routes.
-- [ ] Result panel replaced by route-local status, toast, audit, and error
+- [x] Student reward history control replaced by learner reward history route.
+- [x] Organization report controls replaced by organization reports route.
+- [x] Fraud block controls replaced by platform fraud route.
+- [x] Delegation controls replaced by platform delegation route.
+- [x] CSV export controls replaced by organization/platform export routes.
+- [x] Result panel replaced by route-local status, toast, audit, and error
       states.
 
 ## Runtime And Test Updates
 
-- [ ] Update Docker Compose runtime smoke checks to load product routes and
+- [x] Update Docker Compose runtime smoke checks to load product routes and
       call real API endpoints through the web proxy.
-- [ ] Update Kubernetes runtime smoke checks to load product routes and verify
+- [x] Update Kubernetes runtime smoke checks to load product routes and verify
       web-to-API readiness from the deployed web pod.
-- [ ] Keep a separate `/ops` smoke check only if the console remains operational
+- [x] Keep a separate `/ops` smoke check only if the console remains operational
       infrastructure.
-- [ ] Add regression tests proving product routes do not expose `/ops` controls
+- [x] Add regression tests proving product routes do not expose `/ops` controls
       to normal learners.
-- [ ] Add regression tests proving `/ops` does not become the default route for
+- [x] Add regression tests proving `/ops` does not become the default route for
       authenticated product users.
 - [x] Scan recent app, web, and worker logs after the route migration.
 
 ## Edge Cases
 
-- [ ] Existing bookmarks to `/` during migration.
-- [ ] Existing bookmarks to `/#teacher-workflow`, `/#reward-workflow`, or
+- [x] Existing bookmarks to `/` during migration.
+- [x] Existing bookmarks to `/#teacher-workflow`, `/#reward-workflow`, or
       other console anchors.
-- [ ] Product user without `/ops` permission tries to open `/ops`.
-- [ ] Operator opens `/ops` on mobile for emergency debugging.
+- [x] Product user without `/ops` permission tries to open `/ops`.
+- [x] Operator opens `/ops` on mobile for emergency debugging.
 - [x] API root differs between local dev, Docker Compose, and Kubernetes.
-- [ ] `/ops` action fails with text error while product routes use normalized
+- [x] `/ops` action fails with text error while product routes use normalized
       helper responses.
-- [ ] Console result state becomes stale after product routes mutate the same
+- [x] Console result state becomes stale after product routes mutate the same
       backend data.
 
 ## Acceptance Evidence
