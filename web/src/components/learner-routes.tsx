@@ -21,7 +21,7 @@ import {
   fetchCourseDetail,
   fetchCourseLearning,
   fetchLearnerDashboard,
-  fetchMyWallet,
+  fetchLearnerWallet,
   fetchRewardHistory,
   LearnerRequestError,
   linkMyWallet,
@@ -206,9 +206,9 @@ export function LearnerProductRoute({ kind }: { kind: LearnerProductRouteKind })
               token,
             })
           : Promise.resolve(null);
-      const walletPromise = kind === "wallet" ? fetchMyWallet({ token }) : Promise.resolve(null);
+      const walletPromise = kind === "wallet" ? fetchLearnerWallet({ token }) : Promise.resolve(null);
 
-      const [nextSession, nextRewards, nextCatalog, nextWallet] = await Promise.all([
+      const [nextSession, nextRewards, nextCatalog, nextWalletSnapshot] = await Promise.all([
         sessionPromise,
         rewardsPromise,
         catalogPromise,
@@ -216,9 +216,9 @@ export function LearnerProductRoute({ kind }: { kind: LearnerProductRouteKind })
       ]);
 
       setSession(nextSession);
-      setRewards(nextRewards);
+      setRewards(kind === "wallet" ? nextWalletSnapshot?.reward_history || [] : nextRewards);
       setCatalog(nextCatalog);
-      setWallet(nextWallet);
+      setWallet(nextWalletSnapshot?.wallet || null);
       setLoadState("success");
     } catch (nextError) {
       const requestError = normalizeRouteError(nextError);
@@ -386,6 +386,7 @@ export function LearnerProductRoute({ kind }: { kind: LearnerProductRouteKind })
           linking={walletLinking}
           onLinkWallet={linkWallet}
           onRefresh={loadRoute}
+          rewards={rewards}
           wallet={wallet}
         />
       ) : null}
@@ -1372,60 +1373,120 @@ function WalletContent({
   linking,
   onLinkWallet,
   onRefresh,
+  rewards,
   wallet,
 }: {
   linking: boolean;
   onLinkWallet: () => void;
   onRefresh: () => void;
+  rewards: RewardHistoryEntry[];
   wallet: WalletSummary | null;
 }) {
+  const summary = useMemo(() => summarizeRewards(rewards), [rewards]);
+  const pendingCreditCount = rewards.filter(isWalletCreditPending).length;
+  const walletScope = wallet?.organization_id ? "Organization wallet" : "Personal wallet";
+
+  const metricsSection = (
+    <section className={`${styles.dashboardGrid} ${styles.walletGrid}`}>
+      <SummaryCard icon={<CreditCard size={20} aria-hidden />} label="Wallet state" value={wallet ? "Linked" : "Unlinked"} />
+      <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Available value" value={wallet?.value || "0"} />
+      <SummaryCard icon={<CheckCircle size={20} aria-hidden />} label="Wallet credits" value={summary.credited} />
+      <SummaryCard icon={<AlertTriangle size={20} aria-hidden />} label="Pending credits" value={pendingCreditCount} />
+    </section>
+  );
+
+  const walletSummarySection = (
+    <section className={styles.section}>
+      <div className={styles.sectionHeader}>
+        <h2>Wallet summary</h2>
+        <button className={styles.iconAction} aria-label="Refresh wallet" type="button" onClick={onRefresh}>
+          <RefreshCw size={18} aria-hidden />
+        </button>
+      </div>
+      {wallet ? (
+        <article className={styles.itemCard}>
+          <div className={styles.itemHeader}>
+            <h3>{walletScope}</h3>
+            <StatusPill label="Ready for credits" tone="good" />
+          </div>
+          <p className={styles.muted}>Approved rewards can be credited here. Deposits and retirements are not available in this UI yet.</p>
+          <strong className={styles.walletValue}>{wallet.value}</strong>
+          <div className={styles.metaRow}>
+            <span>{wallet.owner_type}</span>
+            <span>{walletScope}</span>
+            <span>{summary.needsHelp ? "Needs review" : "No wallet issues shown"}</span>
+          </div>
+          <div className={styles.actionRow}>
+            <Link className={styles.secondaryLink} href="/rewards">
+              View rewards
+            </Link>
+          </div>
+        </article>
+      ) : (
+        <EmptyState
+          action={
+            <button className={styles.primaryLink} disabled={linking} onClick={onLinkWallet} type="button">
+              {linking ? <Loader2 className={styles.spin} size={18} aria-hidden /> : <CreditCard size={18} aria-hidden />}
+              Link wallet
+            </button>
+          }
+          detail="A RustLearn wallet is required before approved rewards can be credited."
+          title="Wallet not linked"
+        />
+      )}
+    </section>
+  );
+
   return (
     <>
-      <section className={styles.contentGrid}>
-        <SummaryCard icon={<CreditCard size={20} aria-hidden />} label="Wallet state" value={wallet ? "Linked" : "Unlinked"} />
-        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Available value" value={wallet?.value || "0"} />
-        <SummaryCard icon={<BookOpen size={20} aria-hidden />} label="Owner" value={wallet?.owner_type || "User"} />
-      </section>
+      {wallet ? metricsSection : walletSummarySection}
+      {wallet ? walletSummarySection : metricsSection}
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
-          <h2>Wallet summary</h2>
-          <button className={styles.iconAction} aria-label="Refresh wallet" type="button" onClick={onRefresh}>
-            <RefreshCw size={18} aria-hidden />
-          </button>
+          <h2>Reward credit history</h2>
+          <StatusPill label={`${rewards.length} recent`} tone={rewards.length ? "good" : "neutral"} />
         </div>
-        {wallet ? (
-          <article className={styles.itemCard}>
-            <div className={styles.itemHeader}>
-              <h3>Wallet #{wallet.id}</h3>
-              <StatusPill label={wallet.owner_type} tone="good" />
-            </div>
-            <p className={styles.muted}>Available value</p>
-            <strong className={styles.walletValue}>{wallet.value}</strong>
-            <div className={styles.metaRow}>
-              <span>{wallet.user_id ? `User ${wallet.user_id}` : "No user owner"}</span>
-              <span>{wallet.organization_id ? `Organization ${wallet.organization_id}` : "Personal wallet"}</span>
-            </div>
-            <div className={styles.actionRow}>
-              <Link className={styles.secondaryLink} href="/rewards">
-                View rewards
-              </Link>
-            </div>
-          </article>
+        {rewards.length ? (
+          <div className={styles.itemGrid}>
+            {rewards.slice(0, 6).map((reward) => (
+              <WalletActivityCard key={reward.reward_candidate_id} reward={reward} />
+            ))}
+          </div>
         ) : (
           <EmptyState
-            action={
-              <button className={styles.primaryLink} disabled={linking} onClick={onLinkWallet} type="button">
-                {linking ? <Loader2 className={styles.spin} size={18} aria-hidden /> : <CreditCard size={18} aria-hidden />}
-                Link wallet
-              </button>
-            }
-            detail="A RustLearn wallet is required before approved rewards can be credited."
-            title="Wallet not linked"
+            actionHref="/courses"
+            actionLabel="Open courses"
+            detail="Reward credits appear after eligible course activity is reviewed and credited."
+            title="No wallet activity yet"
           />
         )}
       </section>
     </>
+  );
+}
+
+function WalletActivityCard({ reward }: { reward: RewardHistoryEntry }) {
+  return (
+    <article className={styles.itemCard}>
+      <div className={styles.itemHeader}>
+        <h3>{reward.course_title}</h3>
+        <StatusPill label={reward.wallet_credit ? "Wallet credited" : humanRewardStatus(reward.status)} tone={rewardTone(reward.status)} />
+      </div>
+      <p className={styles.muted}>{rewardNextStep(reward)}</p>
+      <div className={styles.metaRow}>
+        <span>{humanize(reward.event_type)}</span>
+        <span>{reward.approved_amount ? `${reward.approved_amount} approved` : "Amount pending"}</span>
+        <span>{reward.wallet_credit ? `Credited ${reward.wallet_credit.amount}` : "Wallet pending"}</span>
+      </div>
+      <div className={styles.detailList}>
+        <span>Updated {formatDate(reward.updated_at)}</span>
+        {reward.wallet_credit ? <span>Credited {formatDate(reward.wallet_credit.credited_at)}</span> : null}
+        {reward.token_transaction?.transaction_hash ? (
+          <span>Token tx {reward.token_transaction.transaction_hash.slice(0, 12)}</span>
+        ) : null}
+      </div>
+    </article>
   );
 }
 
@@ -1601,6 +1662,10 @@ function summarizeRewards(rewards: RewardHistoryEntry[]) {
       processing: 0,
     },
   );
+}
+
+function isWalletCreditPending(reward: RewardHistoryEntry) {
+  return !reward.wallet_credit && reward.status !== "failed" && reward.status !== "needs_reconciliation" && !reward.status.endsWith("_rejected");
 }
 
 function courseOrganizationLabel(course: CourseCatalogItem) {
@@ -1785,11 +1850,15 @@ function rewardNextStep(reward: RewardHistoryEntry) {
 }
 
 function humanRewardStatus(status: string) {
-  return humanize(status);
+  return sentenceCase(humanize(status));
 }
 
 function humanize(value: string) {
   return value.replaceAll("_", " ");
+}
+
+function sentenceCase(value: string) {
+  return value ? `${value[0].toUpperCase()}${value.slice(1)}` : value;
 }
 
 function formatDate(value: string) {

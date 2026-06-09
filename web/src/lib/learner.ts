@@ -78,6 +78,11 @@ export type LearnerDashboardSnapshot = {
   wallet: WalletSummary | null;
 };
 
+export type LearnerWalletSnapshot = {
+  reward_history: RewardHistoryEntry[];
+  wallet: WalletSummary | null;
+};
+
 export type CourseLearningResponse = {
   active_content_id: number | null;
   chapters: CourseLearningChapter[];
@@ -219,6 +224,7 @@ const DEFAULT_REWARD_HISTORY_LIMIT = 25;
 const DEFAULT_DASHBOARD_COURSE_LIMIT = 6;
 const DEFAULT_DASHBOARD_RECOMMENDED_LIMIT = 3;
 const DEFAULT_DASHBOARD_REWARD_LIMIT = 6;
+const DEFAULT_WALLET_REWARD_LIMIT = 12;
 
 export async function fetchLearnerDashboard({
   apiRoot = "/api",
@@ -256,6 +262,31 @@ export async function fetchLearnerDashboard({
   return {
     enrolled_catalog: enrolledCatalog,
     recommended_catalog: recommendedCatalog,
+    reward_history: rewardHistory,
+    wallet,
+  };
+}
+
+export async function fetchLearnerWallet({
+  apiRoot = "/api",
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: LearnerRequestOptions): Promise<LearnerWalletSnapshot> {
+  const [wallet, rewardHistory] = await Promise.all([
+    fetchMyWallet({
+      apiRoot,
+      timeoutMs,
+      token,
+    }),
+    fetchRewardHistory({
+      apiRoot,
+      limit: DEFAULT_WALLET_REWARD_LIMIT,
+      timeoutMs,
+      token,
+    }),
+  ]);
+
+  return {
     reward_history: rewardHistory,
     wallet,
   };

@@ -76,6 +76,10 @@
   gap: 16px;
 }
 
+.walletGrid {
+  align-items: stretch;
+}
+
 .itemGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -454,6 +458,16 @@
   .skeletonGrid {
     grid-template-columns: 1fr;
   }
+
+  .walletGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .walletGrid .summaryCard {
+    min-height: 118px;
+    padding: 14px;
+  }
 }
 
 @media (max-width: 1040px) and (min-width: 861px) {
@@ -477,5 +491,11 @@
   .sectionHeader {
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 360px) {
+  .walletGrid {
+    grid-template-columns: 1fr;
   }
 }

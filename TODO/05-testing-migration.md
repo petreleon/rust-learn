@@ -24,6 +24,10 @@
   - [x] Browser plus mocked Playwright QA covers `/learn` authenticated
         dashboard, refresh interaction, mobile no-overflow first viewport,
         first-run empty state, and signed-out state.
+  - [x] Browser plus mocked Playwright QA covers `/wallet` signed-out mobile
+        state, linked desktop wallet credit history, unlinked mobile first
+        viewport with link-wallet action visible, link-wallet success, and
+        no horizontal overflow.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
@@ -43,6 +47,8 @@
   - [x] Frontend helper tests cover learner dashboard aggregation across
         enrolled catalog, recommended catalog, recent rewards, and unlinked
         wallet `404`.
+  - [x] Frontend helper tests cover learner wallet aggregation across
+        `GET /api/wallets/me` and recent reward credit history.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.

@@ -78,7 +78,13 @@
 - [ ] Build wallet linking/deposit/retirement screens that make MetaMask and
       platform-wallet requirements understandable.
   - [x] Add wallet summary and self-linking route for linked/unlinked wallet
-        states. Deposits, retirements, and audit/history remain open.
+        states.
+  - [x] `/wallet` now combines self-wallet state with recent learner reward
+        history so learners can see wallet credits, active pending credits,
+        token-confirmed rewards waiting for credit, and failed/help-needed
+        rows without raw internal wallet or user ids.
+  - [ ] Real deposits, retirements, MetaMask handoff, and full wallet
+        transaction audit remain open until those contracts exist.
 
 ## Teacher Experience
 

@@ -56,6 +56,10 @@ progress, inspect rewards, and understand wallet state.
   - [x] Frontend helper and `/wallet` route handle the existing linked,
         unlinked, and link-wallet response states without raw ids or pasted
         tokens.
+  - [x] `/wallet` now aggregates the existing self-wallet and reward-history
+        contracts so learners can inspect recent wallet credits, active pending
+        credits, token-confirmed rewards waiting for credit, and failed/help
+        rows without a new wallet-audit endpoint.
 
 ## Routes And Screens
 
@@ -89,6 +93,9 @@ progress, inspect rewards, and understand wallet state.
   - [x] `/wallet` product route exists with wallet summary, unlinked empty
         state, link action, refresh action, success notice, and action-error
         notice.
+  - [x] `/wallet` shows recent reward credit history, prioritizes the link
+        action before metrics for unlinked mobile learners, and keeps deposits
+        and retirements explicitly unavailable instead of pretending they work.
 - [ ] `/settings/account` learner profile and notification preferences.
 
 ## Learner Dashboard
@@ -110,6 +117,9 @@ progress, inspect rewards, and understand wallet state.
       retry, contact support, or view audit.
   - [x] `/wallet` shows linked/unlinked states, link action, retryable refresh,
         and action-specific success/error notices.
+  - [x] `/wallet` shows wallet credit history with plain next-step copy for
+        credited, token-confirmed, pending-review, reconciliation-needed, and
+        failed reward rows.
 - [x] `/learn` shows linked/unlinked wallet readiness and links to the wallet
       route for the next action.
 - [x] Show useful first-run empty state with course discovery call to action.
@@ -167,6 +177,9 @@ progress, inspect rewards, and understand wallet state.
 - [ ] Token transaction exists but wallet credit is missing.
   - [x] `/rewards` separates token transaction visibility from wallet-credit
         visibility.
+  - [x] `/wallet` includes token-confirmed rewards without wallet credit in the
+        credit-history list and counts only still-active non-rejected,
+        non-failed rows as pending credits.
 - [ ] Reconciliation repairs state while learner is on the page.
   - [x] `/rewards` exposes `needs_reconciliation` as a help-needed status.
 - [ ] A learner has rewards from courses they can no longer access.
@@ -190,6 +203,9 @@ progress, inspect rewards, and understand wallet state.
   - [x] Browser/Playwright screenshots captured for `/learn` authenticated
         dashboard, mobile first viewport, empty first-run state, and signed-out
         state.
+  - [x] Browser/Playwright screenshots captured for `/wallet` signed-out
+        mobile state, linked desktop credit history, unlinked mobile first
+        viewport with link action visible, and link-wallet success state.
 - [ ] Tests for empty learner, enrolled learner, unverified learner, denied
       course access, and reward status transitions.
   - [x] API-helper tests cover learner reward-history success/filtering, wallet
@@ -206,6 +222,8 @@ progress, inspect rewards, and understand wallet state.
   - [x] API-helper tests cover the `/learn` dashboard aggregate across
         enrolled catalog, recommended catalog, recent rewards, and unlinked
         wallet `404`.
+  - [x] API-helper tests cover the `/wallet` aggregate across self-wallet
+        summary and recent reward credit history.
 - [ ] Docker Compose E2E path: login/register, open learner dashboard, open
       course detail, inspect rewards, inspect wallet, scan recent logs.
 - [ ] Kubernetes smoke path loads `/learn`, `/courses`, and `/rewards` product
@@ -233,15 +251,18 @@ States: signed out, loading, success, empty, catalog filters, pending
 enrollment, dashboard continue-learning, dashboard first-run empty, request-join
 success, course not found, lesson ready, uploaded media, processing media,
 failed processing, unavailable content, content permission denied, unlinked
-wallet, link success, text/JSON error, timeout/network, session expired.
+wallet, wallet credit history, token-confirmed reward without wallet credit,
+link success, text/JSON error, timeout/network, session expired.
 Edge cases: unscoped draft hidden from learner catalog, own draft visible by
 course role, course-detail `404` keeps signed-in shell, unlinked wallet, wallet
 link retry, token transaction without wallet credit, reconciliation-needed
 rewards, learner lesson `403` keeps signed-in shell, dashboard does not pretend
 persisted progress exists.
-Rendered proof: in-app Browser signed-out smoke; standalone Playwright
-mocked authenticated desktop/mobile checks because Browser lacks interception.
-API-helper proof: `npm run test:api-helpers`.
+Rendered proof: in-app Browser signed-out smoke; standalone Playwright mocked
+wallet signed-out mobile, linked desktop credit history, unlinked mobile first
+viewport/link action, and link success checks because Browser lacks reliable
+API interception for these states.
+API-helper proof: `npm run test:api-helpers` including `fetchLearnerWallet`.
 Rust proof: `./scripts/run-host-tests.sh cargo test --test course_discovery`.
 Compose proof: deferred until this learner slice is deployed into Compose.
 Kubernetes proof: deferred until this learner slice is deployed into the

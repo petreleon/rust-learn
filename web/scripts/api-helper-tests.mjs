@@ -457,6 +457,51 @@ test("fetchMyWallet returns null for unlinked wallet and parses linked wallet", 
   assert.equal(wallet.value, "42");
 });
 
+test("fetchLearnerWallet aggregates wallet summary and reward credit history", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(init.headers.Authorization, "Bearer learner-token");
+    if (url === "/api/wallets/me") {
+      return jsonResponse({
+        id: 3,
+        organization_id: null,
+        owner_type: "user",
+        user_id: 1,
+        value: "42",
+      });
+    }
+    if (url === "/api/reward-candidates/me/history?limit=12") {
+      return jsonResponse([
+        {
+          approved_amount: "12",
+          course_id: 7,
+          course_title: "Rust Ownership",
+          created_at: "2026-01-01T10:00:00Z",
+          event_type: "course_completion",
+          reward_candidate_id: 201,
+          status: "wallet_credited",
+          token_transaction: null,
+          updated_at: "2026-01-02T10:00:00Z",
+          wallet_credit: {
+            amount: "12",
+            credited_at: "2026-01-02T10:10:00Z",
+            internal_transaction_id: 8,
+            reward_wallet_credit_record_id: 6,
+            transaction_id: 7,
+            wallet_id: 3,
+          },
+        },
+      ]);
+    }
+    throw new Error(`Unexpected URL ${url}`);
+  });
+
+  const snapshot = await learner.fetchLearnerWallet({ token: "learner-token" });
+
+  assert.equal(calls.length, 2);
+  assert.equal(snapshot.wallet.value, "42");
+  assert.equal(snapshot.reward_history[0].wallet_credit.amount, "12");
+});
+
 test("linkMyWallet parses created response and learner text errors", async () => {
   const calls = mockFetch((url, init) => {
     assert.equal(url, "/api/wallets/me/link");

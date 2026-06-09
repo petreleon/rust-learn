@@ -48,9 +48,13 @@ Authored course descriptions, topics, and prerequisites remain empty until the
 backend course schema stores them. `/rewards` loads
 `GET /api/reward-candidates/me/history`, supports human status filters, and
 separates teacher review, amount approval, token processing, wallet credit,
-reconciliation, and failed states. `/wallet` loads `GET /api/wallets/me`,
-treats `404 Wallet not linked` as an empty state, and uses
-`POST /api/wallets/me/link` for the self-service link action.
+reconciliation, and failed states. `/wallet` loads `GET /api/wallets/me` plus
+recent `GET /api/reward-candidates/me/history` rows, treats
+`404 Wallet not linked` as an empty state, puts the link action before metrics
+for unlinked mobile learners, shows wallet-credit history without raw internal
+wallet/user ids, and uses `POST /api/wallets/me/link` for the self-service link
+action. Deposits and retirements stay explicitly unavailable in this UI until
+their product contracts exist.
 
 The shared product shell includes global status notices for session expiry and
 retryable workspace failures. Its account and mobile menus show delegated
