@@ -64,6 +64,12 @@ work complete.
       failure fixture intentionally produced `500` resource console evidence.
       BrowserMCP was unavailable (`Transport closed`), so Playwright supplied
       screenshots and interaction proof.
+- [x] `/admin` rendered QA covers full platform admin desktop dashboard,
+      platform-report-only partial permission gating, non-admin denied state,
+      reward-dashboard backend `500` retry state, CSV download/status, and
+      mobile first viewport/no-overflow at 390px. Full, partial, denied,
+      backend-failure, CSV, and mobile flows had no relevant console errors;
+      the in-app Browser supplied the interaction proof and mobile screenshot.
 
 ## API Helper Contract Checks
 

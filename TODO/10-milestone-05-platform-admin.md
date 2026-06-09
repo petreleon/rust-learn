@@ -18,22 +18,27 @@ reconciliation, and system health.
 
 ## Backend Contracts
 
-- [ ] Platform dashboard summary with pending teacher applications, reward
+- [x] Platform dashboard summary with pending teacher applications, reward
       amount reviews, payout failures, active fraud blocks, reconciliation
       mismatches, exports, and system health.
+      The `/admin` dashboard aggregates `GET /api/reports/platform/summary`,
+      `GET /api/reports/platform/reward-dashboard`,
+      `GET /api/reports/platform/fraud-dashboard`, `/health`, and `/ready`
+      instead of inventing frontend-only metrics.
 - [ ] Teacher application queue with filters, detail, audit, and decisions.
 - [ ] Reward amount review queue with teacher-approved candidates only.
 - [ ] Fraud block list, create, audit, revoke, expiration, and scoped target
       search.
 - [ ] Delegated permission list, grant, revoke, expiration, scope, and usage
       audit.
-- [ ] Export endpoints with CSV response handling and status/failure behavior.
+- [x] Export endpoints with CSV response handling and status/failure behavior.
 - [ ] Wallet reconciliation and transaction audit endpoints.
-- [ ] Health/readiness and runtime status endpoints suitable for admin display.
+- [x] Health/readiness and runtime status endpoints suitable for admin display.
+      The web proxy now forwards `/ready` as well as `/health`.
 
 ## Routes And Screens
 
-- [ ] `/admin` platform admin dashboard.
+- [x] `/admin` platform admin dashboard.
 - [ ] `/admin/teacher-applications` review queue.
 - [ ] `/admin/teacher-applications/[applicationId]` detail, decision, and
       audit.
@@ -91,7 +96,10 @@ reconciliation, and system health.
       reward records, missing credits, missing notifications, and repair state.
 - [ ] System health distinguishes API liveness, readiness, database, storage,
       Ethereum RPC, worker heartbeat, and web health.
-- [ ] Admin screens avoid leaking secrets, raw private keys, or sensitive
+  - [x] `/admin` distinguishes API liveness from `/ready` dependency
+        readiness for PostgreSQL, S3 storage, and Ethereum RPC. Worker
+        heartbeat and web health remain separate system-route work.
+- [x] Admin screens avoid leaking secrets, raw private keys, or sensitive
       environment values.
 
 ## Platform Admin Edge Cases
@@ -104,16 +112,25 @@ reconciliation, and system health.
 - [ ] Fraud block target is already blocked or revoked.
 - [ ] Export is large, empty, denied, slow, or fails after request starts.
 - [ ] Wallet reconciliation can repair one side effect but not another.
-- [ ] Health endpoint is live while readiness dependency is down.
+- [x] Health endpoint is live while readiness dependency is down.
+      API-helper coverage parses `/ready` `503 not_ready` as displayable
+      readiness state instead of a generic dashboard crash.
 
 ## Acceptance Evidence
 
 - [ ] Desktop and mobile checks for admin dashboard, teacher review, reward
       amount review, fraud blocks, delegations, exports, wallets, and system.
+  - [x] `/admin` dashboard rendered QA covers full admin desktop, partial
+        platform-report-only admin, non-admin denied state, reward-dashboard
+        backend `500` retry, CSV download status, and mobile first
+        viewport/no-overflow at 390px with no relevant console warnings.
 - [ ] Tests for split platform permissions, conflict decisions, fraud-blocked
       rewards, expired delegation, failed CSV, and readiness dependency down.
+  - [x] Admin API-helper tests cover platform capability mapping, dashboard
+        JSON success, CSV filename handling, plain-text `403`, JSON `404`,
+        backend `5xx`, timeout, network failure, missing token, and `/ready`
+        dependency-down `503`.
 - [ ] Docker Compose E2E path: admin dashboard, teacher review or reward amount
       decision, report/export, log scan.
 - [ ] Kubernetes smoke path loads `/admin`, verifies in-cluster API readiness
       behavior, and scans recent app/web/worker logs.
-

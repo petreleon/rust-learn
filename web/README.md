@@ -29,6 +29,20 @@ from effective permissions instead of role labels, and show contextual denied
 states when the current user lacks the required learner, teacher, organization,
 or platform access signal.
 
+`/admin` is the platform operator dashboard. It loads
+`GET /api/reports/platform/summary`,
+`GET /api/reports/platform/reward-dashboard`,
+`GET /api/reports/platform/fraud-dashboard`, `/health`, and `/ready` to show
+platform totals, submitted teacher applications, teacher-approved candidates
+waiting for platform amount review, payout failures, reconciliation
+mismatches, active fraud blocks, CSV exports, and dependency readiness.
+Sections are gated by resolved platform permissions such as `VIEW_REPORT`,
+`VIEW_REWARD_AUDIT`, `APPROVE_REWARD_AMOUNT`, `MANAGE_REWARD_FRAUD_BLOCKS`,
+and `EXPORT_DATA`; non-admin sessions get an in-context denied state instead
+of dashboard data. Teacher-application detail, amount-review decisions,
+fraud-block create/revoke, delegation management, and wallet reconciliation
+remain separate route work.
+
 Organization product routes now include `/organizations`,
 `/organizations/[organizationId]`, and
 `/organizations/[organizationId]/members`, and
@@ -188,8 +202,9 @@ npm run dev
 Open <http://localhost:3000>. The product entry redirects anonymous users to
 `/login`; open <http://localhost:3000/ops> for the internal workflow console.
 The app uses `/api` in the browser by default.
-Next proxies `/api/*` to `${API_URL}/api/*` and `/health` to `${API_URL}/health`.
-When `API_URL` is not set, it defaults to `http://127.0.0.1:8080`.
+Next proxies `/api/*` to `${API_URL}/api/*`, `/health` to `${API_URL}/health`,
+and `/ready` to `${API_URL}/ready`. When `API_URL` is not set, it defaults to
+`http://127.0.0.1:8080`.
 The web process exposes `GET /healthz` for container and Kubernetes probes so
 health checks do not render the full dashboard.
 

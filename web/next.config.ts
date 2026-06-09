@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
         destination: `${apiUrl}/health`,
       },
       {
+        source: "/ready",
+        destination: `${apiUrl}/ready`,
+      },
+      {
         source: "/api/:path*",
         destination: `${apiUrl}/api/:path*`,
       },

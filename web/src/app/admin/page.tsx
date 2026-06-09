@@ -1,5 +1,5 @@
-import { WorkspaceRoute } from "@/components/workspace-route";
+import { AdminDashboardRoute } from "@/components/admin-routes";
 
 export default function AdminWorkspacePage() {
-  return <WorkspaceRoute kind="admin" />;
+  return <AdminDashboardRoute />;
 }

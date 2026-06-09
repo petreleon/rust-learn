@@ -97,12 +97,19 @@ process are documented in [docs/operations.md](docs/operations.md).
 
 ### Frontend
 
-The `web/` directory contains a Next.js app that keeps browser API calls on the same origin through `/api` by default. `API_URL` points the Next proxy at the Rust API in container/server contexts; `NEXT_PUBLIC_API_URL` can override the browser root when needed.
+The `web/` directory contains a Next.js app that keeps browser API calls on the
+same origin through `/api` by default. `API_URL` points the Next proxy at the
+Rust API in container/server contexts; `/health` and `/ready` are proxied for
+runtime status surfaces. `NEXT_PUBLIC_API_URL` can override the browser root
+when needed.
 The default `/` route resolves the current product session, sending anonymous
 users to `/login` and users with a stored token to `/session`. The internal
 workflow console for teacher applications, reward decisions, reports, fraud
 blocks, delegations, exports, and local API debugging lives at `/ops` while the
-route-based product frontend replaces it.
+route-based product frontend replaces it. `/admin` is now a platform operator
+dashboard for summary metrics, reward audit, fraud controls, CSV exports, and
+health/readiness status; detail routes for decisions, delegation management,
+and wallet reconciliation remain separate product work.
 
 ## Prerequisites
 

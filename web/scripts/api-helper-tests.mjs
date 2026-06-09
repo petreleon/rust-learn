@@ -14,6 +14,7 @@ const auth = await importTranspiled("src/lib/auth.ts");
 const learner = await importTranspiled("src/lib/learner.ts");
 const organization = await importTranspiled("src/lib/organization.ts");
 const teacher = await importTranspiled("src/lib/teacher.ts");
+const admin = await importTranspiled("src/lib/admin.ts");
 
 test("fetchCurrentSession parses JSON success and sends bearer token", async () => {
   const calls = mockFetch((url, init) => {
@@ -89,6 +90,166 @@ test("fetchCurrentSession normalizes timeout and network failure", async () => {
   await assertRequestError(session.fetchCurrentSession({ token: "network-token" }), {
     code: "network_error",
     errorClass: session.SessionRequestError,
+    status: 0,
+  });
+});
+
+test("buildPlatformAdminWorkspace maps platform capabilities from resolved permissions", () => {
+  const workspace = admin.buildPlatformAdminWorkspace(platformAdminSessionFixture());
+
+  assert.equal(workspace.roles[0], "PLATFORM_ADMIN");
+  assert.equal(workspace.directPermissionCount, 6);
+  assert.equal(workspace.delegatedPermissionCount, 1);
+  assert.equal(workspace.effectivePermissionCount, 7);
+  assert.equal(admin.platformCapabilityEnabled(workspace, "summary"), true);
+  assert.equal(admin.platformCapabilityEnabled(workspace, "reward_amount_review"), true);
+  assert.equal(admin.platformCapabilityEnabled(workspace, "fraud_blocks"), true);
+  assert.equal(admin.platformCapabilityEnabled(workspace, "exports"), true);
+  assert.equal(admin.platformCapabilityEnabled(workspace, "delegations"), true);
+  assert.equal(admin.platformCapabilityEnabled(workspace, "system"), true);
+});
+
+test("platform admin helpers parse dashboard JSON and readiness states", async () => {
+  const calls = mockFetch((url, init) => {
+    if (url.startsWith("/api/")) {
+      assert.equal(init.headers.Authorization, "Bearer admin-token");
+      assert.equal(init.headers.Accept, "application/json, text/plain");
+    }
+
+    if (url === "/api/reports/platform/summary") {
+      return jsonResponse(platformSummaryFixture());
+    }
+    if (url === "/api/reports/platform/reward-dashboard") {
+      return jsonResponse(platformRewardDashboardFixture());
+    }
+    if (url === "/api/reports/platform/fraud-dashboard") {
+      return jsonResponse(platformFraudDashboardFixture());
+    }
+    if (url === "/health") {
+      assert.equal(init.headers.Authorization, undefined);
+      return jsonResponse({ status: "ok" });
+    }
+    if (url === "/ready") {
+      assert.equal(init.headers.Authorization, undefined);
+      return jsonResponse(
+        {
+          checks: [
+            { message: null, name: "postgres", status: "ok" },
+            { message: "s3 timed out", name: "s3", status: "failed" },
+          ],
+          status: "not_ready",
+        },
+        { status: 503 },
+      );
+    }
+    throw new Error(`Unexpected URL ${url}`);
+  });
+
+  const summary = await admin.fetchPlatformSummary({ token: "admin-token" });
+  const rewardDashboard = await admin.fetchPlatformRewardDashboard({ token: "admin-token" });
+  const fraudDashboard = await admin.fetchPlatformFraudDashboard({ token: "admin-token" });
+  const systemStatus = await admin.fetchPlatformSystemStatus();
+
+  assert.equal(calls.length, 5);
+  assert.equal(summary.total_users, 12);
+  assert.equal(rewardDashboard.teacher_applications.submitted, 3);
+  assert.equal(rewardDashboard.pending_amount_approvals[0].reward_candidate_id, 201);
+  assert.equal(fraudDashboard.active_by_scope.organization, 1);
+  assert.equal(systemStatus.liveness.status, "ok");
+  assert.equal(systemStatus.readiness.status, "not_ready");
+  assert.equal(systemStatus.readiness.checks[1].message, "s3 timed out");
+});
+
+test("platform CSV helper parses content disposition filename", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/reports/platform/reward-dashboard.csv");
+    assert.equal(init.headers.Authorization, "Bearer admin-token");
+    assert.equal(init.headers.Accept, "text/csv, text/plain");
+    return textResponse("section,metric,value\nreward_candidates,total,9\n", {
+      headers: {
+        "content-disposition": 'attachment; filename="platform-reward-dashboard.csv"',
+      },
+    });
+  });
+
+  const csv = await admin.downloadPlatformCsv({
+    report: "reward_dashboard",
+    token: "admin-token",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(csv.filename, "platform-reward-dashboard.csv");
+  assert.match(csv.body, /reward_candidates,total,9/);
+});
+
+test("platform admin helpers normalize missing token, denied, missing, server, timeout, and network errors", async () => {
+  await assertRequestError(admin.fetchPlatformSummary({ token: " " }), {
+    code: "missing_token",
+    errorClass: admin.AdminRequestError,
+    status: 401,
+  });
+
+  mockFetch(() => textResponse("User does not have platform report permission", { status: 403 }));
+
+  await assertRequestError(admin.fetchPlatformSummary({ token: "admin-token" }), {
+    code: "permission_denied",
+    errorClass: admin.AdminRequestError,
+    status: 403,
+  });
+
+  mockFetch(() =>
+    jsonResponse(
+      {
+        error: {
+          code: "not_found",
+          message: "Platform export not found",
+        },
+      },
+      { status: 404 },
+    ),
+  );
+
+  await assertRequestError(
+    admin.downloadPlatformCsv({
+      report: "summary",
+      token: "admin-token",
+    }),
+    {
+      code: "not_found",
+      errorClass: admin.AdminRequestError,
+      status: 404,
+    },
+  );
+
+  mockFetch(() => textResponse("Failed to load reward dashboard", { status: 500 }));
+
+  await assertRequestError(admin.fetchPlatformRewardDashboard({ token: "admin-token" }), {
+    code: "server_error",
+    errorClass: admin.AdminRequestError,
+    status: 500,
+  });
+
+  mockFetch((_url, init) => {
+    return new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      });
+    });
+  });
+
+  await assertRequestError(admin.fetchPlatformFraudDashboard({ timeoutMs: 1, token: "admin-token" }), {
+    code: "timeout",
+    errorClass: admin.AdminRequestError,
+    status: 0,
+  });
+
+  mockFetch(() => {
+    throw new TypeError("fetch failed");
+  });
+
+  await assertRequestError(admin.fetchPlatformSystemStatus(), {
+    code: "network_error",
+    errorClass: admin.AdminRequestError,
     status: 0,
   });
 });
@@ -1859,6 +2020,135 @@ function currentSessionFixture() {
     organizations: [],
     courses: [],
     delegated_permissions: [],
+  };
+}
+
+function platformAdminSessionFixture() {
+  return {
+    ...currentSessionFixture(),
+    platform: {
+      roles: ["PLATFORM_ADMIN"],
+      direct_permissions: [
+        "APPROVE_REWARD_AMOUNT",
+        "EXPORT_DATA",
+        "MANAGE_REWARD_FRAUD_BLOCKS",
+        "VIEW_REPORT",
+        "VIEW_REWARD_AUDIT",
+        "VIEW_TRANSACTIONS",
+      ],
+      delegated_permissions: ["VIEW_ROLE_ASSIGNMENTS"],
+      effective_permissions: [
+        "APPROVE_REWARD_AMOUNT",
+        "EXPORT_DATA",
+        "MANAGE_REWARD_FRAUD_BLOCKS",
+        "VIEW_REPORT",
+        "VIEW_REWARD_AUDIT",
+        "VIEW_ROLE_ASSIGNMENTS",
+        "VIEW_TRANSACTIONS",
+      ],
+    },
+  };
+}
+
+function platformSummaryFixture() {
+  return {
+    total_courses: 6,
+    total_notifications: 14,
+    total_organizations: 3,
+    total_users: 12,
+    total_wallets: 4,
+  };
+}
+
+function platformRewardDashboardFixture() {
+  return {
+    payout_failure_count: 1,
+    payout_failures: [
+      {
+        attempts: 3,
+        last_error: "transaction reverted",
+        reward_candidate_id: 203,
+        reward_execution_job_id: 31,
+        status: "failed",
+        updated_at: "2026-01-06T10:00:00Z",
+      },
+    ],
+    pending_amount_approval_count: 1,
+    pending_amount_approvals: [
+      {
+        approved_amount: null,
+        course_id: 9,
+        event_type: "course_completion",
+        reward_candidate_id: 201,
+        source_organization_id: 7,
+        status: "teacher_approved",
+        student_user_id: 77,
+        submitter_user_id: 42,
+        updated_at: "2026-01-05T10:00:00Z",
+      },
+    ],
+    reconciliation_mismatch_count: 1,
+    reconciliation_mismatches: [
+      {
+        approved_amount: "12",
+        course_id: 9,
+        mismatch_type: "needs_wallet_credit",
+        reward_candidate_id: 202,
+        status: "token_confirmed",
+        student_user_id: 88,
+        updated_at: "2026-01-06T11:00:00Z",
+      },
+    ],
+    reward_candidates: {
+      amount_approved: 2,
+      amount_rejected: 0,
+      completed: 1,
+      failed: 1,
+      needs_reconciliation: 1,
+      notified: 0,
+      pending_teacher_approval: 4,
+      teacher_approved: 1,
+      teacher_rejected: 0,
+      token_confirmed: 1,
+      token_pending: 1,
+      total: 9,
+      wallet_credited: 1,
+    },
+    teacher_applications: {
+      approved: 2,
+      needs_changes: 1,
+      rejected: 0,
+      submitted: 3,
+      total: 6,
+    },
+  };
+}
+
+function platformFraudDashboardFixture() {
+  return {
+    active_blocks: [
+      {
+        course_id: null,
+        created_at: "2026-01-04T10:00:00Z",
+        created_by_user_id: 1,
+        evidence_reference: "case-17",
+        expires_at: null,
+        id: 17,
+        organization_id: 7,
+        reason: "Suspicious reward burst",
+        reward_policy_id: null,
+        scope_type: "organization",
+        teacher_user_id: null,
+        updated_at: "2026-01-04T10:00:00Z",
+      },
+    ],
+    active_by_scope: {
+      course: 0,
+      organization: 1,
+      reward_policy: 0,
+      teacher: 0,
+    },
+    active_total: 1,
   };
 }
 

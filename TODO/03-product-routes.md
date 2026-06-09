@@ -223,9 +223,13 @@
 
 ## Platform Admin Experience
 
-- [ ] Build a platform admin dashboard for pending teacher applications,
+- [x] Build a platform admin dashboard for pending teacher applications,
       pending reward amount reviews, payout failures, fraud blocks,
       reconciliation mismatches, and system health.
+      `/admin` now consumes platform summary, reward dashboard, fraud
+      dashboard, `/health`, and `/ready`; sections are permission-gated, CSV
+      exports show download status, and the dashboard distinguishes teacher
+      approval from platform amount review.
 - [ ] Build teacher application review with queue filters, detail review,
       applicant history, sponsor context, decision reasons, and audit trail.
 - [ ] Build reward amount review that is clearly separate from course teacher
