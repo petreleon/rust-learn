@@ -21,8 +21,8 @@ use rust_learn::repositories::platform_repository::user_permission_platform_requ
 use rust_learn::repositories::teacher_application_repository::list_audit_events;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::teacher_application_service::{
-    decide_application, list_applications, nominate_application, submit_application,
-    ListTeacherApplicationsRequest, OrganizationTeacherNominationRequest,
+    decide_application, get_my_application, list_applications, nominate_application,
+    submit_application, ListTeacherApplicationsRequest, OrganizationTeacherNominationRequest,
     SubmitTeacherApplicationRequest, TeacherApplicationDecisionRequest, TeacherApplicationError,
 };
 
@@ -269,6 +269,81 @@ async fn teacher_application_submission_is_idempotent_by_key() {
         TeacherApplicationError::InvalidInput(message)
             if message.contains("idempotency key is already used")
     ));
+}
+
+#[actix_web::test]
+async fn applicant_can_read_latest_application_snapshot_without_review_permission() {
+    let mut conn = setup_conn().await;
+    let applicant = create_user_helper(&mut conn, "teacher_apply_snapshot").await;
+    let stranger = create_user_helper(&mut conn, "teacher_apply_snapshot_empty").await;
+    assign_role_to_user(&mut conn, applicant.id(), Roles::USER)
+        .await
+        .expect("failed to assign USER role");
+
+    let application = submit_application(&mut conn, applicant.id(), platform_application_request())
+        .await
+        .expect("application should be created");
+
+    let snapshot = get_my_application(&mut conn, applicant.id())
+        .await
+        .expect("applicant should read own application snapshot");
+    assert_eq!(
+        snapshot.application.as_ref().map(|item| item.id),
+        Some(application.id)
+    );
+    assert_eq!(snapshot.audit_events.len(), 1);
+    assert_eq!(snapshot.audit_events[0].application_id, application.id);
+    assert_eq!(snapshot.audit_events[0].to_status, application.status);
+
+    let empty_snapshot = get_my_application(&mut conn, stranger.id())
+        .await
+        .expect("authenticated user without application should get an empty snapshot");
+    assert!(empty_snapshot.application.is_none());
+    assert!(empty_snapshot.audit_events.is_empty());
+}
+
+#[actix_web::test]
+async fn duplicate_open_teacher_application_submission_conflicts_without_retry_key() {
+    let mut conn = setup_conn().await;
+    let applicant = create_user_helper(&mut conn, "teacher_apply_duplicate").await;
+    let admin = create_user_helper(&mut conn, "teacher_apply_duplicate_admin").await;
+    assign_role_to_user(&mut conn, applicant.id(), Roles::USER)
+        .await
+        .expect("failed to assign USER role");
+    assign_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
+        .await
+        .expect("failed to assign ADMIN role");
+
+    let application = submit_application(&mut conn, applicant.id(), platform_application_request())
+        .await
+        .expect("application should be created");
+
+    let duplicate = submit_application(&mut conn, applicant.id(), platform_application_request())
+        .await
+        .expect_err("open application should block duplicate submission");
+    assert!(matches!(
+        duplicate,
+        TeacherApplicationError::InvalidTransition(message)
+            if message.contains("already exists with status submitted")
+    ));
+
+    decide_application(
+        &mut conn,
+        admin.id(),
+        application.id,
+        TeacherApplicationDecisionRequest {
+            status: "rejected".to_string(),
+            decision_reason: Some("candidate can reapply with stronger portfolio".to_string()),
+        },
+    )
+    .await
+    .expect("admin should reject teacher application");
+
+    let resubmitted = submit_application(&mut conn, applicant.id(), platform_application_request())
+        .await
+        .expect("rejected application should allow a new submission");
+    assert_ne!(resubmitted.id, application.id);
+    assert_eq!(resubmitted.status, TEACHER_APPLICATION_STATUS_SUBMITTED);
 }
 
 #[actix_web::test]

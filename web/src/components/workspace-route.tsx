@@ -8,6 +8,7 @@ import {
   CreditCard,
   Loader2,
   LogIn,
+  Send,
   ShieldCheck,
   Trophy,
 } from "lucide-react";
@@ -350,6 +351,21 @@ function TeacherContent({ session }: { session: CurrentSession }) {
         scopes={teacherCourses}
         title="Teaching scopes"
       />
+      {canApply ? (
+        <section className={styles.statePanel}>
+          <div className={styles.panelHeader}>
+            <Send size={20} aria-hidden />
+            <h2>Teacher application</h2>
+          </div>
+          <p className={styles.muted}>
+            Apply for teaching access or track your submitted application without using the operations console.
+          </p>
+          <Link className={styles.primaryLink} href="/teach/apply">
+            <Send size={18} aria-hidden />
+            Open application
+          </Link>
+        </section>
+      ) : null}
     </>
   );
 }

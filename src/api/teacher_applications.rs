@@ -200,6 +200,22 @@ async fn list_applications(
     }
 }
 
+async fn get_my_application(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
+    let requester = match authenticated_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match teacher_application_service::get_my_application(&mut conn, requester.user_id).await {
+        Ok(snapshot) => HttpResponse::Ok().json(snapshot),
+        Err(error) => service_error_response(error),
+    }
+}
+
 async fn decide_application(
     req: HttpRequest,
     path: web::Path<i64>,
@@ -274,6 +290,7 @@ pub fn teacher_application_scope() -> actix_web::Scope {
                 .route(web::post().to(submit_application))
                 .route(web::get().to(list_applications)),
         )
+        .service(web::resource("/me").route(web::get().to(get_my_application)))
         .service(web::resource("/{id}/decision").route(web::put().to(decide_application)))
         .service(web::resource("/{id}/audit").route(web::get().to(list_audit_events)))
 }

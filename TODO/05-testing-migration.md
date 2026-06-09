@@ -33,6 +33,10 @@
         next step, wallet-error mobile next step, verified unlinked mobile
         wallet next step, disabled notification defaults, and no horizontal
         overflow.
+  - [x] Browser plus mocked Playwright QA covers `/teach/apply` signed-out
+        state, authenticated desktop submission, stale duplicate `409`
+        conflict refresh, needs-changes mobile feedback, rejected mobile
+        reapply, hidden raw id entry, and no horizontal overflow.
 - [ ] Add contract tests for frontend API helpers covering JSON success, CSV
       success, text errors, `401`, `403`, `404`, `409`, timeout, network
       failure, and backend `5xx` responses.
@@ -56,6 +60,12 @@
         `GET /api/wallets/me` and recent reward credit history.
   - [x] Frontend helper tests cover self-wallet plain text backend `500`
         normalization used by account wallet-error UI.
+  - [x] Frontend helper tests cover teacher application self-snapshot success,
+        empty snapshot, submit body shape, plain text `409`, backend `500`,
+        timeout, and network failure normalization.
+  - [x] Rust API/service tests cover teacher application current-user
+        snapshots, duplicate open conflicts, idempotency replay, rejected
+        reapply, and route registration for `GET /api/teacher-applications/me`.
 - [ ] Add route-guard tests for expired session, missing current-user data,
       multi-organization membership, course-only permissions, and delegated
       permissions that are expired, revoked, or scoped elsewhere.

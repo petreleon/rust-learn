@@ -17,7 +17,7 @@ use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::repositories::teacher_application_repository::{self, TeacherApplicationFilter};
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -65,6 +65,12 @@ pub struct TeacherApplicationDecisionRequest {
     pub decision_reason: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct TeacherApplicationSelfResponse {
+    pub application: Option<TeacherApplication>,
+    pub audit_events: Vec<TeacherApplicationAuditEvent>,
+}
+
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct ListTeacherApplicationsRequest {
     pub status: Option<String>,
@@ -95,6 +101,7 @@ pub async fn submit_application(
         );
         return Ok(existing);
     }
+    ensure_no_blocking_application(conn, &new_application).await?;
 
     let application = conn
         .transaction::<_, diesel::result::Error, _>(|conn| {
@@ -179,6 +186,7 @@ pub async fn nominate_application(
         );
         return Ok(existing);
     }
+    ensure_no_blocking_application(conn, &new_application).await?;
 
     let application = conn
         .transaction::<_, diesel::result::Error, _>(|conn| {
@@ -217,6 +225,30 @@ pub async fn nominate_application(
     );
 
     Ok(application)
+}
+
+pub async fn get_my_application(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+) -> Result<TeacherApplicationSelfResponse, TeacherApplicationError> {
+    let application =
+        teacher_application_repository::find_latest_application_for_applicant(conn, actor_user_id)
+            .await
+            .map_err(TeacherApplicationError::from)?;
+
+    let audit_events = match application.as_ref() {
+        Some(application) => {
+            teacher_application_repository::list_audit_events(conn, application.id)
+                .await
+                .map_err(TeacherApplicationError::from)?
+        }
+        None => Vec::new(),
+    };
+
+    Ok(TeacherApplicationSelfResponse {
+        application,
+        audit_events,
+    })
 }
 
 pub async fn list_applications(
@@ -534,6 +566,27 @@ async fn find_idempotent_application(
     }
 
     Ok(existing)
+}
+
+async fn ensure_no_blocking_application(
+    conn: &mut AsyncPgConnection,
+    requested: &NewTeacherApplication,
+) -> Result<(), TeacherApplicationError> {
+    let existing = teacher_application_repository::find_latest_application_for_applicant(
+        conn,
+        requested.applicant_user_id,
+    )
+    .await?;
+
+    match existing {
+        Some(application) if application.status != TEACHER_APPLICATION_STATUS_REJECTED => {
+            Err(TeacherApplicationError::InvalidTransition(format!(
+                "teacher application already exists with status {}",
+                application.status
+            )))
+        }
+        _ => Ok(()),
+    }
 }
 
 fn ensure_idempotent_application_matches(

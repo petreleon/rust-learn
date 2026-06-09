@@ -29,6 +29,16 @@ from effective permissions instead of role labels, and show contextual denied
 states when the current user lacks the required learner, teacher, organization,
 or platform access signal.
 
+Teacher product routes now include `/teach/apply`. It loads `GET /api/me` and
+`GET /api/teacher-applications/me`, submits through
+`POST /api/teacher-applications`, preserves draft application text and
+portfolio links in session storage, and renders new, submitted, needs-changes,
+approved, rejected, duplicate-conflict, signed-out, and backend-failure states.
+Organization and course scope choices come from the resolved session context so
+applicants do not type raw internal ids. The page links from `/teach`; broader
+teacher course dashboards, content upload, enrollment queues, student progress,
+and reward review remain future product routes.
+
 Learner product routes now include `/learn`, `/courses`, `/rewards`, and
 `/wallet`. `/learn` is the learner dashboard. It loads `GET /api/me`, enrolled
 and recommended `GET /api/courses/catalog` slices,

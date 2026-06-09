@@ -65,6 +65,19 @@ pub async fn find_application_by_idempotency_key(
         .optional()
 }
 
+pub async fn find_latest_application_for_applicant(
+    conn: &mut AsyncPgConnection,
+    applicant_id: i32,
+) -> QueryResult<Option<TeacherApplication>> {
+    teacher_applications::table
+        .filter(teacher_applications::applicant_user_id.eq(applicant_id))
+        .order(teacher_applications::created_at.desc())
+        .then_order_by(teacher_applications::id.desc())
+        .first::<TeacherApplication>(conn)
+        .await
+        .optional()
+}
+
 pub async fn list_applications(
     conn: &mut AsyncPgConnection,
     filter: TeacherApplicationFilter,

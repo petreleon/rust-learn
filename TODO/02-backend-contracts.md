@@ -34,6 +34,15 @@ screens pretend to be complete.
 - [ ] Define assessment APIs before marking assessment-taking screens complete.
 - [ ] Define notification list/read APIs before making notification UX a core
       navigation feature.
+- [x] Define a teacher application self-service contract for current-user
+      application state.
+  - [x] `GET /api/teacher-applications/me` now returns the authenticated
+        applicant's latest application plus owned audit events, or
+        `{ application: null, audit_events: [] }` when no application exists.
+  - [x] Duplicate open teacher application submissions now return a `409`
+        conflict while same-key idempotent retries still return the existing
+        application, and rejected applications can be followed by a new
+        submission.
 - [ ] Define upload-job or media-processing status APIs before the teacher
       upload UI promises progress or retry visibility.
 - [ ] Define searchable user, organization, course, application, reward,

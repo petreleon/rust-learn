@@ -12,6 +12,7 @@ const compiledDir = mkdtempSync(path.join(tmpdir(), "rustlearn-api-helper-tests-
 const session = await importTranspiled("src/lib/session.ts");
 const auth = await importTranspiled("src/lib/auth.ts");
 const learner = await importTranspiled("src/lib/learner.ts");
+const teacher = await importTranspiled("src/lib/teacher.ts");
 
 test("fetchCurrentSession parses JSON success and sends bearer token", async () => {
   const calls = mockFetch((url, init) => {
@@ -545,6 +546,104 @@ test("linkMyWallet parses created response and learner text errors", async () =>
   });
 });
 
+test("fetchMyTeacherApplication parses current-user application snapshot", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/teacher-applications/me");
+    assert.equal(init.headers.Authorization, "Bearer teacher-token");
+    return jsonResponse(teacherApplicationSnapshotFixture());
+  });
+
+  const snapshot = await teacher.fetchMyTeacherApplication({ token: "teacher-token" });
+
+  assert.equal(calls.length, 1);
+  assert.equal(snapshot.application.status, "submitted");
+  assert.equal(snapshot.application.portfolio_links[0], "https://example.test/portfolio");
+  assert.equal(snapshot.audit_events.length, 1);
+
+  mockFetch(() => jsonResponse({ application: null, audit_events: [] }));
+
+  const emptySnapshot = await teacher.fetchMyTeacherApplication({ token: "teacher-token" });
+  assert.equal(emptySnapshot.application, null);
+  assert.deepEqual(emptySnapshot.audit_events, []);
+});
+
+test("submitTeacherApplication sends JSON payload and parses created application", async () => {
+  const payload = {
+    experience_summary: "I teach Rust fundamentals and review project work.",
+    idempotency_key: "teacher-application-retry-key",
+    portfolio_links: ["https://example.test/portfolio"],
+    requested_scope: "platform",
+  };
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/teacher-applications");
+    assert.equal(init.method, "POST");
+    assert.equal(init.headers.Authorization, "Bearer teacher-token");
+    assert.equal(init.headers["Content-Type"], "application/json");
+    assert.deepEqual(JSON.parse(init.body), payload);
+    return jsonResponse(teacherApplicationSnapshotFixture().application, { status: 201 });
+  });
+
+  const application = await teacher.submitTeacherApplication({
+    payload,
+    token: "teacher-token",
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(application.id, 44);
+  assert.equal(application.requested_scope, "platform");
+});
+
+test("teacher helpers normalize conflict, server, timeout, and network failures", async () => {
+  mockFetch(() => textResponse("teacher application already exists with status submitted", { status: 409 }));
+
+  await assertRequestError(
+    teacher.submitTeacherApplication({
+      payload: {
+        experience_summary: "Duplicate submission",
+        requested_scope: "platform",
+      },
+      token: "teacher-token",
+    }),
+    {
+      code: "conflict",
+      errorClass: teacher.TeacherRequestError,
+      status: 409,
+    },
+  );
+
+  mockFetch(() => textResponse("Failed to process teacher application", { status: 500 }));
+
+  await assertRequestError(teacher.fetchMyTeacherApplication({ token: "teacher-token" }), {
+    code: "server_error",
+    errorClass: teacher.TeacherRequestError,
+    status: 500,
+  });
+
+  mockFetch((_url, init) => {
+    return new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => {
+        reject(new DOMException("The operation was aborted.", "AbortError"));
+      });
+    });
+  });
+
+  await assertRequestError(teacher.fetchMyTeacherApplication({ token: "slow-token", timeoutMs: 1 }), {
+    code: "timeout",
+    errorClass: teacher.TeacherRequestError,
+    status: 0,
+  });
+
+  mockFetch(() => {
+    throw new TypeError("fetch failed");
+  });
+
+  await assertRequestError(teacher.fetchMyTeacherApplication({ token: "network-token" }), {
+    code: "network_error",
+    errorClass: teacher.TeacherRequestError,
+    status: 0,
+  });
+});
+
 async function importTranspiled(relativePath) {
   const sourcePath = path.join(repoRoot, relativePath);
   const source = readFileSync(sourcePath, "utf8");
@@ -651,5 +750,39 @@ function courseCatalogItemFixture() {
     teachers: [{ id: 2, name: "Teacher One" }],
     title: "Rust Ownership",
     topics: [],
+  };
+}
+
+function teacherApplicationSnapshotFixture() {
+  return {
+    application: {
+      applicant_user_id: 11,
+      created_at: "2026-01-01T10:00:00Z",
+      decided_at: null,
+      decision_reason: null,
+      experience_summary: "I teach Rust fundamentals and review project work.",
+      id: 44,
+      idempotency_key: "teacher-application-retry-key",
+      organization_sponsor_id: null,
+      portfolio_links: ["https://example.test/portfolio"],
+      requested_course_id: null,
+      requested_organization_id: null,
+      requested_scope: "platform",
+      reviewer_id: null,
+      status: "submitted",
+      updated_at: "2026-01-01T10:00:00Z",
+    },
+    audit_events: [
+      {
+        actor_user_id: 11,
+        application_id: 44,
+        created_at: "2026-01-01T10:00:00Z",
+        event_type: "submitted",
+        from_status: null,
+        id: 101,
+        reason: null,
+        to_status: "submitted",
+      },
+    ],
   };
 }

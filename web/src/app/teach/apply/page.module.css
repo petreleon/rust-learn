@@ -1,0 +1,399 @@
+.overviewGrid,
+.formPanel,
+.timelinePanel,
+.statusPanel,
+.warningPanel,
+.errorBox {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.overviewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 16px;
+}
+
+.statusPanel,
+.formPanel,
+.timelinePanel,
+.warningPanel,
+.errorBox {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 18px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
+}
+
+.singlePanel {
+  width: min(760px, 100%);
+}
+
+.formPanel,
+.timelinePanel {
+  margin-top: 16px;
+}
+
+.warningPanel {
+  margin-top: 16px;
+  border-color: #f6d365;
+  color: #78350f;
+  background: #fffdf2;
+}
+
+.panelHeader,
+.actionRow,
+.statusLine,
+.primaryButton,
+.secondaryButton,
+.primaryLink,
+.portfolioLink,
+.errorBox,
+.validationBox {
+  display: flex;
+  align-items: center;
+}
+
+.panelHeader {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.panelHeader h2 {
+  font-size: 1.08rem;
+}
+
+.muted {
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.applicationSummary,
+.contextList,
+.scopeFieldset,
+.fieldLabel,
+.portfolioBlock {
+  display: grid;
+  gap: 10px;
+}
+
+.contextList,
+.applicationSummary {
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.contextRow {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.contextRow span {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 820;
+}
+
+.contextRow strong {
+  color: #172033;
+  overflow-wrap: anywhere;
+}
+
+.scopeFieldset {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+
+.scopeFieldset legend {
+  margin-bottom: 10px;
+  color: #172033;
+  font-weight: 860;
+}
+
+.scopeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.scopeOption {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 10px;
+  min-height: 116px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.scopeOption input {
+  width: 18px;
+  height: 18px;
+  accent-color: #1f6f8b;
+}
+
+.scopeOption strong {
+  align-self: center;
+}
+
+.scopeOption span {
+  grid-column: 1 / -1;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.scopeOptionActive {
+  border-color: #1f6f8b;
+  background: #f2fbfc;
+}
+
+.scopeOptionDisabled {
+  color: #94a3b8;
+  background: #f8fafc;
+  cursor: not-allowed;
+}
+
+.fieldLabel {
+  color: #172033;
+  font-weight: 820;
+}
+
+.fieldLabel select,
+.fieldLabel textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 11px 12px;
+  color: #172033;
+  background: #ffffff;
+  font: inherit;
+  font-weight: 650;
+}
+
+.fieldLabel textarea {
+  min-height: 116px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.fieldLabel small {
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.actionRow {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.primaryButton,
+.secondaryButton,
+.primaryLink {
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #172033;
+  background: #ffffff;
+  font-weight: 850;
+}
+
+.primaryButton,
+.primaryLink {
+  border-color: #1f6f8b;
+  color: #ffffff;
+  background: #1f6f8b;
+}
+
+.primaryButton:disabled {
+  border-color: #94a3b8;
+  background: #94a3b8;
+  cursor: wait;
+}
+
+.secondaryButton {
+  cursor: pointer;
+}
+
+.secondaryButton:hover,
+.primaryLink:hover {
+  filter: brightness(0.98);
+}
+
+.statusLine {
+  gap: 7px;
+  min-height: 32px;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: #334155;
+  background: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.good {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.neutral {
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.warn {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.bad {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.validationBox,
+.errorBox {
+  gap: 10px;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.validationBox {
+  border: 1px solid #f6d365;
+  color: #78350f;
+  background: #fffbeb;
+}
+
+.errorBox {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  border-color: #fecaca;
+  color: #991b1b;
+  background: #fff1f2;
+}
+
+.validationBox span,
+.errorBox span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.portfolioLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.portfolioLink,
+.portfolioText {
+  min-width: 0;
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: #172033;
+  background: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.portfolioLink {
+  gap: 6px;
+}
+
+.reviewReason {
+  border-left: 3px solid #1f6f8b;
+  padding-left: 12px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.timelineList {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+}
+
+.timelineList li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.timelineList div {
+  display: grid;
+  gap: 3px;
+}
+
+.timelineList small,
+.timelineList p {
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.timelineDot {
+  width: 11px;
+  height: 11px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: #1f6f8b;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 900px) {
+  .overviewGrid,
+  .scopeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .scopeOption {
+    min-height: 92px;
+  }
+}
+
+@media (max-width: 640px) {
+  .statusPanel,
+  .formPanel,
+  .timelinePanel,
+  .warningPanel,
+  .errorBox {
+    padding: 15px;
+  }
+
+  .contextRow {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .primaryButton,
+  .secondaryButton,
+  .primaryLink {
+    width: 100%;
+  }
+
+  .errorBox {
+    grid-template-columns: 1fr;
+  }
+}

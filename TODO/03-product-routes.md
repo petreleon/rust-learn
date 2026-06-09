@@ -94,9 +94,14 @@
 
 ## Teacher Experience
 
-- [ ] Build a teacher application journey with draft state, portfolio links,
+- [x] Build a teacher application journey with draft state, portfolio links,
       scope selection, sponsor context, submission confirmation, and review
       status.
+  - [x] `/teach/apply` now consumes `GET /api/teacher-applications/me`,
+        submits through `POST /api/teacher-applications`, preserves draft
+        state and portfolio links, shows submitted/needs-changes/approved/
+        rejected/audit states, handles stale duplicate `409` conflicts, and
+        avoids raw organization/course/application id entry.
 - [ ] Build a teacher dashboard for owned courses, pending student work,
       enrollment requests, reward candidates, and course health.
 - [ ] Build course creation and editing flows for title, description, content,
