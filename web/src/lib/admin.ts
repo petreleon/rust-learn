@@ -156,6 +156,47 @@ export type FraudBlockAuditEvent = {
   reason: string | null;
 };
 
+export type DelegationItem = {
+  course_id: number | null;
+  created_at: string;
+  expires_at: string | null;
+  grantee_user_id: number;
+  grantor_user_id: number;
+  id: number;
+  organization_id: number | null;
+  permission: string;
+  reason: string | null;
+  revoked_at: string | null;
+  revoked_by_user_id: number | null;
+  revoke_reason: string | null;
+  scope_type: string;
+  updated_at: string;
+};
+
+export type DelegationListOptions = AdminRequestOptions & {
+  active?: boolean | null;
+  course_id?: number | null;
+  grantee_user_id?: number | null;
+  grantor_user_id?: number | null;
+  limit?: number;
+  offset?: number;
+  organization_id?: number | null;
+  permission?: string | null;
+  scope_type?: string | null;
+};
+
+export type DelegationCreateOptions = AdminRequestOptions & {
+  course_id?: number | null;
+  expires_at?: string | null;
+  grantee_user_id: number;
+  organization_id?: number | null;
+  permission: string;
+  reason?: string | null;
+  scope_type: string;
+};
+
+export type DelegationStatus = "active" | "expired" | "revoked";
+
 export type FraudBlockListOptions = AdminRequestOptions & {
   scope_type?: string | null;
   active?: boolean | null;
@@ -541,6 +582,109 @@ export async function fetchPlatformFraudDashboard({
   return adminJsonRequest({
     apiRoot,
     path: "/reports/platform/fraud-dashboard",
+    timeoutMs,
+    token,
+  });
+}
+
+export async function fetchDelegations({
+  apiRoot = "/api",
+  active,
+  course_id,
+  grantee_user_id,
+  grantor_user_id,
+  limit,
+  offset,
+  organization_id,
+  permission,
+  scope_type,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: DelegationListOptions): Promise<{
+  delegations: DelegationItem[];
+  limit: number;
+  offset: number;
+  total: number;
+}> {
+  const query = new URLSearchParams();
+  if (typeof active === "boolean") {
+    query.set("active", String(active));
+  }
+  if (typeof course_id === "number") {
+    query.set("course_id", String(course_id));
+  }
+  if (typeof grantee_user_id === "number") {
+    query.set("grantee_user_id", String(grantee_user_id));
+  }
+  if (typeof grantor_user_id === "number") {
+    query.set("grantor_user_id", String(grantor_user_id));
+  }
+  if (typeof limit === "number") {
+    query.set("limit", String(limit));
+  }
+  if (typeof offset === "number") {
+    query.set("offset", String(offset));
+  }
+  if (typeof organization_id === "number") {
+    query.set("organization_id", String(organization_id));
+  }
+  if (permission) {
+    query.set("permission", permission);
+  }
+  if (scope_type) {
+    query.set("scope_type", scope_type);
+  }
+  const suffix = query.toString();
+  return adminJsonRequest({
+    apiRoot,
+    path: `/delegated-permissions${suffix ? `?${suffix}` : ""}`,
+    timeoutMs,
+    token,
+  });
+}
+
+export async function createDelegation({
+  apiRoot = "/api",
+  course_id,
+  expires_at,
+  grantee_user_id,
+  organization_id,
+  permission,
+  reason,
+  scope_type,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: DelegationCreateOptions): Promise<DelegationItem> {
+  return adminJsonRequest({
+    apiRoot,
+    body: JSON.stringify({
+      course_id: course_id ?? null,
+      expires_at: expires_at ?? null,
+      grantee_user_id,
+      organization_id: organization_id ?? null,
+      permission,
+      reason: reason?.trim() || null,
+      scope_type,
+    }),
+    method: "POST",
+    path: "/delegated-permissions",
+    timeoutMs,
+    token,
+  });
+}
+
+export async function revokeDelegation({
+  apiRoot = "/api",
+  delegationId,
+  revokeReason,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: AdminRequestOptions & { delegationId: number; revokeReason?: string | null }): Promise<DelegationItem> {
+  return adminJsonRequest({
+    apiRoot,
+    body: JSON.stringify({ revoke_reason: revokeReason?.trim() || null }),
+    method: "PUT",
+    path: `/delegated-permissions/${delegationId}/revoke`,
     timeoutMs,
     token,
   });

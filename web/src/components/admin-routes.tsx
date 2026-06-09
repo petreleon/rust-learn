@@ -28,10 +28,12 @@ import { hasPlatformAdminAccess } from "@/lib/access";
 import {
   AdminRequestError,
   buildPlatformAdminWorkspace,
+  createDelegation,
   createFraudBlock,
   decideRewardAmount,
   decideTeacherApplication,
   downloadPlatformCsv,
+  fetchDelegations,
   fetchFraudBlockAudit,
   fetchFraudBlocks,
   fetchPlatformFraudDashboard,
@@ -45,7 +47,12 @@ import {
   missingPlatformPermissions,
   platformCapabilityDefinitions,
   platformCapabilityEnabled,
+  revokeDelegation,
   revokeFraudBlock,
+  type DelegationCreateOptions,
+  type DelegationItem,
+  type DelegationListOptions,
+  type DelegationStatus,
   type FraudBlockAuditEvent,
   type FraudBlockCreateOptions,
   type FraudBlockItem,
@@ -1438,6 +1445,397 @@ export function AdminFraudBlocksRoute() {
   );
 }
 
+export function AdminDelegationsRoute() {
+  const route = useAdminSession();
+  const workspace = useMemo(
+    () => (route.session ? buildPlatformAdminWorkspace(route.session) : emptyWorkspace),
+    [route.session],
+  );
+  const allowed = route.session ? hasPlatformAdminAccess(route.session) : false;
+  const canGrant = hasAnyPlatformPermission(workspace, ["MANAGE_ROLE_PERMISSIONS", "DELEGATE_REWARD_APPROVAL"]);
+  const canRevoke = hasPlatformPermission(workspace, "MANAGE_ROLE_PERMISSIONS");
+  const canView = hasAnyPlatformPermission(workspace, ["VIEW_ROLE_ASSIGNMENTS", "MANAGE_ROLE_PERMISSIONS"]);
+
+  const [delegations, setDelegations] = useState<DelegationItem[]>([]);
+  const [delegationState, setDelegationState] = useState<SectionState>("idle");
+  const [delegationError, setDelegationError] = useState<RouteError | null>(null);
+  const [selectedDelegation, setSelectedDelegation] = useState<DelegationItem | null>(null);
+
+  const [createScopeType, setCreateScopeType] = useState("");
+  const [createPermission, setCreatePermission] = useState("");
+  const [createGranteeId, setCreateGranteeId] = useState("");
+  const [createOrganizationId, setCreateOrganizationId] = useState("");
+  const [createCourseId, setCreateCourseId] = useState("");
+  const [createReason, setCreateReason] = useState("");
+  const [createExpiresAt, setCreateExpiresAt] = useState("");
+  const [createState, setCreateState] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [createError, setCreateError] = useState<RouteError | null>(null);
+
+  const [revokeReason, setRevokeReason] = useState("");
+  const [revokeState, setRevokeState] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [revokeError, setRevokeError] = useState<RouteError | null>(null);
+
+  const loadDelegations = useCallback(async () => {
+    const token = route.token;
+    if (!route.session || !token || !allowed || !canView) {
+      return;
+    }
+    setDelegationState("loading");
+    setDelegationError(null);
+    try {
+      const response = await fetchDelegations({ token, limit: 100 });
+      setDelegations(response.delegations);
+      setDelegationState("success");
+    } catch (error) {
+      setDelegations([]);
+      setDelegationError(normalizeRouteError(error, "Delegations could not be loaded."));
+      setDelegationState("error");
+    }
+  }, [allowed, canView, route.session, route.token]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadDelegations(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadDelegations]);
+
+  const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const token = route.token;
+    if (!token || !canGrant) return;
+    setCreateState("submitting");
+    setCreateError(null);
+    try {
+      const created = await createDelegation({
+        token,
+        scope_type: createScopeType,
+        permission: createPermission,
+        grantee_user_id: Number(createGranteeId),
+        organization_id: createOrganizationId ? Number(createOrganizationId) : null,
+        course_id: createCourseId ? Number(createCourseId) : null,
+        reason: createReason.trim() || null,
+        expires_at: createExpiresAt.trim() || null,
+      });
+      setDelegations((prev) => [created, ...prev]);
+      setSelectedDelegation(created);
+      setCreateState("success");
+      setCreateScopeType("");
+      setCreatePermission("");
+      setCreateGranteeId("");
+      setCreateOrganizationId("");
+      setCreateCourseId("");
+      setCreateReason("");
+      setCreateExpiresAt("");
+      window.setTimeout(() => setCreateState("idle"), 2000);
+    } catch (error) {
+      setCreateError(normalizeRouteError(error, "Delegation could not be created."));
+      setCreateState("error");
+    }
+  };
+
+  const handleRevoke = async (delegationId: number) => {
+    const token = route.token;
+    if (!token || !canRevoke) return;
+    setRevokeState("submitting");
+    setRevokeError(null);
+    try {
+      const updated = await revokeDelegation({ token, delegationId, revokeReason: revokeReason.trim() || null });
+      setDelegations((prev) => prev.map((d) => (d.id === delegationId ? updated : d)));
+      setSelectedDelegation(updated);
+      setRevokeState("success");
+      setRevokeReason("");
+      window.setTimeout(() => setRevokeState("idle"), 2000);
+    } catch (error) {
+      setRevokeError(normalizeRouteError(error, "Delegation could not be revoked."));
+      setRevokeState("error");
+    }
+  };
+
+  const delegationStatus = (delegation: DelegationItem): DelegationStatus => {
+    if (delegation.revoked_at) return "revoked";
+    if (delegation.expires_at && new Date(delegation.expires_at) <= new Date()) return "expired";
+    return "active";
+  };
+
+  const scopeLabel = (delegation: DelegationItem) => {
+    if (delegation.scope_type === "platform") return "Platform";
+    if (delegation.scope_type === "organization" && delegation.organization_id) return `Organization ${delegation.organization_id}`;
+    if (delegation.scope_type === "course" && delegation.course_id) return `Course ${delegation.course_id}`;
+    return formatUnderscoreLabel(delegation.scope_type);
+  };
+
+  const notice: ShellNotice | null =
+    createState === "success"
+      ? { message: "The delegation was created.", title: "Delegation created", tone: "success" }
+      : createState === "error" && createError
+        ? { message: createError.message, title: "Create failed", tone: createError.status === 403 ? "warn" : "error" }
+        : revokeState === "success"
+          ? { message: "The delegation was revoked.", title: "Delegation revoked", tone: "success" }
+          : revokeState === "error" && revokeError
+            ? { message: revokeError.message, title: "Revoke failed", tone: revokeError.status === 403 ? "warn" : "error" }
+            : null;
+
+  return (
+    <ProductShell
+      activeNav="admin"
+      breadcrumbs={[
+        { label: "Admin", href: "/admin" },
+        { label: "Delegations" },
+      ]}
+      description="Manage delegated permissions with scope, grantee, expiration, and revocation audit."
+      eyebrow="Platform admin"
+      isSignedIn={route.hasToken}
+      notice={notice}
+      onSignOut={route.signOut}
+      session={route.session}
+      statusItems={
+        <>
+          <StatusPill label={route.loadState === "loading" ? "Resolving session" : canView ? "Delegation access" : "Delegation gated"} />
+          <StatusPill label={`${delegations.length} delegations`} />
+          <StatusPill label={canGrant ? "Grant enabled" : "Grant gated"} tone={canGrant ? "good" : "neutral"} />
+        </>
+      }
+      title="Delegated permissions"
+    >
+      {route.loadState === "idle" && !route.session ? <SignedOutState /> : null}
+      {route.loadState === "loading" ? <LoadingState /> : null}
+      {route.error ? <SessionErrorState error={route.error} /> : null}
+      {route.session && !allowed ? <AdminDeniedState workspace={workspace} /> : null}
+
+      {route.session && allowed ? (
+        canView ? (
+          <div className={styles.twoColumnWide}>
+            <div>
+              <div className={styles.sectionHeader}>
+                <ShieldCheck size={20} aria-hidden />
+                <h2>Delegated permissions</h2>
+                {delegationState === "loading" ? <Loader2 className={styles.spin} size={18} aria-hidden /> : null}
+                <button className={styles.secondaryButton} disabled={delegationState === "loading"} onClick={loadDelegations} type="button">
+                  <RefreshCw size={16} aria-hidden />
+                  Refresh
+                </button>
+              </div>
+
+              {delegationState === "loading" || delegationState === "idle" ? <PanelLoading title="Loading delegations" /> : null}
+              {delegationState === "error" ? (
+                <PanelError error={delegationError} onRetry={loadDelegations} title="Delegation list failed" />
+              ) : null}
+              {delegationState === "success" && !delegations.length ? <EmptyState text="No delegated permissions found." /> : null}
+              {delegationState === "success" && delegations.length ? (
+                <ul className={styles.queueList} role="list">
+                  {delegations.map((delegation) => {
+                    const status = delegationStatus(delegation);
+                    return (
+                      <li
+                        key={delegation.id}
+                        className={selectedDelegation?.id === delegation.id ? styles.queueItemSelected : styles.queueItem}
+                        onClick={() => setSelectedDelegation(delegation)}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <div className={styles.queueRow}>
+                          <strong>{formatUnderscoreLabel(delegation.permission)}</strong>
+                          <StatusPill label={status} tone={status === "active" ? "good" : "neutral"} />
+                        </div>
+                        <div className={styles.queueRow}>
+                          <small>
+                            Grantee {delegation.grantee_user_id} · {scopeLabel(delegation)}
+                          </small>
+                          <small>{formatDate(delegation.created_at)}</small>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+            </div>
+
+            <div>
+              {!selectedDelegation ? (
+                canGrant ? (
+                  <form className={styles.decisionForm} onSubmit={handleCreate}>
+                    <div className={styles.panelHeader}>
+                      <ShieldCheck size={20} aria-hidden />
+                      <div>
+                        <h2>Create delegation</h2>
+                        <p>Grant a delegated permission with scope and expiration.</p>
+                      </div>
+                    </div>
+                    <label>
+                      <span>Scope type</span>
+                      <select onChange={(e) => setCreateScopeType(e.target.value)} value={createScopeType}>
+                        <option value="">Select scope…</option>
+                        <option value="platform">Platform</option>
+                        <option value="organization">Organization</option>
+                        <option value="course">Course</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Permission</span>
+                      <input
+                        onChange={(e) => setCreatePermission(e.target.value)}
+                        placeholder="e.g. APPROVE_REWARD_AMOUNT"
+                        type="text"
+                        value={createPermission}
+                      />
+                    </label>
+                    <label>
+                      <span>Grantee user ID</span>
+                      <input
+                        onChange={(e) => setCreateGranteeId(e.target.value)}
+                        placeholder="Numeric user ID"
+                        type="text"
+                        value={createGranteeId}
+                      />
+                    </label>
+                    {createScopeType === "organization" ? (
+                      <label>
+                        <span>Organization ID</span>
+                        <input
+                          onChange={(e) => setCreateOrganizationId(e.target.value)}
+                          placeholder="Numeric organization ID"
+                          type="text"
+                          value={createOrganizationId}
+                        />
+                      </label>
+                    ) : null}
+                    {createScopeType === "course" ? (
+                      <label>
+                        <span>Course ID</span>
+                        <input
+                          onChange={(e) => setCreateCourseId(e.target.value)}
+                          placeholder="Numeric course ID"
+                          type="text"
+                          value={createCourseId}
+                        />
+                      </label>
+                    ) : null}
+                    <label>
+                      <span>Reason</span>
+                      <textarea
+                        onChange={(e) => setCreateReason(e.target.value)}
+                        placeholder="Optional reason for this delegation"
+                        rows={3}
+                        value={createReason}
+                      />
+                    </label>
+                    <label>
+                      <span>Expires at</span>
+                      <input
+                        onChange={(e) => setCreateExpiresAt(e.target.value)}
+                        placeholder="Optional ISO date"
+                        type="text"
+                        value={createExpiresAt}
+                      />
+                    </label>
+                    {createError ? (
+                      <div className={styles.inlineError} role="alert">
+                        <AlertTriangle size={16} aria-hidden />
+                        <span>{createError.message}</span>
+                      </div>
+                    ) : null}
+                    <button
+                      className={styles.primaryButton}
+                      disabled={createState === "submitting" || !createScopeType || !createPermission.trim() || !createGranteeId.trim()}
+                      type="submit"
+                    >
+                      {createState === "submitting" ? <Loader2 className={styles.spin} size={16} aria-hidden /> : <Send size={16} aria-hidden />}
+                      Create delegation
+                    </button>
+                  </form>
+                ) : (
+                  <GatedPanel
+                    capability={getCapability(workspace, "delegations")}
+                    icon={<ShieldCheck size={20} aria-hidden />}
+                    title="Delegation grant unavailable"
+                  />
+                )
+              ) : (
+                <section className={styles.panel}>
+                  <div className={styles.panelHeader}>
+                    <ShieldCheck size={20} aria-hidden />
+                    <div>
+                      <h2>Delegation {selectedDelegation.id}</h2>
+                      <p>{formatUnderscoreLabel(selectedDelegation.permission)} · {scopeLabel(selectedDelegation)}</p>
+                    </div>
+                    <StatusPill
+                      label={delegationStatus(selectedDelegation)}
+                      tone={delegationStatus(selectedDelegation) === "active" ? "good" : "neutral"}
+                    />
+                  </div>
+
+                  <div className={styles.detailGrid}>
+                    <ContextRow label="Permission" value={formatUnderscoreLabel(selectedDelegation.permission)} />
+                    <ContextRow label="Scope" value={scopeLabel(selectedDelegation)} />
+                    <ContextRow label="Grantee" value={`User ${selectedDelegation.grantee_user_id}`} />
+                    <ContextRow label="Grantor" value={`User ${selectedDelegation.grantor_user_id}`} />
+                    <ContextRow label="Reason" value={selectedDelegation.reason || "None"} />
+                    <ContextRow label="Created" value={formatDate(selectedDelegation.created_at)} />
+                    <ContextRow label="Updated" value={formatDate(selectedDelegation.updated_at)} />
+                    <ContextRow
+                      label="Expires"
+                      value={selectedDelegation.expires_at ? formatDate(selectedDelegation.expires_at) : "No expiration"}
+                    />
+                    {selectedDelegation.revoked_at ? (
+                      <>
+                        <ContextRow label="Revoked" value={formatDate(selectedDelegation.revoked_at)} />
+                        <ContextRow label="Revoked by" value={`User ${selectedDelegation.revoked_by_user_id}`} />
+                        <ContextRow label="Revoke reason" value={selectedDelegation.revoke_reason || "None"} />
+                      </>
+                    ) : null}
+                  </div>
+
+                  {!selectedDelegation.revoked_at && canRevoke ? (
+                    <div className={styles.textBlock}>
+                      <h3>Revoke delegation</h3>
+                      <label>
+                        <span>Revoke reason</span>
+                        <textarea
+                          onChange={(e) => setRevokeReason(e.target.value)}
+                          placeholder="Optional reason for revocation"
+                          rows={3}
+                          value={revokeReason}
+                        />
+                      </label>
+                      {revokeError ? (
+                        <div className={styles.inlineError} role="alert">
+                          <AlertTriangle size={16} aria-hidden />
+                          <span>{revokeError.message}</span>
+                        </div>
+                      ) : null}
+                      <button
+                        className={styles.primaryButton}
+                        disabled={revokeState === "submitting"}
+                        onClick={() => handleRevoke(selectedDelegation.id)}
+                        type="button"
+                      >
+                        {revokeState === "submitting" ? <Loader2 className={styles.spin} size={16} aria-hidden /> : <XCircle size={16} aria-hidden />}
+                        Revoke delegation
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {selectedDelegation.revoked_at ? (
+                    <p className={styles.muted}>This delegation was revoked and cannot be changed.</p>
+                  ) : null}
+                  {!selectedDelegation.revoked_at && !canRevoke ? (
+                    <p className={styles.muted}>Revoke requires the MANAGE_ROLE_PERMISSIONS permission.</p>
+                  ) : null}
+                </section>
+              )}
+            </div>
+          </div>
+        ) : (
+          <GatedPanel
+            capability={getCapability(workspace, "delegations")}
+            icon={<ShieldCheck size={20} aria-hidden />}
+            title="Delegated permissions unavailable"
+          />
+        )
+      ) : null}
+    </ProductShell>
+  );
+}
+
 function FraudBlockDetail({
   block,
   auditError,
@@ -1720,6 +2118,14 @@ function ActionPanel({
       state: canManageFraud ? "Manage enabled" : canViewRewardAudit ? "Audit only" : "Missing reward audit",
       tone: fraudDashboard?.active_total ? "warn" : "neutral",
       value: fraudDashboard?.active_total ?? "Gated",
+    },
+    {
+      detail: "Delegated permissions with scope, expiration, and revocation audit.",
+      key: "delegations",
+      label: "Delegations",
+      state: platformCapabilityEnabled(workspace, "delegations") ? "Available" : "Gated",
+      tone: platformCapabilityEnabled(workspace, "delegations") ? "good" : "neutral",
+      value: platformCapabilityEnabled(workspace, "delegations") ? "Ready" : "Gated",
     },
     {
       detail: "CSV exports available for reports, reward operations, wallets, and delegations.",
