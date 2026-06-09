@@ -346,15 +346,15 @@ runtime-verify: ## Fail unless Docker Compose and Kubernetes runtime checks pass
 	$(DOCKER_COMPOSE) ps web app worker db rustfs anvil >/dev/null; \
 	$(CURL) -fsS http://localhost:3000/healthz >/dev/null; \
 	$(CURL) -fsS http://localhost:3000 | grep -q '$(WEB_DASHBOARD_SMOKE_TEXT)'; \
-	$(CURL) -fsS http://localhost:8080/health >/dev/null; \
-	$(CURL) -fsS http://localhost:8080/ready >/dev/null; \
+	$(CURL) -fsS http://localhost:3000/health >/dev/null; \
+	$(CURL) -fsS http://localhost:3000/ready >/dev/null; \
 	$(DOCKER_COMPOSE) exec -T worker /usr/local/bin/worker-healthcheck >/dev/null; \
 	echo "$(GREEN)Docker Compose runtime OK$(NC)"; \
 	echo "Checking Kubernetes deployments, pods, and in-cluster endpoints..."; \
 	$(KUBECTL) get namespace $(K8S_NAMESPACE) >/dev/null; \
 	$(KUBECTL) wait --for=condition=Available deployment --all -n $(K8S_NAMESPACE) --timeout=180s >/dev/null; \
 	$(KUBECTL) wait --for=condition=Ready pod --all -n $(K8S_NAMESPACE) --timeout=180s >/dev/null; \
-	$(KUBECTL) exec -n $(K8S_NAMESPACE) deploy/web -- sh -c 'wget -qO- http://127.0.0.1:3000/healthz >/dev/null && wget -qO- http://127.0.0.1:3000 | grep -q "$(WEB_DASHBOARD_SMOKE_TEXT)" && wget -qO- http://rust-app:8080/ready >/dev/null'; \
+	$(KUBECTL) exec -n $(K8S_NAMESPACE) deploy/web -- sh -c 'wget -qO- http://127.0.0.1:3000/healthz >/dev/null && wget -qO- http://127.0.0.1:3000 | grep -q "$(WEB_DASHBOARD_SMOKE_TEXT)" && wget -qO- http://127.0.0.1:3000/ready >/dev/null'; \
 	echo "$(GREEN)Kubernetes runtime OK$(NC)"
 
 runtime-log-scan: ## Fail on recent warning/error log lines from Docker Compose and Kubernetes

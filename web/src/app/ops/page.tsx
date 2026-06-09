@@ -17,6 +17,15 @@ import {
   WalletCards,
 } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import {
+  clearStoredSessionToken,
+  fetchCurrentSession,
+  readStoredSessionToken,
+  storeSessionToken,
+  type CurrentSession,
+} from "@/lib/session";
+import { accessSummary } from "@/lib/access";
 import styles from "./page.module.css";
 
 type ApiState = "checking" | "online" | "offline";
@@ -446,6 +455,8 @@ export default function Home() {
     body: "No request sent.",
     ok: true,
   });
+  const [session, setSession] = useState<CurrentSession | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
 
   const [teacherForm, setTeacherForm] = useState({
     requested_scope: DEFAULT_TEACHER_APPLICATION_SCOPE,
@@ -538,6 +549,32 @@ export default function Home() {
       controller.abort();
     };
   }, [apiRoot, healthCheckTick]);
+
+  useEffect(() => {
+    const storedToken = readStoredSessionToken();
+    if (storedToken) {
+      setToken(storedToken);
+      fetchCurrentSession({ token: storedToken })
+        .then((s) => {
+          setSession(s);
+          const access = accessSummary(s);
+          if (!access.platformAdmin) {
+            setSessionMessage("Signed in (Not an operator)");
+          } else {
+            setSessionMessage("Signed in");
+          }
+          setSessionLoading(false);
+        })
+        .catch(() => {
+          clearStoredSessionToken();
+          setToken("");
+          setSessionMessage("Stored session expired or invalid");
+          setSessionLoading(false);
+        });
+    } else {
+      setSessionLoading(false);
+    }
+  }, []);
 
   const permissionGroups = useMemo(
     () =>
@@ -1024,6 +1061,7 @@ export default function Home() {
       }
 
       setToken(nextToken);
+      storeSessionToken(nextToken);
       setShowToken(false);
       resetServerDenials();
       setCredentials((current) => ({ ...current, password: "" }));
@@ -1034,6 +1072,19 @@ export default function Home() {
         body: "JWT loaded into this session.",
         ok: true,
       });
+      void fetchCurrentSession({ token: nextToken })
+        .then((s) => {
+          setSession(s);
+          const access = accessSummary(s);
+          if (!access.platformAdmin) {
+            setSessionMessage("Signed in (Not an operator)");
+          } else {
+            setSessionMessage("Signed in");
+          }
+        })
+        .catch(() => {
+          setSession(null);
+        });
     } catch (error) {
       const message = requestFailureMessage(error);
       setSessionMessage(message);
@@ -1058,6 +1109,8 @@ export default function Home() {
   }
 
   function clearSession() {
+    clearStoredSessionToken();
+    setSession(null);
     setToken("");
     setShowToken(false);
     setCredentials({ email: "", password: "" });
@@ -1320,18 +1373,20 @@ export default function Home() {
             <h2 id="api-session-title">Session</h2>
             <span className={`${styles.statusPill} ${styles[apiState]}`}>{statusLabel(apiState)}</span>
           </div>
-          <label className={styles.fieldLabel}>
-            API root
-            <input
-              value={apiRoot}
-              onChange={(event) => {
-                setApiState("checking");
-                setApiMessage("Checking API");
-                resetServerDenials();
-                setApiRoot(event.target.value);
-              }}
-            />
-          </label>
+          {process.env.NODE_ENV === "development" && (
+            <label className={styles.fieldLabel}>
+              API root
+              <input
+                value={apiRoot}
+                onChange={(event) => {
+                  setApiState("checking");
+                  setApiMessage("Checking API");
+                  resetServerDenials();
+                  setApiRoot(event.target.value);
+                }}
+              />
+            </label>
+          )}
           <form className={styles.sessionForm} onSubmit={signIn}>
             <label className={styles.fieldLabel}>
               Email
@@ -1398,8 +1453,25 @@ export default function Home() {
                   resetServerDenials();
                   setToken(nextToken);
                   if (hasText(nextToken)) {
+                    storeSessionToken(nextToken);
                     setSessionMessage("JWT loaded");
+                    void fetchCurrentSession({ token: nextToken })
+                      .then((s) => {
+                        setSession(s);
+                        const access = accessSummary(s);
+                        if (!access.platformAdmin) {
+                          setSessionMessage("Signed in (Not an operator)");
+                        } else {
+                          setSessionMessage("Signed in");
+                        }
+                      })
+                      .catch(() => {
+                        setSession(null);
+                        setSessionMessage("JWT loaded (Could not verify session)");
+                      });
                   } else {
+                    clearStoredSessionToken();
+                    setSession(null);
                     setShowToken(false);
                     setSessionMessage("Session cleared");
                     resetSessionResult();
@@ -1461,27 +1533,56 @@ export default function Home() {
       </aside>
 
       <section className={styles.workspace}>
-        <header className={styles.topbar}>
-          <div>
-            <p className={styles.eyebrow}>Business console</p>
-            <h1>Reward and teaching workflows</h1>
+        {sessionLoading ? (
+          <div className={styles.deniedPanel} role="status">
+            <h2>Resolving operations session...</h2>
           </div>
-          <button
-            type="button"
-            className={styles.iconButton}
-            disabled={apiState === "checking"}
-            aria-label="Check API health"
-            title="Check API health"
-            onClick={() => {
-              setApiState("checking");
-              setApiMessage("Checking API");
-              setHealthCheckTick((current) => current + 1);
-            }}
-          >
-            <RefreshCw size={18} aria-hidden />
-            <span>{apiState === "checking" ? "Checking" : "Check API"}</span>
-          </button>
-        </header>
+        ) : hasSessionToken && session && !accessSummary(session).platformAdmin ? (
+          <section className={styles.deniedPanel} role="status">
+            <div className={styles.panelHeader}>
+              <ShieldAlert size={24} className={styles.deniedIcon} />
+              <h2>Access Gated: Platform Admin required</h2>
+            </div>
+            <p>
+              This operations console is reserved for internal platform operators.
+              Your current session does not include the platform admin role or permissions.
+            </p>
+            <div className={styles.actionRow}>
+              <Link className={styles.primaryLink} href="/session">
+                Go to product workspace
+              </Link>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={clearSession}
+              >
+                Sign out or clear token
+              </button>
+            </div>
+          </section>
+        ) : (
+          <>
+            <header className={styles.topbar}>
+              <div>
+                <p className={styles.eyebrow}>Business console</p>
+                <h1>Reward and teaching workflows</h1>
+              </div>
+              <button
+                type="button"
+                className={styles.iconButton}
+                disabled={apiState === "checking"}
+                aria-label="Check API health"
+                title="Check API health"
+                onClick={() => {
+                  setApiState("checking");
+                  setApiMessage("Checking API");
+                  setHealthCheckTick((current) => current + 1);
+                }}
+              >
+                <RefreshCw size={18} aria-hidden />
+                <span>{apiState === "checking" ? "Checking" : "Check API"}</span>
+              </button>
+            </header>
 
         <nav className={styles.workflowNav} aria-label="Workflow sections">
           {workflowNavItems.map((item) => (
@@ -2632,6 +2733,8 @@ export default function Home() {
             {result.body}
           </pre>
         </section>
+          </>
+        )}
       </section>
     </main>
   );

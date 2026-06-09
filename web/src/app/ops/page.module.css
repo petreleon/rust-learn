@@ -760,3 +760,73 @@
     width: 100%;
   }
 }
+
+.deniedPanel {
+  border: 1px solid #fee2e2;
+  border-radius: 8px;
+  background: #fff1f2;
+  color: #7f1d1d;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.deniedIcon {
+  color: #dc2626;
+}
+
+.deniedPanel h2 {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.deniedPanel p {
+  color: #991b1b;
+  font-size: 0.95rem;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+.deniedPanel .actionRow {
+  display: flex;
+  gap: 12px;
+}
+
+.deniedPanel .primaryLink,
+.deniedPanel .secondaryButton {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  font-size: 0.88rem;
+}
+
+.deniedPanel .primaryLink {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.deniedPanel .primaryLink:hover {
+  background: #115e59;
+}
+
+.deniedPanel .secondaryButton {
+  background: #ffffff;
+  color: #1f2937;
+  border-color: #cbd5e1;
+}
+
+.deniedPanel .secondaryButton:hover {
+  background: #f8fafc;
+}

@@ -3081,3 +3081,27 @@ test("accessSummary parses permissions and workspace scopes correctly", () => {
   assert.equal(summary.organization, false);
   assert.equal(summary.platformAdmin, false);
 });
+
+test("accessSummary detects platformAdmin based on platform admin permissions", () => {
+  const adminSession = {
+    user: { id: 42, email_verified: true, name: "Admin User", email: "admin@example.test", kyc_verified: false },
+    platform: { roles: [], effective_permissions: ["VIEW_REWARD_AUDIT"] },
+    organizations: [],
+    courses: [],
+    delegated_permissions: [],
+  };
+
+  const nonAdminSession = {
+    user: { id: 43, email_verified: true, name: "Learner User", email: "learner@example.test", kyc_verified: false },
+    platform: { roles: [], effective_permissions: ["SUBMIT_TEACHER_APPLICATION"] },
+    organizations: [],
+    courses: [],
+    delegated_permissions: [],
+  };
+
+  const adminSummary = access.accessSummary(adminSession);
+  assert.equal(adminSummary.platformAdmin, true);
+
+  const nonAdminSummary = access.accessSummary(nonAdminSession);
+  assert.equal(nonAdminSummary.platformAdmin, false);
+});
