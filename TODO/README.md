@@ -41,6 +41,10 @@ application.
   traceability rule, false-agreement traps, and current recursive findings.
 - [13-milestone-06-ops-deprecation.md](13-milestone-06-ops-deprecation.md) -
   detailed plan for moving the operations console to `/ops`.
+- [14-remaining-backend-gaps.md](14-remaining-backend-gaps.md) -
+  consolidated list of genuinely buildable backend contracts that are
+  not yet implemented (assessments, notifications, pagination, invites,
+  etc.).
 
 ## Current Frontend Baseline
 
