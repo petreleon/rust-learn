@@ -26,6 +26,7 @@ import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { ProductShell, type ShellNotice } from "@/components/product-shell";
 import {
+  assignOrganizationRole,
   buildOrganizationWorkspace,
   deleteOrganization,
   downloadOrganizationRewardDashboardCsv,
@@ -379,6 +380,8 @@ export function OrganizationMembersRoute({ organizationId }: { organizationId: s
   const [permissionFilter, setPermissionFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [search, setSearch] = useState("");
+  const [assignRoleState, setAssignRoleState] = useState<SettingsSaveState>("idle");
+  const [assignRoleMessage, setAssignRoleMessage] = useState<string | null>(null);
   const notice = organizationNotice(route.error || memberError);
 
   const loadMembers = useCallback(async () => {
@@ -440,6 +443,28 @@ export function OrganizationMembersRoute({ organizationId }: { organizationId: s
     setSearch("");
   }
 
+  async function handleAssignRole(memberId: number, roleName: string) {
+    const token = readStoredSessionToken();
+    if (!token || !organization) return;
+
+    setAssignRoleState("saving");
+    setAssignRoleMessage(null);
+    try {
+      await assignOrganizationRole({
+        organizationId: organization.id,
+        payload: { roleName, userId: memberId },
+        token,
+      });
+      setAssignRoleState("success");
+      setAssignRoleMessage("Role assigned.");
+      void loadMembers();
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      setAssignRoleMessage(routeError.message);
+      setAssignRoleState("error");
+    }
+  }
+
   return (
     <ProductShell
       activeNav="organizations"
@@ -470,10 +495,14 @@ export function OrganizationMembersRoute({ organizationId }: { organizationId: s
       ) : null}
       {route.session && organization && canViewMembers ? (
         <OrganizationMembersContent
+          assignRoleMessage={assignRoleMessage}
+          assignRoleState={assignRoleState}
+          canAssignRoles={members?.operator_permissions.can_assign_roles ?? false}
           draftSearch={draftSearch}
           loadState={memberLoadState}
           members={members}
           onApplyFilters={applyFilters}
+          onAssignRole={handleAssignRole}
           onDraftSearchChange={setDraftSearch}
           onPageChange={setPage}
           onPermissionFilterChange={(nextPermission) => {
@@ -1444,10 +1473,14 @@ function PermissionGateList({ dashboard }: { dashboard: OrganizationDashboardSum
 }
 
 function OrganizationMembersContent({
+  assignRoleMessage,
+  assignRoleState,
+  canAssignRoles,
   draftSearch,
   loadState,
   members,
   onApplyFilters,
+  onAssignRole,
   onDraftSearchChange,
   onPageChange,
   onPermissionFilterChange,
@@ -1460,10 +1493,14 @@ function OrganizationMembersContent({
   roleFilter,
   routeError,
 }: {
+  assignRoleMessage: string | null;
+  assignRoleState: SettingsSaveState;
+  canAssignRoles: boolean;
   draftSearch: string;
   loadState: MemberLoadState;
   members: OrganizationMemberList | null;
   onApplyFilters: () => void;
+  onAssignRole: (memberId: number, roleName: string) => void;
   onDraftSearchChange: (value: string) => void;
   onPageChange: (page: number) => void;
   onPermissionFilterChange: (value: string) => void;
@@ -1540,6 +1577,16 @@ function OrganizationMembersContent({
         </div>
       </section>
 
+      {assignRoleMessage ? (
+        <section className={`${styles.warningPanel} ${styles.singlePanel}`} role="status">
+          <div className={styles.panelHeader}>
+            {assignRoleState === "success" ? <CheckCircle2 size={18} aria-hidden /> : <AlertTriangle size={18} aria-hidden />}
+            <h2>{assignRoleState === "success" ? "Role assigned" : "Role error"}</h2>
+          </div>
+          <p>{assignRoleMessage}</p>
+        </section>
+      ) : null}
+
       <section className={styles.summaryGrid}>
         <SummaryCard icon={<Users size={20} aria-hidden />} label="Matching members" value={members.total} />
         <SummaryCard icon={<ShieldCheck size={20} aria-hidden />} label="Delegated access" value={delegatedCount} />
@@ -1614,7 +1661,7 @@ function OrganizationMembersContent({
         {members.members.length ? (
           <div className={styles.memberGrid}>
             {members.members.map((member) => (
-              <OrganizationMemberCard member={member} key={member.id} />
+              <OrganizationMemberCard canAssignRoles={canAssignRoles} member={member} key={member.id} onAssignRole={onAssignRole} />
             ))}
           </div>
         ) : (
@@ -1651,7 +1698,15 @@ function OrganizationMembersContent({
   );
 }
 
-function OrganizationMemberCard({ member }: { member: OrganizationMemberListItem }) {
+function OrganizationMemberCard({
+  canAssignRoles,
+  member,
+  onAssignRole,
+}: {
+  canAssignRoles?: boolean;
+  member: OrganizationMemberListItem;
+  onAssignRole?: (memberId: number, roleName: string) => void;
+}) {
   const previewPermissions = member.effective_permissions.slice(0, 4);
   const remainingPermissions = member.effective_permissions.length - previewPermissions.length;
 
@@ -1676,25 +1731,82 @@ function OrganizationMemberCard({ member }: { member: OrganizationMemberListItem
         </div>
         <div className={styles.compactRow}>
           <span>KYC</span>
-          <strong>{member.kyc_verified ? "Ready" : "Not verified"}</strong>
+          <strong>{member.kyc_verified ? "Verified" : "Pending"}</strong>
+        </div>
+        <div className={styles.compactRow}>
+          <span>Joined</span>
+          <strong>{new Date(member.joined_at).toLocaleDateString()}</strong>
         </div>
       </div>
-      <div className={styles.permissionRow}>
-        {member.roles.length ? (
-          member.roles.map((role) => <span className={styles.permissionChip} key={role}>{role}</span>)
-        ) : (
-          <span className={styles.permissionChip}>No role label</span>
-        )}
-      </div>
-      <div className={styles.permissionList}>
-        {previewPermissions.length ? (
-          previewPermissions.map((permission) => <span key={permission}>{permission}</span>)
-        ) : (
-          <span>No effective permissions</span>
-        )}
-        {remainingPermissions > 0 ? <span>+{remainingPermissions} more</span> : null}
-      </div>
+      {previewPermissions.length ? (
+        <div className={styles.compactList}>
+          <div className={styles.compactRow}>
+            <span>Permissions</span>
+            <div>
+              {previewPermissions.map((p) => (
+                <span className={styles.permissionChip} key={p}>{p}</span>
+              ))}
+              {remainingPermissions > 0 ? <span className={styles.permissionChip}>+{remainingPermissions}</span> : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {member.roles.length > 1 ? (
+        <div className={styles.compactList}>
+          <div className={styles.compactRow}>
+            <span>Other roles</span>
+            <div>
+              {member.roles.slice(1).map((role) => (
+                <span className={styles.statusPill} key={role}>{formatUnderscoreLabel(role)}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {canAssignRoles && onAssignRole ? (
+        <AssignRoleControl memberId={member.id} onAssign={onAssignRole} />
+      ) : null}
     </article>
+  );
+}
+
+function AssignRoleControl({
+  memberId,
+  onAssign,
+}: {
+  memberId: number;
+  onAssign: (memberId: number, roleName: string) => void;
+}) {
+  const [selected, setSelected] = useState("");
+  const roleOptions = organizationMemberRoleOptions.filter((r) => r.value !== "");
+
+  return (
+    <div className={styles.actionRow} style={{ gap: "0.5rem", marginTop: "0.5rem" }}>
+      <select
+        aria-label="Assign organization role"
+        onChange={(event) => setSelected(event.target.value)}
+        value={selected}
+      >
+        <option value="">Assign role…</option>
+        {roleOptions.map((role) => (
+          <option key={role.value} value={role.value}>
+            {role.label}
+          </option>
+        ))}
+      </select>
+      <button
+        className={styles.secondaryButton}
+        disabled={!selected}
+        onClick={() => {
+          if (!selected) return;
+          onAssign(memberId, selected);
+        }}
+        type="button"
+      >
+        <UserPlus size={17} aria-hidden />
+        Assign
+      </button>
+    </div>
   );
 }
 
