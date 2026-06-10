@@ -1,12 +1,10 @@
 use crate::db::schema::{
     courses, courses_organizations, delegated_permissions, external_transactions,
-    internal_transactions, notifications, organizations, reward_candidates, reward_compensation_records,
-    reward_execution_jobs, reward_fraud_blocks, reward_payout_records, reward_wallet_credit_records,
-    teacher_applications, transactions, transactions_external_transactions, transactions_internal_transactions,
+    internal_transactions, notifications, organizations, reward_candidates, reward_execution_jobs,
+    reward_fraud_blocks, reward_payout_records, reward_wallet_credit_records, teacher_applications,
     user_role_course, user_role_organization, users, wallets,
 };
 use crate::models::delegated_permission::DelegatedPermission;
-use crate::models::wallet::Wallet;
 use crate::models::reward_candidate::{
     RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED,
     REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_NEEDS_RECONCILIATION,
@@ -26,6 +24,7 @@ use crate::models::teacher_application::{
     TEACHER_APPLICATION_STATUS_NEEDS_CHANGES, TEACHER_APPLICATION_STATUS_REJECTED,
     TEACHER_APPLICATION_STATUS_SUBMITTED,
 };
+use crate::models::wallet::Wallet;
 use bigdecimal::BigDecimal;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
@@ -1199,7 +1198,8 @@ pub async fn platform_wallet_reconciliation(
             .load(conn)
             .await?;
 
-        let mut candidate_ids: std::collections::HashSet<i64> = credit_candidate_ids.into_iter().collect();
+        let mut candidate_ids: std::collections::HashSet<i64> =
+            credit_candidate_ids.into_iter().collect();
         if let Some(user_id) = wallet.user_id {
             let ids = reward_candidates::table
                 .filter(reward_candidates::student_user_id.eq(user_id))
@@ -1252,10 +1252,9 @@ pub async fn platform_wallet_reconciliation(
                         .or(reward_candidates::status.eq(REWARD_STATUS_NOTIFIED))
                         .or(reward_candidates::status.eq(REWARD_STATUS_COMPLETED)),
                 )
-                .left_join(
-                    reward_wallet_credit_records::table
-                        .on(reward_candidates::id.eq(reward_wallet_credit_records::reward_candidate_id)),
-                )
+                .left_join(reward_wallet_credit_records::table.on(
+                    reward_candidates::id.eq(reward_wallet_credit_records::reward_candidate_id),
+                ))
                 .filter(reward_wallet_credit_records::id.is_null())
                 .count()
                 .get_result(conn)
@@ -1272,15 +1271,14 @@ pub async fn platform_wallet_reconciliation(
                         .eq(REWARD_STATUS_NOTIFIED)
                         .or(reward_candidates::status.eq(REWARD_STATUS_COMPLETED)),
                 )
-                .left_join(
-                    reward_wallet_credit_records::table
-                        .on(reward_candidates::id.eq(reward_wallet_credit_records::reward_candidate_id)),
-                )
+                .left_join(reward_wallet_credit_records::table.on(
+                    reward_candidates::id.eq(reward_wallet_credit_records::reward_candidate_id),
+                ))
                 .filter(
                     reward_wallet_credit_records::notification_id.is_null().or(
-                        reward_wallet_credit_records::notification_id.is_null().and(
-                            reward_wallet_credit_records::id.is_not_null(),
-                        ),
+                        reward_wallet_credit_records::notification_id
+                            .is_null()
+                            .and(reward_wallet_credit_records::id.is_not_null()),
                     ),
                 )
                 .count()

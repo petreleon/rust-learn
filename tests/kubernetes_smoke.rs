@@ -60,9 +60,15 @@ mod kubernetes_smoke {
             .await
             .expect("api ready reachable in k8s");
         let status = resp.status().as_u16();
-        assert!(status == 200 || status == 503, "ready should be 200 or 503, got {status}");
+        assert!(
+            status == 200 || status == 503,
+            "ready should be 200 or 503, got {status}"
+        );
         let body: serde_json::Value = resp.json().await.expect("json body");
-        assert!(body["status"].is_string(), "ready body should have status string");
+        assert!(
+            body["status"].is_string(),
+            "ready body should have status string"
+        );
         let checks = body["checks"].as_array().expect("checks array");
         assert!(!checks.is_empty(), "ready should return at least one check");
     }
@@ -77,7 +83,10 @@ mod kubernetes_smoke {
             .expect("web /admin reachable in k8s");
         assert_eq!(resp.status().as_u16(), 200);
         let body = resp.text().await.expect("text body");
-        assert!(body.contains("Platform admin"), "admin page should render in k8s");
+        assert!(
+            body.contains("Platform admin"),
+            "admin page should render in k8s"
+        );
     }
 
     #[tokio::test]
@@ -90,7 +99,10 @@ mod kubernetes_smoke {
             .expect("web /admin/system reachable in k8s");
         assert_eq!(resp.status().as_u16(), 200);
         let body = resp.text().await.expect("text body");
-        assert!(body.contains("System status"), "system page should render in k8s");
+        assert!(
+            body.contains("System status"),
+            "system page should render in k8s"
+        );
     }
 
     #[tokio::test]

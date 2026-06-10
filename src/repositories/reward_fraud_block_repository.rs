@@ -46,16 +46,19 @@ pub async fn list_reward_fraud_blocks(
         count_query = count_query.filter(reward_fraud_blocks::scope_type.eq(scope_type));
     }
     if let Some(teacher_user_id) = filter.teacher_user_id {
-        count_query = count_query.filter(reward_fraud_blocks::teacher_user_id.eq(Some(teacher_user_id)));
+        count_query =
+            count_query.filter(reward_fraud_blocks::teacher_user_id.eq(Some(teacher_user_id)));
     }
     if let Some(organization_id) = filter.organization_id {
-        count_query = count_query.filter(reward_fraud_blocks::organization_id.eq(Some(organization_id)));
+        count_query =
+            count_query.filter(reward_fraud_blocks::organization_id.eq(Some(organization_id)));
     }
     if let Some(course_id) = filter.course_id {
         count_query = count_query.filter(reward_fraud_blocks::course_id.eq(Some(course_id)));
     }
     if let Some(reward_policy_id) = filter.reward_policy_id {
-        count_query = count_query.filter(reward_fraud_blocks::reward_policy_id.eq(Some(reward_policy_id)));
+        count_query =
+            count_query.filter(reward_fraud_blocks::reward_policy_id.eq(Some(reward_policy_id)));
     }
     if let Some(active) = filter.active {
         if active {

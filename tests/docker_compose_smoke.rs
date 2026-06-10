@@ -57,7 +57,10 @@ mod docker_compose_smoke {
             .await
             .expect("api ready reachable");
         let status = resp.status().as_u16();
-        assert!(status == 200 || status == 503, "ready should be 200 or 503, got {status}");
+        assert!(
+            status == 200 || status == 503,
+            "ready should be 200 or 503, got {status}"
+        );
     }
 
     #[tokio::test]
@@ -70,7 +73,10 @@ mod docker_compose_smoke {
             .expect("web /admin reachable");
         assert_eq!(resp.status().as_u16(), 200);
         let body = resp.text().await.expect("text body");
-        assert!(body.contains("Platform admin"), "admin page should contain platform admin text");
+        assert!(
+            body.contains("Platform admin"),
+            "admin page should contain platform admin text"
+        );
     }
 
     #[tokio::test]

@@ -194,7 +194,10 @@ async fn get_platform_wallet_reconciliation(pool: web::Data<db::DbPool>) -> impl
     match platform_wallet_reconciliation(&mut conn).await {
         Ok(data) => HttpResponse::Ok().json(data),
         Err(err) => {
-            log::error!("event=report_load_failed scope=platform report=wallet_reconciliation error={:?}", err);
+            log::error!(
+                "event=report_load_failed scope=platform report=wallet_reconciliation error={:?}",
+                err
+            );
             HttpResponse::InternalServerError().body("Failed to load wallet reconciliation")
         }
     }
