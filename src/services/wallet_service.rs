@@ -1290,3 +1290,599 @@ fn wallet_interaction_for_transfer(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::wallet_token_deposit_intent::{
+        WalletTokenDepositIntent, WALLET_DEPOSIT_STATUS_AMBIGUOUS,
+        WALLET_DEPOSIT_STATUS_CREDITED, WALLET_DEPOSIT_STATUS_PENDING,
+    };
+    use bigdecimal::BigDecimal;
+    use chrono::Utc;
+
+    fn pending_intent() -> WalletTokenDepositIntent {
+        WalletTokenDepositIntent {
+            id: 1,
+            user_id: 1,
+            wallet_id: 1,
+            ethereum_address: "0xuser".into(),
+            platform_address: "0xplatform".into(),
+            amount: BigDecimal::from(100),
+            gas_payer: TOKEN_TRANSFER_GAS_PAYER_USER.to_string(),
+            tax_amount: BigDecimal::from(0),
+            status: WALLET_DEPOSIT_STATUS_PENDING.to_string(),
+            chain_id: Some(1),
+            contract_address: Some("0xcontract".into()),
+            transaction_hash: Some("0xhash".into()),
+            log_index: Some(0),
+            event_type: None,
+            external_transaction_id: None,
+            transaction_id: None,
+            wallet_provider: TOKEN_TRANSFER_WALLET_PROVIDER_METAMASK.to_string(),
+            metamask_required: true,
+            wallet_action: TOKEN_TRANSFER_ACTION_METAMASK_TRANSFER.to_string(),
+            last_error: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            credited_at: None,
+        }
+    }
+
+    fn observed_event() -> ObservedWalletDepositEvent {
+        ObservedWalletDepositEvent {
+            chain_id: 1,
+            contract_address: "0xcontract".into(),
+            transaction_hash: "0xhash".into(),
+            log_index: 0,
+            event_type: TOKEN_TRANSFER_EVENT_TRANSFER.into(),
+            from_address: "0xuser".into(),
+            to_address: "0xplatform".into(),
+            amount: BigDecimal::from(100),
+        }
+    }
+
+    // ── validate_positive_amount ──
+
+    #[test]
+    fn positive_amount_passes() {
+        validate_positive_amount(&BigDecimal::from(1), "amount").unwrap();
+        validate_positive_amount(&BigDecimal::from(100), "amount").unwrap();
+    }
+
+    #[test]
+    fn zero_amount_fails() {
+        assert!(validate_positive_amount(&BigDecimal::from(0), "amount").is_err());
+    }
+
+    #[test]
+    fn negative_amount_fails() {
+        assert!(validate_positive_amount(&BigDecimal::from(-1), "amount").is_err());
+    }
+
+    // ── validate_non_negative_amount ──
+
+    #[test]
+    fn non_negative_amount_passes() {
+        validate_non_negative_amount(&BigDecimal::from(0), "tax").unwrap();
+        validate_non_negative_amount(&BigDecimal::from(10), "tax").unwrap();
+    }
+
+    #[test]
+    fn negative_amount_fails_non_negative_check() {
+        assert!(validate_non_negative_amount(&BigDecimal::from(-1), "tax").is_err());
+    }
+
+    // ── validate_transfer_request_addresses ──
+
+    #[test]
+    fn valid_addresses_pass() {
+        let req = WalletTokenTransferRequest {
+            amount: BigDecimal::from(1),
+            ethereum_address: "0x123".into(),
+            gas_payer: TOKEN_TRANSFER_GAS_PAYER_USER.into(),
+            chain_id: None,
+            contract_address: None,
+            transaction_hash: None,
+            log_index: None,
+            platform_address: None,
+        };
+        validate_transfer_request_addresses(&req).unwrap();
+    }
+
+    #[test]
+    fn empty_ethereum_address_fails() {
+        let req = WalletTokenTransferRequest {
+            amount: BigDecimal::from(1),
+            ethereum_address: "   ".into(),
+            gas_payer: TOKEN_TRANSFER_GAS_PAYER_USER.into(),
+            chain_id: None,
+            contract_address: None,
+            transaction_hash: None,
+            log_index: None,
+            platform_address: None,
+        };
+        assert!(validate_transfer_request_addresses(&req).is_err());
+    }
+
+    #[test]
+    fn empty_platform_address_fails() {
+        let req = WalletTokenTransferRequest {
+            amount: BigDecimal::from(1),
+            ethereum_address: "0x123".into(),
+            gas_payer: TOKEN_TRANSFER_GAS_PAYER_USER.into(),
+            chain_id: None,
+            contract_address: None,
+            transaction_hash: None,
+            log_index: None,
+            platform_address: Some("".into()),
+        };
+        assert!(validate_transfer_request_addresses(&req).is_err());
+    }
+
+    // ── validate_external_transaction_fields ──
+
+    #[test]
+    fn valid_external_fields_pass() {
+        let req = WalletTokenTransferRequest {
+            amount: BigDecimal::from(1),
+            ethereum_address: "0x123".into(),
+            gas_payer: TOKEN_TRANSFER_GAS_PAYER_USER.into(),
+            chain_id: Some(1),
+            contract_address: Some("0xabc".into()),
+            transaction_hash: Some("0xdef".into()),
+            log_index: Some(0),
+            platform_address: None,
+        };
+        validate_external_transaction_fields(&req).unwrap();
+    }
+
+    #[test]
+    fn rejects_zero_or_negative_chain_id() {
+        let base = WalletTokenTransferRequest {
+            amount: BigDecimal::from(1),
+            ethereum_address: "0x123".into(),
+            gas_payer: TOKEN_TRANSFER_GAS_PAYER_USER.into(),
+            chain_id: None,
+            contract_address: None,
+            transaction_hash: None,
+            log_index: None,
+            platform_address: None,
+        };
+        let mut req = base.clone();
+        req.chain_id = Some(0);
+        assert!(validate_external_transaction_fields(&req).is_err());
+        req.chain_id = Some(-1);
+        assert!(validate_external_transaction_fields(&req).is_err());
+    }
+
+    #[test]
+    fn rejects_negative_log_index() {
+        let req = WalletTokenTransferRequest {
+            amount: BigDecimal::from(1),
+            ethereum_address: "0x123".into(),
+            gas_payer: TOKEN_TRANSFER_GAS_PAYER_USER.into(),
+            chain_id: None,
+            contract_address: None,
+            transaction_hash: None,
+            log_index: Some(-1),
+            platform_address: None,
+        };
+        assert!(validate_external_transaction_fields(&req).is_err());
+    }
+
+    #[test]
+    fn rejects_empty_contract_address_when_provided() {
+        let req = WalletTokenTransferRequest {
+            amount: BigDecimal::from(1),
+            ethereum_address: "0x123".into(),
+            gas_payer: TOKEN_TRANSFER_GAS_PAYER_USER.into(),
+            chain_id: None,
+            contract_address: Some("   ".into()),
+            transaction_hash: None,
+            log_index: None,
+            platform_address: None,
+        };
+        assert!(validate_external_transaction_fields(&req).is_err());
+    }
+
+    #[test]
+    fn rejects_empty_transaction_hash_when_provided() {
+        let req = WalletTokenTransferRequest {
+            amount: BigDecimal::from(1),
+            ethereum_address: "0x123".into(),
+            gas_payer: TOKEN_TRANSFER_GAS_PAYER_USER.into(),
+            chain_id: None,
+            contract_address: None,
+            transaction_hash: Some("".into()),
+            log_index: None,
+            platform_address: None,
+        };
+        assert!(validate_external_transaction_fields(&req).is_err());
+    }
+
+    // ── validate_observed_wallet_deposit_event ──
+
+    #[test]
+    fn valid_observed_event_passes() {
+        validate_observed_wallet_deposit_event(&observed_event()).unwrap();
+    }
+
+    #[test]
+    fn rejects_invalid_observed_chain_id() {
+        let mut event = observed_event();
+        event.chain_id = 0;
+        assert!(validate_observed_wallet_deposit_event(&event).is_err());
+        event.chain_id = -1;
+        assert!(validate_observed_wallet_deposit_event(&event).is_err());
+    }
+
+    #[test]
+    fn rejects_empty_observed_transaction_hash() {
+        let mut event = observed_event();
+        event.transaction_hash = "   ".into();
+        assert!(validate_observed_wallet_deposit_event(&event).is_err());
+    }
+
+    #[test]
+    fn rejects_negative_observed_log_index() {
+        let mut event = observed_event();
+        event.log_index = -1;
+        assert!(validate_observed_wallet_deposit_event(&event).is_err());
+    }
+
+    #[test]
+    fn rejects_empty_observed_contract_address() {
+        let mut event = observed_event();
+        event.contract_address = "".into();
+        assert!(validate_observed_wallet_deposit_event(&event).is_err());
+    }
+
+    #[test]
+    fn rejects_empty_observed_from_address() {
+        let mut event = observed_event();
+        event.from_address = "".into();
+        assert!(validate_observed_wallet_deposit_event(&event).is_err());
+    }
+
+    #[test]
+    fn rejects_empty_observed_to_address() {
+        let mut event = observed_event();
+        event.to_address = "".into();
+        assert!(validate_observed_wallet_deposit_event(&event).is_err());
+    }
+
+    #[test]
+    fn rejects_zero_or_negative_observed_amount() {
+        let mut event = observed_event();
+        event.amount = BigDecimal::from(0);
+        assert!(validate_observed_wallet_deposit_event(&event).is_err());
+        event.amount = BigDecimal::from(-1);
+        assert!(validate_observed_wallet_deposit_event(&event).is_err());
+    }
+
+    #[test]
+    fn rejects_unsupported_observed_event_type() {
+        let mut event = observed_event();
+        event.event_type = "swap".into();
+        assert!(validate_observed_wallet_deposit_event(&event).is_err());
+    }
+
+    // ── deposit_intent_matches_observed_event ──
+
+    #[test]
+    fn matching_intent_and_event() {
+        assert!(deposit_intent_matches_observed_event(&pending_intent(), &observed_event()));
+    }
+
+    #[test]
+    fn non_pending_intent_does_not_match() {
+        let mut intent = pending_intent();
+        intent.status = WALLET_DEPOSIT_STATUS_CREDITED.into();
+        assert!(!deposit_intent_matches_observed_event(&intent, &observed_event()));
+        intent.status = WALLET_DEPOSIT_STATUS_AMBIGUOUS.into();
+        assert!(!deposit_intent_matches_observed_event(&intent, &observed_event()));
+    }
+
+    #[test]
+    fn mismatched_address_does_not_match() {
+        let mut intent = pending_intent();
+        intent.ethereum_address = "0xother".into();
+        assert!(!deposit_intent_matches_observed_event(&intent, &observed_event()));
+    }
+
+    #[test]
+    fn mismatched_amount_does_not_match() {
+        let mut intent = pending_intent();
+        intent.amount = BigDecimal::from(200);
+        assert!(!deposit_intent_matches_observed_event(&intent, &observed_event()));
+    }
+
+    #[test]
+    fn platform_payer_matches_import_event() {
+        let mut intent = pending_intent();
+        intent.gas_payer = TOKEN_TRANSFER_GAS_PAYER_PLATFORM.into();
+        let mut event = observed_event();
+        event.event_type = TOKEN_TRANSFER_EVENT_IMPORT.into();
+        assert!(deposit_intent_matches_observed_event(&intent, &event));
+    }
+
+    #[test]
+    fn platform_payer_does_not_match_transfer_event() {
+        let mut intent = pending_intent();
+        intent.gas_payer = TOKEN_TRANSFER_GAS_PAYER_PLATFORM.into();
+        assert!(!deposit_intent_matches_observed_event(&intent, &observed_event()));
+    }
+
+    #[test]
+    fn unknown_gas_payer_does_not_match() {
+        let mut intent = pending_intent();
+        intent.gas_payer = "unknown".into();
+        assert!(!deposit_intent_matches_observed_event(&intent, &observed_event()));
+    }
+
+    #[test]
+    fn mismatched_chain_id_does_not_match() {
+        let mut intent = pending_intent();
+        intent.chain_id = Some(999);
+        assert!(!deposit_intent_matches_observed_event(&intent, &observed_event()));
+    }
+
+    #[test]
+    fn mismatched_contract_address_does_not_match() {
+        let mut intent = pending_intent();
+        intent.contract_address = Some("0xothercontract".into());
+        assert!(!deposit_intent_matches_observed_event(&intent, &observed_event()));
+    }
+
+    #[test]
+    fn mismatched_transaction_hash_does_not_match() {
+        let mut intent = pending_intent();
+        intent.transaction_hash = Some("0xotherhash".into());
+        assert!(!deposit_intent_matches_observed_event(&intent, &observed_event()));
+    }
+
+    #[test]
+    fn mismatched_log_index_does_not_match() {
+        let mut intent = pending_intent();
+        intent.log_index = Some(5);
+        assert!(!deposit_intent_matches_observed_event(&intent, &observed_event()));
+    }
+
+    #[test]
+    fn mismatched_event_type_does_not_match() {
+        let mut intent = pending_intent();
+        intent.event_type = Some("import".into());
+        assert!(!deposit_intent_matches_observed_event(&intent, &observed_event()));
+    }
+
+    #[test]
+    fn missing_optional_fields_match() {
+        let mut intent = pending_intent();
+        intent.chain_id = None;
+        intent.contract_address = None;
+        intent.transaction_hash = None;
+        intent.log_index = None;
+        intent.event_type = None;
+        assert!(deposit_intent_matches_observed_event(&intent, &observed_event()));
+    }
+
+    // ── normalize_address ──
+
+    #[test]
+    fn trims_and_lowercases() {
+        assert_eq!(normalize_address("  0xABC  "), "0xabc");
+    }
+
+    // ── addresses_equal ──
+
+    #[test]
+    fn equal_addresses_case_insensitive() {
+        assert!(addresses_equal("0xABC", "0xabc"));
+        assert!(addresses_equal("  0xABC  ", "0xabc"));
+    }
+
+    #[test]
+    fn different_addresses_not_equal() {
+        assert!(!addresses_equal("0xABC", "0xDEF"));
+    }
+
+    // ── wallet_delta_for_operation ──
+
+    #[test]
+    fn deposit_delta_is_amount_minus_tax() {
+        assert_eq!(
+            wallet_delta_for_operation(
+                WalletTokenOperation::Deposit,
+                BigDecimal::from(100),
+                BigDecimal::from(10)
+            ),
+            BigDecimal::from(90)
+        );
+    }
+
+    #[test]
+    fn deposit_delta_no_tax() {
+        assert_eq!(
+            wallet_delta_for_operation(
+                WalletTokenOperation::Deposit,
+                BigDecimal::from(100),
+                BigDecimal::from(0)
+            ),
+            BigDecimal::from(100)
+        );
+    }
+
+    #[test]
+    fn retire_delta_is_negative_amount_plus_tax() {
+        assert_eq!(
+            wallet_delta_for_operation(
+                WalletTokenOperation::Retire,
+                BigDecimal::from(100),
+                BigDecimal::from(10)
+            ),
+            BigDecimal::from(-110)
+        );
+    }
+
+    #[test]
+    fn retire_delta_no_tax() {
+        assert_eq!(
+            wallet_delta_for_operation(
+                WalletTokenOperation::Retire,
+                BigDecimal::from(100),
+                BigDecimal::from(0)
+            ),
+            BigDecimal::from(-100)
+        );
+    }
+
+    // ── wallet_interaction_for_transfer ──
+
+    #[test]
+    fn user_deposit_requires_metamask() {
+        let wi = wallet_interaction_for_transfer(
+            WalletTokenOperation::Deposit,
+            WalletTokenGasPayer::User,
+        );
+        assert_eq!(wi.provider, TOKEN_TRANSFER_WALLET_PROVIDER_METAMASK);
+        assert!(wi.metamask_required);
+        assert_eq!(wi.action, TOKEN_TRANSFER_ACTION_METAMASK_TRANSFER);
+    }
+
+    #[test]
+    fn platform_deposit_is_permit_signature() {
+        let wi = wallet_interaction_for_transfer(
+            WalletTokenOperation::Deposit,
+            WalletTokenGasPayer::Platform,
+        );
+        assert_eq!(wi.provider, TOKEN_TRANSFER_WALLET_PROVIDER_METAMASK);
+        assert!(wi.metamask_required);
+        assert_eq!(wi.action, TOKEN_TRANSFER_ACTION_METAMASK_PERMIT_SIGNATURE);
+    }
+
+    #[test]
+    fn user_retire_is_presigned_transfer() {
+        let wi = wallet_interaction_for_transfer(
+            WalletTokenOperation::Retire,
+            WalletTokenGasPayer::User,
+        );
+        assert_eq!(wi.provider, TOKEN_TRANSFER_WALLET_PROVIDER_METAMASK);
+        assert!(wi.metamask_required);
+        assert_eq!(wi.action, TOKEN_TRANSFER_ACTION_METAMASK_PRESIGNED_TRANSFER);
+    }
+
+    #[test]
+    fn platform_retire_is_platform_transfer() {
+        let wi = wallet_interaction_for_transfer(
+            WalletTokenOperation::Retire,
+            WalletTokenGasPayer::Platform,
+        );
+        assert_eq!(wi.provider, TOKEN_TRANSFER_WALLET_PROVIDER_PLATFORM);
+        assert!(!wi.metamask_required);
+        assert_eq!(wi.action, TOKEN_TRANSFER_ACTION_PLATFORM_TRANSFER);
+    }
+
+    // ── WalletTokenOperation enum ──
+
+    #[test]
+    fn operation_as_str() {
+        assert_eq!(
+            WalletTokenOperation::Deposit.as_str(),
+            TOKEN_TRANSFER_OPERATION_DEPOSIT
+        );
+        assert_eq!(
+            WalletTokenOperation::Retire.as_str(),
+            TOKEN_TRANSFER_OPERATION_RETIRE
+        );
+    }
+
+    #[test]
+    fn operation_tax_key() {
+        assert_eq!(
+            WalletTokenOperation::Deposit.tax_key(),
+            TOKEN_DEPOSIT_TAX_KEY
+        );
+        assert_eq!(
+            WalletTokenOperation::Retire.tax_key(),
+            TOKEN_RETIRE_TAX_KEY
+        );
+    }
+
+    #[test]
+    fn operation_set_tax_permission() {
+        assert_eq!(
+            WalletTokenOperation::Deposit.set_tax_permission(),
+            Permissions::SET_DEPOSIT_TAX
+        );
+        assert_eq!(
+            WalletTokenOperation::Retire.set_tax_permission(),
+            Permissions::SET_RETIRE_TAX
+        );
+    }
+
+    #[test]
+    fn operation_transaction_type() {
+        assert_eq!(
+            WalletTokenOperation::Deposit.transaction_type(),
+            TOKEN_DEPOSIT_TRANSACTION_TYPE
+        );
+        assert_eq!(
+            WalletTokenOperation::Retire.transaction_type(),
+            TOKEN_RETIRE_TRANSACTION_TYPE
+        );
+    }
+
+    #[test]
+    fn operation_external_event_type() {
+        assert_eq!(
+            WalletTokenOperation::Deposit.external_event_type(),
+            TOKEN_TRANSFER_EVENT_IMPORT
+        );
+        assert_eq!(
+            WalletTokenOperation::Retire.external_event_type(),
+            TOKEN_TRANSFER_EVENT_TRANSFER
+        );
+    }
+
+    // ── WalletTokenGasPayer enum ──
+
+    #[test]
+    fn parse_valid_gas_payers() {
+        assert_eq!(
+            WalletTokenGasPayer::parse(TOKEN_TRANSFER_GAS_PAYER_USER).unwrap(),
+            WalletTokenGasPayer::User
+        );
+        assert_eq!(
+            WalletTokenGasPayer::parse(TOKEN_TRANSFER_GAS_PAYER_PLATFORM).unwrap(),
+            WalletTokenGasPayer::Platform
+        );
+        assert_eq!(
+            WalletTokenGasPayer::parse("USER").unwrap(),
+            WalletTokenGasPayer::User
+        );
+        assert_eq!(
+            WalletTokenGasPayer::parse("  platform  ").unwrap(),
+            WalletTokenGasPayer::Platform
+        );
+    }
+
+    #[test]
+    fn parse_invalid_gas_payer_fails() {
+        assert!(WalletTokenGasPayer::parse("").is_err());
+        assert!(WalletTokenGasPayer::parse("unknown").is_err());
+        assert!(WalletTokenGasPayer::parse("admin").is_err());
+    }
+
+    #[test]
+    fn gas_payer_as_str() {
+        assert_eq!(
+            WalletTokenGasPayer::User.as_str(),
+            TOKEN_TRANSFER_GAS_PAYER_USER
+        );
+        assert_eq!(
+            WalletTokenGasPayer::Platform.as_str(),
+            TOKEN_TRANSFER_GAS_PAYER_PLATFORM
+        );
+    }
+}

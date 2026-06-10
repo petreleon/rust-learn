@@ -1380,3 +1380,450 @@ fn normalize_decision_status(status: &str) -> Result<String, TeacherApplicationE
         )),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::teacher_application::{
+        NewTeacherApplication, TeacherApplication,
+        TEACHER_APPLICATION_SCOPE_COURSE, TEACHER_APPLICATION_SCOPE_ORGANIZATION,
+        TEACHER_APPLICATION_SCOPE_PLATFORM, TEACHER_APPLICATION_STATUS_APPROVED,
+        TEACHER_APPLICATION_STATUS_NEEDS_CHANGES, TEACHER_APPLICATION_STATUS_REJECTED,
+        TEACHER_APPLICATION_STATUS_SUBMITTED,
+    };
+    use chrono::Utc;
+    use serde_json::json;
+
+    // ── normalize_scope ──
+
+    #[test]
+    fn normalizes_scope_variants() {
+        assert_eq!(normalize_scope(TEACHER_APPLICATION_SCOPE_PLATFORM).unwrap(), "platform");
+        assert_eq!(normalize_scope(TEACHER_APPLICATION_SCOPE_ORGANIZATION).unwrap(), "organization");
+        assert_eq!(normalize_scope(TEACHER_APPLICATION_SCOPE_COURSE).unwrap(), "course");
+        assert_eq!(normalize_scope("  COURSE  ").unwrap(), "course");
+        assert_eq!(normalize_scope("Platform").unwrap(), "platform");
+    }
+
+    #[test]
+    fn rejects_invalid_scope() {
+        assert!(normalize_scope("").is_err());
+        assert!(normalize_scope("unknown").is_err());
+        assert!(normalize_scope("school").is_err());
+    }
+
+    // ── normalize_status ──
+
+    #[test]
+    fn normalizes_status_variants() {
+        assert_eq!(normalize_status(TEACHER_APPLICATION_STATUS_SUBMITTED).unwrap(), "submitted");
+        assert_eq!(normalize_status(TEACHER_APPLICATION_STATUS_NEEDS_CHANGES).unwrap(), "needs_changes");
+        assert_eq!(normalize_status(TEACHER_APPLICATION_STATUS_APPROVED).unwrap(), "approved");
+        assert_eq!(normalize_status(TEACHER_APPLICATION_STATUS_REJECTED).unwrap(), "rejected");
+        assert_eq!(normalize_status("  APPROVED  ").unwrap(), "approved");
+    }
+
+    #[test]
+    fn rejects_invalid_status() {
+        assert!(normalize_status("").is_err());
+        assert!(normalize_status("pending").is_err());
+        assert!(normalize_status("in_review").is_err());
+    }
+
+    // ── normalize_decision_status ──
+
+    #[test]
+    fn normalizes_decision_statuses() {
+        assert_eq!(normalize_decision_status("approved").unwrap(), "approved");
+        assert_eq!(normalize_decision_status("rejected").unwrap(), "rejected");
+        assert_eq!(normalize_decision_status("needs_changes").unwrap(), "needs_changes");
+    }
+
+    #[test]
+    fn decision_status_rejects_submitted() {
+        assert!(normalize_decision_status(TEACHER_APPLICATION_STATUS_SUBMITTED).is_err());
+    }
+
+    #[test]
+    fn decision_status_rejects_invalid() {
+        assert!(normalize_decision_status("pending").is_err());
+        assert!(normalize_decision_status("").is_err());
+    }
+
+    // ── normalize_optional_text ──
+
+    #[test]
+    fn returns_trimmed() {
+        assert_eq!(normalize_optional_text(Some("  text  ".into())), Some("text".into()));
+    }
+
+    #[test]
+    fn returns_none_for_empty() {
+        assert_eq!(normalize_optional_text(None), None);
+        assert_eq!(normalize_optional_text(Some("".into())), None);
+        assert_eq!(normalize_optional_text(Some("   ".into())), None);
+    }
+
+    // ── normalize_idempotency_key ──
+
+    #[test]
+    fn trims_valid_key() {
+        assert_eq!(
+            normalize_idempotency_key(Some("  key  ".into())).unwrap(),
+            Some("key".into())
+        );
+    }
+
+    #[test]
+    fn rejects_blank_key() {
+        assert!(normalize_idempotency_key(Some("   ".into())).is_err());
+        assert!(normalize_idempotency_key(Some("".into())).is_err());
+    }
+
+    #[test]
+    fn none_is_ok() {
+        assert_eq!(normalize_idempotency_key(None).unwrap(), None);
+    }
+
+    // ── clean_portfolio_links ──
+
+    #[test]
+    fn trims_and_filters_empty() {
+        let links = clean_portfolio_links(Some(vec![
+            "  https://a.com  ".into(),
+            "   ".into(),
+            "https://b.com".into(),
+        ]));
+        assert_eq!(links, vec!["https://a.com", "https://b.com"]);
+    }
+
+    #[test]
+    fn empty_input_returns_empty() {
+        assert!(clean_portfolio_links(None).is_empty());
+        assert!(clean_portfolio_links(Some(vec![])).is_empty());
+        assert!(clean_portfolio_links(Some(vec!["  ".into()])).is_empty());
+    }
+
+    // ── portfolio_links_from_json ──
+
+    #[test]
+    fn extracts_strings_from_json_array() {
+        let links = portfolio_links_from_json(&json!(["  a  ", " b ", "  "]));
+        assert_eq!(links, vec!["a", "b"]);
+    }
+
+    #[test]
+    fn non_array_json_returns_empty() {
+        assert!(portfolio_links_from_json(&json!("not an array")).is_empty());
+        assert!(portfolio_links_from_json(&json!(null)).is_empty());
+        assert!(portfolio_links_from_json(&json!(123)).is_empty());
+    }
+
+    #[test]
+    fn non_string_items_skipped() {
+        let links = portfolio_links_from_json(&json!(["a", 123, null, " b "]));
+        assert_eq!(links, vec!["a", "b"]);
+    }
+
+    // ── validate_requested_scope ──
+
+    #[test]
+    fn platform_scope_always_valid() {
+        validate_requested_scope(TEACHER_APPLICATION_SCOPE_PLATFORM, None, None, None).unwrap();
+    }
+
+    #[test]
+    fn organization_scope_requires_org_or_sponsor() {
+        assert!(validate_requested_scope(TEACHER_APPLICATION_SCOPE_ORGANIZATION, Some(1), None, None).is_ok());
+        assert!(validate_requested_scope(TEACHER_APPLICATION_SCOPE_ORGANIZATION, None, None, Some(2)).is_ok());
+        assert!(validate_requested_scope(TEACHER_APPLICATION_SCOPE_ORGANIZATION, None, None, None).is_err());
+    }
+
+    #[test]
+    fn course_scope_requires_course_id() {
+        assert!(validate_requested_scope(TEACHER_APPLICATION_SCOPE_COURSE, None, Some(1), None).is_ok());
+        assert!(validate_requested_scope(TEACHER_APPLICATION_SCOPE_COURSE, None, None, None).is_err());
+    }
+
+    // ── build_new_application ──
+
+    fn valid_request() -> SubmitTeacherApplicationRequest {
+        SubmitTeacherApplicationRequest {
+            requested_scope: "platform".into(),
+            requested_organization_id: None,
+            requested_course_id: None,
+            experience_summary: "I have taught for 5 years".into(),
+            organization_sponsor_id: None,
+            portfolio_links: Some(vec!["https://port.link".into()]),
+            idempotency_key: Some("my-key".into()),
+        }
+    }
+
+    #[test]
+    fn builds_new_application() {
+        let app = build_new_application(42, valid_request(), None).unwrap();
+        assert_eq!(app.applicant_user_id, 42);
+        assert_eq!(app.requested_scope, "platform");
+        assert_eq!(app.status, TEACHER_APPLICATION_STATUS_SUBMITTED);
+        assert_eq!(app.idempotency_key, Some("my-key".into()));
+    }
+
+    #[test]
+    fn rejects_empty_experience_summary() {
+        let mut req = valid_request();
+        req.experience_summary = "   ".into();
+        assert!(build_new_application(42, req, None).is_err());
+    }
+
+    #[test]
+    fn forces_sponsor_id() {
+        let app = build_new_application(42, valid_request(), Some(99)).unwrap();
+        assert_eq!(app.organization_sponsor_id, Some(99));
+    }
+
+    #[test]
+    fn sponsored_org_scope_allows_missing_organization_id() {
+        let mut req = valid_request();
+        req.requested_scope = "organization".into();
+        req.requested_organization_id = None;
+        let app = build_new_application(42, req, Some(10)).unwrap();
+        assert_eq!(app.requested_scope, "organization");
+        assert_eq!(app.organization_sponsor_id, Some(10));
+    }
+
+    // ── ensure_idempotent_application_matches ──
+
+    fn existing_app() -> TeacherApplication {
+        TeacherApplication {
+            id: 1,
+            applicant_user_id: 42,
+            requested_scope: "platform".into(),
+            requested_organization_id: None,
+            requested_course_id: None,
+            experience_summary: "I have taught for 5 years".into(),
+            organization_sponsor_id: None,
+            portfolio_links: json!(["https://port.link"]),
+            status: TEACHER_APPLICATION_STATUS_SUBMITTED.into(),
+            reviewer_id: None,
+            decision_reason: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            decided_at: None,
+            idempotency_key: Some("my-key".into()),
+        }
+    }
+
+    fn matching_new_app() -> NewTeacherApplication {
+        NewTeacherApplication {
+            applicant_user_id: 42,
+            requested_scope: "platform".into(),
+            requested_organization_id: None,
+            requested_course_id: None,
+            experience_summary: "I have taught for 5 years".into(),
+            organization_sponsor_id: None,
+            portfolio_links: json!(["https://port.link"]),
+            status: TEACHER_APPLICATION_STATUS_SUBMITTED.into(),
+            idempotency_key: Some("my-key".into()),
+        }
+    }
+
+    #[test]
+    fn matches_identical_application() {
+        ensure_idempotent_application_matches(&existing_app(), &matching_new_app()).unwrap();
+    }
+
+    #[test]
+    fn mismatch_different_user_id() {
+        let mut new_app = matching_new_app();
+        new_app.applicant_user_id = 99;
+        assert!(ensure_idempotent_application_matches(&existing_app(), &new_app).is_err());
+    }
+
+    #[test]
+    fn mismatch_different_scope() {
+        let mut new_app = matching_new_app();
+        new_app.requested_scope = "course".into();
+        assert!(ensure_idempotent_application_matches(&existing_app(), &new_app).is_err());
+    }
+
+    #[test]
+    fn mismatch_different_experience() {
+        let mut new_app = matching_new_app();
+        new_app.experience_summary = "Different".into();
+        assert!(ensure_idempotent_application_matches(&existing_app(), &new_app).is_err());
+    }
+
+    // ── teacher_application_summary ──
+
+    fn app_with_status(status: &str) -> TeacherApplication {
+        let mut app = existing_app();
+        app.status = status.into();
+        app
+    }
+
+    #[test]
+    fn counts_by_status() {
+        let apps = vec![
+            app_with_status(TEACHER_APPLICATION_STATUS_SUBMITTED),
+            app_with_status(TEACHER_APPLICATION_STATUS_SUBMITTED),
+            app_with_status(TEACHER_APPLICATION_STATUS_APPROVED),
+            app_with_status(TEACHER_APPLICATION_STATUS_REJECTED),
+            app_with_status(TEACHER_APPLICATION_STATUS_NEEDS_CHANGES),
+        ];
+        let summary = teacher_application_summary(&apps);
+        assert_eq!(summary.total, 5);
+        assert_eq!(summary.submitted, 2);
+        assert_eq!(summary.approved, 1);
+        assert_eq!(summary.rejected, 1);
+        assert_eq!(summary.needs_changes, 1);
+    }
+
+    #[test]
+    fn empty_applications_produces_zeroes() {
+        let summary = teacher_application_summary(&[]);
+        assert_eq!(summary.total, 0);
+        assert_eq!(summary.submitted, 0);
+        assert_eq!(summary.approved, 0);
+    }
+
+    // ── build_audit_summaries ──
+
+    fn audit_event(application_id: i64, event_type: &str) -> TeacherApplicationAuditEvent {
+        TeacherApplicationAuditEvent {
+            id: application_id,
+            application_id,
+            actor_user_id: None,
+            event_type: event_type.into(),
+            from_status: None,
+            to_status: "submitted".into(),
+            reason: None,
+            created_at: Utc::now(),
+        }
+    }
+
+    #[test]
+    fn builds_summaries_from_events() {
+        let events = vec![
+            audit_event(1, "submitted"),
+            audit_event(1, "reviewed"),
+            audit_event(2, "submitted"),
+        ];
+        let summaries = build_audit_summaries(events);
+        assert_eq!(summaries.len(), 2);
+        assert_eq!(summaries[&1].event_count, 2);
+        assert_eq!(summaries[&2].event_count, 1);
+    }
+
+    #[test]
+    fn latest_event_overwrites_previous() {
+        let earlier = Utc::now();
+        let later = earlier + chrono::Duration::hours(1);
+        let events = vec![
+            TeacherApplicationAuditEvent {
+                id: 1,
+                application_id: 1,
+                actor_user_id: None,
+                event_type: "first".into(),
+                from_status: None,
+                to_status: "".into(),
+                reason: None,
+                created_at: earlier,
+            },
+            TeacherApplicationAuditEvent {
+                id: 2,
+                application_id: 1,
+                actor_user_id: None,
+                event_type: "second".into(),
+                from_status: None,
+                to_status: "".into(),
+                reason: Some("final reason".into()),
+                created_at: later,
+            },
+        ];
+        let summaries = build_audit_summaries(events);
+        assert_eq!(summaries[&1].event_count, 2);
+        assert_eq!(summaries[&1].latest_event_type, Some("second".into()));
+    }
+
+    // ── organization_application_matches_search ──
+
+    fn org_item(name: &str, email: &str, status: &str, scope: &str) -> OrganizationTeacherApplicationItem {
+        OrganizationTeacherApplicationItem {
+            id: 1,
+            applicant: TeacherApplicationUserSummary { id: 1, name: name.into(), email: email.into() },
+            requested_scope: scope.into(),
+            requested_organization: None,
+            requested_course: None,
+            sponsored_by_this_organization: false,
+            requested_for_this_organization: false,
+            experience_summary: "".into(),
+            portfolio_links: vec![],
+            status: status.into(),
+            reviewer: None,
+            decision_reason: None,
+            audit: TeacherApplicationAuditSummary::default(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            decided_at: None,
+        }
+    }
+
+    #[test]
+    fn matches_by_applicant_name() {
+        let item = org_item("Alice Smith", "a@e.com", "submitted", "course");
+        assert!(organization_application_matches_search(&item, "alice"));
+        assert!(!organization_application_matches_search(&item, "bob"));
+    }
+
+    #[test]
+    fn matches_by_status() {
+        let item = org_item("A", "a@e.com", "submitted", "course");
+        assert!(organization_application_matches_search(&item, "submitted"));
+    }
+
+    #[test]
+    fn matches_by_scope() {
+        let item = org_item("A", "a@e.com", "s", "organization");
+        assert!(organization_application_matches_search(&item, "organization"));
+    }
+
+    // ── platform_application_matches_search ──
+
+    fn platform_item(id: i64, name: &str, email: &str, status: &str) -> PlatformTeacherApplicationItem {
+        PlatformTeacherApplicationItem {
+            id,
+            applicant: TeacherApplicationUserSummary { id: 1, name: name.into(), email: email.into() },
+            requested_scope: "platform".into(),
+            requested_organization: None,
+            requested_course: None,
+            sponsor_organization: None,
+            experience_summary: "".into(),
+            portfolio_links: vec![],
+            status: status.into(),
+            reviewer: None,
+            decision_reason: None,
+            audit: TeacherApplicationAuditSummary::default(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            decided_at: None,
+        }
+    }
+
+    #[test]
+    fn matches_by_application_id() {
+        let item = platform_item(42, "A", "a@e.com", "submitted");
+        assert!(platform_application_matches_search(&item, "42"));
+    }
+
+    #[test]
+    fn matches_by_status_differs_from_org_search() {
+        let item = platform_item(1, "Alice", "a@e.com", "approved");
+        assert!(platform_application_matches_search(&item, "approved"));
+    }
+
+    #[test]
+    fn does_not_match_unrelated_text() {
+        let item = platform_item(1, "Alice", "a@e.com", "submitted");
+        assert!(!platform_application_matches_search(&item, "xyzzy"));
+    }
+}

@@ -1237,3 +1237,317 @@ async fn resolve_active_reward_policy(
         .await
         .optional()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::reward_candidate::{
+        REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED,
+        REWARD_STATUS_COMPLETED, REWARD_STATUS_NEEDS_RECONCILIATION,
+        REWARD_STATUS_NOTIFIED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+        REWARD_STATUS_TEACHER_APPROVED, REWARD_STATUS_TEACHER_REJECTED,
+        REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_WALLET_CREDITED,
+    };
+    use bigdecimal::BigDecimal;
+    use chrono::Utc;
+    use serde_json::json;
+
+    fn candidate_with_status(status: &str, approved_amount: Option<BigDecimal>) -> RewardCandidate {
+        RewardCandidate {
+            id: 1,
+            course_id: 1,
+            student_user_id: 2,
+            submitter_user_id: 3,
+            source_scope: "course".into(),
+            source_organization_id: None,
+            event_type: "course_completion".into(),
+            idempotency_key: "test:key".into(),
+            evidence: json!({"completion_percentage": 100.0}),
+            status: status.into(),
+            teacher_approver_user_id: None,
+            teacher_decision_reason: None,
+            teacher_decided_at: None,
+            amount_reviewer_user_id: None,
+            approved_amount,
+            amount_decision_reason: None,
+            amount_decided_at: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    fn candidate_amount_approved() -> RewardCandidate {
+        candidate_with_status(REWARD_STATUS_AMOUNT_APPROVED, Some(BigDecimal::from(100)))
+    }
+
+    // ── ensure_candidate_ready_for_payout ──
+
+    #[test]
+    fn amount_approved_is_ready() {
+        ensure_candidate_ready_for_payout(&candidate_amount_approved()).unwrap();
+    }
+
+    #[test]
+    fn pending_teacher_approval_is_not_ready() {
+        assert!(ensure_candidate_ready_for_payout(&candidate_with_status(
+            REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+            None
+        ))
+        .is_err());
+    }
+
+    #[test]
+    fn teacher_approved_is_not_ready() {
+        assert!(ensure_candidate_ready_for_payout(&candidate_with_status(
+            REWARD_STATUS_TEACHER_APPROVED,
+            None
+        ))
+        .is_err());
+    }
+
+    #[test]
+    fn teacher_rejected_is_not_ready() {
+        assert!(ensure_candidate_ready_for_payout(&candidate_with_status(
+            REWARD_STATUS_TEACHER_REJECTED,
+            None
+        ))
+        .is_err());
+    }
+
+    #[test]
+    fn amount_rejected_is_not_ready() {
+        assert!(ensure_candidate_ready_for_payout(&candidate_with_status(
+            REWARD_STATUS_AMOUNT_REJECTED,
+            None
+        ))
+        .is_err());
+    }
+
+    #[test]
+    fn completed_is_not_ready() {
+        assert!(ensure_candidate_ready_for_payout(&candidate_with_status(
+            REWARD_STATUS_COMPLETED,
+            Some(BigDecimal::from(100))
+        ))
+        .is_err());
+    }
+
+    // ── approved_positive_amount ──
+
+    #[test]
+    fn returns_approved_amount_when_positive() {
+        assert_eq!(
+            approved_positive_amount(&candidate_with_status(
+                REWARD_STATUS_AMOUNT_APPROVED,
+                Some(BigDecimal::from(50))
+            ))
+            .unwrap(),
+            BigDecimal::from(50)
+        );
+    }
+
+    #[test]
+    fn fails_when_no_approved_amount() {
+        assert!(approved_positive_amount(&candidate_with_status(
+            REWARD_STATUS_AMOUNT_APPROVED,
+            None
+        ))
+        .is_err());
+    }
+
+    #[test]
+    fn fails_when_amount_is_zero() {
+        assert!(approved_positive_amount(&candidate_with_status(
+            REWARD_STATUS_AMOUNT_APPROVED,
+            Some(BigDecimal::from(0))
+        ))
+        .is_err());
+    }
+
+    #[test]
+    fn fails_when_amount_is_negative() {
+        assert!(approved_positive_amount(&candidate_with_status(
+            REWARD_STATUS_AMOUNT_APPROVED,
+            Some(BigDecimal::from(-1))
+        ))
+        .is_err());
+    }
+
+    // ── ensure_candidate_reconcilable ──
+
+    #[test]
+    fn post_amount_states_are_reconcilable() {
+        for status in &[
+            REWARD_STATUS_AMOUNT_APPROVED,
+            REWARD_STATUS_TOKEN_CONFIRMED,
+            REWARD_STATUS_WALLET_CREDITED,
+            REWARD_STATUS_NOTIFIED,
+            REWARD_STATUS_COMPLETED,
+            REWARD_STATUS_NEEDS_RECONCILIATION,
+        ] {
+            ensure_candidate_reconcilable(&candidate_with_status(status, Some(BigDecimal::from(1))))
+                .unwrap();
+        }
+    }
+
+    #[test]
+    fn pre_amount_states_are_not_reconcilable() {
+        for status in &[
+            REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+            REWARD_STATUS_TEACHER_APPROVED,
+            REWARD_STATUS_TEACHER_REJECTED,
+            REWARD_STATUS_AMOUNT_REJECTED,
+        ] {
+            assert!(
+                ensure_candidate_reconcilable(&candidate_with_status(status, None)).is_err(),
+                "status {} should not be reconcilable",
+                status
+            );
+        }
+    }
+
+    // ── should_create_reconciliation_wallet_credit ──
+
+    #[test]
+    fn creates_credit_for_amount_approved_and_token_confirmed_and_needs_reconciliation() {
+        for status in &[
+            REWARD_STATUS_AMOUNT_APPROVED,
+            REWARD_STATUS_TOKEN_CONFIRMED,
+            REWARD_STATUS_NEEDS_RECONCILIATION,
+        ] {
+            assert!(
+                should_create_reconciliation_wallet_credit(&candidate_with_status(
+                    status,
+                    Some(BigDecimal::from(1))
+                )),
+                "status {} should create reconciliation credit",
+                status
+            );
+        }
+    }
+
+    #[test]
+    fn does_not_create_credit_for_late_states() {
+        for status in &[
+            REWARD_STATUS_WALLET_CREDITED,
+            REWARD_STATUS_NOTIFIED,
+            REWARD_STATUS_COMPLETED,
+        ] {
+            assert!(
+                !should_create_reconciliation_wallet_credit(&candidate_with_status(
+                    status,
+                    Some(BigDecimal::from(1))
+                )),
+                "status {} should not create reconciliation credit",
+                status
+            );
+        }
+    }
+
+    // ── validate_token_confirmation_request ──
+
+    fn valid_token_request() -> RewardTokenConfirmationRequest {
+        RewardTokenConfirmationRequest {
+            chain_id: 1,
+            contract_address: "0x1234".into(),
+            transaction_hash: "0xabc".into(),
+            log_index: 0,
+            event_type: "transfer".into(),
+            from_address: Some("0xfrom".into()),
+            to_address: "0xto".into(),
+            amount: BigDecimal::from(50),
+        }
+    }
+
+    #[test]
+    fn valid_request_passes() {
+        validate_token_confirmation_request(&valid_token_request()).unwrap();
+    }
+
+    #[test]
+    fn rejects_zero_or_negative_chain_id() {
+        let mut req = valid_token_request();
+        req.chain_id = 0;
+        assert!(validate_token_confirmation_request(&req).is_err());
+        req.chain_id = -1;
+        assert!(validate_token_confirmation_request(&req).is_err());
+    }
+
+    #[test]
+    fn rejects_empty_contract_address() {
+        let mut req = valid_token_request();
+        req.contract_address = "   ".into();
+        assert!(validate_token_confirmation_request(&req).is_err());
+    }
+
+    #[test]
+    fn rejects_empty_transaction_hash() {
+        let mut req = valid_token_request();
+        req.transaction_hash = "".into();
+        assert!(validate_token_confirmation_request(&req).is_err());
+    }
+
+    #[test]
+    fn rejects_negative_log_index() {
+        let mut req = valid_token_request();
+        req.log_index = -1;
+        assert!(validate_token_confirmation_request(&req).is_err());
+    }
+
+    #[test]
+    fn rejects_empty_to_address() {
+        let mut req = valid_token_request();
+        req.to_address = "".into();
+        assert!(validate_token_confirmation_request(&req).is_err());
+    }
+
+    #[test]
+    fn rejects_zero_or_negative_amount() {
+        let mut req = valid_token_request();
+        req.amount = BigDecimal::from(0);
+        assert!(validate_token_confirmation_request(&req).is_err());
+        req.amount = BigDecimal::from(-1);
+        assert!(validate_token_confirmation_request(&req).is_err());
+    }
+
+    #[test]
+    fn rejects_unsupported_event_type() {
+        let mut req = valid_token_request();
+        req.event_type = "unknown".into();
+        assert!(validate_token_confirmation_request(&req).is_err());
+    }
+
+    // ── transaction_type_for_event ──
+
+    #[test]
+    fn maps_event_to_transaction_type() {
+        assert_eq!(transaction_type_for_event("mint").unwrap(), "token_mint");
+        assert_eq!(transaction_type_for_event("transfer").unwrap(), "token_transfer");
+        assert_eq!(transaction_type_for_event("import").unwrap(), "token_import");
+    }
+
+    #[test]
+    fn rejects_unknown_event() {
+        assert!(transaction_type_for_event("").is_err());
+        assert!(transaction_type_for_event("swap").is_err());
+        assert!(transaction_type_for_event("burn").is_err());
+    }
+
+    // ── RewardExecutionError from diesel::Error ──
+
+    #[test]
+    fn diesel_not_found_maps_to_no_active_policy() {
+        assert_eq!(
+            RewardExecutionError::from(diesel::result::Error::NotFound),
+            RewardExecutionError::NoActivePolicy
+        );
+    }
+
+    #[test]
+    fn diesel_other_errors_map_to_database() {
+        assert!(matches!(
+            RewardExecutionError::from(diesel::result::Error::RollbackTransaction),
+            RewardExecutionError::Database(_)
+        ));
+    }
+}

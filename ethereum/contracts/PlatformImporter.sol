@@ -3,18 +3,7 @@ pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-interface IERC20Permit {
-    function permit(
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
-}
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 
 /// @title Platform Importer
 /// @notice Allows the server (or anyone) to import tokens into the platform treasury

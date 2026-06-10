@@ -1304,3 +1304,293 @@ impl From<OrganizationMemberBuilder> for OrganizationMemberListItem {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeSet;
+
+    fn test_member(name: &str, email: &str, roles: Vec<&str>, permissions: Vec<&str>) -> OrganizationMemberListItem {
+        OrganizationMemberListItem {
+            id: 1,
+            name: name.into(),
+            email: email.into(),
+            email_verified: true,
+            kyc_verified: false,
+            joined_at: "2024-01-01T00:00:00".into(),
+            roles: roles.into_iter().map(String::from).collect(),
+            direct_permissions: permissions.clone().into_iter().map(String::from).collect(),
+            delegated_permissions: vec![],
+            effective_permissions: permissions.into_iter().map(String::from).collect(),
+            direct_permission_count: 1,
+            delegated_permission_count: 0,
+            effective_permission_count: 1,
+        }
+    }
+
+    fn test_query(search: Option<&str>, role: Option<&str>, permission: Option<&str>) -> OrganizationMemberListQuery {
+        OrganizationMemberListQuery {
+            search: search.map(String::from),
+            role: role.map(String::from),
+            permission: permission.map(String::from),
+            limit: 25,
+            offset: 0,
+        }
+    }
+
+    // ── member_matches_query ──
+
+    #[test]
+    fn matches_by_name_search() {
+        let member = test_member("Alice Johnson", "alice@example.com", vec!["teacher"], vec!["VIEW_COURSE"]);
+        assert!(member_matches_query(&member, &test_query(Some("alice"), None, None)));
+        assert!(!member_matches_query(&member, &test_query(Some("bob"), None, None)));
+    }
+
+    #[test]
+    fn matches_by_email_search() {
+        let member = test_member("Alice", "alice@example.com", vec![], vec![]);
+        assert!(member_matches_query(&member, &test_query(Some("example"), None, None)));
+        assert!(!member_matches_query(&member, &test_query(Some("gmail"), None, None)));
+    }
+
+    #[test]
+    fn matches_by_role_search() {
+        let member = test_member("Alice", "a@e.com", vec!["teacher", "admin"], vec![]);
+        assert!(member_matches_query(&member, &test_query(Some("teacher"), None, None)));
+        assert!(member_matches_query(&member, &test_query(Some("admin"), None, None)));
+    }
+
+    #[test]
+    fn matches_by_permission_search() {
+        let member = test_member("Alice", "a@e.com", vec![], vec!["VIEW_COURSE", "MANAGE_USERS"]);
+        assert!(member_matches_query(&member, &test_query(Some("view_course"), None, None)));
+    }
+
+    #[test]
+    fn search_is_case_insensitive() {
+        let member = test_member("ALICE", "ALICE@EXAMPLE.COM", vec!["TEACHER"], vec!["VIEW_COURSE"]);
+        assert!(member_matches_query(&member, &test_query(Some("alice"), None, None)));
+    }
+
+    #[test]
+    fn matches_by_exact_role_filter() {
+        let member = test_member("Alice", "a@e.com", vec!["teacher"], vec![]);
+        assert!(member_matches_query(&member, &test_query(None, Some("teacher"), None)));
+        assert!(!member_matches_query(&member, &test_query(None, Some("admin"), None)));
+    }
+
+    #[test]
+    fn role_filter_is_case_insensitive() {
+        let member = test_member("Alice", "a@e.com", vec!["TEACHER"], vec![]);
+        assert!(member_matches_query(&member, &test_query(None, Some("teacher"), None)));
+    }
+
+    #[test]
+    fn matches_by_exact_permission_filter() {
+        let member = test_member("Alice", "a@e.com", vec![], vec!["VIEW_COURSE"]);
+        assert!(member_matches_query(&member, &test_query(None, None, Some("VIEW_COURSE"))));
+        assert!(!member_matches_query(&member, &test_query(None, None, Some("MANAGE_USERS"))));
+    }
+
+    #[test]
+    fn permission_filter_is_case_insensitive() {
+        let member = test_member("Alice", "a@e.com", vec![], vec!["VIEW_COURSE"]);
+        assert!(member_matches_query(&member, &test_query(None, None, Some("view_course"))));
+    }
+
+    #[test]
+    fn all_filters_null_always_matches() {
+        let member = test_member("Alice", "a@e.com", vec![], vec![]);
+        assert!(member_matches_query(&member, &test_query(None, None, None)));
+    }
+
+    #[test]
+    fn combined_filters_all_must_match() {
+        let member = test_member("Alice", "alice@e.com", vec!["teacher"], vec!["VIEW_COURSE"]);
+        assert!(member_matches_query(&member, &test_query(Some("alice"), Some("teacher"), Some("VIEW_COURSE"))));
+        assert!(!member_matches_query(&member, &test_query(Some("bob"), Some("teacher"), Some("VIEW_COURSE"))));
+        assert!(!member_matches_query(&member, &test_query(Some("alice"), Some("admin"), Some("VIEW_COURSE"))));
+    }
+
+    // ── normalize_query_value ──
+
+    #[test]
+    fn returns_trimmed_value() {
+        assert_eq!(normalize_query_value(Some("  hello  ".into())), Some("hello".into()));
+    }
+
+    #[test]
+    fn returns_none_for_empty_or_whitespace() {
+        assert_eq!(normalize_query_value(None), None);
+        assert_eq!(normalize_query_value(Some("".into())), None);
+        assert_eq!(normalize_query_value(Some("   ".into())), None);
+    }
+
+    // ── sorted_vec ──
+
+    #[test]
+    fn sorts_and_collects() {
+        let mut set = BTreeSet::new();
+        set.insert("c".into());
+        set.insert("a".into());
+        set.insert("b".into());
+        assert_eq!(sorted_vec(set), vec!["a", "b", "c"]);
+    }
+
+    // ── gated summaries ──
+
+    #[test]
+    fn gated_member_summary_has_correct_permission() {
+        let summary = gated_member_summary();
+        assert!(!summary.available);
+        assert_eq!(summary.missing_permissions, vec![Permissions::VIEW_ORGANIZATION.to_string()]);
+        assert_eq!(summary.total, 0);
+    }
+
+    #[test]
+    fn gated_course_summary_has_correct_permission() {
+        let summary = gated_course_summary();
+        assert!(!summary.available);
+        assert_eq!(summary.missing_permissions, vec![Permissions::VIEW_ORGANIZATION.to_string()]);
+    }
+
+    // ── organization_dashboard_alerts ──
+
+    fn course_summary(available: bool, needs_changes: i64) -> OrganizationDashboardCourseSummary {
+        OrganizationDashboardCourseSummary {
+            available,
+            missing_permissions: if available { vec![] } else { vec!["test".into()] },
+            total: 10,
+            draft: 0, submitted: 0, needs_changes,
+            approved: 0, published: 0, suspended: 0, archived: 0,
+        }
+    }
+
+    fn ta_summary(available: bool, submitted: i64) -> OrganizationDashboardTeacherApplicationSummary {
+        OrganizationDashboardTeacherApplicationSummary {
+            available,
+            missing_permissions: if available { vec![] } else { vec!["test".into()] },
+            submitted, approved: 0, rejected: 0, needs_changes: 0, total: 0,
+        }
+    }
+
+    fn reward_summary(available: bool, failed: i64, needs_reconciliation: i64) -> OrganizationDashboardRewardSummary {
+        OrganizationDashboardRewardSummary {
+            available,
+            missing_permissions: if available { vec![] } else { vec!["test".into()] },
+            reward_candidate_count: 0,
+            approved_reward_count: 0,
+            approved_amount_total: "0".into(),
+            failed_count: failed,
+            needs_reconciliation_count: needs_reconciliation,
+        }
+    }
+
+    fn wallet_summary(available: bool) -> OrganizationDashboardWalletSummary {
+        OrganizationDashboardWalletSummary {
+            available,
+            missing_permissions: if available { vec![] } else { vec!["test".into()] },
+            wallet_count: if available { 1 } else { 0 },
+            balance_total: "0".into(),
+        }
+    }
+
+    fn operator_permissions() -> OrganizationDashboardOperatorPermissions {
+        OrganizationDashboardOperatorPermissions {
+            can_view_dashboard: true,
+            can_view_members: true,
+            can_view_courses: true,
+            can_view_reports: true,
+            can_view_teacher_applications: true,
+            can_nominate_teachers: true,
+            can_manage_wallets: true,
+            can_manage_reward_budget: true,
+        }
+    }
+
+    #[test]
+    fn no_alerts_when_everything_clean() {
+        let alerts = organization_dashboard_alerts(
+            1,
+            &course_summary(true, 0),
+            &ta_summary(true, 0),
+            &reward_summary(true, 0, 0),
+            &wallet_summary(true),
+            &operator_permissions(),
+        );
+        assert_eq!(alerts.len(), 1);
+        assert_eq!(alerts[0].kind, "no_attention_items");
+    }
+
+    #[test]
+    fn alert_when_submitted_teacher_applications() {
+        let alerts = organization_dashboard_alerts(
+            1,
+            &course_summary(true, 0),
+            &ta_summary(true, 3),
+            &reward_summary(true, 0, 0),
+            &wallet_summary(true),
+            &operator_permissions(),
+        );
+        assert!(alerts.iter().any(|a| a.kind == "teacher_applications_submitted"));
+    }
+
+    #[test]
+    fn alert_when_courses_need_changes() {
+        let alerts = organization_dashboard_alerts(
+            1,
+            &course_summary(true, 2),
+            &ta_summary(true, 0),
+            &reward_summary(true, 0, 0),
+            &wallet_summary(true),
+            &operator_permissions(),
+        );
+        assert!(alerts.iter().any(|a| a.kind == "courses_need_changes"));
+    }
+
+    #[test]
+    fn alert_when_reward_reconciliation_needed() {
+        let alerts = organization_dashboard_alerts(
+            1,
+            &course_summary(true, 0),
+            &ta_summary(true, 0),
+            &reward_summary(true, 1, 2),
+            &wallet_summary(true),
+            &operator_permissions(),
+        );
+        assert!(alerts.iter().any(|a| a.kind == "reward_reconciliation"));
+    }
+
+    #[test]
+    fn no_alerts_when_sections_are_gated() {
+        let alerts = organization_dashboard_alerts(
+            1,
+            &course_summary(false, 5),
+            &ta_summary(false, 3),
+            &reward_summary(false, 2, 1),
+            &wallet_summary(false),
+            &operator_permissions(),
+        );
+        assert_eq!(alerts.len(), 1);
+        assert_eq!(alerts[0].kind, "no_attention_items");
+    }
+
+    #[test]
+    fn alert_when_wallet_missing() {
+        let alerts = organization_dashboard_alerts(
+            1,
+            &course_summary(true, 0),
+            &ta_summary(true, 0),
+            &reward_summary(true, 0, 0),
+            &OrganizationDashboardWalletSummary {
+                available: true,
+                missing_permissions: vec![],
+                wallet_count: 0,
+                balance_total: "0".into(),
+            },
+            &operator_permissions(),
+        );
+        assert!(alerts.iter().any(|a| a.kind == "wallet_missing"));
+    }
+}

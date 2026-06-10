@@ -1310,3 +1310,376 @@ pub async fn list_reward_candidate_audit(
         .await
         .map_err(RewardCandidateError::from)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::reward_candidate::{
+        REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT, REWARD_EVENT_ASSESSMENT_COMPLETION,
+        REWARD_EVENT_COURSE_COMPLETION, REWARD_EVENT_MANUAL_COMPLETION,
+        REWARD_STATUS_ADJUSTED, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED,
+        REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_NEEDS_RECONCILIATION,
+        REWARD_STATUS_NOTIFIED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+        REWARD_STATUS_TEACHER_APPROVED, REWARD_STATUS_TEACHER_REJECTED,
+        REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_TOKEN_PENDING, REWARD_STATUS_WALLET_CREDITED,
+    };
+    use chrono::Utc;
+    use serde_json::json;
+
+    fn test_candidate(submitter_user_id: i32, teacher_approver_user_id: Option<i32>) -> RewardCandidate {
+        RewardCandidate {
+            id: 1,
+            course_id: 1,
+            student_user_id: 2,
+            submitter_user_id,
+            source_scope: "course".into(),
+            source_organization_id: None,
+            event_type: REWARD_EVENT_COURSE_COMPLETION.into(),
+            idempotency_key: "test:key".into(),
+            evidence: json!({"completion_percentage": 100.0}),
+            status: REWARD_STATUS_PENDING_TEACHER_APPROVAL.into(),
+            teacher_approver_user_id,
+            teacher_decision_reason: None,
+            teacher_decided_at: None,
+            amount_reviewer_user_id: None,
+            approved_amount: None,
+            amount_decision_reason: None,
+            amount_decided_at: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    // ── normalize_reward_event_type ──
+
+    #[test]
+    fn normalizes_event_type_variants() {
+        assert_eq!(
+            normalize_reward_event_type("assessment completion").unwrap(),
+            REWARD_EVENT_ASSESSMENT_COMPLETION
+        );
+        assert_eq!(
+            normalize_reward_event_type("Course-Completion").unwrap(),
+            REWARD_EVENT_COURSE_COMPLETION
+        );
+        assert_eq!(
+            normalize_reward_event_type("MANUAL_COMPLETION").unwrap(),
+            REWARD_EVENT_MANUAL_COMPLETION
+        );
+        assert_eq!(
+            normalize_reward_event_type("administrative_adjustment").unwrap(),
+            REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT
+        );
+    }
+
+    #[test]
+    fn normalizes_event_type_whitespace_and_mixed_cases() {
+        assert_eq!(
+            normalize_reward_event_type("  ASSESSMENT_COMPLETION  ").unwrap(),
+            REWARD_EVENT_ASSESSMENT_COMPLETION
+        );
+        assert_eq!(
+            normalize_reward_event_type("course completion").unwrap(),
+            REWARD_EVENT_COURSE_COMPLETION
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_event_type() {
+        assert!(normalize_reward_event_type("").is_err());
+        assert!(normalize_reward_event_type("unknown_event").is_err());
+        assert!(normalize_reward_event_type("random text").is_err());
+    }
+
+    // ── normalize_teacher_decision_status ──
+
+    #[test]
+    fn normalizes_teacher_approval() {
+        assert_eq!(
+            normalize_teacher_decision_status("approved").unwrap(),
+            REWARD_STATUS_TEACHER_APPROVED
+        );
+        assert_eq!(
+            normalize_teacher_decision_status("APPROVED").unwrap(),
+            REWARD_STATUS_TEACHER_APPROVED
+        );
+        assert_eq!(
+            normalize_teacher_decision_status("  approved  ").unwrap(),
+            REWARD_STATUS_TEACHER_APPROVED
+        );
+        assert_eq!(
+            normalize_teacher_decision_status(REWARD_STATUS_TEACHER_APPROVED).unwrap(),
+            REWARD_STATUS_TEACHER_APPROVED
+        );
+    }
+
+    #[test]
+    fn normalizes_teacher_rejection() {
+        assert_eq!(
+            normalize_teacher_decision_status("rejected").unwrap(),
+            REWARD_STATUS_TEACHER_REJECTED
+        );
+        assert_eq!(
+            normalize_teacher_decision_status("Rejected").unwrap(),
+            REWARD_STATUS_TEACHER_REJECTED
+        );
+        assert_eq!(
+            normalize_teacher_decision_status(REWARD_STATUS_TEACHER_REJECTED).unwrap(),
+            REWARD_STATUS_TEACHER_REJECTED
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_teacher_decision() {
+        assert!(normalize_teacher_decision_status("pending").is_err());
+        assert!(normalize_teacher_decision_status("").is_err());
+        assert!(normalize_teacher_decision_status("maybe").is_err());
+    }
+
+    // ── normalize_amount_decision_status ──
+
+    #[test]
+    fn normalizes_amount_approval_status() {
+        assert_eq!(
+            normalize_amount_decision_status("approved").unwrap(),
+            REWARD_STATUS_AMOUNT_APPROVED
+        );
+        assert_eq!(
+            normalize_amount_decision_status("APPROVED").unwrap(),
+            REWARD_STATUS_AMOUNT_APPROVED
+        );
+        assert_eq!(
+            normalize_amount_decision_status(REWARD_STATUS_AMOUNT_APPROVED).unwrap(),
+            REWARD_STATUS_AMOUNT_APPROVED
+        );
+    }
+
+    #[test]
+    fn normalizes_amount_rejection_status() {
+        assert_eq!(
+            normalize_amount_decision_status("rejected").unwrap(),
+            REWARD_STATUS_AMOUNT_REJECTED
+        );
+        assert_eq!(
+            normalize_amount_decision_status(REWARD_STATUS_AMOUNT_REJECTED).unwrap(),
+            REWARD_STATUS_AMOUNT_REJECTED
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_amount_decision() {
+        assert!(normalize_amount_decision_status("pending").is_err());
+        assert!(normalize_amount_decision_status("").is_err());
+    }
+
+    // ── normalize_reward_status ──
+
+    #[test]
+    fn normalizes_all_valid_statuses() {
+        let statuses = vec![
+            REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+            REWARD_STATUS_TEACHER_APPROVED,
+            REWARD_STATUS_TEACHER_REJECTED,
+            REWARD_STATUS_AMOUNT_APPROVED,
+            REWARD_STATUS_AMOUNT_REJECTED,
+            REWARD_STATUS_ADJUSTED,
+            REWARD_STATUS_TOKEN_PENDING,
+            REWARD_STATUS_TOKEN_CONFIRMED,
+            REWARD_STATUS_WALLET_CREDITED,
+            REWARD_STATUS_NOTIFIED,
+            REWARD_STATUS_COMPLETED,
+            REWARD_STATUS_NEEDS_RECONCILIATION,
+            REWARD_STATUS_FAILED,
+        ];
+        for status in statuses {
+            assert_eq!(normalize_reward_status(status).unwrap(), status);
+        }
+    }
+
+    #[test]
+    fn normalizes_status_with_whitespace_and_case() {
+        assert_eq!(
+            normalize_reward_status("  TEACHER_APPROVED  ").unwrap(),
+            REWARD_STATUS_TEACHER_APPROVED
+        );
+        assert_eq!(
+            normalize_reward_status("Token_Confirmed").unwrap(),
+            REWARD_STATUS_TOKEN_CONFIRMED
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_status() {
+        assert!(normalize_reward_status("").is_err());
+        assert!(normalize_reward_status("not_a_status").is_err());
+    }
+
+    // ── normalize_idempotency_key ──
+
+    #[test]
+    fn uses_provided_key() {
+        assert_eq!(
+            normalize_idempotency_key(Some("my-key".into()), 1, 2, "test_event").unwrap(),
+            "my-key"
+        );
+    }
+
+    #[test]
+    fn trims_provided_key() {
+        assert_eq!(
+            normalize_idempotency_key(Some("  my-key  ".into()), 1, 2, "test_event").unwrap(),
+            "my-key"
+        );
+    }
+
+    #[test]
+    fn rejects_blank_key() {
+        assert!(normalize_idempotency_key(Some("   ".into()), 1, 2, "test_event").is_err());
+        assert!(normalize_idempotency_key(Some("".into()), 1, 2, "test_event").is_err());
+    }
+
+    #[test]
+    fn generates_deterministic_fallback_key() {
+        assert_eq!(
+            normalize_idempotency_key(None, 42, 7, "course_completion").unwrap(),
+            "course_completion:42:7:manual"
+        );
+    }
+
+    #[test]
+    fn generated_keys_are_unique_per_combination() {
+        let a = normalize_idempotency_key(None, 1, 2, "course_completion").unwrap();
+        let b = normalize_idempotency_key(None, 1, 2, "assessment_completion").unwrap();
+        let c = normalize_idempotency_key(None, 2, 2, "course_completion").unwrap();
+        assert_ne!(a, b);
+        assert_ne!(a, c);
+        assert_ne!(b, c);
+    }
+
+    // ── ensure_evidence_number_at_least ──
+
+    #[test]
+    fn evidence_at_or_above_threshold_passes() {
+        ensure_evidence_number_at_least(&json!({"score": 80.0}), "score", 70.0).unwrap();
+        ensure_evidence_number_at_least(&json!({"score": 70.0}), "score", 70.0).unwrap();
+        ensure_evidence_number_at_least(&json!({"score": 70}), "score", 70.0).unwrap();
+    }
+
+    #[test]
+    fn evidence_below_threshold_fails() {
+        assert!(ensure_evidence_number_at_least(&json!({"score": 69.9}), "score", 70.0).is_err());
+    }
+
+    #[test]
+    fn missing_evidence_key_fails() {
+        assert!(ensure_evidence_number_at_least(&json!({"other": 80.0}), "score", 70.0).is_err());
+    }
+
+    #[test]
+    fn non_number_evidence_fails() {
+        assert!(
+            ensure_evidence_number_at_least(&json!({"score": "high"}), "score", 70.0).is_err()
+        );
+        assert!(ensure_evidence_number_at_least(&json!({"score": null}), "score", 70.0).is_err());
+    }
+
+    // ── ensure_reward_evidence_is_eligible ──
+
+    #[test]
+    fn course_completion_requires_100_percent() {
+        assert!(ensure_reward_evidence_is_eligible(
+            REWARD_EVENT_COURSE_COMPLETION,
+            &json!({"completion_percentage": 100.0})
+        )
+        .is_ok());
+        assert!(ensure_reward_evidence_is_eligible(
+            REWARD_EVENT_COURSE_COMPLETION,
+            &json!({"completion_percentage": 99.0})
+        )
+        .is_err());
+        assert!(ensure_reward_evidence_is_eligible(
+            REWARD_EVENT_COURSE_COMPLETION,
+            &json!({})
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn assessment_completion_requires_70_passing_score() {
+        assert!(ensure_reward_evidence_is_eligible(
+            REWARD_EVENT_ASSESSMENT_COMPLETION,
+            &json!({"passing_score": 70.0})
+        )
+        .is_ok());
+        assert!(ensure_reward_evidence_is_eligible(
+            REWARD_EVENT_ASSESSMENT_COMPLETION,
+            &json!({"passing_score": 69.9})
+        )
+        .is_err());
+        assert!(ensure_reward_evidence_is_eligible(
+            REWARD_EVENT_ASSESSMENT_COMPLETION,
+            &json!({})
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn manual_and_administrative_events_always_valid() {
+        assert!(ensure_reward_evidence_is_eligible(
+            REWARD_EVENT_MANUAL_COMPLETION,
+            &json!({})
+        )
+        .is_ok());
+        assert!(ensure_reward_evidence_is_eligible(
+            REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT,
+            &json!({"reason": "adjustment"})
+        )
+        .is_ok());
+    }
+
+    // ── candidate_teacher_user_ids ──
+
+    #[test]
+    fn returns_submitter_when_no_teacher_approver() {
+        let candidate = test_candidate(5, None);
+        assert_eq!(candidate_teacher_user_ids(&candidate), vec![5]);
+    }
+
+    #[test]
+    fn returns_both_when_approver_matches_submitter() {
+        let candidate = test_candidate(5, Some(5));
+        assert_eq!(candidate_teacher_user_ids(&candidate), vec![5]);
+    }
+
+    #[test]
+    fn returns_both_when_approver_differs() {
+        let candidate = test_candidate(5, Some(10));
+        assert_eq!(candidate_teacher_user_ids(&candidate), vec![5, 10]);
+    }
+
+    #[test]
+    fn deduplicates_teacher_ids() {
+        let candidate = test_candidate(5, Some(5));
+        let ids = candidate_teacher_user_ids(&candidate);
+        assert_eq!(ids.len(), 1);
+        assert_eq!(ids[0], 5);
+    }
+
+    // ── RewardCandidateError from diesel::Error ──
+
+    #[test]
+    fn diesel_not_found_maps_to_reward_not_found() {
+        assert_eq!(
+            RewardCandidateError::from(diesel::result::Error::NotFound),
+            RewardCandidateError::NotFound
+        );
+    }
+
+    #[test]
+    fn diesel_other_errors_map_to_database() {
+        assert!(matches!(
+            RewardCandidateError::from(diesel::result::Error::RollbackTransaction),
+            RewardCandidateError::Database(_)
+        ));
+    }
+}

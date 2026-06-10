@@ -2977,3 +2977,337 @@ pub async fn accept_course_organization_invite(
     })
     .await
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::course::{
+        COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED, COURSE_STATUS_DRAFT,
+        COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
+        COURSE_STATUS_SUSPENDED,
+    };
+
+    // ── course_title_search_pattern ──
+
+    #[test]
+    fn wraps_search_with_wildcards() {
+        assert_eq!(course_title_search_pattern("hello"), "%hello%");
+    }
+
+    #[test]
+    fn escapes_like_special_chars() {
+        assert_eq!(course_title_search_pattern("50%"), r"%50\%%");
+        assert_eq!(course_title_search_pattern("a_b"), r"%a\_b%");
+        assert_eq!(course_title_search_pattern(r"a\b"), r"%a\\b%");
+    }
+
+    #[test]
+    fn escapes_combined_special_chars() {
+        assert_eq!(course_title_search_pattern(r"a\%_"), r"%a\\\%\_%");
+    }
+
+    #[test]
+    fn empty_search_returns_wildcards() {
+        assert_eq!(course_title_search_pattern(""), "%%");
+    }
+
+    // ── normalize_optional_string ──
+
+    #[test]
+    fn returns_trimmed_optional_string() {
+        assert_eq!(
+            normalize_optional_string(Some("  hello  ".into())),
+            Some("hello".into())
+        );
+    }
+
+    #[test]
+    fn returns_none_for_empty_or_whitespace_os() {
+        assert_eq!(normalize_optional_string(None), None);
+        assert_eq!(normalize_optional_string(Some("".into())), None);
+        assert_eq!(normalize_optional_string(Some("   ".into())), None);
+    }
+
+    // ── content_display_state ──
+
+    #[test]
+    fn text_content_with_data_is_ready() {
+        assert_eq!(content_display_state("text", Some("data"), &None), "ready");
+        assert_eq!(content_display_state("article", Some("data"), &None), "ready");
+    }
+
+    #[test]
+    fn text_content_without_data_is_unavailable() {
+        assert_eq!(content_display_state("text", None, &None), "unavailable");
+        assert_eq!(
+            content_display_state("article", Some(""), &None),
+            "unavailable"
+        );
+    }
+
+    #[test]
+    fn media_content_without_data_is_unprocessed_upload() {
+        assert_eq!(content_display_state("video", None, &None), "unprocessed_upload");
+        assert_eq!(
+            content_display_state("video", Some(""), &None),
+            "unprocessed_upload"
+        );
+        assert_eq!(content_display_state("document", None, &None), "unprocessed_upload");
+    }
+
+    #[test]
+    fn media_with_no_processing_status_is_uploaded() {
+        assert_eq!(content_display_state("video", Some("data"), &None), "uploaded");
+    }
+
+    #[test]
+    fn processing_status_maps_correctly() {
+        assert_eq!(
+            content_display_state("video", Some("data"), &Some(("queued".into(), None))),
+            "processing"
+        );
+        assert_eq!(
+            content_display_state("video", Some("data"), &Some(("processing".into(), None))),
+            "processing"
+        );
+        assert_eq!(
+            content_display_state("video", Some("data"), &Some(("done".into(), None))),
+            "ready"
+        );
+        assert_eq!(
+            content_display_state(
+                "video",
+                Some("data"),
+                &Some(("failed".into(), Some("error".into())))
+            ),
+            "failed_processing"
+        );
+    }
+
+    #[test]
+    fn unknown_processing_status_is_uploaded() {
+        assert_eq!(
+            content_display_state("video", Some("data"), &Some(("unknown".into(), None))),
+            "uploaded"
+        );
+    }
+
+    // ── is_media_content_type ──
+
+    #[test]
+    fn recognizes_media_types() {
+        assert!(is_media_content_type("video"));
+        assert!(is_media_content_type("video/mp4"));
+        assert!(is_media_content_type("document"));
+        assert!(is_media_content_type("pdf"));
+        assert!(is_media_content_type("application/pdf"));
+    }
+
+    #[test]
+    fn rejects_non_media_types() {
+        assert!(!is_media_content_type("text"));
+        assert!(!is_media_content_type("article"));
+        assert!(!is_media_content_type(""));
+        assert!(!is_media_content_type("image"));
+    }
+
+    // ── teacher_content_publication_status ──
+
+    #[test]
+    fn inherits_course_lifecycle_status() {
+        assert_eq!(
+            teacher_content_publication_status(COURSE_STATUS_DRAFT),
+            "inherits_course_draft"
+        );
+        assert_eq!(
+            teacher_content_publication_status(COURSE_STATUS_PUBLISHED),
+            "inherits_course_published"
+        );
+    }
+
+    // ── teacher_course_dashboard_permission_names ──
+
+    #[test]
+    fn includes_all_expected_permissions() {
+        let names = teacher_course_dashboard_permission_names();
+        assert!(names.contains(&Permissions::MANAGE_COURSE_SETTINGS.to_string()));
+        assert!(names.contains(&Permissions::CREATE_CONTENT.to_string()));
+        assert!(names.contains(&Permissions::MODIFY_CONTENT.to_string()));
+        assert!(names.contains(&Permissions::APPROVE_COURSE_CONTENT.to_string()));
+        assert!(names.contains(&Permissions::MANAGE_COURSE_ENROLLMENTS.to_string()));
+        assert!(names.contains(&Permissions::APPROVE_COURSE_JOIN_REQUESTS.to_string()));
+        assert!(names.contains(&Permissions::VIEW_COURSE_REWARD_STATUS.to_string()));
+        assert!(names.contains(&Permissions::APPROVE_STUDENT_REWARD_CANDIDATE.to_string()));
+        assert!(names.contains(&Permissions::MANAGE_COURSE_REWARD_RULES.to_string()));
+        assert_eq!(names.len(), 9);
+    }
+
+    // ── TeacherCoursePermissionSummary::has_teacher_access ──
+
+    fn summary_with(permission: &str) -> TeacherCoursePermissionSummary {
+        let mut summary = TeacherCoursePermissionSummary {
+            can_manage_settings: false,
+            can_manage_content: false,
+            can_manage_enrollments: false,
+            can_view_reward_candidates: false,
+            can_approve_reward_candidates: false,
+            can_manage_reward_rules: false,
+        };
+        match permission {
+            "can_manage_settings" => summary.can_manage_settings = true,
+            "can_manage_content" => summary.can_manage_content = true,
+            "can_manage_enrollments" => summary.can_manage_enrollments = true,
+            "can_view_reward_candidates" => summary.can_view_reward_candidates = true,
+            "can_approve_reward_candidates" => summary.can_approve_reward_candidates = true,
+            "can_manage_reward_rules" => summary.can_manage_reward_rules = true,
+            _ => {}
+        }
+        summary
+    }
+
+    #[test]
+    fn has_access_when_any_permission_is_true() {
+        let perms = [
+            "can_manage_settings",
+            "can_manage_content",
+            "can_manage_enrollments",
+            "can_view_reward_candidates",
+            "can_approve_reward_candidates",
+            "can_manage_reward_rules",
+        ];
+        for p in perms {
+            assert!(summary_with(p).has_teacher_access(), "should have access with {}", p);
+        }
+    }
+
+    #[test]
+    fn no_access_when_all_permissions_false() {
+        let summary = TeacherCoursePermissionSummary {
+            can_manage_settings: false,
+            can_manage_content: false,
+            can_manage_enrollments: false,
+            can_view_reward_candidates: false,
+            can_approve_reward_candidates: false,
+            can_manage_reward_rules: false,
+        };
+        assert!(!summary.has_teacher_access());
+    }
+
+    // ── normalize_course_status ──
+
+    #[test]
+    fn normalizes_all_valid_course_statuses() {
+        let statuses = vec![
+            COURSE_STATUS_DRAFT,
+            COURSE_STATUS_SUBMITTED,
+            COURSE_STATUS_NEEDS_CHANGES,
+            COURSE_STATUS_APPROVED,
+            COURSE_STATUS_PUBLISHED,
+            COURSE_STATUS_ARCHIVED,
+            COURSE_STATUS_SUSPENDED,
+        ];
+        for status in statuses {
+            assert_eq!(normalize_course_status(status).unwrap(), status);
+        }
+    }
+
+    #[test]
+    fn normalizes_course_status_case_and_whitespace() {
+        assert_eq!(normalize_course_status("  DRAFT  ").unwrap(), COURSE_STATUS_DRAFT);
+        assert_eq!(
+            normalize_course_status("Published").unwrap(),
+            COURSE_STATUS_PUBLISHED
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_course_status() {
+        assert!(normalize_course_status("").is_err());
+        assert!(normalize_course_status("unknown").is_err());
+        assert!(normalize_course_status("deleted").is_err());
+    }
+
+    // ── Query constructors ──
+
+    #[test]
+    fn course_discovery_query_defaults() {
+        let q = CourseDiscoveryQuery::new(None, None, None, None);
+        assert_eq!(q.search, None);
+        assert_eq!(q.organization_id, None);
+        assert_eq!(q.limit, 25);
+        assert_eq!(q.offset, 0);
+    }
+
+    #[test]
+    fn course_discovery_query_clamps_limits() {
+        let q = CourseDiscoveryQuery::new(None, None, Some(0), Some(-1));
+        assert_eq!(q.limit, 1);
+        assert_eq!(q.offset, 0);
+        let q2 = CourseDiscoveryQuery::new(None, None, Some(500), None);
+        assert_eq!(q2.limit, 100);
+    }
+
+    #[test]
+    fn course_discovery_query_trims_search() {
+        let q = CourseDiscoveryQuery::new(Some("  query  ".into()), None, None, None);
+        assert_eq!(q.search, Some("query".into()));
+        let q2 = CourseDiscoveryQuery::new(Some("   ".into()), None, None, None);
+        assert_eq!(q2.search, None);
+    }
+
+    #[test]
+    fn learner_catalog_query_defaults() {
+        let q = LearnerCourseCatalogQuery::new(None, None, None, None, None, None, None);
+        assert_eq!(q.limit, 25);
+        assert_eq!(q.offset, 0);
+        assert_eq!(q.search, None);
+        assert_eq!(q.reward_available, None);
+    }
+
+    #[test]
+    fn teacher_dashboard_query_defaults() {
+        let q = TeacherCourseDashboardQuery::new(None, None, None, None);
+        assert_eq!(q.limit, 25);
+        assert_eq!(q.offset, 0);
+    }
+
+    #[test]
+    fn teacher_enrollment_query_defaults_status_to_open() {
+        let q = TeacherCourseEnrollmentQuery::new(None, None, None);
+        assert_eq!(q.status, Some("open".into()));
+        assert_eq!(q.limit, 25);
+        assert_eq!(q.offset, 0);
+    }
+
+    #[test]
+    fn teacher_enrollment_query_normalizes_custom_status() {
+        let q = TeacherCourseEnrollmentQuery::new(Some("  PENDING  ".into()), None, None);
+        assert_eq!(q.status, Some("pending".into()));
+    }
+
+    #[test]
+    fn organization_course_list_query_defaults() {
+        let q = OrganizationCourseListQuery::new(None, None, None, None, None);
+        assert_eq!(q.limit, 25);
+        assert_eq!(q.offset, 0);
+        assert_eq!(q.reward_available, None);
+    }
+
+    // ── CourseLifecycleError from diesel::Error ──
+
+    #[test]
+    fn course_lifecycle_diesel_not_found_maps_to_not_found() {
+        assert_eq!(
+            CourseLifecycleError::from(diesel::result::Error::NotFound),
+            CourseLifecycleError::NotFound
+        );
+    }
+
+    #[test]
+    fn course_lifecycle_diesel_other_errors_map_to_database() {
+        assert!(matches!(
+            CourseLifecycleError::from(diesel::result::Error::RollbackTransaction),
+            CourseLifecycleError::Database(_)
+        ));
+    }
+}
