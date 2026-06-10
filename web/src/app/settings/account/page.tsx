@@ -11,6 +11,7 @@ import {
   LogIn,
   Mail,
   RefreshCw,
+  Send,
   ShieldCheck,
   UserRound,
 } from "lucide-react";
@@ -21,14 +22,18 @@ import { fetchMyWallet, LearnerRequestError, type WalletSummary } from "@/lib/le
 import {
   clearStoredSessionToken,
   fetchCurrentSession,
+  fetchNotificationPreferences,
   readStoredSessionToken,
+  saveNotificationPreferences,
   type CurrentSession,
+  type NotificationPreferences,
   SessionRequestError,
 } from "@/lib/session";
 import styles from "./page.module.css";
 
 type LoadState = "idle" | "loading" | "success" | "error";
 type WalletLoadState = "idle" | "loading" | "success" | "error";
+type PrefsSaveState = "idle" | "saving" | "success" | "error";
 
 type RouteError = {
   code: string;
@@ -41,23 +46,10 @@ type WalletResult = {
   wallet: WalletSummary | null;
 };
 
-const notificationPreferences = [
-  {
-    checked: true,
-    detail: "Enrollment, course access, and role changes are delivered from backend events.",
-    label: "Account and access updates",
-  },
-  {
-    checked: true,
-    detail: "Teacher review, token processing, and wallet-credit events stay enabled.",
-    label: "Reward status updates",
-  },
-  {
-    checked: true,
-    detail: "Upload processing, failed media work, and course-content notices stay enabled.",
-    label: "Course activity notices",
-  },
-];
+const notificationDescription: Record<string, string> = {
+  email_enabled: "Enrollment, course access, and role changes are delivered from backend events.",
+  push_enabled: "Teacher review, token processing, and wallet-credit events stay enabled.",
+};
 
 export default function AccountSettingsPage() {
   const [hasToken, setHasToken] = useState(false);
@@ -67,6 +59,11 @@ export default function AccountSettingsPage() {
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [walletError, setWalletError] = useState<RouteError | null>(null);
   const [walletState, setWalletState] = useState<WalletLoadState>("idle");
+  const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
+  const [prefsEmail, setPrefsEmail] = useState(true);
+  const [prefsPush, setPrefsPush] = useState(false);
+  const [prefsSaveState, setPrefsSaveState] = useState<PrefsSaveState>("idle");
+  const [prefsMessage, setPrefsMessage] = useState<string | null>(null);
 
   const loadAccount = useCallback(async () => {
     const token = readStoredSessionToken();
@@ -96,6 +93,16 @@ export default function AccountSettingsPage() {
       setWallet(walletResult.wallet);
       setWalletError(walletResult.error);
       setWalletState(walletResult.error ? "error" : "success");
+
+      try {
+        const nextPrefs = await fetchNotificationPreferences({ token });
+        setPrefs(nextPrefs);
+        setPrefsEmail(nextPrefs.email_enabled);
+        setPrefsPush(nextPrefs.push_enabled);
+      } catch {
+        setPrefs(null);
+      }
+
       setLoadState("success");
     } catch (nextError) {
       const requestError = normalizeAccountError(nextError);
@@ -140,6 +147,26 @@ export default function AccountSettingsPage() {
   }
 
   const notice = accountNotice(error);
+
+  async function handleSavePrefs() {
+    const token = readStoredSessionToken();
+    if (!token) return;
+    setPrefsSaveState("saving");
+    setPrefsMessage(null);
+    try {
+      const updated = await saveNotificationPreferences({
+        emailEnabled: prefsEmail,
+        pushEnabled: prefsPush,
+        token,
+      });
+      setPrefs(updated);
+      setPrefsSaveState("success");
+      setPrefsMessage("Preferences saved.");
+    } catch (e) {
+      setPrefsMessage(e instanceof Error ? e.message : "Failed to save.");
+      setPrefsSaveState("error");
+    }
+  }
 
   return (
     <ProductShell
@@ -313,13 +340,38 @@ export default function AccountSettingsPage() {
               <h2>Notification preferences</h2>
             </div>
             <p className={styles.muted}>
-              RustLearn currently sends required account, access, reward, and course-event notices. Preference editing is disabled until the backend exposes a save contract.
+              Choose which notifications RustLearn can send. Preferences are saved to your account.
             </p>
             <div className={styles.preferenceList}>
-              {notificationPreferences.map((preference) => (
-                <PreferenceRow key={preference.label} {...preference} />
-              ))}
+              <PreferenceRow
+                checked={prefsEmail}
+                detail={notificationDescription.email_enabled}
+                disabled={prefsSaveState === "saving"}
+                label="Account and access updates"
+                onChange={setPrefsEmail}
+              />
+              <PreferenceRow
+                checked={prefsPush}
+                detail={notificationDescription.push_enabled}
+                disabled={prefsSaveState === "saving"}
+                label="Reward status updates"
+                onChange={setPrefsPush}
+              />
             </div>
+            {prefsMessage ? (
+              <p className={styles.muted} style={{ color: prefsSaveState === "error" ? "var(--color-warn, #dc2626)" : undefined }}>
+                {prefsMessage}
+              </p>
+            ) : null}
+            <button
+              className={styles.primaryLink}
+              disabled={prefsSaveState === "saving"}
+              onClick={() => void handleSavePrefs()}
+              type="button"
+            >
+              <Send size={17} aria-hidden />
+              {prefsSaveState === "saving" ? "Saving…" : "Save preferences"}
+            </button>
           </section>
         </>
       ) : null}
@@ -417,15 +469,25 @@ function WalletAccountStatus({
 function PreferenceRow({
   checked,
   detail,
+  disabled,
   label,
+  onChange,
 }: {
   checked: boolean;
   detail: string;
+  disabled?: boolean;
   label: string;
+  onChange?: (checked: boolean) => void;
 }) {
   return (
     <label className={styles.preferenceRow}>
-      <input checked={checked} disabled readOnly type="checkbox" />
+      <input
+        checked={checked}
+        disabled={disabled || !onChange}
+        onChange={onChange ? (event) => onChange(event.target.checked) : undefined}
+        readOnly={!onChange}
+        type="checkbox"
+      />
       <span>
         <strong>{label}</strong>
         <small>{detail}</small>

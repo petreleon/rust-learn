@@ -40,6 +40,11 @@ pub fn api_scope() -> Scope<
         ))
         .service(web::resource("/.well-known/jwks.json").route(web::get().to(authentication::jwks)))
         .service(web::resource("/me").route(web::get().to(session::get_current_session)))
+        .service(
+            web::resource("/me/preferences")
+                .route(web::get().to(session::get_notification_preferences))
+                .route(web::put().to(session::save_notification_preferences)),
+        )
         .service(users::user_scope())
         .service(authentication::auth_scope())
         .service(courses::course_scope())

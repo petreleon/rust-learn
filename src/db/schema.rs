@@ -505,6 +505,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    user_notification_preferences (user_id) {
+        user_id -> Int4,
+        email_enabled -> Bool,
+        push_enabled -> Bool,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     users (id) {
         id -> Int4,
         name -> Varchar,
@@ -616,6 +625,7 @@ diesel::joinable!(transactions_external_transactions -> transactions (transactio
 diesel::joinable!(transactions_internal_transactions -> internal_transactions (internal_transaction_id));
 diesel::joinable!(transactions_internal_transactions -> transactions (transaction_id));
 diesel::joinable!(upload_jobs -> users (user_id));
+diesel::joinable!(user_notification_preferences -> users (user_id));
 diesel::joinable!(user_role_course -> course_roles (course_role_id));
 diesel::joinable!(user_role_course -> courses (course_id));
 diesel::joinable!(user_role_course -> users (user_id));
@@ -673,6 +683,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     transactions_external_transactions,
     transactions_internal_transactions,
     upload_jobs,
+    user_notification_preferences,
     user_role_course,
     user_role_organization,
     user_role_platform,

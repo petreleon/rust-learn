@@ -9,6 +9,7 @@ pub mod db_version_control;
 pub mod delegated_permission;
 pub mod email_verification_token;
 pub mod notification;
+pub mod notification_preferences;
 pub mod organization;
 pub mod param_type;
 pub mod path;
