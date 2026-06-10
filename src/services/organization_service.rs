@@ -596,6 +596,33 @@ pub async fn assign_role(
     }
 }
 
+pub async fn remove_organization_member(
+    pool: &DbPool,
+    org_id: i32,
+    target_user_id: i32,
+) -> Result<(), String> {
+    use crate::db::schema::user_role_organization;
+    let mut conn = pool
+        .get()
+        .await
+        .map_err(|_| "Failed to get DB connection".to_string())?;
+
+    let deleted = diesel::delete(
+        user_role_organization::table
+            .filter(user_role_organization::organization_id.eq(org_id))
+            .filter(user_role_organization::user_id.eq(target_user_id)),
+    )
+    .execute(&mut conn)
+    .await
+    .map_err(|e| format!("Error removing member: {}", e))?;
+
+    if deleted == 0 {
+        return Err("User not found in organization".to_string());
+    }
+
+    Ok(())
+}
+
 async fn organization_dashboard_member_summary(
     conn: &mut diesel_async::AsyncPgConnection,
     organization_id: i32,

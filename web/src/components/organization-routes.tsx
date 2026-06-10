@@ -19,6 +19,7 @@ import {
   Settings,
   ShieldCheck,
   Trophy,
+  UserMinus,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -43,6 +44,7 @@ import {
   linkOrganizationWallet,
   missingOrganizationPermissions,
   OrganizationRequestError,
+  removeOrganizationMember,
   updateOrganization,
   type OrganizationCapability,
   type OrganizationCapabilityKey,
@@ -382,6 +384,8 @@ export function OrganizationMembersRoute({ organizationId }: { organizationId: s
   const [search, setSearch] = useState("");
   const [assignRoleState, setAssignRoleState] = useState<SettingsSaveState>("idle");
   const [assignRoleMessage, setAssignRoleMessage] = useState<string | null>(null);
+  const [removeMemberState, setRemoveMemberState] = useState<SettingsSaveState>("idle");
+  const [removeMemberMessage, setRemoveMemberMessage] = useState<string | null>(null);
   const notice = organizationNotice(route.error || memberError);
 
   const loadMembers = useCallback(async () => {
@@ -465,6 +469,28 @@ export function OrganizationMembersRoute({ organizationId }: { organizationId: s
     }
   }
 
+  async function handleRemoveMember(memberId: number) {
+    const token = readStoredSessionToken();
+    if (!token || !organization) return;
+
+    setRemoveMemberState("saving");
+    setRemoveMemberMessage(null);
+    try {
+      await removeOrganizationMember({
+        organizationId: organization.id,
+        token,
+        userId: memberId,
+      });
+      setRemoveMemberState("success");
+      setRemoveMemberMessage("Member removed.");
+      void loadMembers();
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      setRemoveMemberMessage(routeError.message);
+      setRemoveMemberState("error");
+    }
+  }
+
   return (
     <ProductShell
       activeNav="organizations"
@@ -498,12 +524,15 @@ export function OrganizationMembersRoute({ organizationId }: { organizationId: s
           assignRoleMessage={assignRoleMessage}
           assignRoleState={assignRoleState}
           canAssignRoles={members?.operator_permissions.can_assign_roles ?? false}
+          canManageMembers={members?.operator_permissions.can_manage_members ?? false}
           draftSearch={draftSearch}
           loadState={memberLoadState}
           members={members}
           onApplyFilters={applyFilters}
           onAssignRole={handleAssignRole}
           onDraftSearchChange={setDraftSearch}
+          onRemoveMember={handleRemoveMember}
+          removeMemberMessage={removeMemberMessage}
           onPageChange={setPage}
           onPermissionFilterChange={(nextPermission) => {
             setPermissionFilter(nextPermission);
@@ -1476,6 +1505,7 @@ function OrganizationMembersContent({
   assignRoleMessage,
   assignRoleState,
   canAssignRoles,
+  canManageMembers,
   draftSearch,
   loadState,
   members,
@@ -1485,17 +1515,20 @@ function OrganizationMembersContent({
   onPageChange,
   onPermissionFilterChange,
   onRefresh,
+  onRemoveMember,
   onResetFilters,
   onRoleFilterChange,
   organization,
   page,
   permissionFilter,
+  removeMemberMessage,
   roleFilter,
   routeError,
 }: {
   assignRoleMessage: string | null;
   assignRoleState: SettingsSaveState;
   canAssignRoles: boolean;
+  canManageMembers: boolean;
   draftSearch: string;
   loadState: MemberLoadState;
   members: OrganizationMemberList | null;
@@ -1505,11 +1538,13 @@ function OrganizationMembersContent({
   onPageChange: (page: number) => void;
   onPermissionFilterChange: (value: string) => void;
   onRefresh: () => void;
+  onRemoveMember: (memberId: number) => void;
   onResetFilters: () => void;
   onRoleFilterChange: (value: string) => void;
   organization: OrganizationWorkspaceItem;
   page: number;
   permissionFilter: string;
+  removeMemberMessage: string | null;
   roleFilter: string;
   routeError: RouteError | null;
 }) {
@@ -1661,7 +1696,14 @@ function OrganizationMembersContent({
         {members.members.length ? (
           <div className={styles.memberGrid}>
             {members.members.map((member) => (
-              <OrganizationMemberCard canAssignRoles={canAssignRoles} member={member} key={member.id} onAssignRole={onAssignRole} />
+              <OrganizationMemberCard
+                canAssignRoles={canAssignRoles}
+                canManageMembers={canManageMembers}
+                member={member}
+                key={member.id}
+                onAssignRole={onAssignRole}
+                onRemoveMember={onRemoveMember}
+              />
             ))}
           </div>
         ) : (
@@ -1700,15 +1742,20 @@ function OrganizationMembersContent({
 
 function OrganizationMemberCard({
   canAssignRoles,
+  canManageMembers,
   member,
   onAssignRole,
+  onRemoveMember,
 }: {
   canAssignRoles?: boolean;
+  canManageMembers?: boolean;
   member: OrganizationMemberListItem;
   onAssignRole?: (memberId: number, roleName: string) => void;
+  onRemoveMember?: (memberId: number) => void;
 }) {
   const previewPermissions = member.effective_permissions.slice(0, 4);
   const remainingPermissions = member.effective_permissions.length - previewPermissions.length;
+  const [removeConfirm, setRemoveConfirm] = useState(false);
 
   return (
     <article className={styles.memberCard}>
@@ -1765,6 +1812,36 @@ function OrganizationMemberCard({
       ) : null}
       {canAssignRoles && onAssignRole ? (
         <AssignRoleControl memberId={member.id} onAssign={onAssignRole} />
+      ) : null}
+      {canManageMembers && onRemoveMember ? (
+        <div className={styles.actionRow} style={{ gap: "0.5rem", marginTop: "0.5rem" }}>
+          {removeConfirm ? (
+            <>
+              <button
+                className={styles.primaryButton}
+                onClick={() => onRemoveMember(member.id)}
+                style={{ background: "var(--color-warn, #dc2626)", borderColor: "var(--color-warn, #dc2626)" }}
+                type="button"
+              >
+                <UserMinus size={17} aria-hidden />
+                Confirm
+              </button>
+              <button className={styles.secondaryButton} onClick={() => setRemoveConfirm(false)} type="button">
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              className={styles.secondaryButton}
+              onClick={() => setRemoveConfirm(true)}
+              style={{ color: "var(--color-warn, #dc2626)" }}
+              type="button"
+            >
+              <UserMinus size={17} aria-hidden />
+              Remove
+            </button>
+          )}
+        </div>
       ) : null}
     </article>
   );
