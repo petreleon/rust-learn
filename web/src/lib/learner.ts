@@ -409,6 +409,53 @@ export async function fetchCourseAssessments({
   });
 }
 
+export type AssessmentAttemptResult = {
+  attempt: {
+    assessment_id: number;
+    completed_at: string;
+    id: number;
+    passed: boolean;
+    score: number;
+    started_at: string;
+    user_id: number;
+  };
+  passed: boolean;
+  percentage: number;
+  score: number;
+  total_points: number;
+};
+
+export async function submitAssessmentAttempt({
+  apiRoot = "/api",
+  answers,
+  assessmentId,
+  courseId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: CourseDetailOptions & { assessmentId: number; answers: Record<number, string> }): Promise<AssessmentAttemptResult> {
+  return learnerJsonRequest<AssessmentAttemptResult>({
+    body: JSON.stringify({ answers }),
+    method: "POST",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/assessments/${assessmentId}/submit`,
+  });
+}
+
+export async function fetchAssessmentAttempts({
+  apiRoot = "/api",
+  assessmentId,
+  courseId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: CourseDetailOptions & { assessmentId: number }): Promise<AssessmentAttemptResult["attempt"][]> {
+  return learnerJsonRequest<AssessmentAttemptResult["attempt"][]>({
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/assessments/${assessmentId}/attempts`,
+  });
+}
+
 export async function fetchCourseProgress({
   apiRoot = "/api",
   courseId,
