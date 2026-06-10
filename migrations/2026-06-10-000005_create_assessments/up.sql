@@ -18,7 +18,7 @@ CREATE TABLE assessment_questions (
     options JSONB,
     correct_answer TEXT,
     points INTEGER NOT NULL DEFAULT 1,
-    order INTEGER NOT NULL DEFAULT 0
+    "order" INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE assessment_attempts (
