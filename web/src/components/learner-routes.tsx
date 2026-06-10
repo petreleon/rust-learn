@@ -790,6 +790,7 @@ function DashboardCourseCard({ course }: { course: CourseCatalogItem }) {
         <StatusPill label={humanize(course.enrollment.state)} tone={enrollmentTone(course.enrollment.state)} />
       </div>
       <div className={styles.metaRow}>
+        <StatusPill label={humanize(course.lifecycle_status)} tone={lifecycleTone(course.lifecycle_status)} />
         <span>{courseOrganizationLabel(course)}</span>
         <span>{courseTeacherLabel(course)}</span>
         <span>{courseContentLabel(course)}</span>
@@ -1201,6 +1202,7 @@ function CoursesContent({
             {courses.map((course) => (
               <CourseCatalogCard
                 course={course}
+                emailVerified={session.user.email_verified}
                 joining={joiningCourseId === course.id}
                 key={course.id}
                 onRequestJoin={onRequestJoin}
@@ -1247,10 +1249,12 @@ function CoursesContent({
 
 function CourseCatalogCard({
   course,
+  emailVerified,
   joining,
   onRequestJoin,
 }: {
   course: CourseCatalogItem;
+  emailVerified?: boolean;
   joining: boolean;
   onRequestJoin: (course: CourseCatalogItem) => void;
 }) {
@@ -1262,6 +1266,7 @@ function CourseCatalogCard({
   const rewardLabel = course.rewards.available
     ? `${course.rewards.active_policy_count} reward ${plural(course.rewards.active_policy_count)}`
     : "No active rewards";
+  const emailBlocked = course.enrollment.can_request_join && emailVerified === false;
 
   return (
     <article className={styles.itemCard}>
@@ -1270,7 +1275,7 @@ function CourseCatalogCard({
         <StatusPill label={humanize(course.enrollment.state)} tone={enrollmentTone(course.enrollment.state)} />
       </div>
       <div className={styles.metaRow}>
-        <span>{humanize(course.lifecycle_status)}</span>
+        <StatusPill label={humanize(course.lifecycle_status)} tone={lifecycleTone(course.lifecycle_status)} />
         <span>{organizationLabel}</span>
         <span>{teacherLabel}</span>
       </div>
@@ -1278,6 +1283,7 @@ function CourseCatalogCard({
         <span>{contentLabel}</span>
         <span>{rewardLabel}</span>
         {course.enrollment.reason ? <span>{course.enrollment.reason}</span> : null}
+        {emailBlocked ? <span className={styles.muted}>Verify your email address before requesting enrollment.</span> : null}
       </div>
       <div className={styles.actionRow}>
         <Link className={styles.secondaryLink} href={`/courses/${course.id}`}>
@@ -1285,9 +1291,14 @@ function CourseCatalogCard({
           Details
         </Link>
         {course.enrollment.can_request_join ? (
-          <button className={styles.primaryLink} disabled={joining} type="button" onClick={() => onRequestJoin(course)}>
+          <button
+            className={styles.primaryLink}
+            disabled={joining || emailBlocked}
+            type="button"
+            onClick={() => onRequestJoin(course)}
+          >
             {joining ? <Loader2 className={styles.spin} size={18} aria-hidden /> : <CheckCircle size={18} aria-hidden />}
-            Request join
+            {emailBlocked ? "Verify email first" : "Request join"}
           </button>
         ) : null}
       </div>
@@ -1749,6 +1760,14 @@ function enrollmentTone(status: string): "bad" | "good" | "neutral" | "warn" {
   if (status === "rejected" || status === "unavailable") {
     return "bad";
   }
+  return "neutral";
+}
+
+function lifecycleTone(status: string): "bad" | "good" | "neutral" | "warn" {
+  if (status === "published") return "good";
+  if (status === "suspended") return "bad";
+  if (status === "archived") return "warn";
+  if (status === "submitted" || status === "needs_changes") return "warn";
   return "neutral";
 }
 
