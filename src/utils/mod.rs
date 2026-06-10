@@ -1,5 +1,6 @@
 // src/utils/mod.rs
 
+pub mod api_error;
 pub mod jwt_utils;
 pub mod logging;
 // pub mod db_utils;
