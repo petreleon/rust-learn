@@ -740,7 +740,7 @@ async fn organization_dashboard_reward_summary(
     conn: &mut diesel_async::AsyncPgConnection,
     organization_id: i32,
 ) -> Result<OrganizationDashboardRewardSummary, OrganizationDashboardError> {
-    let reward_dashboard = organization_reward_dashboard(conn, organization_id).await?;
+    let reward_dashboard = organization_reward_dashboard(conn, organization_id, None, None).await?;
     let course_ids = courses_organizations::table
         .filter(courses_organizations::organization_id.eq(organization_id))
         .select(courses_organizations::course_id)

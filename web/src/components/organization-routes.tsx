@@ -862,6 +862,8 @@ export function OrganizationReportsRoute({ organizationId }: { organizationId: s
   const [report, setReport] = useState<OrganizationRewardDashboard | null>(null);
   const [reportError, setReportError] = useState<RouteError | null>(null);
   const [reportLoadState, setReportLoadState] = useState<ReportLoadState>("idle");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const notice = organizationNotice(route.error || reportError || csvError);
 
   const loadReport = useCallback(async () => {
@@ -875,7 +877,9 @@ export function OrganizationReportsRoute({ organizationId }: { organizationId: s
 
     try {
       const nextReport = await fetchOrganizationRewardDashboard({
+        from: dateFrom || undefined,
         organizationId: organization.id,
+        to: dateTo || undefined,
         token,
       });
       setReport(nextReport);
@@ -889,7 +893,7 @@ export function OrganizationReportsRoute({ organizationId }: { organizationId: s
       setReportError(routeError);
       setReportLoadState("error");
     }
-  }, [canViewReports, invalidOrganizationId, organization]);
+  }, [canViewReports, dateFrom, dateTo, invalidOrganizationId, organization]);
 
   useEffect(() => {
     if (route.session && organization && canViewReports) {
@@ -920,7 +924,9 @@ export function OrganizationReportsRoute({ organizationId }: { organizationId: s
 
     try {
       const csv = await downloadOrganizationRewardDashboardCsv({
+        from: dateFrom || undefined,
         organizationId: organization.id,
+        to: dateTo || undefined,
         token,
       });
       triggerCsvDownload(csv.body, csv.filename);
@@ -960,13 +966,17 @@ export function OrganizationReportsRoute({ organizationId }: { organizationId: s
         <ReportDeniedState capability={reportCapability} organizationName={organization.name} />
       ) : null}
       {route.session && organization && canViewReports ? (
-        <OrganizationReportsContent
-          csvError={csvError}
-          csvState={csvState}
-          onDownloadCsv={downloadCsv}
-          onRefresh={loadReport}
-          organization={organization}
-          report={report}
+          <OrganizationReportsContent
+            csvError={csvError}
+            csvState={csvState}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onDateFromChange={setDateFrom}
+            onDateToChange={setDateTo}
+            onDownloadCsv={downloadCsv}
+            onRefresh={loadReport}
+            organization={organization}
+            report={report}
           reportError={reportError}
           reportLoadState={reportLoadState}
         />
@@ -2532,6 +2542,10 @@ function OrganizationTeacherApplicationCard({
 function OrganizationReportsContent({
   csvError,
   csvState,
+  dateFrom,
+  dateTo,
+  onDateFromChange,
+  onDateToChange,
   onDownloadCsv,
   onRefresh,
   organization,
@@ -2541,6 +2555,10 @@ function OrganizationReportsContent({
 }: {
   csvError: RouteError | null;
   csvState: CsvState;
+  dateFrom: string;
+  dateTo: string;
+  onDateFromChange: (value: string) => void;
+  onDateToChange: (value: string) => void;
   onDownloadCsv: () => void;
   onRefresh: () => void;
   organization: OrganizationWorkspaceItem;
@@ -2584,11 +2602,29 @@ function OrganizationReportsContent({
             {organization.name}
           </Link>
           <p className={styles.eyebrow}>Reward reports</p>
-          <h2>All-time reward dashboard</h2>
+          <h2>Reward dashboard</h2>
           <p className={styles.muted}>
-            Current backend reports are all-time snapshots. Date filters, pagination, payout-failure
+            All-time snapshot by default. Use date filters to narrow the window. Pagination, payout-failure
             drill-downs, and reconciliation rows remain open report-contract work.
           </p>
+        </div>
+        <div className={styles.filterPanel} style={{ marginTop: "0.75rem" }}>
+          <label>
+            <span>From</span>
+            <input
+              onChange={(event) => onDateFromChange(event.target.value)}
+              type="date"
+              value={dateFrom}
+            />
+          </label>
+          <label>
+            <span>To</span>
+            <input
+              onChange={(event) => onDateToChange(event.target.value)}
+              type="date"
+              value={dateTo}
+            />
+          </label>
         </div>
         <div className={styles.actionRow}>
           <button className={styles.secondaryButton} onClick={onRefresh} type="button">

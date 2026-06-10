@@ -598,13 +598,19 @@ export function missingOrganizationPermissions(capability: OrganizationCapabilit
 
 export async function fetchOrganizationRewardDashboard({
   apiRoot = "/api",
+  from,
   organizationId,
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  to,
   token,
-}: OrganizationReportOptions): Promise<OrganizationRewardDashboard> {
+}: OrganizationReportOptions & { from?: string; to?: string }): Promise<OrganizationRewardDashboard> {
+  const query = new URLSearchParams();
+  if (from) query.set("from", from);
+  if (to) query.set("to", to);
+  const suffix = query.toString();
   return organizationJsonRequest({
     apiRoot,
-    path: `/reports/organizations/${organizationId}/reward-dashboard`,
+    path: `/reports/organizations/${organizationId}/reward-dashboard${suffix ? `?${suffix}` : ""}`,
     timeoutMs,
     token,
   });
@@ -941,13 +947,19 @@ export async function linkOrganizationWallet({
 
 export async function downloadOrganizationRewardDashboardCsv({
   apiRoot = "/api",
+  from,
   organizationId,
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  to,
   token,
-}: OrganizationReportOptions): Promise<OrganizationCsvDownload> {
+}: OrganizationReportOptions & { from?: string; to?: string }): Promise<OrganizationCsvDownload> {
+  const query = new URLSearchParams();
+  if (from) query.set("from", from);
+  if (to) query.set("to", to);
+  const suffix = query.toString();
   const response = await organizationRawRequest({
     apiRoot,
-    path: `/reports/organizations/${organizationId}/reward-dashboard.csv`,
+    path: `/reports/organizations/${organizationId}/reward-dashboard.csv${suffix ? `?${suffix}` : ""}`,
     timeoutMs,
     token,
     accept: "text/csv, text/plain",

@@ -545,6 +545,8 @@ pub async fn organization_report_summary(
 pub async fn organization_reward_dashboard(
     conn: &mut AsyncPgConnection,
     organization_id: i32,
+    from: Option<chrono::NaiveDate>,
+    to: Option<chrono::NaiveDate>,
 ) -> QueryResult<OrganizationRewardDashboard> {
     let organization_name = organizations::table
         .find(organization_id)
@@ -554,7 +556,7 @@ pub async fn organization_reward_dashboard(
 
     let sponsored_teacher_applications =
         sponsored_teacher_application_summary(conn, organization_id).await?;
-    let course_data = organization_course_reward_rows(conn, organization_id).await?;
+    let course_data = organization_course_reward_rows(conn, organization_id, from, to).await?;
 
     let course_reward_count = course_data
         .iter()
@@ -620,7 +622,12 @@ async fn sponsored_teacher_application_summary(
 async fn organization_course_reward_rows(
     conn: &mut AsyncPgConnection,
     organization_id: i32,
+    from: Option<chrono::NaiveDate>,
+    to: Option<chrono::NaiveDate>,
 ) -> QueryResult<Vec<OrganizationCourseRewardDashboardData>> {
+    use diesel::dsl;
+    use chrono::NaiveDateTime;
+
     let courses = courses_organizations::table
         .inner_join(courses::table.on(courses_organizations::course_id.eq(courses::id)))
         .filter(courses_organizations::organization_id.eq(organization_id))
@@ -631,8 +638,22 @@ async fn organization_course_reward_rows(
 
     let mut rows = Vec::new();
     for (course_id, course_title) in courses {
-        let amounts = reward_candidates::table
+        let mut query = reward_candidates::table
             .filter(reward_candidates::course_id.eq(course_id))
+            .into_boxed();
+
+        if let Some(from_date) = from {
+            query = query.filter(reward_candidates::created_at.ge(
+                NaiveDateTime::new(from_date, chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap()),
+            ));
+        }
+        if let Some(to_date) = to {
+            query = query.filter(reward_candidates::created_at.le(
+                NaiveDateTime::new(to_date, chrono::NaiveTime::from_hms_opt(23, 59, 59).unwrap()),
+            ));
+        }
+
+        let amounts = query
             .select(reward_candidates::approved_amount)
             .load::<Option<BigDecimal>>(conn)
             .await?;
