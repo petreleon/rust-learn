@@ -2,8 +2,9 @@ use crate::db::schema::notifications;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use serde::Serialize;
 
-#[derive(Queryable, Identifiable, Debug, Clone)]
+#[derive(Queryable, Identifiable, Debug, Clone, Serialize)]
 #[diesel(table_name = notifications)]
 pub struct Notification {
     pub id: i64,

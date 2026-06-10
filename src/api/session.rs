@@ -161,3 +161,58 @@ pub async fn save_notification_preferences(
         }
     }
 }
+
+pub async fn list_notifications(
+    pool: web::Data<db::DbPool>,
+    req: HttpRequest,
+) -> impl Responder {
+    use crate::models::notification::Notification;
+
+    let user_id_val = match authenticated_user_id(&req) {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
+
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("DB unavailable"),
+    };
+
+    match Notification::find_by_user_id(user_id_val, &mut conn).await {
+        Ok(notifications) => HttpResponse::Ok().json(notifications),
+        Err(e) => {
+            log::error!("event=notifications_list_failed user_id={} error={}", user_id_val, e);
+            HttpResponse::InternalServerError().body("Failed to load notifications")
+        }
+    }
+}
+
+pub async fn mark_notification_read(
+    pool: web::Data<db::DbPool>,
+    req: HttpRequest,
+    path: web::Path<i64>,
+) -> impl Responder {
+    use crate::models::notification::Notification;
+
+    let user_id_val = match authenticated_user_id(&req) {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
+    let notification_id = path.into_inner();
+
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("DB unavailable"),
+    };
+
+    match Notification::mark_as_read(user_id_val, notification_id, &mut conn).await {
+        Ok(_) => HttpResponse::Ok().body("Notification marked as read"),
+        Err(e) => {
+            log::error!(
+                "event=notification_mark_read_failed user_id={} notification_id={} error={}",
+                user_id_val, notification_id, e
+            );
+            HttpResponse::InternalServerError().body("Failed to mark notification as read")
+        }
+    }
+}

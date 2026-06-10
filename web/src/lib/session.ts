@@ -259,3 +259,65 @@ export async function saveNotificationPreferences({
     clearTimeout(timeout);
   }
 }
+
+type FetchOptions = { apiRoot?: string; timeoutMs?: number; token: string };
+
+export type NotificationItem = {
+  body: string;
+  created_at: string;
+  id: number;
+  read: boolean;
+  title: string;
+  user_id: number | null;
+};
+
+export async function fetchNotifications({
+  apiRoot = "/api",
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: FetchOptions): Promise<NotificationItem[]> {
+  const trimmedToken = token.trim();
+  if (!trimmedToken) throw new SessionRequestError("Token required.", 401, "missing_token");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${apiRoot}/me/notifications`, {
+      headers: { Authorization: `Bearer ${trimmedToken}` },
+      signal: controller.signal,
+    });
+    if (!response.ok) throw await sessionErrorFromResponse(response);
+    return (await response.json()) as NotificationItem[];
+  } catch (error) {
+    if (error instanceof SessionRequestError) throw error;
+    if (error instanceof DOMException && error.name === "AbortError") throw new SessionRequestError("Timed out.", 0, "timeout");
+    throw new SessionRequestError(error instanceof Error ? error.message : "Failed.", 0, "network_error");
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function markNotificationRead({
+  apiRoot = "/api",
+  notificationId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: FetchOptions & { notificationId: number }): Promise<void> {
+  const trimmedToken = token.trim();
+  if (!trimmedToken) throw new SessionRequestError("Token required.", 401, "missing_token");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${apiRoot}/me/notifications/${notificationId}/read`, {
+      headers: { Authorization: `Bearer ${trimmedToken}` },
+      method: "PUT",
+      signal: controller.signal,
+    });
+    if (!response.ok) throw await sessionErrorFromResponse(response);
+  } catch (error) {
+    if (error instanceof SessionRequestError) throw error;
+    if (error instanceof DOMException && error.name === "AbortError") throw new SessionRequestError("Timed out.", 0, "timeout");
+    throw new SessionRequestError(error instanceof Error ? error.message : "Failed.", 0, "network_error");
+  } finally {
+    clearTimeout(timeout);
+  }
+}
