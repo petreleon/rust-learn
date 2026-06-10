@@ -356,6 +356,25 @@ export async function fetchCourseLearning({
   });
 }
 
+export type ContentMediaUrl = {
+  url: string;
+};
+
+export async function fetchContentMediaUrl({
+  apiRoot = "/api",
+  chapterId,
+  contentId,
+  courseId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: CourseDetailOptions & { chapterId: number; contentId: number }): Promise<ContentMediaUrl> {
+  return learnerJsonRequest<ContentMediaUrl>({
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/chapters/${chapterId}/contents/${contentId}/media`,
+  });
+}
+
 export async function requestCourseJoin({
   apiRoot = "/api",
   courseId,

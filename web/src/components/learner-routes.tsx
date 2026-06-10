@@ -6,6 +6,7 @@ import {
   BookOpen,
   CheckCircle,
   CreditCard,
+  ExternalLink,
   FileText,
   Loader2,
   LogIn,
@@ -17,6 +18,7 @@ import Link from "next/link";
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { ProductShell, type ShellNotice } from "@/components/product-shell";
 import {
+  fetchContentMediaUrl,
   fetchCourseCatalog,
   fetchCourseDetail,
   fetchCourseLearning,
@@ -645,6 +647,7 @@ export function LearnerCourseLearnRoute({ courseId }: { courseId: string }) {
       {error ? <ErrorState error={error} onRetry={loadRoute} redirect={`/courses/${courseId}/learn`} /> : null}
       {loadState === "success" && learning ? (
         <CourseLearningContentView
+          courseId={numericCourseId}
           learning={learning}
           selectedContent={selectedContent}
           selectedContentId={selectedContentId}
@@ -868,11 +871,13 @@ function DashboardWalletPanel({ wallet }: { wallet: WalletSummary | null }) {
 }
 
 function CourseLearningContentView({
+  courseId,
   learning,
   onSelectContent,
   selectedContent,
   selectedContentId,
 }: {
+  courseId: number;
   learning: CourseLearningResponse;
   onSelectContent: (contentId: number) => void;
   selectedContent: CourseLearningContent | null;
@@ -939,7 +944,7 @@ function CourseLearningContentView({
                 <h2>{humanize(selectedContent.content_type)}</h2>
                 <StatusPill label={humanize(selectedContent.display_state)} tone={contentStateTone(selectedContent.display_state)} />
               </div>
-              <LessonContentBody content={selectedContent} />
+              <LessonContentBody content={selectedContent} courseId={courseId} />
               <div className={styles.actionRow}>
                 <button
                   className={styles.secondaryButton}
@@ -969,9 +974,87 @@ function CourseLearningContentView({
   );
 }
 
-function LessonContentBody({ content }: { content: CourseLearningContent }) {
+function LessonContentBody({ content, courseId }: { content: CourseLearningContent; courseId: number }) {
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaError, setMediaError] = useState(false);
+
+  const isVideo = content.content_type.trim().toLowerCase().startsWith("video/");
+  const isDocument = content.content_type.trim().toLowerCase() === "application/pdf"
+    || content.content_type.trim().toLowerCase() === "application/msword"
+    || content.content_type.trim().toLowerCase() === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+  const shouldFetchMedia = content.display_state === "ready" && content.data && !isReadableTextContent(content.content_type) && (isVideo || isDocument);
+
+  useEffect(() => {
+    if (!shouldFetchMedia) return;
+    const token = readStoredSessionToken();
+    if (!token) return;
+
+    setMediaError(false);
+    fetchContentMediaUrl({
+      chapterId: content.chapter_id,
+      contentId: content.id,
+      courseId,
+      token,
+    })
+      .then((result) => setMediaUrl(result.url))
+      .catch(() => setMediaError(true));
+  }, [content.chapter_id, content.id, content.display_state, content.data, content.content_type, courseId, shouldFetchMedia]);
+
   if (content.display_state === "ready" && isReadableTextContent(content.content_type) && content.data) {
     return <article className={styles.lessonText}>{content.data}</article>;
+  }
+
+  if (shouldFetchMedia && mediaUrl) {
+    if (isVideo) {
+      return (
+        <article className={styles.mediaPlayer}>
+          <video controls playsInline preload="metadata" style={{ maxWidth: "100%" }}>
+            <source src={mediaUrl} type={content.content_type} />
+            Your browser does not support inline video playback.
+          </video>
+        </article>
+      );
+    }
+    if (isDocument) {
+      return (
+        <article className={styles.statePanel}>
+          <div className={styles.panelHeader}>
+            <FileText size={20} aria-hidden />
+            <h3>Document ready</h3>
+          </div>
+          <p className={styles.muted}>Open the document in a new tab to view or download.</p>
+          <a className={styles.primaryLink} href={mediaUrl} rel="noopener noreferrer" target="_blank" style={{ marginTop: "0.5rem" }}>
+            <ExternalLink size={17} aria-hidden />
+            Open document
+          </a>
+        </article>
+      );
+    }
+  }
+
+  if (shouldFetchMedia && !mediaUrl && !mediaError) {
+    return (
+      <article className={styles.statePanel}>
+        <div className={styles.panelHeader}>
+          <Loader2 className={styles.spin} size={20} aria-hidden />
+          <h3>Loading media…</h3>
+        </div>
+        <p className={styles.muted}>Requesting a secure streaming link.</p>
+      </article>
+    );
+  }
+
+  if (shouldFetchMedia && mediaError) {
+    return (
+      <article className={styles.statePanel}>
+        <div className={styles.panelHeader}>
+          <AlertTriangle size={20} aria-hidden />
+          <h3>Media unavailable</h3>
+        </div>
+        <p className={styles.muted}>Could not load media. The content may have been removed or the presigned link may have expired. Refresh to try again.</p>
+      </article>
+    );
   }
 
   const stateCopy = lessonStateCopy(content);
