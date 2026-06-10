@@ -17,11 +17,13 @@
 
 ## Remaining Gaps
 
-### 1. Frontend Tests (HIGH)
-- Zero React component tests — `web/src/components/`
-- Zero page-level tests — `web/src/app/`
-- Zero automated E2E tests (Playwright/Cypress)
-- Only API helper contract tests exist: `web/scripts/api-helper-tests.mjs`
+### 1. Frontend Tests (HIGH -> resolved)
+- [x] Vitest + React Testing Library installed and configured
+- [x] **31 unit tests** across 4 lib modules (session, auth, access, organization)
+- [x] **6 E2E smoke tests** via Playwright (home, healthz, login, register, course, teach)
+- [ ] React component tests — still zero tests for `web/src/components/` (product-shell, route shells)
+- [ ] Page-level integration tests — still zero for `web/src/app/` pages
+- [ ] Run via: `npm test` (unit), `npm run test:e2e` (Playwright), `npm run test:api-helpers`
 
 ### 2. Worker Binary (MEDIUM)
 - `src/bin/worker.rs` has `test = false` — full video-processing pipeline untested
