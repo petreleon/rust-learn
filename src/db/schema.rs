@@ -1,6 +1,46 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    assessments (id) {
+        id -> Int4,
+        course_id -> Int4,
+        title -> Varchar,
+        description -> Nullable<Text>,
+        passing_score -> Int4,
+        max_attempts -> Int4,
+        published -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    assessment_questions (id) {
+        id -> Int4,
+        assessment_id -> Int4,
+        text -> Text,
+        #[max_length = 32]
+        question_type -> Varchar,
+        options -> Nullable<Jsonb>,
+        correct_answer -> Nullable<Text>,
+        points -> Int4,
+        order -> Int4,
+    }
+}
+
+diesel::table! {
+    assessment_attempts (id) {
+        id -> Int4,
+        assessment_id -> Int4,
+        user_id -> Int4,
+        score -> Nullable<Int4>,
+        passed -> Nullable<Bool>,
+        started_at -> Timestamptz,
+        completed_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
     authentications (id) {
         id -> Int4,
         user_id -> Int4,
@@ -582,6 +622,10 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(assessment_attempts -> assessments (assessment_id));
+diesel::joinable!(assessment_attempts -> users (user_id));
+diesel::joinable!(assessment_questions -> assessments (assessment_id));
+diesel::joinable!(assessments -> courses (course_id));
 diesel::joinable!(authentications -> users (user_id));
 diesel::joinable!(chapters -> courses (course_id));
 diesel::joinable!(contents -> chapters (chapter_id));
@@ -659,6 +703,9 @@ diesel::joinable!(wallets -> organizations (organization_id));
 diesel::joinable!(wallets -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    assessment_attempts,
+    assessment_questions,
+    assessments,
     authentications,
     chapters,
     contents,

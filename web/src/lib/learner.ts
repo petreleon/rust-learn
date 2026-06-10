@@ -384,6 +384,31 @@ export type CourseProgress = {
   viewed_at: string;
 } | null;
 
+export type AssessmentItem = {
+  course_id: number;
+  created_at: string;
+  description: string | null;
+  id: number;
+  max_attempts: number;
+  passing_score: number;
+  published: boolean;
+  title: string;
+  updated_at: string;
+};
+
+export async function fetchCourseAssessments({
+  apiRoot = "/api",
+  courseId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: CourseDetailOptions): Promise<AssessmentItem[]> {
+  return learnerJsonRequest<AssessmentItem[]>({
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/assessments`,
+  });
+}
+
 export async function fetchCourseProgress({
   apiRoot = "/api",
   courseId,

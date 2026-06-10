@@ -774,6 +774,35 @@ async fn get_learner_progress_route(
     }
 }
 
+async fn list_course_assessments(
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    use crate::db::schema::{assessment_questions, assessments};
+    use crate::models::assessment::{Assessment, AssessmentQuestion};
+    use diesel::prelude::*;
+    use diesel_async::RunQueryDsl;
+
+    let course_id = path.into_inner();
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("DB unavailable"),
+    };
+
+    match assessments::table
+        .filter(assessments::course_id.eq(course_id))
+        .filter(assessments::published.eq(true))
+        .load::<Assessment>(&mut conn)
+        .await
+    {
+        Ok(list) => HttpResponse::Ok().json(list),
+        Err(e) => {
+            log::error!("event=assessments_list_failed course_id={} error={}", course_id, e);
+            HttpResponse::InternalServerError().body("Failed to list assessments")
+        }
+    }
+}
+
 pub fn course_scope() -> actix_web::Scope {
     web::scope("/courses")
         .configure(crate::api::chapters::config)
@@ -833,6 +862,7 @@ pub fn course_scope() -> actix_web::Scope {
                 .route(web::get().to(get_learner_progress_route))
                 .route(web::post().to(save_learner_progress_route)),
         )
+        .service(web::resource("/{id}/assessments").route(web::get().to(list_course_assessments)))
         .service(
             web::resource("/{id}")
                 .route(

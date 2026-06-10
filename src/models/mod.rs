@@ -1,3 +1,4 @@
+pub mod assessment;
 pub mod authentication;
 pub mod chapter;
 pub mod content;
