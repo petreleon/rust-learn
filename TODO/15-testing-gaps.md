@@ -189,33 +189,28 @@ Permission resolution methods (`has_permission`, `effective_permissions`,
 
 ---
 
-## Current Coverage Baseline
+## Current Coverage Baseline (FINAL)
 
-| Area | Has Dedicated Tests? | Quality |
-|------|---------------------|---------|
-| API handlers (integration) | Yes — 30+ test files | Good |
-| API handlers (unit) | Partial — 1 file | Poor |
-| Services | 7 of 18 files (was 2) | Moderate — 163 new tests |
-| Repositories | 1 of 18 files | **Poor** |
-| Middlewares | 2 of 7 files | Moderate |
-| Utils | 9 of 13 files (was 8) | Moderate |
-| Models | None | Acceptable (data types) |
-| Config | None | **Poor** |
+| Area | Tests | Quality |
+|------|-------|---------|
+| API handlers (integration) | 30+ test files | Good |
+| API handlers (unit) | 1 file (auth) | Adequate |
+| Services | **18/18 inline tests** | Good — 371 tests |
+| Repositories | **5 test files, 35 tests** | Moderate — 9 repos directly tested |
+| Middlewares | 2/7 + 11 request_utils | Adequate |
+| Utils | **11/13 files** (+centralized_wallets) | Good |
+| Models | 0 pure fns (all DB) | Acceptable |
+| Config | **2 tests** (updates list) | Minimal |
 | Binaries | None (test=false) | Limited |
-| Ethereum contracts | 3 test files (~38 tests) | Good — needs Foundry to run |
+| Ethereum contracts | 3 test files (44 tests) | Good |
+| Frontend | 1 file (api helpers) | Needs components+E2E |
 
-(Inline unit tests: 69 → 357, a 5.2x increase. Services: 2/18 → 15/18 covered.)
-| Frontend components/pages | **None** | **Zero** |
-| Frontend API helpers | Yes — 1 file | Good |
+**Totals:**
+- Inline unit tests: 69 → **371** (5.4x increase)
+- Integration tests: ~40 files → **55 files** (+3 repo test files)
+- Solidity tests: 0 → **44** (all passing)
+- Blockchain tests: 2/2 now pass (no longer ignored)
 
-## Approach
+**Remaining untestable with pure functions:** eth/compiler (all file I/O), eth/deployer (blockchain RPC), eth/wallet (keystore reading), model permissions (all DB methods), worker binary (test=false). These are covered by integration/E2E tests or blockchain integration tests.
 
-1. Start with service unit tests for the reward pipeline (`reward_candidate_service`,
-   `reward_execution_service`, `wallet_service`) since they manage token value.
-2. Add repository tests alongside service tests (they are inputs to the same
-   workflows).
-3. Set up Foundry and write Solidity tests for `LearnToken` and `LearnTokenPresigner`.
-4. Add middleware unit tests for the permission hierarchy resolvers.
-5. Add frontend component tests for shared components (forms, tables, filters).
-6. Add E2E smoke tests for the primary persona paths (learner → course → enroll,
-   teacher → submit → reward, admin → review → approve).
+**Last real gap:** frontend component/page/E2E tests (requires Jest/Vitest + Playwright setup).
