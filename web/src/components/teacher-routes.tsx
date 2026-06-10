@@ -533,7 +533,8 @@ export function TeacherCourseContentRoute({ courseId }: { courseId: string }) {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       const isDirty =
         chapterDraft.title.trim() !== "" ||
-        contentDraft.data.trim() !== "";
+        contentDraft.data.trim() !== "" ||
+        contentDraft.file !== null;
 
       if (isDirty && actionState !== "saving") {
         e.preventDefault();
@@ -542,12 +543,13 @@ export function TeacherCourseContentRoute({ courseId }: { courseId: string }) {
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [chapterDraft.title, contentDraft.data, actionState]);
+  }, [chapterDraft.title, contentDraft.data, contentDraft.file, actionState]);
 
   function signOut() {
     const isDirty =
       chapterDraft.title.trim() !== "" ||
-      contentDraft.data.trim() !== "";
+      contentDraft.data.trim() !== "" ||
+      contentDraft.file !== null;
 
     if (isDirty && actionState !== "saving") {
       if (!window.confirm("You have unsaved changes in your course content draft. Are you sure you want to sign out?")) {
@@ -599,27 +601,116 @@ export function TeacherCourseContentRoute({ courseId }: { courseId: string }) {
     const chapterId = contentDraft.chapterId;
     const orderText = contentDraft.order.trim();
     const order = Number(orderText);
-    const data = contentDraft.data.trim();
-    if (!token || !chapterId || !orderText || !Number.isFinite(order) || order < 0 || !data) {
-      setActionMessage("Chapter, a non-negative order, and lesson body are required.");
+    if (!token || !chapterId || !orderText || !Number.isFinite(order) || order < 0) {
+      setActionMessage("Chapter and a non-negative order are required.");
+      return;
+    }
+
+    if (contentDraft.uploadKind === "text") {
+      const data = contentDraft.data.trim();
+      if (!data) {
+        setActionMessage("Lesson body is required for text content.");
+        return;
+      }
+
+      setActionState("saving");
+      setActionMessage(null);
+      try {
+        await createTeacherContent({
+          chapterId,
+          courseId,
+          payload: {
+            content_type: contentDraft.contentType,
+            data,
+            order,
+          },
+          token,
+        });
+        setContentDraft(defaultContentDraft);
+        setActionMessage("Content item created.");
+        await loadContentRoute();
+      } catch (nextError) {
+        const routeError = normalizeRouteError(nextError);
+        setActionMessage(routeError.message);
+      } finally {
+        setActionState("idle");
+      }
+      return;
+    }
+
+    // File upload kind
+    if (!contentDraft.file) {
+      setActionMessage("Select a file to upload.");
+      return;
+    }
+
+    const filename = contentDraft.filename.trim();
+    if (!filename) {
+      setActionMessage("Filename is required for uploaded content.");
       return;
     }
 
     setActionState("saving");
     setActionMessage(null);
     try {
-      await createTeacherContent({
+      const { upload_url, object_key } = await fetchUploadUrl({
+        chapterId: Number(chapterId),
+        contentType: contentDraft.file.type || "application/octet-stream",
+        courseId: Number(courseId),
+        filename,
+        token,
+      });
+
+      const putRes = await fetch(upload_url, {
+        body: contentDraft.file,
+        method: "PUT",
+      });
+      if (!putRes.ok) {
+        setActionMessage(`Upload failed: ${putRes.status} ${putRes.statusText}`);
+        setActionState("idle");
+        return;
+      }
+
+      const content = await createTeacherContent({
         chapterId,
         courseId,
         payload: {
-          content_type: contentDraft.contentType,
-          data,
+          content_type: contentDraft.file.type || "application/octet-stream",
+          data: object_key,
           order,
         },
         token,
       });
-      setContentDraft((current) => ({ ...current, data: "", order: "1" }));
-      setActionMessage("Content item created.");
+
+      setContentDraft(defaultContentDraft);
+      setActionMessage("Upload succeeded and content record created.");
+      await loadContentRoute();
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      setActionMessage(routeError.message);
+    } finally {
+      setActionState("idle");
+    }
+  }
+
+  async function triggerProcessing(content: TeacherCourseWorkspaceContent) {
+    const token = readStoredSessionToken();
+    if (!token || !workspace) return;
+    const chapter = workspace.chapters.find((c) => c.contents.some((item) => item.id === content.id));
+    if (!chapter) {
+      setActionMessage("Chapter not found for this content item.");
+      return;
+    }
+    setActionState("saving");
+    setActionMessage(null);
+    try {
+      await processContent({
+        chapterId: chapter.id,
+        contentId: content.id,
+        courseId: Number(courseId),
+        token,
+      });
+      setActionMessage("Processing queued. Refresh to check status.");
       await loadContentRoute();
     } catch (nextError) {
       const routeError = normalizeRouteError(nextError);
@@ -702,6 +793,7 @@ export function TeacherCourseContentRoute({ courseId }: { courseId: string }) {
           onContentDraftChange={setContentDraft}
           onSubmitChapter={submitChapter}
           onSubmitContent={submitContent}
+          onTriggerProcessing={triggerProcessing}
           workspace={workspace}
         />
       ) : null}
@@ -1441,6 +1533,7 @@ function ContentAuthoringView({
   onContentDraftChange,
   onSubmitChapter,
   onSubmitContent,
+  onTriggerProcessing,
   workspace,
 }: {
   actionMessage: string | null;
@@ -1451,6 +1544,7 @@ function ContentAuthoringView({
   onContentDraftChange: (draft: ContentDraft) => void;
   onSubmitChapter: (event: FormEvent<HTMLFormElement>) => void;
   onSubmitContent: (event: FormEvent<HTMLFormElement>) => void;
+  onTriggerProcessing: (content: TeacherCourseWorkspaceContent) => void;
   workspace: TeacherCourseWorkspaceResponse;
 }) {
   const canManageContent = workspace.course.permissions.can_manage_content;
@@ -1465,7 +1559,7 @@ function ContentAuthoringView({
           <p className={styles.eyebrow}>{statusLabel(workspace.course.lifecycle_status)}</p>
           <h2>Content authoring</h2>
           <p className={styles.muted}>
-            Create chapters and text lessons from structured forms. Upload, processing retry, and destructive editing controls remain separate until their contracts are complete.
+            Create chapters, text lessons, and uploads from structured forms. Processing retry and destructive editing controls remain separate until their contracts are complete.
           </p>
         </div>
       </section>
@@ -1515,8 +1609,8 @@ function ContentAuthoringView({
 
         <form className={styles.authoringForm} onSubmit={onSubmitContent}>
           <div className={styles.panelHeader}>
-            <FileText size={20} aria-hidden />
-            <h2>Create text content</h2>
+            {contentDraft.uploadKind === "file" ? <Upload size={20} aria-hidden /> : <FileText size={20} aria-hidden />}
+            <h2>{contentDraft.uploadKind === "file" ? "Upload file content" : "Create text content"}</h2>
           </div>
           <label>
             <span>Chapter</span>
@@ -1537,16 +1631,76 @@ function ContentAuthoringView({
             </select>
           </label>
           <label>
-            <span>Type</span>
+            <span>Kind</span>
             <select
               disabled={!canManageContent || actionState === "saving"}
-              onChange={(event) => onContentDraftChange({ ...contentDraft, contentType: event.target.value })}
-              value={contentDraft.contentType}
+              onChange={(event) =>
+                onContentDraftChange({
+                  ...contentDraft,
+                  uploadKind: event.target.value as "text" | "file",
+                  contentType: event.target.value === "file" ? "video/mp4" : "article",
+                })
+              }
+              value={contentDraft.uploadKind}
             >
-              <option value="article">Article</option>
-              <option value="text">Text lesson</option>
+              <option value="text">Text / Article</option>
+              <option value="file">File upload</option>
             </select>
           </label>
+          {contentDraft.uploadKind === "file" ? (
+            <>
+              <label>
+                <span>File</span>
+                <input
+                  accept="video/*,application/pdf"
+                  disabled={!canManageContent || actionState === "saving" || !workspace.chapters.length}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    onContentDraftChange({
+                      ...contentDraft,
+                      file,
+                      filename: file ? file.name : "",
+                    });
+                  }}
+                  type="file"
+                />
+              </label>
+              <label>
+                <span>Object filename</span>
+                <input
+                  disabled={!canManageContent || actionState === "saving"}
+                  maxLength={240}
+                  onChange={(event) => onContentDraftChange({ ...contentDraft, filename: event.target.value })}
+                  placeholder="my-video.mp4"
+                  value={contentDraft.filename}
+                />
+              </label>
+            </>
+          ) : (
+            <>
+              <label>
+                <span>Type</span>
+                <select
+                  disabled={!canManageContent || actionState === "saving"}
+                  onChange={(event) => onContentDraftChange({ ...contentDraft, contentType: event.target.value })}
+                  value={contentDraft.contentType}
+                >
+                  <option value="article">Article</option>
+                  <option value="text">Text lesson</option>
+                </select>
+              </label>
+              <label>
+                <span>Lesson body</span>
+                <textarea
+                  disabled={!canManageContent || actionState === "saving" || !workspace.chapters.length}
+                  onChange={(event) => onContentDraftChange({ ...contentDraft, data: event.target.value })}
+                  placeholder="Write the lesson content"
+                  rows={5}
+                  value={contentDraft.data}
+                />
+              </label>
+            </>
+          )}
           <label>
             <span>Order</span>
             <input
@@ -1557,20 +1711,15 @@ function ContentAuthoringView({
               value={contentDraft.order}
             />
           </label>
-          <label>
-            <span>Lesson body</span>
-            <textarea
-              disabled={!canManageContent || actionState === "saving" || !workspace.chapters.length}
-              onChange={(event) => onContentDraftChange({ ...contentDraft, data: event.target.value })}
-              placeholder="Write the lesson content"
-              rows={5}
-              value={contentDraft.data}
-            />
-          </label>
-          <button className={styles.primaryButton} disabled={!canManageContent || actionState === "saving" || !workspace.chapters.length} type="submit">
+          <button
+            className={styles.primaryButton}
+            disabled={!canManageContent || actionState === "saving" || !workspace.chapters.length}
+            type="submit"
+          >
             <Send size={17} aria-hidden />
-            Create content
+            {contentDraft.uploadKind === "file" ? "Upload content" : "Create content"}
           </button>
+          {!workspace.chapters.length ? <p className={styles.muted}>Create a chapter first so content can be assigned to it.</p> : null}
         </form>
       </section>
 
@@ -1578,10 +1727,10 @@ function ContentAuthoringView({
         <div className={styles.sectionHeader}>
           <div>
             <h2>Current structure</h2>
-            <p className={styles.muted}>New chapters and text content appear here after the workspace refreshes.</p>
+            <p className={styles.muted}>New chapters and content appear here after the workspace refreshes.</p>
           </div>
         </div>
-        <ChapterList chapters={workspace.chapters} />
+        <ChapterList chapters={workspace.chapters} onTriggerProcessing={onTriggerProcessing} />
       </section>
     </>
   );
@@ -2263,7 +2412,13 @@ function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspace
   );
 }
 
-function ChapterList({ chapters }: { chapters: TeacherCourseWorkspaceResponse["chapters"] }) {
+function ChapterList({
+  chapters,
+  onTriggerProcessing,
+}: {
+  chapters: TeacherCourseWorkspaceResponse["chapters"];
+  onTriggerProcessing?: (content: TeacherCourseWorkspaceContent) => void;
+}) {
   if (!chapters.length) {
     return (
       <section className={`${styles.panel} ${styles.singlePanel}`}>
@@ -2290,7 +2445,7 @@ function ChapterList({ chapters }: { chapters: TeacherCourseWorkspaceResponse["c
           {chapter.contents.length ? (
             <div className={styles.contentList}>
               {chapter.contents.map((content) => (
-                <ContentRow content={content} key={content.id} />
+                <ContentRow content={content} key={content.id} onTriggerProcessing={onTriggerProcessing} />
               ))}
             </div>
           ) : (
@@ -2302,8 +2457,16 @@ function ChapterList({ chapters }: { chapters: TeacherCourseWorkspaceResponse["c
   );
 }
 
-function ContentRow({ content }: { content: TeacherCourseWorkspaceContent }) {
+function ContentRow({
+  content,
+  onTriggerProcessing,
+}: {
+  content: TeacherCourseWorkspaceContent;
+  onTriggerProcessing?: (content: TeacherCourseWorkspaceContent) => void;
+}) {
   const tone = content.display_state === "failed_processing" ? "warn" : content.display_state === "ready" ? "good" : "neutral";
+  const isVideoLike = content.content_type.startsWith("video/");
+  const canProcess = isVideoLike && content.data_present && (content.display_state === "uploaded" || content.display_state === "failed_processing");
   return (
     <article className={styles.contentRow}>
       <div>
@@ -2312,7 +2475,20 @@ function ContentRow({ content }: { content: TeacherCourseWorkspaceContent }) {
           Order {content.order} - {content.data_present ? "Data recorded" : "No stored data"} - {statusLabel(content.publication_status)}
         </p>
       </div>
-      <span className={`${styles.statusPill} ${styles[tone]}`}>{statusLabel(content.display_state)}</span>
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <span className={`${styles.statusPill} ${styles[tone]}`}>{statusLabel(content.display_state)}</span>
+        {canProcess && onTriggerProcessing ? (
+          <button
+            className={styles.secondaryButton}
+            onClick={() => onTriggerProcessing(content)}
+            title="Queue video processing"
+            type="button"
+          >
+            <Video size={16} aria-hidden />
+            Process
+          </button>
+        ) : null}
+      </div>
       {content.processing_status ? <small>{statusLabel(content.processing_status)}</small> : null}
       {content.processing_error ? <p className={styles.reviewNote}>{content.processing_error}</p> : null}
     </article>
