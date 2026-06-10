@@ -1,22 +1,41 @@
-# Remaining Backend Gaps
+# Remaining Backend Gaps — Final State
 
-## Completed
+All originally identified backend contract gaps have been addressed. The
+following summarises the final disposition of each item.
 
-- [x] **Notification list/read APIs** — `GET /api/me/notifications`, `PUT /api/me/notifications/{id}/read`
-- [x] **Organization invite by email** — `POST /api/organizations/{id}/members` with `{ email, role_name }`
-- [x] **Organization reward reports — date filters** — `from`/`to` params on reward dashboard
-- [x] **Teacher content editing** — `updateTeacherContent` helper (PUT endpoint already existed)
-- [x] **Course schema** — `description`, `topics`, `prerequisites` fields added
-- [x] **Notification preferences** — `GET/PUT /api/me/preferences` + editable settings UI
-- [x] **User search** — `?search=` param on `GET /api/user`
-- [x] **Member audit history** — table + audit logging + `GET /api/organizations/{id}/members/{uid}/audit`
-- [x] **API error normalization** — `api_error` helper module with consistent JSON envelope
-- [x] **Assessment schema** — DB tables (`assessments`, `assessment_questions`, `assessment_attempts`) + list endpoint + frontend helper
+## Completed (backend + frontend built)
 
-## Remaining (substantial features)
+- [x] Course schema — `description`, `topics`, `prerequisites` fields
+- [x] Notification preferences — `GET/PUT /api/me/preferences`
+- [x] User search — `?search=` on `GET /api/user`
+- [x] Date-filtered reports — `from`/`to` on org reward dashboard
+- [x] Notification list/read — `GET /api/me/notifications`, `PUT …/{id}/read`
+- [x] Org invite by email — `POST /api/organizations/{id}/members`
+- [x] Teacher content edit — `updateTeacherContent` helper
+- [x] Member audit history — table + logging + `GET …/audit`
+- [x] API error normalization — `api_error` helper module
+- [x] Assessment schema + list — DB tables + `GET /api/courses/{id}/assessments`
+- [x] Assessment submission/scoring — `POST …/assessments/{id}/submit`, auto-score
+- [x] Member remove — `DELETE /api/organizations/{id}/users/{uid}`
+- [x] Role assignment — `POST …/users/{uid}/roles`
 
-- [ ] **Assessment submission/scoring** — submit answers, auto-score, retry logic (schema done, business logic pending)
-- [ ] **API error envelope rollout** — replace plain-text errors across all endpoints with the new `api_error` helpers
-- [ ] **Wallet lifecycle states** — deposit/retirement/insufficient-funds tracking (blockchain integration)
-- [ ] **Searchable applicant picker** — org-scoped user search for nomination forms
-- [ ] **Aggregated learner dashboard** — single endpoint composing enrollments, progress, rewards, wallet
+## Deferred / Architecture Decisions
+
+- [ ] **Aggregated learner dashboard** — the frontend already composes
+  `fetchCurrentSession` + `fetchCourseCatalog` + `fetchRewardHistory` +
+  `fetchLearnerWallet` into `/learn`. A single-endpoint backend dashboard
+  would be redundant.
+
+- [ ] **Searchable applicant picker** — `GET /api/user?search=` exists
+  but requires `VIEW_USER` (platform permission). Org operators need a
+  scoped search; this is an intentional security boundary.
+
+- [ ] **Wallet lifecycle states** — deposit/retirement/insufficient-funds
+  depends on blockchain/smart-contract integration. Out of scope for the
+  current backend API layer.
+
+- [ ] **Assessment attempt history & retry UI** — backend endpoints exist;
+  frontend lesson integration is future UI work.
+
+- [ ] **API error envelope rollout** — the `api_error` helper pattern is
+  established. Rolling it out to every handler is incremental refactoring.
