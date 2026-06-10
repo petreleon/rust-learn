@@ -1,5 +1,6 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db;
+use crate::db::schema::users;
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 use crate::models::user::User;
 use crate::repositories::platform_repository::{
@@ -9,8 +10,11 @@ use crate::utils::notifications::NotificationsState;
 use crate::utils::request_auth::{authenticated_user, authenticated_user_id};
 use actix_web::{web, HttpRequest};
 use actix_web::{HttpResponse, Responder};
+use diesel::{BoolExpressionMethods, ExpressionMethods, PgTextExpressionMethods, QueryDsl};
+use diesel_async::RunQueryDsl;
 use serde::Deserialize;
 use serde_json::json;
+use std::collections::HashMap;
 
 #[derive(Deserialize)]
 pub struct AssignRoleRequest {
@@ -18,13 +22,30 @@ pub struct AssignRoleRequest {
 }
 
 // GET /user -> list users for callers with VIEW_USER.
-async fn list_users(pool: web::Data<db::DbPool>) -> impl Responder {
+async fn list_users(
+    pool: web::Data<db::DbPool>,
+    query: web::Query<HashMap<String, String>>,
+) -> impl Responder {
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    let result = User::find_all(&mut conn).await;
+    let search = query.get("search").map(|s| s.trim()).filter(|s| !s.is_empty());
+    let result = if let Some(term) = search {
+        let pattern = format!("%{}%", term);
+        let rows = users::table
+            .filter(
+                users::name
+                    .ilike(&pattern)
+                    .or(users::email.ilike(&pattern)),
+            )
+            .load::<User>(&mut conn)
+            .await;
+        rows
+    } else {
+        User::find_all(&mut conn).await
+    };
 
     match result {
         Ok(user_list) => {
