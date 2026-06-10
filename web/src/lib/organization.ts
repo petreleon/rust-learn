@@ -695,52 +695,6 @@ export async function updateOrganization({
   }
 }
 
-export async function deleteOrganization({
-  apiRoot = "/api",
-  organizationId,
-  timeoutMs = DEFAULT_TIMEOUT_MS,
-  token,
-}: OrganizationRequestOptions & { organizationId: number }): Promise<void> {
-  const trimmedToken = token.trim();
-  if (!trimmedToken) {
-    throw new OrganizationRequestError("A sign-in token is required.", 401, "missing_token");
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetch(`${apiRoot}/organizations/${organizationId}`, {
-      headers: {
-        Accept: "application/json, text/plain",
-        Authorization: `Bearer ${trimmedToken}`,
-      },
-      method: "DELETE",
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      throw await organizationErrorFromResponse(response);
-    }
-  } catch (error) {
-    if (error instanceof OrganizationRequestError) {
-      throw error;
-    }
-
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new OrganizationRequestError("Organization request timed out.", 0, "timeout");
-    }
-
-    throw new OrganizationRequestError(
-      error instanceof Error ? error.message : "Organization deletion failed.",
-      0,
-      "network_error",
-    );
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 export type AssignOrganizationRolePayload = {
   roleName: string;
   userId: number;
@@ -754,47 +708,22 @@ export async function assignOrganizationRole({
   token,
 }: OrganizationRequestOptions & { organizationId: number; payload: AssignOrganizationRolePayload }): Promise<string> {
   const trimmedToken = token.trim();
-  if (!trimmedToken) {
-    throw new OrganizationRequestError("A sign-in token is required.", 401, "missing_token");
-  }
-
+  if (!trimmedToken) throw new OrganizationRequestError("Token required.", 401, "missing_token");
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
   try {
-    const response = await fetch(
-      `${apiRoot}/organizations/${organizationId}/users/${payload.userId}/roles`,
-      {
-        body: JSON.stringify({ role_name: payload.roleName }),
-        headers: {
-          Accept: "application/json, text/plain",
-          Authorization: `Bearer ${trimmedToken}`,
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-        signal: controller.signal,
-      },
-    );
-
-    if (!response.ok) {
-      throw await organizationErrorFromResponse(response);
-    }
-
+    const response = await fetch(`${apiRoot}/organizations/${organizationId}/users/${payload.userId}/roles`, {
+      body: JSON.stringify({ role_name: payload.roleName }),
+      headers: { Accept: "application/json, text/plain", Authorization: `Bearer ${trimmedToken}`, "Content-Type": "application/json" },
+      method: "POST",
+      signal: controller.signal,
+    });
+    if (!response.ok) throw await organizationErrorFromResponse(response);
     return await response.text();
   } catch (error) {
-    if (error instanceof OrganizationRequestError) {
-      throw error;
-    }
-
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new OrganizationRequestError("Organization request timed out.", 0, "timeout");
-    }
-
-    throw new OrganizationRequestError(
-      error instanceof Error ? error.message : "Role assignment failed.",
-      0,
-      "network_error",
-    );
+    if (error instanceof OrganizationRequestError) throw error;
+    if (error instanceof DOMException && error.name === "AbortError") throw new OrganizationRequestError("Timed out.", 0, "timeout");
+    throw new OrganizationRequestError(error instanceof Error ? error.message : "Failed.", 0, "network_error");
   } finally {
     clearTimeout(timeout);
   }
@@ -808,42 +737,84 @@ export async function removeOrganizationMember({
   token,
 }: OrganizationRequestOptions & { organizationId: number; userId: number }): Promise<string> {
   const trimmedToken = token.trim();
-  if (!trimmedToken) {
-    throw new OrganizationRequestError("A sign-in token is required.", 401, "missing_token");
-  }
-
+  if (!trimmedToken) throw new OrganizationRequestError("Token required.", 401, "missing_token");
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
   try {
     const response = await fetch(`${apiRoot}/organizations/${organizationId}/users/${userId}`, {
-      headers: {
-        Accept: "application/json, text/plain",
-        Authorization: `Bearer ${trimmedToken}`,
-      },
+      headers: { Accept: "application/json, text/plain", Authorization: `Bearer ${trimmedToken}` },
       method: "DELETE",
       signal: controller.signal,
     });
-
-    if (!response.ok) {
-      throw await organizationErrorFromResponse(response);
-    }
-
+    if (!response.ok) throw await organizationErrorFromResponse(response);
     return await response.text();
   } catch (error) {
-    if (error instanceof OrganizationRequestError) {
-      throw error;
-    }
+    if (error instanceof OrganizationRequestError) throw error;
+    if (error instanceof DOMException && error.name === "AbortError") throw new OrganizationRequestError("Timed out.", 0, "timeout");
+    throw new OrganizationRequestError(error instanceof Error ? error.message : "Failed.", 0, "network_error");
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new OrganizationRequestError("Organization request timed out.", 0, "timeout");
-    }
+export type AddOrganizationMemberResult = {
+  email: string;
+  name: string;
+  role: string;
+  user_id: number;
+};
 
-    throw new OrganizationRequestError(
-      error instanceof Error ? error.message : "Member removal failed.",
-      0,
-      "network_error",
-    );
+export async function addOrganizationMemberByEmail({
+  apiRoot = "/api",
+  email,
+  organizationId,
+  roleName,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: OrganizationRequestOptions & { organizationId: number; email: string; roleName?: string }): Promise<AddOrganizationMemberResult> {
+  const trimmedToken = token.trim();
+  if (!trimmedToken) throw new OrganizationRequestError("Token required.", 401, "missing_token");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${apiRoot}/organizations/${organizationId}/members`, {
+      body: JSON.stringify({ email: email.trim(), role_name: roleName }),
+      headers: { Accept: "application/json, text/plain", Authorization: `Bearer ${trimmedToken}`, "Content-Type": "application/json" },
+      method: "POST",
+      signal: controller.signal,
+    });
+    if (!response.ok) throw await organizationErrorFromResponse(response);
+    return (await response.json()) as AddOrganizationMemberResult;
+  } catch (error) {
+    if (error instanceof OrganizationRequestError) throw error;
+    if (error instanceof DOMException && error.name === "AbortError") throw new OrganizationRequestError("Timed out.", 0, "timeout");
+    throw new OrganizationRequestError(error instanceof Error ? error.message : "Failed.", 0, "network_error");
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function deleteOrganization({
+  apiRoot = "/api",
+  organizationId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: OrganizationRequestOptions & { organizationId: number }): Promise<void> {
+  const trimmedToken = token.trim();
+  if (!trimmedToken) throw new OrganizationRequestError("Token required.", 401, "missing_token");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${apiRoot}/organizations/${organizationId}`, {
+      headers: { Accept: "application/json, text/plain", Authorization: `Bearer ${trimmedToken}` },
+      method: "DELETE",
+      signal: controller.signal,
+    });
+    if (!response.ok) throw await organizationErrorFromResponse(response);
+  } catch (error) {
+    if (error instanceof OrganizationRequestError) throw error;
+    if (error instanceof DOMException && error.name === "AbortError") throw new OrganizationRequestError("Timed out.", 0, "timeout");
+    throw new OrganizationRequestError(error instanceof Error ? error.message : "Failed.", 0, "network_error");
   } finally {
     clearTimeout(timeout);
   }
@@ -858,7 +829,7 @@ export type NominateTeacherPayload = {
   requestedScope?: string;
 };
 
-export type NominateTeacherResult = OrganizationTeacherApplicationItem;
+type NominateTeacherResult = OrganizationTeacherApplicationItem;
 
 export async function nominateTeacherApplication({
   apiRoot = "/api",

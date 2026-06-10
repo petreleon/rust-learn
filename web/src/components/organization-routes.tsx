@@ -27,6 +27,7 @@ import Link from "next/link";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { ProductShell, type ShellNotice } from "@/components/product-shell";
 import {
+  addOrganizationMemberByEmail,
   assignOrganizationRole,
   buildOrganizationWorkspace,
   deleteOrganization,
@@ -387,6 +388,10 @@ export function OrganizationMembersRoute({ organizationId }: { organizationId: s
   const [assignRoleMessage, setAssignRoleMessage] = useState<string | null>(null);
   const [removeMemberState, setRemoveMemberState] = useState<SettingsSaveState>("idle");
   const [removeMemberMessage, setRemoveMemberMessage] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("");
+  const [inviteState, setInviteState] = useState<SettingsSaveState>("idle");
+  const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const notice = organizationNotice(route.error || memberError);
 
   const loadMembers = useCallback(async () => {
@@ -492,6 +497,36 @@ export function OrganizationMembersRoute({ organizationId }: { organizationId: s
     }
   }
 
+  async function handleInviteMember(event: React.FormEvent) {
+    event.preventDefault();
+    const token = readStoredSessionToken();
+    if (!token || !organization || !inviteEmail.trim()) {
+      setInviteMessage("Enter an email address.");
+      setInviteState("error");
+      return;
+    }
+
+    setInviteState("saving");
+    setInviteMessage(null);
+    try {
+      await addOrganizationMemberByEmail({
+        email: inviteEmail.trim(),
+        organizationId: organization.id,
+        roleName: inviteRole || undefined,
+        token,
+      });
+      setInviteEmail("");
+      setInviteRole("");
+      setInviteState("success");
+      setInviteMessage("Member added.");
+      void loadMembers();
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      setInviteMessage(routeError.message);
+      setInviteState("error");
+    }
+  }
+
   return (
     <ProductShell
       activeNav="organizations"
@@ -521,7 +556,17 @@ export function OrganizationMembersRoute({ organizationId }: { organizationId: s
         <MembersDeniedState capability={membersCapability} organizationName={organization.name} />
       ) : null}
       {route.session && organization && canViewMembers ? (
-        <OrganizationMembersContent
+        <>
+          <InviteMemberForm
+            email={inviteEmail}
+            inviteMessage={inviteMessage}
+            inviteState={inviteState}
+            onEmailChange={setInviteEmail}
+            onRoleChange={setInviteRole}
+            onSubmit={handleInviteMember}
+            roleName={inviteRole}
+          />
+          <OrganizationMembersContent
           assignRoleMessage={assignRoleMessage}
           assignRoleState={assignRoleState}
           canAssignRoles={members?.operator_permissions.can_assign_roles ?? false}
@@ -551,6 +596,7 @@ export function OrganizationMembersRoute({ organizationId }: { organizationId: s
           roleFilter={roleFilter}
           routeError={memberError}
         />
+        </>
       ) : null}
     </ProductShell>
   );
@@ -3764,6 +3810,68 @@ function StatusPill({
       {icon}
       {label}
     </span>
+  );
+}
+
+function InviteMemberForm({
+  email,
+  inviteMessage,
+  inviteState,
+  onEmailChange,
+  onRoleChange,
+  onSubmit,
+  roleName,
+}: {
+  email: string;
+  inviteMessage: string | null;
+  inviteState: SettingsSaveState;
+  onEmailChange: (value: string) => void;
+  onRoleChange: (value: string) => void;
+  onSubmit: (event: React.FormEvent) => void;
+  roleName: string;
+}) {
+  return (
+    <section className={`${styles.panel} ${styles.singlePanel}`}>
+      <div className={styles.panelHeader}>
+        <UserPlus size={20} aria-hidden />
+        <h2>Add member by email</h2>
+      </div>
+      <p className={styles.muted}>Enter an existing user's email to add them to this organization with a role.</p>
+      {inviteMessage ? (
+        <p className={styles.muted} style={{ color: inviteState === "error" ? "var(--color-warn, #dc2626)" : undefined }}>
+          {inviteMessage}
+        </p>
+      ) : null}
+      <form className={styles.authoringForm} onSubmit={onSubmit}>
+        <label>
+          <span>Email</span>
+          <input
+            disabled={inviteState === "saving"}
+            onChange={(event) => onEmailChange(event.target.value)}
+            placeholder="user@example.com"
+            type="email"
+            value={email}
+          />
+        </label>
+        <label>
+          <span>Role (defaults to Student)</span>
+          <select
+            aria-label="Invite role"
+            onChange={(event) => onRoleChange(event.target.value)}
+            value={roleName}
+          >
+            <option value="">Student (default)</option>
+            <option value="TEACHER">Teacher</option>
+            <option value="MODERATOR">Moderator</option>
+            <option value="ADMIN">Admin</option>
+          </select>
+        </label>
+        <button className={styles.primaryButton} disabled={inviteState === "saving"} type="submit">
+          <Send size={17} aria-hidden />
+          {inviteState === "saving" ? "Adding…" : "Add member"}
+        </button>
+      </form>
+    </section>
   );
 }
 

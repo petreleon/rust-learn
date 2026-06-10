@@ -410,6 +410,75 @@ async fn remove_organization_member_route(
     }
 }
 
+#[derive(serde::Deserialize)]
+struct AddMemberRequest {
+    email: String,
+    role_name: Option<String>,
+}
+
+async fn add_member_by_email_route(
+    req: HttpRequest,
+    path: web::Path<i32>,
+    body: web::Json<AddMemberRequest>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    use crate::models::user::User;
+    use diesel::prelude::*;
+    use diesel_async::RunQueryDsl;
+
+    let org_id = path.into_inner();
+    let requester_id = match authenticated_user_id(&req) {
+        Ok(user_id) => user_id,
+        Err(response) => return response,
+    };
+
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    let target_user = match User::find_by_email(&body.email.trim(), &mut conn).await {
+        Ok(user) => user,
+        Err(diesel::result::Error::NotFound) => {
+            return HttpResponse::NotFound().body("User not found by email")
+        }
+        Err(e) => {
+            log::error!("event=org_member_add_user_lookup_failed email={} error={}", body.email, e);
+            return HttpResponse::InternalServerError().body("Failed to look up user")
+        }
+    };
+
+    let role_name = body.role_name.as_deref().unwrap_or("STUDENT");
+
+    match organization_service::assign_role(
+        &pool,
+        requester_id,
+        target_user.id,
+        org_id,
+        role_name,
+    )
+    .await
+    {
+        Ok(_) => HttpResponse::Ok().json(serde_json::json!({
+            "user_id": target_user.id,
+            "name": target_user.name,
+            "email": target_user.email,
+            "role": role_name,
+        })),
+        Err(msg) => {
+            log::error!(
+                "event=org_member_add_failed org_id={} user_id={} error={}",
+                org_id, target_user.id, msg
+            );
+            if msg.contains("Hierarchy") {
+                HttpResponse::Forbidden().body(msg)
+            } else {
+                HttpResponse::InternalServerError().body("Failed to add member")
+            }
+        }
+    }
+}
+
 pub fn organization_scope() -> actix_web::Scope {
     web::scope("/organizations")
         .configure(crate::api::reward_candidates::configure_organization_reward_candidate_routes)
@@ -427,7 +496,19 @@ pub fn organization_scope() -> actix_web::Scope {
                 )),
         )
         .service(web::resource("/{id}/courses").route(web::get().to(get_organization_courses)))
-        .service(web::resource("/{id}/members").route(web::get().to(get_organization_members)))
+        .service(
+            web::resource("/{id}/members")
+                .route(web::get().to(get_organization_members))
+                .route(
+                    web::post().to(add_member_by_email_route).wrap(
+                        OrganizationPermissionMiddleware::require(
+                            "INVITE_USER_TO_ORGANIZATION".to_string(),
+                            ParamType::Path,
+                            "id".to_string(),
+                        ),
+                    ),
+                ),
+        )
         .service(web::resource("/{id}/dashboard").route(web::get().to(get_organization_dashboard)))
         .service(
             web::resource("/{id}")
