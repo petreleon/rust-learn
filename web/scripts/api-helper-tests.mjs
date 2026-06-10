@@ -3230,6 +3230,333 @@ function platformRewardCandidateAuditFixture() {
   ];
 }
 
+// --- session.ts notification helpers ---
+
+test("fetchNotifications sends bearer token and parses JSON array", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/me/notifications");
+    assert.equal(init.headers.Authorization, "Bearer test-token");
+    return jsonResponse([{ id: 1, title: "Test", body: "Body", read: false, created_at: "2026-01-01T00:00:00Z", user_id: 1 }]);
+  });
+  const result = await session.fetchNotifications({ token: "test-token" });
+  assert.equal(calls.length, 1);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].title, "Test");
+  assert.equal(result[0].read, false);
+});
+
+test("markNotificationRead sends PUT to correct URL", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/me/notifications/42/read");
+    assert.equal(init.method, "PUT");
+    assert.equal(init.headers.Authorization, "Bearer test-token");
+    return textResponse("Notification marked as read");
+  });
+  await session.markNotificationRead({ token: "test-token", notificationId: 42 });
+  assert.equal(calls.length, 1);
+});
+
+test("fetchNotifications normalizes timeout and network errors", async () => {
+  mockFetch((_url, init) => {
+    return new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => reject(new DOMException("Aborted.", "AbortError")));
+    });
+  });
+  await assertRequestError(session.fetchNotifications({ token: "t", timeoutMs: 1 }), { code: "timeout", errorClass: session.SessionRequestError, status: 0 });
+  mockFetch(() => { throw new TypeError("fail"); });
+  await assertRequestError(session.fetchNotifications({ token: "t" }), { code: "network_error", errorClass: session.SessionRequestError, status: 0 });
+});
+
+// --- session.ts notification preferences ---
+
+test("fetchNotificationPreferences parses JSON and sends bearer token", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/me/preferences");
+    assert.equal(init.headers.Authorization, "Bearer test-token");
+    return jsonResponse({ user_id: 1, email_enabled: true, push_enabled: false, updated_at: "2026-01-01T00:00:00Z" });
+  });
+  const result = await session.fetchNotificationPreferences({ token: "test-token" });
+  assert.equal(calls.length, 1);
+  assert.equal(result.email_enabled, true);
+  assert.equal(result.push_enabled, false);
+});
+
+test("saveNotificationPreferences sends PUT with JSON body", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/me/preferences");
+    assert.equal(init.method, "PUT");
+    assert.equal(init.headers["Content-Type"], "application/json");
+    const body = JSON.parse(init.body);
+    assert.equal(body.email_enabled, false);
+    assert.equal(body.push_enabled, true);
+    return jsonResponse({ user_id: 1, email_enabled: false, push_enabled: true, updated_at: "2026-01-01T00:00:00Z" });
+  });
+  const result = await session.saveNotificationPreferences({ token: "test-token", emailEnabled: false, pushEnabled: true });
+  assert.equal(calls.length, 1);
+  assert.equal(result.email_enabled, false);
+  assert.equal(result.push_enabled, true);
+});
+
+// --- learner.ts progress helpers ---
+
+test("fetchCourseProgress parses JSON progress response", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/5/progress");
+    assert.equal(init.headers.Authorization, "Bearer learner-token");
+    return jsonResponse({ id: 1, user_id: 99, course_id: 5, content_id: 42, viewed_at: "2026-01-01T00:00:00Z" });
+  });
+  const result = await learner.fetchCourseProgress({ token: "learner-token", courseId: 5 });
+  assert.equal(calls.length, 1);
+  assert.equal(result.content_id, 42);
+});
+
+test("fetchCourseProgress normalizes 404 as not-found error", async () => {
+  mockFetch(() => jsonResponse({}, { status: 404 }));
+  await assertRequestError(learner.fetchCourseProgress({ token: "t", courseId: 5 }), { code: "not_found", errorClass: learner.LearnerRequestError, status: 404 });
+});
+
+test("saveCourseProgress sends POST with content_id body", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/5/progress");
+    assert.equal(init.method, "POST");
+    assert.equal(init.headers["Content-Type"], "application/json");
+    const body = JSON.parse(init.body);
+    assert.equal(body.content_id, 99);
+    return jsonResponse({ id: 2, user_id: 1, course_id: 5, content_id: 99, viewed_at: "2026-01-01T00:00:00Z" });
+  });
+  const result = await learner.saveCourseProgress({ token: "t", courseId: 5, contentId: 99 });
+  assert.equal(calls.length, 1);
+  assert.equal(result.content_id, 99);
+});
+
+// --- learner.ts media URL helper ---
+
+test("fetchContentMediaUrl fetches presigned GET URL", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/5/chapters/3/contents/10/media");
+    assert.equal(init.headers.Authorization, "Bearer learner-token");
+    return jsonResponse({ url: "https://s3.example.com/presigned-get" });
+  });
+  const result = await learner.fetchContentMediaUrl({ token: "learner-token", courseId: 5, chapterId: 3, contentId: 10 });
+  assert.equal(calls.length, 1);
+  assert.equal(result.url, "https://s3.example.com/presigned-get");
+});
+
+// --- learner.ts assessment helpers ---
+
+test("fetchCourseAssessments parses JSON assessment list", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/5/assessments");
+    assert.equal(init.headers.Authorization, "Bearer learner-token");
+    return jsonResponse([{ id: 1, course_id: 5, title: "Quiz 1", description: null, max_attempts: 3, passing_score: 70, published: true, created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z" }]);
+  });
+  const result = await learner.fetchCourseAssessments({ token: "learner-token", courseId: 5 });
+  assert.equal(calls.length, 1);
+  assert.equal(result[0].title, "Quiz 1");
+  assert.equal(result[0].published, true);
+});
+
+test("submitAssessmentAttempt sends POST with answers and parses result", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/5/assessments/1/submit");
+    assert.equal(init.method, "POST");
+    assert.equal(init.headers["Content-Type"], "application/json");
+    const body = JSON.parse(init.body);
+    assert.equal(body.answers["1"], "Paris");
+    return jsonResponse({ attempt: { id: 10, assessment_id: 1, user_id: 99, score: 3, passed: true, started_at: "2026-01-01T00:00:00Z", completed_at: "2026-01-01T00:01:00Z" }, score: 3, total_points: 3, percentage: 100, passed: true });
+  });
+  const result = await learner.submitAssessmentAttempt({ token: "t", courseId: 5, assessmentId: 1, answers: { 1: "Paris" } });
+  assert.equal(calls.length, 1);
+  assert.equal(result.passed, true);
+  assert.equal(result.percentage, 100);
+});
+
+test("fetchAssessmentAttempts parses attempt list", async () => {
+  mockFetch((url) => {
+    assert.equal(url, "/api/courses/5/assessments/1/attempts");
+    return jsonResponse([{ id: 10, assessment_id: 1, user_id: 99, score: 3, passed: true, started_at: "2026-01-01T00:00:00Z", completed_at: "2026-01-01T00:01:00Z" }]);
+  });
+  const result = await learner.fetchAssessmentAttempts({ token: "t", courseId: 5, assessmentId: 1 });
+  assert.equal(result[0].passed, true);
+});
+
+// --- organization.ts helpers ---
+
+test("fetchOrganization parses JSON detail", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/organizations/1");
+    assert.equal(init.headers.Authorization, "Bearer org-token");
+    return jsonResponse({ id: 1, name: "Org One", website_link: "https://example.com", profile_url: null });
+  });
+  const result = await organization.fetchOrganization({ token: "org-token", organizationId: 1 });
+  assert.equal(calls.length, 1);
+  assert.equal(result.name, "Org One");
+  assert.equal(result.website_link, "https://example.com");
+});
+
+test("updateOrganization sends PUT with JSON body", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/organizations/1");
+    assert.equal(init.method, "PUT");
+    assert.equal(init.headers["Content-Type"], "application/json");
+    const body = JSON.parse(init.body);
+    assert.equal(body.name, "New Name");
+    return jsonResponse({ id: 1, name: "New Name", website_link: null, profile_url: null });
+  });
+  const result = await organization.updateOrganization({ token: "t", organizationId: 1, payload: { name: "New Name" } });
+  assert.equal(calls.length, 1);
+  assert.equal(result.name, "New Name");
+});
+
+test("deleteOrganization sends DELETE", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/organizations/1");
+    assert.equal(init.method, "DELETE");
+    return textResponse("", { status: 200 });
+  });
+  await organization.deleteOrganization({ token: "t", organizationId: 1 });
+  assert.equal(calls.length, 1);
+});
+
+test("fetchOrganizationMemberAudit parses audit events", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/organizations/1/members/42/audit");
+    assert.equal(init.headers.Authorization, "Bearer org-token");
+    return jsonResponse([{ id: 1, organization_id: 1, actor_user_id: 2, target_user_id: 42, event_type: "role_assigned", role_name: "TEACHER", reason: null, created_at: "2026-01-01T00:00:00Z" }]);
+  });
+  const result = await organization.fetchOrganizationMemberAudit({ token: "org-token", organizationId: 1, userId: 42 });
+  assert.equal(calls.length, 1);
+  assert.equal(result[0].event_type, "role_assigned");
+  assert.equal(result[0].role_name, "TEACHER");
+});
+
+test("addOrganizationMemberByEmail sends POST with email and role", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/organizations/1/members");
+    assert.equal(init.method, "POST");
+    assert.equal(init.headers["Content-Type"], "application/json");
+    const body = JSON.parse(init.body);
+    assert.equal(body.email, "user@example.com");
+    assert.equal(body.role_name, "TEACHER");
+    return jsonResponse({ user_id: 99, name: "User", email: "user@example.com", role: "TEACHER" });
+  });
+  const result = await organization.addOrganizationMemberByEmail({ token: "t", organizationId: 1, email: "user@example.com", roleName: "TEACHER" });
+  assert.equal(calls.length, 1);
+  assert.equal(result.user_id, 99);
+  assert.equal(result.role, "TEACHER");
+});
+
+test("removeOrganizationMember sends DELETE", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/organizations/1/users/99");
+    assert.equal(init.method, "DELETE");
+    return textResponse("Member removed");
+  });
+  const result = await organization.removeOrganizationMember({ token: "t", organizationId: 1, userId: 99 });
+  assert.equal(calls.length, 1);
+  assert.equal(result, "Member removed");
+});
+
+test("assignOrganizationRole sends POST with role_name", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/organizations/1/users/99/roles");
+    assert.equal(init.method, "POST");
+    assert.equal(init.headers["Content-Type"], "application/json");
+    const body = JSON.parse(init.body);
+    assert.equal(body.role_name, "ADMIN");
+    return textResponse("Role assigned successfully");
+  });
+  const result = await organization.assignOrganizationRole({ token: "t", organizationId: 1, payload: { userId: 99, roleName: "ADMIN" } });
+  assert.equal(calls.length, 1);
+  assert.equal(result, "Role assigned successfully");
+});
+
+test("nominateTeacherApplication sends POST with applicant_user_id", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/organizations/1/teacher-applications");
+    assert.equal(init.method, "POST");
+    assert.equal(init.headers["Content-Type"], "application/json");
+    const body = JSON.parse(init.body);
+    assert.equal(body.applicant_user_id, 77);
+    assert.equal(body.experience_summary, "Experienced teacher");
+    return jsonResponse({ id: 10, applicant: { id: 77, name: "New Teacher", email: "t@test.com" }, status: "submitted" });
+  });
+  const result = await organization.nominateTeacherApplication({ token: "t", organizationId: 1, payload: { applicantUserId: 77, experienceSummary: "Experienced teacher" } });
+  assert.equal(calls.length, 1);
+  assert.equal(result.id, 10);
+  assert.equal(result.status, "submitted");
+});
+
+test("fetchOrganizationRewardDashboard sends date query params", async () => {
+  const calls = mockFetch((url) => {
+    assert.ok(url.includes("from=2026-01-01"));
+    assert.ok(url.includes("to=2026-06-01"));
+    return jsonResponse(organizationRewardDashboardFixture());
+  });
+  await organization.fetchOrganizationRewardDashboard({ token: "t", organizationId: 1, from: "2026-01-01", to: "2026-06-01" });
+  assert.equal(calls.length, 1);
+});
+
+// --- teacher.ts upload helpers ---
+
+test("fetchUploadUrl sends POST with content_type and filename", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/5/chapters/3/contents/upload_url");
+    assert.equal(init.method, "POST");
+    assert.equal(init.headers["Content-Type"], "application/json");
+    const body = JSON.parse(init.body);
+    assert.equal(body.content_type, "video/mp4");
+    assert.equal(body.filename, "lecture.mp4");
+    return jsonResponse({ upload_url: "https://s3.example.com/presigned-put", object_key: "courses/5/chapters/3/lecture.mp4" });
+  });
+  const result = await teacher.fetchUploadUrl({ token: "t", courseId: 5, chapterId: 3, contentType: "video/mp4", filename: "lecture.mp4" });
+  assert.equal(calls.length, 1);
+  assert.equal(result.upload_url, "https://s3.example.com/presigned-put");
+  assert.equal(result.object_key, "courses/5/chapters/3/lecture.mp4");
+});
+
+test("processContent sends POST to queue processing", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/5/chapters/3/contents/10/process");
+    assert.equal(init.method, "POST");
+    return jsonResponse({ message: "Video processing queued" });
+  });
+  const result = await teacher.processContent({ token: "t", courseId: 5, chapterId: 3, contentId: 10 });
+  assert.equal(calls.length, 1);
+  assert.equal(result.message, "Video processing queued");
+});
+
+test("updateTeacherContent sends PUT with payload", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/5/chapters/3/contents/10");
+    assert.equal(init.method, "PUT");
+    assert.equal(init.headers["Content-Type"], "application/json");
+    const body = JSON.parse(init.body);
+    assert.equal(body.content_type, "article");
+    assert.equal(body.data, "updated text");
+    return jsonResponse({ id: 10, chapter_id: 3, content_type: "article", data: "updated text", order: 1 });
+  });
+  const result = await teacher.updateTeacherContent({ token: "t", courseId: 5, chapterId: 3, contentId: 10, payload: { content_type: "article", data: "updated text", order: 1 } });
+  assert.equal(calls.length, 1);
+  assert.equal(result.data, "updated text");
+});
+
+// --- organization.ts error normalization ---
+
+test("addOrganizationMemberByEmail normalizes permission denied and not-found errors", async () => {
+  mockFetch(() => jsonResponse({}, { status: 403 }));
+  await assertRequestError(organization.addOrganizationMemberByEmail({ token: "t", organizationId: 1, email: "x@y.com" }), { code: "permission_denied", errorClass: organization.OrganizationRequestError, status: 403 });
+  mockFetch(() => jsonResponse({}, { status: 404 }));
+  await assertRequestError(organization.addOrganizationMemberByEmail({ token: "t", organizationId: 1, email: "x@y.com" }), { code: "not_found", errorClass: organization.OrganizationRequestError, status: 404 });
+});
+
+test("removeOrganizationMember normalizes not-found and server errors", async () => {
+  mockFetch(() => jsonResponse({}, { status: 404 }));
+  await assertRequestError(organization.removeOrganizationMember({ token: "t", organizationId: 1, userId: 99 }), { code: "not_found", errorClass: organization.OrganizationRequestError, status: 404 });
+  mockFetch(() => jsonResponse({}, { status: 500 }));
+  await assertRequestError(organization.removeOrganizationMember({ token: "t", organizationId: 1, userId: 99 }), { code: "server_error", errorClass: organization.OrganizationRequestError, status: 500 });
+});
+
 test("accessSummary returns false for learner/teacher/org/admin when session is null", () => {
   const summary = access.accessSummary(null);
   assert.equal(summary.learner, false);
