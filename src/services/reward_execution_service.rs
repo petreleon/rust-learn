@@ -32,7 +32,9 @@ use crate::repositories::reward_candidate_repository;
 use crate::repositories::reward_payout_record_repository;
 use crate::repositories::reward_wallet_credit_record_repository;
 use crate::services::wallet_service;
-use crate::utils::notifications::reward_wallet_credit_notification;
+use crate::utils::notifications::{
+    create_notification, reward_wallet_credit_notification,
+};
 use bigdecimal::BigDecimal;
 use diesel::prelude::*;
 use diesel_async::AsyncConnection;
@@ -774,16 +776,14 @@ async fn notify_reward_wallet_credit_for_candidate(
         credit_record.wallet_id,
         credit_record.transaction_id,
     );
-    let body = message.body;
-    let notification_id = Notification::create(
-        NewNotification {
-            user_id: Some(candidate.student_user_id),
-            title: message.title,
-            body: body.as_str(),
-        },
+    let notification_id = create_notification(
         conn,
+        candidate.student_user_id,
+        message.title,
+        message.body,
     )
-    .await?;
+    .await
+    .map_err(|e| RewardExecutionError::Database(e.to_string()))?;
     reward_wallet_credit_record_repository::mark_reward_wallet_credit_record_notified(
         conn,
         credit_record.id,

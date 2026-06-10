@@ -1,6 +1,7 @@
 use crate::db::DbPool;
 use crate::models::notification::{NewNotification, Notification};
 use anyhow::Result;
+use diesel_async::AsyncPgConnection;
 
 #[derive(Clone)]
 pub struct NotificationsState {
@@ -345,6 +346,29 @@ impl From<DbPool> for NotificationsState {
     fn from(pool: DbPool) -> Self {
         NotificationsState::new(pool)
     }
+}
+
+/// Create a single notification inside an existing transaction.
+pub async fn create_notification(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    title: impl AsRef<str>,
+    body: impl AsRef<str>,
+) -> Result<i64> {
+    let new = NewNotification {
+        user_id: Some(user_id),
+        title: title.as_ref(),
+        body: body.as_ref(),
+    };
+    Ok(Notification::create(new, conn).await?)
+}
+
+/// Bulk-create notifications inside an existing transaction.
+pub async fn create_notifications_bulk(
+    conn: &mut AsyncPgConnection,
+    notifications: &[NewNotification<'_>],
+) -> Result<usize> {
+    Ok(Notification::create_many(notifications, conn).await?)
 }
 
 #[cfg(test)]

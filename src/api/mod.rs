@@ -45,7 +45,11 @@ pub fn api_scope() -> Scope<
                 .route(web::get().to(session::get_notification_preferences))
                 .route(web::put().to(session::save_notification_preferences)),
         )
-        .service(web::resource("/me/notifications").route(web::get().to(session::list_notifications)))
+        .service(
+            web::resource("/me/notifications")
+                .route(web::get().to(session::list_notifications))
+                .route(web::delete().to(session::clear_notifications)),
+        )
         .service(
             web::resource("/me/notifications/{id}/read")
                 .route(web::put().to(session::mark_notification_read)),

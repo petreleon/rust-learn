@@ -4,7 +4,7 @@ use crate::db::schema::{
     role_permission_platform, user_role_organization, user_role_platform,
 };
 use crate::models::delegated_permission::{DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM};
-use crate::models::notification::{NewNotification, Notification};
+use crate::models::notification::NewNotification;
 use crate::models::reward_fraud_block::{
     NewRewardFraudBlock, RewardFraudBlock, REWARD_FRAUD_BLOCK_SCOPE_COURSE,
     REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION, REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY,
@@ -18,6 +18,8 @@ use diesel_async::AsyncPgConnection;
 use diesel_async::RunQueryDsl;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+
+use crate::utils::notifications::create_notifications_bulk;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RewardFraudBlockRequest {
@@ -242,7 +244,9 @@ async fn notify_reward_fraud_block_transition(
             body: body.as_str(),
         })
         .collect::<Vec<_>>();
-    Notification::create_many(notifications.as_slice(), conn).await?;
+    create_notifications_bulk(conn, notifications.as_slice())
+        .await
+        .map_err(|e| RewardFraudBlockError::Database(e.to_string()))?;
 
     Ok(())
 }
