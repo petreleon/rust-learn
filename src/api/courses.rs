@@ -19,10 +19,9 @@ use crate::services::course_service::{
     get_learner_progress, save_learner_progress,
     get_teacher_course_enrollment_workspace, get_teacher_course_students,
     get_teacher_course_workspace, update_course_for_actor,
-    update_course_lifecycle as update_course_lifecycle_status, CourseCreationError,
-    CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest, CourseUpdateError,
-    LearnerCourseCatalogError, LearnerCourseCatalogQuery, TeacherCourseDashboardError,
-    TeacherCourseDashboardQuery, TeacherCourseEnrollmentQuery,
+    CourseCreationError, CourseDiscoveryQuery, CourseLifecycleError, CourseLifecycleUpdateRequest,
+    CourseUpdateError, LearnerCourseCatalogError, LearnerCourseCatalogQuery,
+    TeacherCourseDashboardError, TeacherCourseDashboardQuery, TeacherCourseEnrollmentQuery,
 };
 use crate::utils::notifications::NotificationsState;
 use crate::utils::request_auth::{authenticated_user, authenticated_user_id};
@@ -477,7 +476,7 @@ async fn update_course_lifecycle(
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    match update_course_lifecycle_status(
+    match crate::services::course_service::update_course_lifecycle(
         &mut conn,
         requester.user_id,
         path.into_inner(),
