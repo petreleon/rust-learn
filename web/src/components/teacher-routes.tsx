@@ -874,6 +874,16 @@ export function TeacherCourseEnrollmentsRoute({ courseId }: { courseId: string }
     return () => window.clearTimeout(timeout);
   }, [loadEnrollmentRoute]);
 
+  useEffect(() => {
+    function handleVisible() {
+      if (document.visibilityState === "visible") {
+        void loadEnrollmentRoute();
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisible);
+    return () => document.removeEventListener("visibilitychange", handleVisible);
+  }, [loadEnrollmentRoute]);
+
   function signOut() {
     clearStoredSessionToken();
     setHasToken(false);
@@ -1220,6 +1230,16 @@ export function TeacherCourseRewardsRoute({ courseId }: { courseId: string }) {
   useEffect(() => {
     const timeout = window.setTimeout(() => void loadRewardsRoute(), 0);
     return () => window.clearTimeout(timeout);
+  }, [loadRewardsRoute]);
+
+  useEffect(() => {
+    function handleVisible() {
+      if (document.visibilityState === "visible") {
+        void loadRewardsRoute();
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisible);
+    return () => document.removeEventListener("visibilitychange", handleVisible);
   }, [loadRewardsRoute]);
 
   function signOut() {

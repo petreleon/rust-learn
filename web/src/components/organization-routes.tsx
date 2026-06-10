@@ -440,6 +440,16 @@ export function OrganizationMembersRoute({ organizationId }: { organizationId: s
     return undefined;
   }, [canViewMembers, loadMembers, organization, route.session]);
 
+  useEffect(() => {
+    function handleVisible() {
+      if (document.visibilityState === "visible" && route.session && organization && canViewMembers) {
+        void loadMembers();
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisible);
+    return () => document.removeEventListener("visibilitychange", handleVisible);
+  }, [canViewMembers, loadMembers, organization, route.session]);
+
   function applyFilters() {
     setPage(0);
     setSearch(draftSearch);
@@ -819,6 +829,16 @@ export function OrganizationTeacherApplicationsRoute({ organizationId }: { organ
     return undefined;
   }, [canTrackTeacherApplications, loadApplications, organization, route.session]);
 
+  useEffect(() => {
+    function handleVisible() {
+      if (document.visibilityState === "visible" && route.session && organization && canTrackTeacherApplications) {
+        void loadApplications();
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisible);
+    return () => document.removeEventListener("visibilitychange", handleVisible);
+  }, [canTrackTeacherApplications, loadApplications, organization, route.session]);
+
   function applyFilters() {
     setPage(0);
     setSearch(draftSearch);
@@ -955,6 +975,16 @@ export function OrganizationReportsRoute({ organizationId }: { organizationId: s
     }
 
     return undefined;
+  }, [canViewReports, loadReport, organization, route.session]);
+
+  useEffect(() => {
+    function handleVisible() {
+      if (document.visibilityState === "visible" && route.session && organization && canViewReports) {
+        void loadReport();
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisible);
+    return () => document.removeEventListener("visibilitychange", handleVisible);
   }, [canViewReports, loadReport, organization, route.session]);
 
   async function downloadCsv() {
