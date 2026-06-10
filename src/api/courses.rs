@@ -16,6 +16,7 @@ use crate::services::course_enrollment_service::{
 use crate::services::course_service::{
     create_course_with_invites_for_actor, discover_courses, discover_learner_course_catalog,
     discover_teacher_course_dashboard, get_learner_course_detail, get_learner_course_learning,
+    get_learner_progress, save_learner_progress,
     get_teacher_course_enrollment_workspace, get_teacher_course_students,
     get_teacher_course_workspace, update_course_for_actor,
     update_course_lifecycle as update_course_lifecycle_status, CourseCreationError,
@@ -713,6 +714,66 @@ async fn assign_role(
     }
 }
 
+#[derive(serde::Deserialize)]
+struct SaveProgressRequest {
+    content_id: i32,
+}
+
+async fn save_learner_progress_route(
+    req: HttpRequest,
+    path: web::Path<i32>,
+    body: web::Json<SaveProgressRequest>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    let user_id = match authenticated_user_id(&req) {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
+    let course_id = path.into_inner();
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match save_learner_progress(&mut conn, user_id, course_id, body.content_id).await {
+        Ok(progress) => HttpResponse::Ok().json(progress),
+        Err(e) => {
+            log::error!(
+                "event=learner_progress_save_failed user_id={} course_id={} content_id={} error={:?}",
+                user_id, course_id, body.content_id, e
+            );
+            HttpResponse::InternalServerError().body("Failed to save progress")
+        }
+    }
+}
+
+async fn get_learner_progress_route(
+    req: HttpRequest,
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
+    let user_id = match authenticated_user_id(&req) {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
+    let course_id = path.into_inner();
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    match get_learner_progress(&mut conn, user_id, course_id).await {
+        Ok(progress) => HttpResponse::Ok().json(progress),
+        Err(e) => {
+            log::error!(
+                "event=learner_progress_fetch_failed user_id={} course_id={} error={:?}",
+                user_id, course_id, e
+            );
+            HttpResponse::InternalServerError().body("Failed to fetch progress")
+        }
+    }
+}
+
 pub fn course_scope() -> actix_web::Scope {
     web::scope("/courses")
         .configure(crate::api::chapters::config)
@@ -766,6 +827,11 @@ pub fn course_scope() -> actix_web::Scope {
         .service(
             web::resource("/{id}/enrollments/{user_id}")
                 .route(web::delete().to(remove_course_enrollment)),
+        )
+        .service(
+            web::resource("/{id}/progress")
+                .route(web::get().to(get_learner_progress_route))
+                .route(web::post().to(save_learner_progress_route)),
         )
         .service(
             web::resource("/{id}")

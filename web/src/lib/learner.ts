@@ -375,6 +375,43 @@ export async function fetchContentMediaUrl({
   });
 }
 
+export type CourseProgress = {
+  content_id: number;
+  course_id: number;
+  id: number;
+  user_id: number;
+  viewed_at: string;
+} | null;
+
+export async function fetchCourseProgress({
+  apiRoot = "/api",
+  courseId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: CourseDetailOptions): Promise<CourseProgress> {
+  return learnerJsonRequest<CourseProgress>({
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/progress`,
+  });
+}
+
+export async function saveCourseProgress({
+  apiRoot = "/api",
+  contentId,
+  courseId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: CourseDetailOptions & { contentId: number }): Promise<CourseProgress> {
+  return learnerJsonRequest<CourseProgress>({
+    body: JSON.stringify({ content_id: contentId }),
+    method: "POST",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/progress`,
+  });
+}
+
 export async function requestCourseJoin({
   apiRoot = "/api",
   courseId,
@@ -454,17 +491,19 @@ export async function linkMyWallet({
 }
 
 async function learnerJsonRequest<T>({
+  body,
   method = "GET",
   timeoutMs,
   token,
   url,
 }: {
+  body?: string;
   method?: string;
   timeoutMs: number;
   token: string;
   url: string;
 }): Promise<T> {
-  const response = await learnerRawRequest({ method, timeoutMs, token, url });
+  const response = await learnerRawRequest({ body, method, timeoutMs, token, url });
   if (!response.ok) {
     throw await learnerErrorFromResponse(response, "Learner request failed.");
   }
@@ -473,11 +512,13 @@ async function learnerJsonRequest<T>({
 }
 
 async function learnerRawRequest({
+  body,
   method,
   timeoutMs,
   token,
   url,
 }: {
+  body?: string;
   method: string;
   timeoutMs: number;
   token: string;
@@ -492,10 +533,15 @@ async function learnerRawRequest({
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${trimmedToken}`,
+    };
+    if (body) {
+      headers["Content-Type"] = "application/json";
+    }
     return await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${trimmedToken}`,
-      },
+      body,
+      headers,
       method,
       signal: controller.signal,
     });

@@ -22,9 +22,11 @@ import {
   fetchCourseCatalog,
   fetchCourseDetail,
   fetchCourseLearning,
+  fetchCourseProgress,
   fetchLearnerDashboard,
   fetchLearnerWallet,
   fetchRewardHistory,
+  saveCourseProgress,
   LearnerRequestError,
   linkMyWallet,
   requestCourseJoin,
@@ -584,7 +586,17 @@ export function LearnerCourseLearnRoute({ courseId }: { courseId: string }) {
 
       const nextLearning = await fetchCourseLearning({ courseId: numericCourseId, token });
       setLearning(nextLearning);
-      setSelectedContentId(nextLearning.active_content_id);
+
+      let progressContentId = nextLearning.active_content_id;
+      try {
+        const progress = await fetchCourseProgress({ courseId: numericCourseId, token });
+        if (progress && progress.content_id) {
+          progressContentId = progress.content_id;
+        }
+      } catch {
+        // Progress fetch is best-effort; fall back to active_content_id.
+      }
+      setSelectedContentId(progressContentId);
       setLoadState("success");
     } catch (nextError) {
       const requestError = normalizeRouteError(nextError);
@@ -610,6 +622,17 @@ export function LearnerCourseLearnRoute({ courseId }: { courseId: string }) {
     const timeout = window.setTimeout(() => void loadRoute(), 0);
     return () => window.clearTimeout(timeout);
   }, [loadRoute]);
+
+  useEffect(() => {
+    if (loadState !== "success" || !selectedContentId) return;
+    const token = readStoredSessionToken();
+    if (!token) return;
+    saveCourseProgress({
+      contentId: selectedContentId,
+      courseId: numericCourseId,
+      token,
+    }).catch(() => {});
+  }, [loadState, numericCourseId, selectedContentId]);
 
   function signOut() {
     clearStoredSessionToken();

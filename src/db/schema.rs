@@ -44,6 +44,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    course_progress (id) {
+        id -> Int4,
+        user_id -> Int4,
+        course_id -> Int4,
+        content_id -> Int4,
+        viewed_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     course_roles (id) {
         id -> Int4,
         name -> Varchar,
@@ -549,6 +559,9 @@ diesel::joinable!(authentications -> users (user_id));
 diesel::joinable!(chapters -> courses (course_id));
 diesel::joinable!(contents -> chapters (chapter_id));
 diesel::joinable!(course_join_requests -> courses (course_id));
+diesel::joinable!(course_progress -> contents (content_id));
+diesel::joinable!(course_progress -> courses (course_id));
+diesel::joinable!(course_progress -> users (user_id));
 diesel::joinable!(courses_organizations -> courses (course_id));
 diesel::joinable!(courses_organizations -> organizations (organization_id));
 diesel::joinable!(delegated_permissions -> courses (course_id));
@@ -620,6 +633,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     chapters,
     contents,
     course_join_requests,
+    course_progress,
     course_roles,
     courses,
     courses_organizations,
