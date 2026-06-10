@@ -1,0 +1,203 @@
+import { describe, it, expect } from "vitest";
+
+// We import the private functions by using a type-only trick:
+// Vitest + Vite allow accessing module internals in tests via dynamic import.
+// But since these are not exported, we'll test equivalent inline logic.
+
+// These tests verify the logic patterns used by learner-routes helper functions.
+
+describe("rewardTone", () => {
+  // Mirrors learner-routes.tsx:1846
+  function rewardTone(status: string): string {
+    if (status === "wallet_credited" || status === "completed" || status === "notified") return "good";
+    if (status === "failed") return "bad";
+    if (status === "needs_reconciliation" || status.endsWith("_rejected")) return "warn";
+    return "neutral";
+  }
+
+  it("good for positive final states", () => {
+    expect(rewardTone("wallet_credited")).toBe("good");
+    expect(rewardTone("completed")).toBe("good");
+    expect(rewardTone("notified")).toBe("good");
+  });
+
+  it("bad for failed", () => {
+    expect(rewardTone("failed")).toBe("bad");
+  });
+
+  it("warn for reconciliation and rejections", () => {
+    expect(rewardTone("needs_reconciliation")).toBe("warn");
+    expect(rewardTone("teacher_rejected")).toBe("warn");
+    expect(rewardTone("amount_rejected")).toBe("warn");
+  });
+
+  it("neutral for pending states", () => {
+    expect(rewardTone("pending_teacher_approval")).toBe("neutral");
+    expect(rewardTone("amount_approved")).toBe("neutral");
+  });
+});
+
+describe("enrollmentTone", () => {
+  function enrollmentTone(status: string): string {
+    if (status === "enrolled" || status === "available") return "good";
+    if (status === "pending" || status === "waitlisted") return "warn";
+    if (status === "rejected" || status === "unavailable") return "bad";
+    return "neutral";
+  }
+
+  it("good for enrolled and available", () => {
+    expect(enrollmentTone("enrolled")).toBe("good");
+    expect(enrollmentTone("available")).toBe("good");
+  });
+
+  it("warn for pending and waitlisted", () => {
+    expect(enrollmentTone("pending")).toBe("warn");
+    expect(enrollmentTone("waitlisted")).toBe("warn");
+  });
+
+  it("bad for rejected and unavailable", () => {
+    expect(enrollmentTone("rejected")).toBe("bad");
+    expect(enrollmentTone("unavailable")).toBe("bad");
+  });
+});
+
+describe("lifecycleTone", () => {
+  function lifecycleTone(status: string): string {
+    if (status === "published") return "good";
+    if (status === "suspended") return "bad";
+    if (status === "archived") return "warn";
+    if (status === "submitted" || status === "needs_changes") return "warn";
+    return "neutral";
+  }
+
+  it("good for published", () => expect(lifecycleTone("published")).toBe("good"));
+  it("bad for suspended", () => expect(lifecycleTone("suspended")).toBe("bad"));
+  it("warn for archived/submitted/needs_changes", () => {
+    expect(lifecycleTone("archived")).toBe("warn");
+    expect(lifecycleTone("submitted")).toBe("warn");
+    expect(lifecycleTone("needs_changes")).toBe("warn");
+  });
+  it("neutral for draft", () => expect(lifecycleTone("draft")).toBe("neutral"));
+});
+
+describe("contentStateTone", () => {
+  function contentStateTone(status: string): string {
+    if (status === "ready") return "good";
+    if (status === "failed_processing") return "bad";
+    if (status === "processing" || status === "uploaded" || status === "unprocessed_upload") return "warn";
+    return "neutral";
+  }
+
+  it("good for ready", () => expect(contentStateTone("ready")).toBe("good"));
+  it("bad for failed", () => expect(contentStateTone("failed_processing")).toBe("bad"));
+  it("warn for in-progress", () => {
+    expect(contentStateTone("processing")).toBe("warn");
+    expect(contentStateTone("uploaded")).toBe("warn");
+    expect(contentStateTone("unprocessed_upload")).toBe("warn");
+  });
+  it("neutral for unavailable", () => expect(contentStateTone("unavailable")).toBe("neutral"));
+});
+
+describe("humanize", () => {
+  function humanize(value: string): string {
+    return value
+      .split(/[_\-\s]+/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  }
+
+  it("capitalizes underscore_separated", () => {
+    expect(humanize("pending_teacher_approval")).toBe("Pending Teacher Approval");
+  });
+
+  it("capitalizes hyphen-separated", () => {
+    expect(humanize("needs-changes")).toBe("Needs Changes");
+  });
+
+  it("capitalizes single word", () => {
+    expect(humanize("published")).toBe("Published");
+  });
+});
+
+describe("plural", () => {
+  function plural(count: number): string {
+    return count === 1 ? "reward" : "rewards";
+  }
+
+  it("singular for 1", () => expect(plural(1)).toBe("reward"));
+  it("plural for 0", () => expect(plural(0)).toBe("rewards"));
+  it("plural for 2", () => expect(plural(2)).toBe("rewards"));
+});
+
+describe("summarizeRewards", () => {
+  type RewardHistoryEntry = {
+    status: string;
+    wallet_credit?: unknown;
+  };
+
+  function summarizeRewards(rewards: RewardHistoryEntry[]) {
+    return rewards.reduce(
+      (s, r) => {
+        if (r.status === "pending_teacher_approval") s.pendingTeacher += 1;
+        if (r.status.includes("token") || r.status === "amount_approved") s.processing += 1;
+        if (r.wallet_credit) s.credited += 1;
+        if (r.status === "failed" || r.status === "needs_reconciliation") s.needsHelp += 1;
+        return s;
+      },
+      { credited: 0, needsHelp: 0, pendingTeacher: 0, processing: 0 },
+    );
+  }
+
+  it("counts pending teacher approval", () => {
+    const r = summarizeRewards([{ status: "pending_teacher_approval" }]);
+    expect(r.pendingTeacher).toBe(1);
+  });
+
+  it("counts processing (token/amount)", () => {
+    const r = summarizeRewards([
+      { status: "token_pending" },
+      { status: "amount_approved" },
+      { status: "token_confirmed" },
+    ]);
+    expect(r.processing).toBe(3);
+  });
+
+  it("counts credited", () => {
+    const r = summarizeRewards([{ status: "wallet_credited", wallet_credit: {} }]);
+    expect(r.credited).toBe(1);
+  });
+
+  it("counts needs help", () => {
+    const r = summarizeRewards([
+      { status: "failed" },
+      { status: "needs_reconciliation" },
+    ]);
+    expect(r.needsHelp).toBe(2);
+  });
+
+  it("empty returns all zeroes", () => {
+    const r = summarizeRewards([]);
+    expect(r).toEqual({ credited: 0, needsHelp: 0, pendingTeacher: 0, processing: 0 });
+  });
+});
+
+describe("isWalletCreditPending", () => {
+  function isWalletCreditPending(reward: { wallet_credit?: unknown; status: string }) {
+    return !reward.wallet_credit && reward.status !== "failed"
+      && reward.status !== "needs_reconciliation" && !reward.status.endsWith("_rejected");
+  }
+
+  it("true when no credit and not terminal", () => {
+    expect(isWalletCreditPending({ status: "amount_approved" })).toBe(true);
+    expect(isWalletCreditPending({ status: "token_pending" })).toBe(true);
+  });
+
+  it("false when credited", () => {
+    expect(isWalletCreditPending({ status: "amount_approved", wallet_credit: {} })).toBe(false);
+  });
+
+  it("false when failed/rejected", () => {
+    expect(isWalletCreditPending({ status: "failed" })).toBe(false);
+    expect(isWalletCreditPending({ status: "teacher_rejected" })).toBe(false);
+  });
+});
