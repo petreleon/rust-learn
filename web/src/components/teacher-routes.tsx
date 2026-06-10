@@ -40,6 +40,8 @@ import {
   fetchTeachingCourseStudents,
   fetchTeachingCourseWorkspace,
   fetchTeachingCourses,
+  fetchUploadUrl,
+  processContent,
   removeTeacherEnrollment,
   TeacherRequestError,
   type TeacherApplication,

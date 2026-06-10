@@ -555,6 +555,56 @@ export async function createTeacherChapter({
   });
 }
 
+export type UploadUrlResponse = {
+  object_key: string;
+  upload_url: string;
+};
+
+export type FetchUploadUrlOptions = TeacherRequestOptions & {
+  chapterId: number;
+  contentType: string;
+  courseId: number;
+  filename: string;
+};
+
+export async function fetchUploadUrl({
+  apiRoot = "/api",
+  chapterId,
+  contentType,
+  courseId,
+  filename,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: FetchUploadUrlOptions): Promise<UploadUrlResponse> {
+  return teacherJsonRequest<UploadUrlResponse>({
+    body: JSON.stringify({ content_type: contentType, filename }),
+    method: "POST",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/chapters/${chapterId}/contents/upload_url`,
+  });
+}
+
+export async function processContent({
+  apiRoot = "/api",
+  chapterId,
+  contentId,
+  courseId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: TeacherRequestOptions & {
+  chapterId: number;
+  contentId: number;
+  courseId: number;
+}): Promise<{ message: string }> {
+  return teacherJsonRequest<{ message: string }>({
+    method: "POST",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/chapters/${chapterId}/contents/${contentId}/process`,
+  });
+}
+
 export async function createTeacherContent({
   apiRoot = "/api",
   chapterId,

@@ -66,7 +66,7 @@ application.
       candidate review.
 - [ ] [Milestone 4](09-milestone-04-organization.md): Organization dashboard,
       member management, reports, wallet budget, and teacher nomination.
-- [ ] [Milestone 5](10-milestone-05-platform-admin.md): Platform admin
+- [x] [Milestone 5](10-milestone-05-platform-admin.md): Platform admin
       dashboard, teacher review, reward amount review, fraud blocks,
       delegations, exports, and reconciliation.
 - [x] [Milestone 6](13-milestone-06-ops-deprecation.md): Move operations
