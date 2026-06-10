@@ -61,3 +61,27 @@ pub async fn version_updater(conn: &mut AsyncPgConnection) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn updates_list_is_ordered_and_not_empty() {
+        let updates_list = updates();
+        assert!(!updates_list.is_empty());
+
+        let mut prev = 0;
+        for (version, _) in &updates_list {
+            assert!(*version > prev, "updates must be in ascending order");
+            prev = *version;
+        }
+    }
+
+    #[test]
+    fn updates_list_contains_expected_versions() {
+        let versions: Vec<i32> = updates().into_iter().map(|(v, _)| v).collect();
+        assert!(versions.contains(&1));
+        assert!(versions.contains(&2));
+    }
+}
