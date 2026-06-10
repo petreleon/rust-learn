@@ -16,8 +16,10 @@ import {
   Send,
   ShieldCheck,
   Trophy,
+  Upload,
   UserMinus,
   Users,
+  Video,
 } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
@@ -85,7 +87,10 @@ type ContentDraft = {
   chapterId: string;
   contentType: string;
   data: string;
+  file: File | null;
+  filename: string;
   order: string;
+  uploadKind: "text" | "file";
 };
 
 type ActionState = "idle" | "saving";
@@ -118,7 +123,10 @@ const defaultContentDraft: ContentDraft = {
   chapterId: "",
   contentType: "article",
   data: "",
+  file: null,
+  filename: "",
   order: "1",
+  uploadKind: "text",
 };
 
 const enrollmentStatusOptions = ["open", "pending", "waitlisted", "approved", "rejected", "all"] as const;
