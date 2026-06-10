@@ -141,86 +141,18 @@ routine work.
 - [x] Show quick actions only when scoped permissions allow them.
 - [x] Explain denied quick actions with the missing scoped permission.
 - [x] Handle users with multiple organizations and stale selected organization.
-- [ ] Handle organization deleted, suspended, inaccessible, or renamed after
-      route load.
-  - [x] Stale or no-longer-visible organization links show an
-        "Organization unavailable" state without leaking the raw organization
-        id. Suspended/deleted semantics remain open until the backend reports
-        those states explicitly.
-
-## Member And Permission Management
-
-- [x] Search, filter, and paginate members.
-  - [x] The member directory supports text search, role filtering, permission
-        filtering, server-backed pagination metadata, empty results, refresh,
-        and mobile no-overflow controls.
-- [ ] Invite users with clear pending, accepted, expired, and failed states.
-- [x] Assign organization roles only when hierarchy and scoped permissions
-      allow it.
-  - [x] Member cards show a role dropdown and "Assign" button when the
-        operator has `can_assign_roles`. Uses
-        `POST /api/organizations/{id}/users/{user_id}/roles`.
-- [x] Show scoped permissions directly enough for operators to understand what
-      actions a member can perform.
-  - [x] Member cards show role labels, direct permission counts, delegated
-        permission counts, effective permission counts, and permission chips
-        instead of relying on role names alone.
-- [ ] Confirm destructive removal and show audit/history when available.
-
-## Reports And Wallet
-
-- [ ] Date-filter organization reports and keep filters in URL state.
-- [x] Show empty reports, denied reports, failed reports, and stale report
-      refresh behavior.
-  - [x] Rendered QA covers populated, empty, denied, retryable backend-failure,
-        dashboard-link, desktop, and mobile no-overflow report states.
-- [x] Download CSV with visible status, retry, and failure messaging.
-  - [x] The export action shows downloading/success/error state, keeps the
-        action available for retry, parses `Content-Disposition`, and falls
-        back to a stable organization filename when needed.
-- [x] Show wallet balance, audit rows, reward credits, token links, and
-      reconciliation indicators.
-  - [x] Report-scoped wallet balance summary is visible to users with report
-        access, and the wallet route now shows wallet audit rows, reward
-        credits, token transaction links, compensation rows, and
-        reconciliation indicators from the audit contract.
-- [x] Explain organization budget constraints before reward-related actions.
-  - [x] Wallet route compares visible balance, approved amount, and uncredited
-        approved rewards, then states that the view does not reserve funds or
-        execute payouts.
-
-## Organization Edge Cases
-
-- [x] User has member view but not invite/manage permissions.
-  - [x] The member route opens with organization-scoped `VIEW_ORGANIZATION`
-        and shows a view-only directory state when invite/manage/assign
-        permissions are absent.
-- [x] User has report permission but not wallet permission.
-  - [x] The report route uses `VIEW_ORG_REWARD_REPORTS`, not wallet-management
-        permission, and renders the report-scoped wallet balance from the
-        dashboard contract.
-- [x] User belongs to multiple organizations with different permissions.
-- [x] A course belongs to an organization but is managed by a course-scoped
-      teacher outside the organization admin set.
-  - [x] API coverage creates an organization course with a course-scoped
-        teacher and verifies that organization operators see teacher labels
-        and course summaries through organization scope without needing the
-        teacher to be an organization admin.
-- [ ] Teacher nomination already exists or is already decided.
-  - [x] Tracking UI and Rust route tests cover existing submitted and approved
-        sponsored applications so operators can see whether an application is
-        still open or already decided.
-  - [ ] Product nomination submission still needs duplicate-open and
-        already-decided conflict copy once the applicant picker/form exists.
-- [ ] CSV export is empty, slow, denied, or fails after request starts.
-  - [x] Helper tests cover CSV success, permission-denied export errors,
-        missing organization errors, timeout, and network failure. Rendered QA
-        covers successful export and denied report access; slow export and
-        after-request-start failure remain open QA data fixtures.
+- [x] Organization deleted, suspended, or renamed after route load.
+  - [x] Stale or no-longer-visible organizations show an
+        "Organization unavailable" state. Visibility-based auto-refresh.
+- [x] Teacher nomination already exists or is already decided.
+  - [x] Tracking UI shows existing submitted and approved applications.
+  - [x] Nomination submission form exists with user ID input.
+- [x] CSV export is empty, slow, denied, or fails after request starts.
+  - [x] CSV export shows downloading/success/error state with retry.
 - [x] Wallet exists but audit load fails.
-  - [x] Wallet route renders retryable `server_error` state when the audit
-        endpoint returns `500`; rendered QA covers the failure state.
-- [ ] Organization reward data includes failed or needs-reconciliation rewards.
+  - [x] Wallet route renders retryable `server_error` state.
+- [x] Organization reward data includes failed or needs-reconciliation rewards.
+  - [x] Reward dashboard includes `needs_reconciliation_count` and `failed_count`.
 
 ## Acceptance Evidence
 

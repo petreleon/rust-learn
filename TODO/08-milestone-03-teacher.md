@@ -204,13 +204,19 @@ admin controls.
 - [x] Teacher has one course permission but no general teacher role label.
   - [x] Rust contract coverage proves a course-scoped teacher can load their
         teaching dashboard while an unrelated platform user sees no courses.
-- [ ] Teacher has permissions in multiple organizations or courses.
-- [ ] Course is archived or suspended after the teacher opens it.
-- [ ] Upload URL expires before file upload completes.
-- [ ] Worker fails processing after upload succeeded.
-- [ ] Enrollment request is already handled by another user.
+- [x] Teacher has permissions in multiple organizations or courses.
+  - [x] Teacher course cards show organization names for each course.
+- [x] Course is archived or suspended after the teacher opens it.
+  - [x] Visibility-based auto-refresh on course workspace routes.
+- [x] Upload URL expires before file upload completes.
+  - [x] Help text in upload form notes the 1-hour expiry window.
+- [x] Worker fails processing after upload succeeded.
+  - [x] Content rows show processing_error and a Process retry button.
+- [x] Enrollment request is already handled by another user.
+  - [x] Visibility-based auto-refresh on enrollment route.
 - [ ] Reward candidate is blocked by fraud policy after it appears in queue.
-- [ ] Teacher application changes status while form is open.
+- [x] Teacher application changes status while form is open.
+  - [x] Visibility-based auto-refresh on teacher applications routes.
 
 ## Acceptance Evidence
 

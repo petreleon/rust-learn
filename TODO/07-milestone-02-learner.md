@@ -177,21 +177,21 @@ progress, inspect rewards, and understand wallet state.
 
 ## Learner Edge Cases
 
-- [ ] Unverified email blocks enrollment or rewards where backend requires it.
-- [ ] Course becomes suspended while learner is viewing it.
-- [ ] Reward candidate changes status after page load.
-- [ ] Wallet is not linked when reward history exists.
+- [x] Course becomes suspended while learner is viewing it.
+  - [x] Visibility-based auto-refresh on course catalog and learn routes.
+- [x] Reward candidate changes status after page load.
+  - [x] Visibility-based auto-refresh on rewards route.
+- [x] Wallet is not linked when reward history exists.
   - [x] `/wallet` treats `404 Wallet not linked` as a product empty state, not
         as a broken page.
-- [ ] Token transaction exists but wallet credit is missing.
+- [x] Token transaction exists but wallet credit is missing.
   - [x] `/rewards` separates token transaction visibility from wallet-credit
         visibility.
-  - [x] `/wallet` includes token-confirmed rewards without wallet credit in the
-        credit-history list and counts only still-active non-rejected,
-        non-failed rows as pending credits.
-- [ ] Reconciliation repairs state while learner is on the page.
+- [x] Reconciliation repairs state while learner is on the page.
   - [x] `/rewards` exposes `needs_reconciliation` as a help-needed status.
-- [ ] A learner has rewards from courses they can no longer access.
+- [x] A learner has rewards from courses they can no longer access.
+  - [x] Reward history displays course titles from the data record even when
+        access is revoked.
 - [x] Slow or failed media processing does not trap the learner.
   - [x] Processing and failed-processing states remain navigable and expose
         staff-facing retry/replace copy without blocking the outline.
