@@ -122,8 +122,13 @@ routine work.
         denied states, links missing wallets when `MANAGE_ORG_WALLETS` is
         present, and renders wallet balance, ledger rows, budget constraints,
         reward-credit reconciliation, token links, and compensation rows.
-- [ ] `/organizations/[organizationId]/settings` scoped settings and
+- [x] `/organizations/[organizationId]/settings` scoped settings and
       permission-aware actions.
+  - [x] Route loads `GET /api/organizations/{id}` for current name,
+        website_link, and profile_url. Shows editable form when
+        `MANAGE_ORG_SETTINGS` is present. Supports `PUT` save and
+        `DELETE` with two-step confirmation. Capability card now links
+        from the dashboard workspace.
 
 ## Organization Dashboard
 
@@ -150,8 +155,11 @@ routine work.
         filtering, server-backed pagination metadata, empty results, refresh,
         and mobile no-overflow controls.
 - [ ] Invite users with clear pending, accepted, expired, and failed states.
-- [ ] Assign organization roles only when hierarchy and scoped permissions
+- [x] Assign organization roles only when hierarchy and scoped permissions
       allow it.
+  - [x] Member cards show a role dropdown and "Assign" button when the
+        operator has `can_assign_roles`. Uses
+        `POST /api/organizations/{id}/users/{user_id}/roles`.
 - [x] Show scoped permissions directly enough for operators to understand what
       actions a member can perform.
   - [x] Member cards show role labels, direct permission counts, delegated

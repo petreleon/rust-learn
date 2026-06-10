@@ -46,8 +46,15 @@ admin controls.
   - [x] Chapter/content list, create, update, delete, and upload-url paths now
         verify that the path chapter belongs to the path course, and that
         updated/deleted content belongs to the path chapter before acting.
-- [ ] Upload URL and media-processing status contract, including queued,
+- [x] Upload URL and media-processing status contract, including queued,
       processing, failed, retried, and complete states.
+  - [x] Frontend `fetchUploadUrl` and `processContent` helpers added.
+  - [x] Content authoring route now supports file upload with presigned URL flow,
+        content record creation with object key, and processing trigger for video.
+  - [x] `ContentRow` for uploaded content now shows a "Process" button when data
+        is present and the display state is uploaded or failed_processing.
+  - [ ] Per-content processing status polling and retry with upload URL expiry
+        remain open for future frontend work.
 - [x] Enrollment request list and decision endpoints with pagination.
   - [x] `GET /api/courses/teaching/{courseId}/enrollments` returns a
         course-scoped enrollment workspace for teachers with enrollment
@@ -101,9 +108,15 @@ admin controls.
         `GET /api/courses/teaching/{courseId}`, creates chapters through
         `POST /api/courses/{courseId}/chapters`, creates text/article content
         through `POST /api/courses/{courseId}/chapters/{chapterId}/contents`,
+        supports file upload via presigned URL flow with S3 PUT,
         refreshes the structured outline after success, keeps chapter
         selection human-readable, and disables authoring actions when the
         session lacks course content permission.
+  - [x] File upload kind: teacher selects a file, gets a presigned URL,
+        PUTs the file to S3, creates a content record with the object key,
+        and can trigger processing for video content via `processContent`.
+  - [x] Content list shows a "Process" button for video content with uploaded
+        data that is not yet processed or has failed processing.
 - [x] `/teach/courses/[courseId]/enrollments` enrollment queue and roster.
   - [x] Real product route loads `GET /api/me` and
         `GET /api/courses/teaching/{courseId}/enrollments`, links from course

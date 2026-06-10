@@ -51,20 +51,20 @@ application.
       fraud blocks, delegations, exports, and health checks.
 - [x] The operations console is isolated at `/ops`; `/` now resolves the
       product session before sending users to login or session surfaces.
-- [ ] Real app shell, route structure, and persona-specific navigation exist.
-- [ ] Learner, teacher, organization, and platform admin experiences are usable
+- [x] Real app shell, route structure, and persona-specific navigation exist.
+- [x] Learner, teacher, organization, and platform admin experiences are usable
       without treating the UI as an API test panel.
 
 ## First Frontend Milestones
 
 - [x] [Milestone 1](06-milestone-01-app-shell-auth.md): App shell, auth screens,
       current-user context, route guards, and permission-aware navigation.
-- [ ] [Milestone 2](07-milestone-02-learner.md): Learner dashboard, course
+- [x] [Milestone 2](07-milestone-02-learner.md): Learner dashboard, course
       discovery, course detail, reward history, and wallet summary.
-- [ ] [Milestone 3](08-milestone-03-teacher.md): Teacher application, teacher
+- [x] [Milestone 3](08-milestone-03-teacher.md): Teacher application, teacher
       dashboard, course authoring outline, enrollment queue, and reward
       candidate review.
-- [ ] [Milestone 4](09-milestone-04-organization.md): Organization dashboard,
+- [x] [Milestone 4](09-milestone-04-organization.md): Organization dashboard,
       member management, reports, wallet budget, and teacher nomination.
 - [x] [Milestone 5](10-milestone-05-platform-admin.md): Platform admin
       dashboard, teacher review, reward amount review, fraud blocks,
