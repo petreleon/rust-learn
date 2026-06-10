@@ -11,6 +11,7 @@ pub mod email_verification_token;
 pub mod notification;
 pub mod notification_preferences;
 pub mod organization;
+pub mod organization_member_audit_event;
 pub mod param_type;
 pub mod path;
 pub mod path_course;

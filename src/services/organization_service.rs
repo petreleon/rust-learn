@@ -587,7 +587,10 @@ pub async fn assign_role(
     )
     .await
     {
-        Ok(_) => Ok(()),
+        Ok(_) => {
+            log_organization_member_event(&mut conn, org_id, Some(requester_id), target_user_id, "role_assigned", Some(role_name), None).await.ok();
+            Ok(())
+        }
         Err(diesel::result::Error::RollbackTransaction) => {
             Err("Hierarchy check failed".to_string())
         }
@@ -620,6 +623,33 @@ pub async fn remove_organization_member(
         return Err("User not found in organization".to_string());
     }
 
+    log_organization_member_event(&mut conn, org_id, None, target_user_id, "member_removed", None, None).await.ok();
+    Ok(())
+}
+
+async fn log_organization_member_event(
+    conn: &mut diesel_async::AsyncPgConnection,
+    organization_id: i32,
+    actor_user_id: Option<i32>,
+    target_user_id: i32,
+    event_type: &str,
+    role_name: Option<&str>,
+    reason: Option<&str>,
+) -> QueryResult<()> {
+    use crate::db::schema::organization_member_audit_events;
+    use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
+
+    diesel::insert_into(organization_member_audit_events::table)
+        .values(NewOrganizationMemberAuditEvent {
+            organization_id,
+            actor_user_id,
+            target_user_id,
+            event_type: event_type.to_string(),
+            role_name: role_name.map(|s| s.to_string()),
+            reason: reason.map(|s| s.to_string()),
+        })
+        .execute(conn)
+        .await?;
     Ok(())
 }
 

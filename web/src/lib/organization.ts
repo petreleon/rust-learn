@@ -1023,6 +1023,32 @@ export async function fetchOrganizationMembers({
   });
 }
 
+export type OrganizationMemberAuditEvent = {
+  actor_user_id: number | null;
+  created_at: string;
+  event_type: string;
+  id: number;
+  organization_id: number;
+  reason: string | null;
+  role_name: string | null;
+  target_user_id: number;
+};
+
+export async function fetchOrganizationMemberAudit({
+  apiRoot = "/api",
+  organizationId,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+  userId,
+}: OrganizationRequestOptions & { organizationId: number; userId: number }): Promise<OrganizationMemberAuditEvent[]> {
+  return organizationJsonRequest({
+    apiRoot,
+    path: `/organizations/${organizationId}/members/${userId}/audit`,
+    timeoutMs,
+    token,
+  });
+}
+
 export async function fetchOrganizationTeacherApplications({
   apiRoot = "/api",
   limit,

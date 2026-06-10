@@ -157,6 +157,21 @@ diesel::table! {
 }
 
 diesel::table! {
+    organization_member_audit_events (id) {
+        id -> Int8,
+        organization_id -> Int4,
+        actor_user_id -> Nullable<Int4>,
+        target_user_id -> Int4,
+        #[max_length = 64]
+        event_type -> Varchar,
+        #[max_length = 64]
+        role_name -> Nullable<Varchar>,
+        reason -> Nullable<Text>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     organization_roles (id) {
         id -> Int4,
         name -> Varchar,
@@ -581,6 +596,8 @@ diesel::joinable!(delegated_permissions -> organizations (organization_id));
 diesel::joinable!(email_verification_tokens -> users (user_id));
 diesel::joinable!(internal_transactions -> wallets (wallet_id));
 diesel::joinable!(notifications -> users (user_id));
+diesel::joinable!(organization_member_audit_events -> organizations (organization_id));
+diesel::joinable!(organization_member_audit_events -> users (actor_user_id));
 diesel::joinable!(paths_courses -> courses (course_id));
 diesel::joinable!(paths_courses -> paths (path_id));
 diesel::joinable!(pending_course_organization_invites -> courses (course_id));
@@ -656,6 +673,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     external_transactions,
     internal_transactions,
     notifications,
+    organization_member_audit_events,
     organization_roles,
     organizations,
     paths,
