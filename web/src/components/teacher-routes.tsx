@@ -1720,6 +1720,7 @@ function ContentAuthoringView({
             {contentDraft.uploadKind === "file" ? "Upload content" : "Create content"}
           </button>
           {!workspace.chapters.length ? <p className={styles.muted}>Create a chapter first so content can be assigned to it.</p> : null}
+          {contentDraft.uploadKind === "file" && workspace.chapters.length ? <p className={styles.muted}>The presigned upload URL expires after 1 hour. After the content record is created, use the Process button to queue video processing.</p> : null}
         </form>
       </section>
 
