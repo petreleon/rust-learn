@@ -12,7 +12,12 @@ pub async fn create_course_with_invites(
 ) -> QueryResult<Course> {
     conn.transaction::<_, diesel::result::Error, _>(|conn| {
         Box::pin(async move {
-            let new_course = NewCourse { title };
+            let new_course = NewCourse {
+                title,
+                description: None,
+                topics: None,
+                prerequisites: None,
+            };
 
             let course = diesel::insert_into(courses::table)
                 .values(&new_course)

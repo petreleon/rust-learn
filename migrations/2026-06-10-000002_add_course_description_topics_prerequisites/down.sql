@@ -1,0 +1,3 @@
+ALTER TABLE courses DROP COLUMN IF EXISTS prerequisites;
+ALTER TABLE courses DROP COLUMN IF EXISTS topics;
+ALTER TABLE courses DROP COLUMN IF EXISTS description;

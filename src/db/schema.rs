@@ -67,6 +67,9 @@ diesel::table! {
         title -> Varchar,
         #[max_length = 32]
         lifecycle_status -> Varchar,
+        description -> Nullable<Text>,
+        topics -> Nullable<Text>,
+        prerequisites -> Nullable<Text>,
     }
 }
 

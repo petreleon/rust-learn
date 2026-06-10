@@ -360,6 +360,7 @@ pub struct LearnerCourseCatalogItem {
     pub lifecycle_status: String,
     pub description: Option<String>,
     pub topics: Vec<String>,
+    pub prerequisites: Vec<String>,
     pub organizations: Vec<LearnerCourseCatalogOrganization>,
     pub teachers: Vec<LearnerCourseCatalogTeacher>,
     pub content: LearnerCourseContentSummary,
@@ -1078,11 +1079,12 @@ pub async fn get_learner_course_detail(
 
     let course = build_learner_course_catalog_item(conn, actor_user_id, course).await?;
     let chapters = load_learner_course_chapters(conn, course_id).await?;
+    let prerequisites = course.prerequisites.clone();
 
     Ok(LearnerCourseDetailResponse {
         course,
         chapters,
-        prerequisites: Vec::new(),
+        prerequisites,
     })
 }
 
@@ -1445,8 +1447,17 @@ async fn build_learner_course_catalog_item(
         id: course.id,
         title: course.title,
         lifecycle_status: course.lifecycle_status,
-        description: None,
-        topics: Vec::new(),
+        description: course.description.clone(),
+        topics: course
+            .topics
+            .clone()
+            .and_then(|t| serde_json::from_str::<Vec<String>>(&t).ok())
+            .unwrap_or_default(),
+        prerequisites: course
+            .prerequisites
+            .clone()
+            .map(|p| vec![p])
+            .unwrap_or_default(),
         organizations,
         teachers,
         content,
@@ -2718,7 +2729,12 @@ pub async fn create_course_with_invites(
 ) -> QueryResult<Course> {
     conn.transaction::<_, diesel::result::Error, _>(|conn| {
         Box::pin(async move {
-            let new_course = NewCourse { title };
+            let new_course = NewCourse {
+                title,
+                description: None,
+                topics: None,
+                prerequisites: None,
+            };
 
             let course = diesel::insert_into(courses::table)
                 .values(&new_course)

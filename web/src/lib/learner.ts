@@ -59,6 +59,7 @@ export type CourseCatalogItem = {
   id: number;
   lifecycle_status: string;
   organizations: CourseCatalogOrganization[];
+  prerequisites: string[];
   rewards: CourseRewardSummary;
   teachers: CourseCatalogTeacher[];
   title: string;
