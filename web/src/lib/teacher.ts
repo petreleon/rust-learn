@@ -622,6 +622,24 @@ export async function createTeacherContent({
   });
 }
 
+export async function updateTeacherContent({
+  apiRoot = "/api",
+  chapterId,
+  contentId,
+  courseId,
+  payload,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  token,
+}: CreateTeacherContentOptions & { contentId: number }): Promise<TeacherContent> {
+  return teacherJsonRequest<TeacherContent>({
+    body: JSON.stringify(payload),
+    method: "PUT",
+    timeoutMs,
+    token,
+    url: `${apiRoot}/courses/${courseId}/chapters/${chapterId}/contents/${contentId}`,
+  });
+}
+
 export async function decideTeacherJoinRequest({
   apiRoot = "/api",
   courseId,
