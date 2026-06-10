@@ -394,6 +394,16 @@ export function TeacherCourseWorkspaceRoute({ courseId }: { courseId: string }) 
     return () => window.clearTimeout(timeout);
   }, [loadWorkspace]);
 
+  useEffect(() => {
+    if (loadState !== "success" || !workspace) return;
+    const hasProcessing = workspace.chapters.some((chapter) =>
+      chapter.contents.some((content) => content.display_state === "processing"),
+    );
+    if (!hasProcessing) return;
+    const interval = window.setInterval(() => void loadWorkspace(), 30000);
+    return () => window.clearInterval(interval);
+  }, [loadState, workspace, loadWorkspace]);
+
   function signOut() {
     clearStoredSessionToken();
     setHasToken(false);
@@ -528,6 +538,16 @@ export function TeacherCourseContentRoute({ courseId }: { courseId: string }) {
     const timeout = window.setTimeout(() => void loadContentRoute(), 0);
     return () => window.clearTimeout(timeout);
   }, [loadContentRoute]);
+
+  useEffect(() => {
+    if (loadState !== "success" || !workspace) return;
+    const hasProcessing = workspace.chapters.some((chapter) =>
+      chapter.contents.some((content) => content.display_state === "processing"),
+    );
+    if (!hasProcessing) return;
+    const interval = window.setInterval(() => void loadContentRoute(), 30000);
+    return () => window.clearInterval(interval);
+  }, [loadState, workspace, loadContentRoute]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
