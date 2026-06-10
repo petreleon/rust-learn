@@ -15,6 +15,7 @@ import {
   LogIn,
   RefreshCw,
   Search,
+  Send,
   Settings,
   ShieldCheck,
   Trophy,
@@ -26,8 +27,10 @@ import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react
 import { ProductShell, type ShellNotice } from "@/components/product-shell";
 import {
   buildOrganizationWorkspace,
+  deleteOrganization,
   downloadOrganizationRewardDashboardCsv,
   enabledOrganizationCapabilities,
+  fetchOrganization,
   fetchOrganizationCourses,
   fetchOrganizationDashboard,
   fetchOrganizationWalletAudit,
@@ -39,12 +42,14 @@ import {
   linkOrganizationWallet,
   missingOrganizationPermissions,
   OrganizationRequestError,
+  updateOrganization,
   type OrganizationCapability,
   type OrganizationCapabilityKey,
   type OrganizationCourseList,
   type OrganizationCourseListItem,
   type OrganizationDashboardAlert,
   type OrganizationDashboardSummary,
+  type OrganizationDetail,
   type OrganizationMemberList,
   type OrganizationMemberListItem,
   type OrganizationRewardDashboard,
@@ -81,6 +86,8 @@ type TeacherApplicationLoadState = "idle" | "loading" | "success" | "error";
 type DashboardLoadState = "idle" | "loading" | "success" | "error";
 type WalletLoadState = "idle" | "loading" | "success" | "missing" | "error";
 type WalletLinkState = "idle" | "linking" | "success" | "error";
+type SettingsLoadState = "idle" | "loading" | "success" | "error";
+type SettingsSaveState = "idle" | "saving" | "success" | "error";
 
 const capabilityFilters: Array<{ label: string; value: CapabilityFilter }> = [
   { label: "All access", value: "all" },
@@ -109,7 +116,7 @@ const actionDescriptions: Record<OrganizationCapabilityKey, string> = {
   course_rewards: "Submit organization-backed course reward events when the route contract is added.",
   members: "Inspect organization members, role labels, scoped permissions, and management readiness.",
   reports: "Inspect reward volume, sponsored applications, wallet balances, and CSV exports.",
-  settings: "Review scoped organization settings when settings contracts are available.",
+  settings: "Manage organization name, website, profile URL, and destructive actions scoped to operator permissions.",
   teacher_applications: "Track sponsored teacher applications, decisions, applicant context, and audit hints.",
   wallet: "Review wallet balance, budget readiness, reward credits, token links, and audit rows.",
 };
@@ -1051,6 +1058,181 @@ export function OrganizationWalletRoute({ organizationId }: { organizationId: st
           onRefresh={loadWallet}
           organization={organization}
           walletError={walletError}
+        />
+      ) : null}
+    </ProductShell>
+  );
+}
+
+export function OrganizationSettingsRoute({ organizationId }: { organizationId: string }) {
+  const route = useOrganizationSession();
+  const numericOrganizationId = Number.parseInt(organizationId, 10);
+  const invalidOrganizationId = !/^\d+$/.test(organizationId) || !Number.isFinite(numericOrganizationId);
+  const organization = useMemo(
+    () =>
+      route.session && !invalidOrganizationId
+        ? findOrganizationWorkspaceItem(route.session, numericOrganizationId)
+        : null,
+    [invalidOrganizationId, numericOrganizationId, route.session],
+  );
+  const workspace = useMemo(
+    () => (route.session ? buildOrganizationWorkspace(route.session) : emptyWorkspace),
+    [route.session],
+  );
+  const canManageSettings = Boolean(organization?.effectivePermissions.includes("MANAGE_ORG_SETTINGS"));
+  const settingsCapability = organization?.capabilities.find((c) => c.key === "settings");
+  const [detail, setDetail] = useState<OrganizationDetail | null>(null);
+  const [settingsError, setSettingsError] = useState<RouteError | null>(null);
+  const [settingsLoadState, setSettingsLoadState] = useState<SettingsLoadState>("idle");
+  const [nameDraft, setNameDraft] = useState("");
+  const [websiteDraft, setWebsiteDraft] = useState("");
+  const [profileUrlDraft, setProfileUrlDraft] = useState("");
+  const [saveState, setSaveState] = useState<SettingsSaveState>("idle");
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteState, setDeleteState] = useState<SettingsSaveState>("idle");
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
+  const notice = organizationNotice(route.error || settingsError || (saveState === "error" ? { code: "error", message: saveMessage ?? "", status: 0 } : null) || (deleteState === "error" ? { code: "error", message: deleteMessage ?? "", status: 0 } : null));
+
+  const loadSettings = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token || invalidOrganizationId || !organization) return;
+
+    setSettingsError(null);
+    setSettingsLoadState("loading");
+    try {
+      const nextDetail = await fetchOrganization({
+        organizationId: organization.id,
+        token,
+      });
+      setDetail(nextDetail);
+      setNameDraft(nextDetail.name);
+      setWebsiteDraft(nextDetail.website_link ?? "");
+      setProfileUrlDraft(nextDetail.profile_url ?? "");
+      setSettingsLoadState("success");
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      if (routeError.status === 401) clearStoredSessionToken();
+      setDetail(null);
+      setSettingsError(routeError);
+      setSettingsLoadState("error");
+    }
+  }, [invalidOrganizationId, organization]);
+
+  useEffect(() => {
+    if (route.session && organization) {
+      const timeout = window.setTimeout(() => {
+        setDetail(null);
+        setSettingsError(null);
+        setSettingsLoadState("idle");
+        void loadSettings();
+      }, 0);
+      return () => window.clearTimeout(timeout);
+    }
+    return undefined;
+  }, [loadSettings, organization, route.session]);
+
+  async function handleSave(event: React.FormEvent) {
+    event.preventDefault();
+    const token = readStoredSessionToken();
+    if (!token || !organization) return;
+
+    setSaveState("saving");
+    setSaveMessage(null);
+    try {
+      const updated = await updateOrganization({
+        organizationId: organization.id,
+        payload: {
+          name: nameDraft.trim() || undefined,
+          profile_url: profileUrlDraft.trim() || null,
+          website_link: websiteDraft.trim() || null,
+        },
+        token,
+      });
+      setDetail(updated);
+      setNameDraft(updated.name);
+      setWebsiteDraft(updated.website_link ?? "");
+      setProfileUrlDraft(updated.profile_url ?? "");
+      setSaveState("success");
+      setSaveMessage("Settings saved.");
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      setSaveMessage(routeError.message);
+      setSaveState("error");
+    }
+  }
+
+  async function handleDelete() {
+    const token = readStoredSessionToken();
+    if (!token || !organization) return;
+
+    setDeleteState("saving");
+    setDeleteMessage(null);
+    try {
+      await deleteOrganization({ organizationId: organization.id, token });
+      setDeleteState("success");
+      setDeleteMessage("Organization deleted. Return to the organization list.");
+      setDetail(null);
+    } catch (nextError) {
+      const routeError = normalizeRouteError(nextError);
+      setDeleteMessage(routeError.message);
+      setDeleteState("error");
+    }
+  }
+
+  function resetDeleteConfirm() {
+    setDeleteConfirm(false);
+    setDeleteState("idle");
+    setDeleteMessage(null);
+  }
+
+  return (
+    <ProductShell
+      activeNav="organizations"
+      breadcrumbs={[
+        { href: "/session", label: "Workspace" },
+        { href: "/organizations", label: "Organizations" },
+        { href: organization ? `/organizations/${organization.id}` : undefined, label: organization?.name || "Organization" },
+        { label: "Settings" },
+      ]}
+      description="Organization name, profile links, and destructive actions scoped to operator permissions."
+      eyebrow="Organization"
+      isSignedIn={route.hasToken || Boolean(route.session)}
+      notice={notice}
+      onSignOut={route.signOut}
+      session={route.session}
+      statusItems={<OrganizationStatus workspace={workspace} />}
+      title={organization?.name ? `${organization.name} settings` : "Organization settings"}
+    >
+      {route.loadState === "idle" && !route.session ? <SignedOutState redirect={`/organizations/${organizationId}/settings`} /> : null}
+      {route.loadState === "loading" ? <LoadingState /> : null}
+      {route.error ? <ErrorState error={route.error} redirect={`/organizations/${organizationId}/settings`} /> : null}
+      {route.session && (invalidOrganizationId || !organization) ? <MissingOrganizationState /> : null}
+      {route.session && organization && !canManageSettings ? (
+        <SettingsDeniedState capability={settingsCapability} organizationName={organization.name} />
+      ) : null}
+      {route.session && organization && canManageSettings ? (
+        <OrganizationSettingsPanel
+          deleteConfirm={deleteConfirm}
+          deleteMessage={deleteMessage}
+          deleteState={deleteState}
+          detail={detail}
+          nameDraft={nameDraft}
+          onDelete={handleDelete}
+          onDeleteConfirmChange={setDeleteConfirm}
+          onDeleteConfirmReset={resetDeleteConfirm}
+          onNameDraftChange={setNameDraft}
+          onProfileUrlDraftChange={setProfileUrlDraft}
+          onRefresh={loadSettings}
+          onSave={handleSave}
+          onWebsiteDraftChange={setWebsiteDraft}
+          organization={organization}
+          profileUrlDraft={profileUrlDraft}
+          saveMessage={saveMessage}
+          saveState={saveState}
+          settingsError={settingsError}
+          settingsLoadState={settingsLoadState}
+          websiteDraft={websiteDraft}
         />
       ) : null}
     </ProductShell>
@@ -2966,6 +3148,7 @@ function ActionCard({
   const coursesHref = `/organizations/${organizationId}/courses`;
   const membersHref = `/organizations/${organizationId}/members`;
   const reportHref = `/organizations/${organizationId}/reports`;
+  const settingsHref = `/organizations/${organizationId}/settings`;
   const teacherApplicationsHref = `/organizations/${organizationId}/teacher-applications`;
   const walletHref = `/organizations/${organizationId}/wallet`;
 
@@ -3015,6 +3198,11 @@ function ActionCard({
         <Link className={styles.primaryLink} href={walletHref}>
           <CreditCard size={17} aria-hidden />
           Open wallet
+        </Link>
+      ) : enabled && capability.key === "settings" ? (
+        <Link className={styles.primaryLink} href={settingsHref}>
+          <Settings size={17} aria-hidden />
+          Open settings
         </Link>
       ) : (
         <button className={styles.secondaryButton} disabled type="button">
@@ -3257,6 +3445,230 @@ function StatusPill({
       {icon}
       {label}
     </span>
+  );
+}
+
+function SettingsDeniedState({
+  capability,
+  organizationName,
+}: {
+  capability?: OrganizationCapability;
+  organizationName: string;
+}) {
+  const missingPermissions = capability ? missingOrganizationPermissions(capability) : [];
+  return (
+    <section className={`${styles.panel} ${styles.singlePanel}`}>
+      <div className={styles.panelHeader}>
+        <ShieldCheck size={20} aria-hidden />
+        <h2>Settings unavailable</h2>
+      </div>
+      <p className={styles.muted}>
+        Your current session cannot manage settings for {organizationName}.
+        {missingPermissions.length ? ` Missing permission${missingPermissions.length === 1 ? "" : "s"}: ${missingPermissions.join(", ")}.` : ""}
+      </p>
+    </section>
+  );
+}
+
+function OrganizationSettingsPanel({
+  deleteConfirm,
+  deleteMessage,
+  deleteState,
+  detail,
+  nameDraft,
+  onDelete,
+  onDeleteConfirmChange,
+  onDeleteConfirmReset,
+  onNameDraftChange,
+  onProfileUrlDraftChange,
+  onRefresh,
+  onSave,
+  onWebsiteDraftChange,
+  organization,
+  profileUrlDraft,
+  saveMessage,
+  saveState,
+  settingsError,
+  settingsLoadState,
+  websiteDraft,
+}: {
+  deleteConfirm: boolean;
+  deleteMessage: string | null;
+  deleteState: SettingsSaveState;
+  detail: OrganizationDetail | null;
+  nameDraft: string;
+  onDelete: () => void;
+  onDeleteConfirmChange: (value: boolean) => void;
+  onDeleteConfirmReset: () => void;
+  onNameDraftChange: (value: string) => void;
+  onProfileUrlDraftChange: (value: string) => void;
+  onRefresh: () => void;
+  onSave: (event: React.FormEvent) => void;
+  onWebsiteDraftChange: (value: string) => void;
+  organization: OrganizationWorkspaceItem;
+  profileUrlDraft: string;
+  saveMessage: string | null;
+  saveState: SettingsSaveState;
+  settingsError: RouteError | null;
+  settingsLoadState: SettingsLoadState;
+  websiteDraft: string;
+}) {
+  const isSaving = saveState === "saving";
+  const isDeleting = deleteState === "saving";
+  const roles = organization.roles.join(", ") || "None";
+  const roleSummary = organization.roles.length ? roles : "Delegated access only";
+
+  return (
+    <>
+      <section className={styles.workspaceHero}>
+        <Link className={styles.secondaryLink} href={`/organizations/${organization.id}`}>
+          <ArrowLeft size={17} aria-hidden />
+          {organization.name}
+        </Link>
+        <div className={styles.workspaceTitleBlock}>
+          <p className={styles.eyebrow}>{roleSummary}</p>
+          <h2>Organization settings</h2>
+          <p className={styles.muted}>
+            Update the public identity fields for {organization.name}. These values appear in learner-facing course discovery and teacher application contexts.
+          </p>
+        </div>
+      </section>
+
+      {saveMessage ? (
+        <section className={`${styles.warningPanel} ${styles.singlePanel}`} role="status">
+          <div className={styles.panelHeader}>
+            {saveState === "success" ? <CheckCircle2 size={18} aria-hidden /> : <AlertTriangle size={18} aria-hidden />}
+            <h2>{saveState === "success" ? "Saved" : "Update error"}</h2>
+          </div>
+          <p>{saveMessage}</p>
+        </section>
+      ) : null}
+
+      {deleteMessage ? (
+        <section className={`${styles.warningPanel} ${styles.singlePanel}`} role="status">
+          <div className={styles.panelHeader}>
+            {deleteState === "success" ? <CheckCircle2 size={18} aria-hidden /> : <AlertTriangle size={18} aria-hidden />}
+            <h2>{deleteState === "success" ? "Deleted" : "Deletion error"}</h2>
+          </div>
+          <p>{deleteMessage}</p>
+        </section>
+      ) : null}
+
+      {settingsLoadState === "loading" ? (
+        <section className={`${styles.panel} ${styles.singlePanel}`}>
+          <div className={styles.panelHeader}>
+            <Loader2 className={styles.spin} size={20} aria-hidden />
+            <h2>Loading settings</h2>
+          </div>
+          <p className={styles.muted}>Fetching current organization values from the backend.</p>
+        </section>
+      ) : null}
+
+      {settingsLoadState === "error" && settingsError ? (
+        <section className={`${styles.errorBox} ${styles.singlePanel}`}>
+          <AlertTriangle size={18} aria-hidden />
+          <span>
+            <strong>{settingsError.code}</strong>
+            {settingsError.message}
+          </span>
+          <button className={styles.secondaryButton} onClick={onRefresh} type="button">
+            <RefreshCw size={17} aria-hidden />
+            Retry
+          </button>
+        </section>
+      ) : null}
+
+      {settingsLoadState === "success" && detail ? (
+        <>
+          <form className={`${styles.panel} ${styles.singlePanel}`} onSubmit={onSave}>
+            <div className={styles.panelHeader}>
+              <Settings size={20} aria-hidden />
+              <h2>Organization identity</h2>
+            </div>
+            <div className={styles.authoringForm}>
+              <label>
+                <span>Name</span>
+                <input
+                  disabled={isSaving}
+                  maxLength={120}
+                  onChange={(event) => onNameDraftChange(event.target.value)}
+                  placeholder="Organization name"
+                  required
+                  value={nameDraft}
+                />
+              </label>
+              <label>
+                <span>Website</span>
+                <input
+                  disabled={isSaving}
+                  maxLength={240}
+                  onChange={(event) => onWebsiteDraftChange(event.target.value)}
+                  placeholder="https://example.com"
+                  value={websiteDraft}
+                />
+              </label>
+              <label>
+                <span>Profile image URL</span>
+                <input
+                  disabled={isSaving}
+                  maxLength={240}
+                  onChange={(event) => onProfileUrlDraftChange(event.target.value)}
+                  placeholder="https://example.com/logo.png"
+                  value={profileUrlDraft}
+                />
+              </label>
+              <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.5rem" }}>
+                <button className={styles.primaryButton} disabled={isSaving} type="submit">
+                  <Send size={17} aria-hidden />
+                  {isSaving ? "Saving…" : "Save settings"}
+                </button>
+                <button className={styles.secondaryButton} disabled={isSaving} onClick={onRefresh} type="button">
+                  <RefreshCw size={17} aria-hidden />
+                  Refresh
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <section className={`${styles.panel} ${styles.singlePanel}`}>
+            <div className={styles.panelHeader}>
+              <AlertTriangle size={20} aria-hidden />
+              <h2>Delete organization</h2>
+            </div>
+            <p className={styles.muted}>
+              Permanently remove {organization.name} and its data. Inactive courses and existing wallet state may prevent deletion.
+            </p>
+            {deleteConfirm ? (
+              <div className={styles.actionRow} style={{ marginTop: "0.75rem" }}>
+                <button
+                  className={styles.primaryButton}
+                  disabled={isDeleting}
+                  onClick={onDelete}
+                  style={{ background: "var(--color-warn, #dc2626)", borderColor: "var(--color-warn, #dc2626)" }}
+                  type="button"
+                >
+                  <Send size={17} aria-hidden />
+                  {isDeleting ? "Deleting…" : "Confirm delete"}
+                </button>
+                <button className={styles.secondaryButton} disabled={isDeleting} onClick={onDeleteConfirmReset} type="button">
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                className={styles.secondaryButton}
+                onClick={() => onDeleteConfirmChange(true)}
+                style={{ color: "var(--color-warn, #dc2626)", marginTop: "0.75rem" }}
+                type="button"
+              >
+                <AlertTriangle size={17} aria-hidden />
+                Delete {organization.name}
+              </button>
+            )}
+          </section>
+        </>
+      ) : null}
+    </>
   );
 }
 
