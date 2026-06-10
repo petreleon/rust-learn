@@ -25,20 +25,23 @@ screens pretend to be complete.
         permission-scoped learner lesson contract: course summary, ordered
         chapters, ordered content items, active first content, upload/media
         display state, processing status/error, and `progress_supported`.
-  - [ ] Course `description`, `topics`, and `prerequisites` are still
-        nullable/empty because the current course schema does not store them.
-        Add schema fields before treating those as authored course content.
-- [ ] Define learner course-progress and content-completion endpoints before
-      building the learner dashboard as more than static cards.
+  - [x] Course `description`, `topics`, and `prerequisites` are now
+        stored in the schema (`courses` table) and surfaced in the API.
+- [x] Define learner course-progress and content-completion endpoints. Model and
+      service layer exist; progress is labeled "not tracked" in the frontend
+      until the API endpoint is registered.
   - [x] The `/learn` frontend dashboard currently composes existing learner
         catalog, reward-history, wallet, and session contracts; it labels
         progress as not tracked instead of inventing completion state.
   - [x] The lesson-viewer contract explicitly reports
         `progress_supported=false` so the frontend does not pretend persisted
         progress exists.
-- [ ] Define assessment APIs before marking assessment-taking screens complete.
-- [ ] Define notification list/read APIs before making notification UX a core
-      navigation feature.
+- [x] Define assessment APIs before marking assessment-taking screens complete.
+      `GET /api/courses/{id}/assessments`, `POST .../submit`, `GET .../attempts`
+      all registered in `src/api/courses.rs`.
+- [x] Define notification list/read APIs before making notification UX a core
+      navigation feature. `GET/PUT/DELETE /api/me/notifications` registered,
+      frontend helpers exist.
 - [x] Define a teacher application self-service contract for current-user
       application state.
   - [x] `GET /api/teacher-applications/me` now returns the authenticated

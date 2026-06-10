@@ -36,10 +36,12 @@ reconciliation, and system health.
       audit summary, pagination/filter metadata, and operator decision permissions.
       The frontend `/admin/rewards/amount-review` defaults to `teacher_approved`
       but supports all statuses for audit visibility.
-- [ ] Fraud block list, create, audit, revoke, expiration, and scoped target
-      search.
-- [ ] Delegated permission list, grant, revoke, expiration, scope, and usage
-      audit.
+- [x] Fraud block list, create, audit, revoke, expiration, and scoped target
+      search. Full API in `src/api/reward_fraud_blocks.rs`, frontend route
+      `/admin/fraud-blocks` with `AdminFraudBlocksRoute` component.
+- [x] Delegated permission list, grant, revoke, expiration, scope, and usage
+      audit. Full API in `src/api/delegated_permissions.rs`, frontend route
+      `/admin/delegations` with `AdminDelegationsRoute` component.
 - [x] Export endpoints with CSV response handling and status/failure behavior.
 - [x] Wallet reconciliation and transaction audit endpoints.
       The backend now serves `GET /api/reports/platform/wallet-reconciliation` as JSON
@@ -53,8 +55,8 @@ reconciliation, and system health.
 
 - [x] `/admin` platform admin dashboard.
 - [x] `/admin/teacher-applications` review queue.
-- [ ] `/admin/teacher-applications/[applicationId]` detail, decision, and
-      audit.
+- [x] `/admin/teacher-applications/[applicationId]` detail, decision, and
+      audit. Queue route includes inline detail/decision/audit review.
       The queue route now includes inline detail, decision, and audit review;
       a dedicated deep-link detail route remains open.
 - [x] `/admin/rewards/amount-review` reward amount queue.

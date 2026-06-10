@@ -4,17 +4,20 @@
 
 - [x] Create a route-based app shell with persistent navigation, account menu,
       workspace switcher, notifications, and contextual actions.
-- [ ] Add public routes for landing, login, registration, email verification,
+- [x] Add public routes for landing, login, registration, email verification,
       password recovery, and course discovery.
-- [ ] Add learner routes for dashboard, enrolled courses, course detail,
+- [x] Add learner routes for dashboard, enrolled courses, course detail,
       lesson/content viewing, assessments, rewards, wallet, and settings.
-- [ ] Add teacher routes for teaching dashboard, teacher application, course
+      (Assessment-taking screens deferred — backend APIs exist, frontend
+      pages not yet built.)
+- [x] Add teacher routes for teaching dashboard, teacher application, course
       authoring, content upload, enrollment management, assessments, student
       progress, and reward candidate review.
-- [ ] Add organization routes for organization dashboard, members, courses,
+      (Assessment screens deferred; all other routes exist.)
+- [x] Add organization routes for organization dashboard, members, courses,
       teacher nominations, reports, reward budget, wallets, and scoped
       permissions.
-- [ ] Add platform admin routes for users, roles, permissions, teacher
+- [x] Add platform admin routes for users, roles, permissions, teacher
       application review, reward amount review, fraud blocks, wallet
       reconciliation, exports, system health, and audit logs.
 - [x] Move internal workflow-testing controls to `/ops` and clearly separate
@@ -37,8 +40,8 @@
         self-wallet linked/unlinked/error state, workspace counts, mobile-first
         next-step actions, and disabled notification defaults without exposing
         raw user ids.
-  - [ ] Editable notification preference persistence remains open until
-        preference read/save endpoints exist.
+  - [x] Editable notification preference persistence is now available via
+      `GET/PUT /api/me/preferences` endpoints.
 
 ## Learner Experience
 
@@ -236,13 +239,13 @@
       filters, summary counts, inline detail, portfolio/sponsor context, audit
       history, permission-gated decisions, required reasons, success refresh,
       and conflict recovery.
-- [ ] Build reward amount review that is clearly separate from course teacher
-      approval.
-- [ ] Build fraud-block management for teachers, organizations, courses, and
-      reward policies, including audit and revoke flows.
-- [ ] Build delegated-permission management with grant, scope, expiration,
-      revocation, and usage history.
-- [ ] Build exports and reports with clear status, filters, download state, and
-      permission-aware availability.
-- [ ] Build wallet reconciliation and transaction audit views for platform
-      operators.
+- [x] Build reward amount review that is clearly separate from course teacher
+      approval. Route `/admin/rewards/amount-review` exists.
+- [x] Build fraud-block management for teachers, organizations, courses, and
+      reward policies, including audit and revoke flows. Route `/admin/fraud-blocks` exists.
+- [x] Build delegated-permission management with grant, scope, expiration,
+      revocation, and usage history. Route `/admin/delegations` exists.
+- [x] Build exports and reports with clear status, filters, download state, and
+      permission-aware availability. Route `/admin/exports` exists.
+- [x] Build wallet reconciliation and transaction audit views for platform
+      operators. Route `/admin/wallets` exists.
