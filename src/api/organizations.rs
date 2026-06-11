@@ -1,5 +1,5 @@
-include!("organizations/01_imports.rs");
-include!("organizations/02_get_organization_courses.rs");
-include!("organizations/03_get_organization_teacher_applications.rs");
-include!("organizations/04_add_member_by_email_route.rs");
-include!("organizations/05_organization_scope.rs");
+include!("organizations/imports.rs");
+include!("organizations/get_organization_courses.rs");
+include!("organizations/get_organization_teacher_applications.rs");
+include!("organizations/add_member_by_email_route.rs");
+include!("organizations/organization_scope.rs");

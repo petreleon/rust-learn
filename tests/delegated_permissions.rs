@@ -1,10 +1,10 @@
-include!("delegated_permissions/01_imports.rs");
-include!("delegated_permissions/02_force_assign_course_role.rs");
+include!("delegated_permissions/imports.rs");
+include!("delegated_permissions/force_assign_course_role.rs");
 include!(
-    "delegated_permissions/03_delegated_course_permission_submits_candidate_without_course_role.rs"
+    "delegated_permissions/delegated_course_permission_submits_candidate_without_course_role.rs"
 );
 include!(
-    "delegated_permissions/04_delegated_permission_grant_requires_platform_delegate_permission.rs"
+    "delegated_permissions/delegated_permission_grant_requires_platform_delegate_permission.rs"
 );
-include!("delegated_permissions/05_delegated_platform_amount_reviewer_can_set_amount_after_teacher_approval.rs");
-include!("delegated_permissions/06_revoked_delegation_no_longer_authorizes_permission.rs");
+include!("delegated_permissions/delegated_platform_amount_reviewer_can_set_amount_after_teacher_approval.rs");
+include!("delegated_permissions/revoked_delegation_no_longer_authorizes_permission.rs");

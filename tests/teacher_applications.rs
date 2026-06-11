@@ -1,13 +1,9 @@
-include!("teacher_applications/01_imports.rs");
-include!("teacher_applications/02_create_custom_platform_role.rs");
-include!("teacher_applications/03_custom_platform_permissions_drive_teacher_application_flow.rs");
-include!("teacher_applications/04_platform_teacher_application_review_contract_returns_context_and_filters.rs");
-include!("teacher_applications/05_teacher_application_submission_is_idempotent_by_key.rs");
-include!("teacher_applications/06_duplicate_open_teacher_application_submission_conflicts_without_retry_key.rs");
-include!("teacher_applications/07_organization_admin_can_nominate_teacher_to_central_queue.rs");
-include!(
-    "teacher_applications/08_platform_admin_reviews_and_approves_while_moderator_is_denied.rs"
-);
-include!(
-    "teacher_applications/09_course_scope_approval_assigns_course_teacher_permission_bundle.rs"
-);
+include!("teacher_applications/imports.rs");
+include!("teacher_applications/create_custom_platform_role.rs");
+include!("teacher_applications/custom_platform_permissions_drive_teacher_application_flow.rs");
+include!("teacher_applications/platform_teacher_application_review_contract_returns_context_and_filters.rs");
+include!("teacher_applications/teacher_application_submission_is_idempotent_by_key.rs");
+include!("teacher_applications/duplicate_open_teacher_application_submission_conflicts_without_retry_key.rs");
+include!("teacher_applications/organization_admin_can_nominate_teacher_to_central_queue.rs");
+include!("teacher_applications/platform_admin_reviews_and_approves_while_moderator_is_denied.rs");
+include!("teacher_applications/course_scope_approval_assigns_course_teacher_permission_bundle.rs");

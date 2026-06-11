@@ -1,13 +1,11 @@
-include!("reward_execution/01_imports.rs");
-include!("reward_execution/02_create_course.rs");
-include!("reward_execution/03_execute_reward_payout_permission_gates_token_confirmation_and_wallet_credit.rs");
-include!("reward_execution/04_treasury_policy_uses_presigner_when_contract_is_available.rs");
-include!("reward_execution/05_token_confirmed_candidate_credits_wallet_once.rs");
-include!("reward_execution/06_wallet_credit_notification_persists_context_and_is_idempotent.rs");
-include!("reward_execution/07_token_policy_cannot_credit_wallet_before_token_confirmation.rs");
+include!("reward_execution/imports.rs");
+include!("reward_execution/create_course.rs");
+include!("reward_execution/execute_reward_payout_permission_gates_token_confirmation_and_wallet_credit.rs");
+include!("reward_execution/treasury_policy_uses_presigner_when_contract_is_available.rs");
+include!("reward_execution/token_confirmed_candidate_credits_wallet_once.rs");
+include!("reward_execution/wallet_credit_notification_persists_context_and_is_idempotent.rs");
+include!("reward_execution/token_policy_cannot_credit_wallet_before_token_confirmation.rs");
+include!("reward_execution/token_confirmation_records_external_transaction_and_candidate_link.rs");
 include!(
-    "reward_execution/08_token_confirmation_records_external_transaction_and_candidate_link.rs"
-);
-include!(
-    "reward_execution/09_reconciliation_repairs_reward_side_effects_without_duplicate_payouts.rs"
+    "reward_execution/reconciliation_repairs_reward_side_effects_without_duplicate_payouts.rs"
 );

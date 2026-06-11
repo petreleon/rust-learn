@@ -1,2 +1,2 @@
-include!("authentication/01_imports.rs");
-include!("authentication/02_register.rs");
+include!("authentication/imports.rs");
+include!("authentication/register.rs");

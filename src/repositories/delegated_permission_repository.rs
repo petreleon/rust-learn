@@ -1,2 +1,2 @@
-include!("delegated_permission_repository/01_imports.rs");
-include!("delegated_permission_repository/02_revoke_delegated_permission.rs");
+include!("delegated_permission_repository/imports.rs");
+include!("delegated_permission_repository/revoke_delegated_permission.rs");

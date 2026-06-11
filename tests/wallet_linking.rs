@@ -1,17 +1,19 @@
-include!("wallet_linking/01_imports.rs");
-include!("wallet_linking/02_assign_platform_permission_role.rs");
-include!("wallet_linking/03_wallet_org_audit_helpers.rs");
-include!("wallet_linking/03_wallet_user_audit_helpers.rs");
-include!("wallet_linking/03_user_can_link_and_read_own_wallet_idempotently.rs");
-include!("wallet_linking/04_organization_wallet_manager_can_link_and_read_org_wallet.rs");
-include!("wallet_linking/05_organization_wallet_audit_includes_source_org_reward_rows_and_gates_access.rs");
+include!("wallet_linking/imports.rs");
+include!("wallet_linking/assign_platform_permission_role.rs");
+include!("wallet_linking/wallet_org_audit_helpers.rs");
+include!("wallet_linking/wallet_user_audit_helpers.rs");
+include!("wallet_linking/user_can_link_and_read_own_wallet_idempotently.rs");
+include!("wallet_linking/organization_wallet_manager_can_link_and_read_org_wallet.rs");
 include!(
-    "wallet_linking/06_duplicate_pending_deposit_intents_are_marked_ambiguous_without_crediting.rs"
+    "wallet_linking/organization_wallet_audit_includes_source_org_reward_rows_and_gates_access.rs"
 );
-include!("wallet_linking/07_platform_paid_audit_helpers.rs");
-include!("wallet_linking/07_platform_paid_tax_helpers.rs");
-include!("wallet_linking/07_platform_paid_transfer_helpers.rs");
-include!("wallet_linking/07_wallet_token_deposit_and_retire_apply_platform_paid_tax.rs");
 include!(
-    "wallet_linking/08_wallet_audit_view_includes_reward_transactions_and_reconciliation_status.rs"
+    "wallet_linking/duplicate_pending_deposit_intents_are_marked_ambiguous_without_crediting.rs"
+);
+include!("wallet_linking/platform_paid_audit_helpers.rs");
+include!("wallet_linking/platform_paid_tax_helpers.rs");
+include!("wallet_linking/platform_paid_transfer_helpers.rs");
+include!("wallet_linking/wallet_token_deposit_and_retire_apply_platform_paid_tax.rs");
+include!(
+    "wallet_linking/wallet_audit_view_includes_reward_transactions_and_reconciliation_status.rs"
 );

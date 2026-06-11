@@ -1,3 +1,3 @@
-include!("organization_teacher_applications/01_imports.rs");
-include!("organization_teacher_applications/02_organization_teacher_applications_return_scoped_tracking_rows.rs");
-include!("organization_teacher_applications/03_organization_teacher_applications_deny_users_without_scope.rs");
+include!("organization_teacher_applications/imports.rs");
+include!("organization_teacher_applications/organization_teacher_applications_return_scoped_tracking_rows.rs");
+include!("organization_teacher_applications/organization_teacher_applications_deny_users_without_scope.rs");

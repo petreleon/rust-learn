@@ -1,2 +1,2 @@
-include!("tests/01_imports.rs");
-include!("tests/02_reward_dashboard.rs");
+include!("tests/imports.rs");
+include!("tests/reward_dashboard.rs");
