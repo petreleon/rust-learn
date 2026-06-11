@@ -1,11 +1,14 @@
 use crate::db::schema::reward_policies;
 use crate::models::reward_policy::{NewRewardPolicy, RewardPolicy};
-use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 const DEFAULT_REWARD_POLICY_LIMIT: i64 = 25;
 const MAX_REWARD_POLICY_LIMIT: i64 = 100;
+
+mod activation;
+
+pub use activation::deactivate_active_policies;
 
 #[derive(Debug, Clone, Default)]
 pub struct RewardPolicyFilter {
@@ -108,80 +111,4 @@ pub async fn next_policy_version(
         .await?;
 
     Ok(current.unwrap_or(0) + 1)
-}
-
-pub async fn deactivate_active_policies(
-    conn: &mut AsyncPgConnection,
-    scope_type: &str,
-    organization_id: Option<i32>,
-    course_id: Option<i32>,
-    event_type: &str,
-    updated_at: DateTime<Utc>,
-) -> QueryResult<usize> {
-    match (organization_id, course_id) {
-        (Some(organization_id), Some(course_id)) => {
-            diesel::update(
-                reward_policies::table
-                    .filter(reward_policies::scope_type.eq(scope_type))
-                    .filter(reward_policies::organization_id.eq(Some(organization_id)))
-                    .filter(reward_policies::course_id.eq(Some(course_id)))
-                    .filter(reward_policies::event_type.eq(event_type))
-                    .filter(reward_policies::active.eq(true)),
-            )
-            .set((
-                reward_policies::active.eq(false),
-                reward_policies::updated_at.eq(updated_at),
-            ))
-            .execute(conn)
-            .await
-        }
-        (Some(organization_id), None) => {
-            diesel::update(
-                reward_policies::table
-                    .filter(reward_policies::scope_type.eq(scope_type))
-                    .filter(reward_policies::organization_id.eq(Some(organization_id)))
-                    .filter(reward_policies::course_id.is_null())
-                    .filter(reward_policies::event_type.eq(event_type))
-                    .filter(reward_policies::active.eq(true)),
-            )
-            .set((
-                reward_policies::active.eq(false),
-                reward_policies::updated_at.eq(updated_at),
-            ))
-            .execute(conn)
-            .await
-        }
-        (None, Some(course_id)) => {
-            diesel::update(
-                reward_policies::table
-                    .filter(reward_policies::scope_type.eq(scope_type))
-                    .filter(reward_policies::organization_id.is_null())
-                    .filter(reward_policies::course_id.eq(Some(course_id)))
-                    .filter(reward_policies::event_type.eq(event_type))
-                    .filter(reward_policies::active.eq(true)),
-            )
-            .set((
-                reward_policies::active.eq(false),
-                reward_policies::updated_at.eq(updated_at),
-            ))
-            .execute(conn)
-            .await
-        }
-        (None, None) => {
-            diesel::update(
-                reward_policies::table
-                    .filter(reward_policies::scope_type.eq(scope_type))
-                    .filter(reward_policies::organization_id.is_null())
-                    .filter(reward_policies::course_id.is_null())
-                    .filter(reward_policies::event_type.eq(event_type))
-                    .filter(reward_policies::active.eq(true)),
-            )
-            .set((
-                reward_policies::active.eq(false),
-                reward_policies::updated_at.eq(updated_at),
-            ))
-            .execute(conn)
-            .await
-        }
-    }
 }

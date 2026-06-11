@@ -1,0 +1,5 @@
+"use client";
+
+import { API_REQUEST_TIMEOUT_MS } from "./API_REQUEST_TIMEOUT_MS";
+
+export const API_REQUEST_TIMEOUT_SECONDS = API_REQUEST_TIMEOUT_MS / 1000;

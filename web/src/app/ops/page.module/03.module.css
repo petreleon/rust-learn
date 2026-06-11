@@ -1,0 +1,157 @@
+.workflowNav a:focus-visible {
+  outline: 3px solid #bae6fd;
+  outline-offset: 2px;
+}
+
+.eyebrow {
+  margin-bottom: 4px;
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.iconButton,
+.primaryButton,
+.secondaryButton,
+.reportLinks button {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.iconButton,
+.secondaryButton,
+.reportLinks button {
+  background: #ffffff;
+  color: #1f2937;
+  border-color: #cbd5e1;
+}
+
+.primaryButton {
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.primaryButton:hover {
+  background: #115e59;
+}
+
+.secondaryButton:hover,
+.iconButton:hover,
+.reportLinks button:hover {
+  background: #f8fafc;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled,
+.iconButton:disabled,
+.reportLinks button:disabled,
+.formGrid:disabled {
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.primaryButton:disabled,
+.primaryButton:disabled:hover,
+.secondaryButton:disabled,
+.secondaryButton:disabled:hover,
+.iconButton:disabled,
+.iconButton:disabled:hover,
+.reportLinks button:disabled,
+.reportLinks button:disabled:hover {
+  background: #f1f5f9;
+  border-color: #d8dee6;
+  color: #94a3b8;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric {
+  min-height: 76px;
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.metric span {
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.metric strong {
+  font-size: 1.25rem;
+}
+
+.workflowNotice {
+  min-height: 48px;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #78350f;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workflowNotice svg {
+  flex: 0 0 auto;
+}
+
+.workflowNotice div {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.workflowNotice strong,
+.workflowNotice span {
+  overflow-wrap: anywhere;
+}
+
+.workflowNotice strong {
+  font-size: 0.9rem;
+}
+
+.workflowNotice span {
+  font-size: 0.86rem;
+}
+
+.panelNotice {
+  min-height: 42px;
+  margin-bottom: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  padding: 9px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.panelNotice svg {
+  margin-top: 1px;
+  color: #64748b;
+  flex: 0 0 auto;
+}

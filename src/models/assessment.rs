@@ -1,7 +1,7 @@
 use crate::db::schema::{assessment_attempts, assessment_questions, assessments};
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::Value;
 
 #[derive(Queryable, Identifiable, Debug, Clone, Serialize)]

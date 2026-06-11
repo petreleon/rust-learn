@@ -1,13 +1,14 @@
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::chapters;
 use crate::db::DbPool;
-use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
 use crate::models::chapter::{Chapter, NewChapter, UpdateChapter};
-use crate::models::param_type::ParamType;
 use actix_web::{web, HttpResponse, Responder};
 use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::RunQueryDsl;
 use serde::Deserialize;
+
+mod routes;
+
+pub use routes::config;
 
 #[derive(Deserialize)]
 pub struct ReorderRequest {
@@ -140,49 +141,4 @@ async fn delete_chapter(path: web::Path<i32>, pool: web::Data<DbPool>) -> impl R
             HttpResponse::InternalServerError().body("Failed to delete chapter")
         }
     }
-}
-
-pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::resource("/{id}/chapters")
-            .route(
-                web::get()
-                    .to(list_chapters)
-                    .wrap(CoursePermissionMiddleware::require(
-                        Permissions::VIEW_COURSE.to_string(), // Student can view
-                        ParamType::Path,
-                        "id".to_string(),
-                    )),
-            )
-            .route(
-                web::post()
-                    .to(create_chapter)
-                    .wrap(CoursePermissionMiddleware::require(
-                        Permissions::MANAGE_COURSE_SETTINGS.to_string(), // Teacher+
-                        ParamType::Path,
-                        "id".to_string(),
-                    )),
-            ),
-    )
-    .service(
-        web::resource("/{course_id}/chapters/{id}")
-            .route(
-                web::put()
-                    .to(update_chapter)
-                    .wrap(CoursePermissionMiddleware::require(
-                        Permissions::MANAGE_COURSE_SETTINGS.to_string(),
-                        ParamType::Path,
-                        "course_id".to_string(),
-                    )),
-            )
-            .route(
-                web::delete()
-                    .to(delete_chapter)
-                    .wrap(CoursePermissionMiddleware::require(
-                        Permissions::MANAGE_COURSE_SETTINGS.to_string(),
-                        ParamType::Path,
-                        "course_id".to_string(),
-                    )),
-            ),
-    );
 }

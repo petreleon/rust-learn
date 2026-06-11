@@ -1,0 +1,50 @@
+@media (max-width: 860px) {
+  .dashboardGrid,
+  .contentGrid,
+  .itemGrid,
+  .learningLayout,
+  .searchForm,
+  .skeletonGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .walletGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .walletGrid .summaryCard {
+    min-height: 118px;
+    padding: 14px;
+  }
+}
+
+@media (max-width: 1040px) and (min-width: 861px) {
+  .dashboardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .actionRow,
+  .disabledSearch span,
+  .filterButton,
+  .filterToggle,
+  .primaryLink,
+  .secondaryButton,
+  .secondaryLink {
+    width: 100%;
+  }
+
+  .itemHeader,
+  .sectionHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 360px) {
+  .walletGrid {
+    grid-template-columns: 1fr;
+  }
+}

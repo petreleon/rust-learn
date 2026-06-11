@@ -1,0 +1,114 @@
+use bigdecimal::BigDecimal;
+use chrono::NaiveDate;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::config::constants::permissions::Permissions;
+use rust_learn::db::establish_connection;
+use rust_learn::db::schema::{
+    courses, courses_organizations, delegated_permissions, organizations, reward_policies, users,
+};
+use rust_learn::models::course::{Course, NewCourse};
+use rust_learn::models::courses_organizations::NewCourseOrganization;
+use rust_learn::models::delegated_permission::{
+    GrantDelegatedPermissionRequest, DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION,
+    DELEGATED_SCOPE_PLATFORM,
+};
+use rust_learn::models::organization::{NewOrganization, Organization};
+use rust_learn::models::reward_candidate::{
+    REWARD_EVENT_COURSE_COMPLETION, REWARD_STATUS_AMOUNT_APPROVED,
+    REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
+};
+use rust_learn::models::reward_policy::{
+    NewRewardPolicy, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
+};
+use rust_learn::models::role::{CourseRole, PlatformRole};
+use rust_learn::models::user::User;
+use rust_learn::models::user_role_course::UserRoleCourse;
+use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::repositories::course_repository::user_permission_course_request;
+use rust_learn::repositories::delegated_permission_repository::find_delegated_permission;
+use rust_learn::repositories::organization_repository::user_permission_organization_request;
+use rust_learn::repositories::platform_repository::user_permission_platform_request;
+use rust_learn::repositories::user_repository::create_user;
+use rust_learn::services::delegated_permission_service::{
+    grant_delegated_permission, revoke_delegated_permission,
+};
+use rust_learn::services::reward_candidate_service::{
+    decide_reward_amount, decide_reward_candidate_by_teacher, submit_course_reward_candidate,
+    submit_organization_reward_candidate, RewardAmountDecisionRequest, RewardCandidateError,
+    SubmitRewardCandidateRequest, TeacherRewardCandidateDecisionRequest,
+};
+use serde_json::json;
+
+fn unique_string(prefix: &str) -> String {
+    let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
+    format!("{}_{}", prefix, ts)
+}
+
+async fn setup_conn(
+) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+    pool.get()
+        .await
+        .expect("failed to get DB connection from pool")
+}
+
+async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {
+    let user = create_user(
+        conn,
+        &format!("{} Test", prefix),
+        &(unique_string(prefix) + "@example.com"),
+        Some(NaiveDate::from_ymd_opt(1990, 1, 1).unwrap()),
+        "password123",
+    )
+    .await
+    .expect("failed to create user");
+    diesel::update(users::table.find(user.id()))
+        .set(users::email_verified.eq(true))
+        .execute(conn)
+        .await
+        .expect("failed to verify user email");
+    user
+}
+
+async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
+    diesel::insert_into(courses::table)
+        .values(NewCourse {
+            title: title.to_string(),
+            description: None,
+            topics: None,
+            prerequisites: None,
+        })
+        .get_result(conn)
+        .await
+        .expect("failed to create course")
+}
+
+async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organization {
+    diesel::insert_into(organizations::table)
+        .values(NewOrganization {
+            name: name.to_string(),
+            website_link: None,
+            profile_url: None,
+        })
+        .get_result(conn)
+        .await
+        .expect("failed to create organization")
+}
+
+async fn link_course_to_organization(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    organization_id: i32,
+) {
+    diesel::insert_into(courses_organizations::table)
+        .values(NewCourseOrganization {
+            course_id,
+            organization_id,
+            order: 0,
+        })
+        .execute(conn)
+        .await
+        .expect("failed to link course to organization");
+}

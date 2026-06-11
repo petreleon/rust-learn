@@ -1,0 +1,157 @@
+.inputShell {
+  gap: 10px;
+  min-height: 48px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #f8fafc;
+}
+
+.inputShell:focus-within {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.16);
+}
+
+.inputShell input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: #172033;
+  background: transparent;
+}
+
+.iconButton {
+  display: grid;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: #475569;
+  background: transparent;
+  cursor: pointer;
+}
+
+.errorBox {
+  gap: 10px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #991b1b;
+  background: #fff1f2;
+}
+
+.errorBox span {
+  display: grid;
+  gap: 2px;
+}
+
+.successBox {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 12px;
+  color: #166534;
+  background: #f0fdf4;
+}
+
+.successBox strong {
+  font-size: 1rem;
+}
+
+.noticeBox {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 12px;
+  color: #78350f;
+  background: #fffbeb;
+}
+
+.noticeBox strong {
+  font-size: 1rem;
+}
+
+.successActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.primaryButton {
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  border: 1px solid #1f6f8b;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #1f6f8b;
+  cursor: pointer;
+  font-weight: 850;
+}
+
+.primaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.secondaryLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #172033;
+  background: #ffffff;
+  font-weight: 800;
+}
+
+.inlinePrompt {
+  color: #64748b;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.inlinePrompt a {
+  color: #1f6f8b;
+  font-weight: 850;
+}
+
+.policyList {
+  display: grid;
+  gap: 6px;
+  margin-top: -6px;
+}
+
+.policyList span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.policyList .met {
+  color: #166534;
+}
+
+.policyList .unmet {
+  color: #92400e;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -43,6 +43,9 @@ async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
     diesel::insert_into(courses::table)
         .values(NewCourse {
             title: title.to_string(),
+            description: None,
+            topics: None,
+            prerequisites: None,
         })
         .get_result(conn)
         .await

@@ -1,13 +1,26 @@
-use std::time::Duration;
-
 /// Docker Compose E2E smoke tests for platform admin routes.
-/// Run with: make test-compose (or docker compose up -d && cargo test --test docker_compose_smoke)
+/// Run with: make test-compose (or RUN_DOCKER_COMPOSE_SMOKE=1 cargo test --test docker_compose_smoke)
 ///
 /// These tests verify the web proxy, app readiness, and key admin endpoints
 /// when running inside the Docker Compose network.
 #[cfg(test)]
 mod docker_compose_smoke {
     use reqwest::Client;
+    use std::time::Duration;
+
+    fn compose_smoke_enabled() -> bool {
+        std::env::var("RUN_DOCKER_COMPOSE_SMOKE").as_deref() == Ok("1")
+            || std::env::var("API_BASE_URL").is_ok()
+            || std::env::var("WEB_BASE_URL").is_ok()
+    }
+
+    fn skip_when_disabled() -> bool {
+        if compose_smoke_enabled() {
+            return false;
+        }
+        eprintln!("skipping docker compose smoke test; set RUN_DOCKER_COMPOSE_SMOKE=1 to run");
+        true
+    }
 
     fn base_url() -> String {
         std::env::var("API_BASE_URL").unwrap_or_else(|_| "http://app:8080".to_string())
@@ -26,6 +39,9 @@ mod docker_compose_smoke {
 
     #[tokio::test]
     async fn web_proxy_serves_healthz() {
+        if skip_when_disabled() {
+            return;
+        }
         let client = http_client().await;
         let resp = client
             .get(format!("{}/healthz", web_url()))
@@ -37,6 +53,9 @@ mod docker_compose_smoke {
 
     #[tokio::test]
     async fn api_health_returns_ok() {
+        if skip_when_disabled() {
+            return;
+        }
         let client = http_client().await;
         let resp = client
             .get(format!("{}/health", base_url()))
@@ -50,6 +69,9 @@ mod docker_compose_smoke {
 
     #[tokio::test]
     async fn api_ready_returns_ready_or_not_ready() {
+        if skip_when_disabled() {
+            return;
+        }
         let client = http_client().await;
         let resp = client
             .get(format!("{}/ready", base_url()))
@@ -65,6 +87,9 @@ mod docker_compose_smoke {
 
     #[tokio::test]
     async fn web_proxy_forwards_admin_dashboard_html() {
+        if skip_when_disabled() {
+            return;
+        }
         let client = http_client().await;
         let resp = client
             .get(format!("{}/admin", web_url()))
@@ -81,6 +106,9 @@ mod docker_compose_smoke {
 
     #[tokio::test]
     async fn worker_healthcheck_succeeds() {
+        if skip_when_disabled() {
+            return;
+        }
         let client = http_client().await;
         let resp = client
             .get(format!("{}/health", base_url()))

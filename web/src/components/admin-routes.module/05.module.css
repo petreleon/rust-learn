@@ -1,0 +1,85 @@
+@media (max-width: 960px) {
+  .summaryGrid,
+  .actionGrid,
+  .metricGrid,
+  .statusList,
+  .skeletonGrid,
+  .twoColumn,
+  .twoColumnWide {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .actionGrid,
+  .metricGrid,
+  .statusList,
+  .skeletonGrid,
+  .filterPanel,
+  .twoColumn,
+  .twoColumnWide {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .panel,
+  .singlePanel {
+    padding: 14px;
+  }
+
+  .panelHeader {
+    align-items: flex-start;
+  }
+
+  .panelHeader .statusPill {
+    margin-left: 0;
+  }
+
+  .compactRow,
+  .exportRow,
+  .panelHeader,
+  .paginationRow {
+    flex-direction: column;
+  }
+
+  .filterPanel,
+  .compactRow,
+  .exportRow {
+    align-items: stretch;
+  }
+
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .rowMeta {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .summaryCard {
+    min-height: 76px;
+    padding: 8px;
+    gap: 4px;
+  }
+
+  .summaryCard strong {
+    font-size: 1.25rem;
+  }
+
+  .summaryCard .smallIcon {
+    width: 25px;
+    height: 25px;
+  }
+
+  .summaryCard span:last-child {
+    font-size: 0.62rem;
+    line-height: 1.12;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+}

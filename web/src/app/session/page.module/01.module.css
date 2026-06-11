@@ -1,0 +1,157 @@
+.grid,
+.workspaces {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.panelHeader,
+.sectionTitle,
+.buttonRow,
+.badgeRow,
+.statusPill,
+.errorBox,
+.delegationItem,
+.primaryLink,
+.secondaryButton,
+.secondaryLink {
+  display: flex;
+  align-items: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.95fr) minmax(0, 1.05fr);
+  gap: 16px;
+}
+
+.panel,
+.scopeCard,
+.delegationItem {
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
+}
+
+.panel {
+  padding: 18px;
+}
+
+.singlePanel {
+  width: min(760px, 100%);
+  margin: 0 auto;
+}
+
+.panelHeader,
+.sectionTitle {
+  gap: 8px;
+  color: #233044;
+}
+
+.panelHeader h2,
+.sectionTitle h2 {
+  font-size: 1rem;
+}
+
+.buttonRow {
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.primaryLink,
+.secondaryButton,
+.secondaryLink {
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #172033;
+  background: #ffffff;
+  font-weight: 800;
+}
+
+.primaryLink {
+  width: fit-content;
+  border-color: #1f6f8b;
+  color: #ffffff;
+  background: #1f6f8b;
+}
+
+.secondaryButton {
+  cursor: pointer;
+}
+
+.secondaryLink {
+  width: fit-content;
+  min-height: 36px;
+}
+
+.errorBox {
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #991b1b;
+  background: #fff1f2;
+}
+
+.errorBox span {
+  display: grid;
+  gap: 2px;
+}
+
+.profileBlock {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.profileName {
+  font-size: 1.25rem;
+  font-weight: 850;
+}
+
+.muted {
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.badgeRow {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.statusPill,
+.roleBadge,
+.permissionList span {
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.statusPill {
+  gap: 6px;
+}
+
+.good {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.neutral {
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.warn {
+  color: #92400e;
+  background: #fef3c7;
+}

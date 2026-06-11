@@ -1,0 +1,155 @@
+.emptyState {
+  gap: 8px;
+  min-height: 46px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #475569;
+  background: #f8fafc;
+  font-weight: 760;
+}
+
+.emptyState svg {
+  color: #15803d;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.contextRow {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 11px 12px;
+  background: #ffffff;
+}
+
+.contextRow span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.contextRow strong {
+  color: #172033;
+  overflow-wrap: anywhere;
+}
+
+.textBlock,
+.decisionForm {
+  display: grid;
+  gap: 10px;
+}
+
+.textBlock h3,
+.decisionForm h3 {
+  margin: 0;
+  color: #172033;
+}
+
+.textBlock p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.linkList {
+  display: grid;
+  gap: 7px;
+}
+
+.linkList a {
+  width: fit-content;
+  color: #0f5f6f;
+  font-weight: 820;
+  overflow-wrap: anywhere;
+}
+
+.inlineNotice {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 11px 12px;
+  color: #075985;
+  background: #f0f9ff;
+}
+
+.inlineNotice span {
+  overflow-wrap: anywhere;
+}
+
+.inlineError {
+  gap: 8px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #991b1b;
+  background: #fff7f7;
+}
+
+.auditList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.auditList li {
+  color: #475569;
+}
+
+.auditList strong,
+.auditList span,
+.auditList small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.auditList strong {
+  color: #172033;
+}
+
+.auditList small {
+  color: #64748b;
+}
+
+.gatedPanel {
+  border-style: dashed;
+  background: #f8fafc;
+}
+
+.errorBox {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.errorBox .panelHeader > svg {
+  color: #b91c1c;
+}
+
+.skeletonGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.skeletonGrid span {
+  min-height: 78px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #eef2f7, #f8fafc, #eef2f7);
+}
+
+.spin {
+  animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

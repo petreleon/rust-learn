@@ -4,18 +4,18 @@
 
 | Layer | Framework | Tests | Pass | Fail | Skip |
 |---|---|---|---|---|---|
-| **Rust inline** | `cargo test --lib` | **371** | 371 | 0 | 0 |
-| **Rust integration** | `cargo test --tests` | **201** | 201 | 0 | 0 |
+| **Rust inline** | `cargo test --lib` | **374** | 374 | 0 | 0 |
+| **Rust integration** | `cargo test --tests` | **202** | 202 | 0 | 0 |
 | └─ Repository tests | Docker Compose DB | 35 | 35 | 0 | 0 |
 | └─ Model permission tests | Docker Compose DB | 11 | 11 | 0 | 0 |
 | └─ Blockchain integration | Docker Compose Anvil | 2 | 2 | 0 | 0 |
 | └─ Eth utils | Docker Compose Anvil | 4 | 4 | 0 | 0 |
-| └─ Other integration | Various | 149 | 149 | 0 | 0 |
+| └─ Other integration | Various | 150 | 150 | 0 | 0 |
 | **Solidity** | Foundry `forge test` | **44** | 44 | 0 | 0 |
 | **Frontend Vitest** | `npm test` | **72** | 72 | 0 | 0 |
 | **Frontend API helpers** | Node `--test` | **83** | 83 | 0 | 0 |
 | **Frontend E2E** | Playwright | **38** | ready | — | — |
-| **Total** | | **809** | | | |
+| **Total** | | **813** | | | |
 
 ## By Category
 
@@ -40,7 +40,7 @@
 
 ## Key Metrics
 
-- **Inline test growth**: 69 → 371 (5.4x)
+- **Inline test growth**: 69 → 374 (5.4x)
 - **Repository tests added**: 0 → 35
 - **Solidity tests added**: 0 → 44
 - **Frontend tests added**: 0 → 193 (72 + 83 + 38)

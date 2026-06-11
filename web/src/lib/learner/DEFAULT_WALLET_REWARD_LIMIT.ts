@@ -1,0 +1,1 @@
+export const DEFAULT_WALLET_REWARD_LIMIT = 12;

@@ -19,8 +19,9 @@ running, use `make k8s-dev-refresh`, `make k8s-dev-refresh-app`, or
 
 The generated `secrets.patch.yaml` contains local development credentials and
 must not be committed. The generator restricts it to the current user with
-`0600` permissions. Existing secrets are preserved on later runs; set
-`K8S_DEV_SECRETS_FORCE=1` to regenerate them.
+`0600` permissions. If `K8S_ADMIN_PASSWORD` is unset, it generates a strong
+local admin password and prints it once. Existing secrets are preserved on
+later runs; set `K8S_DEV_SECRETS_FORCE=1` to regenerate them.
 
 The local Kubernetes admin bootstrap values come from the generated
 `app-secrets` secret. They can differ from the repository-root `.env` used by

@@ -1,0 +1,146 @@
+.stack,
+.summaryGrid,
+.filterPanel,
+.panel,
+.singlePanel {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.stack {
+  display: grid;
+  gap: 18px;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.summaryCard,
+.metricCard,
+.actionCard {
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.06);
+}
+
+.summaryCard {
+  display: grid;
+  gap: 9px;
+  min-height: 126px;
+  padding: 16px;
+}
+
+.summaryCard strong {
+  color: #172033;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.summaryCard span:last-child,
+.metricCard span,
+.actionCard span,
+.exportRow span,
+.compactRow span,
+.compactRow small,
+.panelHeader p,
+.muted {
+  color: #64748b;
+}
+
+.summaryCard span:last-child,
+.metricCard span,
+.actionCard > span {
+  font-size: 0.86rem;
+  font-weight: 830;
+}
+
+.smallIcon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 8px;
+  color: #0f5f6f;
+  background: #dff6f2;
+}
+
+.filterPanel,
+.panel,
+.singlePanel {
+  display: grid;
+  gap: 16px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.filterPanel {
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 0.26fr) auto;
+  align-items: end;
+  background: #ffffff;
+}
+
+.filterPanel label,
+.decisionForm label {
+  display: grid;
+  gap: 7px;
+  color: #172033;
+  font-weight: 830;
+}
+
+.filterPanel input,
+.filterPanel select,
+.decisionForm select,
+.decisionForm textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #172033;
+  background: #ffffff;
+  font: inherit;
+  font-weight: 680;
+}
+
+.filterPanel input {
+  min-height: 42px;
+  border: 0;
+  padding: 0;
+}
+
+.filterPanel select,
+.decisionForm select {
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.decisionForm textarea {
+  min-height: 104px;
+  padding: 11px 12px;
+  resize: vertical;
+}
+
+.inputWithIcon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+}
+
+.filterActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.singlePanel {
+  max-width: 760px;
+}

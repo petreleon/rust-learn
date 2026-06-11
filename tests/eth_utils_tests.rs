@@ -1,7 +1,7 @@
+use ethers::prelude::*;
 use rust_learn::utils::eth_utils::{
     try_compile_contract, try_deploy_contract, try_get_provider, try_load_wallet_from_env,
 };
-use ethers::prelude::*;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_compile_learn_token_from_source() {
@@ -27,24 +27,22 @@ async fn test_compile_learn_token_loads_artifact() {
 #[tokio::test(flavor = "multi_thread")]
 async fn test_provider_connects_to_anvil() {
     let _ = dotenvy::dotenv();
-    std::env::set_var("ETH_RPC_URL", "http://localhost:8545");
-    std::env::set_var("ETH_HOST", "localhost");
-    std::env::set_var("ETH_PORT", "8545");
 
     let provider = try_get_provider();
     assert!(provider.is_ok(), "provider failed: {:?}", provider.err());
 
     let provider = provider.unwrap();
     let block_number = provider.get_block_number().await;
-    assert!(block_number.is_ok(), "failed to get block number: {:?}", block_number.err());
+    assert!(
+        block_number.is_ok(),
+        "failed to get block number: {:?}",
+        block_number.err()
+    );
 }
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_deploy_learn_token_to_anvil() {
     let _ = dotenvy::dotenv();
-    std::env::set_var("ETH_RPC_URL", "http://localhost:8545");
-    std::env::set_var("ETH_HOST", "localhost");
-    std::env::set_var("ETH_PORT", "8545");
 
     let wallet = try_load_wallet_from_env();
     assert!(wallet.is_ok(), "wallet load failed: {:?}", wallet.err());

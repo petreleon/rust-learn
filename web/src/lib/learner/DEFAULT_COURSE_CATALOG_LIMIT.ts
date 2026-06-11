@@ -1,0 +1,1 @@
+export const DEFAULT_COURSE_CATALOG_LIMIT = 30;

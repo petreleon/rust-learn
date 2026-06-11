@@ -37,6 +37,8 @@ python3 - "$OUT" "$PRIVATE_KEY_FILE" "$PUBLIC_KEY_FILE" <<'PY'
 from pathlib import Path
 import json
 import os
+import secrets
+import string
 import sys
 
 out = Path(sys.argv[1])
@@ -56,7 +58,22 @@ eth_mnemonic = os.environ.get(
 )
 s3_access_key = os.environ.get("K8S_S3_ACCESS_KEY", "rustfsadmin")
 s3_secret_key = os.environ.get("K8S_S3_SECRET_KEY", "rustfsadmin")
-admin_password = os.environ.get("K8S_ADMIN_PASSWORD", "rustlearn-admin")
+
+def generate_admin_password() -> str:
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*()-_=+"
+    required = [
+        secrets.choice(string.ascii_lowercase),
+        secrets.choice(string.ascii_uppercase),
+        secrets.choice(string.digits),
+        secrets.choice("!@#$%^&*()-_=+"),
+    ]
+    chars = required + [secrets.choice(alphabet) for _ in range(20)]
+    secrets.SystemRandom().shuffle(chars)
+    return "".join(chars)
+
+admin_password_env = os.environ.get("K8S_ADMIN_PASSWORD")
+admin_password_from_env = bool(admin_password_env)
+admin_password = admin_password_env or generate_admin_password()
 
 def q(value: str) -> str:
     return json.dumps(value)
@@ -107,6 +124,9 @@ stringData:
 """,
     encoding="utf-8",
 )
+
+if not admin_password_from_env:
+    print(f"Generated local Kubernetes admin password: {admin_password}")
 PY
 
 restrict_secret_permissions

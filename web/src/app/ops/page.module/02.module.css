@@ -1,0 +1,157 @@
+.secretField {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  gap: 8px;
+}
+
+.tokenVisibilityButton {
+  width: 38px;
+  min-height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.tokenVisibilityButton:hover {
+  background: #f8fafc;
+}
+
+.tokenVisibilityButton:disabled,
+.tokenVisibilityButton:disabled:hover {
+  cursor: not-allowed;
+  background: #f1f5f9;
+  border-color: #d8dee6;
+  color: #94a3b8;
+}
+
+.statusMessage {
+  margin-top: 10px;
+  min-height: 20px;
+  color: #64748b;
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.permissionSummary {
+  display: none;
+}
+
+.statusPill,
+.countPill {
+  min-height: 24px;
+  border-radius: 8px;
+  padding: 3px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.countPill {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.online {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.offline {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.checking {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.permissionGroup {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.permissionGroup p {
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.checkboxRow {
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: #1f2937;
+  font-size: 0.88rem;
+}
+
+.checkboxRow input {
+  width: 16px;
+  height: 16px;
+  accent-color: #0f766e;
+}
+
+.checkboxRow span {
+  overflow-wrap: anywhere;
+}
+
+.workspace {
+  grid-column: 2;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.topbar {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.topbar h1 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.workflowNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.workflowNav a {
+  min-height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1f2937;
+  padding: 8px 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.workflowNav a:hover {
+  background: #f8fafc;
+}

@@ -1,6 +1,6 @@
 # Testing Gaps — Final State
 
-*Last updated: after model permission + eth utils integration tests.*
+*Last updated: synced with `TEST_SUMMARY.md`. Canonical test totals live there.*
 
 ## All Resolved
 
@@ -11,8 +11,9 @@
 | Ethereum contracts | 44 Solidity tests + 2 Rust blockchain tests + 4 eth utils tests |
 | Middlewares | 2 inline + 11 request_utils + covered by integration tests |
 | Utils | 11/13 files tested (centralized_wallets, request_utils, eth/provider, s3, jwt, email, worker, notifications) |
-| Config | 2 tests (updates list order/versions) |
+| Config | 5 tests (updates list order/versions + bootstrap admin password validation) |
 | Model permissions | 11 integration tests (Platform/Org/Course has_permission + hierarchy) |
+| Frontend | 72 Vitest tests + 83 API helper tests + 38 Playwright E2E tests ready |
 | DB setup | version_updater list tested, migrations verified |
 
 ## Remaining Gaps
@@ -20,10 +21,12 @@
 ### 1. Frontend Tests (HIGH -> resolved)
 - [x] Vitest + React Testing Library installed and configured
 - [x] **31 unit tests** across 4 lib modules (session, auth, access, organization)
-- [x] **6 E2E smoke tests** via Playwright (home, healthz, login, register, course, teach)
+- [x] **38 E2E smoke tests** via Playwright
 - [x] React component tests — 41 tests for product-shell and learner-routes
       pure functions (`web/src/components/__tests__/`). teacher-routes, admin-routes,
       org-routes, and workspace-route remain.
+- [x] Frontend API helper tests — 83 Node tests for success, text errors, `401`,
+      `403`, timeout, network failure, and verification-token states.
 - [ ] Page-level integration tests — still zero for `web/src/app/` pages
 - [x] Run via: `npm test` (unit), `npm run test:e2e` (Playwright), `npm run test:api-helpers`
 
@@ -51,11 +54,14 @@
 
 | Metric | Before | After |
 |---|---|---|
-| Inline unit tests | 69 | **371** |
+| Inline unit tests | 69 | **374** |
 | Service coverage | 2/18 | **18/18** |
 | Repository integration tests | 0 | **35** (5 files) |
 | Model permission integration tests | 0 | **11** (1 file) |
 | Eth utils integration tests | 0 | **4** (1 file) |
 | Solidity Foundry tests | 0 | **44** |
 | Blockchain integration tests | 2 ignored | **2 passing** |
-| **Total test count** | ~110 | ~467 |
+| Frontend Vitest | 0 | **72** |
+| Frontend API helper tests | 0 | **83** |
+| Frontend E2E smoke tests | 0 | **38 ready** |
+| **Total test count** | ~110 | **813** |

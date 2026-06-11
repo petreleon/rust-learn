@@ -1,0 +1,59 @@
+use actix_service::Service;
+use actix_web::{test, web, App};
+use chrono::NaiveDate;
+use diesel::{ExpressionMethods, QueryDsl};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::db::schema::{chapters, courses, upload_jobs};
+use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::models::chapter::{Chapter, NewChapter};
+use rust_learn::models::content::Content;
+use rust_learn::models::course::{Course, NewCourse};
+use rust_learn::models::role::CourseRole;
+use rust_learn::models::user::User;
+use rust_learn::models::user_role_course::UserRoleCourse;
+use rust_learn::repositories::user_repository::create_user;
+use rust_learn::utils::jwt_utils::create_jwt;
+
+fn unique_string(prefix: &str) -> String {
+    let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
+    format!("{}_{}", prefix, ts)
+}
+
+async fn setup_conn(
+    pool: &DbPool,
+) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
+    pool.get()
+        .await
+        .expect("failed to get DB connection from pool")
+}
+
+async fn create_test_user(conn: &mut AsyncPgConnection, name: &str) -> User {
+    let email = unique_string(name) + "@example.com";
+    create_user(
+        conn,
+        name,
+        &email,
+        Some(NaiveDate::from_ymd_opt(2000, 1, 1).unwrap()),
+        "password",
+    )
+    .await
+    .expect("failed to create user")
+}
+
+fn generate_token(user_id: i32) -> String {
+    create_jwt(user_id).expect("failed to generate token")
+}
+
+async fn force_assign_course_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    course_id: i32,
+    role_name: &str,
+) {
+    let role_id = CourseRole::find_by_name(role_name, conn)
+        .await
+        .expect("role not found");
+    UserRoleCourse::assign(conn, user_id, course_id, role_id)
+        .await
+        .expect("assign failed");
+}

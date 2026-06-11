@@ -1,0 +1,126 @@
+.readinessItem {
+  display: grid;
+  gap: 8px;
+}
+
+.walletValue {
+  display: grid;
+  gap: 2px;
+}
+
+.walletValue strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.walletValue span {
+  color: #64748b;
+  font-weight: 760;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metricCard {
+  min-height: 68px;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 10px;
+  color: #334155;
+  background: #f8fafc;
+}
+
+.metricCard strong {
+  color: #172033;
+  font-size: 1.4rem;
+}
+
+.metricCard span {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.preferencePanel {
+  margin-top: 18px;
+}
+
+.preferenceRow {
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.preferenceRow input {
+  width: 18px;
+  height: 18px;
+  accent-color: #1f6f8b;
+}
+
+.preferenceRow input:disabled {
+  cursor: not-allowed;
+}
+
+.preferenceRow span {
+  display: grid;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+}
+
+.preferenceRow strong,
+.preferenceRow small {
+  overflow-wrap: anywhere;
+}
+
+.preferenceRow small {
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 900px) {
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .errorBox {
+    grid-template-columns: 1fr;
+  }
+
+  .actionRow,
+  .primaryLink,
+  .secondaryButton,
+  .secondaryLink {
+    width: 100%;
+  }
+
+  .metricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .metricCard {
+    justify-content: flex-start;
+  }
+
+  .preferenceRow {
+    align-items: flex-start;
+  }
+}

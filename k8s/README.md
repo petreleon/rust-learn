@@ -164,9 +164,10 @@ make k8s-dev-refresh-web
 
 The dev overlay writes `k8s/overlays/dev/secrets.patch.yaml`, which contains
 generated local RSA keys and development credentials. That file is ignored by
-git and must not be committed. Existing local dev secrets are preserved on
-later runs; set `K8S_DEV_SECRETS_FORCE=1` when you intentionally want to
-regenerate them.
+git and must not be committed. If `K8S_ADMIN_PASSWORD` is unset, the generator
+creates a strong local admin password and prints it once. Existing local dev
+secrets are preserved on later runs; set `K8S_DEV_SECRETS_FORCE=1` when you
+intentionally want to regenerate them.
 
 The dev overlay also skips the base ingress resource and enables RustFS's local
 single-disk bypass. Use the base manifests or a production overlay when an

@@ -1,0 +1,76 @@
+@media (max-width: 1060px) {
+  .summaryGrid,
+  .organizationGrid,
+  .actionGrid,
+  .reportGrid,
+  .courseGrid,
+  .applicationGrid,
+  .memberGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .twoColumn,
+  .filterPanel,
+  .courseFilterPanel,
+  .applicationFilterPanel,
+  .memberFilterPanel {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .organizationGrid,
+  .actionGrid,
+  .metricGrid,
+  .reportGrid,
+  .courseGrid,
+  .applicationGrid,
+  .memberGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summaryCard {
+    min-height: 104px;
+  }
+
+  .summaryCard strong {
+    font-size: 1.6rem;
+  }
+
+  .summaryCard,
+    .filterPanel,
+    .courseFilterPanel,
+    .applicationFilterPanel,
+    .memberFilterPanel,
+    .organizationCard,
+    .workspaceHero,
+    .panel,
+  .actionCard,
+  .errorBox {
+    padding: 15px;
+  }
+
+  .sectionHeader,
+  .organizationTop,
+  .actionHeader,
+  .compactRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .primaryLink,
+  .primaryButton,
+  .secondaryLink,
+  .secondaryButton,
+  .backLink {
+    width: 100%;
+  }
+
+  .errorBox {
+    grid-template-columns: 1fr;
+  }
+}

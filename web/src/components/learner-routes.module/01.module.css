@@ -1,0 +1,156 @@
+.statePanel,
+.dashboardGrid,
+.contentGrid,
+.section,
+.catalogPanel,
+.learningLayout,
+.errorPanel {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.statePanel,
+.summaryCard,
+.itemCard,
+.catalogPanel,
+.lessonOutline,
+.lessonReader,
+.errorPanel {
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
+}
+
+.statePanel,
+.catalogPanel,
+.errorPanel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.panelHeader,
+.actionRow,
+.statusPill,
+.itemHeader,
+.metaRow,
+.primaryLink,
+.secondaryButton,
+.secondaryLink,
+.disabledSearch,
+.filterToggle,
+.filterBar,
+.filterButton,
+.iconAction,
+.searchField,
+.sectionHeader {
+  display: flex;
+  align-items: center;
+}
+
+.panelHeader,
+.actionRow,
+.metaRow,
+.disabledSearch,
+.filterBar,
+.searchField {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.panelHeader h2,
+.section h2 {
+  font-size: 1.08rem;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.walletGrid {
+  align-items: stretch;
+}
+
+.itemGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.summaryCard,
+.itemCard {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.summaryCard strong {
+  font-size: 1.65rem;
+}
+
+.section {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.learningLayout {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.lessonOutline,
+.lessonReader {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 16px;
+}
+
+.lessonChapter {
+  display: grid;
+  gap: 8px;
+}
+
+.lessonChapter h3 {
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+.lessonList {
+  display: grid;
+  gap: 8px;
+}
+
+.lessonButton {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 8px;
+  color: #172033;
+  background: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+}
+
+.lessonButton span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

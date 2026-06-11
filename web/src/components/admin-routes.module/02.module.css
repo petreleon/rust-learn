@@ -1,0 +1,156 @@
+.panelHeader,
+.actionTop,
+.subsectionHeader,
+.compactRow,
+.exportRow,
+.statusPill,
+.filterActions,
+.paginationRow,
+.primaryButton,
+.secondaryButton,
+.secondaryLink,
+.emptyState,
+.inlineError,
+.rowMeta {
+  display: flex;
+  align-items: center;
+}
+
+.panelHeader {
+  gap: 12px;
+}
+
+.panelHeader > svg {
+  flex: 0 0 auto;
+  color: #0f5f6f;
+}
+
+.panelHeader h2,
+.subsectionHeader h3 {
+  margin: 0;
+  color: #172033;
+  line-height: 1.15;
+}
+
+.panelHeader p {
+  margin: 4px 0 0;
+  max-width: 720px;
+  line-height: 1.45;
+}
+
+.panelHeader .statusPill {
+  margin-left: auto;
+}
+
+.actionGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.actionCard {
+  display: grid;
+  gap: 10px;
+  min-height: 178px;
+  padding: 15px;
+}
+
+.actionCard strong {
+  color: #172033;
+  font-size: 1.45rem;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.actionCard p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.42;
+}
+
+.actionTop {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metricCard {
+  display: grid;
+  gap: 7px;
+  min-height: 86px;
+  padding: 13px;
+  box-shadow: none;
+}
+
+.metricCard strong {
+  color: #172033;
+  font-size: 1.35rem;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.metricCard.good {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.metricCard.warn {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.twoColumn {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(340px, 0.82fr);
+  gap: 18px;
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.twoColumnWide {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(380px, 1.05fr);
+  gap: 18px;
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  align-items: start;
+}
+
+.twoColumn > .panel {
+  width: 100%;
+  margin: 0;
+}
+
+.twoColumnWide > .panel {
+  width: 100%;
+  margin: 0;
+}
+
+.statusList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.statusRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0 11px;
+  align-items: center;
+  background: #ffffff;
+}
+
+.statusRow span {
+  color: #475569;
+  font-weight: 760;
+}

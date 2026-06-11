@@ -1,0 +1,153 @@
+.routeHeader p {
+  max-width: 690px;
+  margin-top: 12px;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.statusStrip {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.breadcrumbs {
+  gap: 8px;
+  min-height: 32px;
+  margin-top: -8px;
+  margin-bottom: 18px;
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+.breadcrumbs a {
+  color: #1f6f8b;
+  font-weight: 820;
+}
+
+.breadcrumbDivider {
+  color: #94a3b8;
+}
+
+.globalNotice {
+  width: min(1180px, 100%);
+  min-height: 48px;
+  margin: 0 auto 18px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.globalNotice div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.globalNotice strong,
+.globalNotice span {
+  overflow-wrap: anywhere;
+}
+
+.globalNotice span {
+  font-size: 0.9rem;
+}
+
+.noticeAction {
+  min-height: 34px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 820;
+  white-space: nowrap;
+}
+
+.info {
+  color: #0c4a6e;
+  background: #f0f9ff;
+  border-color: #bae6fd;
+}
+
+.success {
+  color: #166534;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.warn {
+  color: #78350f;
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+
+.error {
+  color: #991b1b;
+  background: #fff1f2;
+  border-color: #fecaca;
+}
+
+.content {
+  padding-bottom: 36px;
+}
+
+.delegationMenu {
+  display: grid;
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.delegationMenu > strong {
+  color: #334155;
+  font-size: 0.82rem;
+}
+
+.delegationMenu small {
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.delegationItem {
+  display: grid;
+  gap: 2px;
+}
+
+.delegationItem span {
+  overflow-wrap: anywhere;
+  font-size: 0.84rem;
+  font-weight: 820;
+}
+
+@media (max-width: 1040px) {
+  .topbar {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .desktopNav,
+  .toolbar {
+    display: none;
+  }
+
+  .mobileMenu {
+    display: block;
+    justify-self: end;
+  }
+
+  .routeHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .statusStrip {
+    justify-content: flex-start;
+  }
+}

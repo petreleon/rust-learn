@@ -1,0 +1,157 @@
+.page {
+  min-height: 100vh;
+  padding: 24px;
+  color: #172033;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(245, 247, 251, 0.98)),
+    #f5f7fb;
+}
+
+.topbar,
+.routeHeader,
+.breadcrumbs,
+.content {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  min-height: 52px;
+}
+
+.brand,
+.desktopNav,
+.navItem,
+.toolbar,
+.workspaceControl,
+.iconButton,
+.accountSummary,
+.accountMenuItem,
+.mobileSummary,
+.mobileNavItem,
+.routeHeader,
+.statusStrip,
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+}
+
+.brand {
+  gap: 10px;
+}
+
+.brandMark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #1f6f8b;
+  font-weight: 850;
+}
+
+.brandText small {
+  display: block;
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.desktopNav {
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.navItem,
+.mobileNavItem {
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #334155;
+  background: transparent;
+  font-weight: 820;
+}
+
+.navItem {
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.navItem:hover,
+.mobileNavItem:hover {
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+
+.activeNav {
+  border-color: #b6d8e2;
+  color: #164e63;
+  background: #e8f6f8;
+}
+
+.toolbar {
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.workspaceControl {
+  min-width: 210px;
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #ffffff;
+}
+
+.workspaceControl span {
+  margin-right: 8px;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.workspaceControl select {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: #172033;
+  background: transparent;
+  font: inherit;
+  font-weight: 780;
+}
+
+.workspaceControl select:disabled {
+  color: #94a3b8;
+}
+
+.iconButton,
+.accountSummary,
+.mobileSummary {
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #172033;
+  background: #ffffff;
+}
+
+.iconButton {
+  width: 40px;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.iconButton:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+  background: #f8fafc;
+}

@@ -1,0 +1,2 @@
+"use client";
+export const ADMIN_TEACHER_APPLICATION_PAGE_SIZE = 8;

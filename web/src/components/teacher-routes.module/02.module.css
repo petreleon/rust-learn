@@ -1,0 +1,153 @@
+.priorityItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  border-radius: 8px;
+  padding: 10px;
+  background: #f8fafc;
+}
+
+.priorityItem div {
+  display: grid;
+  gap: 3px;
+}
+
+.priorityItem p {
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.reviewNote {
+  border-left: 3px solid #1f6f8b;
+  padding-left: 12px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.courseGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.courseCard {
+  align-content: start;
+}
+
+.chapterList,
+.enrollmentList {
+  display: grid;
+  gap: 14px;
+}
+
+.chapterCard,
+.enrollmentCard {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+}
+
+.chapterCard h3,
+.enrollmentCard h3 {
+  margin-top: 4px;
+  color: #172033;
+  font-size: 1.08rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.contentList {
+  display: grid;
+  gap: 10px;
+}
+
+.contentRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.contentRow div {
+  display: grid;
+  gap: 4px;
+}
+
+.contentRow p,
+.contentRow small {
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.courseTop {
+  align-items: flex-start;
+}
+
+.courseTop h3 {
+  margin-top: 4px;
+  font-size: 1.12rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.eyebrow {
+  color: #0f766e;
+  font-size: 0.76rem;
+  font-weight: 880;
+  text-transform: uppercase;
+}
+
+.statusPill,
+.statusLine,
+.permissionChip {
+  gap: 7px;
+  min-height: 32px;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: #334155;
+  background: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.statusPill,
+.permissionChip {
+  display: inline-flex;
+  align-items: center;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metricCard {
+  display: grid;
+  gap: 4px;
+  min-height: 64px;
+  border-radius: 8px;
+  padding: 10px;
+  color: #334155;
+  background: #f8fafc;
+}
+
+.metricCard strong {
+  color: #172033;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.metricCard span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 820;
+}

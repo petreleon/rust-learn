@@ -1,0 +1,120 @@
+.primaryButton,
+.secondaryButton,
+.primaryLink,
+.secondaryLink {
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #172033;
+  background: #ffffff;
+  font-weight: 850;
+}
+
+.primaryButton,
+.primaryLink {
+  border-color: #1f6f8b;
+  color: #ffffff;
+  background: #1f6f8b;
+}
+
+.secondaryButton:disabled {
+  color: #94a3b8;
+  background: #f8fafc;
+  cursor: not-allowed;
+}
+
+.good {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.neutral {
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.warn {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.errorBox {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  border-color: #fecaca;
+  color: #991b1b;
+  background: #fff1f2;
+}
+
+.errorBox span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1060px) {
+  .summaryGrid,
+  .courseGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .contentRow {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .twoColumn,
+  .filterPanel {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .summaryGrid,
+  .courseGrid,
+  .metricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel,
+  .courseCard,
+  .chapterCard,
+  .enrollmentCard,
+  .authoringForm,
+  .filterPanel,
+  .errorBox,
+  .workspaceHero,
+  .warningPanel {
+    padding: 15px;
+  }
+
+  .courseTop,
+  .sectionHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .primaryButton,
+  .secondaryButton,
+  .primaryLink,
+  .secondaryLink {
+    width: 100%;
+  }
+
+  .errorBox {
+    grid-template-columns: 1fr;
+  }
+}

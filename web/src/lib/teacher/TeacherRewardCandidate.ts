@@ -1,0 +1,21 @@
+export type TeacherRewardCandidate = {
+  amount_decided_at: string | null;
+  amount_decision_reason: string | null;
+  amount_reviewer_user_id: number | null;
+  approved_amount: string | null;
+  course_id: number;
+  created_at: string;
+  event_type: string;
+  evidence: unknown;
+  id: number;
+  idempotency_key: string;
+  source_organization_id: number | null;
+  source_scope: string;
+  status: string;
+  student_user_id: number;
+  submitter_user_id: number;
+  teacher_approver_user_id: number | null;
+  teacher_decided_at: string | null;
+  teacher_decision_reason: string | null;
+  updated_at: string;
+};

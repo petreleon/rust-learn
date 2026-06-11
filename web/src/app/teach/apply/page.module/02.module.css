@@ -1,0 +1,156 @@
+.scopeOptionDisabled {
+  color: #94a3b8;
+  background: #f8fafc;
+  cursor: not-allowed;
+}
+
+.fieldLabel {
+  color: #172033;
+  font-weight: 820;
+}
+
+.fieldLabel select,
+.fieldLabel textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 11px 12px;
+  color: #172033;
+  background: #ffffff;
+  font: inherit;
+  font-weight: 650;
+}
+
+.fieldLabel textarea {
+  min-height: 116px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.fieldLabel small {
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.actionRow {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.primaryButton,
+.secondaryButton,
+.primaryLink {
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #172033;
+  background: #ffffff;
+  font-weight: 850;
+}
+
+.primaryButton,
+.primaryLink {
+  border-color: #1f6f8b;
+  color: #ffffff;
+  background: #1f6f8b;
+}
+
+.primaryButton:disabled {
+  border-color: #94a3b8;
+  background: #94a3b8;
+  cursor: wait;
+}
+
+.secondaryButton {
+  cursor: pointer;
+}
+
+.secondaryButton:hover,
+.primaryLink:hover {
+  filter: brightness(0.98);
+}
+
+.statusLine {
+  gap: 7px;
+  min-height: 32px;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: #334155;
+  background: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.good {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.neutral {
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.warn {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.bad {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.validationBox,
+.errorBox {
+  gap: 10px;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.validationBox {
+  border: 1px solid #f6d365;
+  color: #78350f;
+  background: #fffbeb;
+}
+
+.errorBox {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  border-color: #fecaca;
+  color: #991b1b;
+  background: #fff1f2;
+}
+
+.validationBox span,
+.errorBox span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.portfolioLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.portfolioLink,
+.portfolioText {
+  min-width: 0;
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: #172033;
+  background: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.portfolioLink {
+  gap: 6px;
+}

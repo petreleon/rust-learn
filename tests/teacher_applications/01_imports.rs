@@ -1,0 +1,97 @@
+use chrono::NaiveDate;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::config::constants::permissions::Permissions;
+use rust_learn::config::constants::roles::Roles;
+use rust_learn::db::establish_connection;
+use rust_learn::db::schema::{courses, organizations, platform_roles, role_permission_platform};
+use rust_learn::models::course::{Course, NewCourse};
+use rust_learn::models::organization::{NewOrganization, Organization};
+use rust_learn::models::role::OrganizationRole;
+use rust_learn::models::teacher_application::{
+    TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_SUBMITTED,
+};
+use rust_learn::models::user::User;
+use rust_learn::models::user_role_organization::UserRoleOrganization;
+use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::repositories::course_repository::user_permission_course_request;
+use rust_learn::repositories::organization_repository::user_permission_organization_request;
+use rust_learn::repositories::platform_repository::assign_role_to_user;
+use rust_learn::repositories::platform_repository::user_permission_platform_request;
+use rust_learn::repositories::teacher_application_repository::list_audit_events;
+use rust_learn::repositories::user_repository::create_user;
+use rust_learn::services::teacher_application_service::{
+    decide_application, get_my_application, list_applications, list_platform_applications,
+    nominate_application, submit_application, ListTeacherApplicationsRequest,
+    OrganizationTeacherNominationRequest, PlatformTeacherApplicationsRequest,
+    SubmitTeacherApplicationRequest, TeacherApplicationDecisionRequest, TeacherApplicationError,
+};
+
+fn unique_string(prefix: &str) -> String {
+    let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
+    format!("{}_{}", prefix, ts)
+}
+
+async fn setup_conn(
+) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
+    let _ = dotenvy::dotenv();
+    let pool = establish_connection();
+    pool.get()
+        .await
+        .expect("failed to get DB connection from pool")
+}
+
+async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {
+    create_user(
+        conn,
+        &format!("{} Test", prefix),
+        &(unique_string(prefix) + "@example.com"),
+        Some(NaiveDate::from_ymd_opt(1990, 1, 1).unwrap()),
+        "password123",
+    )
+    .await
+    .expect("failed to create user")
+}
+
+async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organization {
+    let new_org = NewOrganization {
+        name: name.to_string(),
+        website_link: None,
+        profile_url: None,
+    };
+
+    diesel::insert_into(organizations::table)
+        .values(&new_org)
+        .get_result(conn)
+        .await
+        .expect("failed to create organization")
+}
+
+async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
+    let new_course = NewCourse {
+        title: title.to_string(),
+        description: None,
+        topics: None,
+        prerequisites: None,
+    };
+
+    diesel::insert_into(courses::table)
+        .values(&new_course)
+        .get_result(conn)
+        .await
+        .expect("failed to create course")
+}
+
+async fn force_assign_organization_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    organization_id: i32,
+    role_name: &str,
+) {
+    let role_id = OrganizationRole::find_by_name(role_name, conn)
+        .await
+        .expect("organization role not found");
+    UserRoleOrganization::assign(conn, user_id, organization_id, role_id)
+        .await
+        .expect("failed to force assign organization role");
+}

@@ -1,0 +1,154 @@
+.summaryGrid,
+.twoColumn,
+.courseSection,
+.filterPanel,
+.panel,
+.errorBox,
+.warningPanel {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.twoColumn {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.courseSection {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.workspaceHero {
+  display: grid;
+  gap: 14px;
+  width: min(1120px, 100%);
+  margin: 0 auto 18px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 18px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
+}
+
+.workspaceTitleBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.workspaceTitleBlock h2 {
+  color: #172033;
+  font-size: 1.45rem;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.panel,
+.summaryCard,
+.courseCard,
+.filterPanel,
+.errorBox,
+.warningPanel {
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
+}
+
+.panel,
+.courseCard,
+.errorBox,
+.warningPanel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.singlePanel {
+  width: min(760px, 100%);
+}
+
+.warningPanel {
+  border-color: #f6d365;
+  color: #78350f;
+  background: #fffdf2;
+}
+
+.panelHeader,
+.sectionHeader,
+.courseTop,
+.actionRow,
+.statusLine,
+.primaryLink,
+.primaryButton,
+.secondaryLink,
+.secondaryButton,
+.errorBox,
+.inputWithIcon,
+.permissionRow {
+  display: flex;
+  align-items: center;
+}
+
+.panelHeader,
+.actionRow,
+.permissionRow {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.panelHeader h2,
+.sectionHeader h2 {
+  font-size: 1.08rem;
+}
+
+.sectionHeader,
+.courseTop {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.muted {
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.summaryCard {
+  display: grid;
+  gap: 8px;
+  min-height: 124px;
+  padding: 16px;
+}
+
+.summaryCard strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.summaryCard span:last-child {
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 830;
+}
+
+.smallIcon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 8px;
+}
+
+.priorityList {
+  display: grid;
+  gap: 12px;
+}

@@ -1,0 +1,2 @@
+"use client";
+export const DEFAULT_DELEGATED_PERMISSION = "APPROVE_REWARD_AMOUNT";

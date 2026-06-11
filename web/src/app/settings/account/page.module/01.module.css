@@ -1,0 +1,158 @@
+.summaryGrid,
+.nextStepPanel,
+.preferencePanel,
+.panel,
+.errorBox {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.panelHeader,
+.actionRow,
+.badgeRow,
+.statusPill,
+.statusLine,
+.primaryLink,
+.secondaryButton,
+.secondaryLink,
+.errorBox,
+.inlineStatus,
+.metricCard,
+.preferenceRow {
+  display: flex;
+  align-items: center;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.panel,
+.nextStepPanel,
+.preferencePanel,
+.errorBox {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 18px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
+}
+
+.singlePanel {
+  width: min(760px, 100%);
+}
+
+.nextStepPanel {
+  margin-bottom: 16px;
+  border-color: #b6d8e2;
+  background: #f2fbfc;
+}
+
+.profilePanel {
+  align-content: start;
+}
+
+.panelHeader,
+.actionRow,
+.badgeRow,
+.inlineStatus {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.panelHeader h2,
+.preferencePanel h2 {
+  font-size: 1.08rem;
+}
+
+.profileBlock,
+.checkList,
+.preferenceList {
+  display: grid;
+  gap: 12px;
+}
+
+.profileName {
+  font-size: 1.35rem;
+  font-weight: 850;
+  line-height: 1.2;
+}
+
+.muted {
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.primaryLink,
+.secondaryButton,
+.secondaryLink {
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #172033;
+  background: #ffffff;
+  font-weight: 850;
+}
+
+.primaryLink {
+  border-color: #1f6f8b;
+  color: #ffffff;
+  background: #1f6f8b;
+}
+
+.secondaryButton {
+  cursor: pointer;
+}
+
+.secondaryButton:hover,
+.secondaryLink:hover {
+  border-color: #9fb6c2;
+  background: #f8fafc;
+}
+
+.statusPill,
+.statusLine {
+  gap: 7px;
+  min-height: 32px;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: #334155;
+  background: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.good {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.neutral {
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.warn {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.errorBox {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  border-color: #fecaca;
+  color: #991b1b;
+  background: #fff1f2;
+}
+
+.errorBox span {
+  display: grid;
+  gap: 2px;
+}

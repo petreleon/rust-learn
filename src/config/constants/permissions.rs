@@ -1,7 +1,7 @@
 // src/config/constants/permissions.rs
-use strum_macros::{Display, EnumString};
+use strum_macros::{Display, EnumIter, EnumString};
 
-#[derive(Display, EnumString, Debug, PartialEq)]
+#[derive(Display, EnumIter, EnumString, Debug, PartialEq)]
 #[allow(non_camel_case_types)]
 pub enum Permissions {
     // Organization-related permissions
@@ -20,6 +20,7 @@ pub enum Permissions {
     JOIN_COURSE,
     REQUEST_JOIN_COURSE,
     APPROVE_COURSE_JOIN_REQUESTS,
+    ADD_STUDENT_FROM_ORGANIZATION,
 
     // User management
     MODIFY_USER,

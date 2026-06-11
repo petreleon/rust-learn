@@ -1,0 +1,156 @@
+.summaryGrid,
+.filterPanel,
+.courseFilterPanel,
+.applicationFilterPanel,
+.memberFilterPanel,
+.organizationSection,
+.workspaceHero,
+.twoColumn,
+.panel,
+.errorBox {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.summaryCard,
+.filterPanel,
+.memberFilterPanel,
+.applicationFilterPanel,
+.organizationCard,
+.workspaceHero,
+.panel,
+.actionCard,
+.errorBox {
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
+}
+
+.summaryCard {
+  display: grid;
+  gap: 9px;
+  min-height: 128px;
+  padding: 16px;
+}
+
+.summaryCard strong {
+  color: #172033;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.summaryCard span:last-child {
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 830;
+}
+
+.smallIcon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 8px;
+  color: #0f5f6f;
+  background: #dff6f2;
+}
+
+.filterPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 0.34fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.courseFilterPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 0.26fr) minmax(180px, 0.28fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
+}
+
+.memberFilterPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.22fr) minmax(210px, 0.34fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
+}
+
+.applicationFilterPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.28fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
+}
+
+.filterPanel label {
+  display: grid;
+  gap: 7px;
+  color: #172033;
+  font-weight: 830;
+}
+
+.courseFilterPanel label,
+.applicationFilterPanel label,
+.memberFilterPanel label {
+  display: grid;
+  gap: 7px;
+  color: #172033;
+  font-weight: 830;
+}
+
+.filterPanel input,
+.filterPanel select,
+.courseFilterPanel input,
+.courseFilterPanel select,
+.applicationFilterPanel input,
+.applicationFilterPanel select,
+.memberFilterPanel input,
+.memberFilterPanel select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #172033;
+  background: #ffffff;
+  font: inherit;
+  font-weight: 680;
+}
+
+.filterPanel input,
+.courseFilterPanel input,
+.applicationFilterPanel input,
+.memberFilterPanel input {
+  border: 0;
+  padding: 0;
+}

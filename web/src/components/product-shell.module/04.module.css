@@ -1,0 +1,27 @@
+@media (max-width: 560px) {
+  .page {
+    padding: 16px;
+  }
+
+  .topbar {
+    gap: 12px;
+  }
+
+  .brandText small,
+  .accountLabel {
+    display: none;
+  }
+
+  .routeHeader {
+    padding-top: 34px;
+  }
+
+  .globalNotice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .noticeAction {
+    width: 100%;
+  }
+}

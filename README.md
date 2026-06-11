@@ -392,9 +392,14 @@ The database setup code reads admin bootstrap values from the environment. Confi
 ```text
 ADMIN_NAME=admin
 ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=supersecretpassword
+ADMIN_PASSWORD=replace-with-strong-admin-password
 ADMIN_DATE_OF_BIRTH=1990-01-01
 ```
+
+`ADMIN_PASSWORD` must be changed before startup. Bootstrap rejects known
+placeholder/default values and applies the same password policy as registration:
+at least 12 characters with lowercase, uppercase, numeric, and symbol
+characters.
 
 ## Running with Docker Compose
 

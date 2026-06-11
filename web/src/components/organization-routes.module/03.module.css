@@ -1,0 +1,159 @@
+.permissionRow,
+.capabilityRow,
+.actionRow {
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.permissionChip,
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 0 11px;
+  color: #334155;
+  background: #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.permissionChip {
+  color: #334155;
+  background: #eef2ff;
+}
+
+.good {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.neutral {
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.warn {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.workspaceHero {
+  margin-bottom: 18px;
+}
+
+.workspaceTitleBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.eyebrow {
+  color: #0f766e;
+  font-size: 0.76rem;
+  font-weight: 880;
+  text-transform: uppercase;
+}
+
+.twoColumn {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.singlePanel {
+  width: min(760px, 100%);
+}
+
+.panelHeader,
+.sectionHeader {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sectionHeader {
+  justify-content: space-between;
+}
+
+.panelHeader h2,
+.sectionHeader h2 {
+  color: #172033;
+  font-size: 1.08rem;
+}
+
+.actionCard {
+  align-content: start;
+  box-shadow: none;
+}
+
+.panel {
+  align-content: start;
+}
+
+.actionCard > * {
+  min-width: 0;
+}
+
+.actionCard .primaryLink,
+.actionCard .primaryButton,
+.actionCard .secondaryLink,
+.actionCard .secondaryButton {
+  width: 100%;
+  max-width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  text-align: center;
+  line-height: 1.2;
+  white-space: normal;
+}
+
+.enabledAction {
+  border-color: #b7e4d1;
+  background: #fbfffd;
+}
+
+.deniedAction {
+  border-color: #fde68a;
+  background: #fffdf2;
+}
+
+.missingList,
+.permissionList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+
+.reportGrid,
+.compactList,
+.courseGrid,
+.applicationGrid,
+.portfolioList,
+.memberGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.reportGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.courseGrid,
+.applicationGrid,
+.memberGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.courseCard,
+.applicationCard,
+.memberCard {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+}

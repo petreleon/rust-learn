@@ -1,0 +1,157 @@
+.overviewGrid,
+.formPanel,
+.timelinePanel,
+.statusPanel,
+.warningPanel,
+.errorBox {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.overviewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 16px;
+}
+
+.statusPanel,
+.formPanel,
+.timelinePanel,
+.warningPanel,
+.errorBox {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 18px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.07);
+}
+
+.singlePanel {
+  width: min(760px, 100%);
+}
+
+.formPanel,
+.timelinePanel {
+  margin-top: 16px;
+}
+
+.warningPanel {
+  margin-top: 16px;
+  border-color: #f6d365;
+  color: #78350f;
+  background: #fffdf2;
+}
+
+.panelHeader,
+.actionRow,
+.statusLine,
+.primaryButton,
+.secondaryButton,
+.primaryLink,
+.portfolioLink,
+.errorBox,
+.validationBox {
+  display: flex;
+  align-items: center;
+}
+
+.panelHeader {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.panelHeader h2 {
+  font-size: 1.08rem;
+}
+
+.muted {
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.applicationSummary,
+.contextList,
+.scopeFieldset,
+.fieldLabel,
+.portfolioBlock {
+  display: grid;
+  gap: 10px;
+}
+
+.contextList,
+.applicationSummary {
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.contextRow {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.contextRow span {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 820;
+}
+
+.contextRow strong {
+  color: #172033;
+  overflow-wrap: anywhere;
+}
+
+.scopeFieldset {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+
+.scopeFieldset legend {
+  margin-bottom: 10px;
+  color: #172033;
+  font-weight: 860;
+}
+
+.scopeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.scopeOption {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 10px;
+  min-height: 116px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.scopeOption input {
+  width: 18px;
+  height: 18px;
+  accent-color: #1f6f8b;
+}
+
+.scopeOption strong {
+  align-self: center;
+}
+
+.scopeOption span {
+  grid-column: 1 / -1;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.scopeOptionActive {
+  border-color: #1f6f8b;
+  background: #f2fbfc;
+}

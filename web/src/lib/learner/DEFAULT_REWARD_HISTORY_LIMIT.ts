@@ -1,0 +1,1 @@
+export const DEFAULT_REWARD_HISTORY_LIMIT = 25;

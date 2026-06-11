@@ -41,6 +41,9 @@ async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
     diesel::insert_into(courses::table)
         .values(NewCourse {
             title: title.to_string(),
+            description: None,
+            topics: None,
+            prerequisites: None,
         })
         .get_result(conn)
         .await
@@ -74,6 +77,9 @@ async fn course_teacher_can_edit_course_settings() {
         course.id,
         UpdateCourse {
             title: Some("Teacher Updated Course".to_string()),
+            description: None,
+            topics: None,
+            prerequisites: None,
         },
     )
     .await
@@ -96,6 +102,9 @@ async fn platform_modify_course_permission_can_edit_without_course_role() {
         course.id,
         UpdateCourse {
             title: Some("Platform Updated Course".to_string()),
+            description: None,
+            topics: None,
+            prerequisites: None,
         },
     )
     .await
@@ -116,6 +125,9 @@ async fn course_student_cannot_edit_course_settings() {
         course.id,
         UpdateCourse {
             title: Some("Student Update".to_string()),
+            description: None,
+            topics: None,
+            prerequisites: None,
         },
     )
     .await

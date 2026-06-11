@@ -1,0 +1,159 @@
+.filterPanel select,
+.courseFilterPanel select,
+.applicationFilterPanel select,
+.memberFilterPanel select {
+  padding: 0 12px;
+}
+
+.inputWithIcon,
+.panelHeader,
+.sectionHeader,
+.organizationTop,
+.permissionRow,
+.capabilityRow,
+.actionRow,
+.primaryLink,
+.primaryButton,
+.secondaryLink,
+.secondaryButton,
+.statusPill,
+.backLink,
+.actionHeader,
+.compactRow,
+.filterActions,
+.paginationRow,
+.inlineError,
+.errorBox {
+  display: flex;
+  align-items: center;
+}
+
+.inputWithIcon {
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #ffffff;
+}
+
+.secondaryButton,
+.primaryButton,
+.primaryLink,
+.secondaryLink,
+.backLink {
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #172033;
+  background: #ffffff;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.primaryButton,
+.primaryLink {
+  border-color: #1f6f8b;
+  color: #ffffff;
+  background: #1f6f8b;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  color: #94a3b8;
+  background: #f8fafc;
+  cursor: not-allowed;
+}
+
+.organizationSection {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.organizationGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.actionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 16px;
+}
+
+.organizationCard,
+.panel,
+.workspaceHero,
+.actionCard,
+.errorBox {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.organizationCard {
+  align-content: start;
+}
+
+.organizationTop,
+.actionHeader {
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.organizationTop h3,
+.actionHeader h3,
+.workspaceTitleBlock h2 {
+  color: #172033;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.organizationTop h3,
+.actionHeader h3 {
+  font-size: 1.08rem;
+}
+
+.workspaceTitleBlock h2 {
+  font-size: 1.55rem;
+}
+
+.muted,
+.actionHeader p {
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metricCard {
+  display: grid;
+  gap: 4px;
+  min-height: 62px;
+  border-radius: 8px;
+  padding: 10px;
+  color: #334155;
+  background: #f8fafc;
+}
+
+.metricCard strong {
+  color: #172033;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.metricCard span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 820;
+}

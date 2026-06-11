@@ -28,6 +28,13 @@ CREATE TABLE assessment_attempts (
     score INTEGER,
     passed BOOLEAN,
     started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    completed_at TIMESTAMPTZ,
-    UNIQUE(assessment_id, user_id, completed_at)
+    completed_at TIMESTAMPTZ
 );
+
+CREATE UNIQUE INDEX assessment_attempts_one_active_per_user_idx
+    ON assessment_attempts (assessment_id, user_id)
+    WHERE completed_at IS NULL;
+
+CREATE UNIQUE INDEX assessment_attempts_completed_once_per_timestamp_idx
+    ON assessment_attempts (assessment_id, user_id, completed_at)
+    WHERE completed_at IS NOT NULL;

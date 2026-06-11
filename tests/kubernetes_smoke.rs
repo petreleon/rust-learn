@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 /// Kubernetes smoke tests for platform admin routes.
 /// These tests run against in-cluster endpoints via port-forward or
 /// from a pod with cluster DNS access.
@@ -7,10 +5,11 @@ use std::time::Duration;
 /// Run manually with:
 ///   kubectl port-forward -n rust-learn svc/web 3000:3000 &
 ///   kubectl port-forward -n rust-learn svc/rust-app 8080:8080 &
-///   cargo test --test kubernetes_smoke
+///   cargo test --test kubernetes_smoke -- --ignored
 #[cfg(test)]
 mod kubernetes_smoke {
     use reqwest::Client;
+    use std::time::Duration;
 
     fn app_url() -> String {
         std::env::var("K8S_APP_URL").unwrap_or_else(|_| "http://localhost:8080".to_string())
@@ -28,6 +27,7 @@ mod kubernetes_smoke {
     }
 
     #[tokio::test]
+    #[ignore = "requires Kubernetes port-forward or in-cluster endpoints"]
     async fn k8s_web_healthz_ok() {
         let client = http_client().await;
         let resp = client
@@ -39,6 +39,7 @@ mod kubernetes_smoke {
     }
 
     #[tokio::test]
+    #[ignore = "requires Kubernetes port-forward or in-cluster endpoints"]
     async fn k8s_api_health_ok() {
         let client = http_client().await;
         let resp = client
@@ -52,6 +53,7 @@ mod kubernetes_smoke {
     }
 
     #[tokio::test]
+    #[ignore = "requires Kubernetes port-forward or in-cluster endpoints"]
     async fn k8s_api_ready_returns_valid_status() {
         let client = http_client().await;
         let resp = client
@@ -74,6 +76,7 @@ mod kubernetes_smoke {
     }
 
     #[tokio::test]
+    #[ignore = "requires Kubernetes port-forward or in-cluster endpoints"]
     async fn k8s_web_admin_route_renders() {
         let client = http_client().await;
         let resp = client
@@ -90,6 +93,7 @@ mod kubernetes_smoke {
     }
 
     #[tokio::test]
+    #[ignore = "requires Kubernetes port-forward or in-cluster endpoints"]
     async fn k8s_web_system_route_renders() {
         let client = http_client().await;
         let resp = client
@@ -106,6 +110,7 @@ mod kubernetes_smoke {
     }
 
     #[tokio::test]
+    #[ignore = "requires Kubernetes port-forward or in-cluster endpoints"]
     async fn k8s_api_reports_summary_json() {
         let client = http_client().await;
         let resp = client

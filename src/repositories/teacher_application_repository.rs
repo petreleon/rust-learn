@@ -1,7 +1,4 @@
-use crate::db::schema::{
-    role_permission_organization, role_permission_platform, teacher_application_audit_events,
-    teacher_applications, user_role_organization, user_role_platform,
-};
+use crate::db::schema::{teacher_application_audit_events, teacher_applications};
 use crate::models::teacher_application::{
     NewTeacherApplication, NewTeacherApplicationAuditEvent, TeacherApplication,
     TeacherApplicationAuditEvent,
@@ -12,6 +9,12 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 const DEFAULT_APPLICATION_LIMIT: i64 = 25;
 const MAX_APPLICATION_LIMIT: i64 = 100;
+
+mod permissions;
+
+pub use permissions::{
+    list_organization_user_ids_with_permission, list_platform_user_ids_with_permission,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct TeacherApplicationFilter {
@@ -146,40 +149,5 @@ pub async fn list_audit_events(
         .filter(teacher_application_audit_events::application_id.eq(application_id))
         .order(teacher_application_audit_events::created_at.asc())
         .load::<TeacherApplicationAuditEvent>(conn)
-        .await
-}
-
-pub async fn list_platform_user_ids_with_permission(
-    conn: &mut AsyncPgConnection,
-    permission: &str,
-) -> QueryResult<Vec<i32>> {
-    user_role_platform::table
-        .inner_join(
-            role_permission_platform::table.on(user_role_platform::platform_role_id
-                .nullable()
-                .eq(role_permission_platform::platform_role_id)),
-        )
-        .filter(role_permission_platform::permission.eq(permission))
-        .select(user_role_platform::user_id.assume_not_null())
-        .distinct()
-        .load::<i32>(conn)
-        .await
-}
-
-pub async fn list_organization_user_ids_with_permission(
-    conn: &mut AsyncPgConnection,
-    organization_id: i32,
-    permission: &str,
-) -> QueryResult<Vec<i32>> {
-    user_role_organization::table
-        .inner_join(
-            role_permission_organization::table.on(user_role_organization::organization_role_id
-                .eq(role_permission_organization::organization_role_id)),
-        )
-        .filter(user_role_organization::organization_id.eq(Some(organization_id)))
-        .filter(role_permission_organization::permission.eq(permission))
-        .select(user_role_organization::user_id.assume_not_null())
-        .distinct()
-        .load::<i32>(conn)
         .await
 }
