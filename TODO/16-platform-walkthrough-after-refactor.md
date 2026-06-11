@@ -36,6 +36,16 @@ what changed by exercising the product, not just reading the code.
 
 - [ ] Register a new learner with a strong password.
 - [ ] Try registering with a weak password and confirm it is rejected.
+- [ ] After registration, find the local mock verification email printed by the
+      API. In Docker Compose, inspect the API/app logs and look for
+      `MOCK EMAIL`, `Confirm your RustLearn account`, or `verify-email?token=`.
+- [ ] Copy the full verification URL from the mock email. The local default is
+      an API URL shaped like
+      `http://localhost:8080/api/auth/verify-email?token=<token>`.
+- [ ] Open the copied verification URL in the browser, or paste only the token
+      into the `/verify-email` page if you are testing the frontend route.
+- [ ] Confirm the verification response says the email was verified, then retry
+      login with the same account.
 - [ ] Verify email and confirm login is blocked before verification.
 - [ ] Log in after verification and inspect the current-session response.
 - [ ] Confirm the session includes platform, organization, course, and delegated
