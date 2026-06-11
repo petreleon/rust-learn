@@ -31,6 +31,7 @@ RustLearn is an incentivized learning platform. The backend is a Rust/Actix Web 
 - Prefer small, focused patches with clear tests.
 - Do not commit secrets. `.env` is ignored; `.env.example` should contain placeholders only.
 - Do not add generated dependency directories such as `target/` or `web/node_modules/`.
+- Keep manually maintained non-Markdown files at or below 180 lines. Generated files, lockfiles, binary assets, and tool-owned artifacts are exempt.
 - Keep Rust code formatted with `cargo fmt` before committing.
 - Prefer repository/service layers for database logic instead of embedding complex queries directly in route handlers.
 - When adding or changing permissions, update the matching constants, seed migrations, middleware usage, and `PERMISSIONS.md` if the documented matrix changes.
