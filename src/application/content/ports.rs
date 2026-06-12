@@ -3,6 +3,9 @@ use futures::future::BoxFuture;
 use crate::application::content::manage_chapter::{
     ChapterError, ChapterOutput, CreateChapterCommand, UpdateChapterCommand,
 };
+use crate::application::content::manage_content_item::{
+    ContentItemError, ContentItemOutput, CreateContentItemCommand, UpdateContentItemCommand,
+};
 
 pub trait ChapterStore {
     fn list_by_course(
@@ -22,4 +25,38 @@ pub trait ChapterStore {
     ) -> BoxFuture<'_, Result<ChapterOutput, ChapterError>>;
 
     fn delete(&mut self, chapter_id: i32) -> BoxFuture<'_, Result<bool, ChapterError>>;
+}
+
+pub trait ContentItemStore {
+    fn list_by_chapter(
+        &mut self,
+        course_id: i32,
+        chapter_id: i32,
+    ) -> BoxFuture<'_, Result<Vec<ContentItemOutput>, ContentItemError>>;
+
+    fn create(
+        &mut self,
+        course_id: i32,
+        command: CreateContentItemCommand,
+    ) -> BoxFuture<'_, Result<ContentItemOutput, ContentItemError>>;
+
+    fn list_course_content_recipients(
+        &mut self,
+        course_id: i32,
+    ) -> BoxFuture<'_, Result<Vec<i32>, ContentItemError>>;
+
+    fn update(
+        &mut self,
+        course_id: i32,
+        chapter_id: i32,
+        content_id: i32,
+        command: UpdateContentItemCommand,
+    ) -> BoxFuture<'_, Result<ContentItemOutput, ContentItemError>>;
+
+    fn delete(
+        &mut self,
+        course_id: i32,
+        chapter_id: i32,
+        content_id: i32,
+    ) -> BoxFuture<'_, Result<bool, ContentItemError>>;
 }

@@ -1,11 +1,15 @@
+use crate::application::content::manage_content_item::{self, ContentItemError};
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::chapters;
 use crate::db::schema::contents;
 use crate::db::schema::upload_jobs;
-use crate::db::schema::user_role_course;
 use crate::db::DbPool;
+use crate::http::content::dto::{
+    ContentItemResponse, CreateContentItemRequest, UpdateContentItemRequest,
+};
+use crate::infra::postgres::content::content_item_store::PostgresContentItemStore;
 use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
-use crate::models::content::{Content, NewContent, UpdateContent};
+use crate::models::content::Content;
 use crate::models::param_type::ParamType;
 use crate::models::upload_job::NewUploadJob;
 use crate::utils::notifications::NotificationsState;
@@ -43,34 +47,6 @@ async fn ensure_chapter_belongs_to_course(
     }
 }
 
-async fn ensure_content_belongs_to_chapter(
-    conn: &mut AsyncPgConnection,
-    chapter_id: i32,
-    content_id: i32,
-) -> Result<(), HttpResponse> {
-    match contents::table
-        .filter(contents::id.eq(content_id))
-        .filter(contents::chapter_id.eq(chapter_id))
-        .select(contents::id)
-        .first::<i32>(conn)
-        .await
-    {
-        Ok(_) => Ok(()),
-        Err(diesel::result::Error::NotFound) => {
-            Err(HttpResponse::NotFound().body("Content not found"))
-        }
-        Err(e) => {
-            log::error!(
-                "event=content_scope_check_failed chapter_id={} content_id={} error={}",
-                chapter_id,
-                content_id,
-                e
-            );
-            Err(HttpResponse::InternalServerError().body("Failed to fetch content"))
-        }
-    }
-}
-
 // #[get("/chapters/{id}/contents")]
 async fn list_contents(
     path: web::Path<(i32, i32)>, // course_id, chapter_id
@@ -81,33 +57,30 @@ async fn list_contents(
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
-    if let Err(response) = ensure_chapter_belongs_to_course(&mut conn, course_id, chapter_id).await
-    {
-        return response;
-    }
+    let mut store = PostgresContentItemStore::new(&mut conn);
 
-    let result = contents::table
-        .filter(contents::chapter_id.eq(chapter_id))
-        .order(contents::order.asc())
-        .load::<Content>(&mut conn)
-        .await;
-
-    match result {
-        Ok(list) => HttpResponse::Ok().json(list),
+    match manage_content_item::list_content_items(&mut store, course_id, chapter_id).await {
+        Ok(list) => HttpResponse::Ok().json(
+            list.into_iter()
+                .map(ContentItemResponse::from)
+                .collect::<Vec<_>>(),
+        ),
+        Err(ContentItemError::ChapterNotFound) => HttpResponse::NotFound().body("Chapter not found"),
         Err(e) => {
             log::error!(
                 "event=content_list_failed chapter_id={} error={}",
                 chapter_id,
-                e
+                content_item_error_log(&e)
             );
             HttpResponse::InternalServerError().body("Failed to list contents")
         }
     }
 }
 
-#[derive(serde::Deserialize)]
-pub struct CreateContentRequest {
-    pub order: i32,
-    pub content_type: String,
-    pub data: Option<String>,
+fn content_item_error_log(error: &ContentItemError) -> String {
+    match error {
+        ContentItemError::ChapterNotFound => "chapter_not_found".to_string(),
+        ContentItemError::ContentNotFound => "content_not_found".to_string(),
+        ContentItemError::Database(message) => message.clone(),
+    }
 }

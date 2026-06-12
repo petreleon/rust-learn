@@ -75,36 +75,29 @@ async fn get_upload_url(
 async fn update_content(
     path: web::Path<(i32, i32, i32)>, // course_id, chapter_id, content_id
     pool: web::Data<DbPool>,
-    req: web::Json<UpdateContent>,
+    req: web::Json<UpdateContentItemRequest>,
 ) -> impl Responder {
     let (course_id, chapter_id, content_id) = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
-    if let Err(response) = ensure_chapter_belongs_to_course(&mut conn, course_id, chapter_id).await
-    {
-        return response;
-    }
-    if let Err(response) =
-        ensure_content_belongs_to_chapter(&mut conn, chapter_id, content_id).await
-    {
-        return response;
-    }
+    let mut store = PostgresContentItemStore::new(&mut conn);
+    let command = req.into_inner().into();
 
-    let result = diesel::update(contents::table.find(content_id))
-        .set(&*req)
-        .get_result::<Content>(&mut conn)
-        .await;
-
-    match result {
-        Ok(content) => HttpResponse::Ok().json(content),
-        Err(diesel::result::Error::NotFound) => HttpResponse::NotFound().body("Content not found"),
+    match manage_content_item::update_content_item(
+        &mut store, course_id, chapter_id, content_id, command,
+    )
+    .await
+    {
+        Ok(content) => HttpResponse::Ok().json(ContentItemResponse::from(content)),
+        Err(ContentItemError::ChapterNotFound) => HttpResponse::NotFound().body("Chapter not found"),
+        Err(ContentItemError::ContentNotFound) => HttpResponse::NotFound().body("Content not found"),
         Err(e) => {
             log::error!(
                 "event=content_update_failed content_id={} error={}",
                 content_id,
-                e
+                content_item_error_log(&e)
             );
             HttpResponse::InternalServerError().body("Failed to update content")
         }
@@ -120,33 +113,25 @@ async fn delete_content(
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
-    if let Err(response) = ensure_chapter_belongs_to_course(&mut conn, course_id, chapter_id).await
-    {
-        return response;
-    }
-    if let Err(response) =
-        ensure_content_belongs_to_chapter(&mut conn, chapter_id, content_id).await
-    {
-        return response;
-    }
+    let mut store = PostgresContentItemStore::new(&mut conn);
 
-    let result = diesel::delete(contents::table.find(content_id))
-        .execute(&mut conn)
-        .await;
-
-    match result {
-        Ok(count) => {
-            if count > 0 {
+    match manage_content_item::delete_content_item(&mut store, course_id, chapter_id, content_id)
+        .await
+    {
+        Ok(deleted) => {
+            if deleted {
                 HttpResponse::Ok().body("Content deleted")
             } else {
                 HttpResponse::NotFound().body("Content not found")
             }
         }
+        Err(ContentItemError::ChapterNotFound) => HttpResponse::NotFound().body("Chapter not found"),
+        Err(ContentItemError::ContentNotFound) => HttpResponse::NotFound().body("Content not found"),
         Err(e) => {
             log::error!(
                 "event=content_delete_failed content_id={} error={}",
                 content_id,
-                e
+                content_item_error_log(&e)
             );
             HttpResponse::InternalServerError().body("Failed to delete content")
         }

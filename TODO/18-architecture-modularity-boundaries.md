@@ -406,7 +406,7 @@ src/
         mappers.rs
       content/
         chapter_store.rs
-        content_store.rs
+        content_item_store.rs
         upload_job_store.rs
         mappers.rs
       teacher_applications/
@@ -847,6 +847,28 @@ Slice 10: migrate operations health/readiness checks.
 - [x] Prove both liveness and full readiness behavior with the existing focused
       route-level regression test.
 
+Slice 11: migrate content item lifecycle reads and mutations.
+
+- [x] Use content item list/create/update/delete as the next migration because
+      these route handlers directly queried `chapters`, `contents`, and
+      `user_role_course` while returning Diesel `Content` records.
+- [x] Create `application/content/manage_content_item` and a `ContentItemStore`
+      port.
+- [x] Move chapter scope validation, content scope validation, content
+      list/create/update/delete persistence, and course recipient lookup behind
+      `infra/postgres/content/content_item_store.rs`.
+- [x] Move content item request/response contracts into `http/content/dto`.
+- [x] Keep upload URL generation, media URL generation, and video processing as
+      later slices because those involve object-storage and worker boundaries.
+- [x] Preserve existing route paths, JSON fields, wrong-course chapter 404s,
+      and optional content-published notification behavior.
+- [x] Self-critique: notification delivery still happens in the legacy HTTP
+      wrapper because the existing notification state is concrete app data.
+      A later content/notifications slice should move delivery behind an
+      application notification port.
+- [x] Prove create/list/update/wrong-scope behavior with the existing focused
+      course content lifecycle regression test.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` no longer contains Diesel query builders; it delegates
@@ -889,6 +911,11 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   readiness checks through `application/operations/readiness_check` and
   infra adapters.
 - Operations liveness/readiness DTOs now live under `http/operations/dto`.
+- Content item list/create/update/delete route handlers no longer contain
+  direct Diesel calls or return Diesel content records; they delegate through
+  `application/content/manage_content_item` and
+  `infra/postgres/content/content_item_store.rs`.
+- Content item HTTP request/response DTOs now live under `http/content/dto`.
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env" src/domain src/application`
   returns no matches.
 - `rg "crate::repositories|crate::infra::postgres|crate::db::schema" src/http`
@@ -904,6 +931,8 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `rg "diesel|diesel_async|RunQueryDsl|assessment_attempts::table|assessment_questions::table|assessments::table|crate::db::schema" src/api/courses/list_course_assessments.rs src/api/courses/list_assessment_attempts.rs`
   returns no matches.
 - `rg "diesel|diesel_async|RunQueryDsl|try_get_provider|provider|get_chainid|health_check\\(|timeout|crate::db::schema" src/api/health.rs`
+  returns no matches.
+- `rg "diesel|diesel_async|insert_into|update\\(|delete\\(|contents::table|user_role_course|NewContent\\b|UpdateContent\\b|models::content" src/api/contents/create_content.rs src/api/contents/get_upload_url.rs`
   returns no matches.
 - `cargo fmt --all --check` passes.
 - `git diff --check` passes.
