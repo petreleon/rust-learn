@@ -39,13 +39,11 @@ Definition of perfected for this file:
 
 P0 - Stabilize the app shell and broken routes:
 
-- Fix ProductShell/auth/session CSS module composition so desktop and mobile
-  layouts stop overflowing.
-- Fix `/admin/delegations` response-shape crash.
-- Remove or gate `/ops` from normal auth/account navigation.
-- Link `/admin` dashboard cards to existing admin subroutes.
 - Add route-level smoke coverage for the shell, auth pages, `/session`,
   `/admin`, and `/admin/delegations`.
+- Keep `/ops` admin-gated while deciding whether it is an admin-only API
+  console, development-only surface, or fully retired after product-route
+  replacement.
 
 P1 - Finish account lifecycle:
 
@@ -325,6 +323,10 @@ Current evidence:
 - Desktop scans also report shell nav overflow on multiple pages, especially
   when `Learn`, `Teach`, `Admin`, workspace selection, disabled notifications,
   and the account menu all appear in the first row.
+- Browser checks on June 12, 2026 show `/session`, `/learn`, `/courses`,
+  `/admin`, and `/settings/account` have no positive document overflow at
+  `1280x720` or `390x844`; `/admin` mobile overflow was fixed by letting the
+  admin summary cards use two wrapped columns instead of five cramped columns.
 - Public/auth navigation no longer exposes `/ops`; ProductShell only exposes
   the operations console when the resolved session is a platform admin.
 - Rendered ProductShell tests assert normal-user account and mobile menus omit
@@ -337,9 +339,6 @@ Current evidence:
 
 Needed:
 
-- Add a mobile-first shell layout that shows one navigation surface at a time:
-  brand, menu button, account summary, and workspace selector without
-  horizontal scrolling.
 - Add route-level shell rendering coverage across the shared ProductShell
   routes, including normal-user account menu behavior.
 - Keep notification center coverage in the browser smoke set as new
@@ -349,7 +348,7 @@ Checks:
 
 - [x] At mobile widths, desktop nav and toolbar are hidden while the mobile menu
   is the only primary navigation control.
-- [ ] `/session`, `/learn`, `/courses`, `/admin`, and `/settings/account` have
+- [x] `/session`, `/learn`, `/courses`, `/admin`, and `/settings/account` have
   no horizontal overflow at desktop or mobile widths.
 - [ ] ProductShell tests cover the CSS module split by rendering active nav,
   disabled account actions, workspace controls, and mobile menu states.
