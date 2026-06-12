@@ -532,14 +532,19 @@ Current evidence:
 - `/teach/courses/1/content` can create a chapter, but content creation is
   disabled until a chapter exists. The page still says processing retry and
   destructive editing controls are separate until contracts are complete.
-- `/teach/courses/1/enrollments` says persisted progress and reward eligibility
-  are not available in the enrollment route.
-- `/teach/courses/1/students` says lesson completion is not persisted yet and
-  repeats that reward evidence is empty for each learner.
-- `/teach/courses/1/rewards` is linked from the course workspace, but direct
-  browser navigation lands on `permission_denied` with "User does not have
-  reward candidate permission". The shell also loses normal workspace context
-  while rendering the error state.
+- `/teach/courses/[id]/enrollments` now marks persisted progress as available
+  from the student route, while reward eligibility remains a separate missing
+  contract.
+- `/teach/courses/[id]/students` now shows persisted latest viewed lesson,
+  saved activity, saved lesson count, and completion percentage from backend
+  progress rows.
+- Course cards and course workspace actions disable or explain reward review
+  when the current teacher lacks reward-candidate permission.
+- Direct `/teach/courses/[id]/rewards` navigation now loads session and course
+  context before reward candidates, so a reward permission denial keeps the
+  signed-in shell, workspace selector, breadcrumbs, account menu, and course
+  title visible; desktop and mobile checks also verify the denial panel does
+  not join the error code into the message or create horizontal overflow.
 - The teacher course workflow mixes real actions, honest placeholder copy, and
   permission-gated dead ends, so users can click into a route that looks like a
   product feature but cannot be used from the visible role state.
@@ -548,24 +553,23 @@ Needed:
 
 - Finish teacher content lifecycle controls: edit, unpublish/delete, upload
   retry/reprocess, processing-error inspection, and audit history.
-- Wire persisted learner progress and reward eligibility into enrollment and
-  student routes.
-- Hide or explain course reward review links when the current teacher lacks the
-  needed course reward-candidate permission.
-- Preserve shell session/workspace context on permission-denied teacher routes.
+- Wire reward eligibility into enrollment and student routes.
 - Add assessment-authoring routes alongside content authoring.
 
 Checks:
 
 - [ ] Content create/edit/delete/unpublish/retry flows have success, loading,
   validation, conflict, denied, and backend-error tests.
-- [ ] Enrollment and student routes show persisted progress and reward
-  eligibility from backend data after refresh.
-- [ ] Course reward review links are visible only when the user can open the
+- [x] Enrollment and student routes show persisted progress from backend data
+  after refresh.
+- [ ] Enrollment and student routes show reward eligibility from backend data
+  after refresh.
+- [x] Course reward review links are visible only when the user can open the
   reward route, or they render a clear disabled state with the missing
   permission.
-- [ ] `/teach/courses/[id]/rewards` denial keeps the normal signed-in shell,
-  workspace selector, breadcrumbs, and account menu.
+- [x] `/teach/courses/[id]/rewards` denial keeps the normal signed-in shell,
+  workspace selector, breadcrumbs, account menu, readable error text, and no
+  desktop/mobile horizontal overflow.
 - [ ] Teacher routes include assessment authoring and preview checks for draft,
   published, unpublished, and no-assessment states.
 

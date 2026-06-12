@@ -73,6 +73,21 @@
   padding: 18px;
 }
 
+.errorBox {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.errorBox > span {
+  flex: 1 1 260px;
+  line-height: 1.45;
+}
+
+.errorBox svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
 .singlePanel {
   width: min(760px, 100%);
 }
