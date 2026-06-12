@@ -554,8 +554,11 @@ Current evidence:
 - `/verify-email` provides token verification and a visible resend-verification
   form. `POST /api/auth/resend-verification` returns neutral account copy,
   rotates active tokens for unverified users, and prints the local mock email.
-- Registration success tells local users to find the mock verification link in
-  API logs, which is useful for development but not normal product copy.
+- Registration success now tells users to check email before signing in. The
+  API-log mock verification hint is gated to non-production builds.
+- Browser QA on June 12, 2026 created a throwaway account from `/register` and
+  confirmed the success state, local-only hint, no stale combined local-log
+  copy, no `/ops` nav, and no relevant console errors.
 - Login, registration, forgot/reset, and verify public nav no longer expose
   `/ops`.
 - The frontend stores JWTs in shared `localStorage`, migrates legacy
@@ -571,8 +574,8 @@ Needed:
 
 - Add production email-provider delivery, bounce/error handling, and rate
   limiting for verification emails.
-- Replace local-log instructions with a development-only hint or a real
-  in-product verification delivery status.
+- Add an in-product verification delivery status once production email delivery
+  exists.
 - Add an explicit production auth lifetime policy such as remember-me,
   inactivity expiry, refresh, or device/session revocation.
 
@@ -582,7 +585,7 @@ Checks:
   exposing whether an address exists.
 - [x] `/verify-email` handles valid, missing, malformed, expired, reused, and
   already-verified tokens.
-- [ ] Registration success copy is user-facing in production and development
+- [x] Registration success copy is user-facing in production and development
   hints are gated to local builds.
 - [x] Opening a new tab has an intentional, tested auth behavior with clear
   redirect copy.
