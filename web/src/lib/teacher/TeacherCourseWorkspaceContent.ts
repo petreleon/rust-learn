@@ -1,5 +1,6 @@
 export type TeacherCourseWorkspaceContent = {
   content_type: string;
+  data: string | null;
   data_present: boolean;
   display_state: string;
   id: number;

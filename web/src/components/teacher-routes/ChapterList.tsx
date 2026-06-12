@@ -3,13 +3,26 @@
 import { BookOpen } from "lucide-react";
 import { type TeacherCourseWorkspaceContent, type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
 import styles from "../teacher-routes.module.css";
+import { type ActionState } from "./ActionState";
 import { ContentRow } from "./ContentRow";
 
 export function ChapterList({
+  actionState = "idle",
+  canManageContent = false,
   chapters,
+  deleteConfirmContentId = null,
+  editingContentId = null,
+  onDeleteContent,
+  onEditContent,
   onTriggerProcessing,
 }: {
+  actionState?: ActionState;
+  canManageContent?: boolean;
   chapters: TeacherCourseWorkspaceResponse["chapters"];
+  deleteConfirmContentId?: number | null;
+  editingContentId?: number | null;
+  onDeleteContent?: (content: TeacherCourseWorkspaceContent) => void;
+  onEditContent?: (content: TeacherCourseWorkspaceContent) => void;
   onTriggerProcessing?: (content: TeacherCourseWorkspaceContent) => void;
 }) {
   if (!chapters.length) {
@@ -19,7 +32,7 @@ export function ChapterList({
           <BookOpen size={20} aria-hidden />
           <h2>No chapters</h2>
         </div>
-        <p className={styles.muted}>Create the first chapter after the content-authoring route is built.</p>
+        <p className={styles.muted}>Create the first chapter with the form above.</p>
       </section>
     );
   }
@@ -38,7 +51,17 @@ export function ChapterList({
           {chapter.contents.length ? (
             <div className={styles.contentList}>
               {chapter.contents.map((content) => (
-                <ContentRow content={content} key={content.id} onTriggerProcessing={onTriggerProcessing} />
+                <ContentRow
+                  actionState={actionState}
+                  canManageContent={canManageContent}
+                  content={content}
+                  deleteConfirmContentId={deleteConfirmContentId}
+                  editingContentId={editingContentId}
+                  key={content.id}
+                  onDeleteContent={onDeleteContent}
+                  onEditContent={onEditContent}
+                  onTriggerProcessing={onTriggerProcessing}
+                />
               ))}
             </div>
           ) : (

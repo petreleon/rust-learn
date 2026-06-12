@@ -43,6 +43,10 @@ async fn assert_teacher_workspace(fixture: &TeacherDashboardFixture) {
         Some(true)
     );
     assert_eq!(
+        body["chapters"][0]["contents"][0]["data"].as_str(),
+        Some("Workspace lesson text")
+    );
+    assert_eq!(
         body["chapters"][0]["contents"][0]["publication_status"].as_str(),
         Some("inherits_course_published")
     );

@@ -125,6 +125,7 @@ async fn load_teacher_course_workspace_chapters(
                 id,
                 order,
                 content_type,
+                data: data.clone(),
                 data_present: data
                     .as_deref()
                     .map(str::trim)

@@ -66,6 +66,7 @@ pub struct TeacherCourseWorkspaceContent {
     pub id: i32,
     pub order: i32,
     pub content_type: String,
+    pub data: Option<String>,
     pub data_present: bool,
     pub publication_status: String,
     pub display_state: String,

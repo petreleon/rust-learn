@@ -1,15 +1,113 @@
 "use client";
 
-import { AlertCircle, ArrowLeft, BookOpen, FileText, Send, Upload } from "lucide-react";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent } from "react";
 import { type TeacherCourseWorkspaceContent, type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
 import styles from "../teacher-routes.module.css";
+import { ChapterAuthoringForm } from "./ChapterAuthoringForm";
 import { ChapterList } from "./ChapterList";
+import { ContentAuthoringForm } from "./ContentAuthoringForm";
 import { statusLabel } from "./statusLabel";
 import { type ActionState } from "./ActionState";
 import { type ChapterDraft } from "./ChapterDraft";
 import { type ContentDraft } from "./ContentDraft";
 
-
-export function ContentAuthoringView({ actionMessage, actionState, chapterDraft, contentDraft, onChapterDraftChange, onContentDraftChange, onSubmitChapter, onSubmitContent, onTriggerProcessing, workspace, }: { actionMessage: string | null; actionState: ActionState; chapterDraft: ChapterDraft; contentDraft: ContentDraft; onChapterDraftChange: (draft: ChapterDraft) => void; onContentDraftChange: (draft: ContentDraft) => void; onSubmitChapter: (event: FormEvent<HTMLFormElement>) => void; onSubmitContent: (event: FormEvent<HTMLFormElement>) => void; onTriggerProcessing: (content: TeacherCourseWorkspaceContent) => void; workspace: TeacherCourseWorkspaceResponse; }) { const canManageContent = workspace.course.permissions.can_manage_content; return ( <> <section className={styles.workspaceHero}> <Link className={styles.secondaryLink} href={`/teach/courses/${workspace.course.id}`}> <ArrowLeft size={17} aria-hidden /> Course workspace </Link> <div className={styles.workspaceTitleBlock}> <p className={styles.eyebrow}>{statusLabel(workspace.course.lifecycle_status)}</p> <h2>Content authoring</h2> <p className={styles.muted}> Create chapters, text lessons, and uploads from structured forms. Processing retry and destructive editing controls remain separate until their contracts are complete. </p> </div> </section> {actionMessage ? ( <section className={`${styles.warningPanel} ${styles.singlePanel}`} role="status"> <div className={styles.panelHeader}> <AlertCircle size={18} aria-hidden /> <h2>Authoring update</h2> </div> <p>{actionMessage}</p> </section> ) : null} <section className={styles.twoColumn}> <form className={styles.authoringForm} onSubmit={onSubmitChapter}> <div className={styles.panelHeader}> <BookOpen size={20} aria-hidden /> <h2>Create chapter</h2> </div> <label> <span>Title</span> <input disabled={!canManageContent || actionState === "saving"} maxLength={120} onChange={(event) => onChapterDraftChange({ ...chapterDraft, title: event.target.value })} placeholder="Chapter title" value={chapterDraft.title} /> </label> <label> <span>Order</span> <input disabled={!canManageContent || actionState === "saving"} min="0" onChange={(event) => onChapterDraftChange({ ...chapterDraft, order: event.target.value })} type="number" value={chapterDraft.order} /> </label> <button className={styles.primaryButton} disabled={!canManageContent || actionState === "saving"} type="submit"> <Send size={17} aria-hidden /> Create chapter </button> {!canManageContent ? <p className={styles.muted}>This session can view content structure but cannot author course content.</p> : null} </form> <form className={styles.authoringForm} onSubmit={onSubmitContent}> <div className={styles.panelHeader}> {contentDraft.uploadKind === "file" ? <Upload size={20} aria-hidden /> : <FileText size={20} aria-hidden />} <h2>{contentDraft.uploadKind === "file" ? "Upload file content" : "Create text content"}</h2> </div> <label> <span>Chapter</span> <select disabled={!canManageContent || actionState === "saving" || !workspace.chapters.length} onChange={(event) => onContentDraftChange({ ...contentDraft, chapterId: event.target.value })} value={contentDraft.chapterId || workspace.chapters[0]?.id.toString() || ""} > {workspace.chapters.length ? ( workspace.chapters.map((chapter) => ( <option key={chapter.id} value={chapter.id}> {chapter.title} </option> )) ) : ( <option value="">Create a chapter first</option> )} </select> </label> <label> <span>Kind</span> <select disabled={!canManageContent || actionState === "saving"} onChange={(event) => onContentDraftChange({ ...contentDraft, uploadKind: event.target.value as "text" | "file", contentType: event.target.value === "file" ? "video/mp4" : "article", }) } value={contentDraft.uploadKind} > <option value="text">Text / Article</option> <option value="file">File upload</option> </select> </label> {contentDraft.uploadKind === "file" ? ( <> <label> <span>File</span> <input accept="video/*,application/pdf" disabled={!canManageContent || actionState === "saving" || !workspace.chapters.length} onChange={(event) => { const file = event.target.files?.[0] ?? null; onContentDraftChange({ ...contentDraft, file, filename: file ? file.name : "", }); }} type="file" /> </label> <label> <span>Object filename</span> <input disabled={!canManageContent || actionState === "saving"} maxLength={240} onChange={(event) => onContentDraftChange({ ...contentDraft, filename: event.target.value })} placeholder="my-video.mp4" value={contentDraft.filename} /> </label> </> ) : ( <> <label> <span>Type</span> <select disabled={!canManageContent || actionState === "saving"} onChange={(event) => onContentDraftChange({ ...contentDraft, contentType: event.target.value })} value={contentDraft.contentType} > <option value="article">Article</option> <option value="text">Text lesson</option> </select> </label> <label> <span>Lesson body</span> <textarea disabled={!canManageContent || actionState === "saving" || !workspace.chapters.length} onChange={(event) => onContentDraftChange({ ...contentDraft, data: event.target.value })} placeholder="Write the lesson content" rows={5} value={contentDraft.data} /> </label> </> )} <label> <span>Order</span> <input disabled={!canManageContent || actionState === "saving"} min="0" onChange={(event) => onContentDraftChange({ ...contentDraft, order: event.target.value })} type="number" value={contentDraft.order} /> </label> <button className={styles.primaryButton} disabled={!canManageContent || actionState === "saving" || !workspace.chapters.length} type="submit" > <Send size={17} aria-hidden /> {contentDraft.uploadKind === "file" ? "Upload content" : "Create content"} </button> {!workspace.chapters.length ? <p className={styles.muted}>Create a chapter first so content can be assigned to it.</p> : null} {contentDraft.uploadKind === "file" && workspace.chapters.length ? <p className={styles.muted}>The presigned upload URL expires after 1 hour. After the content record is created, use the Process button to queue video processing.</p> : null} </form> </section> <section className={styles.courseSection}> <div className={styles.sectionHeader}> <div> <h2>Current structure</h2> <p className={styles.muted}>New chapters and content appear here after the workspace refreshes.</p> </div> </div> <ChapterList chapters={workspace.chapters} onTriggerProcessing={onTriggerProcessing} /> </section> </> ); }
+export function ContentAuthoringView({
+  actionMessage,
+  actionState,
+  chapterDraft,
+  contentDraft,
+  deleteConfirmContentId,
+  editingContentId,
+  onCancelEdit,
+  onChapterDraftChange,
+  onContentDraftChange,
+  onDeleteContent,
+  onEditContent,
+  onSubmitChapter,
+  onSubmitContent,
+  onTriggerProcessing,
+  workspace,
+}: {
+  actionMessage: string | null;
+  actionState: ActionState;
+  chapterDraft: ChapterDraft;
+  contentDraft: ContentDraft;
+  deleteConfirmContentId: number | null;
+  editingContentId: number | null;
+  onCancelEdit: () => void;
+  onChapterDraftChange: (draft: ChapterDraft) => void;
+  onContentDraftChange: (draft: ContentDraft) => void;
+  onDeleteContent: (content: TeacherCourseWorkspaceContent) => void;
+  onEditContent: (content: TeacherCourseWorkspaceContent) => void;
+  onSubmitChapter: (event: FormEvent<HTMLFormElement>) => void;
+  onSubmitContent: (event: FormEvent<HTMLFormElement>) => void;
+  onTriggerProcessing: (content: TeacherCourseWorkspaceContent) => void;
+  workspace: TeacherCourseWorkspaceResponse;
+}) {
+  const canManageContent = workspace.course.permissions.can_manage_content;
+  return (
+    <>
+      <section className={styles.workspaceHero}>
+        <Link className={styles.secondaryLink} href={`/teach/courses/${workspace.course.id}`}>
+          <ArrowLeft size={17} aria-hidden />
+          Course workspace
+        </Link>
+        <div className={styles.workspaceTitleBlock}>
+          <p className={styles.eyebrow}>{statusLabel(workspace.course.lifecycle_status)}</p>
+          <h2>Content authoring</h2>
+          <p className={styles.muted}>
+            Create chapters, text lessons, uploads, processing retries, and content edits from one workspace.
+          </p>
+        </div>
+      </section>
+      {actionMessage ? (
+        <section className={`${styles.warningPanel} ${styles.singlePanel}`} role="status">
+          <div className={styles.panelHeader}>
+            <AlertCircle size={18} aria-hidden />
+            <h2>Authoring update</h2>
+          </div>
+          <p>{actionMessage}</p>
+        </section>
+      ) : null}
+      <section className={styles.twoColumn}>
+        <ChapterAuthoringForm
+          actionState={actionState}
+          canManageContent={canManageContent}
+          chapterDraft={chapterDraft}
+          onChapterDraftChange={onChapterDraftChange}
+          onSubmitChapter={onSubmitChapter}
+        />
+        <ContentAuthoringForm
+          actionState={actionState}
+          canManageContent={canManageContent}
+          contentDraft={contentDraft}
+          editingContentId={editingContentId}
+          onCancelEdit={onCancelEdit}
+          onContentDraftChange={onContentDraftChange}
+          onSubmitContent={onSubmitContent}
+          workspace={workspace}
+        />
+      </section>
+      <section className={styles.courseSection}>
+        <div className={styles.sectionHeader}>
+          <div>
+            <h2>Current structure</h2>
+            <p className={styles.muted}>New chapters and content appear here after the workspace refreshes.</p>
+          </div>
+        </div>
+        <ChapterList
+          actionState={actionState}
+          canManageContent={canManageContent}
+          chapters={workspace.chapters}
+          deleteConfirmContentId={deleteConfirmContentId}
+          editingContentId={editingContentId}
+          onDeleteContent={onDeleteContent}
+          onEditContent={onEditContent}
+          onTriggerProcessing={onTriggerProcessing}
+        />
+      </section>
+    </>
+  );
+}

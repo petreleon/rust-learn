@@ -64,6 +64,7 @@ export type { FetchUploadUrlOptions } from "./teacher/FetchUploadUrlOptions";
 export { fetchUploadUrl } from "./teacher/fetchUploadUrl";
 export { processContent } from "./teacher/processContent";
 export { createTeacherContent } from "./teacher/createTeacherContent";
+export { deleteTeacherContent } from "./teacher/deleteTeacherContent";
 export { updateTeacherContent } from "./teacher/updateTeacherContent";
 export { decideTeacherJoinRequest } from "./teacher/decideTeacherJoinRequest";
 export { decideTeacherRewardCandidate } from "./teacher/decideTeacherRewardCandidate";

@@ -3,7 +3,7 @@ import { teacherErrorFromResponse } from "./teacherErrorFromResponse";
 import { teacherRawRequest } from "./teacherRawRequest";
 import { type TeacherRequestOptions } from "./TeacherRequestOptions";
 
-export async function processContent({
+export async function deleteTeacherContent({
   apiRoot = "/api",
   chapterId,
   contentId,
@@ -11,19 +11,19 @@ export async function processContent({
   timeoutMs = DEFAULT_TIMEOUT_MS,
   token,
 }: TeacherRequestOptions & {
-  chapterId: number;
+  chapterId: number | string;
   contentId: number;
-  courseId: number;
+  courseId: number | string;
 }): Promise<{ message: string }> {
   const response = await teacherRawRequest({
-    method: "POST",
+    method: "DELETE",
     timeoutMs,
     token,
-    url: `${apiRoot}/courses/${courseId}/chapters/${chapterId}/contents/${contentId}/process`,
+    url: `${apiRoot}/courses/${courseId}/chapters/${chapterId}/contents/${contentId}`,
   });
 
   if (!response.ok) {
-    throw await teacherErrorFromResponse(response, "Failed to process content.");
+    throw await teacherErrorFromResponse(response, "Failed to delete content.");
   }
 
   return { message: await response.text() };

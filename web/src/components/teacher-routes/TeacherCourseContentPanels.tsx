@@ -1,0 +1,108 @@
+"use client";
+
+import { AlertCircle, Loader2, LogIn, RefreshCw } from "lucide-react";
+import Link from "next/link";
+import { type Dispatch, type FormEvent, type SetStateAction } from "react";
+import { type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
+import styles from "../teacher-routes.module.css";
+import { type ActionState } from "./ActionState";
+import { type ChapterDraft } from "./ChapterDraft";
+import { ContentAuthoringView } from "./ContentAuthoringView";
+import { type ContentDraft } from "./ContentDraft";
+import { type LoadState } from "./LoadState";
+import { type RouteError } from "./RouteError";
+import { StatePanel } from "./StatePanel";
+import { type useContentAuthoringActions } from "./useContentAuthoringActions";
+
+type ContentActions = ReturnType<typeof useContentAuthoringActions>;
+
+export function TeacherCourseContentPanels({
+  actionMessage,
+  actionState,
+  chapterDraft,
+  contentActions,
+  contentDraft,
+  courseId,
+  error,
+  loadContentRoute,
+  loadState,
+  setChapterDraft,
+  setContentDraft,
+  submitChapter,
+  workspace,
+}: {
+  actionMessage: string | null;
+  actionState: ActionState;
+  chapterDraft: ChapterDraft;
+  contentActions: ContentActions;
+  contentDraft: ContentDraft;
+  courseId: string;
+  error: RouteError | null;
+  loadContentRoute: () => Promise<void>;
+  loadState: LoadState;
+  setChapterDraft: Dispatch<SetStateAction<ChapterDraft>>;
+  setContentDraft: Dispatch<SetStateAction<ContentDraft>>;
+  submitChapter: (event: FormEvent<HTMLFormElement>) => void;
+  workspace: TeacherCourseWorkspaceResponse | null;
+}) {
+  if (loadState === "loading") {
+    return (
+      <StatePanel
+        detail="Loading course content structure and authoring permissions."
+        icon={<Loader2 className={styles.spin} size={22} aria-hidden />}
+        title="Loading content authoring"
+      />
+    );
+  }
+  if (loadState === "idle") {
+    return (
+      <StatePanel
+        action={
+          <Link className={styles.primaryLink} href={`/login?redirect=/teach/courses/${courseId}/content`}>
+            <LogIn size={18} aria-hidden />
+            Sign in
+          </Link>
+        }
+        detail="Content authoring loads from your signed-in teaching session."
+        icon={<LogIn size={22} aria-hidden />}
+        title="Sign in required"
+      />
+    );
+  }
+  if (loadState === "error" && error) {
+    return (
+      <section className={`${styles.errorBox} ${styles.singlePanel}`} role="status">
+        <AlertCircle size={18} aria-hidden />
+        <span>
+          <strong>{error.code}</strong> {error.message}
+        </span>
+        <button className={styles.secondaryButton} type="button" onClick={() => void loadContentRoute()}>
+          <RefreshCw size={17} aria-hidden />
+          Retry
+        </button>
+      </section>
+    );
+  }
+  if (loadState !== "success" || !workspace) {
+    return null;
+  }
+  return (
+    <ContentAuthoringView
+      actionMessage={actionMessage}
+      actionState={actionState}
+      chapterDraft={chapterDraft}
+      contentDraft={contentDraft}
+      deleteConfirmContentId={contentActions.deleteConfirmContentId}
+      editingContentId={contentActions.editingContentId}
+      onCancelEdit={contentActions.cancelContentEdit}
+      onChapterDraftChange={setChapterDraft}
+      onContentDraftChange={setContentDraft}
+      onDeleteContent={contentActions.deleteContent}
+      onEditContent={contentActions.editContent}
+      onSubmitChapter={submitChapter}
+      onSubmitContent={contentActions.submitContent}
+      onTriggerProcessing={contentActions.triggerProcessing}
+      workspace={workspace}
+    />
+  );
+}

@@ -181,8 +181,9 @@ Current evidence:
 
 - Teacher content authoring exists for chapters, text lessons, and file upload
   records.
-- The authoring UI explicitly says processing retry and destructive editing
-  controls remain separate until contracts are complete.
+- Teacher content authoring now exposes text/article content data to the
+  teacher workspace, pre-fills the edit form, supports update/delete actions,
+  and handles the plain-text backend response from processing retries.
 - Learners can read text lessons and open media/document content when ready.
 - Assessment API helpers exist in `web/src/lib/learner`, and backend routes
   exist for listing published assessments, submitting attempts, and listing
@@ -197,9 +198,9 @@ Needed:
 - Add learner assessment taking: attempt history, remaining attempts, answer
   entry, submit flow, score/pass result, retry rules, and reward eligibility
   handoff.
-- Finish content lifecycle controls: edit lesson, delete/unpublish lesson,
-  requeue/retry processing, show upload progress, and expose processing errors
-  in a recoverable workflow.
+- Finish the remaining content lifecycle controls: unpublish lesson, upload
+  progress/expiry recovery, processing audit/history, and richer
+  processing-error recovery.
 - Add tests for assessment helpers, assessment UI, content processing states,
   max-attempt behavior, and reward-trigger handoff.
 
@@ -213,7 +214,10 @@ Checks:
   refresh.
 - [ ] Max-attempt and unpublished-assessment states are blocked with clear
   copy.
-- [ ] Content edit, unpublish/delete, upload progress, processing retry, and
+- [x] Text/article content edit and delete flows render in teacher authoring,
+  prefill persisted lesson data after refresh, and pass component, API, and
+  browser checks.
+- [ ] Content unpublish, upload progress, processing retry, and
   processing-error recovery states render without falling back to `/ops`.
 - [ ] Reward eligibility or reward-candidate creation is verified after a
   passing assessment when the course policy requires assessment completion.
@@ -529,9 +533,10 @@ Checks:
 
 Current evidence:
 
-- `/teach/courses/1/content` can create a chapter, but content creation is
-  disabled until a chapter exists. The page still says processing retry and
-  destructive editing controls are separate until contracts are complete.
+- `/teach/courses/[id]/content` can create chapters and content, exposes
+  teacher-owned text/article data for edit prefill, updates content records,
+  deletes content with a two-click confirmation, and keeps processing retries
+  wired to the backend's plain-text response.
 - `/teach/courses/[id]/enrollments` now marks persisted progress as available
   from the student route and shows backend reward eligibility using active
   course/organization/platform policies plus per-learner candidate counts.
@@ -551,13 +556,15 @@ Current evidence:
 
 Needed:
 
-- Finish teacher content lifecycle controls: edit, unpublish/delete, upload
-  retry/reprocess, processing-error inspection, and audit history.
+- Finish remaining teacher content lifecycle controls: unpublish, upload
+  expiry/recovery, processing-error inspection, and audit history.
 - Add assessment-authoring routes alongside content authoring.
 
 Checks:
 
-- [ ] Content create/edit/delete/unpublish/retry flows have success, loading,
+- [x] Content text/article edit and delete flows have component, backend, and
+  browser coverage, including persisted edit prefill and two-click delete.
+- [ ] Content create/unpublish/retry flows have success, loading,
   validation, conflict, denied, and backend-error tests.
 - [x] Enrollment and student routes show persisted progress from backend data
   after refresh.
