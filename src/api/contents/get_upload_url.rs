@@ -2,32 +2,24 @@ async fn get_upload_url(
     path: web::Path<(i32, i32)>, // course_id, chapter_id
     pool: web::Data<DbPool>,
     s3: Option<web::Data<S3State>>,
-    req: web::Json<UploadRequest>,
+    req: web::Json<RequestUploadUrlRequest>,
 ) -> impl Responder {
     let (course_id, chapter_id) = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
-    if let Err(response) = ensure_chapter_belongs_to_course(&mut conn, course_id, chapter_id).await
-    {
-        return response;
-    }
-
-    if req.content_type.trim().is_empty() {
-        return HttpResponse::BadRequest().body("content_type is required");
-    }
-
-    // Construct object path: courses/{course_id}/chapters/{chapter_id}/{filename}
-    let object_path = format!(
+    let mut scope_store = PostgresContentUploadScopeStore::new(&mut conn);
+    let request = req.into_inner();
+    let object_path_for_log = format!(
         "courses/{}/chapters/{}/{}",
-        course_id, chapter_id, req.filename
+        course_id, chapter_id, request.filename
     );
 
-    let s3 = match s3 {
-        Some(s3) => s3,
-        None => match S3State::new_from_env().await {
-            Ok(s3) => web::Data::new(s3),
+    let mut upload_provider = match s3 {
+        Some(s3) => S3ContentUploadUrlProvider::new(s3.get_ref().clone()),
+        None => match S3ContentUploadUrlProvider::new_from_env().await {
+            Ok(provider) => provider,
             Err(e) => {
                 log::error!(
                     "event=content_upload_url_failed reason=s3_client_init course_id={} chapter_id={} error={}",
@@ -39,33 +31,41 @@ async fn get_upload_url(
             }
         },
     };
+    let command = request.into_command(course_id, chapter_id);
 
-    if let Err(e) = s3.ensure_bucket("course-materials").await {
-        log::error!(
-            "event=content_upload_url_failed reason=s3_bucket_init course_id={} chapter_id={} bucket=course-materials error={}",
-            course_id,
-            chapter_id,
-            e
-        );
-        return HttpResponse::InternalServerError().body("Failed to prepare upload bucket");
-    }
-
-    // 1 hour expiry
-    match s3
-        .presign_external_put("course-materials", &object_path, 3600)
-        .await
-    {
-        Ok(url) => HttpResponse::Ok().json(serde_json::json!({
-            "upload_url": url,
-            "object_key": object_path
-        })),
-        Err(e) => {
+    match request_upload_url_for_content(&mut scope_store, &mut upload_provider, command).await {
+        Ok(output) => HttpResponse::Ok().json(UploadUrlResponse::from(output)),
+        Err(ContentUploadUrlError::ChapterNotFound) => {
+            HttpResponse::NotFound().body("Chapter not found")
+        }
+        Err(ContentUploadUrlError::MissingContentType) => {
+            HttpResponse::BadRequest().body("content_type is required")
+        }
+        Err(ContentUploadUrlError::Database(message)) => {
+            log::error!(
+                "event=content_upload_url_failed reason=chapter_lookup course_id={} chapter_id={} error={}",
+                course_id,
+                chapter_id,
+                message
+            );
+            HttpResponse::InternalServerError().body("Failed to fetch chapter")
+        }
+        Err(ContentUploadUrlError::BucketPrepareFailed(message)) => {
+            log::error!(
+                "event=content_upload_url_failed reason=s3_bucket_init course_id={} chapter_id={} bucket=course-materials error={}",
+                course_id,
+                chapter_id,
+                message
+            );
+            HttpResponse::InternalServerError().body("Failed to prepare upload bucket")
+        }
+        Err(ContentUploadUrlError::PresignFailed(message)) => {
             log::error!(
                 "event=content_upload_url_failed reason=presign_put course_id={} chapter_id={} bucket=course-materials object={} error={}",
                 course_id,
                 chapter_id,
-                object_path,
-                e
+                object_path_for_log,
+                message
             );
             HttpResponse::InternalServerError().body("Failed to generate upload URL")
         }

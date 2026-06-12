@@ -60,10 +60,3 @@ async fn create_content(
         }
     }
 }
-
-// Upload endpoint that returns a presigned URL for the client to upload file
-#[derive(serde::Deserialize)]
-struct UploadRequest {
-    filename: String,
-    content_type: String, // e.g. video/mp4, application/pdf
-}

@@ -407,6 +407,7 @@ src/
       content/
         chapter_store.rs
         content_item_store.rs
+        upload_scope_store.rs
         upload_job_store.rs
         mappers.rs
       teacher_applications/
@@ -869,6 +870,29 @@ Slice 11: migrate content item lifecycle reads and mutations.
 - [x] Prove create/list/update/wrong-scope behavior with the existing focused
       course content lifecycle regression test.
 
+Slice 12: migrate content upload URL requests.
+
+- [x] Use `POST /courses/{id}/chapters/{chapter_id}/contents/upload_url` as
+      the next migration because it combines chapter scope validation, object
+      key construction, bucket preparation, and presigned upload URL generation
+      inside the API handler.
+- [x] Create `application/content/request_upload_url`,
+      `ContentUploadScopeStore`, and `ContentUploadUrlProvider` ports.
+- [x] Move chapter scope validation for upload URL requests behind
+      `infra/postgres/content/upload_scope_store.rs`.
+- [x] Move bucket preparation and presigned PUT URL generation behind
+      `infra/object_storage/content/upload_url_provider.rs`.
+- [x] Move upload URL request/response contracts into `http/content/dto`.
+- [x] Preserve existing route path, `content_type is required` validation,
+      object key format, `course-materials` bucket, one-hour expiry, S3 env
+      fallback, and response fields `upload_url`/`object_key`.
+- [x] Self-critique: media URL generation and video processing still have
+      direct API coupling and remain separate slices because they include
+      content lookup, presigned GETs, and upload-job/worker behavior.
+- [x] Prove object key construction and chapter-before-content-type validation
+      with pure use-case tests, and prove the real route with the video upload
+      flow regression test.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` no longer contains Diesel query builders; it delegates
@@ -916,6 +940,13 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `application/content/manage_content_item` and
   `infra/postgres/content/content_item_store.rs`.
 - Content item HTTP request/response DTOs now live under `http/content/dto`.
+- The content upload URL route no longer owns direct chapter-scope Diesel,
+  bucket preparation, presigned PUT generation, or JSON response construction;
+  it delegates through `application/content/request_upload_url`,
+  `infra/postgres/content/upload_scope_store.rs`, and
+  `infra/object_storage/content/upload_url_provider.rs`.
+- Content upload URL HTTP request/response DTOs now live under
+  `http/content/dto`.
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env" src/domain src/application`
   returns no matches.
 - `rg "crate::repositories|crate::infra::postgres|crate::db::schema" src/http`
@@ -933,6 +964,8 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `rg "diesel|diesel_async|RunQueryDsl|try_get_provider|provider|get_chainid|health_check\\(|timeout|crate::db::schema" src/api/health.rs`
   returns no matches.
 - `rg "diesel|diesel_async|insert_into|update\\(|delete\\(|contents::table|user_role_course|NewContent\\b|UpdateContent\\b|models::content" src/api/contents/create_content.rs src/api/contents/get_upload_url.rs`
+  returns no matches.
+- `rg "ensure_bucket|presign_external_put|S3State::new_from_env|ensure_chapter_belongs_to_course|chapters::table|diesel|diesel_async|RunQueryDsl|serde_json::json" src/api/contents/get_upload_url.rs`
   returns no matches.
 - `cargo fmt --all --check` passes.
 - `git diff --check` passes.
@@ -955,6 +988,9 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `./scripts/run-host-tests.sh cargo test --lib operations` passes.
 - `./scripts/run-host-tests.sh cargo test --test health_readiness` passes.
 - `./scripts/run-host-tests.sh cargo test test_course_content_lifecycle --test course_content_management`
+  passes.
+- `./scripts/run-host-tests.sh cargo test --lib request_upload_url` passes.
+- `./scripts/run-host-tests.sh cargo test course_video_upload_can_be_queued_and_processed --test video_upload_flow`
   passes.
 - `./scripts/run-host-tests.sh cargo test notification_preferences_default_and_save_round_trip --test current_session_api`
   passes.

@@ -1,13 +1,19 @@
 use crate::application::content::manage_content_item::{self, ContentItemError};
+use crate::application::content::request_upload_url::{
+    request_upload_url as request_upload_url_for_content, ContentUploadUrlError,
+};
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::chapters;
 use crate::db::schema::contents;
 use crate::db::schema::upload_jobs;
 use crate::db::DbPool;
 use crate::http::content::dto::{
-    ContentItemResponse, CreateContentItemRequest, UpdateContentItemRequest,
+    ContentItemResponse, CreateContentItemRequest, RequestUploadUrlRequest, UpdateContentItemRequest,
+    UploadUrlResponse,
 };
+use crate::infra::object_storage::content::upload_url_provider::S3ContentUploadUrlProvider;
 use crate::infra::postgres::content::content_item_store::PostgresContentItemStore;
+use crate::infra::postgres::content::upload_scope_store::PostgresContentUploadScopeStore;
 use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
 use crate::models::content::Content;
 use crate::models::param_type::ParamType;
