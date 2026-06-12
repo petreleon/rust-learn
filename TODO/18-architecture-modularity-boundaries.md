@@ -688,7 +688,7 @@ Wiring rule:
       `pool.get().await` and 500 mapping.
 - [x] Add `bootstrap/app_state.rs` to group `DbPool`, `S3State`,
       `NotificationsState`, and future infra handles.
-- [ ] Replace `include!` in one small module with normal `mod` files and
+- [x] Replace `include!` in one small module with normal `mod` files and
       `pub(crate) use` re-exports to establish the house pattern.
 
 ## Initial Implementation Slices
@@ -941,6 +941,29 @@ Slice 14: migrate content video-processing job queueing.
       queued job shape with pure use-case/domain tests, and prove the real
       route with the S3-backed video upload flow regression test.
 
+Slice 15: replace content API include-based module assembly.
+
+- [x] Use `src/api/contents.rs` as the first include cleanup because all
+      content handlers now delegate to Level 2 use cases and adapters, making
+      the wrapper small enough to convert safely.
+- [x] Replace `include!("contents/...")` with normal sibling modules:
+      `create_content`, `get_upload_url`, `get_media_url`, and
+      `process_content`.
+- [x] Delete `src/api/contents/imports.rs`; each content handler module now
+      imports the dependencies it actually uses.
+- [x] Move route configuration into the parent `src/api/contents.rs` module so
+      route wiring no longer lives inside the media URL handler file.
+- [x] Keep content handlers visible only to the parent module with
+      `pub(super)` instead of widening them to public API.
+- [x] Preserve all existing content route paths and permission middleware.
+- [x] Self-critique: this establishes the explicit-module pattern for one
+      route context only. Other legacy API/service modules still use
+      `include!` and should be converted context by context after their
+      behavior is behind use-case boundaries.
+- [x] Prove the route configuration still compiles, contains no local
+      include/imports bucket, and still passes the focused content lifecycle
+      and video upload route tests.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` no longer contains Diesel query builders; it delegates
@@ -1007,6 +1030,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   or `NewUploadJob` construction; it delegates through
   `domain/content/content_item`, `application/content/process_upload_job`, and
   `infra/postgres/content/upload_job_store.rs`.
+- `src/api/contents.rs` no longer uses `include!`; the content API wrapper now
+  declares normal sibling modules and owns route configuration directly.
+- `src/api/contents/imports.rs` has been removed; content API handler files now
+  import their own dependencies explicitly.
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env" src/domain src/application`
   returns no matches.
 - `rg "crate::repositories|crate::infra::postgres|crate::db::schema" src/http`
@@ -1031,6 +1058,8 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `rg "chapters::table|contents::table|upload_jobs::table|diesel|diesel_async|RunQueryDsl|insert_into|NewUploadJob|models::content::Content|is_video_content_type" src/api/contents/process_content.rs`
   returns no matches.
+- `rg "include!|imports\\.rs" src/api/contents.rs src/api/contents`
+  returns no matches.
 - `cargo fmt --all --check` passes.
 - `git diff --check` passes.
 - `./scripts/run-host-tests.sh cargo test http::` passes.
@@ -1052,6 +1081,8 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `./scripts/run-host-tests.sh cargo test --lib operations` passes.
 - `./scripts/run-host-tests.sh cargo test --test health_readiness` passes.
 - `./scripts/run-host-tests.sh cargo test test_course_content_lifecycle --test course_content_management`
+  passes.
+- `./scripts/run-host-tests.sh cargo test --test course_content_management`
   passes.
 - `./scripts/run-host-tests.sh cargo test --lib request_upload_url` passes.
 - `./scripts/run-host-tests.sh cargo test --lib request_media_url` passes.

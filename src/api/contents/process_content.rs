@@ -1,4 +1,14 @@
-async fn process_content(
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+
+use crate::application::content::process_upload_job::{
+    process_upload_job as process_upload_job_for_content, ProcessUploadJobCommand,
+    ProcessUploadJobError,
+};
+use crate::db::DbPool;
+use crate::infra::postgres::content::upload_job_store::PostgresContentUploadJobStore;
+use crate::utils::request_auth::authenticated_user_id;
+
+pub(super) async fn process_content(
     req: HttpRequest,
     path: web::Path<(i32, i32, i32)>, // course_id, chapter_id, content_id
     pool: web::Data<DbPool>,

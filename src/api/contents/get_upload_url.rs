@@ -1,4 +1,21 @@
-async fn get_upload_url(
+use actix_web::{web, HttpResponse, Responder};
+
+use crate::application::content::manage_content_item::{self, ContentItemError};
+use crate::application::content::request_upload_url::{
+    request_upload_url as request_upload_url_for_content, ContentUploadUrlError,
+};
+use crate::db::DbPool;
+use crate::http::content::dto::{
+    ContentItemResponse, RequestUploadUrlRequest, UpdateContentItemRequest, UploadUrlResponse,
+};
+use crate::infra::object_storage::content::upload_url_provider::S3ContentUploadUrlProvider;
+use crate::infra::postgres::content::content_item_store::PostgresContentItemStore;
+use crate::infra::postgres::content::upload_scope_store::PostgresContentUploadScopeStore;
+use crate::utils::s3_utils::S3State;
+
+use super::content_item_error_log;
+
+pub(super) async fn get_upload_url(
     path: web::Path<(i32, i32)>, // course_id, chapter_id
     pool: web::Data<DbPool>,
     s3: Option<web::Data<S3State>>,
@@ -72,7 +89,7 @@ async fn get_upload_url(
     }
 }
 
-async fn update_content(
+pub(super) async fn update_content(
     path: web::Path<(i32, i32, i32)>, // course_id, chapter_id, content_id
     pool: web::Data<DbPool>,
     req: web::Json<UpdateContentItemRequest>,
@@ -91,8 +108,12 @@ async fn update_content(
     .await
     {
         Ok(content) => HttpResponse::Ok().json(ContentItemResponse::from(content)),
-        Err(ContentItemError::ChapterNotFound) => HttpResponse::NotFound().body("Chapter not found"),
-        Err(ContentItemError::ContentNotFound) => HttpResponse::NotFound().body("Content not found"),
+        Err(ContentItemError::ChapterNotFound) => {
+            HttpResponse::NotFound().body("Chapter not found")
+        }
+        Err(ContentItemError::ContentNotFound) => {
+            HttpResponse::NotFound().body("Content not found")
+        }
         Err(e) => {
             log::error!(
                 "event=content_update_failed content_id={} error={}",
@@ -104,7 +125,7 @@ async fn update_content(
     }
 }
 
-async fn delete_content(
+pub(super) async fn delete_content(
     path: web::Path<(i32, i32, i32)>,
     pool: web::Data<DbPool>,
 ) -> impl Responder {
@@ -125,8 +146,12 @@ async fn delete_content(
                 HttpResponse::NotFound().body("Content not found")
             }
         }
-        Err(ContentItemError::ChapterNotFound) => HttpResponse::NotFound().body("Chapter not found"),
-        Err(ContentItemError::ContentNotFound) => HttpResponse::NotFound().body("Content not found"),
+        Err(ContentItemError::ChapterNotFound) => {
+            HttpResponse::NotFound().body("Chapter not found")
+        }
+        Err(ContentItemError::ContentNotFound) => {
+            HttpResponse::NotFound().body("Content not found")
+        }
         Err(e) => {
             log::error!(
                 "event=content_delete_failed content_id={} error={}",
