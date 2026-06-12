@@ -443,17 +443,21 @@ src/
         mappers.rs
       operations/
         persistent_state_store.rs
+        readiness_check.rs
         readiness_queries.rs
     object_storage/
       content/
         upload_url_provider.rs
         media_object_store.rs
+      operations/
+        readiness_check.rs
     ethereum/
       rewards/
         reward_contract_gateway.rs
       wallet/
         wallet_transfer_gateway.rs
       operations/
+        readiness_check.rs
         startup_contract_deployer.rs
     email/
       identity/
@@ -818,6 +822,31 @@ Slice 9: migrate learning assessment submission.
 - [x] Prove scoring, persisted attempt shape, and max-attempt enforcement with a
       focused route-level regression test.
 
+Slice 10: migrate operations health/readiness checks.
+
+- [x] Use `/health` and `/ready` as the next migration because readiness was a
+      small operations route with a direct Diesel ping and concrete S3/Ethereum
+      checks inside the API handler.
+- [x] Create `application/operations/readiness_check` and a
+      `ReadinessDependency` port.
+- [x] Move readiness response decisions into application code while keeping
+      concrete dependency pings out of application.
+- [x] Move the Postgres ping behind
+      `infra/postgres/operations/readiness_check.rs`.
+- [x] Move object-storage and Ethereum readiness adapters behind
+      `infra/object_storage/operations/readiness_check.rs` and
+      `infra/ethereum/operations/readiness_check.rs`.
+- [x] Move liveness/readiness response DTOs into `http/operations/dto`.
+- [x] Preserve existing route paths and JSON strings: `/health` returns
+      `{"status":"ok"}`, `/ready` returns `ready`/`not_ready`, and dependency
+      checks use `ok`/`failed` with optional messages.
+- [x] Self-critique: keep concrete adapter construction in the legacy
+      `api::health` wrapper for now because full bootstrap wiring of operation
+      services is a larger route-composition cleanup. The handler no longer
+      owns Diesel, timeout orchestration, S3 calls, or Ethereum provider calls.
+- [x] Prove both liveness and full readiness behavior with the existing focused
+      route-level regression test.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` no longer contains Diesel query builders; it delegates
@@ -855,6 +884,11 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `infra/postgres/learning/assessment_submission_store.rs`.
 - Assessment scoring rules now live under `domain/learning/assessment`.
 - Assessment submit request/response DTOs now live under `http/learning/dto`.
+- `src/api/health.rs` no longer contains direct Diesel, timeout orchestration,
+  object-storage health calls, or Ethereum provider calls; it delegates
+  readiness checks through `application/operations/readiness_check` and
+  infra adapters.
+- Operations liveness/readiness DTOs now live under `http/operations/dto`.
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env" src/domain src/application`
   returns no matches.
 - `rg "crate::repositories|crate::infra::postgres|crate::db::schema" src/http`
@@ -868,6 +902,8 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `rg "diesel|diesel_async|RunQueryDsl|assessment_attempts::table|assessments::table" src/api/courses/list_assessment_attempts.rs`
   returns no matches.
 - `rg "diesel|diesel_async|RunQueryDsl|assessment_attempts::table|assessment_questions::table|assessments::table|crate::db::schema" src/api/courses/list_course_assessments.rs src/api/courses/list_assessment_attempts.rs`
+  returns no matches.
+- `rg "diesel|diesel_async|RunQueryDsl|try_get_provider|provider|get_chainid|health_check\\(|timeout|crate::db::schema" src/api/health.rs`
   returns no matches.
 - `cargo fmt --all --check` passes.
 - `git diff --check` passes.
@@ -887,6 +923,8 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   passes.
 - `./scripts/run-host-tests.sh cargo test assessment_submit_attempt_scores_persists_and_enforces_max_attempts --test course_assessment_submission`
   passes.
+- `./scripts/run-host-tests.sh cargo test --lib operations` passes.
+- `./scripts/run-host-tests.sh cargo test --test health_readiness` passes.
 - `./scripts/run-host-tests.sh cargo test test_course_content_lifecycle --test course_content_management`
   passes.
 - `./scripts/run-host-tests.sh cargo test notification_preferences_default_and_save_round_trip --test current_session_api`
