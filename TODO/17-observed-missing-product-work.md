@@ -39,8 +39,6 @@ Definition of perfected for this file:
 
 P0 - Stabilize the app shell and broken routes:
 
-- Add route-level smoke coverage for the shell, auth pages, `/session`,
-  `/admin`, and `/admin/delegations`.
 - Keep `/ops` admin-gated while deciding whether it is an admin-only API
   console, development-only surface, or fully retired after product-route
   replacement.
@@ -327,6 +325,10 @@ Current evidence:
   `/admin`, and `/settings/account` have no positive document overflow at
   `1280x720` or `390x844`; `/admin` mobile overflow was fixed by letting the
   admin summary cards use two wrapped columns instead of five cramped columns.
+- `web/e2e/route-smoke.spec.ts` now covers login, register, forgot password,
+  reset password, verify email, signed-out `/session`, signed-out `/admin`, and
+  signed-out `/admin/delegations` for route identity, framework-overlay absence,
+  console health, and horizontal overflow.
 - Public/auth navigation no longer exposes `/ops`; ProductShell only exposes
   the operations console when the resolved session is a platform admin.
 - Rendered ProductShell tests assert normal-user account and mobile menus omit
@@ -339,8 +341,8 @@ Current evidence:
 
 Needed:
 
-- Add route-level shell rendering coverage across the shared ProductShell
-  routes, including normal-user account menu behavior.
+- Broaden fast ProductShell component coverage for active nav, disabled account
+  actions, workspace controls, and mobile menu states.
 - Keep notification center coverage in the browser smoke set as new
   notification-producing workflows are added.
 
@@ -651,6 +653,8 @@ Current evidence:
 - Component and API-helper tests exist, but product routes can still regress at
   the page boundary: URL params, redirects, storage/session setup, shell
   composition, route-level loading/error states, and browser navigation.
+- Playwright route smoke now covers auth pages plus signed-out `/session`,
+  `/admin`, and `/admin/delegations`, including mobile overflow checks.
 
 Needed:
 
