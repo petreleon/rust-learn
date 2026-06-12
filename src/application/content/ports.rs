@@ -6,6 +6,7 @@ use crate::application::content::manage_chapter::{
 use crate::application::content::manage_content_item::{
     ContentItemError, ContentItemOutput, CreateContentItemCommand, UpdateContentItemCommand,
 };
+use crate::application::content::request_media_url::ContentMediaUrlError;
 use crate::application::content::request_upload_url::ContentUploadUrlError;
 
 pub trait ChapterStore {
@@ -77,4 +78,27 @@ pub trait ContentUploadUrlProvider {
         object_key: String,
         expires_seconds: u64,
     ) -> BoxFuture<'_, Result<String, ContentUploadUrlError>>;
+}
+
+pub trait ContentMediaStore {
+    fn ensure_chapter_belongs_to_course(
+        &mut self,
+        course_id: i32,
+        chapter_id: i32,
+    ) -> BoxFuture<'_, Result<(), ContentMediaUrlError>>;
+
+    fn content_object_key(
+        &mut self,
+        chapter_id: i32,
+        content_id: i32,
+    ) -> BoxFuture<'_, Result<Option<String>, ContentMediaUrlError>>;
+}
+
+pub trait ContentMediaUrlProvider {
+    fn media_url(
+        &mut self,
+        bucket: &'static str,
+        object_key: String,
+        expires_seconds: u64,
+    ) -> BoxFuture<'_, Result<String, ContentMediaUrlError>>;
 }

@@ -327,6 +327,7 @@ src/
       manage_chapter/
       manage_content_item/
       request_upload_url/
+      request_media_url/
       process_upload_job/
       ports.rs
     teacher_applications/
@@ -408,6 +409,7 @@ src/
         chapter_store.rs
         content_item_store.rs
         upload_scope_store.rs
+        media_object_store.rs
         upload_job_store.rs
         mappers.rs
       teacher_applications/
@@ -449,7 +451,7 @@ src/
     object_storage/
       content/
         upload_url_provider.rs
-        media_object_store.rs
+        media_url_provider.rs
       operations/
         readiness_check.rs
     ethereum/
@@ -893,6 +895,29 @@ Slice 12: migrate content upload URL requests.
       with pure use-case tests, and prove the real route with the video upload
       flow regression test.
 
+Slice 13: migrate content media URL requests.
+
+- [x] Use `GET /courses/{id}/chapters/{chapter_id}/contents/{id}/media` as
+      the next migration because it combines chapter scope validation, content
+      lookup, object-key validation, S3 fallback setup, presigned media URL
+      generation, and ad hoc JSON construction inside the API handler.
+- [x] Create `application/content/request_media_url`,
+      `ContentMediaStore`, and `ContentMediaUrlProvider` ports.
+- [x] Move chapter/content lookup for media URL requests behind
+      `infra/postgres/content/media_object_store.rs`.
+- [x] Move presigned GET URL generation and lazy S3 env fallback behind
+      `infra/object_storage/content/media_url_provider.rs`.
+- [x] Move the media URL response contract into `http/content/dto`.
+- [x] Preserve existing route path, `course-materials` bucket, one-hour expiry,
+      missing data/object-key error, invalid object-key prefix error, S3 env
+      fallback, and response field `url`.
+- [x] Self-critique: video processing still has direct API coupling and remains
+      a separate slice because it includes authenticated user extraction,
+      video-only validation, upload-job insertion, and worker handoff behavior.
+- [x] Prove chapter-before-content lookup, object-key prefix validation, and URL
+      provider calls with pure use-case tests, and prove the real route with
+      the S3-backed video upload flow regression test.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` no longer contains Diesel query builders; it delegates
@@ -947,6 +972,13 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `infra/object_storage/content/upload_url_provider.rs`.
 - Content upload URL HTTP request/response DTOs now live under
   `http/content/dto`.
+- The content media URL route no longer owns direct chapter/content Diesel,
+  object-key validation, presigned GET generation, S3 env fallback setup, or
+  JSON response construction; it delegates through
+  `application/content/request_media_url`,
+  `infra/postgres/content/media_object_store.rs`, and
+  `infra/object_storage/content/media_url_provider.rs`.
+- Content media URL HTTP response DTOs now live under `http/content/dto`.
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env" src/domain src/application`
   returns no matches.
 - `rg "crate::repositories|crate::infra::postgres|crate::db::schema" src/http`
@@ -966,6 +998,8 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `rg "diesel|diesel_async|insert_into|update\\(|delete\\(|contents::table|user_role_course|NewContent\\b|UpdateContent\\b|models::content" src/api/contents/create_content.rs src/api/contents/get_upload_url.rs`
   returns no matches.
 - `rg "ensure_bucket|presign_external_put|S3State::new_from_env|ensure_chapter_belongs_to_course|chapters::table|diesel|diesel_async|RunQueryDsl|serde_json::json" src/api/contents/get_upload_url.rs`
+  returns no matches.
+- `rg "ensure_chapter_belongs_to_course|contents::table|diesel|diesel_async|RunQueryDsl|presign_external_get|S3State::new_from_env|serde_json::json|models::content::Content" src/api/contents/get_media_url.rs`
   returns no matches.
 - `cargo fmt --all --check` passes.
 - `git diff --check` passes.
@@ -990,8 +1024,9 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `./scripts/run-host-tests.sh cargo test test_course_content_lifecycle --test course_content_management`
   passes.
 - `./scripts/run-host-tests.sh cargo test --lib request_upload_url` passes.
+- `./scripts/run-host-tests.sh cargo test --lib request_media_url` passes.
 - `./scripts/run-host-tests.sh cargo test course_video_upload_can_be_queued_and_processed --test video_upload_flow`
-  passes.
+  passes, including the route-level media URL assertion.
 - `./scripts/run-host-tests.sh cargo test notification_preferences_default_and_save_round_trip --test current_session_api`
   passes.
 - `./scripts/run-host-tests.sh cargo test --test current_session_api`

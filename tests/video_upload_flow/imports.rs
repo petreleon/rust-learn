@@ -27,6 +27,11 @@ struct UploadUrlResponse {
     object_key: String,
 }
 
+#[derive(Deserialize)]
+struct MediaUrlResponse {
+    url: String,
+}
+
 fn unique_string(prefix: &str) -> String {
     let ts = Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}_{}", prefix, std::process::id(), ts)

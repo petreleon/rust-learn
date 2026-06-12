@@ -86,6 +86,21 @@ async fn course_video_upload_can_be_queued_and_processed() {
     assert_eq!(content.content_type, "video");
     assert_eq!(content.data.as_deref(), Some(upload.object_key.as_str()));
 
+    let req = test::TestRequest::get()
+        .uri(&format!(
+            "/courses/{}/chapters/{}/contents/{}/media",
+            course.id, chapter.id, content.id
+        ))
+        .insert_header(("Authorization", format!("Bearer {}", teacher_token)))
+        .to_request();
+    let resp = app.call(req).await.expect("media URL request should run");
+    assert_eq!(resp.status(), actix_web::http::StatusCode::OK);
+    let media: MediaUrlResponse = test::read_body_json(resp).await;
+    let media_response = reqwest::get(&media.url)
+        .await
+        .expect("media URL should be reachable");
+    assert!(media_response.status().is_success());
+
     let req = test::TestRequest::post()
         .uri(&format!(
             "/courses/{}/chapters/{}/contents/{}/process",

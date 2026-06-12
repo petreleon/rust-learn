@@ -8,63 +8,72 @@ async fn get_media_url(
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
-    if let Err(response) = ensure_chapter_belongs_to_course(&mut conn, course_id, chapter_id).await
-    {
-        return response;
-    }
+    let mut store = PostgresContentMediaStore::new(&mut conn);
+    let mut media_provider = match s3 {
+        Some(s3) => S3ContentMediaUrlProvider::new(s3.get_ref().clone()),
+        None => S3ContentMediaUrlProvider::from_env(),
+    };
 
-    let content = match contents::table
-        .filter(contents::id.eq(content_id))
-        .filter(contents::chapter_id.eq(chapter_id))
-        .first::<Content>(&mut conn)
-        .await
+    match request_media_url_for_content(
+        &mut store,
+        &mut media_provider,
+        RequestMediaUrlCommand {
+            course_id,
+            chapter_id,
+            content_id,
+        },
+    )
+    .await
     {
-        Ok(c) => c,
-        Err(diesel::result::Error::NotFound) => {
-            return HttpResponse::NotFound().body("Content not found")
+        Ok(output) => HttpResponse::Ok().json(MediaUrlResponse::from(output)),
+        Err(ContentMediaUrlError::ChapterNotFound) => {
+            HttpResponse::NotFound().body("Chapter not found")
         }
-        Err(e) => {
+        Err(ContentMediaUrlError::ContentNotFound) => {
+            HttpResponse::NotFound().body("Content not found")
+        }
+        Err(ContentMediaUrlError::MissingObjectKey) => {
+            HttpResponse::BadRequest().body("Content has no stored data/object key")
+        }
+        Err(ContentMediaUrlError::InvalidObjectKey) => {
+            HttpResponse::BadRequest().body("Content data is not an upload object key")
+        }
+        Err(ContentMediaUrlError::ChapterLookupFailed(message)) => {
+            log::error!(
+                "event=content_media_lookup_failed reason=chapter_lookup course_id={} chapter_id={} content_id={} error={}",
+                course_id,
+                chapter_id,
+                content_id,
+                message
+            );
+            HttpResponse::InternalServerError().body("Failed to fetch chapter")
+        }
+        Err(ContentMediaUrlError::ContentLookupFailed(message)) => {
             log::error!(
                 "event=content_media_lookup_failed course_id={} chapter_id={} content_id={} error={}",
-                course_id, chapter_id, content_id, e
+                course_id,
+                chapter_id,
+                content_id,
+                message
             );
-            return HttpResponse::InternalServerError().body("Failed to fetch content");
+            HttpResponse::InternalServerError().body("Failed to fetch content")
         }
-    };
-
-    let object_key = match content.data {
-        Some(d) if !d.trim().is_empty() => d.trim().to_string(),
-        _ => return HttpResponse::BadRequest().body("Content has no stored data/object key"),
-    };
-
-    let expected_prefix = format!("courses/{}/chapters/{}/", course_id, chapter_id);
-    if !object_key.starts_with(&expected_prefix) {
-        return HttpResponse::BadRequest().body("Content data is not an upload object key");
-    }
-
-    let s3 = match s3 {
-        Some(s3) => s3,
-        None => match S3State::new_from_env().await {
-            Ok(s3) => web::Data::new(s3),
-            Err(e) => {
-                log::error!(
-                    "event=content_media_url_failed reason=s3_client_init course_id={} content_id={} error={}",
-                    course_id, content_id, e
-                );
-                return HttpResponse::InternalServerError().body("Failed to init storage client");
-            }
-        },
-    };
-
-    match s3
-        .presign_external_get("course-materials", &object_key, 3600)
-        .await
-    {
-        Ok(url) => HttpResponse::Ok().json(serde_json::json!({ "url": url })),
-        Err(e) => {
+        Err(ContentMediaUrlError::StorageClientInitFailed(message)) => {
+            log::error!(
+                "event=content_media_url_failed reason=s3_client_init course_id={} content_id={} error={}",
+                course_id,
+                content_id,
+                message
+            );
+            HttpResponse::InternalServerError().body("Failed to init storage client")
+        }
+        Err(ContentMediaUrlError::PresignFailed {
+            object_key,
+            message,
+        }) => {
             log::error!(
                 "event=content_media_url_failed reason=presign_get course_id={} chapter_id={} content_id={} object={} error={}",
-                course_id, chapter_id, content_id, object_key, e
+                course_id, chapter_id, content_id, object_key, message
             );
             HttpResponse::InternalServerError().body("Failed to generate media URL")
         }
