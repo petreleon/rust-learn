@@ -3,6 +3,7 @@ export type { PlatformCapability } from "./admin/PlatformCapability";
 export type { PlatformAdminWorkspace } from "./admin/PlatformAdminWorkspace";
 export type { KycDecisionStatus } from "./admin/KycDecisionStatus";
 export type { KycSubmission } from "./admin/KycSubmission";
+export type { KycAuditEvent } from "./admin/KycAuditEvent";
 export type { KycReviewQueueResponse } from "./admin/KycReviewQueueResponse";
 export type { PlatformReportSummary } from "./admin/PlatformReportSummary";
 export type { TeacherApplicationDashboardSummary } from "./admin/TeacherApplicationDashboardSummary";
@@ -57,6 +58,7 @@ export { buildPlatformAdminWorkspace } from "./admin/buildPlatformAdminWorkspace
 export { platformCapabilityEnabled } from "./admin/platformCapabilityEnabled";
 export { missingPlatformPermissions } from "./admin/missingPlatformPermissions";
 export { fetchKycReviewQueue } from "./admin/fetchKycReviewQueue";
+export { fetchKycSubmissionAudit } from "./admin/fetchKycSubmissionAudit";
 export { decideKycSubmission } from "./admin/decideKycSubmission";
 export { fetchPlatformSummary } from "./admin/fetchPlatformSummary";
 export { fetchPlatformRewardDashboard } from "./admin/fetchPlatformRewardDashboard";

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { decideKycSubmission } from "@/lib/admin/decideKycSubmission";
 import { fetchKycReviewQueue } from "@/lib/admin/fetchKycReviewQueue";
+import { fetchKycSubmissionAudit } from "@/lib/admin/fetchKycSubmissionAudit";
 import { type KycSubmission } from "@/lib/admin/KycSubmission";
 
 function submission(overrides: Partial<KycSubmission> = {}): KycSubmission {
@@ -83,6 +84,26 @@ describe("admin KYC helpers", () => {
       expect.objectContaining({
         body: JSON.stringify({ rejection_reason: "ID expired", status: "rejected" }),
         method: "PUT",
+      }),
+    );
+  });
+
+  it("fetches audit events for one KYC submission", async () => {
+    const audit = [{ actor_user_id: 1, event_type: "submitted", id: 11, submission_id: 7, to_status: "submitted" }];
+    const fetchMock = mockJson(audit);
+
+    const result = await fetchKycSubmissionAudit({
+      apiRoot: "http://api.test",
+      submissionId: 7,
+      token: "admin-token",
+    });
+
+    expect(result).toEqual(audit);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api.test/kyc/review/7/audit",
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: "Bearer admin-token" }),
+        method: "GET",
       }),
     );
   });

@@ -94,6 +94,26 @@ async fn decide_kyc(
     }
 }
 
+async fn list_kyc_audit(
+    req: HttpRequest,
+    pool: web::Data<db::DbPool>,
+    path: web::Path<i64>,
+) -> impl Responder {
+    let requester = match authenticated_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+    match kyc_service::list_submission_audit(&mut conn, requester.user_id, path.into_inner()).await
+    {
+        Ok(events) => HttpResponse::Ok().json(events),
+        Err(error) => service_error_response(error),
+    }
+}
+
 pub fn kyc_scope() -> actix_web::Scope {
     web::scope("/kyc")
         .service(
@@ -103,4 +123,5 @@ pub fn kyc_scope() -> actix_web::Scope {
         )
         .service(web::resource("/review").route(web::get().to(list_review_queue)))
         .service(web::resource("/review/{id}").route(web::put().to(decide_kyc)))
+        .service(web::resource("/review/{id}/audit").route(web::get().to(list_kyc_audit)))
 }

@@ -241,11 +241,12 @@ Current evidence:
 - `/admin/kyc` now provides the product review surface over `/api/kyc/review`,
   with an exact `REVIEW_KYC_SUBMISSIONS` gate, queue/detail rendering, and
   verify/reject decision actions.
+- `kyc_audit_events` now records append-only submitted and review-decision
+  events with actor, from/to status, reason, metadata, and timestamp; the admin
+  KYC detail panel loads that audit history from `/api/kyc/review/{id}/audit`.
 
 Needed:
 
-- Add append-only KYC audit events if compliance needs a full decision history
-  across repeated submissions beyond the current submission records.
 - Add explicit expired and provider-error transition producers when provider
   or retention rules exist.
 - Gate future wallet or payout operations that require KYC with clear reasons
@@ -266,13 +267,13 @@ Checks:
   derivation, status fetch, submission payloads, and error handling.
 - [ ] KYC status transitions are visible for not started, submitted, under
   review, verified, rejected, expired, and provider/error states.
-- [ ] Backend audit records identify who submitted/reviewed KYC, when it
+- [x] Backend audit records identify who submitted/reviewed KYC, when it
   changed, and why it was rejected when applicable.
 - [x] Any admin/operator review route is permission-scoped and denies users
   without the exact review permission.
 - [ ] Wallet or payout actions that require KYC are disabled with a clear
   explanation and become available after verification.
-- [ ] Tests cover KYC submission, review, rejection, resubmission, permission
+- [x] Tests cover KYC submission, review, rejection, resubmission, permission
   denial, and route rendering states.
 
 ## Wallet Deposits And Retirements

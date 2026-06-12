@@ -32,7 +32,17 @@ pub async fn submit_my_kyc(
         ));
     }
 
-    let submission = KycSubmission::create(conn, build_submission(user_id, request)?).await?;
+    let new_submission = build_submission(user_id, request)?;
+    let submission = conn
+        .transaction::<_, diesel::result::Error, _>(|conn| {
+            Box::pin(async move {
+                let submission = KycSubmission::create(conn, new_submission).await?;
+                record_submission_audit(conn, &submission, user_id).await?;
+                Ok(submission)
+            })
+        })
+        .await
+        .map_err(KycError::from)?;
     Ok(KycStatusResponse {
         next_action: "wait_for_review".to_string(),
         submission: Some(submission),
@@ -48,6 +58,16 @@ pub async fn list_review_queue(
     Ok(KycReviewQueueResponse {
         submissions: KycSubmission::list_review_queue(conn).await?,
     })
+}
+
+pub async fn list_submission_audit(
+    conn: &mut AsyncPgConnection,
+    reviewer_user_id: i32,
+    submission_id: i64,
+) -> Result<Vec<KycAuditEvent>, KycError> {
+    ensure_review_permission(conn, reviewer_user_id).await?;
+    KycSubmission::find_by_id(conn, submission_id).await?;
+    Ok(KycAuditEvent::list_for_submission(conn, submission_id).await?)
 }
 
 pub async fn decide_submission(
@@ -67,17 +87,19 @@ pub async fn decide_submission(
         ));
     }
     let (status, reason) = normalize_decision(request)?;
+    let from_status = existing.status.clone();
     let verified = status == KYC_STATUS_VERIFIED;
 
     conn.transaction::<_, diesel::result::Error, _>(|conn| {
         Box::pin(async move {
             let updated =
-                KycSubmission::decide(conn, submission_id, reviewer_user_id, &status, reason)
+                KycSubmission::decide(conn, submission_id, reviewer_user_id, &status, reason.clone())
                     .await?;
             diesel::update(users::table.find(updated.user_id))
                 .set(users::kyc_verified.eq(verified))
                 .execute(conn)
                 .await?;
+            record_decision_audit(conn, &updated, reviewer_user_id, from_status, reason).await?;
             Ok(updated)
         })
     })

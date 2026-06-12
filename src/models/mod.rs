@@ -9,6 +9,7 @@ pub mod courses_organizations;
 pub mod db_version_control;
 pub mod delegated_permission;
 pub mod email_verification_token;
+pub mod kyc_audit_event;
 pub mod kyc_submission;
 pub mod notification;
 pub mod notification_preferences;

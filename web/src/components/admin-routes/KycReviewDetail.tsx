@@ -2,29 +2,39 @@
 
 import { AlertTriangle, FileText, Loader2, Send, ShieldCheck } from "lucide-react";
 import { type FormEvent } from "react";
-import { type KycDecisionStatus, type KycSubmission } from "@/lib/admin";
+import { type KycAuditEvent, type KycDecisionStatus, type KycSubmission } from "@/lib/admin";
 import styles from "../admin-routes.module.css";
 import { ContextRow } from "./ContextRow";
+import { KycAuditTimeline } from "./KycAuditTimeline";
 import { StatusPill } from "./StatusPill";
 import { formatDate } from "./formatDate";
 import { formatUnderscoreLabel } from "./formatUnderscoreLabel";
 import { kycStatusTone } from "./kycStatusTone";
 import { type RouteError } from "./RouteError";
+import { type SectionState } from "./SectionState";
 
 export function KycReviewDetail({
+  auditError,
+  auditEvents,
+  auditState,
   decisionError,
   decisionState,
   decisionStatus,
   onDecisionStatusChange,
+  onRefreshAudit,
   onRejectionReasonChange,
   onSubmitDecision,
   rejectionReason,
   submission,
 }: {
+  auditError: RouteError | null;
+  auditEvents: KycAuditEvent[];
+  auditState: SectionState;
   decisionError: RouteError | null;
   decisionState: "idle" | "submitting" | "success" | "error";
   decisionStatus: KycDecisionStatus;
   onDecisionStatusChange: (status: KycDecisionStatus) => void;
+  onRefreshAudit: () => void;
   onRejectionReasonChange: (value: string) => void;
   onSubmitDecision: (event: FormEvent<HTMLFormElement>) => void;
   rejectionReason: string;
@@ -79,6 +89,8 @@ export function KycReviewDetail({
           <span>{submission.rejection_reason}</span>
         </div>
       ) : null}
+
+      <KycAuditTimeline auditError={auditError} auditEvents={auditEvents} auditState={auditState} onRefreshAudit={onRefreshAudit} />
 
       <form className={styles.decisionForm} onSubmit={onSubmitDecision}>
         <div className={styles.subsectionHeader}>

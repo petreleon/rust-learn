@@ -47,6 +47,7 @@ async fn api_scope_and_following_routes_are_reachable() {
         (Method::POST, "/api/kyc/me"),
         (Method::GET, "/api/kyc/review"),
         (Method::PUT, "/api/kyc/review/34"),
+        (Method::GET, "/api/kyc/review/34/audit"),
         (Method::GET, "/api/courses/teaching"),
         (Method::GET, "/api/courses/teaching/12"),
         (Method::GET, "/api/reward-candidates/me/history"),

@@ -21,6 +21,7 @@ import { emptyWorkspace } from "./emptyWorkspace";
 import { hasPlatformPermission } from "./hasPlatformPermission";
 import { normalizeRouteError } from "./normalizeRouteError";
 import { useAdminSession } from "./useAdminSession";
+import { useKycReviewAudit } from "./useKycReviewAudit";
 import { type RouteError } from "./RouteError";
 import { type SectionState } from "./SectionState";
 
@@ -41,6 +42,7 @@ export function AdminKycReviewRoute() {
   const [decisionState, setDecisionState] = useState<DecisionState>("idle");
   const selectedSubmission =
     queue?.submissions.find((submission) => submission.id === selectedSubmissionId) || queue?.submissions[0] || null;
+  const audit = useKycReviewAudit({ canReview, submissionId: selectedSubmission?.id || null, token: route.token });
 
   const loadQueue = useCallback(async () => {
     const token = route.token;
@@ -148,10 +150,14 @@ export function AdminKycReviewRoute() {
               <div className={styles.twoColumnWide}>
                 <KycReviewQueue onSelect={selectSubmission} selectedSubmissionId={selectedSubmission?.id || null} submissions={queue.submissions} />
                 <KycReviewDetail
+                  auditError={audit.auditError}
+                  auditEvents={audit.auditEvents}
+                  auditState={audit.auditState}
                   decisionError={decisionError}
                   decisionState={decisionState}
                   decisionStatus={decisionStatus}
                   onDecisionStatusChange={setDecisionStatus}
+                  onRefreshAudit={audit.loadAudit}
                   onRejectionReasonChange={setRejectionReason}
                   onSubmitDecision={submitDecision}
                   rejectionReason={rejectionReason}

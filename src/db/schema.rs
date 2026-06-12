@@ -1,16 +1,14 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    assessments (id) {
+    assessment_attempts (id) {
         id -> Int4,
-        course_id -> Int4,
-        title -> Varchar,
-        description -> Nullable<Text>,
-        passing_score -> Int4,
-        max_attempts -> Int4,
-        published -> Bool,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        assessment_id -> Int4,
+        user_id -> Int4,
+        score -> Nullable<Int4>,
+        passed -> Nullable<Bool>,
+        started_at -> Timestamptz,
+        completed_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -29,14 +27,17 @@ diesel::table! {
 }
 
 diesel::table! {
-    assessment_attempts (id) {
+    assessments (id) {
         id -> Int4,
-        assessment_id -> Int4,
-        user_id -> Int4,
-        score -> Nullable<Int4>,
-        passed -> Nullable<Bool>,
-        started_at -> Timestamptz,
-        completed_at -> Nullable<Timestamptz>,
+        course_id -> Int4,
+        #[max_length = 255]
+        title -> Varchar,
+        description -> Nullable<Text>,
+        passing_score -> Int4,
+        max_attempts -> Int4,
+        published -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -186,6 +187,47 @@ diesel::table! {
 }
 
 diesel::table! {
+    kyc_audit_events (id) {
+        id -> Int8,
+        submission_id -> Int8,
+        actor_user_id -> Nullable<Int4>,
+        #[max_length = 64]
+        event_type -> Varchar,
+        #[max_length = 32]
+        from_status -> Nullable<Varchar>,
+        #[max_length = 32]
+        to_status -> Varchar,
+        reason -> Nullable<Text>,
+        metadata -> Jsonb,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    kyc_submissions (id) {
+        id -> Int8,
+        user_id -> Int4,
+        #[max_length = 32]
+        status -> Varchar,
+        legal_name -> Text,
+        #[max_length = 2]
+        country_code -> Varchar,
+        #[max_length = 32]
+        document_type -> Varchar,
+        #[max_length = 16]
+        document_last4 -> Nullable<Varchar>,
+        evidence_reference -> Nullable<Text>,
+        provider_reference -> Nullable<Text>,
+        reviewer_user_id -> Nullable<Int4>,
+        rejection_reason -> Nullable<Text>,
+        submitted_at -> Timestamptz,
+        reviewed_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     notifications (id) {
         id -> Int8,
         user_id -> Nullable<Int4>,
@@ -229,6 +271,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    password_reset_tokens (id) {
+        id -> Int4,
+        user_id -> Int4,
+        token_hash -> Text,
+        created_at -> Timestamp,
+        expires_at -> Timestamp,
+        used_at -> Nullable<Timestamp>,
+    }
+}
+
+diesel::table! {
     paths (id) {
         id -> Int4,
         name -> Varchar,
@@ -240,17 +293,6 @@ diesel::table! {
         path_id -> Int4,
         course_id -> Int4,
         order -> Int4,
-    }
-}
-
-diesel::table! {
-    password_reset_tokens (id) {
-        id -> Int4,
-        user_id -> Int4,
-        token_hash -> Text,
-        created_at -> Timestamp,
-        expires_at -> Timestamp,
-        used_at -> Nullable<Timestamp>,
     }
 }
 
@@ -531,30 +573,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    kyc_submissions (id) {
-        id -> Int8,
-        user_id -> Int4,
-        #[max_length = 32]
-        status -> Varchar,
-        legal_name -> Text,
-        #[max_length = 2]
-        country_code -> Varchar,
-        #[max_length = 32]
-        document_type -> Varchar,
-        #[max_length = 16]
-        document_last4 -> Nullable<Varchar>,
-        evidence_reference -> Nullable<Text>,
-        provider_reference -> Nullable<Text>,
-        reviewer_user_id -> Nullable<Int4>,
-        rejection_reason -> Nullable<Text>,
-        submitted_at -> Timestamptz,
-        reviewed_at -> Nullable<Timestamptz>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
     upload_jobs (id) {
         id -> Int8,
         bucket -> Varchar,
@@ -565,6 +583,15 @@ diesel::table! {
         last_error -> Nullable<Text>,
         created_at -> Timestamptz,
         updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    user_notification_preferences (user_id) {
+        user_id -> Int4,
+        email_enabled -> Bool,
+        push_enabled -> Bool,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -591,15 +618,6 @@ diesel::table! {
         id -> Int4,
         user_id -> Nullable<Int4>,
         platform_role_id -> Nullable<Int4>,
-    }
-}
-
-diesel::table! {
-    user_notification_preferences (user_id) {
-        user_id -> Int4,
-        email_enabled -> Bool,
-        push_enabled -> Bool,
-        updated_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -674,10 +692,10 @@ diesel::joinable!(delegated_permissions -> courses (course_id));
 diesel::joinable!(delegated_permissions -> organizations (organization_id));
 diesel::joinable!(email_verification_tokens -> users (user_id));
 diesel::joinable!(internal_transactions -> wallets (wallet_id));
-diesel::joinable!(kyc_submissions -> users (user_id));
+diesel::joinable!(kyc_audit_events -> kyc_submissions (submission_id));
+diesel::joinable!(kyc_audit_events -> users (actor_user_id));
 diesel::joinable!(notifications -> users (user_id));
 diesel::joinable!(organization_member_audit_events -> organizations (organization_id));
-diesel::joinable!(organization_member_audit_events -> users (actor_user_id));
 diesel::joinable!(password_reset_tokens -> users (user_id));
 diesel::joinable!(paths_courses -> courses (course_id));
 diesel::joinable!(paths_courses -> paths (path_id));
@@ -756,14 +774,15 @@ diesel::allow_tables_to_appear_in_same_query!(
     email_verification_tokens,
     external_transactions,
     internal_transactions,
+    kyc_audit_events,
     kyc_submissions,
     notifications,
     organization_member_audit_events,
     organization_roles,
     organizations,
+    password_reset_tokens,
     paths,
     paths_courses,
-    password_reset_tokens,
     pending_course_organization_invites,
     persistent_states,
     platform_roles,

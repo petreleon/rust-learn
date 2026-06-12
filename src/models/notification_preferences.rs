@@ -9,7 +9,7 @@ pub struct NotificationPreferences {
     pub user_id: i32,
     pub email_enabled: bool,
     pub push_enabled: bool,
-    pub updated_at: Option<DateTime<Utc>>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Insertable, Deserialize)]

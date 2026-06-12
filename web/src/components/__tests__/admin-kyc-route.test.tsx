@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminKycReviewRoute } from "@/components/admin-routes";
 import { useAdminSession } from "@/components/admin-routes/useAdminSession";
-import { decideKycSubmission, fetchKycReviewQueue, type KycSubmission } from "@/lib/admin";
+import { decideKycSubmission, fetchKycReviewQueue, fetchKycSubmissionAudit, type KycSubmission } from "@/lib/admin";
 import { type CurrentSession } from "@/lib/session";
 
 vi.mock("next/navigation", () => ({
@@ -21,6 +21,7 @@ vi.mock("@/lib/admin", async (importOriginal) => {
     ...actual,
     decideKycSubmission: vi.fn(),
     fetchKycReviewQueue: vi.fn(),
+    fetchKycSubmissionAudit: vi.fn(),
   };
 });
 
@@ -83,6 +84,8 @@ describe("AdminKycReviewRoute", () => {
     vi.clearAllMocks();
     vi.mocked(decideKycSubmission).mockReset();
     vi.mocked(fetchKycReviewQueue).mockReset();
+    vi.mocked(fetchKycSubmissionAudit).mockReset();
+    vi.mocked(fetchKycSubmissionAudit).mockResolvedValue([]);
     mockRoute();
   });
 
@@ -101,12 +104,26 @@ describe("AdminKycReviewRoute", () => {
     vi.mocked(fetchKycReviewQueue)
       .mockResolvedValueOnce({ submissions: [row] })
       .mockResolvedValueOnce({ submissions: [] });
+    vi.mocked(fetchKycSubmissionAudit).mockResolvedValue([
+      {
+        actor_user_id: 42,
+        created_at: "2026-06-12T09:00:00Z",
+        event_type: "submitted",
+        from_status: null,
+        id: 11,
+        metadata: {},
+        reason: null,
+        submission_id: 7,
+        to_status: "submitted",
+      },
+    ]);
     vi.mocked(decideKycSubmission).mockResolvedValue({ ...row, status: "verified" });
     const user = userEvent.setup();
 
     render(<AdminKycReviewRoute />);
 
     expect((await screen.findAllByText("Learner User")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("Submitted")).length).toBeGreaterThan(0);
     await user.click(screen.getByRole("button", { name: "Save KYC decision" }));
 
     await waitFor(() =>
