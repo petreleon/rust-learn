@@ -319,6 +319,8 @@ src/
       request_enrollment/
       decide_enrollment/
       save_progress/
+      list_course_assessments/
+      list_assessment_attempts/
       submit_assessment_attempt/
       ports.rs
     content/
@@ -398,6 +400,7 @@ src/
         course_store.rs
         enrollment_store.rs
         progress_store.rs
+        assessment_read_store.rs
         assessment_store.rs
         mappers.rs
       content/
@@ -768,6 +771,27 @@ Slice 7: modularize the Actix binary entrypoint.
       initialization, server factory, bind, run.
 - [x] Prove bootstrap route composition with a focused routing test.
 
+Slice 8: migrate learning assessment reads.
+
+- [x] Use `GET /courses/{id}/assessments` and
+      `GET /courses/{id}/assessments/{assessment_id}/attempts` as the next API
+      migration because they are small learning-context reads and queried
+      Diesel directly in the handlers.
+- [x] Create `application/learning/list_course_assessments`,
+      `application/learning/list_assessment_attempts`, and an
+      `AssessmentReadStore` port.
+- [x] Move published-assessment and user-attempt Diesel queries behind
+      `infra/postgres/learning/assessment_read_store.rs`.
+- [x] Move assessment read response contracts into `http/learning/dto`.
+- [x] Keep existing route paths, authentication behavior, JSON field names, and
+      attempt ordering unchanged.
+- [x] Self-critique: leave `submit_assessment_attempt` as a separate migration
+      slice because it owns scoring, max-attempt checks, writes, and likely
+      transaction semantics. Mixing it into a read slice would blur the
+      boundary instead of improving it.
+- [x] Prove published-only assessment listing, user-scoped attempt history, and
+      descending attempt order with a focused route-level regression test.
+
 Progress evidence from 2026-06-12:
 
 - `src/api/chapters.rs` no longer contains Diesel query builders; it delegates
@@ -790,6 +814,17 @@ Progress evidence from 2026-06-12:
 - `src/main.rs` is now 35 lines and delegates app state initialization and
   route composition to `bootstrap/startup.rs`, `bootstrap/app_state.rs`, and
   `bootstrap/routes.rs`.
+- `src/api/courses/list_assessment_attempts.rs` no longer contains direct
+  Diesel usage; it delegates user attempt history through
+  `application/learning/list_assessment_attempts` and
+  `infra/postgres/learning/assessment_read_store.rs`.
+- The read side of `src/api/courses/list_course_assessments.rs` no longer
+  contains direct Diesel usage; it delegates published assessment listing
+  through `application/learning/list_course_assessments` and
+  `infra/postgres/learning/assessment_read_store.rs`.
+- Assessment read HTTP response DTOs now live under `http/learning/dto`.
+- `submit_assessment_attempt` still contains legacy Diesel write/scoring logic
+  and is intentionally reserved for a later write-focused learning slice.
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env" src/domain src/application`
   returns no matches.
 - `rg "crate::repositories|crate::infra::postgres|crate::db::schema" src/http`
@@ -800,8 +835,12 @@ Progress evidence from 2026-06-12:
   matches.
 - `rg "diesel|diesel_async|schema::|RunQueryDsl|QueryDsl|ExpressionMethods|models::user::User" src/api/users.rs`
   returns no matches.
+- `rg "diesel|diesel_async|RunQueryDsl|assessment_attempts::table|assessments::table" src/api/courses/list_assessment_attempts.rs`
+  returns no matches.
 - `cargo fmt --all --check` passes.
+- `git diff --check` passes.
 - `./scripts/run-host-tests.sh cargo test http::` passes.
+- `./scripts/run-host-tests.sh cargo test --lib application::learning` passes.
 - `./scripts/run-host-tests.sh cargo test application::access_control` passes.
 - `./scripts/run-host-tests.sh cargo test application::identity` passes.
 - `./scripts/run-host-tests.sh cargo test domain::rewards::candidate` passes.
@@ -812,6 +851,8 @@ Progress evidence from 2026-06-12:
 - `./scripts/run-host-tests.sh cargo test read_user_routes_require_view_user_or_self --test middleware_access_control`
   passes.
 - `./scripts/run-host-tests.sh cargo test --test api_routing` passes.
+- `./scripts/run-host-tests.sh cargo test assessment_read_routes_are_published_and_user_scoped --test course_assessments`
+  passes.
 - `./scripts/run-host-tests.sh cargo test test_course_content_lifecycle --test course_content_management`
   passes.
 - `./scripts/run-host-tests.sh cargo test notification_preferences_default_and_save_round_trip --test current_session_api`

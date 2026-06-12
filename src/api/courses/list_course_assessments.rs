@@ -2,29 +2,24 @@ async fn list_course_assessments(
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
 ) -> impl Responder {
-    use crate::db::schema::assessments;
-    use crate::models::assessment::Assessment;
-    use diesel::prelude::*;
-    use diesel_async::RunQueryDsl;
-
     let course_id = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("DB unavailable"),
     };
+    let mut store = PostgresAssessmentReadStore::new(&mut conn);
 
-    match assessments::table
-        .filter(assessments::course_id.eq(course_id))
-        .filter(assessments::published.eq(true))
-        .load::<Assessment>(&mut conn)
-        .await
-    {
-        Ok(list) => HttpResponse::Ok().json(list),
+    match list_published_course_assessments(&mut store, course_id).await {
+        Ok(list) => HttpResponse::Ok().json(
+            list.into_iter()
+                .map(AssessmentResponse::from)
+                .collect::<Vec<_>>(),
+        ),
         Err(e) => {
             log::error!(
                 "event=assessments_list_failed course_id={} error={}",
                 course_id,
-                e
+                assessment_read_error_log(&e)
             );
             HttpResponse::InternalServerError().body("Failed to list assessments")
         }
@@ -144,4 +139,10 @@ async fn submit_assessment_attempt(
         "percentage": percentage,
         "passed": passed,
     }))
+}
+
+fn assessment_read_error_log(error: &AssessmentReadError) -> String {
+    match error {
+        AssessmentReadError::Database(message) => message.clone(),
+    }
 }

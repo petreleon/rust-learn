@@ -3,11 +3,6 @@ async fn list_assessment_attempts(
     path: web::Path<(i32, i32)>,
     pool: web::Data<db::DbPool>,
 ) -> impl Responder {
-    use crate::db::schema::assessment_attempts;
-    use crate::models::assessment::AssessmentAttempt;
-    use diesel::prelude::*;
-    use diesel_async::RunQueryDsl;
-
     let user_id = match authenticated_user_id(&req) {
         Ok(id) => id,
         Err(response) => return response,
@@ -17,17 +12,20 @@ async fn list_assessment_attempts(
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("DB unavailable"),
     };
+    let mut store = PostgresAssessmentReadStore::new(&mut conn);
 
-    match assessment_attempts::table
-        .filter(assessment_attempts::assessment_id.eq(assessment_id))
-        .filter(assessment_attempts::user_id.eq(user_id))
-        .order(assessment_attempts::started_at.desc())
-        .load::<AssessmentAttempt>(&mut conn)
-        .await
-    {
-        Ok(attempts) => HttpResponse::Ok().json(attempts),
+    match list_user_assessment_attempts(&mut store, assessment_id, user_id).await {
+        Ok(attempts) => HttpResponse::Ok().json(
+            attempts
+                .into_iter()
+                .map(AssessmentAttemptResponse::from)
+                .collect::<Vec<_>>(),
+        ),
         Err(e) => {
-            log::error!("event=assessment_attempts_failed error={}", e);
+            log::error!(
+                "event=assessment_attempts_failed error={}",
+                assessment_read_error_log(&e)
+            );
             HttpResponse::InternalServerError().body("Failed to load attempts")
         }
     }
