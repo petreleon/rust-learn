@@ -1,10 +1,15 @@
 pub mod api;
+pub mod application;
 pub mod config;
 pub mod db;
+pub mod domain;
+pub mod http;
+pub mod infra;
 pub mod middlewares;
 mod models;
 pub mod repositories;
 pub mod services;
+pub mod shared;
 pub mod utils;
 
 use crate::config::db_setup::version_updater;

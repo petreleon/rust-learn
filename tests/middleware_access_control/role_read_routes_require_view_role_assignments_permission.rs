@@ -30,5 +30,43 @@ async fn role_read_routes_require_view_role_assignments_permission() {
         .uri("/roles")
         .insert_header(("Authorization", format!("Bearer {}", admin_token)))
         .to_request();
-    assert_eq!(response_status(app.call(req).await), StatusCode::OK);
+    let response = app.call(req).await.expect("admin role list should run");
+    assert_eq!(response.status(), StatusCode::OK);
+    let roles: serde_json::Value = test::read_body_json(response).await;
+    assert!(role_list_contains(&roles, "SUPER_ADMIN"));
+
+    let req = test::TestRequest::get()
+        .uri("/roles/organization")
+        .insert_header(("Authorization", format!("Bearer {}", admin_token)))
+        .to_request();
+    let response = app
+        .call(req)
+        .await
+        .expect("admin organization role list should run");
+    assert_eq!(response.status(), StatusCode::OK);
+    let roles: serde_json::Value = test::read_body_json(response).await;
+    assert!(role_list_contains(&roles, "ADMIN"));
+
+    let req = test::TestRequest::get()
+        .uri("/roles/course")
+        .insert_header(("Authorization", format!("Bearer {}", admin_token)))
+        .to_request();
+    let response = app
+        .call(req)
+        .await
+        .expect("admin course role list should run");
+    assert_eq!(response.status(), StatusCode::OK);
+    let roles: serde_json::Value = test::read_body_json(response).await;
+    assert!(role_list_contains(&roles, "TEACHER"));
+}
+
+fn role_list_contains(roles: &serde_json::Value, role_name: &str) -> bool {
+    roles
+        .as_array()
+        .map(|items| {
+            items
+                .iter()
+                .any(|role| role["name"].as_str() == Some(role_name))
+        })
+        .unwrap_or(false)
 }

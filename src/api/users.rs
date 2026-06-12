@@ -1,15 +1,14 @@
+use crate::application::identity::get_user_profile;
+use crate::application::identity::list_users;
+use crate::application::identity::user_profile::UserProfileError;
 use crate::config::constants::permissions::Permissions;
 use crate::db;
-use crate::db::schema::users;
-use crate::models::user::User;
+use crate::http::identity::dto::{ListUsersRequest, UserProfileResponse, UsersResponse};
+use crate::infra::postgres::identity::user_profile_store::PostgresUserProfileStore;
 use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::utils::request_auth::authenticated_user;
 use actix_web::{web, HttpRequest};
 use actix_web::{HttpResponse, Responder};
-use diesel::{BoolExpressionMethods, PgTextExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
-use serde_json::json;
-use std::collections::HashMap;
 
 mod role_assignment;
 mod routes;
@@ -21,48 +20,22 @@ pub use routes::user_scope;
 // GET /user -> list users for callers with VIEW_USER.
 async fn list_users(
     pool: web::Data<db::DbPool>,
-    query: web::Query<HashMap<String, String>>,
+    query: web::Query<ListUsersRequest>,
 ) -> impl Responder {
     let mut conn = match pool.get().await {
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
+    let mut store = PostgresUserProfileStore::new(&mut conn);
+    let query = query.into_inner().into();
 
-    let search = query
-        .get("search")
-        .map(|s| s.trim())
-        .filter(|s| !s.is_empty());
-    let result = if let Some(term) = search {
-        let pattern = format!("%{}%", term);
-        let rows = users::table
-            .filter(users::name.ilike(&pattern).or(users::email.ilike(&pattern)))
-            .load::<User>(&mut conn)
-            .await;
-        rows
-    } else {
-        User::find_all(&mut conn).await
-    };
-
-    match result {
-        Ok(user_list) => {
-            let users_json: Vec<_> = user_list
-                .iter()
-                .map(|u| {
-                    json!({
-                        "id": u.id,
-                        "name": u.name,
-                        "email": u.email,
-                        "date_of_birth": u.date_of_birth.map(|d| d.to_string()),
-                        "created_at": u.created_at.to_string(),
-                        "kyc_verified": u.kyc_verified,
-                        "email_verified": u.email_verified,
-                    })
-                })
-                .collect();
-            HttpResponse::Ok().json(json!({ "users": users_json }))
-        }
+    match list_users::list_users(&mut store, query).await {
+        Ok(users) => HttpResponse::Ok().json(UsersResponse::from(users)),
         Err(e) => {
-            log::error!("event=user_list_failed error={}", e);
+            log::error!(
+                "event=user_list_failed error={}",
+                user_profile_error_log(&e)
+            );
             HttpResponse::InternalServerError().body("Failed to load users")
         }
     }
@@ -103,22 +76,25 @@ async fn get_user(
         }
     }
 
-    let result = User::find_by_id(user_id, &mut conn).await;
+    let mut store = PostgresUserProfileStore::new(&mut conn);
 
-    match result {
-        Ok(u) => HttpResponse::Ok().json(json!({
-            "id": u.id,
-            "name": u.name,
-            "email": u.email,
-            "date_of_birth": u.date_of_birth.map(|d| d.to_string()),
-            "created_at": u.created_at.to_string(),
-            "kyc_verified": u.kyc_verified,
-            "email_verified": u.email_verified,
-        })),
-        Err(diesel::result::Error::NotFound) => HttpResponse::NotFound().body("User not found"),
+    match get_user_profile::get_user_profile(&mut store, user_id).await {
+        Ok(user) => HttpResponse::Ok().json(UserProfileResponse::from(user)),
+        Err(UserProfileError::NotFound) => HttpResponse::NotFound().body("User not found"),
         Err(e) => {
-            log::error!("event=user_fetch_failed user_id={} error={}", user_id, e);
+            log::error!(
+                "event=user_fetch_failed user_id={} error={}",
+                user_id,
+                user_profile_error_log(&e)
+            );
             HttpResponse::InternalServerError().body("Failed to fetch user")
         }
+    }
+}
+
+fn user_profile_error_log(error: &UserProfileError) -> String {
+    match error {
+        UserProfileError::NotFound => "not_found".to_string(),
+        UserProfileError::Database(message) => message.clone(),
     }
 }
