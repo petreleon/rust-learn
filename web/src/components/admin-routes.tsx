@@ -1,6 +1,7 @@
 "use client";
 
 export { AdminDashboardRoute } from "./admin-routes/AdminDashboardRoute";
+export { AdminKycReviewRoute } from "./admin-routes/AdminKycReviewRoute";
 export { AdminTeacherApplicationsRoute } from "./admin-routes/AdminTeacherApplicationsRoute";
 export { AdminRewardAmountReviewRoute } from "./admin-routes/AdminRewardAmountReviewRoute";
 export { AdminFraudBlocksRoute } from "./admin-routes/AdminFraudBlocksRoute";

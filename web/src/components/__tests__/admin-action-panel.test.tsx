@@ -8,6 +8,7 @@ import { type PlatformRewardDashboard } from "@/lib/admin/PlatformRewardDashboar
 import { type PlatformSystemStatus } from "@/lib/admin/PlatformSystemStatus";
 
 const capabilityKeys: PlatformCapabilityKey[] = [
+  "kyc_reviews",
   "teacher_applications",
   "reward_amount_review",
   "fraud_blocks",
@@ -28,7 +29,7 @@ function makeWorkspace(): PlatformAdminWorkspace {
     delegatedPermissionCount: 0,
     directPermissionCount: 7,
     effectivePermissionCount: 7,
-    effectivePermissions: ["APPROVE_REWARD_AMOUNT", "EXPORT_DATA", "MANAGE_FRAUD_BLOCKS"],
+    effectivePermissions: ["APPROVE_REWARD_AMOUNT", "EXPORT_DATA", "MANAGE_FRAUD_BLOCKS", "REVIEW_KYC_SUBMISSIONS"],
     roles: ["platform_admin"],
   };
 }
@@ -62,6 +63,7 @@ describe("ActionPanel", () => {
       "href",
       "/admin/teacher-applications",
     );
+    expect(screen.getByRole("link", { name: "Open KYC review" })).toHaveAttribute("href", "/admin/kyc");
     expect(screen.getByRole("link", { name: "Open Amount review" })).toHaveAttribute(
       "href",
       "/admin/rewards/amount-review",

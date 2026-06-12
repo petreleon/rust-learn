@@ -39,6 +39,15 @@ export function ActionPanel({
     value: string | number;
   }> = [
     {
+      detail: "KYC submissions waiting for platform identity review.",
+      href: "/admin/kyc",
+      key: "kyc_reviews",
+      label: "KYC review",
+      state: capabilityLabel(workspace, "kyc_reviews"),
+      tone: platformCapabilityEnabled(workspace, "kyc_reviews") ? "good" : "neutral",
+      value: platformCapabilityEnabled(workspace, "kyc_reviews") ? "Ready" : "Gated",
+    },
+    {
       detail: "Submitted teacher applications waiting for platform review.",
       href: "/admin/teacher-applications",
       key: "teacher_applications",

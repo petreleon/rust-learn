@@ -11,6 +11,11 @@ export const platformCapabilityDefinitions: Array<{
     permissions: ["VIEW_REPORT"],
   },
   {
+    key: "kyc_reviews",
+    label: "KYC review",
+    permissions: ["REVIEW_KYC_SUBMISSIONS"],
+  },
+  {
     key: "teacher_applications",
     label: "Teacher review",
     permissions: ["REVIEW_TEACHER_APPLICATIONS", "APPROVE_TEACHER_APPLICATION", "REJECT_TEACHER_APPLICATION"],

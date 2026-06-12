@@ -6,7 +6,7 @@
 .contextRow { composes: contextRow from './admin-routes.module/04.module.css'; }
 .decisionForm { composes: decisionForm from './admin-routes.module/01.module.css'; composes: decisionForm from './admin-routes.module/04.module.css'; }
 .detailGrid { composes: detailGrid from './admin-routes.module/04.module.css'; composes: detailGrid from './admin-routes.module/05.module.css'; }
-.emptyState { composes: emptyState from './admin-routes.module/02.module.css'; }
+.emptyState { composes: emptyState from './admin-routes.module/02.module.css'; composes: emptyState from './admin-routes.module/04.module.css'; }
 .errorBox { composes: errorBox from './admin-routes.module/04.module.css'; }
 .exportList { composes: exportList from './admin-routes.module/03.module.css'; }
 .exportRow { composes: exportRow from './admin-routes.module/01.module.css'; composes: exportRow from './admin-routes.module/02.module.css'; composes: exportRow from './admin-routes.module/05.module.css'; }
@@ -18,7 +18,7 @@
 .inlineNotice { composes: inlineNotice from './admin-routes.module/04.module.css'; }
 .inputWithIcon { composes: inputWithIcon from './admin-routes.module/01.module.css'; }
 .linkList { composes: linkList from './admin-routes.module/04.module.css'; }
-.metricCard { composes: metricCard from './admin-routes.module/01.module.css'; }
+.metricCard { composes: metricCard from './admin-routes.module/01.module.css'; composes: metricCard from './admin-routes.module/02.module.css'; }
 .metricGrid { composes: metricGrid from './admin-routes.module/02.module.css'; composes: metricGrid from './admin-routes.module/05.module.css'; }
 .muted { composes: muted from './admin-routes.module/01.module.css'; }
 .neutral { composes: neutral from './admin-routes.module/03.module.css'; }

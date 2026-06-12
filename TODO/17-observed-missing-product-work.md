@@ -238,19 +238,20 @@ Current evidence:
   and returns the rejection reason for resubmission.
 - Account settings now shows KYC status, start/resubmit form fields, pending
   review copy, and verified/no-action states instead of only a passive badge.
+- `/admin/kyc` now provides the product review surface over `/api/kyc/review`,
+  with an exact `REVIEW_KYC_SUBMISSIONS` gate, queue/detail rendering, and
+  verify/reject decision actions.
 
 Needed:
 
-- Add a product admin review screen over `/api/kyc/review`; the API exists but
-  reviewers still need a navigable route for queue, approve, and reject actions.
 - Add append-only KYC audit events if compliance needs a full decision history
   across repeated submissions beyond the current submission records.
 - Add explicit expired and provider-error transition producers when provider
   or retention rules exist.
 - Gate future wallet or payout operations that require KYC with clear reasons
   instead of silently showing `KYC pending`.
-- Add browser coverage for the account KYC form and the future admin review
-  screen after the review UI exists.
+- Broaden browser coverage for the signed-in account KYC form and populated
+  admin KYC review queue states.
 
 Checks:
 
@@ -267,7 +268,7 @@ Checks:
   review, verified, rejected, expired, and provider/error states.
 - [ ] Backend audit records identify who submitted/reviewed KYC, when it
   changed, and why it was rejected when applicable.
-- [ ] Any admin/operator review route is permission-scoped and denies users
+- [x] Any admin/operator review route is permission-scoped and denies users
   without the exact review permission.
 - [ ] Wallet or payout actions that require KYC are disabled with a clear
   explanation and become available after verification.

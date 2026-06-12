@@ -11,6 +11,7 @@ const authRoutes = [
 const protectedRoutes = [
   { path: "/session", heading: "Current session" },
   { path: "/admin", heading: "Platform admin dashboard" },
+  { path: "/admin/kyc", heading: "KYC review" },
   { path: "/admin/delegations", heading: "Delegated permissions" },
 ];
 

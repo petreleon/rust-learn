@@ -7,6 +7,7 @@ export const actionIcons: Record<PlatformCapabilityKey, LucideIcon> = {
   delegations: ShieldCheck,
   exports: FileSpreadsheet,
   fraud_blocks: ShieldAlert,
+  kyc_reviews: ShieldCheck,
   reward_amount_review: Landmark,
   summary: Gauge,
   system: Database,
