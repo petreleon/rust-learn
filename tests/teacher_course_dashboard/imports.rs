@@ -4,8 +4,8 @@ use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::schema::{
-    chapters, contents, course_join_requests, courses, courses_organizations, organizations,
-    reward_candidates, reward_policies,
+    chapters, contents, course_join_requests, course_progress, courses, courses_organizations,
+    organizations, reward_candidates, reward_policies,
 };
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::chapter::NewChapter;

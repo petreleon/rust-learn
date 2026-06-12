@@ -59,7 +59,7 @@ async fn load_teacher_course_roster_page(
             latest_join_request_status,
             access_state: "enrolled".to_string(),
             can_remove: can_manage_enrollments,
-            progress_supported: false,
+            progress_supported: true,
             reward_eligibility_supported: false,
         });
     }

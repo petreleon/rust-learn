@@ -90,6 +90,8 @@ pub struct TeacherStudentProgressSummary {
     pub completed_content_count: Option<i64>,
     pub total_content_count: usize,
     pub completion_percentage: Option<f64>,
+    pub current_content_id: Option<i32>,
+    pub current_content_label: Option<String>,
     pub last_activity_at: Option<DateTime<Utc>>,
     pub note: String,
 }

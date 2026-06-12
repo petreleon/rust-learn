@@ -2,7 +2,7 @@
 
 import { BookOpen } from "lucide-react";
 import Link from "next/link";
-import { type CourseCatalogItem } from "@/lib/learner";
+import { type CourseCatalogItem, type CourseProgress } from "@/lib/learner";
 import styles from "../learner-routes.module.css";
 import { StatusPill } from "./StatusPill";
 import { courseContentLabel } from "./courseContentLabel";
@@ -12,7 +12,14 @@ import { enrollmentTone } from "./enrollmentTone";
 import { humanize } from "./humanize";
 import { lifecycleTone } from "./lifecycleTone";
 
-export function DashboardCourseCard({ course }: { course: CourseCatalogItem }) {
+function progressLabel(progress: CourseProgress | undefined) {
+  if (progress === undefined) return null;
+  if (!progress) return "No saved progress yet";
+  return `Progress saved ${new Date(progress.viewed_at).toLocaleDateString()}`;
+}
+
+export function DashboardCourseCard({ course, progress }: { course: CourseCatalogItem; progress?: CourseProgress }) {
+  const savedProgressLabel = progressLabel(progress);
   return (
     <article className={styles.itemCard}>
       <div className={styles.itemHeader}>
@@ -24,6 +31,7 @@ export function DashboardCourseCard({ course }: { course: CourseCatalogItem }) {
         <span>{courseOrganizationLabel(course)}</span>
         <span>{courseTeacherLabel(course)}</span>
         <span>{courseContentLabel(course)}</span>
+        {savedProgressLabel ? <span>{savedProgressLabel}</span> : null}
       </div>
       <p className={styles.muted}>{course.enrollment.reason || "Open course details for enrollment and reward requirements."}</p>
       <div className={styles.actionRow}>

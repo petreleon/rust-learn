@@ -67,7 +67,7 @@ pub async fn get_teacher_course_enrollment_workspace(
         teacher_roles,
         join_requests,
         roster,
-        progress_supported: false,
+        progress_supported: true,
         reward_eligibility_supported: false,
     })
 }
@@ -101,19 +101,19 @@ pub async fn get_teacher_course_students(
     for learner in roster.learners {
         let rewards =
             load_teacher_student_reward_progress(conn, course.id, learner.user.id).await?;
+        let progress = load_teacher_student_lesson_progress(
+            conn,
+            course.id,
+            learner.user.id,
+            content.content_count,
+        )
+        .await?;
         students.push(TeacherCourseStudentProgressItem {
             user: learner.user,
             roles: learner.roles,
             access_state: learner.access_state,
             latest_join_request_status: learner.latest_join_request_status,
-            progress: TeacherStudentProgressSummary {
-                supported: false,
-                completed_content_count: None,
-                total_content_count: content.content_count,
-                completion_percentage: None,
-                last_activity_at: None,
-                note: "Persisted lesson progress is not tracked yet.".to_string(),
-            },
+            progress,
             rewards,
         });
     }
@@ -126,7 +126,7 @@ pub async fn get_teacher_course_students(
         teacher_roles,
         students,
         total,
-        progress_supported: false,
+        progress_supported: true,
         reward_evidence_supported: true,
     })
 }

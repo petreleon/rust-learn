@@ -28,8 +28,10 @@ export function LearnerDashboardContent({
   const enrolledCourses = dashboard.enrolled_catalog.courses;
   const recommendedCourses = dashboard.recommended_catalog.courses;
   const continueCourse = enrolledCourses.find((course) => course.access.can_view_content && course.content.has_content) || null;
+  const continueProgress = continueCourse ? dashboard.progress_by_course[continueCourse.id] : null;
+  const savedProgressCount = Object.values(dashboard.progress_by_course).filter(Boolean).length;
   const rewardSummary = useMemo(() => summarizeRewards(dashboard.reward_history), [dashboard.reward_history]);
-  const progressLabel = continueCourse ? "Not tracked" : "No lesson";
+  const progressLabel = savedProgressCount ? `${savedProgressCount} active` : continueCourse ? "Ready" : "No lesson";
 
   return (
     <>
@@ -54,7 +56,9 @@ export function LearnerDashboardContent({
               <StatusPill label="Continue" tone="good" />
             </div>
             <p className={styles.muted}>
-              Progress tracking is not available yet. You can still open the next available lesson from the course outline.
+              {continueProgress
+                ? `Resume from saved activity on ${new Date(continueProgress.viewed_at).toLocaleDateString()}.`
+                : "Open the next available lesson; RustLearn will save your latest viewed lesson after you start."}
             </p>
             <div className={styles.metaRow}>
               <span>{courseOrganizationLabel(continueCourse)}</span>
@@ -93,7 +97,7 @@ export function LearnerDashboardContent({
         {enrolledCourses.length ? (
           <div className={styles.itemGrid}>
             {enrolledCourses.map((course) => (
-              <DashboardCourseCard course={course} key={course.id} />
+              <DashboardCourseCard course={course} key={course.id} progress={dashboard.progress_by_course[course.id]} />
             ))}
           </div>
         ) : (

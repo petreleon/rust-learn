@@ -110,7 +110,7 @@ async fn assert_teacher_enrollments(fixture: &TeacherDashboardFixture) {
         body["roster"]["learners"][0]["can_remove"].as_bool(),
         Some(true)
     );
-    assert_eq!(body["progress_supported"].as_bool(), Some(false));
+    assert_eq!(body["progress_supported"].as_bool(), Some(true));
     assert_eq!(body["reward_eligibility_supported"].as_bool(), Some(false));
 }
 

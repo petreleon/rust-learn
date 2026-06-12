@@ -42,7 +42,7 @@ export function AdminKycReviewRoute() {
   const [decisionState, setDecisionState] = useState<DecisionState>("idle");
   const selectedSubmission =
     queue?.submissions.find((submission) => submission.id === selectedSubmissionId) || queue?.submissions[0] || null;
-  const audit = useKycReviewAudit({ canReview, submissionId: selectedSubmission?.id || null, token: route.token });
+  const audit = useKycReviewAudit({ canReview, submissionId: selectedSubmission?.id ?? null, token: route.token ?? undefined });
 
   const loadQueue = useCallback(async () => {
     const token = route.token;

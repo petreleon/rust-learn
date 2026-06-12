@@ -65,6 +65,7 @@ include!("course_service/course_permission_summaries.rs");
 include!("course_service/teacher_join_requests.rs");
 include!("course_service/teacher_roster_pages.rs");
 include!("course_service/teacher_reward_progress.rs");
+include!("course_service/teacher_student_progress.rs");
 include!("course_service/learner_metadata.rs");
 include!("course_service/learner_enrollment.rs");
 include!("course_service/learner_permissions.rs");

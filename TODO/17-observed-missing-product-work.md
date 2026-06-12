@@ -487,8 +487,11 @@ Current evidence:
   ids from other courses. The course learning route skips progress calls in
   preview mode and saves/restores progress only when the API marks progress as
   supported.
-- Learner dashboard and teacher student/enrollment routes still do not consume
-  the persisted course-progress rows.
+- `/learn` now loads saved progress for enrolled courses and shows saved
+  activity in the dashboard summary, next-step card, and enrolled course cards.
+- Teacher enrollment rosters now mark progress as tracked, and
+  `/teach/courses/[id]/students` reports latest viewed lesson, saved activity
+  time, saved lesson count, and completion percentage from `course_progress`.
 - Assessment endpoints and helpers exist, but there is still no route surface
   for a learner to take assessments or for a teacher to author them.
 
@@ -499,9 +502,9 @@ Needed:
   the learner is not enrolled.
 - Replace generated/test-like course titles in seeded/demo data used by the
   running product, or hide noisy seed data from normal catalog views.
-- Wire persisted learner progress into `/learn` and teacher student views
-  instead of showing "not tracked" states when backend progress routes are
-  available.
+- Keep improving progress semantics beyond the current "latest viewed lesson"
+  model if RustLearn later distinguishes viewed, completed, and assessed
+  content.
 - Add course catalog pagination or explicit "showing first N" controls if the
   catalog count is larger than the rendered list.
 - Add assessment entry points inside learner course detail/learn routes and
@@ -513,7 +516,7 @@ Checks:
   clear enrollment message or shown an intentional preview mode.
 - [x] Pending join requests cannot access gated lesson content unless preview
   mode is explicitly allowed.
-- [ ] Persisted progress updates survive refresh and appear consistently on the
+- [x] Persisted progress updates survive refresh and appear consistently on the
   learner dashboard, course learn route, and teacher student route.
 - [ ] Catalog pages do not expose generated/test-like names in normal product
   smoke data.

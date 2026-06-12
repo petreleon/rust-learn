@@ -103,7 +103,9 @@ export function EnrollmentWorkspaceView({
             <h2>Roster signals</h2>
           </div>
           <p>
-            Persisted progress and reward eligibility are not available in this enrollment route yet; student progress stays in the next milestone route.
+            {workspace.progress_supported
+              ? "Persisted progress is available from the student progress route; reward eligibility still needs its final route contract."
+              : "Persisted progress and reward eligibility are not available in this enrollment route yet."}
           </p>
         </section>
       ) : null}

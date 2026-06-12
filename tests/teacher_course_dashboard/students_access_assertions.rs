@@ -22,7 +22,7 @@ async fn assert_teacher_students(fixture: &TeacherDashboardFixture) {
         Some(i64::from(fixture.course.id))
     );
     assert_eq!(body["total"].as_i64(), Some(1));
-    assert_eq!(body["progress_supported"].as_bool(), Some(false));
+    assert_eq!(body["progress_supported"].as_bool(), Some(true));
     assert_eq!(body["reward_evidence_supported"].as_bool(), Some(true));
     let student_progress = &body["students"][0];
     assert_eq!(
@@ -31,12 +31,25 @@ async fn assert_teacher_students(fixture: &TeacherDashboardFixture) {
     );
     assert_eq!(
         student_progress["progress"]["supported"].as_bool(),
-        Some(false)
+        Some(true)
+    );
+    assert_eq!(
+        student_progress["progress"]["completed_content_count"].as_i64(),
+        Some(1)
     );
     assert_eq!(
         student_progress["progress"]["total_content_count"].as_i64(),
         Some(1)
     );
+    assert_eq!(
+        student_progress["progress"]["completion_percentage"].as_f64(),
+        Some(100.0)
+    );
+    assert_eq!(
+        student_progress["progress"]["current_content_label"].as_str(),
+        Some("Module 1, lesson 1: article")
+    );
+    assert!(student_progress["progress"]["last_activity_at"].is_string());
     assert_eq!(
         student_progress["rewards"]["reward_candidate_count"].as_i64(),
         Some(3)

@@ -29,13 +29,14 @@ async fn setup_teacher_dashboard_fixture() -> TeacherDashboardFixture {
     assign_course_role(&mut conn, student.id(), course.id, "STUDENT").await;
 
     let chapter_id = create_chapter(&mut conn, course.id, "Dashboard chapter").await;
-    create_content(
+    let content_id = create_content(
         &mut conn,
         chapter_id,
         "article",
         Some("Workspace lesson text"),
     )
     .await;
+    create_course_progress(&mut conn, student.id(), course.id, content_id).await;
     create_reward_policy(&mut conn, course.id).await;
     create_join_request(
         &mut conn,
@@ -77,4 +78,21 @@ async fn setup_teacher_dashboard_fixture() -> TeacherDashboardFixture {
         org,
         course,
     }
+}
+
+async fn create_course_progress(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    course_id: i32,
+    content_id: i32,
+) {
+    diesel::insert_into(course_progress::table)
+        .values((
+            course_progress::user_id.eq(user_id),
+            course_progress::course_id.eq(course_id),
+            course_progress::content_id.eq(content_id),
+        ))
+        .execute(conn)
+        .await
+        .expect("failed to save course progress");
 }

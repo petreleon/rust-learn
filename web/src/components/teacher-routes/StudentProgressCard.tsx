@@ -21,16 +21,18 @@ export function StudentProgressCard({ student }: { student: TeacherCourseStudent
 
       <div className={styles.metricGrid}>
         <Metric label="Content total" value={student.progress.total_content_count} />
+        <Metric label="Saved lessons" value={student.progress.completed_content_count ?? 0} />
         <Metric label="Pending rewards" value={student.rewards.pending_teacher_count} tone={student.rewards.pending_teacher_count ? "warn" : "neutral"} />
         <Metric label="Approved" value={student.rewards.teacher_approved_count + student.rewards.completed_count} />
-        <Metric label="Failed" value={student.rewards.failed_count} tone={student.rewards.failed_count ? "warn" : "neutral"} />
       </div>
 
       <div className={styles.detailList}>
         <DetailLine label="Roles" value={student.roles.join(", ") || "Learner"} />
         <DetailLine label="Latest request" value={student.latest_join_request_status ? statusLabel(student.latest_join_request_status) : "No request history"} />
         <DetailLine label="Lesson progress" value={student.progress.supported ? "Tracked" : student.progress.note} />
+        <DetailLine label="Current lesson" value={student.progress.current_content_label || student.progress.note} />
         <DetailLine label="Completion" value={student.progress.completion_percentage === null ? "Not tracked yet" : `${student.progress.completion_percentage}%`} />
+        <DetailLine label="Last activity" value={student.progress.last_activity_at ? formatDateTime(student.progress.last_activity_at) : "No saved activity"} />
         <DetailLine label="Reward candidates" value={String(student.rewards.reward_candidate_count)} />
         {latestCandidate ? (
           <>

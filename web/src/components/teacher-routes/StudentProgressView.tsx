@@ -41,17 +41,17 @@ export function StudentProgressView({ students }: { students: TeacherCourseStude
         <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Approved evidence" value={approvedRewardCount} tone={approvedRewardCount ? "good" : "neutral"} />
       </section>
 
-      {!students.progress_supported ? (
-        <section className={`${styles.warningPanel} ${styles.singlePanel}`}>
-          <div className={styles.panelHeader}>
-            <AlertCircle size={18} aria-hidden />
-            <h2>Progress tracking</h2>
-          </div>
-          <p>
-            Lesson completion is not persisted yet. This view shows enrolled learners and reward evidence that already exists.
-          </p>
-        </section>
-      ) : null}
+      <section className={`${styles.warningPanel} ${styles.singlePanel}`}>
+        <div className={styles.panelHeader}>
+          {students.progress_supported ? <Clock3 size={18} aria-hidden /> : <AlertCircle size={18} aria-hidden />}
+          <h2>Progress tracking</h2>
+        </div>
+        <p>
+          {students.progress_supported
+            ? "Latest viewed lessons are persisted from learner course routes and refreshed here for course staff."
+            : "Lesson completion is not persisted yet. This view shows enrolled learners and reward evidence that already exists."}
+        </p>
+      </section>
 
       <section className={styles.courseSection}>
         <div className={styles.sectionHeader}>

@@ -3,6 +3,7 @@ import { DEFAULT_DASHBOARD_RECOMMENDED_LIMIT } from "./DEFAULT_DASHBOARD_RECOMME
 import { DEFAULT_DASHBOARD_REWARD_LIMIT } from "./DEFAULT_DASHBOARD_REWARD_LIMIT";
 import { DEFAULT_TIMEOUT_MS } from "./DEFAULT_TIMEOUT_MS";
 import { fetchCourseCatalog } from "./fetchCourseCatalog";
+import { fetchCourseProgress } from "./fetchCourseProgress";
 import { fetchMyWallet } from "./fetchMyWallet";
 import { fetchRewardHistory } from "./fetchRewardHistory";
 import { type LearnerDashboardSnapshot } from "./LearnerDashboardSnapshot";
@@ -40,9 +41,20 @@ export async function fetchLearnerDashboard({
       token,
     }),
   ]);
+  const progressEntries = await Promise.all(
+    enrolledCatalog.courses.map(async (course) => {
+      if (!course.access.can_view_content || !course.content.has_content) return [course.id, null] as const;
+      try {
+        return [course.id, await fetchCourseProgress({ apiRoot, courseId: course.id, timeoutMs, token })] as const;
+      } catch {
+        return [course.id, null] as const;
+      }
+    }),
+  );
 
   return {
     enrolled_catalog: enrolledCatalog,
+    progress_by_course: Object.fromEntries(progressEntries),
     recommended_catalog: recommendedCatalog,
     reward_history: rewardHistory,
     wallet,

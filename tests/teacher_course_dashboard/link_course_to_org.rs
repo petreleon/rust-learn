@@ -28,7 +28,7 @@ async fn create_content(
     chapter_id: i32,
     content_type: &str,
     data: Option<&str>,
-) {
+) -> i32 {
     diesel::insert_into(contents::table)
         .values(NewContent {
             chapter_id,
@@ -36,9 +36,10 @@ async fn create_content(
             data: data.map(ToString::to_string),
             order: 0,
         })
-        .execute(conn)
+        .returning(contents::id)
+        .get_result(conn)
         .await
-        .expect("failed to create content");
+        .expect("failed to create content")
 }
 
 async fn create_join_request(
