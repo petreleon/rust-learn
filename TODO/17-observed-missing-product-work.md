@@ -49,7 +49,9 @@ P1 - Finish account lifecycle:
   delivery; production email/rate-limit hardening remains.
 - Resend email verification is now built for local/mock delivery; production
   email/rate-limit hardening remains.
-- Decide and implement intentional session persistence behavior across tabs.
+- Shared cross-tab session persistence is implemented with localStorage token
+  storage, legacy sessionStorage migration, and sign-out suppression for stale
+  legacy tokens.
 - Decide the KYC model: self-serve, platform-reviewed, organization-reviewed,
   or external-provider-backed.
 
@@ -94,8 +96,6 @@ Decisions needed before implementation:
 
 - KYC ownership and provider model.
 - Course learn route access model: enrollment-gated, public preview, or hybrid.
-- Session persistence model: tab-scoped session storage or cross-tab shared
-  auth state.
 - `/ops` lifecycle: development-only console, admin-only escape hatch, or full
   deprecation.
 - Reward policy ownership: platform-only, organization-scoped, course-scoped,
@@ -142,6 +142,38 @@ Checks:
 - [x] Desktop and mobile screenshots show no overlapped hero/form content, no
   native-looking inputs/buttons, and no `/ops` link in the recovery nav.
 - [x] Browser console has no relevant warnings/errors on forgot/reset flows.
+
+## Session Persistence
+
+Current evidence:
+
+- RustLearn now intentionally uses shared cross-tab auth state: successful login
+  stores the JWT under `rustlearn.session.jwt` in localStorage.
+- `readStoredSessionToken` migrates old sessionStorage tokens into localStorage
+  once, then removes the legacy copy.
+- `clearStoredSessionToken` removes both storage locations and writes
+  `rustlearn.session.signedOutAt` so stale legacy sessionStorage values are not
+  resurrected after sign-out.
+- Session unit tests cover empty storage, roundtrip storage, overwrite,
+  clear/sign-out, legacy migration, stale legacy suppression, idempotent clear,
+  and stable storage key names.
+
+Needed:
+
+- Keep future auth UX copy aligned with the shared cross-tab model; do not add
+  tab-scoped session assumptions unless the model is deliberately changed.
+- If RustLearn later moves JWTs into httpOnly cookies, migrate this section and
+  the storage helpers/tests together.
+
+Checks:
+
+- [x] Login stores the session token in shared localStorage.
+- [x] Product routes read the same token after a new tab or refresh.
+- [x] Legacy sessionStorage tokens migrate into localStorage and are removed
+  from sessionStorage.
+- [x] Sign-out removes current and legacy tokens and prevents stale legacy token
+  recovery.
+- [x] Unit tests cover the storage key names and edge cases above.
 
 ## Course Content And Testing
 
