@@ -12,7 +12,14 @@ use rust_learn::models::role::CourseRole;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
 use rust_learn::repositories::user_repository::create_user;
+use rust_learn::application::content::manage_chapter::ChapterUseCases;
+use rust_learn::application::content::manage_content_item::ContentItemUseCases;
+use rust_learn::application::content::process_upload_job::ContentProcessingUseCase;
+use rust_learn::infra::postgres::content::chapter_use_cases::PostgresChapterUseCases;
+use rust_learn::infra::postgres::content::content_item_use_cases::PostgresContentItemUseCases;
+use rust_learn::infra::postgres::content::processing_use_case::PostgresContentProcessingUseCase;
 use rust_learn::utils::jwt_utils::create_jwt;
+use std::sync::Arc;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -42,6 +49,20 @@ async fn create_test_user(conn: &mut AsyncPgConnection, name: &str) -> User {
 
 fn generate_token(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to generate token")
+}
+
+fn chapter_use_cases_data(pool: &DbPool) -> web::Data<Arc<dyn ChapterUseCases>> {
+    web::Data::new(Arc::new(PostgresChapterUseCases::new(pool.clone())))
+}
+
+fn content_item_use_cases_data(pool: &DbPool) -> web::Data<Arc<dyn ContentItemUseCases>> {
+    web::Data::new(Arc::new(PostgresContentItemUseCases::new(pool.clone())))
+}
+
+fn content_processing_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn ContentProcessingUseCase>> {
+    web::Data::new(Arc::new(PostgresContentProcessingUseCase::new(
+        pool.clone(),
+    )))
 }
 
 async fn force_assign_course_role(

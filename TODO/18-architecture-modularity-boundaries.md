@@ -1014,13 +1014,62 @@ Slice 17: move chapter HTTP routes and handlers into the content HTTP ring.
 - [x] Prove route composition and chapter/content lifecycle tests still pass,
       and prove the chapter HTTP handler no longer imports Diesel/schema types.
 
+Slice 18: inject chapter use cases into HTTP instead of constructing Postgres.
+
+- [x] Use chapter handlers as the first content wiring cleanup because they
+      have one Postgres adapter and no object-storage or notification side
+      effects.
+- [x] Add an application-facing `ChapterUseCases` trait under
+      `application/content/manage_chapter`.
+- [x] Add `infra/postgres/content/chapter_use_cases.rs` as the concrete
+      DbPool-backed implementation.
+- [x] Add the chapter use-case trait object to `bootstrap::AppState` and
+      production Actix app data.
+- [x] Update focused route tests to provide the same chapter use-case app data
+      when constructing `api::courses::course_scope()` directly.
+- [x] Remove direct `DbPool`, `PostgresChapterStore`, and
+      `infra/postgres/content/chapter_store` imports from
+      `http/content/handlers/chapter.rs`.
+- [x] Preserve existing DB connection failure response body:
+      `Failed to get DB connection`.
+- [x] Self-critique: other content HTTP handlers still construct concrete
+      Postgres/S3/notification adapters. Repeat this injected-use-case pattern
+      for content item lifecycle, upload URLs, media URLs, and processing jobs.
+- [x] Prove chapter/content lifecycle and video upload flows still pass, and
+      prove the chapter handler no longer imports concrete infra or `DbPool`.
+
+Slice 19: complete content HTTP use-case injection.
+
+- [x] Add application-facing service traits for content item lifecycle, upload
+      URL requests, media URL requests, and video-processing queueing.
+- [x] Add concrete DbPool/S3-backed implementations under
+      `infra/postgres/content` so adapter construction happens outside HTTP.
+- [x] Wire those implementations through `bootstrap::AppState` and production
+      Actix app data.
+- [x] Update content HTTP handlers to extract application-facing use cases
+      instead of `DbPool`, Postgres stores, or S3 providers.
+- [x] Preserve existing DB connection and S3 init failure response bodies.
+- [x] Update focused route tests to provide the same use-case app data when
+      constructing `api::courses::course_scope()` directly.
+- [x] Self-critique: content HTTP still owns notification dispatch for
+      `content:published`, and video-processing HTTP still owns auth extraction.
+      Later slices should move those behind notification and actor/extractor
+      ports, but the concrete Postgres/S3 boundary is now out of content HTTP.
+- [x] Prove the content handler folder no longer imports concrete Postgres,
+      object-storage providers, or `DbPool`, and prove the binary still checks.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
   `http::content::routes::configure_chapter_routes`.
 - Chapter HTTP handlers now live under `http/content/handlers/chapter.rs` and
-  delegate to `application/content/manage_chapter` plus
-  `infra/postgres/content/chapter_store.rs`.
+  delegate through the injected `ChapterUseCases` application-facing service.
+- Chapter HTTP handlers now receive an injected `ChapterUseCases` application
+  service; the concrete DbPool/Postgres wiring lives in
+  `infra/postgres/content/chapter_use_cases.rs` and `bootstrap::AppState`.
+- Content HTTP handlers now receive injected application-facing content use
+  cases; concrete DbPool, Postgres store, and S3 provider wiring lives in
+  `infra/postgres/content/*_use_case*.rs` and `bootstrap::AppState`.
 - Chapter HTTP request/response DTOs now live under `http/content/dto`, while
   application output remains a non-Actix, non-Serialize type.
 - `src/api/session/notifications.rs` no longer contains direct Diesel usage for
@@ -1092,13 +1141,17 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env" src/domain src/application`
   returns no matches.
 - `rg "crate::repositories|crate::db::schema" src/http` returns no matches.
-- Temporary content HTTP wiring debt: `rg "crate::infra::postgres" src/http`
-  still finds content handlers that construct Postgres adapters directly. This
-  became visible when content handlers moved into `http/content`; a follow-up
-  bootstrap/state wiring slice should remove it.
+- Content HTTP wiring debt cleared: `rg "crate::infra::postgres" src/http` and
+  the broader content-handler concrete-adapter scan now return no matches.
+  Legacy `src/api` modules still contain direct service/repository/infra usage
+  and remain the next Level 2 migration surface.
 - `rg "crate::http|crate::services" src/domain src/application src/infra`
   returns no matches.
 - `rg "diesel|diesel_async|schema::|RunQueryDsl|chapters::table|models::chapter|NewChapter\\b|UpdateChapter\\b" src/http/content/handlers/chapter.rs src/http/content/routes.rs`
+  returns no matches.
+- `rg "crate::infra::postgres|crate::db::DbPool|PostgresChapterStore" src/http/content/handlers/chapter.rs`
+  returns no matches.
+- `rg "crate::infra::postgres|crate::db::DbPool|crate::infra::object_storage|S3Content|PostgresContent|PostgresChapterStore" src/http/content/handlers`
   returns no matches.
 - `rg "diesel|diesel_async|schema::|RunQueryDsl" src/api/roles.rs` returns no
   matches.
@@ -1122,6 +1175,14 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `cargo fmt --all --check` passes.
 - `git diff --check` passes.
+- `./scripts/run-host-tests.sh cargo check --features app-bin --bin rust-learn`
+  passes.
+- `./scripts/run-host-tests.sh cargo test --test course_content_management`
+  passes.
+- `./scripts/run-host-tests.sh cargo test course_video_upload_can_be_queued_and_processed --test video_upload_flow`
+  passes.
+- `./scripts/run-host-tests.sh cargo test --test api_routing` passes.
+- `./scripts/run-host-tests.sh cargo test --lib content` passes.
 - `./scripts/run-host-tests.sh cargo test http::` passes.
 - `./scripts/run-host-tests.sh cargo test --lib learning` passes.
 - `./scripts/run-host-tests.sh cargo test application::access_control` passes.

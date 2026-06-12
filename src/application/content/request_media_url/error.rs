@@ -4,6 +4,7 @@ pub enum ContentMediaUrlError {
     ContentNotFound,
     MissingObjectKey,
     InvalidObjectKey,
+    Connection(String),
     ChapterLookupFailed(String),
     ContentLookupFailed(String),
     StorageClientInitFailed(String),

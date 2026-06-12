@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use actix_web::rt::time::timeout;
@@ -5,6 +6,11 @@ use actix_web::rt::time::timeout;
 use crate::bootstrap::app_state::AppState;
 use crate::config::db_setup::version_updater;
 use crate::db;
+use crate::infra::postgres::content::chapter_use_cases::PostgresChapterUseCases;
+use crate::infra::postgres::content::content_item_use_cases::PostgresContentItemUseCases;
+use crate::infra::postgres::content::media_url_use_case::PostgresContentMediaUrlUseCase;
+use crate::infra::postgres::content::processing_use_case::PostgresContentProcessingUseCase;
+use crate::infra::postgres::content::upload_url_use_case::PostgresContentUploadUrlUseCase;
 use crate::utils::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
 
@@ -24,6 +30,17 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
     run_startup_tasks(&pool).await?;
 
     Ok(AppState {
+        chapter_use_cases: Arc::new(PostgresChapterUseCases::new(pool.clone())),
+        content_item_use_cases: Arc::new(PostgresContentItemUseCases::new(pool.clone())),
+        content_upload_url_use_case: Arc::new(PostgresContentUploadUrlUseCase::new(
+            pool.clone(),
+            s3.clone(),
+        )),
+        content_media_url_use_case: Arc::new(PostgresContentMediaUrlUseCase::new(
+            pool.clone(),
+            s3.clone(),
+        )),
+        content_processing_use_case: Arc::new(PostgresContentProcessingUseCase::new(pool.clone())),
         notifications: NotificationsState::new(pool.clone()),
         pool,
         s3,

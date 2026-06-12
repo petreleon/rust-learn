@@ -1,41 +1,25 @@
+use std::sync::Arc;
+
 use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::content::request_media_url::{
-    request_media_url as request_media_url_for_content, ContentMediaUrlError,
-    RequestMediaUrlCommand,
+    ContentMediaUrlError, ContentMediaUrlUseCase, RequestMediaUrlCommand,
 };
-use crate::db::DbPool;
 use crate::http::content::dto::MediaUrlResponse;
-use crate::infra::object_storage::content::media_url_provider::S3ContentMediaUrlProvider;
-use crate::infra::postgres::content::media_object_store::PostgresContentMediaStore;
-use crate::utils::s3_utils::S3State;
 
 pub(in crate::http::content) async fn get_media_url(
     path: web::Path<(i32, i32, i32)>,
-    pool: web::Data<DbPool>,
-    s3: Option<web::Data<S3State>>,
+    media_url_use_case: web::Data<Arc<dyn ContentMediaUrlUseCase>>,
 ) -> impl Responder {
     let (course_id, chapter_id, content_id) = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-    let mut store = PostgresContentMediaStore::new(&mut conn);
-    let mut media_provider = match s3 {
-        Some(s3) => S3ContentMediaUrlProvider::new(s3.get_ref().clone()),
-        None => S3ContentMediaUrlProvider::from_env(),
-    };
 
-    match request_media_url_for_content(
-        &mut store,
-        &mut media_provider,
-        RequestMediaUrlCommand {
+    match media_url_use_case
+        .request_media_url(RequestMediaUrlCommand {
             course_id,
             chapter_id,
             content_id,
-        },
-    )
-    .await
+        })
+        .await
     {
         Ok(output) => HttpResponse::Ok().json(MediaUrlResponse::from(output)),
         Err(ContentMediaUrlError::ChapterNotFound) => {
@@ -49,6 +33,9 @@ pub(in crate::http::content) async fn get_media_url(
         }
         Err(ContentMediaUrlError::InvalidObjectKey) => {
             HttpResponse::BadRequest().body("Content data is not an upload object key")
+        }
+        Err(ContentMediaUrlError::Connection(_)) => {
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
         }
         Err(ContentMediaUrlError::ChapterLookupFailed(message)) => {
             log::error!(

@@ -3,11 +3,8 @@ async fn course_video_upload_can_be_queued_and_processed() {
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
     let s3 = S3State::new_from_env().await.expect("init s3");
-    s3.health_check()
-        .await
-        .expect("S3 must be reachable through S3_INTERNAL_* to run this test");
+    s3.health_check().await.expect("S3 must be reachable");
     let notifications = NotificationsState::new(pool.clone());
-
     let mut conn = setup_conn(&pool).await;
     let teacher = create_test_user(&mut conn, "teacher_video_upload").await;
     let course = diesel::insert_into(courses::table)
@@ -27,8 +24,11 @@ async fn course_video_upload_can_be_queued_and_processed() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
-            .app_data(web::Data::new(s3.clone()))
-            .app_data(web::Data::new(notifications.clone()))
+            .app_data(chapter_use_cases_data(&pool))
+            .app_data(content_item_use_cases_data(&pool))
+            .app_data(upload_url_use_case_data(&pool, &s3))
+            .app_data(media_url_use_case_data(&pool, &s3))
+            .app_data(content_processing_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::api::courses::course_scope()),
     )
@@ -45,7 +45,6 @@ async fn course_video_upload_can_be_queued_and_processed() {
     let resp = app.call(req).await.expect("chapter request should run");
     assert_eq!(resp.status(), actix_web::http::StatusCode::CREATED);
     let chapter: Chapter = test::read_body_json(resp).await;
-
     let (sample_path, filename) = create_sample_video_file();
 
     let req = test::TestRequest::post()

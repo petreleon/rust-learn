@@ -5,6 +5,7 @@ pub enum ProcessUploadJobError {
     NonVideoContent,
     MissingObjectKey,
     InvalidObjectKey,
+    Connection(String),
     ChapterLookupFailed(String),
     ContentLookupFailed(String),
     JobQueueFailed { object_key: String, message: String },

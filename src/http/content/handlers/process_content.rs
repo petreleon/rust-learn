@@ -1,17 +1,16 @@
+use std::sync::Arc;
+
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
 use crate::application::content::process_upload_job::{
-    process_upload_job as process_upload_job_for_content, ProcessUploadJobCommand,
-    ProcessUploadJobError,
+    ContentProcessingUseCase, ProcessUploadJobCommand, ProcessUploadJobError,
 };
-use crate::db::DbPool;
-use crate::infra::postgres::content::upload_job_store::PostgresContentUploadJobStore;
 use crate::utils::request_auth::authenticated_user_id;
 
 pub(in crate::http::content) async fn process_content(
     req: HttpRequest,
     path: web::Path<(i32, i32, i32)>, // course_id, chapter_id, content_id
-    pool: web::Data<DbPool>,
+    processing_use_case: web::Data<Arc<dyn ContentProcessingUseCase>>,
 ) -> impl Responder {
     let (course_id, chapter_id, content_id) = path.into_inner();
     let user_id = match authenticated_user_id(&req) {
@@ -19,22 +18,14 @@ pub(in crate::http::content) async fn process_content(
         Err(response) => return response,
     };
 
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-    let mut store = PostgresContentUploadJobStore::new(&mut conn);
-
-    match process_upload_job_for_content(
-        &mut store,
-        ProcessUploadJobCommand {
+    match processing_use_case
+        .process_upload_job(ProcessUploadJobCommand {
             course_id,
             chapter_id,
             content_id,
             user_id,
-        },
-    )
-    .await
+        })
+        .await
     {
         Ok(_) => HttpResponse::Accepted().body("Video processing queued"),
         Err(ProcessUploadJobError::ChapterNotFound) => {
@@ -51,6 +42,9 @@ pub(in crate::http::content) async fn process_content(
         }
         Err(ProcessUploadJobError::InvalidObjectKey) => {
             HttpResponse::BadRequest().body("Content data must be a course upload object key")
+        }
+        Err(ProcessUploadJobError::Connection(_)) => {
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
         }
         Err(ProcessUploadJobError::ChapterLookupFailed(message)) => {
             log::error!(

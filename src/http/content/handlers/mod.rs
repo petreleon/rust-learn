@@ -16,6 +16,7 @@ pub(super) use process_content::process_content;
 fn chapter_error_log(error: &ChapterError) -> String {
     match error {
         ChapterError::NotFound => "not_found".to_string(),
+        ChapterError::Connection(message) => message.clone(),
         ChapterError::Database(message) => message.clone(),
     }
 }
@@ -24,6 +25,7 @@ fn content_item_error_log(error: &ContentItemError) -> String {
     match error {
         ContentItemError::ChapterNotFound => "chapter_not_found".to_string(),
         ContentItemError::ContentNotFound => "content_not_found".to_string(),
+        ContentItemError::Connection(message) => message.clone(),
         ContentItemError::Database(message) => message.clone(),
     }
 }

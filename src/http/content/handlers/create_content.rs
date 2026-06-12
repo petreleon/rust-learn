@@ -1,9 +1,9 @@
+use std::sync::Arc;
+
 use actix_web::{web, HttpResponse, Responder};
 
-use crate::application::content::manage_content_item::{self, ContentItemError};
-use crate::db::DbPool;
+use crate::application::content::manage_content_item::{ContentItemError, ContentItemUseCases};
 use crate::http::content::dto::{ContentItemResponse, CreateContentItemRequest};
-use crate::infra::postgres::content::content_item_store::PostgresContentItemStore;
 use crate::utils::notifications::NotificationsState;
 
 use super::content_item_error_log;
@@ -11,16 +11,14 @@ use super::content_item_error_log;
 // #[get("/chapters/{id}/contents")]
 pub(in crate::http::content) async fn list_contents(
     path: web::Path<(i32, i32)>, // course_id, chapter_id
-    pool: web::Data<DbPool>,
+    content_item_use_cases: web::Data<Arc<dyn ContentItemUseCases>>,
 ) -> impl Responder {
     let (course_id, chapter_id) = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-    let mut store = PostgresContentItemStore::new(&mut conn);
 
-    match manage_content_item::list_content_items(&mut store, course_id, chapter_id).await {
+    match content_item_use_cases
+        .list_content_items(course_id, chapter_id)
+        .await
+    {
         Ok(list) => HttpResponse::Ok().json(
             list.into_iter()
                 .map(ContentItemResponse::from)
@@ -28,6 +26,9 @@ pub(in crate::http::content) async fn list_contents(
         ),
         Err(ContentItemError::ChapterNotFound) => {
             HttpResponse::NotFound().body("Chapter not found")
+        }
+        Err(ContentItemError::Connection(_)) => {
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
         }
         Err(e) => {
             log::error!(
@@ -42,19 +43,17 @@ pub(in crate::http::content) async fn list_contents(
 
 pub(in crate::http::content) async fn create_content(
     path: web::Path<(i32, i32)>, // course_id, chapter_id
-    pool: web::Data<DbPool>,
+    content_item_use_cases: web::Data<Arc<dyn ContentItemUseCases>>,
     notifications: Option<web::Data<NotificationsState>>,
     req: web::Json<CreateContentItemRequest>,
 ) -> impl Responder {
     let (course_id, chapter_id) = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-    let mut store = PostgresContentItemStore::new(&mut conn);
     let command = req.into_inner().into_command(chapter_id);
 
-    match manage_content_item::create_content_item(&mut store, course_id, command).await {
+    match content_item_use_cases
+        .create_content_item(course_id, command)
+        .await
+    {
         Ok(output) => {
             let content = output.content;
             if let Some(notifications) = notifications {
@@ -92,6 +91,9 @@ pub(in crate::http::content) async fn create_content(
         }
         Err(ContentItemError::ChapterNotFound) => {
             HttpResponse::NotFound().body("Chapter not found")
+        }
+        Err(ContentItemError::Connection(_)) => {
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
         }
         Err(e) => {
             log::error!(

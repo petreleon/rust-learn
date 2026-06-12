@@ -27,6 +27,15 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(app_state.pool.clone()))
             .app_data(web::Data::new(app_state.s3.clone()))
             .app_data(web::Data::new(app_state.notifications.clone()))
+            .app_data(web::Data::new(app_state.chapter_use_cases.clone()))
+            .app_data(web::Data::new(app_state.content_item_use_cases.clone()))
+            .app_data(web::Data::new(
+                app_state.content_upload_url_use_case.clone(),
+            ))
+            .app_data(web::Data::new(app_state.content_media_url_use_case.clone()))
+            .app_data(web::Data::new(
+                app_state.content_processing_use_case.clone(),
+            ))
             .configure(bootstrap::routes::configure_routes)
     })
     .bind("0.0.0.0:8080")?
