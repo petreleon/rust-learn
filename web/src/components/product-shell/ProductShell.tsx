@@ -1,6 +1,5 @@
 "use client";
 
-import { Bell } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { accessSummary } from "@/lib/access";
@@ -8,9 +7,9 @@ import styles from "../product-shell.module.css";
 import { AccountMenu } from "./AccountMenu";
 import { GlobalNotice } from "./GlobalNotice";
 import { MobileMenu } from "./MobileMenu";
+import { NotificationMenu } from "./NotificationMenu";
 import { buildNavItems } from "./buildNavItems";
 import { buildWorkspaceOptions } from "./buildWorkspaceOptions";
-import { type Breadcrumb } from "./Breadcrumb";
 import { type ProductShellProps } from "./ProductShellProps";
 
 export function ProductShell({
@@ -63,7 +62,7 @@ export function ProductShell({
 
   return (
     <main className={styles.page}>
-      <header className={styles.topbar}>
+      <header className={styles.topbar} data-product-shell-menu-root>
         <Link className={styles.brand} href="/">
           <span className={styles.brandMark}>RL</span>
           <span className={styles.brandText}>
@@ -109,15 +108,7 @@ export function ProductShell({
               )}
             </select>
           </label>
-          <button
-            aria-label="Notifications"
-            className={styles.iconButton}
-            disabled
-            title="Notifications are not available yet"
-            type="button"
-          >
-            <Bell size={18} aria-hidden />
-          </button>
+          <NotificationMenu isSignedIn={isSignedIn} />
           <AccountMenu
             accountLabel={accountLabel}
             isSignedIn={isSignedIn}

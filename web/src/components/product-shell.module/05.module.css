@@ -1,0 +1,7 @@
+@media (max-width: 560px) {
+  .notificationPanel {
+    left: 0;
+    right: auto;
+    width: min(300px, calc(100vw - 48px));
+  }
+}

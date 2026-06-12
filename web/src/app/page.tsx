@@ -1,6 +1,6 @@
 "use client";
 
-import { Compass, Loader2, LogIn, ShieldCheck, UserPlus } from "lucide-react";
+import { Loader2, LogIn, ShieldCheck, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -51,9 +51,6 @@ export default function ProductEntryPage() {
           <Link className={styles.navLink} href="/register">
             Register
           </Link>
-          <Link className={styles.navLink} href="/ops">
-            Operations
-          </Link>
         </nav>
       </header>
 
@@ -82,10 +79,6 @@ export default function ProductEntryPage() {
           <Link className={styles.secondaryLink} href="/register">
             <UserPlus size={18} aria-hidden />
             Register
-          </Link>
-          <Link className={styles.secondaryLink} href="/ops">
-            <Compass size={18} aria-hidden />
-            Operations
           </Link>
         </div>
       </section>

@@ -4,10 +4,11 @@ use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::RunQueryDsl;
 use rust_learn::db::schema::{
-    authentications, email_verification_tokens, user_role_platform, users,
+    authentications, email_verification_tokens, password_reset_tokens, user_role_platform, users,
 };
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::email_verification_token::EmailVerificationToken;
+use rust_learn::models::password_reset_token::PasswordResetToken;
 use rust_learn::models::role::PlatformRole;
 use rust_learn::models::user::User;
 use rust_learn::utils::email::verification_token_hash;

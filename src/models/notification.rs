@@ -4,6 +4,8 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use serde::Serialize;
 
+pub const NOTIFICATION_LIST_LIMIT: i64 = 50;
+
 #[derive(Queryable, Identifiable, Debug, Clone, Serialize)]
 #[diesel(table_name = notifications)]
 pub struct Notification {
@@ -60,6 +62,8 @@ impl Notification {
         notifications::table
             .filter(notifications::user_id.eq(user_id))
             .order(notifications::created_at.desc())
+            .then_order_by(notifications::id.desc())
+            .limit(NOTIFICATION_LIST_LIMIT)
             .load::<Notification>(conn)
             .await
     }

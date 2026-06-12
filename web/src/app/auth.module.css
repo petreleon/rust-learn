@@ -1,26 +1,26 @@
 .brand { composes: brand from './auth.module/01.module.css'; }
 .brandMark { composes: brandMark from './auth.module/01.module.css'; }
-.errorBox { composes: errorBox from './auth.module/01.module.css'; }
+.errorBox { composes: errorBox from './auth.module/01.module.css'; composes: errorBox from './auth.module/02.module.css'; }
 .eyebrow { composes: eyebrow from './auth.module/01.module.css'; }
 .field { composes: field from './auth.module/01.module.css'; }
-.hero { composes: hero from './auth.module/01.module.css'; }
+.hero { composes: hero from './auth.module/01.module.css'; composes: hero from './auth.module/03.module.css'; }
 .iconButton { composes: iconButton from './auth.module/02.module.css'; }
 .inlinePrompt { composes: inlinePrompt from './auth.module/02.module.css'; }
-.inputShell { composes: inputShell from './auth.module/01.module.css'; }
-.layout { composes: layout from './auth.module/01.module.css'; }
+.inputShell { composes: inputShell from './auth.module/01.module.css'; composes: inputShell from './auth.module/02.module.css'; }
+.layout { composes: layout from './auth.module/01.module.css'; composes: layout from './auth.module/03.module.css'; }
 .met { composes: met from './auth.module/02.module.css'; }
-.navLink { composes: navLink from './auth.module/01.module.css'; }
+.navLink { composes: navLink from './auth.module/01.module.css'; composes: navLink from './auth.module/03.module.css'; }
 .noticeBox { composes: noticeBox from './auth.module/02.module.css'; }
-.page { composes: page from './auth.module/01.module.css'; }
+.page { composes: page from './auth.module/01.module.css'; composes: page from './auth.module/03.module.css'; }
 .panel { composes: panel from './auth.module/01.module.css'; }
 .panelHeader { composes: panelHeader from './auth.module/01.module.css'; }
 .policyList { composes: policyList from './auth.module/02.module.css'; }
-.primaryButton { composes: primaryButton from './auth.module/01.module.css'; }
+.primaryButton { composes: primaryButton from './auth.module/01.module.css'; composes: primaryButton from './auth.module/02.module.css'; composes: primaryButton from './auth.module/03.module.css'; }
 .secondaryLink { composes: secondaryLink from './auth.module/02.module.css'; }
 .spin { composes: spin from './auth.module/02.module.css'; }
 .statusList { composes: statusList from './auth.module/01.module.css'; }
 .successActions { composes: successActions from './auth.module/02.module.css'; }
 .successBox { composes: successBox from './auth.module/02.module.css'; }
-.topActions { composes: topActions from './auth.module/01.module.css'; }
-.topbar { composes: topbar from './auth.module/01.module.css'; }
+.topActions { composes: topActions from './auth.module/01.module.css'; composes: topActions from './auth.module/03.module.css'; }
+.topbar { composes: topbar from './auth.module/01.module.css'; composes: topbar from './auth.module/03.module.css'; }
 .unmet { composes: unmet from './auth.module/02.module.css'; }

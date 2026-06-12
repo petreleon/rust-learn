@@ -7,3 +7,4 @@ include!(
 );
 include!("authentication_flow/verify_email_reports_expired_and_invalid_tokens.rs");
 include!("authentication_flow/register_rejects_duplicate_email_without_panicking.rs");
+include!("authentication_flow/password_reset_request_and_completion.rs");

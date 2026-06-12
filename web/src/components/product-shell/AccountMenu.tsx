@@ -5,6 +5,7 @@ import Link from "next/link";
 import { type CurrentSession } from "@/lib/session";
 import styles from "../product-shell.module.css";
 import { DelegationMenu } from "./DelegationMenu";
+import { closeOtherProductShellMenus } from "./closeOtherProductShellMenus";
 
 export function AccountMenu({
   accountLabel,
@@ -20,7 +21,11 @@ export function AccountMenu({
   showOperationsConsole: boolean;
 }) {
   return (
-    <details className={styles.accountMenu}>
+    <details
+      className={styles.accountMenu}
+      data-product-shell-menu
+      onToggle={(event) => event.currentTarget.open && closeOtherProductShellMenus(event.currentTarget)}
+    >
       <summary className={styles.accountSummary}>
         <UserCircle size={18} aria-hidden />
         <span className={styles.accountLabel}>{accountLabel}</span>

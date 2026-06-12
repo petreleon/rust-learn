@@ -142,8 +142,10 @@ pub async fn jwks() -> impl Responder {
 // Define the scope for authentication-related routes
 pub fn auth_scope() -> actix_web::Scope {
     web::scope("/auth")
+        .service(forgot_password)
         .service(login)
         .service(register)
+        .service(reset_password)
         .service(verify_email)
         .service(user_id)
 }

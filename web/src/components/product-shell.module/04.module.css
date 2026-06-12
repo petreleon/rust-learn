@@ -21,7 +21,155 @@
     flex-direction: column;
   }
 
-  .noticeAction {
+.noticeAction {
     width: 100%;
   }
+}
+
+.notificationMenu {
+  position: relative;
+}
+
+.notificationSummary,
+.notificationRowSummary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.notificationSummary::-webkit-details-marker,
+.notificationRowSummary::-webkit-details-marker {
+  display: none;
+}
+
+.notificationRowSummary {
+  min-height: 38px;
+  border-radius: 8px;
+  padding: 0 9px;
+  color: #172033;
+  font-weight: 780;
+}
+
+.notificationBadge {
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 999px;
+  padding: 0 5px;
+  color: #ffffff;
+  background: #b91c1c;
+  font-size: 0.68rem;
+}
+
+.notificationPanel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(560px, calc(100vh - 96px));
+  overflow: auto;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+}
+
+.notificationHeader,
+.notificationAction,
+.notificationDanger,
+.notificationIconAction,
+.notificationState {
+  display: flex;
+  align-items: center;
+}
+
+.notificationHeader {
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notificationHeader div,
+.notificationList,
+.notificationItem,
+.notificationItemUnread,
+.notificationItem div,
+.notificationItemUnread div {
+  display: grid;
+}
+
+.notificationHeader span,
+.notificationState,
+.notificationItem span,
+.notificationItemUnread span {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.notificationAction,
+.notificationDanger,
+.notificationIconAction {
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 9px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 820;
+}
+
+.notificationDanger {
+  color: #991b1b;
+}
+
+.notificationList {
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notificationItem,
+.notificationItemUnread {
+  gap: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.notificationItemUnread {
+  border-color: #b6d8e2;
+  background: #f0fdfa;
+}
+
+.notificationItem div,
+.notificationItemUnread div {
+  gap: 3px;
+}
+
+.notificationItem p,
+.notificationItemUnread p {
+  margin: 0;
+  color: #334155;
+  line-height: 1.4;
+}
+
+.notificationError {
+  margin: 0;
+  color: #991b1b;
+  font-size: 0.86rem;
+}
+
+.notificationState {
+  gap: 8px;
+  margin: 0;
 }

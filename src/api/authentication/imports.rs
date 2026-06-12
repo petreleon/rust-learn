@@ -2,18 +2,21 @@
 use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
 use bcrypt::{non_truncating_hash, verify, DEFAULT_COST};
 use chrono::NaiveDate;
+use diesel::prelude::*;
 use diesel::result::{DatabaseErrorKind, Error as DieselError};
-use diesel_async::AsyncConnection;
+use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde::Deserialize;
 
 use crate::db;
 use crate::models::authentication::Authentication;
 use crate::models::email_verification_token::{EmailVerificationResult, EmailVerificationToken};
+use crate::models::password_reset_token::{PasswordResetResult, PasswordResetToken};
 use crate::models::role::PlatformRole;
 use crate::models::user::{NewUser, User};
 use crate::models::user_role_platform::UserRolePlatform;
 use crate::utils::email::{
-    generate_verification_token, print_mock_verification_email, verification_token_hash,
+    generate_verification_token, print_mock_password_reset_email, print_mock_verification_email,
+    verification_token_hash,
 };
 use crate::utils::jwt_utils::{create_jwt, public_jwks_from_env};
 use crate::utils::request_auth::authenticated_user_id;

@@ -1,12 +1,14 @@
 "use client";
 
-import { Bell, BriefcaseBusiness, LogIn, LogOut, Menu } from "lucide-react";
+import { BriefcaseBusiness, LogIn, LogOut, Menu } from "lucide-react";
 import Link from "next/link";
 import { type CurrentSession } from "@/lib/session";
 import styles from "../product-shell.module.css";
 import { DelegationMenu } from "./DelegationMenu";
 import { type ActiveNav } from "./ActiveNav";
 import { type NavItem } from "./NavItem";
+import { NotificationMenu } from "./NotificationMenu";
+import { closeOtherProductShellMenus } from "./closeOtherProductShellMenus";
 
 export function MobileMenu({
   accountLabel,
@@ -32,7 +34,11 @@ export function MobileMenu({
   workspaceOptions: Array<{ label: string; value: string }>;
 }) {
   return (
-    <details className={styles.mobileMenu}>
+    <details
+      className={styles.mobileMenu}
+      data-product-shell-menu
+      onToggle={(event) => event.currentTarget.open && closeOtherProductShellMenus(event.currentTarget)}
+    >
       <summary className={styles.mobileSummary}>
         <Menu size={18} aria-hidden />
         Menu
@@ -71,10 +77,7 @@ export function MobileMenu({
             )}
           </select>
         </label>
-        <button className={styles.accountMenuItem} disabled type="button">
-          <Bell size={16} aria-hidden />
-          Notifications
-        </button>
+        <NotificationMenu isSignedIn={isSignedIn} variant="row" />
         {showOperationsConsole ? (
           <Link className={styles.accountMenuItem} href="/ops">
             <BriefcaseBusiness size={16} aria-hidden />

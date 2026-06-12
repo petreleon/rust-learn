@@ -1,17 +1,17 @@
 .accountLabel { composes: accountLabel from './product-shell.module/02.module.css'; }
 .accountMenu { composes: accountMenu from './product-shell.module/02.module.css'; }
-.accountMenuItem { composes: accountMenuItem from './product-shell.module/01.module.css'; }
-.accountSummary { composes: accountSummary from './product-shell.module/01.module.css'; }
+.accountMenuItem { composes: accountMenuItem from './product-shell.module/01.module.css'; composes: accountMenuItem from './product-shell.module/02.module.css'; }
+.accountSummary { composes: accountSummary from './product-shell.module/01.module.css'; composes: accountSummary from './product-shell.module/02.module.css'; }
 .activeNav { composes: activeNav from './product-shell.module/01.module.css'; }
 .brand { composes: brand from './product-shell.module/01.module.css'; }
 .brandMark { composes: brandMark from './product-shell.module/01.module.css'; }
 .brandText { composes: brandText from './product-shell.module/01.module.css'; }
 .breadcrumbDivider { composes: breadcrumbDivider from './product-shell.module/03.module.css'; }
-.breadcrumbs { composes: breadcrumbs from './product-shell.module/01.module.css'; }
+.breadcrumbs { composes: breadcrumbs from './product-shell.module/01.module.css'; composes: breadcrumbs from './product-shell.module/03.module.css'; }
 .content { composes: content from './product-shell.module/01.module.css'; }
 .delegationItem { composes: delegationItem from './product-shell.module/03.module.css'; }
 .delegationMenu { composes: delegationMenu from './product-shell.module/03.module.css'; }
-.desktopNav { composes: desktopNav from './product-shell.module/01.module.css'; }
+.desktopNav { composes: desktopNav from './product-shell.module/01.module.css'; composes: desktopNav from './product-shell.module/03.module.css'; }
 .error { composes: error from './product-shell.module/03.module.css'; }
 .eyebrow { composes: eyebrow from './product-shell.module/02.module.css'; }
 .globalNotice { composes: globalNotice from './product-shell.module/03.module.css'; }
@@ -19,19 +19,33 @@
 .info { composes: info from './product-shell.module/03.module.css'; }
 .menuMeta { composes: menuMeta from './product-shell.module/02.module.css'; }
 .menuPanel { composes: menuPanel from './product-shell.module/02.module.css'; }
-.mobileMenu { composes: mobileMenu from './product-shell.module/02.module.css'; }
-.mobileNavItem { composes: mobileNavItem from './product-shell.module/01.module.css'; }
+.mobileMenu { composes: mobileMenu from './product-shell.module/02.module.css'; composes: mobileMenu from './product-shell.module/03.module.css'; }
+.mobileNavItem { composes: mobileNavItem from './product-shell.module/01.module.css'; composes: mobileNavItem from './product-shell.module/02.module.css'; }
 .mobilePanel { composes: mobilePanel from './product-shell.module/02.module.css'; }
 .mobileSummary { composes: mobileSummary from './product-shell.module/01.module.css'; }
 .mobileWorkspace { composes: mobileWorkspace from './product-shell.module/02.module.css'; }
 .navItem { composes: navItem from './product-shell.module/01.module.css'; }
+.notificationAction { composes: notificationAction from './product-shell.module/04.module.css'; }
+.notificationBadge { composes: notificationBadge from './product-shell.module/04.module.css'; }
+.notificationDanger { composes: notificationDanger from './product-shell.module/04.module.css'; }
+.notificationError { composes: notificationError from './product-shell.module/04.module.css'; }
+.notificationHeader { composes: notificationHeader from './product-shell.module/04.module.css'; }
+.notificationIconAction { composes: notificationIconAction from './product-shell.module/04.module.css'; }
+.notificationItem { composes: notificationItem from './product-shell.module/04.module.css'; }
+.notificationItemUnread { composes: notificationItemUnread from './product-shell.module/04.module.css'; }
+.notificationList { composes: notificationList from './product-shell.module/04.module.css'; }
+.notificationMenu { composes: notificationMenu from './product-shell.module/04.module.css'; }
+.notificationPanel { composes: notificationPanel from './product-shell.module/04.module.css'; composes: notificationPanel from './product-shell.module/05.module.css'; }
+.notificationRowSummary { composes: notificationRowSummary from './product-shell.module/04.module.css'; }
+.notificationState { composes: notificationState from './product-shell.module/04.module.css'; }
+.notificationSummary { composes: iconButton from './product-shell.module/01.module.css'; composes: notificationSummary from './product-shell.module/04.module.css'; }
 .noticeAction { composes: noticeAction from './product-shell.module/03.module.css'; }
 .page { composes: page from './product-shell.module/01.module.css'; }
-.routeHeader { composes: routeHeader from './product-shell.module/01.module.css'; }
+.routeHeader { composes: routeHeader from './product-shell.module/01.module.css'; composes: routeHeader from './product-shell.module/02.module.css'; composes: routeHeader from './product-shell.module/03.module.css'; }
 .routeTitle { composes: routeTitle from './product-shell.module/02.module.css'; }
-.statusStrip { composes: statusStrip from './product-shell.module/01.module.css'; }
+.statusStrip { composes: statusStrip from './product-shell.module/01.module.css'; composes: statusStrip from './product-shell.module/03.module.css'; }
 .success { composes: success from './product-shell.module/03.module.css'; }
-.toolbar { composes: toolbar from './product-shell.module/01.module.css'; }
-.topbar { composes: topbar from './product-shell.module/01.module.css'; }
+.toolbar { composes: toolbar from './product-shell.module/01.module.css'; composes: toolbar from './product-shell.module/03.module.css'; }
+.topbar { composes: topbar from './product-shell.module/01.module.css'; composes: topbar from './product-shell.module/03.module.css'; }
 .warn { composes: warn from './product-shell.module/03.module.css'; }
 .workspaceControl { composes: workspaceControl from './product-shell.module/01.module.css'; }

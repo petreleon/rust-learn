@@ -1,3 +1,61 @@
+.sectionHeader,
+.queueRow {
+  display: flex;
+  align-items: center;
+}
+
+.sectionHeader {
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: #172033;
+}
+
+.sectionHeader > svg {
+  flex: 0 0 auto;
+  color: #0f5f6f;
+}
+
+.sectionHeader h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.queueList {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.queueItem,
+.queueItemSelected {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 13px 14px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.queueItem:hover,
+.queueItemSelected {
+  border-color: #94c5d1;
+  background: #f8fcfd;
+}
+
+.queueRow {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.queueRow small {
+  color: #64748b;
+  line-height: 1.35;
+}
+
 @media (max-width: 960px) {
   .summaryGrid,
   .actionGrid,

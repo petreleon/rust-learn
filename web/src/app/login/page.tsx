@@ -66,9 +66,6 @@ export default function LoginPage() {
           <Link className={styles.navLink} href="/register">
             Register
           </Link>
-          <Link className={styles.navLink} href="/ops">
-            Operations
-          </Link>
         </nav>
       </header>
 

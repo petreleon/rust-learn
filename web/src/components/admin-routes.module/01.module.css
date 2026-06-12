@@ -23,8 +23,17 @@
 .actionCard {
   border: 1px solid #d8e0ea;
   border-radius: 8px;
+  color: inherit;
   background: #ffffff;
   box-shadow: 0 16px 30px rgba(15, 23, 42, 0.06);
+  text-decoration: none;
+}
+
+.actionCard:hover,
+.actionCard:focus-visible {
+  border-color: #94c5d1;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.1);
+  outline: none;
 }
 
 .summaryCard {
@@ -95,6 +104,7 @@
 
 .filterPanel input,
 .filterPanel select,
+.decisionForm input,
 .decisionForm select,
 .decisionForm textarea {
   width: 100%;
@@ -113,6 +123,7 @@
 }
 
 .filterPanel select,
+.decisionForm input,
 .decisionForm select {
   min-height: 42px;
   padding: 0 12px;

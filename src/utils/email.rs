@@ -3,18 +3,30 @@ use sha2::{Digest, Sha256};
 use std::env;
 
 const DEFAULT_APP_PUBLIC_URL: &str = "http://localhost:8080/api/auth";
+const DEFAULT_WEB_PUBLIC_URL: &str = "http://localhost:3000";
 
-fn app_public_url_from_env_value(value: Option<&str>) -> String {
+fn public_url_from_env_value(value: Option<&str>, default_url: &str) -> String {
     value
         .map(str::trim)
         .map(|value| value.trim_end_matches('/'))
         .filter(|value| !value.is_empty())
         .map(str::to_string)
-        .unwrap_or_else(|| DEFAULT_APP_PUBLIC_URL.to_string())
+        .unwrap_or_else(|| default_url.to_string())
+}
+
+fn app_public_url_from_env_value(value: Option<&str>) -> String {
+    public_url_from_env_value(value, DEFAULT_APP_PUBLIC_URL)
 }
 
 pub fn app_public_url_from_env() -> String {
     app_public_url_from_env_value(env::var("APP_PUBLIC_URL").ok().as_deref())
+}
+
+fn web_public_url_from_env() -> String {
+    public_url_from_env_value(
+        env::var("WEB_PUBLIC_URL").ok().as_deref(),
+        DEFAULT_WEB_PUBLIC_URL,
+    )
 }
 
 pub fn generate_verification_token() -> Result<String, getrandom::Error> {
@@ -31,6 +43,14 @@ pub fn verification_token_hash(token: &str) -> String {
 
 pub fn verification_url(token: &str) -> String {
     format!("{}/verify-email?token={}", app_public_url_from_env(), token)
+}
+
+pub fn password_reset_url(token: &str) -> String {
+    format!(
+        "{}/reset-password?token={}",
+        web_public_url_from_env(),
+        token
+    )
 }
 
 pub fn build_mock_verification_email(to: &str, name: &str, verification_url: &str) -> String {
@@ -57,6 +77,29 @@ pub fn print_mock_verification_email(to: &str, name: &str, token: &str) {
         "{}",
         build_mock_verification_email(to, name, &verification_url)
     );
+}
+
+pub fn build_mock_password_reset_email(to: &str, name: &str, reset_url: &str) -> String {
+    format!(
+        "\
+================ MOCK EMAIL ================
+To: {to}
+Subject: Reset your RustLearn password
+
+Hi {name},
+
+Use this password reset link to choose a new RustLearn password:
+{reset_url}
+
+This is a local-development email preview printed by the API. No email was sent.
+============================================
+"
+    )
+}
+
+pub fn print_mock_password_reset_email(to: &str, name: &str, token: &str) {
+    let reset_url = password_reset_url(token);
+    println!("{}", build_mock_password_reset_email(to, name, &reset_url));
 }
 
 #[cfg(test)]

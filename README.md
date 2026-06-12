@@ -198,6 +198,8 @@ Registration creates an email-verification token and prints a local-development
 mock verification email to the API terminal or container logs. No email provider
 is called yet. Set `APP_PUBLIC_URL` to control the base URL used in the printed
 link; the Compose default points directly at the API verification endpoint.
+Password reset requests print a separate mock reset email. Set `WEB_PUBLIC_URL`
+to control the browser-facing base URL used in that reset link.
 
 Preview the mock email without registering a user:
 

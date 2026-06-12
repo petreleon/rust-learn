@@ -1,6 +1,7 @@
 "use client";
 
 import { ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import { platformCapabilityEnabled, type PlatformAdminWorkspace, type PlatformCapabilityKey, type PlatformFraudDashboard, type PlatformRewardDashboard, type PlatformSystemStatus } from "@/lib/admin";
 import styles from "../admin-routes.module.css";
 import { StatusPill } from "./StatusPill";
@@ -30,6 +31,7 @@ export function ActionPanel({
   const readinessTone = systemStatus?.readiness.status === "ready" ? "good" : systemStatus ? "warn" : "neutral";
   const cards: Array<{
     detail: string;
+    href: string;
     key: PlatformCapabilityKey;
     label: string;
     state: string;
@@ -38,6 +40,7 @@ export function ActionPanel({
   }> = [
     {
       detail: "Submitted teacher applications waiting for platform review.",
+      href: "/admin/teacher-applications",
       key: "teacher_applications",
       label: "Teacher review",
       state: capabilityLabel(workspace, "teacher_applications"),
@@ -46,6 +49,7 @@ export function ActionPanel({
     },
     {
       detail: "Teacher-approved candidates waiting for platform amount decision.",
+      href: "/admin/rewards/amount-review",
       key: "reward_amount_review",
       label: "Amount review",
       state: canApproveRewardAmount ? "Approval enabled" : canViewRewardAudit ? "Audit only" : "Missing reward audit",
@@ -54,6 +58,7 @@ export function ActionPanel({
     },
     {
       detail: "Active reward fraud blocks across teachers, organizations, courses, and policies.",
+      href: "/admin/fraud-blocks",
       key: "fraud_blocks",
       label: "Fraud controls",
       state: canManageFraud ? "Manage enabled" : canViewRewardAudit ? "Audit only" : "Missing reward audit",
@@ -62,6 +67,7 @@ export function ActionPanel({
     },
     {
       detail: "Delegated permissions with scope, expiration, and revocation audit.",
+      href: "/admin/delegations",
       key: "delegations",
       label: "Delegations",
       state: platformCapabilityEnabled(workspace, "delegations") ? "Available" : "Gated",
@@ -70,6 +76,7 @@ export function ActionPanel({
     },
     {
       detail: "CSV exports available for reports, reward operations, wallets, and delegations.",
+      href: "/admin/exports",
       key: "exports",
       label: "Exports",
       state: canExportData ? "CSV enabled" : "Missing EXPORT_DATA",
@@ -78,6 +85,7 @@ export function ActionPanel({
     },
     {
       detail: "Wallet and transaction audit permissions visible in the current platform scope.",
+      href: "/admin/wallets",
       key: "wallets",
       label: "Wallet audit",
       state: capabilityLabel(workspace, "wallets"),
@@ -86,6 +94,7 @@ export function ActionPanel({
     },
     {
       detail: "API liveness and dependency readiness from the runtime health endpoints.",
+      href: "/admin/system",
       key: "system",
       label: "System",
       state: systemStatus?.readiness.status ? formatUnderscoreLabel(systemStatus.readiness.status) : "Loading",
@@ -107,7 +116,7 @@ export function ActionPanel({
         {cards.map((card) => {
           const Icon = actionIcons[card.key];
           return (
-            <article className={styles.actionCard} key={card.key}>
+            <Link aria-label={`Open ${card.label}`} className={styles.actionCard} href={card.href} key={card.key}>
               <div className={styles.actionTop}>
                 <span className={styles.smallIcon}>
                   <Icon size={19} aria-hidden />
@@ -117,7 +126,7 @@ export function ActionPanel({
               <strong>{card.value}</strong>
               <span>{card.label}</span>
               <p>{card.detail}</p>
-            </article>
+            </Link>
           );
         })}
       </div>

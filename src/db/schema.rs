@@ -244,6 +244,17 @@ diesel::table! {
 }
 
 diesel::table! {
+    password_reset_tokens (id) {
+        id -> Int4,
+        user_id -> Int4,
+        token_hash -> Text,
+        created_at -> Timestamp,
+        expires_at -> Timestamp,
+        used_at -> Nullable<Timestamp>,
+    }
+}
+
+diesel::table! {
     pending_course_organization_invites (id) {
         id -> Int4,
         course_id -> Int4,
@@ -642,6 +653,7 @@ diesel::joinable!(internal_transactions -> wallets (wallet_id));
 diesel::joinable!(notifications -> users (user_id));
 diesel::joinable!(organization_member_audit_events -> organizations (organization_id));
 diesel::joinable!(organization_member_audit_events -> users (actor_user_id));
+diesel::joinable!(password_reset_tokens -> users (user_id));
 diesel::joinable!(paths_courses -> courses (course_id));
 diesel::joinable!(paths_courses -> paths (path_id));
 diesel::joinable!(pending_course_organization_invites -> courses (course_id));
@@ -725,6 +737,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     organizations,
     paths,
     paths_courses,
+    password_reset_tokens,
     pending_course_organization_invites,
     persistent_states,
     platform_roles,

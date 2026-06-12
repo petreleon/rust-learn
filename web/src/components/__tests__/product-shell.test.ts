@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { closeOtherProductShellMenus } from "@/components/product-shell/closeOtherProductShellMenus";
 
 // These test the pure logic extracted from product-shell.tsx helper functions.
 
@@ -102,5 +103,33 @@ describe("buildNavItems", () => {
   it("adds admin nav when platform admin", () => {
     const items = buildNavItems({ learner: true, teacher: true, organization: true, platformAdmin: true });
     expect(items.map((i) => i.key)).toEqual(["session", "learn", "teach", "organizations", "admin", "account"]);
+  });
+});
+
+describe("closeOtherProductShellMenus", () => {
+  it("closes sibling menus but keeps parent drawers open", () => {
+    document.body.innerHTML = `
+      <header data-product-shell-menu-root>
+        <details data-product-shell-menu id="mobile" open>
+          <summary>Menu</summary>
+          <details data-product-shell-menu id="notifications" open>
+            <summary>Notifications</summary>
+          </details>
+        </details>
+        <details data-product-shell-menu id="account" open>
+          <summary>Account</summary>
+        </details>
+      </header>
+    `;
+
+    const mobile = document.getElementById("mobile") as HTMLDetailsElement;
+    const notifications = document.getElementById("notifications") as HTMLDetailsElement;
+    const account = document.getElementById("account") as HTMLDetailsElement;
+
+    closeOtherProductShellMenus(notifications);
+
+    expect(mobile.open).toBe(true);
+    expect(notifications.open).toBe(true);
+    expect(account.open).toBe(false);
   });
 });
