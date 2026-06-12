@@ -1,4 +1,8 @@
 use crate::application::content::manage_content_item::{self, ContentItemError};
+use crate::application::content::process_upload_job::{
+    process_upload_job as process_upload_job_for_content, ProcessUploadJobCommand,
+    ProcessUploadJobError,
+};
 use crate::application::content::request_media_url::{
     request_media_url as request_media_url_for_content, ContentMediaUrlError,
     RequestMediaUrlCommand,
@@ -7,9 +11,6 @@ use crate::application::content::request_upload_url::{
     request_upload_url as request_upload_url_for_content, ContentUploadUrlError,
 };
 use crate::config::constants::permissions::Permissions;
-use crate::db::schema::chapters;
-use crate::db::schema::contents;
-use crate::db::schema::upload_jobs;
 use crate::db::DbPool;
 use crate::http::content::dto::{
     ContentItemResponse, CreateContentItemRequest, MediaUrlResponse, RequestUploadUrlRequest,
@@ -19,17 +20,14 @@ use crate::infra::object_storage::content::media_url_provider::S3ContentMediaUrl
 use crate::infra::object_storage::content::upload_url_provider::S3ContentUploadUrlProvider;
 use crate::infra::postgres::content::content_item_store::PostgresContentItemStore;
 use crate::infra::postgres::content::media_object_store::PostgresContentMediaStore;
+use crate::infra::postgres::content::upload_job_store::PostgresContentUploadJobStore;
 use crate::infra::postgres::content::upload_scope_store::PostgresContentUploadScopeStore;
 use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware;
-use crate::models::content::Content;
 use crate::models::param_type::ParamType;
-use crate::models::upload_job::NewUploadJob;
 use crate::utils::notifications::NotificationsState;
 use crate::utils::request_auth::authenticated_user_id;
 use crate::utils::s3_utils::S3State;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
-use diesel::{ExpressionMethods, QueryDsl};
-use diesel_async::RunQueryDsl;
 
 // #[get("/chapters/{id}/contents")]
 async fn list_contents(

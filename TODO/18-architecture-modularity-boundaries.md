@@ -918,6 +918,29 @@ Slice 13: migrate content media URL requests.
       provider calls with pure use-case tests, and prove the real route with
       the S3-backed video upload flow regression test.
 
+Slice 14: migrate content video-processing job queueing.
+
+- [x] Use `POST /courses/{id}/chapters/{chapter_id}/contents/{id}/process`
+      as the next migration because it combines authenticated actor extraction,
+      chapter scope validation, content lookup, video-only validation,
+      object-key validation, upload-job insertion, and HTTP response mapping
+      inside the API handler.
+- [x] Create `domain/content/content_item` for the pure video content-type rule.
+- [x] Create `application/content/process_upload_job` and a
+      `ContentProcessingJobStore` port.
+- [x] Move chapter/content lookup and upload-job insertion behind
+      `infra/postgres/content/upload_job_store.rs`.
+- [x] Preserve existing route path, authentication behavior, `course-materials`
+      bucket, accepted body `Video processing queued`, non-video error,
+      missing data/object-key error, invalid object-key prefix error, and
+      upload job `user_id`.
+- [x] Self-critique: the background worker still calls concrete S3,
+      notifications, and `models::upload_job` methods directly. That remains a
+      separate worker-composition slice because this endpoint only queues work.
+- [x] Prove validation order, video-type validation, object-key scoping, and
+      queued job shape with pure use-case/domain tests, and prove the real
+      route with the S3-backed video upload flow regression test.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` no longer contains Diesel query builders; it delegates
@@ -979,6 +1002,11 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `infra/postgres/content/media_object_store.rs`, and
   `infra/object_storage/content/media_url_provider.rs`.
 - Content media URL HTTP response DTOs now live under `http/content/dto`.
+- The content video-processing route no longer owns direct chapter/content
+  Diesel, video-type validation, object-key validation, upload-job insertion,
+  or `NewUploadJob` construction; it delegates through
+  `domain/content/content_item`, `application/content/process_upload_job`, and
+  `infra/postgres/content/upload_job_store.rs`.
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env" src/domain src/application`
   returns no matches.
 - `rg "crate::repositories|crate::infra::postgres|crate::db::schema" src/http`
@@ -1000,6 +1028,8 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `rg "ensure_bucket|presign_external_put|S3State::new_from_env|ensure_chapter_belongs_to_course|chapters::table|diesel|diesel_async|RunQueryDsl|serde_json::json" src/api/contents/get_upload_url.rs`
   returns no matches.
 - `rg "ensure_chapter_belongs_to_course|contents::table|diesel|diesel_async|RunQueryDsl|presign_external_get|S3State::new_from_env|serde_json::json|models::content::Content" src/api/contents/get_media_url.rs`
+  returns no matches.
+- `rg "chapters::table|contents::table|upload_jobs::table|diesel|diesel_async|RunQueryDsl|insert_into|NewUploadJob|models::content::Content|is_video_content_type" src/api/contents/process_content.rs`
   returns no matches.
 - `cargo fmt --all --check` passes.
 - `git diff --check` passes.
@@ -1025,8 +1055,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   passes.
 - `./scripts/run-host-tests.sh cargo test --lib request_upload_url` passes.
 - `./scripts/run-host-tests.sh cargo test --lib request_media_url` passes.
+- `./scripts/run-host-tests.sh cargo test --lib process_upload_job` passes.
+- `./scripts/run-host-tests.sh cargo test --lib domain::content` passes.
 - `./scripts/run-host-tests.sh cargo test course_video_upload_can_be_queued_and_processed --test video_upload_flow`
-  passes, including the route-level media URL assertion.
+  passes, including the route-level media URL and processing queue assertions.
 - `./scripts/run-host-tests.sh cargo test notification_preferences_default_and_save_round_trip --test current_session_api`
   passes.
 - `./scripts/run-host-tests.sh cargo test --test current_session_api`

@@ -13,90 +13,66 @@ async fn process_content(
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
+    let mut store = PostgresContentUploadJobStore::new(&mut conn);
 
-    let chapter_exists = chapters::table
-        .filter(chapters::id.eq(chapter_id))
-        .filter(chapters::course_id.eq(course_id))
-        .select(chapters::id)
-        .first::<i32>(&mut conn)
-        .await;
-
-    match chapter_exists {
-        Ok(_) => {}
-        Err(diesel::result::Error::NotFound) => {
-            return HttpResponse::NotFound().body("Chapter not found")
+    match process_upload_job_for_content(
+        &mut store,
+        ProcessUploadJobCommand {
+            course_id,
+            chapter_id,
+            content_id,
+            user_id,
+        },
+    )
+    .await
+    {
+        Ok(_) => HttpResponse::Accepted().body("Video processing queued"),
+        Err(ProcessUploadJobError::ChapterNotFound) => {
+            HttpResponse::NotFound().body("Chapter not found")
         }
-        Err(e) => {
+        Err(ProcessUploadJobError::ContentNotFound) => {
+            HttpResponse::NotFound().body("Content not found")
+        }
+        Err(ProcessUploadJobError::NonVideoContent) => {
+            HttpResponse::BadRequest().body("Only video content can be processed")
+        }
+        Err(ProcessUploadJobError::MissingObjectKey) => {
+            HttpResponse::BadRequest().body("Content has no data/object key to process")
+        }
+        Err(ProcessUploadJobError::InvalidObjectKey) => {
+            HttpResponse::BadRequest().body("Content data must be a course upload object key")
+        }
+        Err(ProcessUploadJobError::ChapterLookupFailed(message)) => {
             log::error!(
                 "event=content_process_failed reason=chapter_lookup course_id={} chapter_id={} content_id={} error={}",
                 course_id,
                 chapter_id,
                 content_id,
-                e
+                message
             );
-            return HttpResponse::InternalServerError().body("Failed to fetch chapter");
+            HttpResponse::InternalServerError().body("Failed to fetch chapter")
         }
-    }
-
-    // 1. Fetch Content to get the object key
-    let content = match contents::table
-        .filter(contents::id.eq(content_id))
-        .filter(contents::chapter_id.eq(chapter_id))
-        .first::<Content>(&mut conn)
-        .await
-    {
-        Ok(c) => c,
-        Err(diesel::result::Error::NotFound) => {
-            return HttpResponse::NotFound().body("Content not found")
-        }
-        Err(e) => {
+        Err(ProcessUploadJobError::ContentLookupFailed(message)) => {
             log::error!(
                 "event=content_process_failed reason=content_lookup course_id={} chapter_id={} content_id={} error={}",
                 course_id,
                 chapter_id,
                 content_id,
-                e
+                message
             );
-            return HttpResponse::InternalServerError().body("Failed to fetch content");
+            HttpResponse::InternalServerError().body("Failed to fetch content")
         }
-    };
-
-    if !is_video_content_type(&content.content_type) {
-        return HttpResponse::BadRequest().body("Only video content can be processed");
-    }
-
-    // 2. Validate it has data (object key)
-    let object_key = match content.data {
-        Some(d) if !d.trim().is_empty() => d.trim().to_string(),
-        _ => return HttpResponse::BadRequest().body("Content has no data/object key to process"),
-    };
-    let expected_prefix = format!("courses/{}/chapters/{}/", course_id, chapter_id);
-    if !object_key.starts_with(&expected_prefix) {
-        return HttpResponse::BadRequest().body("Content data must be a course upload object key");
-    }
-
-    // 3. Enqueue Job
-    let new_job = NewUploadJob {
-        bucket: "course-materials",
-        object: &object_key,
-        user_id: Some(user_id),
-    };
-
-    let result = diesel::insert_into(upload_jobs::table)
-        .values(&new_job)
-        .execute(&mut conn)
-        .await;
-
-    match result {
-        Ok(_) => HttpResponse::Accepted().body("Video processing queued"),
-        Err(e) => {
+        Err(ProcessUploadJobError::JobQueueFailed {
+            object_key,
+            message,
+        }) => {
             log::error!(
                 "event=content_process_failed reason=upload_job_insert course_id={} chapter_id={} content_id={} object={} error={}",
                 course_id,
                 chapter_id,
                 content_id,
                 object_key,
-                e
+                message
             );
             HttpResponse::InternalServerError().body("Failed to queue processing job")
         }

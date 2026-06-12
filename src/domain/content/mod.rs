@@ -1,1 +1,1 @@
-// Pure content types and invariants will move here.
+pub mod content_item;

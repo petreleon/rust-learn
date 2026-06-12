@@ -137,8 +137,3 @@ async fn delete_content(
         }
     }
 }
-
-fn is_video_content_type(content_type: &str) -> bool {
-    let normalized = content_type.trim().to_ascii_lowercase();
-    normalized == "video" || normalized.starts_with("video/")
-}

@@ -6,6 +6,7 @@ use crate::application::content::manage_chapter::{
 use crate::application::content::manage_content_item::{
     ContentItemError, ContentItemOutput, CreateContentItemCommand, UpdateContentItemCommand,
 };
+use crate::application::content::process_upload_job::{ProcessUploadJobError, ProcessableContent};
 use crate::application::content::request_media_url::ContentMediaUrlError;
 use crate::application::content::request_upload_url::ContentUploadUrlError;
 
@@ -101,4 +102,25 @@ pub trait ContentMediaUrlProvider {
         object_key: String,
         expires_seconds: u64,
     ) -> BoxFuture<'_, Result<String, ContentMediaUrlError>>;
+}
+
+pub trait ContentProcessingJobStore {
+    fn ensure_chapter_belongs_to_course(
+        &mut self,
+        course_id: i32,
+        chapter_id: i32,
+    ) -> BoxFuture<'_, Result<(), ProcessUploadJobError>>;
+
+    fn content_for_processing(
+        &mut self,
+        chapter_id: i32,
+        content_id: i32,
+    ) -> BoxFuture<'_, Result<ProcessableContent, ProcessUploadJobError>>;
+
+    fn enqueue_processing_job(
+        &mut self,
+        bucket: &'static str,
+        object_key: String,
+        user_id: i32,
+    ) -> BoxFuture<'_, Result<(), ProcessUploadJobError>>;
 }
