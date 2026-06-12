@@ -9,6 +9,7 @@ import { StatusPill } from "./StatusPill";
 import { SummaryCard } from "./SummaryCard";
 import { contentStateTone } from "./contentStateTone";
 import { humanize } from "./humanize";
+import { LearningAccessNotice } from "./LearningAccessNotice";
 
 export function CourseLearningContentView({
   courseId,
@@ -29,6 +30,7 @@ export function CourseLearningContentView({
     : -1;
   const previousContent = selectedIndex > 0 ? allContents[selectedIndex - 1] : null;
   const nextContent = selectedIndex >= 0 && selectedIndex < allContents.length - 1 ? allContents[selectedIndex + 1] : null;
+  const progressLabel = learning.progress_supported ? "Tracked" : "Preview only";
 
   return (
     <>
@@ -38,9 +40,11 @@ export function CourseLearningContentView({
         <SummaryCard
           icon={<CheckCircle size={20} aria-hidden />}
           label="Progress"
-          value={learning.progress_supported ? "Tracked" : "Local only"}
+          value={progressLabel}
         />
       </section>
+
+      <LearningAccessNotice learning={learning} />
 
       <section className={styles.learningLayout}>
         <aside className={styles.lessonOutline} aria-label="Course outline">

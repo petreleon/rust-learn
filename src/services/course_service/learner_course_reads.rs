@@ -114,16 +114,13 @@ pub async fn get_learner_course_learning(
         return Err(LearnerCourseCatalogError::NotFound);
     }
 
-    let content_permission = Permissions::VIEW_CONTENT;
-    if !user_has_permission_for_course_context(conn, actor_user_id, course_id, &content_permission)
-        .await?
-    {
+    let course = build_learner_course_catalog_item(conn, actor_user_id, course).await?;
+    if !course.access.can_view_content {
         return Err(LearnerCourseCatalogError::PermissionDenied(
-            content_permission.to_string(),
+            Permissions::VIEW_CONTENT.to_string(),
         ));
     }
 
-    let course = build_learner_course_catalog_item(conn, actor_user_id, course).await?;
     let chapters = load_learner_course_learning_chapters(conn, course_id).await?;
     let active_content_id = chapters
         .iter()
@@ -138,10 +135,12 @@ pub async fn get_learner_course_learning(
         })
         .map(|(_, _, _, content_id)| content_id);
 
+    let progress_supported = course.enrollment.state == "enrolled";
+
     Ok(LearnerCourseLearningResponse {
         course,
         chapters,
         active_content_id,
-        progress_supported: false,
+        progress_supported,
     })
 }

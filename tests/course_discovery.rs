@@ -10,3 +10,4 @@ include!(
 );
 include!("course_discovery/learner_catalog_includes_own_draft_but_hides_unscoped_draft_detail.rs");
 include!("course_discovery/learner_learning_endpoint_returns_content_states_and_denies_unscoped_content.rs");
+include!("course_discovery/learner_progress_requires_enrollment_and_course_content.rs");

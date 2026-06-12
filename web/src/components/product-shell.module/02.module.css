@@ -150,4 +150,5 @@
   margin-top: 6px;
   font-size: clamp(2rem, 4.8vw, 3.75rem);
   line-height: 1;
+  overflow-wrap: anywhere;
 }

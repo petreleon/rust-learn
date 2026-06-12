@@ -9,15 +9,23 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+  min-width: 0;
 }
 
 .breadcrumbs {
+  flex-wrap: wrap;
   gap: 8px;
   min-height: 32px;
+  min-width: 0;
   margin-top: -8px;
   margin-bottom: 18px;
   color: #64748b;
   font-size: 0.88rem;
+}
+
+.breadcrumbs span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .breadcrumbs a {

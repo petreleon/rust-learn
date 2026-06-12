@@ -62,13 +62,15 @@ export function LearnerCourseLearnRoute({ courseId }: { courseId: string }) {
       setLearning(nextLearning);
 
       let progressContentId = nextLearning.active_content_id;
-      try {
-        const progress = await fetchCourseProgress({ courseId: numericCourseId, token });
-        if (progress && progress.content_id) {
-          progressContentId = progress.content_id;
+      if (nextLearning.progress_supported) {
+        try {
+          const progress = await fetchCourseProgress({ courseId: numericCourseId, token });
+          if (progress && progress.content_id) {
+            progressContentId = progress.content_id;
+          }
+        } catch {
+          // Progress fetch is best-effort; fall back to active_content_id.
         }
-      } catch {
-        // Progress fetch is best-effort; fall back to active_content_id.
       }
       setSelectedContentId(progressContentId);
       setLoadState("success");
@@ -98,7 +100,7 @@ export function LearnerCourseLearnRoute({ courseId }: { courseId: string }) {
   }, [loadRoute]);
 
   useEffect(() => {
-    if (loadState !== "success" || !selectedContentId) return;
+    if (loadState !== "success" || !selectedContentId || !learning?.progress_supported) return;
     const token = readStoredSessionToken();
     if (!token) return;
     saveCourseProgress({
@@ -106,7 +108,7 @@ export function LearnerCourseLearnRoute({ courseId }: { courseId: string }) {
       courseId: numericCourseId,
       token,
     }).catch(() => {});
-  }, [loadState, numericCourseId, selectedContentId]);
+  }, [learning?.progress_supported, loadState, numericCourseId, selectedContentId]);
 
   function signOut() {
     clearStoredSessionToken();

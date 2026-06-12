@@ -479,21 +479,29 @@ Current evidence:
   learning route even though the audited user is not enrolled or is waiting for
   review. The page shows "Local only" progress and "Course content has not been
   published yet" rather than a clear enrollment gate or preview mode.
-- Backend routes exist for learner progress, but learner and teacher UI copy
-  still says lesson progress is local or not persisted.
+- `/courses/[id]/learn` now makes the hybrid access model explicit: enrolled
+  learners get tracked progress, non-enrolled accounts with content-view access
+  see a read-only "Preview mode" notice, and accounts without content access
+  still receive the backend content permission denial.
+- Learner progress routes now require enrolled course state and reject content
+  ids from other courses. The course learning route skips progress calls in
+  preview mode and saves/restores progress only when the API marks progress as
+  supported.
+- Learner dashboard and teacher student/enrollment routes still do not consume
+  the persisted course-progress rows.
 - Assessment endpoints and helpers exist, but there is still no route surface
   for a learner to take assessments or for a teacher to author them.
 
 Needed:
 
-- Decide whether course learning is enrollment-gated or supports public
-  previews, then make the route copy, API behavior, and navigation match that
-  decision.
+- Keep the hybrid course learning model consistent in navigation: catalog and
+  detail links should distinguish "Start learning" from "Preview content" when
+  the learner is not enrolled.
 - Replace generated/test-like course titles in seeded/demo data used by the
   running product, or hide noisy seed data from normal catalog views.
-- Wire persisted learner progress into `/courses/[courseId]/learn`, `/learn`,
-  and teacher student views instead of showing "Local only" or "not tracked"
-  states when backend progress routes are available.
+- Wire persisted learner progress into `/learn` and teacher student views
+  instead of showing "not tracked" states when backend progress routes are
+  available.
 - Add course catalog pagination or explicit "showing first N" controls if the
   catalog count is larger than the rendered list.
 - Add assessment entry points inside learner course detail/learn routes and
@@ -501,9 +509,9 @@ Needed:
 
 Checks:
 
-- [ ] A non-enrolled learner is either blocked from `/courses/[id]/learn` with a
+- [x] A non-enrolled learner is either blocked from `/courses/[id]/learn` with a
   clear enrollment message or shown an intentional preview mode.
-- [ ] Pending join requests cannot access gated lesson content unless preview
+- [x] Pending join requests cannot access gated lesson content unless preview
   mode is explicitly allowed.
 - [ ] Persisted progress updates survive refresh and appear consistently on the
   learner dashboard, course learn route, and teacher student route.

@@ -117,13 +117,7 @@ async fn save_learner_progress_route(
 
     match save_learner_progress(&mut conn, user_id, course_id, body.content_id).await {
         Ok(progress) => HttpResponse::Ok().json(progress),
-        Err(e) => {
-            log::error!(
-                "event=learner_progress_save_failed user_id={} course_id={} content_id={} error={:?}",
-                user_id, course_id, body.content_id, e
-            );
-            HttpResponse::InternalServerError().body("Failed to save progress")
-        }
+        Err(error) => learner_course_catalog_error_response(error),
     }
 }
 
@@ -144,14 +138,6 @@ async fn get_learner_progress_route(
 
     match get_learner_progress(&mut conn, user_id, course_id).await {
         Ok(progress) => HttpResponse::Ok().json(progress),
-        Err(e) => {
-            log::error!(
-                "event=learner_progress_fetch_failed user_id={} course_id={} error={:?}",
-                user_id,
-                course_id,
-                e
-            );
-            HttpResponse::InternalServerError().body("Failed to fetch progress")
-        }
+        Err(error) => learner_course_catalog_error_response(error),
     }
 }

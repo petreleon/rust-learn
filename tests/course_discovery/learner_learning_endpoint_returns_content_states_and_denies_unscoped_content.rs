@@ -6,6 +6,8 @@ async fn learner_learning_endpoint_returns_content_states_and_denies_unscoped_co
 
     let learner = create_test_user(&mut conn).await;
     let outsider = create_test_user(&mut conn).await;
+    let auditor = create_test_user(&mut conn).await;
+    assign_platform_role(&mut conn, auditor.id(), "SUPER_ADMIN").await;
 
     let course = create_course(&mut conn, &unique_string("LearningCourse")).await;
     publish_course(&mut conn, course.id).await;
@@ -64,7 +66,8 @@ async fn learner_learning_endpoint_returns_content_states_and_denies_unscoped_co
         body["active_content_id"].as_i64(),
         Some(i64::from(text_content_id))
     );
-    assert_eq!(body["progress_supported"].as_bool(), Some(false));
+    assert_eq!(body["course"]["enrollment"]["state"].as_str(), Some("enrolled"));
+    assert_eq!(body["progress_supported"].as_bool(), Some(true));
 
     let chapters = body["chapters"]
         .as_array()
@@ -113,4 +116,20 @@ async fn learner_learning_endpoint_returns_content_states_and_denies_unscoped_co
         .to_request();
     let denied_resp = test::call_service(&app, denied_req).await;
     assert_eq!(denied_resp.status(), StatusCode::FORBIDDEN);
+
+    let preview_req = test::TestRequest::get()
+        .uri(&format!("/courses/catalog/{}/learn", course.id))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(auditor.id())),
+        ))
+        .to_request();
+    let preview_resp = test::call_service(&app, preview_req).await;
+    assert_eq!(preview_resp.status(), StatusCode::OK);
+    let preview_body: Value = test::read_body_json(preview_resp).await;
+    assert_eq!(
+        preview_body["course"]["enrollment"]["state"].as_str(),
+        Some("available")
+    );
+    assert_eq!(preview_body["progress_supported"].as_bool(), Some(false));
 }
