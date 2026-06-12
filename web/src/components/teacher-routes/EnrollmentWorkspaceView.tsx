@@ -63,7 +63,7 @@ export function EnrollmentWorkspaceView({
         <SummaryCard icon={<Clock3 size={20} aria-hidden />} label="Open requests" value={openRequestCount} tone={openRequestCount ? "warn" : "neutral"} />
         <SummaryCard icon={<Users size={20} aria-hidden />} label="Enrolled learners" value={workspace.roster.total} tone={workspace.roster.total ? "good" : "neutral"} />
         <SummaryCard icon={<CheckCircle2 size={20} aria-hidden />} label="Pending shown" value={workspace.join_requests.requests.filter((request) => request.status === "pending").length} tone="neutral" />
-        <SummaryCard icon={<ShieldCheck size={20} aria-hidden />} label="Teacher roles" value={workspace.teacher_roles.length} tone={workspace.teacher_roles.length ? "good" : "neutral"} />
+        <SummaryCard icon={<ShieldCheck size={20} aria-hidden />} label="Reward policies" value={workspace.reward_eligibility.active_policy_count} tone={workspace.reward_eligibility.active_policy_count ? "good" : "neutral"} />
       </section>
 
       {actionMessage ? (

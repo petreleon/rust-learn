@@ -533,11 +533,11 @@ Current evidence:
   disabled until a chapter exists. The page still says processing retry and
   destructive editing controls are separate until contracts are complete.
 - `/teach/courses/[id]/enrollments` now marks persisted progress as available
-  from the student route, while reward eligibility remains a separate missing
-  contract.
+  from the student route and shows backend reward eligibility using active
+  course/organization/platform policies plus per-learner candidate counts.
 - `/teach/courses/[id]/students` now shows persisted latest viewed lesson,
-  saved activity, saved lesson count, and completion percentage from backend
-  progress rows.
+  saved activity, saved lesson count, completion percentage, reward eligibility,
+  and reward candidate counts from backend rows.
 - Course cards and course workspace actions disable or explain reward review
   when the current teacher lacks reward-candidate permission.
 - Direct `/teach/courses/[id]/rewards` navigation now loads session and course
@@ -553,7 +553,6 @@ Needed:
 
 - Finish teacher content lifecycle controls: edit, unpublish/delete, upload
   retry/reprocess, processing-error inspection, and audit history.
-- Wire reward eligibility into enrollment and student routes.
 - Add assessment-authoring routes alongside content authoring.
 
 Checks:
@@ -562,7 +561,7 @@ Checks:
   validation, conflict, denied, and backend-error tests.
 - [x] Enrollment and student routes show persisted progress from backend data
   after refresh.
-- [ ] Enrollment and student routes show reward eligibility from backend data
+- [x] Enrollment and student routes show reward eligibility from backend data
   after refresh.
 - [x] Course reward review links are visible only when the user can open the
   reward route, or they render a clear disabled state with the missing

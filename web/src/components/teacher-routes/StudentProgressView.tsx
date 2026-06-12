@@ -14,10 +14,6 @@ export function StudentProgressView({ students }: { students: TeacherCourseStude
     (total, student) => total + student.rewards.pending_teacher_count,
     0,
   );
-  const approvedRewardCount = students.students.reduce(
-    (total, student) => total + student.rewards.teacher_approved_count + student.rewards.completed_count,
-    0,
-  );
   return (
     <>
       <section className={styles.workspaceHero}>
@@ -29,7 +25,7 @@ export function StudentProgressView({ students }: { students: TeacherCourseStude
           <p className={styles.eyebrow}>{statusLabel(students.course.lifecycle_status)}</p>
           <h2>Student progress</h2>
           <p className={styles.muted}>
-            Review enrolled learners, progress support, and reward evidence without pretending lesson completion is stored.
+            Review enrolled learners, progress support, reward eligibility, and evidence without pretending lesson completion is stored.
           </p>
         </div>
       </section>
@@ -38,7 +34,7 @@ export function StudentProgressView({ students }: { students: TeacherCourseStude
         <SummaryCard icon={<Users size={20} aria-hidden />} label="Learners" value={students.total} tone={students.total ? "good" : "neutral"} />
         <SummaryCard icon={<FileText size={20} aria-hidden />} label="Course content" value={students.course.content.content_count} tone={students.course.content.has_content ? "good" : "warn"} />
         <SummaryCard icon={<Clock3 size={20} aria-hidden />} label="Pending rewards" value={pendingRewardCount} tone={pendingRewardCount ? "warn" : "neutral"} />
-        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Approved evidence" value={approvedRewardCount} tone={approvedRewardCount ? "good" : "neutral"} />
+        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Reward policies" value={students.reward_eligibility.active_policy_count} tone={students.reward_eligibility.active_policy_count ? "good" : "neutral"} />
       </section>
 
       <section className={`${styles.warningPanel} ${styles.singlePanel}`}>
@@ -49,7 +45,7 @@ export function StudentProgressView({ students }: { students: TeacherCourseStude
         <p>
           {students.progress_supported
             ? "Latest viewed lessons are persisted from learner course routes and refreshed here for course staff."
-            : "Lesson completion is not persisted yet. This view shows enrolled learners and reward evidence that already exists."}
+            : "Lesson completion is not persisted yet. This view shows enrolled learners, reward eligibility, and evidence that already exists."}
         </p>
       </section>
 
@@ -57,7 +53,7 @@ export function StudentProgressView({ students }: { students: TeacherCourseStude
         <div className={styles.sectionHeader}>
           <div>
             <h2>Learners</h2>
-            <p className={styles.muted}>Each card separates access, progress support, and reward evidence.</p>
+            <p className={styles.muted}>Each card separates access, progress support, reward eligibility, and evidence.</p>
           </div>
           <span className={`${styles.statusPill} ${students.total ? styles.good : styles.neutral}`}>
             {students.total} total

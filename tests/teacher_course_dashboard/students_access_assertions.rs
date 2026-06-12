@@ -23,6 +23,13 @@ async fn assert_teacher_students(fixture: &TeacherDashboardFixture) {
     );
     assert_eq!(body["total"].as_i64(), Some(1));
     assert_eq!(body["progress_supported"].as_bool(), Some(true));
+    assert_eq!(body["reward_eligibility_supported"].as_bool(), Some(true));
+    assert!(
+        body["reward_eligibility"]["active_policy_count"]
+            .as_u64()
+            .unwrap_or_default()
+            >= 1
+    );
     assert_eq!(body["reward_evidence_supported"].as_bool(), Some(true));
     let student_progress = &body["students"][0];
     assert_eq!(
@@ -54,6 +61,16 @@ async fn assert_teacher_students(fixture: &TeacherDashboardFixture) {
         student_progress["rewards"]["reward_candidate_count"].as_i64(),
         Some(3)
     );
+    assert_eq!(
+        student_progress["reward_eligibility"]["reward_candidate_count"].as_i64(),
+        Some(3)
+    );
+    let event_types = student_progress["reward_eligibility"]["event_types"]
+        .as_array()
+        .expect("student reward eligibility events");
+    assert!(event_types
+        .iter()
+        .any(|event| event.as_str() == Some("course_completion")));
     assert_eq!(
         student_progress["rewards"]["pending_teacher_count"].as_i64(),
         Some(1)

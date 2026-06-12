@@ -27,6 +27,9 @@ use crate::models::reward_candidate::{
     REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
     REWARD_STATUS_TEACHER_APPROVED, REWARD_STATUS_TEACHER_REJECTED,
 };
+use crate::models::reward_policy::{
+    REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
+};
 use crate::repositories::course_repository::user_permission_course_request;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
@@ -63,6 +66,7 @@ include!("course_service/teacher_scope.rs");
 include!("course_service/teacher_delegated_scope.rs");
 include!("course_service/course_permission_summaries.rs");
 include!("course_service/teacher_join_requests.rs");
+include!("course_service/teacher_reward_eligibility.rs");
 include!("course_service/teacher_roster_pages.rs");
 include!("course_service/teacher_reward_progress.rs");
 include!("course_service/teacher_student_progress.rs");

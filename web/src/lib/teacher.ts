@@ -10,6 +10,8 @@ export type { TeacherCourseEnrollmentWorkspaceResponse } from "./teacher/Teacher
 export type { TeacherCourseStudentsResponse } from "./teacher/TeacherCourseStudentsResponse";
 export type { TeacherCourseStudentProgressItem } from "./teacher/TeacherCourseStudentProgressItem";
 export type { TeacherStudentProgressSummary } from "./teacher/TeacherStudentProgressSummary";
+export type { TeacherCourseRewardEligibilitySummary } from "./teacher/TeacherCourseRewardEligibilitySummary";
+export type { TeacherStudentRewardEligibilitySummary } from "./teacher/TeacherStudentRewardEligibilitySummary";
 export type { TeacherStudentRewardProgressSummary } from "./teacher/TeacherStudentRewardProgressSummary";
 export type { TeacherStudentRewardCandidateSummary } from "./teacher/TeacherStudentRewardCandidateSummary";
 export type { TeacherRewardCandidate } from "./teacher/TeacherRewardCandidate";

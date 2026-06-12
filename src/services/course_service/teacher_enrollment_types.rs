@@ -35,6 +35,7 @@ pub struct TeacherCourseRosterLearner {
     pub can_remove: bool,
     pub progress_supported: bool,
     pub reward_eligibility_supported: bool,
+    pub reward_eligibility: TeacherStudentRewardEligibilitySummary,
 }
 
 #[derive(Debug, Serialize)]

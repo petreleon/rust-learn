@@ -93,6 +93,7 @@ export function TeacherCourseStudentsRoute({ courseId }: { courseId: string }) {
         students ? (
           <>
             <StatusLine icon={<Users size={16} aria-hidden />} label={`${students.total} learner${students.total === 1 ? "" : "s"}`} tone={students.total ? "good" : "neutral"} />
+            <StatusLine icon={<Trophy size={16} aria-hidden />} label={`${students.reward_eligibility.active_policy_count} reward policies`} tone={students.reward_eligibility.active_policy_count ? "good" : "neutral"} />
             <StatusLine icon={<Trophy size={16} aria-hidden />} label={students.reward_evidence_supported ? "Reward evidence" : "No reward evidence"} tone={students.reward_evidence_supported ? "good" : "neutral"} />
           </>
         ) : null

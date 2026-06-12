@@ -111,7 +111,27 @@ async fn assert_teacher_enrollments(fixture: &TeacherDashboardFixture) {
         Some(true)
     );
     assert_eq!(body["progress_supported"].as_bool(), Some(true));
-    assert_eq!(body["reward_eligibility_supported"].as_bool(), Some(false));
+    assert_eq!(body["reward_eligibility_supported"].as_bool(), Some(true));
+    assert!(
+        body["reward_eligibility"]["active_policy_count"]
+            .as_u64()
+            .unwrap_or_default()
+            >= 1
+    );
+    let event_types = body["reward_eligibility"]["event_types"]
+        .as_array()
+        .expect("reward eligibility events");
+    assert!(event_types
+        .iter()
+        .any(|event| event.as_str() == Some("course_completion")));
+    assert_eq!(
+        body["roster"]["learners"][0]["reward_eligibility"]["reward_candidate_count"].as_i64(),
+        Some(3)
+    );
+    assert_eq!(
+        body["roster"]["learners"][0]["reward_eligibility"]["active_policy_count"].as_u64(),
+        body["reward_eligibility"]["active_policy_count"].as_u64()
+    );
 }
 
 async fn assert_teacher_pending_filter(fixture: &TeacherDashboardFixture) {

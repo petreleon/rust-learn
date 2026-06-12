@@ -5,6 +5,7 @@ import styles from "../teacher-routes.module.css";
 import { DetailLine } from "./DetailLine";
 import { Metric } from "./Metric";
 import { formatDateTime } from "./formatDateTime";
+import { rewardEligibilityLabel } from "./rewardEligibilityLabel";
 import { statusLabel } from "./statusLabel";
 
 export function StudentProgressCard({ student }: { student: TeacherCourseStudentProgressItem }) {
@@ -33,6 +34,7 @@ export function StudentProgressCard({ student }: { student: TeacherCourseStudent
         <DetailLine label="Current lesson" value={student.progress.current_content_label || student.progress.note} />
         <DetailLine label="Completion" value={student.progress.completion_percentage === null ? "Not tracked yet" : `${student.progress.completion_percentage}%`} />
         <DetailLine label="Last activity" value={student.progress.last_activity_at ? formatDateTime(student.progress.last_activity_at) : "No saved activity"} />
+        <DetailLine label="Reward eligibility" value={rewardEligibilityLabel(student.reward_eligibility)} />
         <DetailLine label="Reward candidates" value={String(student.rewards.reward_candidate_count)} />
         {latestCandidate ? (
           <>

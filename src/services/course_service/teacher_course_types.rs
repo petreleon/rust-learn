@@ -62,6 +62,7 @@ pub struct TeacherCourseEnrollmentWorkspaceResponse {
     pub roster: TeacherCourseRosterPage,
     pub progress_supported: bool,
     pub reward_eligibility_supported: bool,
+    pub reward_eligibility: TeacherCourseRewardEligibilitySummary,
 }
 
 #[derive(Debug, Serialize)]
@@ -71,6 +72,8 @@ pub struct TeacherCourseStudentsResponse {
     pub students: Vec<TeacherCourseStudentProgressItem>,
     pub total: i64,
     pub progress_supported: bool,
+    pub reward_eligibility_supported: bool,
+    pub reward_eligibility: TeacherCourseRewardEligibilitySummary,
     pub reward_evidence_supported: bool,
 }
 
@@ -81,7 +84,23 @@ pub struct TeacherCourseStudentProgressItem {
     pub access_state: String,
     pub latest_join_request_status: Option<String>,
     pub progress: TeacherStudentProgressSummary,
+    pub reward_eligibility: TeacherStudentRewardEligibilitySummary,
     pub rewards: TeacherStudentRewardProgressSummary,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TeacherCourseRewardEligibilitySummary {
+    pub supported: bool,
+    pub active_policy_count: usize,
+    pub event_types: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TeacherStudentRewardEligibilitySummary {
+    pub supported: bool,
+    pub active_policy_count: usize,
+    pub event_types: Vec<String>,
+    pub reward_candidate_count: i64,
 }
 
 #[derive(Debug, Serialize)]

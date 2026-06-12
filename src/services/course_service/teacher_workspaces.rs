@@ -60,6 +60,8 @@ pub async fn get_teacher_course_enrollment_workspace(
     )
     .await?;
     let roster = load_teacher_course_roster_page(conn, course.id, can_manage_enrollments).await?;
+    let reward_eligibility =
+        load_teacher_course_reward_eligibility_summary(conn, course.id).await?;
     let course = build_teacher_course_dashboard_item(conn, course, permissions).await?;
 
     Ok(TeacherCourseEnrollmentWorkspaceResponse {
@@ -68,7 +70,8 @@ pub async fn get_teacher_course_enrollment_workspace(
         join_requests,
         roster,
         progress_supported: true,
-        reward_eligibility_supported: false,
+        reward_eligibility_supported: reward_eligibility.supported,
+        reward_eligibility,
     })
 }
 
@@ -94,6 +97,8 @@ pub async fn get_teacher_course_students(
 
     let teacher_roles = load_actor_course_roles(conn, actor_user_id, course.id).await?;
     let content = load_learner_course_content_summary(conn, course.id).await?;
+    let course_reward_eligibility =
+        load_teacher_course_reward_eligibility_summary(conn, course.id).await?;
     let roster =
         load_teacher_course_roster_page(conn, course.id, permissions.can_manage_enrollments)
             .await?;
@@ -108,12 +113,17 @@ pub async fn get_teacher_course_students(
             content.content_count,
         )
         .await?;
+        let reward_eligibility = teacher_student_reward_eligibility_from_count(
+            &course_reward_eligibility,
+            rewards.reward_candidate_count,
+        );
         students.push(TeacherCourseStudentProgressItem {
             user: learner.user,
             roles: learner.roles,
             access_state: learner.access_state,
             latest_join_request_status: learner.latest_join_request_status,
             progress,
+            reward_eligibility,
             rewards,
         });
     }
@@ -127,6 +137,8 @@ pub async fn get_teacher_course_students(
         students,
         total,
         progress_supported: true,
+        reward_eligibility_supported: course_reward_eligibility.supported,
+        reward_eligibility: course_reward_eligibility,
         reward_evidence_supported: true,
     })
 }

@@ -39,6 +39,8 @@ async fn load_teacher_course_roster_page(
 
     let mut learners = Vec::with_capacity(rows.len());
     let mut seen_user_ids = BTreeSet::new();
+    let course_reward_eligibility =
+        load_teacher_course_reward_eligibility_summary(conn, course_id).await?;
     for (id, name, email, email_verified, kyc_verified) in rows {
         if !seen_user_ids.insert(id) {
             continue;
@@ -46,6 +48,9 @@ async fn load_teacher_course_roster_page(
         let roles = load_actor_course_roles(conn, id, course_id).await?;
         let latest_join_request_status =
             load_latest_join_request_status(conn, course_id, id).await?;
+        let reward_eligibility =
+            load_teacher_student_reward_eligibility(conn, course_id, id, &course_reward_eligibility)
+                .await?;
 
         learners.push(TeacherCourseRosterLearner {
             user: TeacherEnrollmentUserSummary {
@@ -60,7 +65,8 @@ async fn load_teacher_course_roster_page(
             access_state: "enrolled".to_string(),
             can_remove: can_manage_enrollments,
             progress_supported: true,
-            reward_eligibility_supported: false,
+            reward_eligibility_supported: reward_eligibility.supported,
+            reward_eligibility,
         });
     }
 

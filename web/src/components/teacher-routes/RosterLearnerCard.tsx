@@ -4,6 +4,7 @@ import { UserMinus } from "lucide-react";
 import { type TeacherCourseRosterLearner } from "@/lib/teacher";
 import styles from "../teacher-routes.module.css";
 import { DetailLine } from "./DetailLine";
+import { rewardEligibilityLabel } from "./rewardEligibilityLabel";
 import { statusLabel } from "./statusLabel";
 import { type ActionState } from "./ActionState";
 
@@ -31,7 +32,8 @@ export function RosterLearnerCard({
         <DetailLine label="Roles" value={learner.roles.join(", ") || "Learner"} />
         <DetailLine label="Latest request" value={learner.latest_join_request_status ? statusLabel(learner.latest_join_request_status) : "No request history"} />
         <DetailLine label="Progress" value={learner.progress_supported ? "Tracked" : "Not tracked yet"} />
-        <DetailLine label="Reward eligibility" value={learner.reward_eligibility_supported ? "Tracked" : "Not tracked yet"} />
+        <DetailLine label="Reward eligibility" value={rewardEligibilityLabel(learner.reward_eligibility)} />
+        <DetailLine label="Reward candidates" value={String(learner.reward_eligibility.reward_candidate_count)} />
       </div>
       {learner.can_remove ? (
         <div className={styles.rosterAction}>
