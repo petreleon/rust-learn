@@ -51,7 +51,8 @@ P1 - Finish account lifecycle:
 
 - Password reset request and completion are now built end to end for local/mock
   delivery; production email/rate-limit hardening remains.
-- Add resend email verification and production-safe verification copy.
+- Resend email verification is now built for local/mock delivery; production
+  email/rate-limit hardening remains.
 - Decide and implement intentional session persistence behavior across tabs.
 - Decide the KYC model: self-serve, platform-reviewed, organization-reviewed,
   or external-provider-backed.
@@ -560,21 +561,23 @@ Checks:
 
 Current evidence:
 
-- `/verify-email` provides a token input, but there is no visible resend
-  verification action or email-delivery status.
+- `/verify-email` provides token verification and a visible resend-verification
+  form. `POST /api/auth/resend-verification` returns neutral account copy,
+  rotates active tokens for unverified users, and prints the local mock email.
 - Registration success tells local users to find the mock verification link in
   API logs, which is useful for development but not normal product copy.
-- Login and registration public nav expose `/ops`.
+- Login, registration, forgot/reset, and verify public nav no longer expose
+  `/ops`.
 - The frontend stores JWTs in `sessionStorage`, so a new browser tab or fresh
   in-app tab can look signed out while another tab is signed in. This explains
   the earlier "Sign in required" surprises.
-- Account settings lets users save notification preferences, but the shell
-  notification bell remains disabled.
+- Account settings notification preferences now connect to a real shell
+  notification center.
 
 Needed:
 
-- Add resend-verification flow, rate limits, neutral success copy, and expired
-  token handling.
+- Add production email-provider delivery, bounce/error handling, and rate
+  limiting for verification emails.
 - Replace local-log instructions with a development-only hint or a real
   in-product verification delivery status.
 - Decide whether auth should persist across tabs. If yes, move to a safer
@@ -584,15 +587,15 @@ Needed:
 
 Checks:
 
-- [ ] A newly registered user can request another verification email without
+- [x] A newly registered user can request another verification email without
   exposing whether an address exists.
-- [ ] `/verify-email` handles valid, missing, malformed, expired, reused, and
+- [x] `/verify-email` handles valid, missing, malformed, expired, reused, and
   already-verified tokens.
 - [ ] Registration success copy is user-facing in production and development
   hints are gated to local builds.
 - [ ] Opening a new tab has an intentional, tested auth behavior with clear
   redirect copy.
-- [ ] Login/register/forgot/reset/verify pages do not expose `/ops` in normal
+- [x] Login/register/forgot/reset/verify pages do not expose `/ops` in normal
   navigation.
 
 ## Platform Configuration, Roles, And Policy Management

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AuthRequestError, verifyEmailToken, type VerifyEmailResult } from "@/lib/auth";
 import styles from "../../auth.module.css";
+import { ResendVerificationPanel } from "./ResendVerificationPanel";
 import { type VerifyState } from "./VerifyState";
 
 export function VerifyEmailContent() {
@@ -79,10 +80,7 @@ export function VerifyEmailContent() {
         <div className={styles.hero}>
           <p className={styles.eyebrow}>Verify email</p>
           <h1>Confirm your RustLearn account</h1>
-          <p>
-            Complete account verification before login so the workspace can load
-            your profile and permissions.
-          </p>
+          <p>Complete account verification before login so the workspace can load your profile and permissions.</p>
           <div className={styles.statusList}>
             <span>
               <MailCheck size={16} aria-hidden />
@@ -146,6 +144,7 @@ export function VerifyEmailContent() {
             Verify email
           </button>
         </form>
+        <ResendVerificationPanel />
       </section>
     </main>
   );

@@ -145,6 +145,7 @@ pub fn auth_scope() -> actix_web::Scope {
         .service(forgot_password)
         .service(login)
         .service(register)
+        .service(resend_verification)
         .service(reset_password)
         .service(verify_email)
         .service(user_id)

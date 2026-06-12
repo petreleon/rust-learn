@@ -3,6 +3,9 @@ include!(
     "authentication_flow/login_requires_email_verification_and_returns_jwt_after_verification.rs"
 );
 include!(
+    "authentication_flow/resend_verification_rotates_active_token_without_revealing_accounts.rs"
+);
+include!(
     "authentication_flow/verify_email_marks_user_verified_and_reports_already_verified_replay.rs"
 );
 include!("authentication_flow/verify_email_reports_expired_and_invalid_tokens.rs");
