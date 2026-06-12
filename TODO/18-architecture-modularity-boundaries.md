@@ -976,19 +976,51 @@ Slice 16: move content HTTP routes and handlers into the HTTP ring.
 - [x] Keep handler visibility limited to `crate::http::content` instead of
       exporting handlers crate-wide.
 - [x] Leave `api::contents::config` as a thin compatibility wrapper that
-      delegates to `http::content::routes::configure_routes`.
+      delegates to `http::content::routes::configure_content_item_routes`.
 - [x] Preserve all existing content route paths and permission middleware.
 - [x] Self-critique: `api::courses::course_scope` still calls the compatibility
       wrapper. A later course-route composition slice should call
       `http::content::routes::configure_routes` directly while untangling the
-      remaining course include module.
+      remaining course include module. Content HTTP handlers also still
+      construct concrete infra adapters; a later bootstrap/state wiring slice
+      should move that adapter construction out of `http`.
 - [x] Prove route composition and focused content flows still pass, and prove
       the old `api/contents` handler files no longer exist.
 
+Slice 17: move chapter HTTP routes and handlers into the content HTTP ring.
+
+- [x] Use chapter routes as the next HTTP-ring migration because chapters are
+      part of the content context and already delegate to
+      `application/content/manage_chapter` plus
+      `infra/postgres/content/chapter_store.rs`.
+- [x] Move chapter handlers from `src/api/chapters.rs` into
+      `http/content/handlers/chapter.rs`.
+- [x] Move chapter route wiring from `src/api/chapters/routes.rs` into
+      `http/content/routes.rs`.
+- [x] Split content route composition into `configure_chapter_routes`,
+      `configure_content_item_routes`, and full `configure_routes` so current
+      legacy wrappers do not register duplicate routes.
+- [x] Leave `api::chapters::config` as a thin compatibility wrapper that
+      delegates to `http::content::routes::configure_chapter_routes`.
+- [x] Keep chapter handler visibility limited to `crate::http::content`.
+- [x] Preserve existing chapter route paths, permission middleware, response
+      bodies, and focused content lifecycle behavior.
+- [x] Self-critique: `api::courses::course_scope` still composes
+      `api::chapters::config` and `api::contents::config` separately. A later
+      course-route cleanup should compose `http::content::routes::configure_routes`
+      directly once the course module is also being untangled. The content HTTP
+      handlers still import concrete infra adapters until content app-service
+      state is wired through bootstrap.
+- [x] Prove route composition and chapter/content lifecycle tests still pass,
+      and prove the chapter HTTP handler no longer imports Diesel/schema types.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
-- `src/api/chapters.rs` no longer contains Diesel query builders; it delegates
-  to `application/content/manage_chapter` and `infra/postgres/content/chapter_store`.
+- `src/api/chapters.rs` is now a thin compatibility wrapper around
+  `http::content::routes::configure_chapter_routes`.
+- Chapter HTTP handlers now live under `http/content/handlers/chapter.rs` and
+  delegate to `application/content/manage_chapter` plus
+  `infra/postgres/content/chapter_store.rs`.
 - Chapter HTTP request/response DTOs now live under `http/content/dto`, while
   application output remains a non-Actix, non-Serialize type.
 - `src/api/session/notifications.rs` no longer contains direct Diesel usage for
@@ -1053,14 +1085,20 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `infra/postgres/content/upload_job_store.rs`.
 - `src/api/contents.rs` no longer uses `include!`; it is now a thin
   compatibility wrapper around `http::content::routes::configure_routes`.
-- Content route configuration now lives in `http/content/routes.rs`.
+- Chapter and content-item route configuration now lives in
+  `http/content/routes.rs`.
 - Content API handler files now live under `http/content/handlers`, and
   `src/api/contents/imports.rs` has been removed.
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env" src/domain src/application`
   returns no matches.
-- `rg "crate::repositories|crate::infra::postgres|crate::db::schema" src/http`
-  returns no matches.
+- `rg "crate::repositories|crate::db::schema" src/http` returns no matches.
+- Temporary content HTTP wiring debt: `rg "crate::infra::postgres" src/http`
+  still finds content handlers that construct Postgres adapters directly. This
+  became visible when content handlers moved into `http/content`; a follow-up
+  bootstrap/state wiring slice should remove it.
 - `rg "crate::http|crate::services" src/domain src/application src/infra`
+  returns no matches.
+- `rg "diesel|diesel_async|schema::|RunQueryDsl|chapters::table|models::chapter|NewChapter\\b|UpdateChapter\\b" src/http/content/handlers/chapter.rs src/http/content/routes.rs`
   returns no matches.
 - `rg "diesel|diesel_async|schema::|RunQueryDsl" src/api/roles.rs` returns no
   matches.
