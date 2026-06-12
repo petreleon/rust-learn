@@ -9,7 +9,7 @@ use crate::utils::notifications::NotificationsState;
 use super::content_item_error_log;
 
 // #[get("/chapters/{id}/contents")]
-pub(super) async fn list_contents(
+pub(in crate::http::content) async fn list_contents(
     path: web::Path<(i32, i32)>, // course_id, chapter_id
     pool: web::Data<DbPool>,
 ) -> impl Responder {
@@ -40,7 +40,7 @@ pub(super) async fn list_contents(
     }
 }
 
-pub(super) async fn create_content(
+pub(in crate::http::content) async fn create_content(
     path: web::Path<(i32, i32)>, // course_id, chapter_id
     pool: web::Data<DbPool>,
     notifications: Option<web::Data<NotificationsState>>,

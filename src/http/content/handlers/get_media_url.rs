@@ -10,7 +10,7 @@ use crate::infra::object_storage::content::media_url_provider::S3ContentMediaUrl
 use crate::infra::postgres::content::media_object_store::PostgresContentMediaStore;
 use crate::utils::s3_utils::S3State;
 
-pub(super) async fn get_media_url(
+pub(in crate::http::content) async fn get_media_url(
     path: web::Path<(i32, i32, i32)>,
     pool: web::Data<DbPool>,
     s3: Option<web::Data<S3State>>,

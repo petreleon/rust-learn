@@ -8,7 +8,7 @@ use crate::db::DbPool;
 use crate::infra::postgres::content::upload_job_store::PostgresContentUploadJobStore;
 use crate::utils::request_auth::authenticated_user_id;
 
-pub(super) async fn process_content(
+pub(in crate::http::content) async fn process_content(
     req: HttpRequest,
     path: web::Path<(i32, i32, i32)>, // course_id, chapter_id, content_id
     pool: web::Data<DbPool>,

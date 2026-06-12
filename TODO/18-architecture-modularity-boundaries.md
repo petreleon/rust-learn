@@ -964,6 +964,27 @@ Slice 15: replace content API include-based module assembly.
       include/imports bucket, and still passes the focused content lifecycle
       and video upload route tests.
 
+Slice 16: move content HTTP routes and handlers into the HTTP ring.
+
+- [x] Use content as the first HTTP-ring route migration because its handlers
+      already delegate to `application/content` use cases and
+      `infra/*/content` adapters.
+- [x] Create `http/content/routes.rs` with
+      `configure_routes(cfg: &mut web::ServiceConfig)`.
+- [x] Move content handlers from `api/contents/*` into
+      `http/content/handlers/*`.
+- [x] Keep handler visibility limited to `crate::http::content` instead of
+      exporting handlers crate-wide.
+- [x] Leave `api::contents::config` as a thin compatibility wrapper that
+      delegates to `http::content::routes::configure_routes`.
+- [x] Preserve all existing content route paths and permission middleware.
+- [x] Self-critique: `api::courses::course_scope` still calls the compatibility
+      wrapper. A later course-route composition slice should call
+      `http::content::routes::configure_routes` directly while untangling the
+      remaining course include module.
+- [x] Prove route composition and focused content flows still pass, and prove
+      the old `api/contents` handler files no longer exist.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` no longer contains Diesel query builders; it delegates
@@ -1030,10 +1051,11 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   or `NewUploadJob` construction; it delegates through
   `domain/content/content_item`, `application/content/process_upload_job`, and
   `infra/postgres/content/upload_job_store.rs`.
-- `src/api/contents.rs` no longer uses `include!`; the content API wrapper now
-  declares normal sibling modules and owns route configuration directly.
-- `src/api/contents/imports.rs` has been removed; content API handler files now
-  import their own dependencies explicitly.
+- `src/api/contents.rs` no longer uses `include!`; it is now a thin
+  compatibility wrapper around `http::content::routes::configure_routes`.
+- Content route configuration now lives in `http/content/routes.rs`.
+- Content API handler files now live under `http/content/handlers`, and
+  `src/api/contents/imports.rs` has been removed.
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env" src/domain src/application`
   returns no matches.
 - `rg "crate::repositories|crate::infra::postgres|crate::db::schema" src/http`
@@ -1050,15 +1072,15 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `rg "diesel|diesel_async|RunQueryDsl|try_get_provider|provider|get_chainid|health_check\\(|timeout|crate::db::schema" src/api/health.rs`
   returns no matches.
-- `rg "diesel|diesel_async|insert_into|update\\(|delete\\(|contents::table|user_role_course|NewContent\\b|UpdateContent\\b|models::content" src/api/contents/create_content.rs src/api/contents/get_upload_url.rs`
+- `rg "diesel|diesel_async|insert_into|update\\(|delete\\(|contents::table|user_role_course|NewContent\\b|UpdateContent\\b|models::content" src/http/content/handlers/create_content.rs src/http/content/handlers/get_upload_url.rs`
   returns no matches.
-- `rg "ensure_bucket|presign_external_put|S3State::new_from_env|ensure_chapter_belongs_to_course|chapters::table|diesel|diesel_async|RunQueryDsl|serde_json::json" src/api/contents/get_upload_url.rs`
+- `rg "ensure_bucket|presign_external_put|S3State::new_from_env|ensure_chapter_belongs_to_course|chapters::table|diesel|diesel_async|RunQueryDsl|serde_json::json" src/http/content/handlers/get_upload_url.rs`
   returns no matches.
-- `rg "ensure_chapter_belongs_to_course|contents::table|diesel|diesel_async|RunQueryDsl|presign_external_get|S3State::new_from_env|serde_json::json|models::content::Content" src/api/contents/get_media_url.rs`
+- `rg "ensure_chapter_belongs_to_course|contents::table|diesel|diesel_async|RunQueryDsl|presign_external_get|S3State::new_from_env|serde_json::json|models::content::Content" src/http/content/handlers/get_media_url.rs`
   returns no matches.
-- `rg "chapters::table|contents::table|upload_jobs::table|diesel|diesel_async|RunQueryDsl|insert_into|NewUploadJob|models::content::Content|is_video_content_type" src/api/contents/process_content.rs`
+- `rg "chapters::table|contents::table|upload_jobs::table|diesel|diesel_async|RunQueryDsl|insert_into|NewUploadJob|models::content::Content|is_video_content_type" src/http/content/handlers/process_content.rs`
   returns no matches.
-- `rg "include!|imports\\.rs" src/api/contents.rs src/api/contents`
+- `rg "include!|imports\\.rs" src/api/contents.rs src/http/content`
   returns no matches.
 - `cargo fmt --all --check` passes.
 - `git diff --check` passes.

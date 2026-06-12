@@ -15,7 +15,7 @@ use crate::utils::s3_utils::S3State;
 
 use super::content_item_error_log;
 
-pub(super) async fn get_upload_url(
+pub(in crate::http::content) async fn get_upload_url(
     path: web::Path<(i32, i32)>, // course_id, chapter_id
     pool: web::Data<DbPool>,
     s3: Option<web::Data<S3State>>,
@@ -89,7 +89,7 @@ pub(super) async fn get_upload_url(
     }
 }
 
-pub(super) async fn update_content(
+pub(in crate::http::content) async fn update_content(
     path: web::Path<(i32, i32, i32)>, // course_id, chapter_id, content_id
     pool: web::Data<DbPool>,
     req: web::Json<UpdateContentItemRequest>,
@@ -125,7 +125,7 @@ pub(super) async fn update_content(
     }
 }
 
-pub(super) async fn delete_content(
+pub(in crate::http::content) async fn delete_content(
     path: web::Path<(i32, i32, i32)>,
     pool: web::Data<DbPool>,
 ) -> impl Responder {
