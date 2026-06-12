@@ -41,7 +41,7 @@ handler, Diesel query, permission rule, and domain workflow to change together.
       or infra modules.
 - [ ] Centralize authorization policy. Permission checks currently live in
       middleware, services, repositories, and frontend helper lists.
-- [ ] Pull startup side effects out of `main.rs`. DB setup, S3 setup,
+- [x] Pull startup side effects out of `main.rs`. DB setup, S3 setup,
       notification state, and Ethereum startup deployment should be composed
       through a small bootstrap module.
 - [ ] Give cross-cutting utilities a home based on responsibility. Some
@@ -675,7 +675,7 @@ Wiring rule:
       extension once and removes repeated `authenticated_user(&req)` boilerplate.
 - [ ] Add a DB connection extractor or helper so handlers do not repeat
       `pool.get().await` and 500 mapping.
-- [ ] Add `bootstrap/app_state.rs` to group `DbPool`, `S3State`,
+- [x] Add `bootstrap/app_state.rs` to group `DbPool`, `S3State`,
       `NotificationsState`, and future infra handles.
 - [ ] Replace `include!` in one small module with normal `mod` files and
       `pub(crate) use` re-exports to establish the house pattern.
@@ -755,6 +755,19 @@ Slice 6: migrate identity user profile reads and search.
 - [x] Prove list, search, self-read, and forbidden read behavior with a focused
       route-level regression test.
 
+Slice 7: modularize the Actix binary entrypoint.
+
+- [x] Create `bootstrap/app_state.rs` to group the DB pool, S3 state, and
+      notifications state.
+- [x] Move startup side effects out of `main.rs` into `bootstrap/startup.rs`:
+      DB pool creation, S3 setup, DB versioning, and Ethereum startup
+      deployment.
+- [x] Move top-level route composition and the root index route into
+      `bootstrap/routes.rs`.
+- [x] Keep `main.rs` as a thin process runner: env/logging, app state
+      initialization, server factory, bind, run.
+- [x] Prove bootstrap route composition with a focused routing test.
+
 Progress evidence from 2026-06-12:
 
 - `src/api/chapters.rs` no longer contains Diesel query builders; it delegates
@@ -774,6 +787,9 @@ Progress evidence from 2026-06-12:
   Diesel `User` record for user reads; it delegates list/search/profile reads
   through `application/identity` and `infra/postgres/identity`.
 - User profile HTTP response DTOs now live under `http/identity/dto`.
+- `src/main.rs` is now 35 lines and delegates app state initialization and
+  route composition to `bootstrap/startup.rs`, `bootstrap/app_state.rs`, and
+  `bootstrap/routes.rs`.
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env" src/domain src/application`
   returns no matches.
 - `rg "crate::repositories|crate::infra::postgres|crate::db::schema" src/http`
@@ -795,6 +811,7 @@ Progress evidence from 2026-06-12:
   passes.
 - `./scripts/run-host-tests.sh cargo test read_user_routes_require_view_user_or_self --test middleware_access_control`
   passes.
+- `./scripts/run-host-tests.sh cargo test --test api_routing` passes.
 - `./scripts/run-host-tests.sh cargo test test_course_content_lifecycle --test course_content_management`
   passes.
 - `./scripts/run-host-tests.sh cargo test notification_preferences_default_and_save_round_trip --test current_session_api`
@@ -926,7 +943,7 @@ notifications, reporting, and platform review.
 - [ ] API handlers mostly contain extraction, use-case call, and response
       mapping; no complex Diesel query builders.
 - [ ] Permission behavior has one backend source of truth.
-- [ ] `main.rs` is mostly logging/env setup, bootstrap calls, and server start.
+- [x] `main.rs` is mostly logging/env setup, bootstrap calls, and server start.
 - [ ] Existing route URLs and response semantics remain backward compatible
       unless a migration note explicitly says otherwise.
 - [ ] New `domain`, `application`, `http`, and `infra` modules pass the import

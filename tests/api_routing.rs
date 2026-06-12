@@ -4,6 +4,25 @@ use actix_web::{
 };
 
 #[actix_web::test]
+async fn bootstrap_routes_expose_index_and_health() {
+    let app =
+        test::init_service(App::new().configure(rust_learn::bootstrap::routes::configure_routes))
+            .await;
+
+    let index = test::call_service(&app, test::TestRequest::get().uri("/").to_request()).await;
+    assert_eq!(index.status(), StatusCode::OK);
+    let body: serde_json::Value = test::read_body_json(index).await;
+    assert_eq!(body["service"].as_str(), Some("rust-learn-api"));
+    assert_eq!(body["health"].as_str(), Some("/health"));
+    assert_eq!(body["readiness"].as_str(), Some("/ready"));
+    assert_eq!(body["api"].as_str(), Some("/api"));
+
+    let health =
+        test::call_service(&app, test::TestRequest::get().uri("/health").to_request()).await;
+    assert_eq!(health.status(), StatusCode::OK);
+}
+
+#[actix_web::test]
 async fn api_scope_and_following_routes_are_reachable() {
     let app = test::init_service(
         App::new()
