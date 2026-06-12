@@ -1,9 +1,6 @@
 "use client";
 
-import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { ProductShell, type ShellNotice } from "@/components/product-shell";
-import { fetchCourseCatalog, fetchLearnerWallet, fetchRewardHistory, linkMyWallet, requestCourseJoin, type CourseCatalogItem, type CourseCatalogResponse, type RewardHistoryEntry, type WalletSummary } from "@/lib/learner";
-import { clearStoredSessionToken, fetchCurrentSession, readStoredSessionToken, type CurrentSession } from "@/lib/session";
+import { ProductShell } from "@/components/product-shell";
 import { CoursesContent } from "./CoursesContent";
 import { ErrorState } from "./ErrorState";
 import { LoadingState } from "./LoadingState";
@@ -11,15 +8,64 @@ import { RewardsContent } from "./RewardsContent";
 import { SignedOutState } from "./SignedOutState";
 import { StatusPill } from "./StatusPill";
 import { WalletContent } from "./WalletContent";
-import { humanize } from "./humanize";
 import { learnerNotice } from "./learnerNotice";
-import { normalizeRouteError } from "./normalizeRouteError";
 import { routeConfig } from "./routeConfig";
-import { type EnrollmentStatusFilter } from "./EnrollmentStatusFilter";
 import { type LearnerProductRouteKind } from "./LearnerProductRouteKind";
-import { type LoadState } from "./LoadState";
-import { type RewardStatusFilter } from "./RewardStatusFilter";
-import { type RouteError } from "./RouteError";
+import { useLearnerProductRoute } from "./useLearnerProductRoute";
 
+export function LearnerProductRoute({ kind }: { kind: LearnerProductRouteKind }) {
+  const config = routeConfig[kind];
+  const route = useLearnerProductRoute(kind);
+  const notice = route.actionNotice || learnerNotice(route.error, kind);
+  const statusLabel = route.loadState === "loading" ? "Loading" : route.session ? "Learner access" : "Sign in required";
 
-export function LearnerProductRoute({ kind }: { kind: LearnerProductRouteKind }) { const config = routeConfig[kind]; const [hasToken, setHasToken] = useState(false); const [session, setSession] = useState<CurrentSession | null>(null); const [loadState, setLoadState] = useState<LoadState>("loading"); const [error, setError] = useState<RouteError | null>(null); const [actionNotice, setActionNotice] = useState<ShellNotice | null>(null); const [catalog, setCatalog] = useState<CourseCatalogResponse | null>(null); const [courseEnrollmentFilter, setCourseEnrollmentFilter] = useState<EnrollmentStatusFilter>("all"); const [courseRewardOnly, setCourseRewardOnly] = useState(false); const [courseSearch, setCourseSearch] = useState(""); const [courseSearchInput, setCourseSearchInput] = useState(""); const [joiningCourseId, setJoiningCourseId] = useState<number | null>(null); const [rewards, setRewards] = useState<RewardHistoryEntry[]>([]); const [rewardStatus, setRewardStatus] = useState<RewardStatusFilter>("all"); const [wallet, setWallet] = useState<WalletSummary | null>(null); const [walletLinking, setWalletLinking] = useState(false); const loadRoute = useCallback(async () => { const token = readStoredSessionToken(); if (!token) { setHasToken(false); setSession(null); setError(null); setCatalog(null); setRewards([]); setWallet(null); setLoadState("idle"); return; } setHasToken(true); setLoadState("loading"); setError(null); try { const sessionPromise = fetchCurrentSession({ token }); const rewardsPromise = kind === "rewards" ? fetchRewardHistory({ status: rewardStatus === "all" ? undefined : rewardStatus, token, }) : Promise.resolve([]); const catalogPromise = kind === "courses" ? fetchCourseCatalog({ enrollmentStatus: courseEnrollmentFilter === "all" ? undefined : courseEnrollmentFilter, rewardAvailable: courseRewardOnly ? true : undefined, search: courseSearch, token, }) : Promise.resolve(null); const walletPromise = kind === "wallet" ? fetchLearnerWallet({ token }) : Promise.resolve(null); const [nextSession, nextRewards, nextCatalog, nextWalletSnapshot] = await Promise.all([ sessionPromise, rewardsPromise, catalogPromise, walletPromise, ]); setSession(nextSession); setRewards(kind === "wallet" ? nextWalletSnapshot?.reward_history || [] : nextRewards); setCatalog(nextCatalog); setWallet(nextWalletSnapshot?.wallet || null); setLoadState("success"); } catch (nextError) { const requestError = normalizeRouteError(nextError); if (requestError.status === 401 || requestError.status === 404) { clearStoredSessionToken(); setHasToken(false); } setSession(null); setError({ code: requestError.code, message: requestError.message, status: requestError.status, }); setLoadState("error"); } }, [courseEnrollmentFilter, courseRewardOnly, courseSearch, kind, rewardStatus]); useEffect(() => { const timeout = window.setTimeout(() => void loadRoute(), 0); return () => window.clearTimeout(timeout); }, [loadRoute]); function signOut() { clearStoredSessionToken(); setHasToken(false); setSession(null); setError(null); setActionNotice(null); setCatalog(null); setRewards([]); setWallet(null); setLoadState("idle"); } async function linkWallet() { const token = readStoredSessionToken(); if (!token) { setLoadState("idle"); return; } setWalletLinking(true); setActionNotice(null); try { const result = await linkMyWallet({ token }); setWallet(result.wallet); setActionNotice({ message: result.created ? "Approved rewards can now be credited to this wallet." : "This account already had a RustLearn wallet.", title: result.created ? "Wallet linked" : "Wallet ready", tone: "success", }); } catch (nextError) { const requestError = normalizeRouteError(nextError); if (requestError.status === 401) { clearStoredSessionToken(); setHasToken(false); } setActionNotice({ message: requestError.message, title: requestError.code, tone: requestError.code === "timeout" || requestError.code === "network_error" ? "warn" : "error", }); } finally { setWalletLinking(false); } } async function requestJoin(course: CourseCatalogItem) { const token = readStoredSessionToken(); if (!token) { setLoadState("idle"); return; } setJoiningCourseId(course.id); setActionNotice(null); try { const joinRequest = await requestCourseJoin({ courseId: course.id, token }); setActionNotice({ message: `${course.title} is now ${humanize(joinRequest.status)} and waiting for course staff when review is required.`, title: "Enrollment request sent", tone: "success", }); await loadRoute(); } catch (nextError) { const requestError = normalizeRouteError(nextError); if (requestError.status === 401 || requestError.status === 404) { clearStoredSessionToken(); setHasToken(false); } setActionNotice({ message: requestError.message, title: requestError.code, tone: requestError.code === "timeout" || requestError.code === "network_error" ? "warn" : "error", }); } finally { setJoiningCourseId(null); } } function applyCourseSearch(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setCourseSearch(courseSearchInput.trim()); } function clearCourseFilters() { setCourseEnrollmentFilter("all"); setCourseRewardOnly(false); setCourseSearch(""); setCourseSearchInput(""); } const notice = actionNotice || learnerNotice(error, kind); const statusLabel = loadState === "loading" ? "Loading" : session ? "Learner access" : "Sign in required"; return ( <ProductShell activeNav="learn" breadcrumbs={[ { href: "/session", label: "Workspace" }, { href: "/learn", label: "Learner" }, { label: config.title }, ]} description={config.description} eyebrow="Learner" isSignedIn={hasToken || Boolean(session)} notice={notice} onSignOut={signOut} session={session} statusItems={<StatusPill label={statusLabel} tone={session ? "good" : "neutral"} />} title={config.title} > {loadState === "idle" && !session ? <SignedOutState redirect={config.href} /> : null} {loadState === "loading" ? <LoadingState /> : null} {error ? <ErrorState error={error} onRetry={loadRoute} redirect={config.href} /> : null} {loadState === "success" && session && kind === "courses" ? ( <CoursesContent catalog={catalog} enrollmentFilter={courseEnrollmentFilter} joiningCourseId={joiningCourseId} onApplySearch={applyCourseSearch} onChangeEnrollmentFilter={setCourseEnrollmentFilter} onChangeRewardOnly={setCourseRewardOnly} onChangeSearchInput={setCourseSearchInput} onClearFilters={clearCourseFilters} onRefresh={loadRoute} onRequestJoin={requestJoin} rewardOnly={courseRewardOnly} search={courseSearch} searchInput={courseSearchInput} session={session} /> ) : null} {loadState === "success" && session && kind === "rewards" ? ( <RewardsContent filter={rewardStatus} onChangeFilter={(nextFilter) => setRewardStatus(nextFilter)} rewards={rewards} /> ) : null} {loadState === "success" && session && kind === "wallet" ? ( <WalletContent linking={walletLinking} onLinkWallet={linkWallet} onRefresh={loadRoute} rewards={rewards} wallet={wallet} /> ) : null} </ProductShell> ); }
+  return (
+    <ProductShell
+      activeNav="learn"
+      breadcrumbs={[{ href: "/session", label: "Workspace" }, { href: "/learn", label: "Learner" }, { label: config.title }]}
+      description={config.description}
+      eyebrow="Learner"
+      isSignedIn={route.hasToken || Boolean(route.session)}
+      notice={notice}
+      onSignOut={route.signOut}
+      session={route.session}
+      statusItems={<StatusPill label={statusLabel} tone={route.session ? "good" : "neutral"} />}
+      title={config.title}
+    >
+      {route.loadState === "idle" && !route.session ? <SignedOutState redirect={config.href} /> : null}
+      {route.loadState === "loading" ? <LoadingState /> : null}
+      {route.error ? <ErrorState error={route.error} onRetry={route.loadRoute} redirect={config.href} /> : null}
+      {route.loadState === "success" && route.session && kind === "courses" ? (
+        <CoursesContent
+          catalog={route.catalog}
+          enrollmentFilter={route.courseEnrollmentFilter}
+          joiningCourseId={route.joiningCourseId}
+          onApplySearch={route.applyCourseSearch}
+          onChangeEnrollmentFilter={route.setCourseEnrollmentFilter}
+          onChangeRewardOnly={route.setCourseRewardOnly}
+          onChangeSearchInput={route.setCourseSearchInput}
+          onClearFilters={route.clearCourseFilters}
+          onRefresh={route.loadRoute}
+          onRequestJoin={route.requestJoin}
+          rewardOnly={route.courseRewardOnly}
+          search={route.courseSearch}
+          searchInput={route.courseSearchInput}
+          session={route.session}
+        />
+      ) : null}
+      {route.loadState === "success" && route.session && kind === "rewards" ? (
+        <RewardsContent filter={route.rewardStatus} onChangeFilter={route.setRewardStatus} rewards={route.rewards} />
+      ) : null}
+      {route.loadState === "success" && route.session && kind === "wallet" ? (
+        <WalletContent
+          kycVerified={route.session.user.kyc_verified}
+          linking={route.walletLinking}
+          onLinkWallet={route.linkWallet}
+          onRefresh={route.loadRoute}
+          rewards={route.rewards}
+          wallet={route.wallet}
+        />
+      ) : null}
+    </ProductShell>
+  );
+}

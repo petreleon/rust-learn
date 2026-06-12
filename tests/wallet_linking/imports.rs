@@ -10,7 +10,7 @@ use rust_learn::db::schema::{
     platform_roles, reward_candidates, reward_payout_records, reward_wallet_credit_records,
     role_permission_organization, role_permission_platform, transactions,
     transactions_external_transactions, transactions_internal_transactions,
-    wallet_token_deposit_intents, wallets,
+    users, wallet_token_deposit_intents, wallets,
 };
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::course::NewCourse;
@@ -56,6 +56,14 @@ async fn create_test_user(conn: &mut AsyncPgConnection, name: &str) -> User {
     )
     .await
     .expect("failed to create user")
+}
+
+async fn mark_user_kyc_verified(conn: &mut AsyncPgConnection, user_id: i32) {
+    diesel::update(users::table.find(user_id))
+        .set(users::kyc_verified.eq(true))
+        .execute(conn)
+        .await
+        .expect("failed to mark user KYC verified");
 }
 
 async fn create_test_organization(conn: &mut AsyncPgConnection) -> Organization {

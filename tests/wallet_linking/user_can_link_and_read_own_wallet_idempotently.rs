@@ -9,6 +9,22 @@ async fn user_can_link_and_read_own_wallet_idempotently() {
     let app = test::init_service(wallet_test_app(pool.clone())).await;
     let token = token_for(user.id());
 
+    let blocked_req = test::TestRequest::post()
+        .uri("/api/wallets/me/link")
+        .insert_header(("Authorization", format!("Bearer {}", token)))
+        .to_request();
+    let blocked_resp = test::call_service(&app, blocked_req).await;
+    assert_eq!(blocked_resp.status(), StatusCode::CONFLICT);
+    let blocked_body = test::read_body(blocked_resp).await;
+    assert_eq!(
+        blocked_body.as_ref(),
+        b"KYC verification is required before wallet actions"
+    );
+
+    let mut conn = setup_conn(&pool).await;
+    mark_user_kyc_verified(&mut conn, user.id()).await;
+    drop(conn);
+
     let link_req = test::TestRequest::post()
         .uri("/api/wallets/me/link")
         .insert_header(("Authorization", format!("Bearer {}", token)))
@@ -54,6 +70,8 @@ async fn platform_wallet_manager_can_link_another_user_wallet() {
     let auditor = create_test_user(&mut conn, "wallet_auditor").await;
     let target = create_test_user(&mut conn, "wallet_target").await;
     let second_target = create_test_user(&mut conn, "wallet_target_two").await;
+    mark_user_kyc_verified(&mut conn, target.id()).await;
+    mark_user_kyc_verified(&mut conn, second_target.id()).await;
     assign_platform_role(&mut conn, manager.id(), "ADMIN").await;
     assign_platform_role(&mut conn, stranger.id(), "MODERATOR").await;
     assign_platform_permission_role(&mut conn, auditor.id(), Permissions::VIEW_TRANSACTIONS).await;

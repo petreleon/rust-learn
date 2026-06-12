@@ -87,10 +87,31 @@ async fn link_user_wallet_by_id(
     if let Err(response) = ensure_user_exists(&mut conn, target_user_id).await {
         return response;
     }
+    if let Err(response) = ensure_user_kyc_verified(&mut conn, target_user_id).await {
+        return response;
+    }
 
     match wallet_service::link_user_wallet(&mut conn, target_user_id).await {
         Ok(linked_wallet) => link_response(linked_wallet),
         Err(_) => HttpResponse::InternalServerError().body("Failed to link wallet"),
+    }
+}
+
+async fn ensure_user_kyc_verified(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+) -> Result<(), HttpResponse> {
+    match users::table
+        .find(user_id)
+        .select(users::kyc_verified)
+        .first::<bool>(conn)
+        .await
+    {
+        Ok(true) => Ok(()),
+        Ok(false) => {
+            Err(HttpResponse::Conflict().body("KYC verification is required before wallet actions"))
+        }
+        Err(_) => Err(HttpResponse::InternalServerError().body("Failed to load user KYC status")),
     }
 }
 

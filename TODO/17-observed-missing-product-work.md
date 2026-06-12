@@ -244,13 +244,18 @@ Current evidence:
 - `kyc_audit_events` now records append-only submitted and review-decision
   events with actor, from/to status, reason, metadata, and timestamp; the admin
   KYC detail panel loads that audit history from `/api/kyc/review/{id}/audit`.
+- Account settings now renders explicit KYC readiness copy for not started,
+  submitted, under review, verified, rejected, expired, and provider-error
+  states.
+- User wallet linking and user token deposit/retirement service calls now
+  require verified KYC; the learner wallet route disables wallet linking and
+  explains that wallet, deposit, retirement, and payout actions stay blocked
+  until identity review is verified.
 
 Needed:
 
 - Add explicit expired and provider-error transition producers when provider
   or retention rules exist.
-- Gate future wallet or payout operations that require KYC with clear reasons
-  instead of silently showing `KYC pending`.
 - Broaden browser coverage for the signed-in account KYC form and populated
   admin KYC review queue states.
 
@@ -265,13 +270,13 @@ Checks:
   `/api/kyc/review/{id}`.
 - [x] Unit and API-helper tests cover KYC request validation, next-action
   derivation, status fetch, submission payloads, and error handling.
-- [ ] KYC status transitions are visible for not started, submitted, under
+- [x] KYC status transitions are visible for not started, submitted, under
   review, verified, rejected, expired, and provider/error states.
 - [x] Backend audit records identify who submitted/reviewed KYC, when it
   changed, and why it was rejected when applicable.
 - [x] Any admin/operator review route is permission-scoped and denies users
   without the exact review permission.
-- [ ] Wallet or payout actions that require KYC are disabled with a clear
+- [x] Wallet or payout actions that require KYC are disabled with a clear
   explanation and become available after verification.
 - [x] Tests cover KYC submission, review, rejection, resubmission, permission
   denial, and route rendering states.
@@ -286,6 +291,9 @@ Current evidence:
   UI yet.
 - Account settings repeats that deposits and retirements are managed from the
   wallet route when available.
+- User deposit and retirement service calls now enforce verified KYC before
+  creating wallet intents or ledger entries, but the learner-facing
+  deposit/retirement forms are still not built.
 
 Needed:
 

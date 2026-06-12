@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle, CreditCard, Loader2, RefreshCw, Trophy } from "lucide-react";
+import { AlertTriangle, CheckCircle, CreditCard, Loader2, RefreshCw, ShieldCheck, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 import { type RewardHistoryEntry, type WalletSummary } from "@/lib/learner";
@@ -11,14 +11,17 @@ import { SummaryCard } from "./SummaryCard";
 import { WalletActivityCard } from "./WalletActivityCard";
 import { isWalletCreditPending } from "./isWalletCreditPending";
 import { summarizeRewards } from "./summarizeRewards";
+import { walletKycGateCopy } from "./walletKycGate";
 
 export function WalletContent({
+  kycVerified,
   linking,
   onLinkWallet,
   onRefresh,
   rewards,
   wallet,
 }: {
+  kycVerified: boolean;
   linking: boolean;
   onLinkWallet: () => void;
   onRefresh: () => void;
@@ -26,6 +29,7 @@ export function WalletContent({
   wallet: WalletSummary | null;
 }) {
   const summary = useMemo(() => summarizeRewards(rewards), [rewards]);
+  const kycGate = walletKycGateCopy(kycVerified);
   const pendingCreditCount = rewards.filter(isWalletCreditPending).length;
   const walletScope = wallet?.organization_id ? "Organization wallet" : "Personal wallet";
 
@@ -68,20 +72,41 @@ export function WalletContent({
       ) : (
         <EmptyState
           action={
-            <button className={styles.primaryLink} disabled={linking} onClick={onLinkWallet} type="button">
-              {linking ? <Loader2 className={styles.spin} size={18} aria-hidden /> : <CreditCard size={18} aria-hidden />}
-              Link wallet
-            </button>
+            <div className={styles.actionRow}>
+              <button className={styles.primaryLink} disabled={!kycGate.ready || linking} onClick={onLinkWallet} type="button">
+                {linking ? <Loader2 className={styles.spin} size={18} aria-hidden /> : <CreditCard size={18} aria-hidden />}
+                Link wallet
+              </button>
+              {!kycGate.ready ? <Link className={styles.secondaryLink} href="/settings/account">Open verification</Link> : null}
+            </div>
           }
-          detail="A RustLearn wallet is required before approved rewards can be credited."
+          detail={kycGate.ready ? "A RustLearn wallet is required before approved rewards can be credited." : kycGate.actionDetail}
           title="Wallet not linked"
         />
       )}
     </section>
   );
 
+  const kycSection = (
+    <section className={styles.section}>
+      <div className={styles.sectionHeader}>
+        <h2>Wallet action readiness</h2>
+        <StatusPill label={kycGate.label} tone={kycGate.tone} />
+      </div>
+      <article className={styles.itemCard}>
+        <div className={styles.itemHeader}>
+          <h3>Identity gate</h3>
+          <ShieldCheck size={18} aria-hidden />
+        </div>
+        <p className={styles.muted}>{kycGate.detail}</p>
+        <p className={styles.muted}>{kycGate.actionDetail}</p>
+      </article>
+    </section>
+  );
+
   return (
     <>
+      {kycSection}
       {wallet ? metricsSection : walletSummarySection}
       {wallet ? walletSummarySection : metricsSection}
 

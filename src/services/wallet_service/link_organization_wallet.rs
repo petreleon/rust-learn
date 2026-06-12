@@ -68,6 +68,7 @@ pub async fn deposit_tokens_to_user_wallet(
     user_id: i32,
     request: WalletTokenTransferRequest,
 ) -> Result<WalletTokenDepositIntentResponse, WalletTokenTransferError> {
+    ensure_user_kyc_verified(conn, user_id).await?;
     create_user_wallet_token_deposit_intent(conn, user_id, request).await
 }
 
@@ -76,6 +77,7 @@ pub async fn retire_tokens_from_user_wallet(
     user_id: i32,
     request: WalletTokenTransferRequest,
 ) -> Result<WalletTokenTransferResponse, WalletTokenTransferError> {
+    ensure_user_kyc_verified(conn, user_id).await?;
     execute_user_wallet_token_transfer(conn, user_id, WalletTokenOperation::Retire, request).await
 }
 

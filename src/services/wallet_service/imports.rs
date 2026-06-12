@@ -1,7 +1,7 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{
     external_transactions, internal_transactions, transactions, transactions_external_transactions,
-    transactions_internal_transactions, wallet_token_deposit_intents, wallets,
+    transactions_internal_transactions, users, wallet_token_deposit_intents, wallets,
 };
 use crate::models::transaction::{
     NewExternalTransaction, NewInternalTransaction, NewTransaction,
@@ -140,6 +140,7 @@ pub struct WalletDepositCreditResult {
 #[derive(Debug, PartialEq)]
 pub enum WalletTokenTransferError {
     PermissionDenied(String),
+    KycRequired,
     InvalidInput(String),
     InsufficientFunds,
     Database(String),

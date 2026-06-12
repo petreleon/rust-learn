@@ -4,6 +4,7 @@ async fn duplicate_pending_deposit_intents_are_marked_ambiguous_without_creditin
     let pool = establish_connection();
     let mut conn = setup_conn(&pool).await;
     let learner = create_test_user(&mut conn, "wallet_ambiguous_learner").await;
+    mark_user_kyc_verified(&mut conn, learner.id()).await;
 
     set_persistent_state(
         &mut conn,

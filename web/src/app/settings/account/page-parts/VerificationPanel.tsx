@@ -7,22 +7,9 @@ import { fetchKycStatus, submitKyc, type KycStatusResponse } from "@/lib/kyc";
 import { readStoredSessionToken, type CurrentSession } from "@/lib/session";
 import styles from "../page.module.css";
 import { ReadinessItem } from "./ReadinessItem";
+import { kycReadinessCopy } from "./kycReadiness";
 
 type SaveState = "idle" | "loading" | "saving" | "success" | "error";
-
-function kycDetail(status: KycStatusResponse | null, verified: boolean) {
-  if (verified || status?.user_kyc_verified) return "Identity checks are complete for gated wallet or payout flows.";
-  if (status?.next_action === "wait_for_review") return "Your KYC request is waiting for platform review.";
-  if (status?.next_action === "resubmit") return status.submission?.rejection_reason || "Update and resubmit your KYC details.";
-  return "Submit identity details for platform review before KYC-gated wallet operations need them.";
-}
-
-function kycLabel(status: KycStatusResponse | null, verified: boolean) {
-  if (verified || status?.user_kyc_verified) return "KYC is verified";
-  if (status?.next_action === "wait_for_review") return "KYC under review";
-  if (status?.next_action === "resubmit") return "KYC needs resubmission";
-  return "KYC not started";
-}
 
 export function VerificationPanel({ session }: { session: CurrentSession }) {
   const [countryCode, setCountryCode] = useState("US");
@@ -69,6 +56,7 @@ export function VerificationPanel({ session }: { session: CurrentSession }) {
   }
 
   const canSubmit = !session.user.kyc_verified && status?.next_action !== "wait_for_review";
+  const readiness = kycReadinessCopy(status, session.user.kyc_verified);
 
   return (
     <article className={styles.panel}>
@@ -78,7 +66,7 @@ export function VerificationPanel({ session }: { session: CurrentSession }) {
       </div>
       <div className={styles.checkList}>
         <ReadinessItem detail={session.user.email_verified ? "Login, learner routes, and workspace APIs can load normally." : "Verify this address before using protected product routes."} label={session.user.email_verified ? "Email is verified" : "Email verification needed"} tone={session.user.email_verified ? "good" : "warn"} />
-        <ReadinessItem detail={kycDetail(status, session.user.kyc_verified)} label={kycLabel(status, session.user.kyc_verified)} tone={session.user.kyc_verified ? "good" : status?.next_action === "resubmit" ? "warn" : "neutral"} />
+        <ReadinessItem detail={readiness.detail} label={readiness.label} tone={readiness.tone} />
       </div>
       {!session.user.email_verified ? <Link className={styles.secondaryLink} href="/verify-email">Open verification</Link> : null}
       {saveState === "loading" ? <p className={styles.muted}><Loader2 className={styles.spin} size={15} aria-hidden /> Loading KYC status</p> : null}

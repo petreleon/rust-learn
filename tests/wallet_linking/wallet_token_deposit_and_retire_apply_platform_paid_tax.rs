@@ -7,6 +7,7 @@ async fn wallet_token_deposit_and_retire_apply_platform_paid_tax() {
     let deposit_tax_only = create_test_user(&mut conn, "wallet_deposit_tax_only").await;
     let stranger = create_test_user(&mut conn, "wallet_tax_stranger").await;
     let learner = create_test_user(&mut conn, "wallet_tax_learner").await;
+    mark_user_kyc_verified(&mut conn, learner.id()).await;
     assign_platform_permission_role(&mut conn, tax_admin.id(), Permissions::SET_DEPOSIT_TAX).await;
     assign_platform_permission_role(&mut conn, tax_admin.id(), Permissions::SET_RETIRE_TAX).await;
     assign_platform_permission_role(
