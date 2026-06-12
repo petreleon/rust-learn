@@ -1,3 +1,4 @@
+import { AdminRequestError } from "./AdminRequestError";
 import { DEFAULT_TIMEOUT_MS } from "./DEFAULT_TIMEOUT_MS";
 import { adminJsonRequest } from "./adminJsonRequest";
 import { type DelegationItem } from "./DelegationItem";
@@ -9,6 +10,42 @@ type DelegationListResponse = {
   offset: number;
   total: number;
 };
+
+function isDelegationListResponse(response: unknown): response is DelegationListResponse {
+  if (!response || typeof response !== "object") {
+    return false;
+  }
+  const candidate = response as Partial<DelegationListResponse>;
+  return (
+    Array.isArray(candidate.delegations) &&
+    typeof candidate.limit === "number" &&
+    typeof candidate.offset === "number" &&
+    typeof candidate.total === "number"
+  );
+}
+
+function normalizeDelegationListResponse({
+  limit,
+  offset,
+  response,
+}: {
+  limit?: number;
+  offset?: number;
+  response: DelegationItem[] | DelegationListResponse | unknown;
+}): DelegationListResponse {
+  if (Array.isArray(response)) {
+    return {
+      delegations: response,
+      limit: limit ?? response.length,
+      offset: offset ?? 0,
+      total: response.length,
+    };
+  }
+  if (isDelegationListResponse(response)) {
+    return response;
+  }
+  throw new AdminRequestError("Delegation list response was malformed.", 0, "invalid_response");
+}
 
 export async function fetchDelegations({
   apiRoot = "/api",
@@ -59,13 +96,5 @@ export async function fetchDelegations({
     timeoutMs,
     token,
   });
-  if (Array.isArray(response)) {
-    return {
-      delegations: response,
-      limit: limit ?? response.length,
-      offset: offset ?? 0,
-      total: response.length,
-    };
-  }
-  return response;
+  return normalizeDelegationListResponse({ limit, offset, response });
 }

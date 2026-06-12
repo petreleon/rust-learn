@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { AdminRequestError } from "@/lib/admin/AdminRequestError";
 import { fetchDelegations } from "@/lib/admin/fetchDelegations";
 import { type DelegationItem } from "@/lib/admin/DelegationItem";
 
@@ -71,5 +72,31 @@ describe("fetchDelegations", () => {
     });
 
     expect(result).toEqual({ delegations: [row], limit: 50, offset: 10, total: 72 });
+  });
+
+  it("normalizes empty raw-array responses", async () => {
+    mockJson([]);
+
+    const result = await fetchDelegations({
+      apiRoot: "http://api.test",
+      limit: 100,
+      token: "admin-token",
+    });
+
+    expect(result).toEqual({ delegations: [], limit: 100, offset: 0, total: 0 });
+  });
+
+  it("rejects malformed delegation responses before the route can crash", async () => {
+    mockJson({ items: [makeDelegation({ id: 9 })] });
+
+    await expect(
+      fetchDelegations({
+        apiRoot: "http://api.test",
+        token: "admin-token",
+      }),
+    ).rejects.toMatchObject<Partial<AdminRequestError>>({
+      code: "invalid_response",
+      message: "Delegation list response was malformed.",
+    });
   });
 });

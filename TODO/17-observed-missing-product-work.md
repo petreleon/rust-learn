@@ -362,22 +362,20 @@ Checks:
 
 Current evidence:
 
-- The platform admin dashboard renders rich cards for teacher review, reward
-  amount review, fraud controls, delegations, exports, wallets, and system
-  status, but the cards are not links. The browser-visible links on `/admin`
-  are only the shell links, account settings, and `/ops`.
-- Direct navigation to `/admin/teacher-applications`,
-  `/admin/rewards/amount-review`, `/admin/wallets`, `/admin/fraud-blocks`,
-  `/admin/exports`, and `/admin/system` works, so the routes exist but are not
-  discoverable from the admin dashboard.
-- Direct navigation to `/admin/delegations` crashes into the Next.js error
-  page. Browser console shows `TypeError: Cannot read properties of undefined
-  (reading 'length')` in `AdminDelegationsRoute`.
-- The frontend helper declares `fetchDelegations()` as returning
-  `{ delegations, limit, offset, total }`, but the running backend
-  `/api/delegated-permissions?limit=2` returns a raw array of delegation rows.
-- `/admin/fraud-blocks` logs a React warning about duplicate/missing keys in
-  `FraudBlockDetail` audit history.
+- The platform admin dashboard cards link to teacher review, reward amount
+  review, fraud controls, delegations, exports, wallets, and system status.
+- Direct navigation and dashboard navigation both reach
+  `/admin/teacher-applications`, `/admin/rewards/amount-review`,
+  `/admin/wallets`, `/admin/fraud-blocks`, `/admin/exports`, and
+  `/admin/system`.
+- `/admin/delegations` now loads the running backend's raw delegation array
+  without a framework overlay. Browser QA on June 12, 2026 loaded 100 rows with
+  no `AdminDelegationsRoute` console errors.
+- `fetchDelegations()` normalizes raw arrays and paginated objects, including
+  empty raw arrays, and rejects malformed objects with `invalid_response` before
+  `AdminDelegationsRoute` can dereference undefined list data.
+- `/admin/fraud-blocks` now renders without the previous `FraudBlockDetail`
+  audit-history key warning in browser console.
 - `/ops` still presents the old business console with many raw inputs,
   permission checkboxes, disabled actions, and API-result output. The product
   routes cover much of this work now, but `/ops` remains the discoverable
@@ -385,14 +383,8 @@ Current evidence:
 
 Needed:
 
-- Fix the delegation route contract mismatch: either wrap the backend list
-  response with pagination metadata or make `fetchDelegations()` and
-  `AdminDelegationsRoute` consume the raw array safely.
-- Add resilient empty/error states so a malformed admin API response cannot
-  crash the whole route.
-- Make admin dashboard cards and metrics navigate to their matching product
-  routes.
-- Fix the fraud-block audit list keys.
+- Add route/component tests for delegation create/select/revoke and
+  permission-denied states around the current backend response shape.
 - Decide whether `/ops` is a development-only API console or a supported
   product surface, then remove it from normal navigation if it is development
   only.
@@ -401,13 +393,13 @@ Needed:
 
 Checks:
 
-- [ ] `/admin/delegations` loads without a framework error overlay when the API
+- [x] `/admin/delegations` loads without a framework error overlay when the API
   returns zero rows, a raw array, or a paginated object.
 - [ ] Delegation list, create, select, revoke, and permission-denied states are
   covered by tests using the actual backend response shape.
-- [ ] `/admin` cards link to teacher applications, reward amount review,
+- [x] `/admin` cards link to teacher applications, reward amount review,
   wallets, fraud blocks, delegations, exports, and system status.
-- [ ] Browser console has no `AdminDelegationsRoute` runtime error and no
+- [x] Browser console has no `AdminDelegationsRoute` runtime error and no
   `FraudBlockDetail` key warning after visiting admin subroutes.
 - [ ] `/ops` is hidden from public/auth/account navigation unless an explicit
   development/admin gate is enabled.
