@@ -309,9 +309,9 @@ Checks:
 
 Current evidence:
 
-- Manual browser passes over `/session`, `/learn`, `/courses`, `/admin`, and
-  `/settings/account` show the shared `ProductShell` has horizontal overflow at
-  mobile width.
+- Earlier browser passes over `/session`, `/learn`, `/courses`, `/admin`, and
+  `/settings/account` showed the shared `ProductShell` had horizontal overflow
+  at mobile width.
 - The shared ProductShell CSS module composition now attaches responsive,
   descendant, disabled, hover, notification, and mobile-menu rules to the
   rendered classes.
@@ -334,6 +334,9 @@ Current evidence:
 - Rendered ProductShell tests assert normal-user account and mobile menus omit
   the operations console while platform admins receive desktop and mobile
   `/ops` links.
+- Rendered ProductShell tests also cover active nav `aria-current`,
+  signed-out disabled desktop/mobile workspace and notification controls,
+  workspace selector routing, and the mobile menu open state.
 - The notification bell now opens a real notification center on desktop and
   mobile. The list is capped to the newest 50 notifications and indexed by
   `(user_id, created_at DESC, id DESC)` so accounts with large histories do not
@@ -341,8 +344,6 @@ Current evidence:
 
 Needed:
 
-- Broaden fast ProductShell component coverage for active nav, disabled account
-  actions, workspace controls, and mobile menu states.
 - Keep notification center coverage in the browser smoke set as new
   notification-producing workflows are added.
 
@@ -352,8 +353,8 @@ Checks:
   is the only primary navigation control.
 - [x] `/session`, `/learn`, `/courses`, `/admin`, and `/settings/account` have
   no horizontal overflow at desktop or mobile widths.
-- [ ] ProductShell tests cover the CSS module split by rendering active nav,
-  disabled account actions, workspace controls, and mobile menu states.
+- [x] ProductShell tests cover the CSS module split by rendering active nav,
+  signed-out controls, workspace controls, and mobile menu states.
 - [x] Public auth pages and account menus no longer show `/ops` to normal users.
 - [x] The notification bell opens a real notification menu or route with unread
   count, list, empty, loading, error, mark-read, and clear states.

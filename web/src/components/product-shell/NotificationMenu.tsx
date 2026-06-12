@@ -83,7 +83,12 @@ export function NotificationMenu({ isSignedIn, variant = "icon" }: { isSignedIn:
 
   if (!isSignedIn) {
     return (
-      <button className={variant === "row" ? styles.accountMenuItem : styles.iconButton} disabled type="button">
+      <button
+        aria-label="Notifications"
+        className={variant === "row" ? styles.accountMenuItem : styles.iconButton}
+        disabled
+        type="button"
+      >
         <Bell size={16} aria-hidden />
         {variant === "row" ? "Notifications" : null}
       </button>
