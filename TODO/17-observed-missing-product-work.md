@@ -227,28 +227,42 @@ Current evidence:
 - `users.kyc_verified` exists and is returned in session, user, organization,
   and teacher roster summaries.
 - Registration always creates users with `kyc_verified: false`.
-- The account route only displays `KYC not verified`; it does not provide a
-  verification workflow.
-- No backend route appears to submit KYC data, approve/reject KYC, attach KYC
-  evidence, or update the field through a scoped permission.
+- RustLearn now uses a platform-reviewed KYC model for the first workflow
+  slice: users submit details from account settings, and platform reviewers
+  decide submissions with `REVIEW_KYC_SUBMISSIONS`.
+- `kyc_submissions` persists status, evidence/provider references, reviewer,
+  submitted/reviewed timestamps, and rejection reason.
+- `/api/kyc/me` returns/submits the signed-in user's KYC status; `/api/kyc/review`
+  lists reviewable submissions and `/api/kyc/review/{id}` approves or rejects.
+- Approval updates `users.kyc_verified`; rejection leaves the account unverified
+  and returns the rejection reason for resubmission.
+- Account settings now shows KYC status, start/resubmit form fields, pending
+  review copy, and verified/no-action states instead of only a passive badge.
 
 Needed:
 
-- Decide whether KYC is self-serve, platform-reviewed, organization-reviewed,
-  or external-provider-backed.
-- Add KYC submission and review data models, including status, evidence
-  references, reviewer, timestamps, rejection reason, and audit events.
-- Add user-facing account states for not started, submitted, under review,
-  verified, rejected, expired, and provider/error conditions.
-- Add scoped admin/operator review routes only if humans in RustLearn approve
-  KYC.
+- Add a product admin review screen over `/api/kyc/review`; the API exists but
+  reviewers still need a navigable route for queue, approve, and reject actions.
+- Add append-only KYC audit events if compliance needs a full decision history
+  across repeated submissions beyond the current submission records.
+- Add explicit expired and provider-error transition producers when provider
+  or retention rules exist.
 - Gate future wallet or payout operations that require KYC with clear reasons
   instead of silently showing `KYC pending`.
+- Add browser coverage for the account KYC form and the future admin review
+  screen after the review UI exists.
 
 Checks:
 
-- [ ] Account settings exposes a KYC start/resume/status action, not only a
+- [x] Account settings exposes a KYC start/resume/status action, not only a
   passive `KYC pending` badge.
+- [x] Backend routes persist KYC submissions and approve/reject through a
+  platform review permission.
+- [x] `users.kyc_verified` changes only after a verified review decision.
+- [x] KYC API route smoke covers `/api/kyc/me`, `/api/kyc/review`, and
+  `/api/kyc/review/{id}`.
+- [x] Unit and API-helper tests cover KYC request validation, next-action
+  derivation, status fetch, submission payloads, and error handling.
 - [ ] KYC status transitions are visible for not started, submitted, under
   review, verified, rejected, expired, and provider/error states.
 - [ ] Backend audit records identify who submitted/reviewed KYC, when it

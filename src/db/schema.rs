@@ -531,6 +531,30 @@ diesel::table! {
 }
 
 diesel::table! {
+    kyc_submissions (id) {
+        id -> Int8,
+        user_id -> Int4,
+        #[max_length = 32]
+        status -> Varchar,
+        legal_name -> Text,
+        #[max_length = 2]
+        country_code -> Varchar,
+        #[max_length = 32]
+        document_type -> Varchar,
+        #[max_length = 16]
+        document_last4 -> Nullable<Varchar>,
+        evidence_reference -> Nullable<Text>,
+        provider_reference -> Nullable<Text>,
+        reviewer_user_id -> Nullable<Int4>,
+        rejection_reason -> Nullable<Text>,
+        submitted_at -> Timestamptz,
+        reviewed_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     upload_jobs (id) {
         id -> Int8,
         bucket -> Varchar,
@@ -650,6 +674,7 @@ diesel::joinable!(delegated_permissions -> courses (course_id));
 diesel::joinable!(delegated_permissions -> organizations (organization_id));
 diesel::joinable!(email_verification_tokens -> users (user_id));
 diesel::joinable!(internal_transactions -> wallets (wallet_id));
+diesel::joinable!(kyc_submissions -> users (user_id));
 diesel::joinable!(notifications -> users (user_id));
 diesel::joinable!(organization_member_audit_events -> organizations (organization_id));
 diesel::joinable!(organization_member_audit_events -> users (actor_user_id));
@@ -731,6 +756,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     email_verification_tokens,
     external_transactions,
     internal_transactions,
+    kyc_submissions,
     notifications,
     organization_member_audit_events,
     organization_roles,

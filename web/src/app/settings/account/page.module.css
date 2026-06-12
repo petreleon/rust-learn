@@ -2,6 +2,8 @@
 .badgeRow { composes: badgeRow from './page.module/01.module.css'; }
 .checkList { composes: checkList from './page.module/01.module.css'; }
 .errorBox { composes: errorBox from './page.module/01.module.css'; }
+.fieldLabel { composes: fieldLabel from './page.module/02.module.css'; }
+.formGrid { composes: formGrid from './page.module/02.module.css'; }
 .good { composes: good from './page.module/01.module.css'; }
 .inlineStatus { composes: inlineStatus from './page.module/01.module.css'; }
 .metricCard { composes: metricCard from './page.module/01.module.css'; }

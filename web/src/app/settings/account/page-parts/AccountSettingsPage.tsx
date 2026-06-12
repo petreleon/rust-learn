@@ -1,27 +1,179 @@
 "use client";
 
-import { AlertCircle, Bell, BookOpen, Building2, CreditCard, Loader2, LogIn, Mail, RefreshCw, Send, ShieldCheck, UserRound } from "lucide-react";
+import { AlertCircle, CreditCard, Loader2, LogIn, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProductShell } from "@/components/product-shell";
 import { type WalletSummary } from "@/lib/learner";
-import { clearStoredSessionToken, fetchCurrentSession, fetchNotificationPreferences, readStoredSessionToken, saveNotificationPreferences, type CurrentSession, type NotificationPreferences } from "@/lib/session";
+import {
+  clearStoredSessionToken,
+  fetchCurrentSession,
+  fetchNotificationPreferences,
+  readStoredSessionToken,
+  saveNotificationPreferences,
+  type CurrentSession,
+  type NotificationPreferences,
+} from "@/lib/session";
 import styles from "../page.module.css";
 import { AccountNextStep } from "./AccountNextStep";
-import { MetricCard } from "./MetricCard";
-import { PreferenceRow } from "./PreferenceRow";
-import { ReadinessItem } from "./ReadinessItem";
+import { NotificationPreferencesPanel } from "./NotificationPreferencesPanel";
+import { ProfilePanel } from "./ProfilePanel";
 import { StatusLine } from "./StatusLine";
+import { VerificationPanel } from "./VerificationPanel";
 import { WalletAccountStatus } from "./WalletAccountStatus";
+import { WorkspaceAccessPanel } from "./WorkspaceAccessPanel";
 import { accountNotice } from "./accountNotice";
 import { fetchWalletForAccount } from "./fetchWalletForAccount";
 import { normalizeAccountError } from "./normalizeAccountError";
-import { notificationDescription } from "./notificationDescription";
 import { walletStatusLabel } from "./walletStatusLabel";
 import { type LoadState } from "./LoadState";
 import { type PrefsSaveState } from "./PrefsSaveState";
 import { type RouteError } from "./RouteError";
 import { type WalletLoadState } from "./WalletLoadState";
 
+export default function AccountSettingsPage() {
+  const [error, setError] = useState<RouteError | null>(null);
+  const [hasToken, setHasToken] = useState(false);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
+  const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
+  const [prefsEmail, setPrefsEmail] = useState(true);
+  const [prefsMessage, setPrefsMessage] = useState<string | null>(null);
+  const [prefsPush, setPrefsPush] = useState(false);
+  const [prefsSaveState, setPrefsSaveState] = useState<PrefsSaveState>("idle");
+  const [session, setSession] = useState<CurrentSession | null>(null);
+  const [wallet, setWallet] = useState<WalletSummary | null>(null);
+  const [walletError, setWalletError] = useState<RouteError | null>(null);
+  const [walletState, setWalletState] = useState<WalletLoadState>("idle");
 
-export default function AccountSettingsPage() { const [hasToken, setHasToken] = useState(false); const [loadState, setLoadState] = useState<LoadState>("loading"); const [session, setSession] = useState<CurrentSession | null>(null); const [error, setError] = useState<RouteError | null>(null); const [wallet, setWallet] = useState<WalletSummary | null>(null); const [walletError, setWalletError] = useState<RouteError | null>(null); const [walletState, setWalletState] = useState<WalletLoadState>("idle"); const [prefs, setPrefs] = useState<NotificationPreferences | null>(null); const [prefsEmail, setPrefsEmail] = useState(true); const [prefsPush, setPrefsPush] = useState(false); const [prefsSaveState, setPrefsSaveState] = useState<PrefsSaveState>("idle"); const [prefsMessage, setPrefsMessage] = useState<string | null>(null); const loadAccount = useCallback(async () => { const token = readStoredSessionToken(); if (!token) { setHasToken(false); setSession(null); setError(null); setWallet(null); setWalletError(null); setWalletState("idle"); setLoadState("idle"); return; } setHasToken(true); setLoadState("loading"); setWalletState("loading"); setError(null); setWalletError(null); try { const [nextSession, walletResult] = await Promise.all([ fetchCurrentSession({ token }), fetchWalletForAccount(token), ]); setSession(nextSession); setWallet(walletResult.wallet); setWalletError(walletResult.error); setWalletState(walletResult.error ? "error" : "success"); try { const nextPrefs = await fetchNotificationPreferences({ token }); setPrefs(nextPrefs); setPrefsEmail(nextPrefs.email_enabled); setPrefsPush(nextPrefs.push_enabled); } catch { setPrefs(null); } setLoadState("success"); } catch (nextError) { const requestError = normalizeAccountError(nextError); if (requestError.status === 401 || requestError.status === 404) { clearStoredSessionToken(); setHasToken(false); } setSession(null); setWallet(null); setWalletError(null); setWalletState("idle"); setError(requestError); setLoadState("error"); } }, []); useEffect(() => { const timeout = window.setTimeout(() => void loadAccount(), 0); return () => window.clearTimeout(timeout); }, [loadAccount]); const workspaceSummary = useMemo(() => { if (!session) { return "No workspace loaded"; } const count = session.organizations.length + session.courses.length; return `${count} workspace${count === 1 ? "" : "s"}`; }, [session]); const walletStatus = walletStatusLabel(wallet, walletState, walletError); function signOut() { clearStoredSessionToken(); setHasToken(false); setSession(null); setError(null); setWallet(null); setWalletError(null); setWalletState("idle"); setLoadState("idle"); } const notice = accountNotice(error); async function handleSavePrefs() { const token = readStoredSessionToken(); if (!token) return; setPrefsSaveState("saving"); setPrefsMessage(null); try { const updated = await saveNotificationPreferences({ emailEnabled: prefsEmail, pushEnabled: prefsPush, token, }); setPrefs(updated); setPrefsSaveState("success"); setPrefsMessage("Preferences saved."); } catch (e) { setPrefsMessage(e instanceof Error ? e.message : "Failed to save."); setPrefsSaveState("error"); } } return ( <ProductShell activeNav="account" breadcrumbs={[{ href: "/session", label: "Workspace" }, { label: "Account" }]} description="Profile, verification readiness, wallet connection, and notification defaults." eyebrow="Settings" isSignedIn={hasToken || Boolean(session)} notice={notice} onSignOut={signOut} session={session} statusItems={ <> <StatusLine icon={<ShieldCheck size={16} aria-hidden />} label={ loadState === "loading" ? "Resolving account" : session ? session.user.email_verified ? "Email verified" : "Email pending" : "No active session" } tone={session?.user.email_verified ? "good" : loadState === "error" ? "warn" : "neutral"} /> <StatusLine icon={<CreditCard size={16} aria-hidden />} label={walletStatus.label} tone={walletStatus.tone} /> </> } title="Account" > {loadState === "loading" ? ( <section className={`${styles.panel} ${styles.singlePanel}`} aria-live="polite"> <div className={styles.panelHeader}> <Loader2 className={styles.spin} size={22} aria-hidden /> <h2>Loading account</h2> </div> <p className={styles.muted}>Resolving profile, verification state, wallet readiness, and notification defaults.</p> </section> ) : null} {loadState === "idle" ? ( <section className={`${styles.panel} ${styles.singlePanel}`}> <div className={styles.panelHeader}> <LogIn size={22} aria-hidden /> <h2>Sign in required</h2> </div> <p className={styles.muted}>Account settings load after RustLearn resolves your current session.</p> <Link className={styles.primaryLink} href="/login?redirect=/settings/account"> <LogIn size={18} aria-hidden /> Sign in </Link> </section> ) : null} {error ? ( <section className={`${styles.errorBox} ${styles.singlePanel}`} role="status"> <AlertCircle size={18} aria-hidden /> <span> <strong>{error.code}</strong> {error.message} </span> <Link className={styles.secondaryLink} href="/login?redirect=/settings/account"> Return to login </Link> </section> ) : null} {session ? ( <> <AccountNextStep session={session} wallet={wallet} walletError={walletError} /> <section className={styles.summaryGrid}> <article className={`${styles.panel} ${styles.profilePanel}`}> <div className={styles.panelHeader}> <UserRound size={22} aria-hidden /> <h2>Profile</h2> </div> <div className={styles.profileBlock}> <div> <p className={styles.profileName}>{session.user.name}</p> <p className={styles.muted}>{session.user.email}</p> </div> <div className={styles.badgeRow}> <StatusLine label={session.user.email_verified ? "Email verified" : "Email pending"} tone={session.user.email_verified ? "good" : "warn"} /> <StatusLine label={session.user.kyc_verified ? "KYC verified" : "KYC pending"} tone={session.user.kyc_verified ? "good" : "neutral"} /> </div> <div className={styles.actionRow}> <button className={styles.secondaryButton} type="button" onClick={() => void loadAccount()}> <RefreshCw size={18} aria-hidden /> Refresh </button> </div> </div> </article> <article className={styles.panel}> <div className={styles.panelHeader}> <Mail size={22} aria-hidden /> <h2>Verification</h2> </div> <div className={styles.checkList}> <ReadinessItem detail={ session.user.email_verified ? "Login, learner routes, and workspace APIs can load normally." : "Verify this address before using protected product routes." } label={session.user.email_verified ? "Email is verified" : "Email verification needed"} tone={session.user.email_verified ? "good" : "warn"} /> <ReadinessItem detail={ session.user.kyc_verified ? "Identity checks are complete for flows that require them." : "KYC is not required for the current learner screens, but future wallet operations may need it." } label={session.user.kyc_verified ? "KYC is verified" : "KYC not verified"} tone={session.user.kyc_verified ? "good" : "neutral"} /> </div> {!session.user.email_verified ? ( <Link className={styles.secondaryLink} href="/verify-email"> Open verification </Link> ) : null} </article> <article className={styles.panel}> <div className={styles.panelHeader}> <CreditCard size={22} aria-hidden /> <h2>Wallet</h2> </div> <WalletAccountStatus error={walletError} state={walletState} wallet={wallet} /> </article> <article className={styles.panel}> <div className={styles.panelHeader}> <Building2 size={22} aria-hidden /> <h2>Workspace access</h2> </div> <div className={styles.metricGrid}> <MetricCard icon={<Building2 size={18} aria-hidden />} label="Organizations" value={session.organizations.length} /> <MetricCard icon={<BookOpen size={18} aria-hidden />} label="Courses" value={session.courses.length} /> <MetricCard icon={<ShieldCheck size={18} aria-hidden />} label="Delegations" value={session.delegated_permissions.length} /> </div> <p className={styles.muted}>{workspaceSummary} available from your current session.</p> <Link className={styles.secondaryLink} href="/session"> View access details </Link> </article> </section> <section className={styles.preferencePanel}> <div className={styles.panelHeader}> <Bell size={22} aria-hidden /> <h2>Notification preferences</h2> </div> <p className={styles.muted}> Choose which notifications RustLearn can send. Preferences are saved to your account. </p> <div className={styles.preferenceList}> <PreferenceRow checked={prefsEmail} detail={notificationDescription.email_enabled} disabled={prefsSaveState === "saving"} label="Account and access updates" onChange={setPrefsEmail} /> <PreferenceRow checked={prefsPush} detail={notificationDescription.push_enabled} disabled={prefsSaveState === "saving"} label="Reward status updates" onChange={setPrefsPush} /> </div> {prefsMessage ? ( <p className={styles.muted} style={{ color: prefsSaveState === "error" ? "var(--color-warn, #dc2626)" : undefined }}> {prefsMessage} </p> ) : null} <button className={styles.primaryLink} disabled={prefsSaveState === "saving"} onClick={() => void handleSavePrefs()} type="button" > <Send size={17} aria-hidden /> {prefsSaveState === "saving" ? "Saving…" : "Save preferences"} </button> </section> </> ) : null} </ProductShell> ); }
+  async function loadPreferences(token: string) {
+    try {
+      const nextPrefs = await fetchNotificationPreferences({ token });
+      setPrefs(nextPrefs);
+      setPrefsEmail(nextPrefs.email_enabled);
+      setPrefsPush(nextPrefs.push_enabled);
+    } catch {
+      setPrefs(null);
+    }
+  }
+
+  const loadAccount = useCallback(async () => {
+    const token = readStoredSessionToken();
+    if (!token) {
+      setHasToken(false);
+      setSession(null);
+      setError(null);
+      setWallet(null);
+      setWalletError(null);
+      setWalletState("idle");
+      setLoadState("idle");
+      return;
+    }
+    setHasToken(true);
+    setLoadState("loading");
+    setWalletState("loading");
+    setError(null);
+    setWalletError(null);
+    try {
+      const [nextSession, walletResult] = await Promise.all([
+        fetchCurrentSession({ token }),
+        fetchWalletForAccount(token),
+      ]);
+      setSession(nextSession);
+      setWallet(walletResult.wallet);
+      setWalletError(walletResult.error);
+      setWalletState(walletResult.error ? "error" : "success");
+      await loadPreferences(token);
+      setLoadState("success");
+    } catch (nextError) {
+      const requestError = normalizeAccountError(nextError);
+      if (requestError.status === 401 || requestError.status === 404) {
+        clearStoredSessionToken();
+        setHasToken(false);
+      }
+      setSession(null);
+      setWallet(null);
+      setWalletError(null);
+      setWalletState("idle");
+      setError(requestError);
+      setLoadState("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => void loadAccount(), 0);
+    return () => window.clearTimeout(timeout);
+  }, [loadAccount]);
+
+  const workspaceSummary = useMemo(() => {
+    if (!session) return "No workspace loaded";
+    const count = session.organizations.length + session.courses.length;
+    return `${count} workspace${count === 1 ? "" : "s"}`;
+  }, [session]);
+  const walletStatus = walletStatusLabel(wallet, walletState, walletError);
+
+  function signOut() {
+    clearStoredSessionToken();
+    setHasToken(false);
+    setSession(null);
+    setError(null);
+    setWallet(null);
+    setWalletError(null);
+    setWalletState("idle");
+    setLoadState("idle");
+  }
+
+  async function handleSavePrefs() {
+    const token = readStoredSessionToken();
+    if (!token) return;
+    setPrefsSaveState("saving");
+    setPrefsMessage(null);
+    try {
+      const updated = await saveNotificationPreferences({
+        emailEnabled: prefsEmail,
+        pushEnabled: prefsPush,
+        token,
+      });
+      setPrefs(updated);
+      setPrefsSaveState("success");
+      setPrefsMessage("Preferences saved.");
+    } catch (e) {
+      setPrefsMessage(e instanceof Error ? e.message : "Failed to save.");
+      setPrefsSaveState("error");
+    }
+  }
+
+  return (
+    <ProductShell activeNav="account" breadcrumbs={[{ href: "/session", label: "Workspace" }, { label: "Account" }]} description="Profile, verification readiness, wallet connection, and notification defaults." eyebrow="Settings" isSignedIn={hasToken || Boolean(session)} notice={accountNotice(error)} onSignOut={signOut} session={session} statusItems={<><StatusLine icon={<ShieldCheck size={16} aria-hidden />} label={loadState === "loading" ? "Resolving account" : session ? session.user.email_verified ? "Email verified" : "Email pending" : "No active session"} tone={session?.user.email_verified ? "good" : loadState === "error" ? "warn" : "neutral"} /><StatusLine icon={<CreditCard size={16} aria-hidden />} label={walletStatus.label} tone={walletStatus.tone} /></>} title="Account">
+      {loadState === "loading" ? <LoadingAccount /> : null}
+      {loadState === "idle" ? <SignedOutAccount /> : null}
+      {error ? <AccountError error={error} /> : null}
+      {session ? (
+        <>
+          <AccountNextStep session={session} wallet={wallet} walletError={walletError} />
+          <section className={styles.summaryGrid}>
+            <ProfilePanel onRefresh={() => void loadAccount()} session={session} />
+            <VerificationPanel session={session} />
+            <article className={styles.panel}>
+              <div className={styles.panelHeader}><CreditCard size={22} aria-hidden /><h2>Wallet</h2></div>
+              <WalletAccountStatus error={walletError} state={walletState} wallet={wallet} />
+            </article>
+            <WorkspaceAccessPanel session={session} workspaceSummary={workspaceSummary} />
+          </section>
+          <NotificationPreferencesPanel emailEnabled={prefsEmail} message={prefsMessage} onEmailChange={setPrefsEmail} onPushChange={setPrefsPush} onSave={() => void handleSavePrefs()} prefsLoaded={Boolean(prefs)} pushEnabled={prefsPush} saveState={prefsSaveState} />
+        </>
+      ) : null}
+    </ProductShell>
+  );
+}
+
+function LoadingAccount() {
+  return <section className={`${styles.panel} ${styles.singlePanel}`} aria-live="polite"><div className={styles.panelHeader}><Loader2 className={styles.spin} size={22} aria-hidden /><h2>Loading account</h2></div><p className={styles.muted}>Resolving profile, verification state, wallet readiness, and notification defaults.</p></section>;
+}
+
+function SignedOutAccount() {
+  return <section className={`${styles.panel} ${styles.singlePanel}`}><div className={styles.panelHeader}><LogIn size={22} aria-hidden /><h2>Sign in required</h2></div><p className={styles.muted}>Account settings load after RustLearn resolves your current session.</p><Link className={styles.primaryLink} href="/login?redirect=/settings/account"><LogIn size={18} aria-hidden />Sign in</Link></section>;
+}
+
+function AccountError({ error }: { error: RouteError }) {
+  return <section className={`${styles.errorBox} ${styles.singlePanel}`} role="status"><AlertCircle size={18} aria-hidden /><span><strong>{error.code}</strong>{error.message}</span><Link className={styles.secondaryLink} href="/login?redirect=/settings/account">Return to login</Link></section>;
+}

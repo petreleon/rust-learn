@@ -3,6 +3,36 @@
   gap: 8px;
 }
 
+.formGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.fieldLabel {
+  display: grid;
+  gap: 6px;
+  color: #334155;
+  font-size: 0.9rem;
+  font-weight: 820;
+}
+
+.fieldLabel input,
+.fieldLabel select {
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #172033;
+  background: #ffffff;
+  font: inherit;
+}
+
+.fieldLabel input:focus,
+.fieldLabel select:focus {
+  outline: 2px solid rgba(31, 111, 139, 0.28);
+  outline-offset: 2px;
+}
+
 .walletValue {
   display: grid;
   gap: 2px;
