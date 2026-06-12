@@ -568,9 +568,12 @@ Current evidence:
   API logs, which is useful for development but not normal product copy.
 - Login, registration, forgot/reset, and verify public nav no longer expose
   `/ops`.
-- The frontend stores JWTs in `sessionStorage`, so a new browser tab or fresh
-  in-app tab can look signed out while another tab is signed in. This explains
-  the earlier "Sign in required" surprises.
+- The frontend stores JWTs in shared `localStorage`, migrates legacy
+  `sessionStorage` tokens once, and writes a signed-out marker so stale tabs
+  cannot resurrect old tab-scoped tokens after logout.
+- Browser QA on June 12, 2026 proved login on `/login?redirect=/session`, a
+  second `/session` tab loading `admin@example.com`, second-tab sign-out, and
+  first-tab reload returning to "Sign in required" without console errors.
 - Account settings notification preferences now connect to a real shell
   notification center.
 
@@ -580,10 +583,8 @@ Needed:
   limiting for verification emails.
 - Replace local-log instructions with a development-only hint or a real
   in-product verification delivery status.
-- Decide whether auth should persist across tabs. If yes, move to a safer
-  shared persistence strategy; if no, explain tab-scoped sessions clearly and
-  avoid confusing redirects.
-- Keep notification preferences connected to a real notification center.
+- Add an explicit production auth lifetime policy such as remember-me,
+  inactivity expiry, refresh, or device/session revocation.
 
 Checks:
 
@@ -593,7 +594,7 @@ Checks:
   already-verified tokens.
 - [ ] Registration success copy is user-facing in production and development
   hints are gated to local builds.
-- [ ] Opening a new tab has an intentional, tested auth behavior with clear
+- [x] Opening a new tab has an intentional, tested auth behavior with clear
   redirect copy.
 - [x] Login/register/forgot/reset/verify pages do not expose `/ops` in normal
   navigation.

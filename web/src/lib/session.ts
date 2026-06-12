@@ -1,4 +1,4 @@
-export { SESSION_TOKEN_KEY } from "./session/SESSION_TOKEN_KEY";
+export { SESSION_SIGNED_OUT_KEY, SESSION_TOKEN_KEY } from "./session/SESSION_TOKEN_KEY";
 export type { CurrentSession } from "./session/CurrentSession";
 export type { PlatformSessionScope } from "./session/PlatformSessionScope";
 export type { OrganizationSessionScope } from "./session/OrganizationSessionScope";

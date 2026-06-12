@@ -83,7 +83,7 @@ export default function LoginPage() {
             </span>
             <span>
               <LogIn size={16} aria-hidden />
-              Redirects to requested route
+              Shared across browser tabs
             </span>
           </div>
         </div>
