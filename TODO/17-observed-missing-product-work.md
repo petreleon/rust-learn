@@ -375,20 +375,19 @@ Current evidence:
 - `fetchDelegations()` normalizes raw arrays and paginated objects, including
   empty raw arrays, and rejects malformed objects with `invalid_response` before
   `AdminDelegationsRoute` can dereference undefined list data.
+- Admin delegation tests cover the backend raw-array helper contract plus route
+  create, list/select, revoke, and permission-gated states.
 - `/admin/fraud-blocks` now renders without the previous `FraudBlockDetail`
   audit-history key warning in browser console.
 - `/ops` still presents the old business console with many raw inputs,
   permission checkboxes, disabled actions, and API-result output. The product
-  routes cover much of this work now, but `/ops` remains the discoverable
+  routes cover much of this work now, but `/ops` remains an admin-gated
   fallback.
 
 Needed:
 
-- Add route/component tests for delegation create/select/revoke and
-  permission-denied states around the current backend response shape.
-- Decide whether `/ops` is a development-only API console or a supported
-  product surface, then remove it from normal navigation if it is development
-  only.
+- Decide whether `/ops` should remain an admin-only API console, become
+  development-only, or be fully retired after product routes cover all actions.
 - Keep any remaining ops-only action tracked as a product-route gap until there
   is no need for users to reach `/ops`.
 
@@ -396,13 +395,13 @@ Checks:
 
 - [x] `/admin/delegations` loads without a framework error overlay when the API
   returns zero rows, a raw array, or a paginated object.
-- [ ] Delegation list, create, select, revoke, and permission-denied states are
-  covered by tests using the actual backend response shape.
+- [x] Delegation helper tests cover the backend raw-array response shape, and
+  route tests cover list, create, select, revoke, and permission-denied states.
 - [x] `/admin` cards link to teacher applications, reward amount review,
   wallets, fraud blocks, delegations, exports, and system status.
 - [x] Browser console has no `AdminDelegationsRoute` runtime error and no
   `FraudBlockDetail` key warning after visiting admin subroutes.
-- [ ] `/ops` is hidden from public/auth/account navigation unless an explicit
+- [x] `/ops` is hidden from public/auth/account navigation unless an explicit
   development/admin gate is enabled.
 - [ ] Product routes cover every action still listed in `/ops`, or each
   remaining ops-only action has a tracked TODO item.
