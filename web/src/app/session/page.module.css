@@ -12,6 +12,9 @@
 .panel { composes: panel from './page.module/01.module.css'; }
 .panelHeader { composes: panelHeader from './page.module/01.module.css'; }
 .permissionList { composes: permissionList from './page.module/01.module.css'; composes: permissionList from './page.module/02.module.css'; }
+.permissionDetails { composes: permissionDetails from './page.module/02.module.css'; }
+.permissionDetailItem { composes: permissionDetailItem from './page.module/02.module.css'; }
+.permissionDetailList { composes: permissionDetailList from './page.module/02.module.css'; }
 .primaryLink { composes: primaryLink from './page.module/01.module.css'; composes: primaryLink from './page.module/02.module.css'; }
 .profileBlock { composes: profileBlock from './page.module/01.module.css'; }
 .profileName { composes: profileName from './page.module/01.module.css'; }

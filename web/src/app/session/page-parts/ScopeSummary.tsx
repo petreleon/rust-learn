@@ -2,30 +2,44 @@
 
 import { type PlatformSessionScope } from "@/lib/session";
 import styles from "../page.module.css";
-import { previewLimit } from "./previewLimit";
+import { formatAccessLabel, pluralize } from "./formatAccessLabel";
 
 export function ScopeSummary({ title, scope }: { title: string; scope: PlatformSessionScope }) {
-  const visiblePermissions = scope.effective_permissions.slice(0, previewLimit);
-  const remainingCount = scope.effective_permissions.length - visiblePermissions.length;
+  const permissionCount = scope.effective_permissions.length;
+  const roleLabels = scope.roles.length
+    ? scope.roles.map(formatAccessLabel)
+    : [scope.delegated_permissions.length ? "Delegated access" : "No role"];
 
   return (
     <div className={styles.scopeSummary}>
       <p className={styles.summaryTitle}>{title}</p>
       <div className={styles.badgeRow}>
-        {scope.roles.map((role) => (
+        {roleLabels.map((role) => (
           <span className={styles.roleBadge} key={role}>
             {role}
           </span>
         ))}
-        {scope.roles.length === 0 ? <span className={styles.roleBadge}>Delegated</span> : null}
       </div>
-      <div className={styles.permissionList}>
-        {visiblePermissions.map((permission) => (
-          <span key={permission}>{permission}</span>
-        ))}
-        {remainingCount > 0 ? <span>+{remainingCount}</span> : null}
-        {scope.effective_permissions.length === 0 ? <span>No permissions</span> : null}
+      <div className={styles.permissionList} aria-label={`${title} permission summary`}>
+        <span>{permissionCount ? pluralize(permissionCount, "permission") : "No permissions"}</span>
+        {scope.direct_permissions.length ? <span>{pluralize(scope.direct_permissions.length, "direct")}</span> : null}
+        {scope.delegated_permissions.length ? (
+          <span>{pluralize(scope.delegated_permissions.length, "delegated")}</span>
+        ) : null}
       </div>
+      {permissionCount ? (
+        <details className={styles.permissionDetails}>
+          <summary>View permission details</summary>
+          <ul className={styles.permissionDetailList}>
+            {scope.effective_permissions.map((permission) => (
+              <li className={styles.permissionDetailItem} key={permission}>
+                <span>{formatAccessLabel(permission)}</span>
+                <code>{permission}</code>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
     </div>
   );
 }

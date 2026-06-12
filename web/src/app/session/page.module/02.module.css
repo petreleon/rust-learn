@@ -56,6 +56,34 @@
   overflow-wrap: anywhere;
 }
 
+.permissionDetails {
+  color: #475569;
+  font-size: 0.86rem;
+}
+
+.permissionDetails summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.permissionDetailList {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+  padding-left: 18px;
+}
+
+.permissionDetailItem {
+  display: grid;
+  gap: 2px;
+}
+
+.permissionDetailItem code {
+  color: #64748b;
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
 .delegationList {
   display: grid;
   gap: 10px;

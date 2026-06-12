@@ -272,52 +272,42 @@ Checks:
 
 Current evidence:
 
-- `/session` renders raw permission constants in the profile card, for example
-  `ACCEPT_ORGANIZATION_JOIN_REQUEST` and `APPROVE_CENTRALIZED_TRANSFER`.
-- The permissions run together and overflow/crop horizontally, making the card
-  look broken rather than intentionally summarized.
-- The visible `+109` count is useful, but it appears after several unreadable
-  raw constants instead of being the primary summary.
+- `/session` now renders human role labels and compact permission counts in
+  the profile card. Raw permission keys are behind the collapsed "View
+  permission details" disclosure.
+- Browser QA on June 12, 2026 verified desktop and 390px mobile `/session`
+  views for `admin@example.com`: no visible `APPROVE_*` or `SUPER_ADMIN`
+  constants, no horizontal overflow, and no console warnings/errors.
 - The page reads like a developer session inspector: "Profile, workspace
   scopes, and delegated permissions resolved from the API" is accurate, but not
   normal user-facing workspace copy.
-- The same CSS Modules split issue appears here: `.permissionList` is composed
-  from `web/src/app/session/page.module/01.module.css`, while the flex/wrap
-  rules live in `web/src/app/session/page.module/02.module.css`, so the rendered
-  permission list misses the wrapping layout and keeps `white-space: nowrap`.
-- Organizations, courses, and delegated-permission sections feel too tightly
-  attached to the top cards, which suggests other composed section styles may
-  also be missing or too weak.
+- `ScopeSummary` component tests cover large permission sets, zero
+  permissions, delegated-only access, and hidden raw keys before disclosure
+  expansion.
 
 Needed:
 
-- Repair the session CSS module split so `.permissionList`, workspace section
-  spacing, and responsive rules apply to the rendered classes.
-- Replace raw permission constants with human labels, grouped categories, or a
-  compact "View permissions" disclosure.
-- Make the profile card show the useful summary first: role, verification, KYC,
-  number of effective permissions, and delegated access status.
-- Keep raw permission keys available only in an inspector/debug details view,
-  copy-to-clipboard panel, or admin-oriented route.
 - Rewrite session page copy for the user task: "What can I access?" rather than
   "What did the API resolve?"
+- Add page-level tests for the full `/session` route loading, error,
+  signed-out, and signed-in states.
 
 Checks:
 
-- [ ] `/session` no longer shows raw permission constants in the first viewport
+- [x] `/session` no longer shows raw permission constants in the first viewport
   for normal users.
-- [ ] Permission summaries wrap or collapse cleanly at desktop and mobile
+- [x] Permission summaries wrap or collapse cleanly at desktop and mobile
   widths, with no cropped text or horizontal overflow.
-- [ ] The profile card prioritizes user identity, verification/KYC, role, and
+- [x] The profile card prioritizes user identity, verification/KYC, role, and
   permission count before any details.
-- [ ] A details view, if present, shows human labels first and raw keys only
+- [x] A details view, if present, shows human labels first and raw keys only
   when explicitly expanded.
-- [ ] Organizations, courses, and delegated-permission sections have clear
+- [x] Organizations, courses, and delegated-permission sections have clear
   spacing from the top card grid at desktop and mobile widths.
-- [ ] Browser screenshot and DOM checks confirm no
+- [x] Browser screenshot and DOM checks confirm no
   `ACCEPT_ORGANIZATION_JOIN_REQUESTAPPROVE_...` style concatenation remains.
-- [ ] Component/page tests cover large permission sets, zero permissions,
-  delegated-only access, and mobile layout.
+- [x] Component tests cover large permission sets, zero permissions, and
+  delegated-only access; Browser checks cover desktop and mobile layout.
 
 ## Product Shell, Navigation, And Mobile Layout
 
