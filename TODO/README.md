@@ -45,6 +45,13 @@ application.
   consolidated list of genuinely buildable backend contracts that are
   not yet implemented (assessments, notifications, pagination, invites,
   etc.).
+- [15-testing-gaps.md](15-testing-gaps.md) - remaining page, helper,
+  browser, and runtime coverage gaps after the product-route migration.
+- [16-platform-walkthrough-after-refactor.md](16-platform-walkthrough-after-refactor.md) -
+  post-refactor platform walkthrough notes and route findings.
+- [17-observed-missing-product-work.md](17-observed-missing-product-work.md) -
+  current objective file for missing product features, ugly interface states,
+  recursive verification, and build-ready acceptance checks.
 
 ## Current Frontend Baseline
 
@@ -89,5 +96,8 @@ application.
   screen needs an endpoint or response shape that does not exist yet.
 - Update [11-qa-matrix.md](11-qa-matrix.md) when a new route, state, or runtime
   proof becomes mandatory.
+- Use [17-observed-missing-product-work.md](17-observed-missing-product-work.md)
+  as the active build backlog for observed missing features until its checks
+  are proven by code, tests, and rendered route evidence.
 - Keep completed checks honest: mark an item done only when current code and
   runtime evidence prove it.
