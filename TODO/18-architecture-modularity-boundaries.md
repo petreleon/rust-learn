@@ -401,6 +401,7 @@ src/
         enrollment_store.rs
         progress_store.rs
         assessment_read_store.rs
+        assessment_submission_store.rs
         assessment_store.rs
         mappers.rs
       content/
@@ -792,7 +793,32 @@ Slice 8: migrate learning assessment reads.
 - [x] Prove published-only assessment listing, user-scoped attempt history, and
       descending attempt order with a focused route-level regression test.
 
-Progress evidence from 2026-06-12:
+Slice 9: migrate learning assessment submission.
+
+- [x] Use `POST /courses/{id}/assessments/{assessment_id}/submit` as the next
+      migration because it was the remaining assessment route with scoring,
+      max-attempt checks, question reads, and attempt writes inside the API
+      handler.
+- [x] Move scoring into pure `domain/learning/assessment` rules so answer
+      trimming, unanswered questions, total points, and zero-point percentage
+      behavior are testable without Actix or Diesel.
+- [x] Create `application/learning/submit_assessment_attempt` and an
+      `AssessmentSubmissionStore` port.
+- [x] Move published assessment lookup, completed-attempt counting, question
+      reads, and completed-attempt insertion behind
+      `infra/postgres/learning/assessment_submission_store.rs`.
+- [x] Move submit request and response contracts into `http/learning/dto`.
+- [x] Preserve existing HTTP behavior: missing assessment returns 404,
+      exhausted attempts return 403, lookup failures still say
+      `Failed to load assessment`, save failures still say
+      `Failed to save attempt`, and `started_at` remains DB-defaulted.
+- [x] Self-critique: do not introduce a transaction or idempotency policy in
+      this architecture-only slice because the legacy route did not have one.
+      A later product/consistency slice can make that behavior explicit.
+- [x] Prove scoring, persisted attempt shape, and max-attempt enforcement with a
+      focused route-level regression test.
+
+Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` no longer contains Diesel query builders; it delegates
   to `application/content/manage_chapter` and `infra/postgres/content/chapter_store`.
@@ -823,8 +849,12 @@ Progress evidence from 2026-06-12:
   through `application/learning/list_course_assessments` and
   `infra/postgres/learning/assessment_read_store.rs`.
 - Assessment read HTTP response DTOs now live under `http/learning/dto`.
-- `submit_assessment_attempt` still contains legacy Diesel write/scoring logic
-  and is intentionally reserved for a later write-focused learning slice.
+- `src/api/courses/list_course_assessments.rs` no longer contains direct Diesel
+  usage for either assessment reads or assessment submission; it delegates
+  submission through `application/learning/submit_assessment_attempt` and
+  `infra/postgres/learning/assessment_submission_store.rs`.
+- Assessment scoring rules now live under `domain/learning/assessment`.
+- Assessment submit request/response DTOs now live under `http/learning/dto`.
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env" src/domain src/application`
   returns no matches.
 - `rg "crate::repositories|crate::infra::postgres|crate::db::schema" src/http`
@@ -837,10 +867,12 @@ Progress evidence from 2026-06-12:
   returns no matches.
 - `rg "diesel|diesel_async|RunQueryDsl|assessment_attempts::table|assessments::table" src/api/courses/list_assessment_attempts.rs`
   returns no matches.
+- `rg "diesel|diesel_async|RunQueryDsl|assessment_attempts::table|assessment_questions::table|assessments::table|crate::db::schema" src/api/courses/list_course_assessments.rs src/api/courses/list_assessment_attempts.rs`
+  returns no matches.
 - `cargo fmt --all --check` passes.
 - `git diff --check` passes.
 - `./scripts/run-host-tests.sh cargo test http::` passes.
-- `./scripts/run-host-tests.sh cargo test --lib application::learning` passes.
+- `./scripts/run-host-tests.sh cargo test --lib learning` passes.
 - `./scripts/run-host-tests.sh cargo test application::access_control` passes.
 - `./scripts/run-host-tests.sh cargo test application::identity` passes.
 - `./scripts/run-host-tests.sh cargo test domain::rewards::candidate` passes.
@@ -852,6 +884,8 @@ Progress evidence from 2026-06-12:
   passes.
 - `./scripts/run-host-tests.sh cargo test --test api_routing` passes.
 - `./scripts/run-host-tests.sh cargo test assessment_read_routes_are_published_and_user_scoped --test course_assessments`
+  passes.
+- `./scripts/run-host-tests.sh cargo test assessment_submit_attempt_scores_persists_and_enforces_max_attempts --test course_assessment_submission`
   passes.
 - `./scripts/run-host-tests.sh cargo test test_course_content_lifecycle --test course_content_management`
   passes.

@@ -1,0 +1,10 @@
+use crate::application::learning::assessment::AssessmentAttemptOutput;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SubmitAssessmentAttemptOutput {
+    pub attempt: AssessmentAttemptOutput,
+    pub score: i32,
+    pub total_points: i32,
+    pub percentage: i32,
+    pub passed: bool,
+}

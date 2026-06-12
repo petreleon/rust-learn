@@ -25,6 +25,22 @@ pub struct AssessmentAttemptOutput {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AssessmentQuestionForScoring {
+    pub id: i32,
+    pub correct_answer: Option<String>,
+    pub points: i32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompletedAssessmentAttempt {
+    pub assessment_id: i32,
+    pub user_id: i32,
+    pub score: i32,
+    pub passed: bool,
+    pub completed_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AssessmentReadError {
     Database(String),
 }

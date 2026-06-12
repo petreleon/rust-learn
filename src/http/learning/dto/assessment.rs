@@ -1,7 +1,11 @@
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use crate::application::learning::assessment::{AssessmentAttemptOutput, AssessmentOutput};
+use crate::application::learning::submit_assessment_attempt::{
+    SubmitAssessmentAttemptCommand, SubmitAssessmentAttemptOutput,
+};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct AssessmentResponse {
@@ -53,6 +57,48 @@ impl From<AssessmentAttemptOutput> for AssessmentAttemptResponse {
             passed: attempt.passed,
             started_at: attempt.started_at,
             completed_at: attempt.completed_at,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SubmitAssessmentAttemptRequest {
+    pub answers: HashMap<i32, String>,
+}
+
+impl SubmitAssessmentAttemptRequest {
+    pub fn into_command(
+        self,
+        course_id: i32,
+        assessment_id: i32,
+        user_id: i32,
+    ) -> SubmitAssessmentAttemptCommand {
+        SubmitAssessmentAttemptCommand {
+            course_id,
+            assessment_id,
+            user_id,
+            answers: self.answers,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SubmitAssessmentAttemptResponse {
+    pub attempt: AssessmentAttemptResponse,
+    pub score: i32,
+    pub total_points: i32,
+    pub percentage: i32,
+    pub passed: bool,
+}
+
+impl From<SubmitAssessmentAttemptOutput> for SubmitAssessmentAttemptResponse {
+    fn from(output: SubmitAssessmentAttemptOutput) -> Self {
+        Self {
+            attempt: AssessmentAttemptResponse::from(output.attempt),
+            score: output.score,
+            total_points: output.total_points,
+            percentage: output.percentage,
+            passed: output.passed,
         }
     }
 }
