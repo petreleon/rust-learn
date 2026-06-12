@@ -327,6 +327,9 @@ Current evidence:
   and the account menu all appear in the first row.
 - Public/auth navigation no longer exposes `/ops`; ProductShell only exposes
   the operations console when the resolved session is a platform admin.
+- Rendered ProductShell tests assert normal-user account and mobile menus omit
+  the operations console while platform admins receive desktop and mobile
+  `/ops` links.
 - The notification bell now opens a real notification center on desktop and
   mobile. The list is capped to the newest 50 notifications and indexed by
   `(user_id, created_at DESC, id DESC)` so accounts with large histories do not
@@ -337,8 +340,6 @@ Needed:
 - Add a mobile-first shell layout that shows one navigation surface at a time:
   brand, menu button, account summary, and workspace selector without
   horizontal scrolling.
-- Remove `/ops` from public/auth navigation and normal account menus, or gate it
-  behind an explicit development/admin-only affordance.
 - Add route-level shell rendering coverage across the shared ProductShell
   routes, including normal-user account menu behavior.
 - Keep notification center coverage in the browser smoke set as new
@@ -352,7 +353,7 @@ Checks:
   no horizontal overflow at desktop or mobile widths.
 - [ ] ProductShell tests cover the CSS module split by rendering active nav,
   disabled account actions, workspace controls, and mobile menu states.
-- [ ] Public auth pages and account menus no longer show `/ops` to normal users.
+- [x] Public auth pages and account menus no longer show `/ops` to normal users.
 - [x] The notification bell opens a real notification menu or route with unread
   count, list, empty, loading, error, mark-read, and clear states.
 - [x] Notification helpers are covered by component/page tests and at least one
