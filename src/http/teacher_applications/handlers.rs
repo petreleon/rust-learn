@@ -17,8 +17,7 @@ use crate::http::teacher_applications::support::{
     notify_teacher_application_event, service_error_response,
 };
 use crate::services::teacher_application_service::{
-    self, PlatformTeacherApplicationsRequest, SubmitTeacherApplicationRequest,
-    TeacherApplicationDecisionRequest,
+    self, SubmitTeacherApplicationRequest, TeacherApplicationDecisionRequest,
 };
 use crate::utils::request_auth::authenticated_user;
 
@@ -61,32 +60,6 @@ pub(super) async fn list_applications(
     match use_case.list_applications(query).await {
         Ok(applications) => HttpResponse::Ok().json(teacher_application_responses(applications)),
         Err(error) => list_applications_error_response(error),
-    }
-}
-
-pub(super) async fn list_platform_review_applications(
-    req: HttpRequest,
-    pool: web::Data<db::DbPool>,
-    query: web::Query<PlatformTeacherApplicationsRequest>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match teacher_application_service::list_platform_applications(
-        &mut conn,
-        requester.user_id,
-        query.into_inner(),
-    )
-    .await
-    {
-        Ok(response) => HttpResponse::Ok().json(response),
-        Err(error) => service_error_response(error),
     }
 }
 

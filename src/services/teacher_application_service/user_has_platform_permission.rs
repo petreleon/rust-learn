@@ -1,14 +1,3 @@
-async fn user_has_platform_permission(
-    conn: &mut AsyncPgConnection,
-    user_id: i32,
-    permission: Permissions,
-) -> Result<bool, TeacherApplicationError> {
-    let permission_name = permission.to_string();
-    user_permission_platform_request(conn, user_id, &permission_name)
-        .await
-        .map_err(TeacherApplicationError::from)
-}
-
 async fn user_has_platform_or_organization_permission(
     conn: &mut AsyncPgConnection,
     user_id: i32,

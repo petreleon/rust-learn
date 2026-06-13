@@ -60,14 +60,6 @@ pub struct OrganizationTeacherApplicationPermissions {
     pub can_nominate_teachers: bool,
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct PlatformTeacherApplicationPermissions {
-    pub can_view_applications: bool,
-    pub can_approve_applications: bool,
-    pub can_reject_applications: bool,
-    pub can_request_changes: bool,
-}
-
 pub async fn submit_application(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,

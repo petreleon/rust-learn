@@ -2,6 +2,9 @@ mod audit;
 mod dto;
 mod handlers;
 mod organization_nomination;
+mod platform_review;
+mod platform_review_dto;
+mod platform_review_item_dto;
 mod routes;
 mod support;
 

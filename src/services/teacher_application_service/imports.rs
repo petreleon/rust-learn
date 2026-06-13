@@ -70,31 +70,11 @@ pub struct TeacherApplicationDecisionRequest {
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
-pub struct PlatformTeacherApplicationsRequest {
-    pub status: Option<String>,
-    pub search: Option<String>,
-    pub limit: Option<i64>,
-    pub offset: Option<i64>,
-}
-
-#[derive(Debug, Clone, Deserialize, Default)]
 pub struct OrganizationTeacherApplicationsRequest {
     pub status: Option<String>,
     pub search: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct PlatformTeacherApplicationsResponse {
-    pub applications: Vec<PlatformTeacherApplicationItem>,
-    pub summary: TeacherApplicationDashboardSummary,
-    pub operator_permissions: PlatformTeacherApplicationPermissions,
-    pub total: i64,
-    pub limit: i64,
-    pub offset: i64,
-    pub status: Option<String>,
-    pub search: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -114,23 +94,4 @@ pub struct OrganizationTeacherApplicationsResponse {
 pub struct OrganizationTeacherApplicationsOrganization {
     pub id: i32,
     pub name: String,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct PlatformTeacherApplicationItem {
-    pub id: i64,
-    pub applicant: TeacherApplicationUserSummary,
-    pub requested_scope: String,
-    pub requested_organization: Option<TeacherApplicationOrganizationSummary>,
-    pub requested_course: Option<TeacherApplicationCourseSummary>,
-    pub sponsor_organization: Option<TeacherApplicationOrganizationSummary>,
-    pub experience_summary: String,
-    pub portfolio_links: Vec<String>,
-    pub status: String,
-    pub reviewer: Option<TeacherApplicationUserSummary>,
-    pub decision_reason: Option<String>,
-    pub audit: TeacherApplicationAuditSummary,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
-    pub decided_at: Option<chrono::DateTime<chrono::Utc>>,
 }

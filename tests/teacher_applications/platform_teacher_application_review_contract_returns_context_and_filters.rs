@@ -142,7 +142,32 @@ async fn platform_teacher_application_review_contract_returns_context_and_filter
     .expect_err("users without review permission cannot load platform queue");
     assert!(matches!(
         denied,
-        TeacherApplicationError::PermissionDenied(permission)
+        rust_learn::application::teacher_applications::list_platform_review::TeacherApplicationPlatformReviewError::PermissionDenied(permission)
             if permission == Permissions::REVIEW_TEACHER_APPLICATIONS.to_string()
     ));
+
+    let app = test::init_service(
+        App::new()
+            .app_data(teacher_application_platform_review_data())
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .configure(rust_learn::http::teacher_applications::configure_routes),
+    )
+    .await;
+    let http_response = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri(&format!(
+                "/teacher-applications/review?status=submitted&search={search_marker}"
+            ))
+            .insert_header(("Authorization", format!("Bearer {}", token_for(reviewer.id()))))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(http_response.status(), StatusCode::OK);
+    let body: serde_json::Value = test::read_body_json(http_response).await;
+    assert!(body["applications"]
+        .as_array()
+        .expect("applications should be an array")
+        .iter()
+        .any(|application| application["id"].as_i64() == Some(submitted.id)));
 }

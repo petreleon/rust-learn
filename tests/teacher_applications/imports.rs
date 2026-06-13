@@ -33,8 +33,7 @@ use rust_learn::infra::postgres::teacher_applications::teacher_application_audit
 use rust_learn::infra::postgres::teacher_applications::teacher_application_list_use_case::PostgresTeacherApplicationListUseCase;
 use rust_learn::infra::postgres::teacher_applications::teacher_application_self_use_case::PostgresTeacherApplicationSelfUseCase;
 use rust_learn::services::teacher_application_service::{
-    decide_application, list_platform_applications, nominate_application, submit_application,
-    OrganizationTeacherNominationRequest, PlatformTeacherApplicationsRequest,
+    decide_application, nominate_application, submit_application, OrganizationTeacherNominationRequest,
     SubmitTeacherApplicationRequest, TeacherApplicationDecisionRequest, TeacherApplicationError,
 };
 use rust_learn::utils::jwt_utils::create_jwt;

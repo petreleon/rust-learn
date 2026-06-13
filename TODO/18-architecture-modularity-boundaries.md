@@ -1014,42 +1014,45 @@ remaining gaps.
 | 116 | Moved `GET /teacher-applications/me` behind `application/teacher_applications/get_my_application`, a Postgres teacher-application self adapter/use case, HTTP-owned self snapshot DTOs, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns Diesel records, or calls `teacher_application_service::get_my_application`. |
 | 117 | Moved `GET /teacher-applications/{id}/audit` behind `application/teacher_applications/list_application_audit`, a Postgres audit adapter/use case, shared teacher-application audit output, HTTP-owned audit DTO mapping, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns Diesel audit records, or calls `teacher_application_service::list_audit_events`. |
 | 118 | Moved `GET /teacher-applications` behind `domain/teacher_applications` status normalization, `application/teacher_applications/list_applications`, a Postgres list adapter/use case, HTTP-owned list query/response DTOs, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns Diesel application records, or calls `teacher_application_service::list_applications`. |
+| 119 | Moved `GET /teacher-applications/review` behind `application/teacher_applications/list_platform_review`, a granular Postgres review store/use case/context mapper, HTTP-owned platform-review query/response DTO modules, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns service response structs, or calls `teacher_application_service::list_platform_applications`. |
 
 ## Recent Slice Evidence
 
-Slice 118: move teacher-application list reads into Level 2 rings.
+Slice 119: move teacher-application platform review reads into Level 2 rings.
 
-- [x] Add `domain/teacher_applications` status normalization so list filters
-      reject unknown states before persistence code is reached.
-- [x] Promote `TeacherApplicationOutput` to shared
-      `application/teacher_applications` vocabulary so self-status and list
-      routes use one application output at the HTTP/infra boundary.
-- [x] Add `application/teacher_applications/list_applications` with
-      query/error/store/service contracts and a fake-tested handler that gates
-      list reads on the review permission before loading applications.
-- [x] Add Postgres list store/use-case modules under
-      `infra/postgres/teacher_applications`, keeping platform permission lookup,
-      Diesel filters, pagination defaults, and persistence-to-application
-      mapping out of HTTP and application code.
-- [x] Rework `GET /teacher-applications` to use `AuthUser`, typed HTTP query
-      DTOs, an injected list use case, and HTTP-owned response DTO mapping
-      instead of opening `DbPool` or returning Diesel application records
-      directly.
-- [x] Register the list use case through `bootstrap/teacher_application_wiring`
-      and add an API routing fake for route reachability tests.
-- [x] Delete the obsolete `teacher_application_service::list_applications`
-      function after moving the route and test helper to the new
-      application/Postgres path.
-- [x] Self-critique: submit, platform review, decision, and organization
-      nomination routes still use the legacy `teacher_application_service`;
-      platform review is the most complex remaining read path because it returns
-      enriched review context rather than plain applications.
-- [x] Prove behavior with teacher-application domain/application unit tests, the
-      full `teacher_applications` integration suite including the HTTP list
-      route assertion, API route reachability, formatting, line-count checks,
-      `git diff --check`, and boundary scans proving the list application module
-      does not import Actix, Diesel, DB pools, services, repositories, or
-      persistence models.
+- [x] Add `application/teacher_applications/list_platform_review` with
+      query/output/error/store/service contracts and a fake-tested handler that
+      gates the queue on review permission, normalizes status/search filters,
+      preserves legacy summary-vs-filtered-total semantics, and exposes
+      operator approve/reject/request-change capabilities.
+- [x] Add Postgres platform-review store/use-case/context modules under
+      `infra/postgres/teacher_applications`, keeping permission checks, Diesel
+      application/user/course/organization/audit queries, JSON portfolio-link
+      parsing, audit summaries, and persistence-to-application mapping outside
+      HTTP and application code.
+- [x] Split platform-review HTTP ownership into dedicated handler and DTO
+      modules so `/teacher-applications/review` uses `AuthUser`, an injected use
+      case, and HTTP response mapping instead of opening `DbPool` or serializing
+      service response structs.
+- [x] Register the platform-review use case through
+      `bootstrap/teacher_application_wiring`/`app_data` and add an API routing
+      fake for route reachability tests.
+- [x] Delete the obsolete `teacher_application_service::list_platform_applications`
+      function, platform-only legacy item/permission structs, and stale
+      platform search helper while keeping organization-list helpers for the
+      still-legacy organization path.
+- [x] Self-critique: submit, decision, and organization nomination still use the
+      legacy `teacher_application_service`; those mutation paths also own audit
+      writes, role assignment, idempotency, and notification side effects, so
+      they should move in separate slices with explicit output/notification
+      boundaries.
+- [x] Prove behavior with platform-review application unit tests, the focused
+      platform-review integration test including the HTTP review route assertion,
+      the full `teacher_applications` integration suite, teacher-application
+      service unit tests, API route reachability, formatting, line-count checks,
+      `git diff --check`, and boundary scans proving the platform-review
+      application module does not import Actix, Diesel, DB pools, services,
+      repositories, or persistence models.
 
 ## Legacy Transition Rules
 
@@ -1331,9 +1334,12 @@ boundary checks from the matrix above to every canonical context.
       application query/output/error/store contracts, a Postgres adapter/use
       case, HTTP query/response DTO mapping, bootstrap wiring, and
       application/integration/API route tests.
-- [ ] Move teacher-application submit, platform review, decision, and
-      organization nomination routes behind application use cases with Postgres
-      adapters.
+- [x] `GET /teacher-applications/review` now has application
+      query/output/error/store contracts, a Postgres review adapter/use case,
+      HTTP query/response DTO mapping, bootstrap wiring, and
+      application/integration/API route tests.
+- [ ] Move teacher-application submit, decision, and organization nomination
+      routes behind application use cases with Postgres adapters.
 
 ## Data Boundary Rules
 
