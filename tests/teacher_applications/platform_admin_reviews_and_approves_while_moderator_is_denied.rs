@@ -79,4 +79,27 @@ async fn platform_admin_reviews_and_approves_while_moderator_is_denied() {
     assert_eq!(audit.len(), 2);
     assert_eq!(audit[0].to_status, TEACHER_APPLICATION_STATUS_SUBMITTED);
     assert_eq!(audit[1].to_status, TEACHER_APPLICATION_STATUS_APPROVED);
+
+    let app = test::init_service(
+        App::new()
+            .app_data(teacher_application_audit_data())
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .configure(rust_learn::http::teacher_applications::configure_routes),
+    )
+    .await;
+    let response = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri(&format!("/teacher-applications/{}/audit", application.id))
+            .insert_header(("Authorization", format!("Bearer {}", token_for(admin.id()))))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = test::read_body_json(response).await;
+    assert_eq!(body.as_array().unwrap().len(), 2);
+    assert_eq!(
+        body[1]["to_status"].as_str(),
+        Some(TEACHER_APPLICATION_STATUS_APPROVED)
+    );
 }

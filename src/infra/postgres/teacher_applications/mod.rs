@@ -1,3 +1,5 @@
+pub mod teacher_application_audit_store;
+pub mod teacher_application_audit_use_case;
 mod teacher_application_self_mappers;
 pub mod teacher_application_self_store;
 pub mod teacher_application_self_use_case;

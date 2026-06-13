@@ -1012,36 +1012,39 @@ remaining gaps.
 | 114 | Moved KYC status/submission/review/audit flows behind `domain/kyc`, granular `application/kyc` use cases, a Postgres KYC adapter/use case, HTTP-owned DTOs, and bootstrap wiring; the include-based `services/kyc_service` was deleted and `http/kyc` no longer opens DB pools or calls services. |
 | 115 | Moved delegated-permission grant/list/revoke behind `domain/access_control/delegation`, `application/access_control/manage_delegated_permissions`, a Postgres delegated-permission adapter/use case, HTTP-owned DTOs, and access-control bootstrap wiring; the include-based `services/delegated_permission_service` was deleted and `http/access_control/delegated_permissions.rs` no longer opens DB pools or calls services. |
 | 116 | Moved `GET /teacher-applications/me` behind `application/teacher_applications/get_my_application`, a Postgres teacher-application self adapter/use case, HTTP-owned self snapshot DTOs, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns Diesel records, or calls `teacher_application_service::get_my_application`. |
+| 117 | Moved `GET /teacher-applications/{id}/audit` behind `application/teacher_applications/list_application_audit`, a Postgres audit adapter/use case, shared teacher-application audit output, HTTP-owned audit DTO mapping, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns Diesel audit records, or calls `teacher_application_service::list_audit_events`. |
 
 ## Recent Slice Evidence
 
-Slice 116: move teacher-application self snapshot into Level 2 rings.
+Slice 117: move teacher-application audit reads into Level 2 rings.
 
-- [x] Add `application/teacher_applications/get_my_application` with explicit
-      output/error/store/service contracts and a handler that loads the latest
-      applicant application plus its audit events through a fake-testable port.
-- [x] Add `infra/postgres/teacher_applications` with a self-status store,
-      mapper, and pool-backed use case so Diesel schema access and persistence
-      records stay outside HTTP/application.
-- [x] Rework `GET /teacher-applications/me` to use `AuthUser`, an injected
-      teacher-application self use case, and HTTP-owned response DTOs instead
-      of opening `DbPool` or returning `TeacherApplication` records directly.
-- [x] Wire the self-status use case through
-      `bootstrap/teacher_application_wiring.rs`, app state, app data, and a
-      route-smoke fake for API routing tests.
-- [x] Delete the obsolete `teacher_application_service::get_my_application`
-      function and move the existing direct test helper to the new Postgres use
-      case.
-- [x] Self-critique: submit, list, platform review, decision, audit, and
-      organization nomination routes still use the legacy
-      `teacher_application_service`; they should move as separate vertical
-      slices because they carry permission, transition, and notification side
-      effects.
-- [x] Prove behavior with teacher-application self application unit tests, the
-      full `teacher_applications` integration suite including the `/me` HTTP
+- [x] Add `application/teacher_applications/list_application_audit` with
+      query/error/store/service contracts and a fake-tested handler that gates
+      audit reads on the review permission before loading events.
+- [x] Promote `TeacherApplicationAuditEventOutput` to shared
+      `application/teacher_applications` vocabulary so self-status and audit
+      routes use one application output at the HTTP/infra boundary.
+- [x] Add Postgres audit store/use-case modules under
+      `infra/postgres/teacher_applications`, keeping platform permission lookup,
+      Diesel queries, and persistence-to-application audit mapping out of HTTP
+      and application code.
+- [x] Rework `GET /teacher-applications/{id}/audit` to use `AuthUser`, typed
+      audit queries, an injected audit use case, and HTTP-owned audit response
+      DTOs instead of opening `DbPool` or returning Diesel audit records
+      directly.
+- [x] Register the audit use case through `bootstrap/teacher_application_wiring`
+      and add an API routing fake for route reachability tests.
+- [x] Delete the obsolete `teacher_application_service::list_audit_events`
+      function after moving the route to the new application/Postgres path.
+- [x] Self-critique: submit, list, platform review, decision, and organization
+      nomination routes still use the legacy `teacher_application_service`.
+      Those should move in separate slices because they carry mutation,
+      filtering, transition, and notification behavior.
+- [x] Prove behavior with teacher-application audit application unit tests, the
+      full `teacher_applications` integration suite including the HTTP audit
       route assertion, API route reachability, formatting, line-count checks,
-      `git diff --check`, and boundary scans proving the new application module
-      does not import Actix, Diesel, DB pools, services, repositories, or
+      `git diff --check`, and boundary scans proving the audit application
+      module does not import Actix, Diesel, DB pools, services, repositories, or
       persistence models.
 
 ## Legacy Transition Rules
@@ -1317,9 +1320,12 @@ boundary checks from the matrix above to every canonical context.
 - [x] `GET /teacher-applications/me` now has application output/error/store
       contracts, a Postgres adapter/use case, HTTP DTO mapping, bootstrap
       wiring, and application/integration/API route tests.
-- [ ] Move teacher-application submit, list, platform review, decision, audit,
-      and organization nomination routes behind application use cases with
-      Postgres adapters.
+- [x] `GET /teacher-applications/{id}/audit` now has application
+      query/output/error/store contracts, a Postgres adapter/use case, HTTP DTO
+      mapping, bootstrap wiring, and application/integration/API route tests.
+- [ ] Move teacher-application submit, list, platform review, decision, and
+      organization nomination routes behind application use cases with Postgres
+      adapters.
 
 ## Data Boundary Rules
 

@@ -5,6 +5,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::application::teacher_applications::get_my_application::{
     TeacherApplicationSelfOutput, TeacherApplicationSelfUseCase,
 };
+use rust_learn::application::teacher_applications::list_application_audit::TeacherApplicationAuditUseCase;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::establish_connection;
@@ -24,6 +25,7 @@ use rust_learn::repositories::platform_repository::assign_role_to_user;
 use rust_learn::repositories::platform_repository::user_permission_platform_request;
 use rust_learn::repositories::teacher_application_repository::list_audit_events;
 use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::teacher_applications::teacher_application_audit_use_case::PostgresTeacherApplicationAuditUseCase;
 use rust_learn::infra::postgres::teacher_applications::teacher_application_self_use_case::PostgresTeacherApplicationSelfUseCase;
 use rust_learn::services::teacher_application_service::{
     decide_application, list_applications, list_platform_applications, nominate_application,
@@ -63,6 +65,13 @@ fn teacher_application_self_data() -> web::Data<Arc<dyn TeacherApplicationSelfUs
     web::Data::new(
         Arc::new(PostgresTeacherApplicationSelfUseCase::new(establish_connection()))
             as Arc<dyn TeacherApplicationSelfUseCase>,
+    )
+}
+
+fn teacher_application_audit_data() -> web::Data<Arc<dyn TeacherApplicationAuditUseCase>> {
+    web::Data::new(
+        Arc::new(PostgresTeacherApplicationAuditUseCase::new(establish_connection()))
+            as Arc<dyn TeacherApplicationAuditUseCase>,
     )
 }
 

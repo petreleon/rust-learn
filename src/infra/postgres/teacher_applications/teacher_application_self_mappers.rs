@@ -1,6 +1,7 @@
 use crate::application::teacher_applications::get_my_application::{
-    TeacherApplicationAuditEventOutput, TeacherApplicationOutput, TeacherApplicationSelfError,
+    TeacherApplicationOutput, TeacherApplicationSelfError,
 };
+use crate::application::teacher_applications::TeacherApplicationAuditEventOutput;
 use crate::models::teacher_application::{TeacherApplication, TeacherApplicationAuditEvent};
 
 impl From<TeacherApplication> for TeacherApplicationOutput {

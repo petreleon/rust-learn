@@ -3,8 +3,9 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::application::teacher_applications::get_my_application::{
-    TeacherApplicationAuditEventOutput, TeacherApplicationOutput, TeacherApplicationSelfOutput,
+    TeacherApplicationOutput, TeacherApplicationSelfOutput,
 };
+use crate::application::teacher_applications::TeacherApplicationAuditEventOutput;
 
 #[derive(Debug, Serialize)]
 pub(super) struct TeacherApplicationSelfResponse {

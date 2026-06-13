@@ -72,23 +72,6 @@ pub async fn decide_application(
     Ok(application)
 }
 
-pub async fn list_audit_events(
-    conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-    application_id: i64,
-) -> Result<Vec<TeacherApplicationAuditEvent>, TeacherApplicationError> {
-    ensure_platform_permission(
-        conn,
-        actor_user_id,
-        Permissions::REVIEW_TEACHER_APPLICATIONS,
-    )
-    .await?;
-
-    teacher_application_repository::list_audit_events(conn, application_id)
-        .await
-        .map_err(TeacherApplicationError::from)
-}
-
 struct OrganizationApplicationContext {
     users: BTreeMap<i32, TeacherApplicationUserSummary>,
     organizations: BTreeMap<i32, String>,

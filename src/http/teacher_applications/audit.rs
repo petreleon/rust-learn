@@ -1,32 +1,49 @@
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use std::sync::Arc;
 
-use crate::db;
-use crate::http::teacher_applications::support::service_error_response;
-use crate::services::teacher_application_service;
-use crate::utils::request_auth::authenticated_user;
+use actix_web::{web, HttpResponse, Responder};
+
+use crate::application::teacher_applications::list_application_audit::{
+    TeacherApplicationAuditError, TeacherApplicationAuditQuery, TeacherApplicationAuditUseCase,
+};
+use crate::http::extractors::auth_user::AuthUser;
+use crate::http::teacher_applications::dto::TeacherApplicationAuditEventResponse;
 
 pub(super) async fn list_audit_events(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i64>,
-    pool: web::Data<db::DbPool>,
+    use_case: web::Data<Arc<dyn TeacherApplicationAuditUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
+    let query = TeacherApplicationAuditQuery {
+        actor_user_id: requester.user_id(),
+        application_id: path.into_inner(),
     };
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match teacher_application_service::list_audit_events(
-        &mut conn,
-        requester.user_id,
-        path.into_inner(),
-    )
-    .await
-    {
-        Ok(events) => HttpResponse::Ok().json(events),
-        Err(error) => service_error_response(error),
+    match use_case.list_application_audit(query).await {
+        Ok(events) => HttpResponse::Ok().json(audit_event_responses(events)),
+        Err(error) => audit_error_response(error),
     }
+}
+
+fn audit_error_response(error: TeacherApplicationAuditError) -> HttpResponse {
+    match error {
+        TeacherApplicationAuditError::PermissionDenied(_) => {
+            HttpResponse::Forbidden().body("User does not have the required permission")
+        }
+        TeacherApplicationAuditError::Connection(message)
+        | TeacherApplicationAuditError::Database(message) => {
+            log::error!(
+                "event=teacher_application_audit_api_failed reason=database error={}",
+                message
+            );
+            HttpResponse::InternalServerError().body("Failed to process teacher application")
+        }
+    }
+}
+
+fn audit_event_responses(
+    events: Vec<crate::application::teacher_applications::TeacherApplicationAuditEventOutput>,
+) -> Vec<TeacherApplicationAuditEventResponse> {
+    events
+        .into_iter()
+        .map(TeacherApplicationAuditEventResponse::from)
+        .collect()
 }
