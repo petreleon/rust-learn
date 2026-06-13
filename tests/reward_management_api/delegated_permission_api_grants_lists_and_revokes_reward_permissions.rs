@@ -13,6 +13,7 @@ async fn delegated_permission_api_grants_lists_and_revokes_reward_permissions() 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(web::Data::new(delegated_permission_use_case(&pool)))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::access_control::configure_routes),
     )

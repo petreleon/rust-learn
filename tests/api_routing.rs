@@ -9,6 +9,7 @@ mod api_routing_course_lifecycle_fake;
 mod api_routing_course_organization_fake;
 mod api_routing_course_read_fake;
 mod api_routing_course_update_fake;
+mod api_routing_delegated_permission_fake;
 mod api_routing_kyc_fake;
 mod api_routing_organization_courses_fake;
 mod api_routing_organization_dashboard_fake;
@@ -48,6 +49,7 @@ async fn api_scope_and_following_routes_are_reachable() {
         App::new()
             .app_data(api_routing_route_fakes::reward_fraud_block_data())
             .app_data(api_routing_route_fakes::reward_candidate_audit_data())
+            .app_data(api_routing_delegated_permission_fake::delegated_permission_data())
             .app_data(api_routing_amount_decision_fake::reward_amount_decision_data())
             .app_data(api_routing_submission_fake::reward_candidate_submission_data())
             .app_data(api_routing_course_creation_fake::course_creation_data())

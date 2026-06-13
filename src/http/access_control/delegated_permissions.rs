@@ -1,16 +1,55 @@
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
-use serde::Deserialize;
+use std::sync::Arc;
 
-use crate::db;
-use crate::models::delegated_permission::GrantDelegatedPermissionRequest;
-use crate::services::delegated_permission_service::{
-    self, DelegatedPermissionError, ListDelegatedPermissionsRequest,
+use actix_web::{web, HttpResponse, Responder};
+
+use crate::application::access_control::manage_delegated_permissions::{
+    DelegatedPermissionError, DelegatedPermissionUseCase,
 };
-use crate::utils::request_auth::authenticated_user;
+use crate::http::access_control::dto::{
+    DelegatedPermissionResponse, GrantDelegatedPermissionRequest, ListDelegatedPermissionsParams,
+    RevokeDelegatedPermissionRequest,
+};
+use crate::http::extractors::auth_user::AuthUser;
 
-#[derive(Debug, Deserialize)]
-struct RevokeDelegatedPermissionRequest {
-    revoke_reason: Option<String>,
+async fn grant_delegated_permission(
+    requester: AuthUser,
+    use_case: web::Data<Arc<dyn DelegatedPermissionUseCase>>,
+    body: web::Json<GrantDelegatedPermissionRequest>,
+) -> impl Responder {
+    let command = body.into_inner().into_command(requester.user_id());
+    match use_case.grant_delegated_permission(command).await {
+        Ok(delegation) => {
+            HttpResponse::Created().json(DelegatedPermissionResponse::from(delegation))
+        }
+        Err(error) => delegated_permission_error_response(error),
+    }
+}
+
+async fn list_delegated_permissions(
+    requester: AuthUser,
+    use_case: web::Data<Arc<dyn DelegatedPermissionUseCase>>,
+    query: web::Query<ListDelegatedPermissionsParams>,
+) -> impl Responder {
+    let query = query.into_inner().into_query(requester.user_id());
+    match use_case.list_delegated_permissions(query).await {
+        Ok(delegations) => HttpResponse::Ok().json(delegated_permission_responses(delegations)),
+        Err(error) => delegated_permission_error_response(error),
+    }
+}
+
+async fn revoke_delegated_permission(
+    requester: AuthUser,
+    path: web::Path<i64>,
+    use_case: web::Data<Arc<dyn DelegatedPermissionUseCase>>,
+    body: web::Json<RevokeDelegatedPermissionRequest>,
+) -> impl Responder {
+    let command = body
+        .into_inner()
+        .into_command(requester.user_id(), path.into_inner());
+    match use_case.revoke_delegated_permission(command).await {
+        Ok(delegation) => HttpResponse::Ok().json(DelegatedPermissionResponse::from(delegation)),
+        Err(error) => delegated_permission_error_response(error),
+    }
 }
 
 fn delegated_permission_error_response(error: DelegatedPermissionError) -> HttpResponse {
@@ -22,91 +61,23 @@ fn delegated_permission_error_response(error: DelegatedPermissionError) -> HttpR
         DelegatedPermissionError::NotFound => {
             HttpResponse::NotFound().body("Delegated permission not found")
         }
-        DelegatedPermissionError::Database(message) => {
+        DelegatedPermissionError::Connection(message)
+        | DelegatedPermissionError::Database(message) => {
             log::error!("event=delegated_permission_api_failed error={}", message);
             HttpResponse::InternalServerError().body("Failed to process delegated permission")
         }
     }
 }
 
-async fn grant_delegated_permission(
-    req: HttpRequest,
-    pool: web::Data<db::DbPool>,
-    body: web::Json<GrantDelegatedPermissionRequest>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match delegated_permission_service::grant_delegated_permission(
-        &mut conn,
-        requester.user_id,
-        body.into_inner(),
-    )
-    .await
-    {
-        Ok(delegation) => HttpResponse::Created().json(delegation),
-        Err(error) => delegated_permission_error_response(error),
-    }
-}
-
-async fn list_delegated_permissions(
-    req: HttpRequest,
-    pool: web::Data<db::DbPool>,
-    query: web::Query<ListDelegatedPermissionsRequest>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match delegated_permission_service::list_delegated_permissions(
-        &mut conn,
-        requester.user_id,
-        query.into_inner(),
-    )
-    .await
-    {
-        Ok(delegations) => HttpResponse::Ok().json(delegations),
-        Err(error) => delegated_permission_error_response(error),
-    }
-}
-
-async fn revoke_delegated_permission(
-    req: HttpRequest,
-    path: web::Path<i64>,
-    pool: web::Data<db::DbPool>,
-    body: web::Json<RevokeDelegatedPermissionRequest>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match delegated_permission_service::revoke_delegated_permission(
-        &mut conn,
-        requester.user_id,
-        path.into_inner(),
-        body.into_inner().revoke_reason,
-    )
-    .await
-    {
-        Ok(delegation) => HttpResponse::Ok().json(delegation),
-        Err(error) => delegated_permission_error_response(error),
-    }
+fn delegated_permission_responses(
+    delegations: Vec<
+        crate::application::access_control::manage_delegated_permissions::DelegatedPermissionOutput,
+    >,
+) -> Vec<DelegatedPermissionResponse> {
+    delegations
+        .into_iter()
+        .map(DelegatedPermissionResponse::from)
+        .collect()
 }
 
 pub(super) fn delegated_permission_scope() -> actix_web::Scope {

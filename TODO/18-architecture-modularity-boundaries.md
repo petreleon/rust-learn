@@ -1010,36 +1010,44 @@ remaining gaps.
 | 112 | Moved `GET /organizations/{id}/teacher-applications` behind `application/organizations/list_organization_teacher_applications`, granular Postgres teacher-application read adapters, HTTP-owned response DTOs, and organization-context bootstrap wiring; the route no longer opens the DB pool or calls `teacher_application_service::list_organization_applications`. |
 | 113 | Moved organization CRUD routes behind `application/organizations/manage_organizations`, a Postgres management adapter/use case, HTTP-owned organization DTOs, and organization-context bootstrap wiring; `http/organizations/handlers.rs` no longer opens the DB pool, imports Diesel/model types, or calls `organization_service`. |
 | 114 | Moved KYC status/submission/review/audit flows behind `domain/kyc`, granular `application/kyc` use cases, a Postgres KYC adapter/use case, HTTP-owned DTOs, and bootstrap wiring; the include-based `services/kyc_service` was deleted and `http/kyc` no longer opens DB pools or calls services. |
+| 115 | Moved delegated-permission grant/list/revoke behind `domain/access_control/delegation`, `application/access_control/manage_delegated_permissions`, a Postgres delegated-permission adapter/use case, HTTP-owned DTOs, and access-control bootstrap wiring; the include-based `services/delegated_permission_service` was deleted and `http/access_control/delegated_permissions.rs` no longer opens DB pools or calls services. |
 
 ## Recent Slice Evidence
 
-Slice 114: move KYC lifecycle flows into Level 2 rings.
+Slice 115: move delegated-permission grant/list/revoke into Level 2 rings.
 
-- [x] Add `domain/kyc/submission` for KYC input normalization, allowed
-      decisions, duplicate/final-state transition guards, and next-action
-      calculation with pure unit tests.
-- [x] Add granular `application/kyc` use-case folders for current status,
-      submission, review queue/decision, and audit reads, sharing an explicit
-      KYC store port and application output/error contracts.
-- [x] Add `infra/postgres/kyc` with KYC query, transaction, audit, mapper, and
-      concrete use-case modules; Diesel records, schema access, review
-      permission lookup, audit writes, and user `kyc_verified` updates live
-      outside HTTP and application.
-- [x] Rework `http/kyc` into auth/json/path extraction, request/response DTO
-      mapping, and local application-error responses through injected KYC use
-      cases.
-- [x] Wire KYC use cases through `bootstrap/kyc_wiring.rs`, app state, and app
-      data registration, with API routing fakes for route reachability tests.
-- [x] Delete the include-based `services/kyc_service` after moving all callers
-      to the new KYC application/Postgres path.
-- [x] Self-critique: review authorization still uses the legacy platform
-      repository from the Postgres adapter. That keeps route behavior stable;
-      the later access-control unification slice should replace this with a
-      typed `application/access_control` permission port.
-- [x] Prove behavior with KYC domain unit tests, KYC Postgres integration tests,
-      API route reachability, formatting, line-count checks, `git diff --check`,
-      and boundary scans proving KYC HTTP/application/domain no longer import
-      DB pools, services, repositories, Diesel, or persistence models.
+- [x] Add `domain/access_control/delegation` for delegated reward permission
+      validation, scope normalization, and platform/organization/course scope
+      invariants, split into permission and scope rule modules with pure unit
+      tests.
+- [x] Add `application/access_control/manage_delegated_permissions` command,
+      query, output, error, store-port, service-trait, and handler modules so
+      grant/list/revoke orchestration no longer depends on Actix, Diesel, or
+      persistence models.
+- [x] Add `infra/postgres/access_control/delegated_permissions` with thin
+      store/use-case adapters, private read/write Diesel query modules,
+      idempotent active-delegation replay, and persistence-to-application
+      mapping.
+- [x] Rework `http/access_control/delegated_permissions.rs` into auth/json/path
+      extraction, HTTP-owned request/response DTO mapping, and local
+      application-error responses through the injected delegated-permission use
+      case.
+- [x] Group role catalog and delegated-permission wiring in
+      `bootstrap/access_control_wiring.rs`, register both through app state/app
+      data, and add an API routing fake for delegated-permission smoke tests.
+- [x] Delete the include-based `services/delegated_permission_service` and the
+      stale model-layer grant request DTO after moving all production callers
+      and setup helpers to the new use case.
+- [x] Self-critique: the Postgres adapter still calls the legacy platform
+      permission repository to verify `DELEGATE_REWARD_APPROVAL`. That keeps
+      behavior stable; the later unified access-control slice should replace it
+      with the same typed permission port used by other reward/wallet actions.
+- [x] Prove behavior with delegation domain/application unit tests,
+      delegated-permission API and integration tests, the dependent
+      reward-fraud-block test, API route reachability, formatting,
+      line-count checks, `git diff --check`, and boundary scans proving
+      access-control HTTP/application/domain no longer cross their target
+      rings.
 
 ## Legacy Transition Rules
 
@@ -1171,6 +1179,11 @@ boundary checks from the matrix above to every canonical context.
       context-level route configurator for the app.
 - [x] `http/access_control` owns delegated-permission route composition; the
       legacy `api/delegated_permissions` module has been deleted.
+- [x] Delegated-permission grant/list/revoke now have domain validation rules,
+      application command/query/output/error/store contracts, a Postgres
+      adapter/use case, HTTP DTO mapping, bootstrap wiring, and
+      delegated-permission/API tests; the legacy include-based delegated
+      permission service has been deleted.
 - [ ] Create one access-control API for `can(actor, action, scope)` style
       decisions.
 - [ ] Encode scope as types instead of loose strings where practical:

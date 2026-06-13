@@ -1,6 +1,10 @@
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::access_control::manage_delegated_permissions::{
+    DelegatedPermissionError, DelegatedPermissionOutput, DelegatedPermissionUseCase,
+    GrantDelegatedPermissionCommand,
+};
 use rust_learn::application::rewards::manage_fraud_block::{
     CreateRewardFraudBlockCommand, RewardFraudBlockError, RewardFraudBlockUseCase,
 };
@@ -11,11 +15,12 @@ use rust_learn::domain::rewards::fraud_block::{
     REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
     REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
 };
+use rust_learn::domain::access_control::delegation::{
+    DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
+};
+use rust_learn::infra::postgres::access_control::delegated_permissions::use_case::PostgresDelegatedPermissionUseCase;
 use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
 use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::delegated_permission::{
-    GrantDelegatedPermissionRequest, DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
-};
 use rust_learn::models::notification::Notification;
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_fraud_block::RewardFraudBlock;
@@ -24,7 +29,16 @@ use rust_learn::models::user::User;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::services::delegated_permission_service::grant_delegated_permission;
+
+struct GrantDelegatedPermissionRequest {
+    grantee_user_id: i32,
+    permission: String,
+    scope_type: String,
+    organization_id: Option<i32>,
+    course_id: Option<i32>,
+    reason: Option<String>,
+    expires_at: Option<chrono::DateTime<chrono::Utc>>,
+}
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -42,6 +56,26 @@ async fn setup_conn(
     pool.get()
         .await
         .expect("failed to get DB connection from pool")
+}
+
+async fn grant_delegated_permission(
+    _conn: &mut AsyncPgConnection,
+    grantor_user_id: i32,
+    request: GrantDelegatedPermissionRequest,
+) -> Result<DelegatedPermissionOutput, DelegatedPermissionError> {
+    let pool = establish_connection();
+    PostgresDelegatedPermissionUseCase::new(pool)
+        .grant_delegated_permission(GrantDelegatedPermissionCommand {
+            course_id: request.course_id,
+            expires_at: request.expires_at,
+            grantee_user_id: request.grantee_user_id,
+            grantor_user_id,
+            organization_id: request.organization_id,
+            permission: request.permission,
+            reason: request.reason,
+            scope_type: request.scope_type,
+        })
+        .await
 }
 
 async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {

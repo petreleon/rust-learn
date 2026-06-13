@@ -1,9 +1,11 @@
 use actix_web::{http::StatusCode, test, web, App};
 use chrono::NaiveDate;
 use diesel_async::AsyncPgConnection;
+use rust_learn::application::access_control::manage_delegated_permissions::DelegatedPermissionUseCase;
 use rust_learn::application::rewards::manage_fraud_block::RewardFraudBlockUseCase;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::access_control::delegated_permissions::use_case::PostgresDelegatedPermissionUseCase;
 use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
 use rust_learn::models::role::PlatformRole;
 use rust_learn::models::user::User;
@@ -54,4 +56,8 @@ fn token_for(user_id: i32) -> String {
 
 fn reward_fraud_block_use_case(pool: &DbPool) -> Arc<dyn RewardFraudBlockUseCase> {
     Arc::new(PostgresRewardFraudBlockUseCase::new(pool.clone()))
+}
+
+fn delegated_permission_use_case(pool: &DbPool) -> Arc<dyn DelegatedPermissionUseCase> {
+    Arc::new(PostgresDelegatedPermissionUseCase::new(pool.clone()))
 }

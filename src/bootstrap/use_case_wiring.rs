@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
+use crate::bootstrap::access_control_wiring::build_access_control_use_cases;
 use crate::bootstrap::app_state::AppState;
 use crate::bootstrap::kyc_wiring::build_kyc_use_cases;
 use crate::bootstrap::organization_wiring::build_organization_use_cases;
 use crate::bootstrap::readiness::RuntimeReadinessUseCase;
 use crate::db::DbPool;
-use crate::infra::postgres::access_control::role_catalog_use_case::PostgresRoleCatalogUseCase;
 use crate::infra::postgres::content::chapter_use_cases::PostgresChapterUseCases;
 use crate::infra::postgres::content::content_item_use_cases::PostgresContentItemUseCases;
 use crate::infra::postgres::content::media_url_use_case::PostgresContentMediaUrlUseCase;
@@ -62,7 +62,7 @@ pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
     let kyc_use_cases = build_kyc_use_cases(&pool);
     let organization_use_cases = build_organization_use_cases(&pool);
     AppState {
-        role_catalog_use_case: Arc::new(PostgresRoleCatalogUseCase::new(pool.clone())),
+        access_control_use_cases: build_access_control_use_cases(&pool),
         current_session_use_case: Arc::new(PostgresCurrentSessionUseCase::new(pool.clone())),
         kyc_use_cases,
         course_creation_use_case: Arc::new(PostgresCourseCreationUseCase::new(pool.clone())),

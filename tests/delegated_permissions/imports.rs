@@ -2,6 +2,10 @@ use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::access_control::manage_delegated_permissions::{
+    DelegatedPermissionError, DelegatedPermissionOutput, DelegatedPermissionUseCase,
+    GrantDelegatedPermissionCommand, RevokeDelegatedPermissionCommand,
+};
 use rust_learn::application::rewards::decide_amount::{
     RewardAmountDecisionCommand as RewardAmountDecisionRequest, RewardAmountDecisionError,
     RewardAmountDecisionOutput, RewardAmountDecisionUseCase,
@@ -14,12 +18,13 @@ use rust_learn::db::schema::{
 use rust_learn::domain::rewards::policy::{
     REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
+use rust_learn::domain::access_control::delegation::{
+    DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
+};
+use rust_learn::infra::postgres::access_control::delegated_permissions::use_case::PostgresDelegatedPermissionUseCase;
+use rust_learn::infra::postgres::rewards::reward_amount_decision_use_case::PostgresRewardAmountDecisionUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
-use rust_learn::models::delegated_permission::{
-    GrantDelegatedPermissionRequest, DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION,
-    DELEGATED_SCOPE_PLATFORM,
-};
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_candidate::{
     REWARD_EVENT_COURSE_COMPLETION, REWARD_STATUS_AMOUNT_APPROVED,
@@ -35,10 +40,6 @@ use rust_learn::repositories::delegated_permission_repository::find_delegated_pe
 use rust_learn::repositories::organization_repository::user_permission_organization_request;
 use rust_learn::repositories::platform_repository::user_permission_platform_request;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::infra::postgres::rewards::reward_amount_decision_use_case::PostgresRewardAmountDecisionUseCase;
-use rust_learn::services::delegated_permission_service::{
-    grant_delegated_permission, revoke_delegated_permission,
-};
 use rust_learn::services::reward_candidate_service::{
     decide_reward_candidate_by_teacher, RewardCandidateError, TeacherRewardCandidateDecisionRequest,
 };

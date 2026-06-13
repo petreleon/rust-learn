@@ -6,7 +6,15 @@ pub fn configure_app_data(cfg: &mut web::ServiceConfig, app_state: &AppState) {
     cfg.app_data(web::Data::new(app_state.pool.clone()))
         .app_data(web::Data::new(app_state.s3.clone()))
         .app_data(web::Data::new(app_state.notifications.clone()))
-        .app_data(web::Data::new(app_state.role_catalog_use_case.clone()))
+        .app_data(web::Data::new(
+            app_state.access_control_use_cases.role_catalog.clone(),
+        ))
+        .app_data(web::Data::new(
+            app_state
+                .access_control_use_cases
+                .delegated_permissions
+                .clone(),
+        ))
         .app_data(web::Data::new(app_state.current_session_use_case.clone()))
         .app_data(web::Data::new(app_state.kyc_use_cases.audit.clone()))
         .app_data(web::Data::new(app_state.kyc_use_cases.review.clone()))

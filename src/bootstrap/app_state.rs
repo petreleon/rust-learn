@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::application::access_control::list_roles::RoleCatalogUseCase;
 use crate::application::content::manage_chapter::ChapterUseCases;
 use crate::application::content::manage_content_item::ContentItemUseCases;
 use crate::application::content::process_upload_job::ContentProcessingUseCase;
@@ -52,6 +51,7 @@ use crate::application::wallet::link_wallet::WalletLinkUseCase;
 use crate::application::wallet::manage_token_tax::WalletTokenTaxUseCase;
 use crate::application::wallet::read_wallet::WalletReadUseCase;
 use crate::application::wallet::retire_tokens::WalletRetirementUseCase;
+use crate::bootstrap::access_control_wiring::AccessControlUseCases;
 use crate::bootstrap::kyc_wiring::KycUseCases;
 use crate::bootstrap::organization_wiring::OrganizationUseCases;
 use crate::db::DbPool;
@@ -63,7 +63,7 @@ pub struct AppState {
     pub pool: DbPool,
     pub s3: S3State,
     pub notifications: NotificationsState,
-    pub role_catalog_use_case: Arc<dyn RoleCatalogUseCase>,
+    pub(crate) access_control_use_cases: AccessControlUseCases,
     pub current_session_use_case: Arc<dyn CurrentSessionUseCase>,
     pub(crate) kyc_use_cases: KycUseCases,
     pub course_creation_use_case: Arc<dyn CourseCreationUseCase>,
