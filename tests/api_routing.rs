@@ -42,6 +42,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_route_fakes::student_reward_history_data())
             .app_data(api_routing_reporting_fake::organization_reward_dashboard_data())
             .app_data(api_routing_reporting_fake::organization_summary_data())
+            .app_data(api_routing_reporting_fake::platform_csv_exports_data())
             .app_data(api_routing_reporting_fake::platform_fraud_dashboard_data())
             .app_data(api_routing_reporting_fake::platform_reward_dashboard_data())
             .app_data(api_routing_reporting_fake::platform_wallet_reconciliation_data())

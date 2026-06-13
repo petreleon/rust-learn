@@ -2,8 +2,9 @@ use actix_web::web;
 
 use crate::config::constants::permissions::Permissions;
 use crate::http::reporting::handlers::{
-    organization_reward_dashboard, organization_summary, platform_fraud_dashboard,
-    platform_reward_dashboard, platform_summary, platform_wallet_reconciliation,
+    organization_reward_dashboard, organization_summary, platform_csv_exports,
+    platform_fraud_dashboard, platform_reward_dashboard, platform_summary,
+    platform_wallet_reconciliation,
 };
 use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
@@ -73,6 +74,56 @@ pub fn platform_wallet_reconciliation_resource() -> actix_web::Resource {
             .to(platform_wallet_reconciliation::get_platform_wallet_reconciliation)
             .wrap(PlatformPermissionMiddleware::require(
                 Permissions::MANAGE_WALLETS.to_string(),
+            )),
+    )
+}
+
+pub fn platform_teacher_applications_csv_resource() -> actix_web::Resource {
+    web::resource("/platform/teacher-applications.csv").route(
+        web::get()
+            .to(platform_csv_exports::export_platform_teacher_applications)
+            .wrap(PlatformPermissionMiddleware::require(
+                Permissions::EXPORT_DATA.to_string(),
+            )),
+    )
+}
+
+pub fn platform_reward_approvals_csv_resource() -> actix_web::Resource {
+    web::resource("/platform/reward-approvals.csv").route(
+        web::get()
+            .to(platform_csv_exports::export_platform_reward_approvals)
+            .wrap(PlatformPermissionMiddleware::require(
+                Permissions::EXPORT_DATA.to_string(),
+            )),
+    )
+}
+
+pub fn platform_token_payouts_csv_resource() -> actix_web::Resource {
+    web::resource("/platform/token-payouts.csv").route(
+        web::get()
+            .to(platform_csv_exports::export_platform_token_payouts)
+            .wrap(PlatformPermissionMiddleware::require(
+                Permissions::EXPORT_DATA.to_string(),
+            )),
+    )
+}
+
+pub fn platform_wallet_credits_csv_resource() -> actix_web::Resource {
+    web::resource("/platform/wallet-credits.csv").route(
+        web::get()
+            .to(platform_csv_exports::export_platform_wallet_credits)
+            .wrap(PlatformPermissionMiddleware::require(
+                Permissions::EXPORT_DATA.to_string(),
+            )),
+    )
+}
+
+pub fn platform_delegated_permissions_csv_resource() -> actix_web::Resource {
+    web::resource("/platform/delegated-permissions.csv").route(
+        web::get()
+            .to(platform_csv_exports::export_platform_delegated_permissions)
+            .wrap(PlatformPermissionMiddleware::require(
+                Permissions::EXPORT_DATA.to_string(),
             )),
     )
 }

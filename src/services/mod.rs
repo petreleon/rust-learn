@@ -3,7 +3,6 @@ pub mod course_service;
 pub mod delegated_permission_service;
 pub mod kyc_service;
 pub mod organization_service;
-pub mod reporting_service;
 pub mod reward_candidate_service;
 pub mod reward_execution_service;
 pub mod teacher_application_service;

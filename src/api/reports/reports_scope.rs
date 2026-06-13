@@ -1,3 +1,5 @@
+use actix_web::web;
+
 pub fn reports_scope() -> actix_web::Scope {
     web::scope("/reports")
         .service(crate::http::reporting::platform_summary_resource())
@@ -7,31 +9,11 @@ pub fn reports_scope() -> actix_web::Scope {
         .service(crate::http::reporting::platform_fraud_dashboard_resource())
         .service(crate::http::reporting::platform_fraud_dashboard_csv_resource())
         .service(crate::http::reporting::platform_wallet_reconciliation_resource())
-        .service(web::resource("/platform/teacher-applications.csv").route(
-            web::get().to(export_platform_teacher_applications).wrap(
-                PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
-            ),
-        ))
-        .service(web::resource("/platform/reward-approvals.csv").route(
-            web::get().to(export_platform_reward_approvals).wrap(
-                PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
-            ),
-        ))
-        .service(web::resource("/platform/token-payouts.csv").route(
-            web::get().to(export_platform_token_payouts).wrap(
-                PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
-            ),
-        ))
-        .service(web::resource("/platform/wallet-credits.csv").route(
-            web::get().to(export_platform_wallet_credits).wrap(
-                PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
-            ),
-        ))
-        .service(web::resource("/platform/delegated-permissions.csv").route(
-            web::get().to(export_platform_delegated_permissions).wrap(
-                PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
-            ),
-        ))
+        .service(crate::http::reporting::platform_teacher_applications_csv_resource())
+        .service(crate::http::reporting::platform_reward_approvals_csv_resource())
+        .service(crate::http::reporting::platform_token_payouts_csv_resource())
+        .service(crate::http::reporting::platform_wallet_credits_csv_resource())
+        .service(crate::http::reporting::platform_delegated_permissions_csv_resource())
         .service(crate::http::reporting::organization_summary_resource())
         .service(crate::http::reporting::organization_summary_csv_resource())
         .service(crate::http::reporting::organization_reward_dashboard_resource())

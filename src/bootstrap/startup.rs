@@ -18,6 +18,7 @@ use crate::infra::postgres::notifications::notification_inbox_use_case::Postgres
 use crate::infra::postgres::notifications::notification_preferences_use_case::PostgresNotificationPreferencesUseCase;
 use crate::infra::postgres::reporting::organization_reward_dashboard_use_case::PostgresOrganizationRewardDashboardUseCase;
 use crate::infra::postgres::reporting::organization_summary_use_case::PostgresOrganizationSummaryUseCase;
+use crate::infra::postgres::reporting::platform_csv_export_use_case::PostgresPlatformCsvExportsUseCase;
 use crate::infra::postgres::reporting::platform_fraud_dashboard_use_case::PostgresPlatformFraudDashboardUseCase;
 use crate::infra::postgres::reporting::platform_reward_dashboard_use_case::PostgresPlatformRewardDashboardUseCase;
 use crate::infra::postgres::reporting::platform_summary_use_case::PostgresPlatformSummaryUseCase;
@@ -108,6 +109,9 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
             PostgresOrganizationRewardDashboardUseCase::new(pool.clone()),
         ),
         organization_summary_use_case: Arc::new(PostgresOrganizationSummaryUseCase::new(
+            pool.clone(),
+        )),
+        platform_csv_exports_use_case: Arc::new(PostgresPlatformCsvExportsUseCase::new(
             pool.clone(),
         )),
         platform_fraud_dashboard_use_case: Arc::new(PostgresPlatformFraudDashboardUseCase::new(

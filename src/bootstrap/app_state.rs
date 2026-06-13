@@ -12,6 +12,7 @@ use crate::application::notifications::preference_service::NotificationPreferenc
 use crate::application::operations::readiness_check::ReadinessUseCase;
 use crate::application::reporting::organization_reward_dashboard::OrganizationRewardDashboardUseCase;
 use crate::application::reporting::organization_summary::OrganizationSummaryUseCase;
+use crate::application::reporting::platform_csv_exports::PlatformCsvExportsUseCase;
 use crate::application::reporting::platform_fraud_dashboard::PlatformFraudDashboardUseCase;
 use crate::application::reporting::platform_reward_dashboard::PlatformRewardDashboardUseCase;
 use crate::application::reporting::platform_summary::PlatformSummaryUseCase;
@@ -66,6 +67,7 @@ pub struct AppState {
     pub wallet_token_tax_use_case: Arc<dyn WalletTokenTaxUseCase>,
     pub organization_reward_dashboard_use_case: Arc<dyn OrganizationRewardDashboardUseCase>,
     pub organization_summary_use_case: Arc<dyn OrganizationSummaryUseCase>,
+    pub platform_csv_exports_use_case: Arc<dyn PlatformCsvExportsUseCase>,
     pub platform_fraud_dashboard_use_case: Arc<dyn PlatformFraudDashboardUseCase>,
     pub platform_reward_dashboard_use_case: Arc<dyn PlatformRewardDashboardUseCase>,
     pub platform_summary_use_case: Arc<dyn PlatformSummaryUseCase>,

@@ -960,33 +960,32 @@ remaining gaps.
 | 49-55 | Moved wallet and reward authorization decisions through `application/access_control`, including payout, platform, course, organization, fraud-block, and notification-recipient policies. |
 | 56 | Moved production Actix app-data registration out of `main.rs`; `main.rs` is now process orchestration while bootstrap owns concrete state and route wiring. |
 | 57-64 | Typed reward audit, execution job, candidate, fraud-block, policy, payout-method, token, wallet-credit, and compensation transaction vocabulary in the rewards domain while keeping compatibility aliases where legacy callers still need them. |
-| 65-69 | Moved platform summary, platform fraud dashboard, organization summary, organization reward dashboard, and platform reward dashboard read/export behavior into `application/reporting`, `infra/postgres/reporting`, and `http/reporting`; legacy report URLs still flow through the existing reports scope while matching old service queries/DTOs/CSV helpers were removed. |
+| 65-70 | Moved platform summary, platform fraud dashboard, organization summary, organization reward dashboard, platform reward dashboard, and platform wallet reconciliation read/export behavior into `application/reporting`, `infra/postgres/reporting`, and `http/reporting`; legacy report URLs still flow through the existing reports scope while matching old service queries/DTOs/CSV helpers were removed. |
 
 ## Recent Slice Evidence
 
-Slice 70: move platform wallet reconciliation into the reporting application,
+Slice 71: move remaining platform CSV exports into the reporting application,
 HTTP, and Postgres rings.
 
-- [x] Create `application/reporting/platform_wallet_reconciliation` with
-      explicit output, error, store port, service trait, and handler modules.
-- [x] Move platform wallet reconciliation wallet loading, candidate discovery,
-      per-wallet counts, and missing-record checks behind
-      `infra/postgres/reporting`.
-- [x] Move the platform wallet reconciliation JSON response contract and
-      `/reports/platform/wallet-reconciliation` route resource into
-      `http/reporting` while preserving the legacy `MANAGE_WALLETS`
-      permission.
-- [x] Remove the old include-based reporting-service wallet reconciliation
-      query, the misleading service-side `platform_fraud_dashboard_csv` structs,
-      and the obsolete service-side platform summary CSV helper/test.
-- [x] Self-critique: remaining platform CSV exports still live in the legacy
-      include-based reporting service; the new wallet reconciliation read model
-      preserves the legacy per-wallet query shape and should later be batched if
-      platform wallet counts become large; organization route resources still
-      depend on middleware `ParamType` from `models`.
-- [x] Prove application fake-port behavior, API route reachability,
-      DB-backed reporting route behavior, formatting, whitespace, line-count,
-      binary wiring, and boundary scans.
+- [x] Create `application/reporting/platform_csv_exports` with typed export
+      row outputs, error, store port, service trait, and handler functions for
+      teacher applications, reward approvals, token payouts, wallet credits,
+      and delegated permissions.
+- [x] Move all five platform CSV export queries behind
+      `infra/postgres/reporting` dataset-specific modules and a single
+      Postgres use-case adapter.
+- [x] Move all five platform CSV formatters and route resources into
+      `http/reporting`, preserving legacy filenames, headers, URLs, and
+      `EXPORT_DATA` permission checks.
+- [x] Delete the include-based `api/reports` export wrappers and the entire
+      legacy `services/reporting_service` module.
+- [x] Self-critique: the token-payout and wallet-credit export adapters still
+      preserve legacy per-record lookup behavior; batch joins can be a later
+      performance slice. Organization route resources still depend on
+      middleware `ParamType` from `models`.
+- [x] Prove application fake-port behavior, CSV formatting contracts,
+      API route reachability, DB-backed export behavior, formatting,
+      whitespace, line-count, binary wiring, and boundary scans.
 
 ## Legacy Transition Rules
 
@@ -1077,11 +1076,10 @@ boundary checks from the matrix above to every canonical context.
 ## Reporting Context
 
 - [x] Platform summary, fraud dashboard, reward dashboard, wallet
-      reconciliation, organization summary, and organization reward dashboard
-      now live in `application/reporting`, `infra/postgres/reporting`, and
-      `http/reporting` with legacy report URLs preserved.
-- [ ] Move remaining platform CSV exports into reporting application use cases
-      and Postgres query adapters.
+      reconciliation, platform CSV exports, organization summary, and
+      organization reward dashboard now live in `application/reporting`,
+      `infra/postgres/reporting`, and `http/reporting` with legacy report URLs
+      preserved.
 
 ## Wallet Context
 

@@ -10,6 +10,9 @@ use rust_learn::application::reporting::organization_reward_dashboard::{
 use rust_learn::application::reporting::organization_summary::{
     OrganizationSummaryError, OrganizationSummaryOutput, OrganizationSummaryUseCase,
 };
+use rust_learn::application::reporting::platform_csv_exports::{
+    PlatformCsvExportError, PlatformCsvExportsUseCase,
+};
 use rust_learn::application::reporting::platform_fraud_dashboard::{
     PlatformFraudDashboardError, PlatformFraudDashboardOutput, PlatformFraudDashboardUseCase,
 };
@@ -23,6 +26,7 @@ use rust_learn::application::reporting::platform_wallet_reconciliation::{
 
 struct RouteOnlyOrganizationRewardDashboardUseCase;
 struct RouteOnlyOrganizationSummaryUseCase;
+struct RouteOnlyPlatformCsvExportsUseCase;
 struct RouteOnlyPlatformFraudDashboardUseCase;
 struct RouteOnlyPlatformRewardDashboardUseCase;
 struct RouteOnlyPlatformWalletReconciliationUseCase;
@@ -36,6 +40,12 @@ pub fn organization_reward_dashboard_data() -> web::Data<Arc<dyn OrganizationRew
 pub fn organization_summary_data() -> web::Data<Arc<dyn OrganizationSummaryUseCase>> {
     web::Data::new(
         Arc::new(RouteOnlyOrganizationSummaryUseCase) as Arc<dyn OrganizationSummaryUseCase>
+    )
+}
+
+pub fn platform_csv_exports_data() -> web::Data<Arc<dyn PlatformCsvExportsUseCase>> {
+    web::Data::new(
+        Arc::new(RouteOnlyPlatformCsvExportsUseCase) as Arc<dyn PlatformCsvExportsUseCase>
     )
 }
 
@@ -81,6 +91,49 @@ impl OrganizationSummaryUseCase for RouteOnlyOrganizationSummaryUseCase {
         )))
         .boxed()
     }
+}
+
+impl PlatformCsvExportsUseCase for RouteOnlyPlatformCsvExportsUseCase {
+    fn load_platform_teacher_application_exports(
+        &self,
+    ) -> BoxFuture<'_, Result<Vec<rust_learn::application::reporting::platform_csv_exports::PlatformTeacherApplicationExportRowOutput>, PlatformCsvExportError>>
+    {
+        csv_export_error().boxed()
+    }
+
+    fn load_platform_reward_approval_exports(
+        &self,
+    ) -> BoxFuture<'_, Result<Vec<rust_learn::application::reporting::platform_csv_exports::PlatformRewardApprovalExportRowOutput>, PlatformCsvExportError>>
+    {
+        csv_export_error().boxed()
+    }
+
+    fn load_platform_token_payout_exports(
+        &self,
+    ) -> BoxFuture<'_, Result<Vec<rust_learn::application::reporting::platform_csv_exports::PlatformTokenPayoutExportRowOutput>, PlatformCsvExportError>>
+    {
+        csv_export_error().boxed()
+    }
+
+    fn load_platform_wallet_credit_exports(
+        &self,
+    ) -> BoxFuture<'_, Result<Vec<rust_learn::application::reporting::platform_csv_exports::PlatformWalletCreditExportRowOutput>, PlatformCsvExportError>>
+    {
+        csv_export_error().boxed()
+    }
+
+    fn load_platform_delegated_permission_exports(
+        &self,
+    ) -> BoxFuture<'_, Result<Vec<rust_learn::application::reporting::platform_csv_exports::PlatformDelegatedPermissionExportRowOutput>, PlatformCsvExportError>>
+    {
+        csv_export_error().boxed()
+    }
+}
+
+fn csv_export_error<T>() -> futures::future::Ready<Result<Vec<T>, PlatformCsvExportError>> {
+    ready(Err(PlatformCsvExportError::Database(
+        "route-only use case".to_string(),
+    )))
 }
 
 impl PlatformFraudDashboardUseCase for RouteOnlyPlatformFraudDashboardUseCase {
