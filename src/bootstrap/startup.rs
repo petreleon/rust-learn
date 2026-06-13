@@ -16,6 +16,7 @@ use crate::infra::postgres::content::upload_url_use_case::PostgresContentUploadU
 use crate::infra::postgres::identity::current_session_use_case::PostgresCurrentSessionUseCase;
 use crate::infra::postgres::notifications::notification_inbox_use_case::PostgresNotificationInboxUseCase;
 use crate::infra::postgres::notifications::notification_preferences_use_case::PostgresNotificationPreferencesUseCase;
+use crate::infra::postgres::rewards::reward_policy_use_case::PostgresRewardPolicyUseCase;
 use crate::utils::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
 
@@ -52,6 +53,7 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
             s3.clone(),
         )),
         content_processing_use_case: Arc::new(PostgresContentProcessingUseCase::new(pool.clone())),
+        reward_policy_use_case: Arc::new(PostgresRewardPolicyUseCase::new(pool.clone())),
         readiness_use_case: Arc::new(RuntimeReadinessUseCase::new(pool.clone(), s3.clone())),
         notifications: NotificationsState::new(pool.clone()),
         pool,

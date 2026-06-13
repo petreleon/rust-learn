@@ -1,9 +1,13 @@
 use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::rewards::manage_reward_policy::{
+    CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyError, RewardPolicyUseCase,
+};
 use rust_learn::config::constants::roles::Roles;
-use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{courses, organizations};
+use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::rewards::reward_policy_use_case::PostgresRewardPolicyUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_candidate::REWARD_EVENT_COURSE_COMPLETION;
@@ -14,10 +18,6 @@ use rust_learn::models::reward_policy::{
 use rust_learn::models::user::User;
 use rust_learn::repositories::platform_repository::assign_role_to_user;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::services::reward_policy_service::{
-    create_reward_policy, list_reward_policies, CreateRewardPolicyRequest,
-    ListRewardPoliciesRequest, RewardPolicyError,
-};
 use std::str::FromStr;
 
 fn unique_string(prefix: &str) -> String {
@@ -25,10 +25,14 @@ fn unique_string(prefix: &str) -> String {
     format!("{}_{}", prefix, ts)
 }
 
-async fn setup_conn(
-) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
+fn setup_pool() -> DbPool {
     let _ = dotenvy::dotenv();
-    let pool = establish_connection();
+    establish_connection()
+}
+
+async fn setup_conn(
+    pool: &DbPool,
+) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
     pool.get()
         .await
         .expect("failed to get DB connection from pool")
@@ -71,8 +75,12 @@ async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organi
         .expect("failed to create organization")
 }
 
-fn platform_policy_request(amount: &str) -> CreateRewardPolicyRequest {
-    CreateRewardPolicyRequest {
+fn reward_policy_use_case(pool: &DbPool) -> PostgresRewardPolicyUseCase {
+    PostgresRewardPolicyUseCase::new(pool.clone())
+}
+
+fn platform_policy_request(amount: &str) -> CreateRewardPolicyCommand {
+    CreateRewardPolicyCommand {
         scope_type: REWARD_POLICY_SCOPE_PLATFORM.to_string(),
         organization_id: None,
         course_id: None,

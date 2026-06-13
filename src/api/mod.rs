@@ -51,7 +51,7 @@ pub fn api_scope() -> Scope<
         .service(kyc::kyc_scope())
         .configure(reward_candidates::configure_reward_candidate_routes)
         .service(reward_fraud_blocks::reward_fraud_block_scope())
-        .service(reward_policies::reward_policy_scope())
+        .configure(crate::http::rewards::configure_routes)
         .service(crate::http::access_control::roles_scope())
         .service(teacher_applications::teacher_application_scope())
         .service(wallets::wallet_scope())

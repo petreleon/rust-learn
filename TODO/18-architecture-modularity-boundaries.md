@@ -226,6 +226,29 @@ reporting may have little or no domain logic, but it still belongs in
 application/reporting, infra/postgres/reporting, and http/reporting.
 ```
 
+Level 2 is complete only when the target is ring-complete,
+adapter-complete, and migration-aware:
+
+- Ring-complete means every behavior-owning context has a stable home under
+  `domain`, `application`, `infra`, and `http`; no context should remain a
+  scattered collection of `api/*`, `services/*`, `repositories/*`, and
+  `utils/*` names.
+- Adapter-complete means `infra/postgres` is not a rewards-only folder. It
+  grows one context at a time as Diesel code moves behind application ports:
+  `infra/postgres/rewards` is the current pilot, while `infra/postgres/identity`,
+  `infra/postgres/content`, `infra/postgres/learning`, and the other canonical
+  contexts are equally part of the target.
+- Migration-aware means the current filesystem may show only the contexts that
+  have already moved. A missing context folder during migration is backlog, not
+  architecture guidance.
+- Use-case-complete means application modules are named after user/business
+  actions, not vague service buckets. Prefer `manage_reward_policy`,
+  `submit_assessment_attempt`, and `notification_inbox` over
+  `reward_service`, `course_service`, or `session_service`.
+- Boundary-complete means HTTP DTOs, application command/output types, domain
+  values, Diesel records, and external adapters remain separate types unless a
+  migration note explicitly accepts a temporary leak.
+
 Granularity levels:
 
 - Level 1: top-level rings only. Example: `domain/rewards.rs` and
@@ -539,7 +562,12 @@ src/
       error.rs
 ```
 
-Detailed Level 2 shape for one large context, using rewards as the pilot:
+Rewards Level 2 pilot excerpt, not the complete Postgres target:
+
+This excerpt is deliberately rewards-focused because rewards is the pilot
+context. It must not be read as "Postgres only has rewards." The complete
+target above keeps all canonical persistence-owning contexts under
+`infra/postgres/<context>` as their slices move.
 
 ```text
 src/
@@ -555,10 +583,17 @@ src/
       policy/
         mod.rs
         scope.rs
+        event_type.rs
         payment_strategy.rs
       fraud_block/
         mod.rs
         scope.rs
+        rule.rs
+      payout/
+        mod.rs
+        status.rs
+      compensation/
+        mod.rs
         rule.rs
   application/
     rewards/
@@ -577,6 +612,36 @@ src/
         command.rs
         handler.rs
         error.rs
+      manage_reward_policy/
+        mod.rs
+        command.rs
+        query.rs
+        handler.rs
+        validation.rs
+        output.rs
+        error.rs
+        service.rs
+      manage_fraud_block/
+        mod.rs
+        command.rs
+        query.rs
+        handler.rs
+        error.rs
+      plan_payout/
+        mod.rs
+        command.rs
+        handler.rs
+        error.rs
+      confirm_token_payout/
+        mod.rs
+        command.rs
+        handler.rs
+        error.rs
+      credit_wallet/
+        mod.rs
+        command.rs
+        handler.rs
+        error.rs
       reconcile_candidate/
         mod.rs
         command.rs
@@ -587,9 +652,14 @@ src/
     postgres/
       rewards/
         candidate_store.rs
-        policy_store.rs
+        reward_policy_store.rs
+        reward_policy_mappers.rs
+        reward_policy_use_case.rs
         audit_store.rs
         fraud_block_store.rs
+        payout_record_store.rs
+        compensation_store.rs
+        reward_history_read_store.rs
         mappers.rs
   http/
     rewards/
@@ -598,10 +668,18 @@ src/
         submit_candidate.rs
         decide_teacher_candidate.rs
         decide_amount.rs
+        reward_policy.rs
+        fraud_block.rs
+        payout.rs
+        reward_history.rs
       handlers/
         submit_candidate.rs
         decide_teacher_candidate.rs
         decide_amount.rs
+        reward_policy.rs
+        fraud_block.rs
+        payout.rs
+        reward_history.rs
       error.rs
 ```
 
@@ -1200,6 +1278,47 @@ Slice 25: retire the legacy current-session service module.
       current-session API tests still pass, route composition still passes, and
       the app binary still checks.
 
+Slice 26: move reward policy routes into the rewards HTTP ring.
+
+- [x] Use `/reward-policies` as the first rewards HTTP-ring migration because
+      policy management is small enough to prove the rewards boundary without
+      moving payout execution, candidate review, fraud blocking, and wallet
+      crediting in the same slice.
+- [x] Move reward policy scope/event/payment normalization into
+      `domain/rewards/policy`.
+- [x] Create `application/rewards/manage_reward_policy` with explicit
+      command/query/output/error/service modules and a `RewardPolicyStore`
+      port under `application/rewards/ports.rs`.
+- [x] Move reward policy validation and versioning orchestration out of the
+      legacy include-based service module.
+- [x] Move reward policy Diesel access behind
+      `infra/postgres/rewards/reward_policy_store.rs`, with DbPool wiring in
+      `reward_policy_use_case.rs` and Diesel/application mapping in
+      `reward_policy_mappers.rs`.
+- [x] Move `/api/reward-policies` request/response DTOs, handlers, and route
+      composition into `http/rewards`.
+- [x] Make `src/api/reward_policies.rs` a thin compatibility wrapper around
+      `http::rewards::reward_policy_scope`.
+- [x] Wire the reward policy use-case trait object through
+      `bootstrap::AppState`, production Actix app data, and focused tests.
+- [x] Delete the legacy `services/reward_policy_service` include module and
+      move its pure normalization/amount validation coverage beside the new
+      domain/application owners.
+- [x] Preserve existing route path, JSON field names, policy versioning
+      behavior, active-policy deactivation, permission denial body,
+      DB-unavailable body, and generic processing-error body.
+- [x] Self-critique: this moves reward policy management only. Reward
+      candidates, fraud blocks, payout execution, compensation, history, and
+      reporting still use legacy API/service wiring and should move through
+      separate rewards slices. Reward policy permission checks still call the
+      existing platform permission repository from the Postgres adapter until a
+      shared `application/access_control` authorization port becomes the single
+      backend source of truth.
+- [x] Prove the reward policy service module is gone, reward policy HTTP has no
+      Diesel/repository/service imports, pure validation tests pass, focused
+      reward policy integration behavior passes, route composition still
+      passes, and the app binary still checks.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -1232,6 +1351,19 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `src/services/session_service/` have been removed; the remaining
   current-session builder tests live beside
   `infra/postgres/identity/current_session_scope_builder.rs`.
+- `src/api/reward_policies.rs` is now a thin compatibility wrapper around
+  `http::rewards`.
+- Reward policy HTTP handlers, routes, and request/response DTOs now live under
+  `http/rewards`.
+- Reward policy management is injected as an application-facing
+  `RewardPolicyUseCase`; concrete DbPool/Postgres wiring lives in
+  `infra/postgres/rewards/reward_policy_use_case.rs` and
+  `bootstrap::AppState`.
+- Reward policy scope/event/payment normalization now lives under
+  `domain/rewards/policy`; amount and scope-reference validation lives under
+  `application/rewards/manage_reward_policy`.
+- Legacy `src/services/reward_policy_service.rs` and
+  `src/services/reward_policy_service/` have been removed.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -1343,6 +1475,12 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `rg "session_service|services::session_service|pub mod session_service|include!\\(\"session_service" src tests`
   returns no matches.
+- `rg "reward_policy_service|services::reward_policy_service|include!\\(\"reward_policy_service" src tests`
+  returns no matches.
+- `rg "crate::db|DbPool|diesel|diesel_async|RunQueryDsl|schema::|crate::services|crate::repositories" src/api/reward_policies.rs src/http/rewards`
+  returns no matches.
+- `rg "reward_policies::reward_policy_scope|api::reward_policies|crate::api::reward_policies" src/api/mod.rs tests/api_routing.rs`
+  returns no matches.
 - `rg "diesel|diesel_async|schema::|RunQueryDsl|QueryDsl|ExpressionMethods|models::user::User" src/api/users.rs`
   returns no matches.
 - `rg "diesel|diesel_async|RunQueryDsl|assessment_attempts::table|assessments::table" src/api/courses/list_assessment_attempts.rs`
@@ -1367,8 +1505,15 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `cargo fmt --all --check` passes.
 - `git diff --check` passes.
+- Manual source file length guard returns no non-generated files over 180
+  lines; generated `src/db/schema.rs` remains exempt.
 - `./scripts/run-host-tests.sh cargo check --features app-bin --bin rust-learn`
   passes.
+- `./scripts/run-host-tests.sh cargo test domain::rewards::policy --lib`
+  passes.
+- `./scripts/run-host-tests.sh cargo test application::rewards::manage_reward_policy --lib`
+  passes.
+- `./scripts/run-host-tests.sh cargo test --test reward_policies` passes.
 - `./scripts/run-host-tests.sh cargo test --test course_content_management`
   passes.
 - `./scripts/run-host-tests.sh cargo test course_video_upload_can_be_queued_and_processed --test video_upload_flow`
@@ -1469,23 +1614,31 @@ Use rewards as the first serious extraction because it currently crosses
 candidate submission, fraud blocks, reward policy, audit events, wallet credits,
 notifications, reporting, and platform review.
 
-- [ ] Create the rewards context across the top-level rings:
+- [x] Create the rewards context across the top-level rings:
       `domain/rewards`, `application/rewards`, `infra/postgres/rewards`, and
       `http/rewards`.
 - [ ] Use Level 2 granularity inside rewards: split domain by aggregate
       (`candidate`, `policy`, `fraud_block`) and application by use case
       (`submit_candidate`, `decide_amount`, `reconcile_candidate`).
-- [ ] Move reward statuses and event types into domain enums/newtypes. Keep
-      database string conversion at the infra boundary.
-- [ ] Move reward request/response structs out of service imports and into
-      `http/rewards/dto.rs`.
+- [x] Move reward policy scope, event, and payment-strategy normalization into
+      `domain/rewards/policy`.
+- [ ] Move remaining reward statuses and event types into domain enums/newtypes.
+      Keep database string conversion at the infra boundary.
+- [x] Move reward policy request/response structs out of service imports and
+      into `http/rewards/dto`.
+- [ ] Move remaining reward request/response structs out of service imports and
+      into `http/rewards/dto`.
 - [ ] Move candidate transition rules into pure domain functions:
       submit, teacher approve/reject, amount approve/reject, token confirmed,
       wallet credited, notified, reconciliation needed.
-- [ ] Define repository ports needed by reward use cases before moving Diesel
+- [x] Define the first reward repository port:
+      `RewardPolicyStore` for `manage_reward_policy`.
+- [ ] Define remaining repository ports needed by reward use cases before moving Diesel
       code. Examples: `RewardCandidateStore`, `RewardPolicyStore`,
       `RewardAuditStore`, `RewardFraudBlockStore`.
-- [ ] Move Diesel implementations behind `infra/postgres/rewards`.
+- [x] Move reward policy Diesel implementation behind `infra/postgres/rewards`.
+- [ ] Move remaining reward Diesel implementations behind
+      `infra/postgres/rewards`.
 - [ ] Move reward permission decisions through `application/access_control`
       instead of calling `user_permission_*_request` directly from reward use
       cases.
