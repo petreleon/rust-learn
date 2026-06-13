@@ -82,17 +82,6 @@ fn addresses_equal(left: &str, right: &str) -> bool {
     normalize_address(left) == normalize_address(right)
 }
 
-fn wallet_delta_for_operation(
-    operation: WalletTokenOperation,
-    amount: BigDecimal,
-    tax_amount: BigDecimal,
-) -> BigDecimal {
-    match operation {
-        WalletTokenOperation::Deposit => amount - tax_amount,
-        WalletTokenOperation::Retire => -(amount + tax_amount),
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 struct WalletTransferInteraction {
     provider: &'static str,

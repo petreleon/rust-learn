@@ -24,6 +24,7 @@ use crate::application::wallet::create_deposit_intent::WalletDepositIntentUseCas
 use crate::application::wallet::link_wallet::WalletLinkUseCase;
 use crate::application::wallet::manage_token_tax::WalletTokenTaxUseCase;
 use crate::application::wallet::read_wallet::WalletReadUseCase;
+use crate::application::wallet::retire_tokens::WalletRetirementUseCase;
 use crate::db::DbPool;
 use crate::utils::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
@@ -55,6 +56,7 @@ pub struct AppState {
     pub wallet_deposit_intent_use_case: Arc<dyn WalletDepositIntentUseCase>,
     pub wallet_link_use_case: Arc<dyn WalletLinkUseCase>,
     pub wallet_read_use_case: Arc<dyn WalletReadUseCase>,
+    pub wallet_retirement_use_case: Arc<dyn WalletRetirementUseCase>,
     pub wallet_token_tax_use_case: Arc<dyn WalletTokenTaxUseCase>,
     pub readiness_use_case: Arc<dyn ReadinessUseCase>,
 }

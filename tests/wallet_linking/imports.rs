@@ -10,6 +10,7 @@ use rust_learn::application::wallet::create_deposit_intent::WalletDepositIntentU
 use rust_learn::application::wallet::link_wallet::WalletLinkUseCase;
 use rust_learn::application::wallet::manage_token_tax::WalletTokenTaxUseCase;
 use rust_learn::application::wallet::read_wallet::WalletReadUseCase;
+use rust_learn::application::wallet::retire_tokens::WalletRetirementUseCase;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::schema::{
     courses, external_transactions, internal_transactions, organization_roles, organizations,
@@ -35,6 +36,7 @@ use rust_learn::infra::postgres::wallet::wallet_audit_use_case::PostgresWalletAu
 use rust_learn::infra::postgres::wallet::wallet_deposit_intent_use_case::PostgresWalletDepositIntentUseCase;
 use rust_learn::infra::postgres::wallet::wallet_link_use_case::PostgresWalletLinkUseCase;
 use rust_learn::infra::postgres::wallet::wallet_read_use_case::PostgresWalletReadUseCase;
+use rust_learn::infra::postgres::wallet::wallet_retirement_use_case::PostgresWalletRetirementUseCase;
 use rust_learn::infra::postgres::wallet::wallet_token_tax_use_case::PostgresWalletTokenTaxUseCase;
 use rust_learn::services::wallet_service::{
     self, credit_observed_wallet_deposit, ObservedWalletDepositEvent, WalletTokenTransferRequest,

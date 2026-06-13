@@ -95,6 +95,8 @@ fn wallet_test_app(
         Arc::new(PostgresWalletLinkUseCase::new(pool.clone()));
     let wallet_read_use_case: Arc<dyn WalletReadUseCase> =
         Arc::new(PostgresWalletReadUseCase::new(pool.clone()));
+    let wallet_retirement_use_case: Arc<dyn WalletRetirementUseCase> =
+        Arc::new(PostgresWalletRetirementUseCase::new(pool.clone()));
     let wallet_token_tax_use_case: Arc<dyn WalletTokenTaxUseCase> =
         Arc::new(PostgresWalletTokenTaxUseCase::new(pool.clone()));
 
@@ -104,6 +106,7 @@ fn wallet_test_app(
         .app_data(web::Data::new(wallet_deposit_intent_use_case))
         .app_data(web::Data::new(wallet_link_use_case))
         .app_data(web::Data::new(wallet_read_use_case))
+        .app_data(web::Data::new(wallet_retirement_use_case))
         .app_data(web::Data::new(wallet_token_tax_use_case))
         .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
         .service(web::scope("/api").service(rust_learn::api::wallets::wallet_scope()))

@@ -3,7 +3,6 @@ include!("wallet_service/wallet_token_helpers.rs");
 include!("wallet_service/ensure_user_kyc_verified.rs");
 include!("wallet_service/link_organization_wallet.rs");
 include!("wallet_service/create_user_wallet_token_deposit_intent.rs");
-include!("wallet_service/execute_user_wallet_token_transfer.rs");
 include!("wallet_service/credit_observed_wallet_deposit.rs");
 include!("wallet_service/validate_positive_amount.rs");
 include!("wallet_service/configured_deposit_platform_address.rs");

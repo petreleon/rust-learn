@@ -35,46 +35,6 @@ async fn create_wallet_token_transaction(
         .await
 }
 
-async fn create_wallet_external_transaction(
-    conn: &mut AsyncPgConnection,
-    operation: WalletTokenOperation,
-    transaction_id: i64,
-    request: &WalletTokenTransferRequest,
-) -> QueryResult<i64> {
-    let ethereum_address = request.ethereum_address.trim();
-    let platform_address = request.platform_address.as_deref().map(str::trim);
-    let (from_address, to_address) = match operation {
-        WalletTokenOperation::Deposit => (Some(ethereum_address), platform_address),
-        WalletTokenOperation::Retire => (platform_address, Some(ethereum_address)),
-    };
-
-    let external_transaction_id = diesel::insert_into(external_transactions::table)
-        .values(NewExternalTransaction {
-            amount: request.amount.clone(),
-            blockchain_address: ethereum_address,
-            chain_id: request.chain_id,
-            contract_address: request.contract_address.as_deref().map(str::trim),
-            transaction_hash: request.transaction_hash.as_deref().map(str::trim),
-            log_index: request.log_index,
-            event_type: Some(operation.external_event_type()),
-            from_address,
-            to_address,
-        })
-        .returning(external_transactions::id)
-        .get_result(conn)
-        .await?;
-
-    diesel::insert_into(transactions_external_transactions::table)
-        .values(NewTransactionExternalTransactionLink {
-            transaction_id,
-            external_transaction_id,
-        })
-        .execute(conn)
-        .await?;
-
-    Ok(external_transaction_id)
-}
-
 async fn create_observed_deposit_external_transaction(
     conn: &mut AsyncPgConnection,
     transaction_id: i64,

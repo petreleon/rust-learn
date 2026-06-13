@@ -27,12 +27,6 @@ impl WalletTokenOperation {
         }
     }
 
-    fn external_event_type(self) -> &'static str {
-        match self {
-            WalletTokenOperation::Deposit => TOKEN_TRANSFER_EVENT_IMPORT,
-            WalletTokenOperation::Retire => TOKEN_TRANSFER_EVENT_TRANSFER,
-        }
-    }
 }
 
 impl WalletTokenGasPayer {

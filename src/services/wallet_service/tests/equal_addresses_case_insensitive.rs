@@ -11,56 +11,6 @@ fn different_addresses_not_equal() {
     assert!(!addresses_equal("0xABC", "0xDEF"));
 }
 
-// ── wallet_delta_for_operation ──
-
-#[test]
-fn deposit_delta_is_amount_minus_tax() {
-    assert_eq!(
-        wallet_delta_for_operation(
-            WalletTokenOperation::Deposit,
-            BigDecimal::from(100),
-            BigDecimal::from(10)
-        ),
-        BigDecimal::from(90)
-    );
-}
-
-#[test]
-fn deposit_delta_no_tax() {
-    assert_eq!(
-        wallet_delta_for_operation(
-            WalletTokenOperation::Deposit,
-            BigDecimal::from(100),
-            BigDecimal::from(0)
-        ),
-        BigDecimal::from(100)
-    );
-}
-
-#[test]
-fn retire_delta_is_negative_amount_plus_tax() {
-    assert_eq!(
-        wallet_delta_for_operation(
-            WalletTokenOperation::Retire,
-            BigDecimal::from(100),
-            BigDecimal::from(10)
-        ),
-        BigDecimal::from(-110)
-    );
-}
-
-#[test]
-fn retire_delta_no_tax() {
-    assert_eq!(
-        wallet_delta_for_operation(
-            WalletTokenOperation::Retire,
-            BigDecimal::from(100),
-            BigDecimal::from(0)
-        ),
-        BigDecimal::from(-100)
-    );
-}
-
 // ── wallet_interaction_for_transfer ──
 
 #[test]

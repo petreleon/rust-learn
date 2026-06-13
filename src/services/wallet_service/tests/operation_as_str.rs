@@ -45,18 +45,6 @@ fn operation_transaction_type() {
     );
 }
 
-#[test]
-fn operation_external_event_type() {
-    assert_eq!(
-        WalletTokenOperation::Deposit.external_event_type(),
-        TOKEN_TRANSFER_EVENT_IMPORT
-    );
-    assert_eq!(
-        WalletTokenOperation::Retire.external_event_type(),
-        TOKEN_TRANSFER_EVENT_TRANSFER
-    );
-}
-
 // ── WalletTokenGasPayer enum ──
 
 #[test]

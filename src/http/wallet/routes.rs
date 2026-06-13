@@ -1,11 +1,14 @@
 use actix_web::web;
 
-use crate::http::wallet::handlers::{audit, deposit_intent, link, read, token_tax};
+use crate::http::wallet::handlers::{audit, deposit_intent, link, read, retirement, token_tax};
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(web::resource("/me").route(web::get().to(read::get_my_wallet)))
         .service(
             web::resource("/me/deposits").route(web::post().to(deposit_intent::deposit_my_tokens)),
+        )
+        .service(
+            web::resource("/me/retirements").route(web::post().to(retirement::retire_my_tokens)),
         )
         .service(web::resource("/me/link").route(web::post().to(link::link_my_wallet)))
         .service(web::resource("/me/audit").route(web::get().to(audit::get_my_wallet_audit)))
