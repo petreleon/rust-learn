@@ -5,10 +5,10 @@ use crate::db;
 use crate::services::session_service::{self, CurrentSessionError};
 use crate::utils::request_auth::authenticated_user_id;
 
-mod notifications;
-
-pub use crate::http::notifications::{get_notification_preferences, save_notification_preferences};
-pub use notifications::{clear_notifications, list_notifications, mark_notification_read};
+pub use crate::http::notifications::{
+    clear_notifications, get_notification_preferences, list_notifications, mark_notification_read,
+    save_notification_preferences,
+};
 
 #[derive(Serialize)]
 struct SessionErrorEnvelope {

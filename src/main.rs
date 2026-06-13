@@ -29,6 +29,9 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(app_state.notifications.clone()))
             .app_data(web::Data::new(app_state.role_catalog_use_case.clone()))
             .app_data(web::Data::new(
+                app_state.notification_inbox_use_case.clone(),
+            ))
+            .app_data(web::Data::new(
                 app_state.notification_preferences_use_case.clone(),
             ))
             .app_data(web::Data::new(app_state.chapter_use_cases.clone()))

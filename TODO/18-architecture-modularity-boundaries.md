@@ -288,7 +288,8 @@ src/
       read_model/
     notifications/
       preference/
-      message/
+      notification/
+      delivery_channel/
     operations/
       health/
       startup/
@@ -368,10 +369,11 @@ src/
       export_csv/
       ports.rs
     notifications/
+      get_preferences/
       save_preferences/
-      list_notifications/
-      mark_notification_read/
+      notification_inbox/
       send_notification/
+      dispatch_notification/
       ports.rs
     operations/
       readiness_check/
@@ -441,8 +443,9 @@ src/
         csv_exports.rs
         reconciliation_queries.rs
       notifications/
-        preference_store.rs
-        notification_store.rs
+        notification_preference_store.rs
+        notification_inbox_store.rs
+        notification_outbox_store.rs
         mappers.rs
       operations/
         persistent_state_store.rs
@@ -1115,10 +1118,40 @@ Slice 22: move notification preference routes into the notifications HTTP ring.
 - [x] Preserve existing preference DB-unavailable and load/save failure
       response bodies.
 - [x] Self-critique: `/me/notifications` list/read/clear still use the legacy
-      session notification handlers and `NotificationsState::from(pool)`. Move
-      that read-management surface in a separate notifications slice.
+      session notification handlers and `NotificationsState::from(pool)` after
+      this slice. Resolved by Slice 23 with a dedicated notification inbox use
+      case and HTTP route owner.
 - [x] Prove default preferences and save/reload behavior, application default
       behavior, route composition, and binary wiring with focused tests.
+
+Slice 23: move notification inbox routes into the notifications HTTP ring.
+
+- [x] Add an application-facing `notification_inbox` use case under
+      `application/notifications` for list, mark-read, and clear behavior.
+- [x] Add a `NotificationInboxStore` port so notification read-management no
+      longer depends on `NotificationsState` from HTTP.
+- [x] Add `infra/postgres/notifications/notification_inbox_store.rs` and
+      `notification_inbox_use_case.rs` as the DbPool-backed implementation.
+- [x] Move `/me/notifications` GET/DELETE and
+      `/me/notifications/{id}/read` PUT handlers into `http/notifications`.
+- [x] Add notification response DTO mapping in `http/notifications/dto` so the
+      public JSON shape is separate from the Diesel record.
+- [x] Remove `src/api/session/notifications.rs`; keep `api::session`
+      compatibility re-exports for existing handler imports.
+- [x] Wire the notification inbox use-case trait object through
+      `bootstrap::AppState` and production Actix app data.
+- [x] Preserve existing response bodies:
+      `Notification marked as read`, `Notifications cleared`,
+      `Failed to load notifications`, `Failed to mark notification as read`,
+      and `Failed to clear notifications`.
+- [x] Preserve notification list JSON fields:
+      `id`, `user_id`, `title`, `body`, `created_at`, and `read`.
+- [x] Self-critique: notification creation and delivery still live in
+      `utils::notifications::NotificationsState` and remain injected for
+      producer paths. Move send/dispatch behind `application/notifications`
+      ports and `infra/notifications` in a later slice.
+- [x] Prove ownership filtering, mark-read, clear, route composition,
+      application notification behavior, and binary wiring with focused tests.
 
 Progress evidence from 2026-06-12 and 2026-06-13:
 
@@ -1137,12 +1170,20 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `src/api/session` re-exports notification preference handlers from
   `http::notifications`; `/me/preferences` route composition now lives in
   `http/notifications`.
-- Notification preference HTTP handlers and request/response DTOs now live
-  under `http/notifications`.
+- `src/api/session` also re-exports notification inbox handlers from
+  `http::notifications`; `/me/notifications` list/read/clear route
+  composition now lives in `http/notifications`.
+- Notification preference and inbox HTTP handlers plus request/response DTOs
+  now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
   `NotificationPreferencesUseCase`; concrete DbPool/Postgres wiring lives in
   `infra/postgres/notifications/notification_preferences_use_case.rs` and
   `bootstrap::AppState`.
+- Notification inbox read-management is injected as an application-facing
+  `NotificationInboxUseCase`; concrete DbPool/Postgres wiring lives in
+  `infra/postgres/notifications/notification_inbox_use_case.rs` and
+  `bootstrap::AppState`.
+- `src/api/session/notifications.rs` has been removed.
 - `src/api/roles.rs` is now a thin compatibility wrapper around
   `http::access_control`.
 - Role catalog HTTP handlers, routes, and response DTOs now live under
@@ -1231,9 +1272,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `rg "api::roles|crate::api::roles" src/api/mod.rs tests/middleware_access_control/role_read_routes_require_view_role_assignments_permission.rs`
   returns no matches.
-- `rg "PostgresNotificationPreferenceStore|crate::infra::postgres|crate::db::DbPool" src/http/notifications src/api/session/notifications.rs`
-  returns no matches for preference handlers; `src/api/session/notifications.rs`
-  still imports `crate::db` for legacy `/me/notifications` list/read/clear.
+- `rg "NotificationsState::from|PostgresNotificationPreferenceStore|PostgresNotificationInboxStore|crate::infra::postgres|crate::db::DbPool" src/http/notifications`
+  returns no matches.
+- `rg "mod notifications|api/session/notifications" src/api/session.rs src/api`
+  returns no matches.
 - `rg "api::session::get_notification_preferences|api::session::save_notification_preferences|session::get_notification_preferences|session::save_notification_preferences" src/api/mod.rs tests/current_session_api/current_session_test_app.rs`
   returns no matches.
 - `rg "diesel|diesel_async|schema::|RunQueryDsl|QueryDsl|ExpressionMethods|models::user::User" src/api/users.rs`
@@ -1305,6 +1347,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   passes.
 - `./scripts/run-host-tests.sh cargo test --test current_session_api`
   passes.
+- `./scripts/run-host-tests.sh cargo test notification_inbox_routes_list_mark_read_and_clear --test current_session_api`
+  passes.
+- `./scripts/run-host-tests.sh cargo test application::notifications` passes
+  with fake-port coverage for notification inbox list, mark-read, and clear.
 - `./scripts/run-host-tests.sh cargo check --features app-bin --bin rust-learn`
   passes.
 

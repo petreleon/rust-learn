@@ -1,5 +1,8 @@
 use futures::future::BoxFuture;
 
+use crate::application::notifications::notification_inbox::{
+    NotificationInboxError, NotificationOutput,
+};
 use crate::application::notifications::preferences::{
     NotificationPreferenceOutput, NotificationPreferencesError,
 };
@@ -15,4 +18,19 @@ pub trait NotificationPreferenceStore {
         &mut self,
         command: SaveNotificationPreferencesCommand,
     ) -> BoxFuture<'_, Result<NotificationPreferenceOutput, NotificationPreferencesError>>;
+}
+
+pub trait NotificationInboxStore {
+    fn list(
+        &mut self,
+        user_id: i32,
+    ) -> BoxFuture<'_, Result<Vec<NotificationOutput>, NotificationInboxError>>;
+
+    fn mark_read(
+        &mut self,
+        user_id: i32,
+        notification_id: i64,
+    ) -> BoxFuture<'_, Result<(), NotificationInboxError>>;
+
+    fn clear(&mut self, user_id: i32) -> BoxFuture<'_, Result<(), NotificationInboxError>>;
 }
