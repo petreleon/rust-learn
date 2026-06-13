@@ -1,4 +1,5 @@
 use crate::config::constants::permissions::Permissions;
+pub use crate::application::rewards::decide_amount::RewardAmountDecisionCommand as RewardAmountDecisionRequest;
 use crate::db::schema::{
     courses, courses_organizations, reward_candidates, reward_fraud_blocks, reward_policies, users,
 };
@@ -46,13 +47,6 @@ pub struct SubmitRewardCandidateRequest {
 #[derive(Debug, Clone, Deserialize)]
 pub struct TeacherRewardCandidateDecisionRequest {
     pub status: String,
-    pub decision_reason: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct RewardAmountDecisionRequest {
-    pub status: String,
-    pub approved_amount: Option<BigDecimal>,
     pub decision_reason: Option<String>,
 }
 

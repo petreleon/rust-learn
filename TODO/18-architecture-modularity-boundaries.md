@@ -1593,13 +1593,64 @@ Slice 32: move teacher reward-candidate decisions into the rewards HTTP ring.
       app data.
 - [x] Self-critique: the legacy direct service function remains temporarily
       because existing integration tests still call reward-candidate mutations
-      as service helpers. The next mutation slices should move submit-candidate
-      and amount-decision tests to use application use cases, then delete the
-      include-based reward-candidate service.
+      as service helpers. Later mutation slices should move submit-candidate
+      and any remaining teacher-decision helpers to application use cases, then
+      delete the include-based reward-candidate service.
 - [x] Prove application fake-port tests pass, route composition reaches the
       teacher-decision URL, application/domain import scans stay clean, touched
       non-generated Rust files stay under the manual line limit, and the app
       binary still checks.
+
+Slice 33: move reward amount decisions into the rewards HTTP ring.
+
+- [x] Use `PUT /reward-candidates/{candidate_id}/amount-decision` as the next
+      rewards mutation migration because it completes the teacher-to-platform
+      approval path and owns platform permission, amount validation, candidate
+      transition, fraud-block guard, audit creation, and execution-job enqueue.
+- [x] Create `application/rewards/decide_amount` with explicit
+      command/output/error/service modules and a module-local
+      `RewardAmountDecisionStore` because the transaction contract is unique to
+      this mutation.
+- [x] Preserve legacy amount decision status inputs exactly: `approved` and
+      `amount_approved` map to `amount_approved`; `rejected` and
+      `amount_rejected` map to `amount_rejected`; unsupported values remain
+      conflicts.
+- [x] Preserve legacy validation order: status is normalized first, platform
+      amount-approval permission is checked second, and approved-amount
+      required/non-negative validation runs only after permission succeeds.
+- [x] Reuse the pure domain candidate transition rule for amount approve/reject
+      validation while keeping DB string conversion at the Postgres boundary.
+- [x] Move amount-decision platform permission probing, candidate load/update,
+      active fraud-block checks, active reward-policy lookup, audit-event
+      insertion, and execution-job enqueueing behind `infra/postgres/rewards`.
+- [x] Extract shared reward-candidate fraud-block and active-policy lookup
+      helpers under `infra/postgres/rewards` so teacher and amount decisions do
+      not duplicate the same adapter queries.
+- [x] Keep the candidate read, transition check, fraud-block check, update,
+      audit insert, and execution-job enqueue inside one Postgres transaction.
+      Use an infra-only transaction error wrapper so the application error type
+      remains Diesel-free.
+- [x] Move the amount-decision request/response DTO and handler into
+      `http/rewards` while preserving the legacy URL, response field names, and
+      legacy HTTP error bodies.
+- [x] Remove amount-decision route ownership from `api/reward_candidates`.
+- [x] Wire the amount-decision use-case trait object through
+      `bootstrap::AppState`, production Actix app data, and route smoke-test
+      app data.
+- [x] Replace the service-owned `RewardAmountDecisionRequest` with a
+      compatibility alias to the application command. Reward-candidate and
+      delegated-permission amount-decision test helpers now call the
+      application-facing Postgres use case instead of the legacy service
+      function.
+- [x] Self-critique: candidate submission routes still live in the legacy
+      reward-candidate API/service, and reward execution/payout/compensation
+      flows still need their own Level 2 slices before the include-based
+      reward-candidate service can be deleted.
+- [x] Prove application fake-port tests pass, route composition reaches the
+      amount-decision URL, the existing teacher-to-amount approval regression
+      still enqueues exactly one execution job, application/domain and HTTP
+      import scans stay clean, touched non-generated Rust files stay under the
+      manual line limit, and the app binary still checks.
 
 Progress evidence from 2026-06-12 and 2026-06-13:
 
@@ -1722,6 +1773,22 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   temporary legacy course scope composes the `http/rewards` resource so the
   `/api/courses/...` prefix remains reachable until course routing moves fully
   into the HTTP ring.
+- Reward amount-decision HTTP handler and request/response DTO now live under
+  `http/rewards`, while preserving the legacy
+  `/reward-candidates/{candidate_id}/amount-decision` PUT URL.
+- Reward amount decisions are injected as an application-facing
+  `RewardAmountDecisionUseCase`; concrete DbPool/Postgres wiring lives in
+  `infra/postgres/rewards/reward_amount_decision_use_case.rs` and
+  `bootstrap::AppState`.
+- Reward amount-decision platform permission probing, transactional candidate
+  update/audit insertion, execution-job enqueueing, fraud-block checks, and
+  active policy lookups now live behind the module-local
+  `RewardAmountDecisionStore` in
+  `infra/postgres/rewards/reward_amount_decision_store.rs`.
+- Shared reward-candidate fraud-block and active-policy lookup helpers now live
+  under `infra/postgres/rewards/reward_candidate_fraud_blocks.rs` and
+  `reward_candidate_policy_lookup.rs`.
+- `api/reward_candidates` no longer owns the amount-decision route.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -1835,6 +1902,12 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   passes.
 - The manual line-limit scan only reports generated `src/db/schema.rs`; touched
   non-generated Rust files stay under 180 lines.
+- `./scripts/run-host-tests.sh cargo test --lib application::rewards::decide_amount`
+  passes.
+- `./scripts/run-host-tests.sh cargo test teacher_submits_and_approves_then_platform_reviewer_sets_amount --test reward_candidates`
+  passes.
+- `./scripts/run-host-tests.sh cargo test delegated_platform_amount_reviewer_can_set_amount_after_teacher_approval --test delegated_permissions`
+  passes.
 - `rg "api::session::get_notification_preferences|api::session::save_notification_preferences|session::get_notification_preferences|session::save_notification_preferences" src/api/mod.rs tests/current_session_api/current_session_test_app.rs`
   returns no matches.
 - `rg "session::get_current_session|api::session::get_current_session|crate::services::session_service|crate::db::DbPool|diesel|diesel_async|schema::|RunQueryDsl" src/api/session.rs src/http/identity src/api/mod.rs`
@@ -2066,6 +2139,8 @@ boundary checks from the matrix above to every canonical context.
       service imports and into `http/rewards/dto`.
 - [x] Move teacher reward-candidate decision request/response structs out of
       service imports and into `http/rewards/dto`.
+- [x] Move reward amount decision request/response structs out of service
+      imports and into `http/rewards/dto`.
 - [ ] Move remaining reward request/response structs out of service imports and
       into `http/rewards/dto`.
 - [ ] Move candidate transition rules into pure domain functions:
@@ -2081,6 +2156,7 @@ boundary checks from the matrix above to every canonical context.
       `list_platform_candidates`.
 - [x] Define module-local `TeacherRewardCandidateDecisionStore` for
       `decide_teacher_candidate`.
+- [x] Define module-local `RewardAmountDecisionStore` for `decide_amount`.
 - [ ] Define remaining repository ports needed by reward use cases before moving Diesel
       code. Examples: `RewardCandidateStore`, `RewardPolicyStore`,
       `RewardAuditStore`, `RewardFraudBlockStore`.
@@ -2096,6 +2172,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move platform reward-candidate review Diesel implementation behind
       `infra/postgres/rewards`.
 - [x] Move teacher reward-candidate decision Diesel implementation behind
+      `infra/postgres/rewards`.
+- [x] Move reward amount decision Diesel implementation behind
       `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.

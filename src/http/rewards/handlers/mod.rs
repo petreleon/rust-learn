@@ -1,3 +1,4 @@
+pub mod amount_decision;
 pub mod candidate_audit;
 pub mod course_candidates;
 pub mod fraud_block;

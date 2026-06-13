@@ -2,6 +2,10 @@ use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::rewards::decide_amount::{
+    RewardAmountDecisionCommand as RewardAmountDecisionRequest, RewardAmountDecisionError,
+    RewardAmountDecisionOutput, RewardAmountDecisionUseCase,
+};
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{
@@ -30,12 +34,13 @@ use rust_learn::repositories::delegated_permission_repository::find_delegated_pe
 use rust_learn::repositories::organization_repository::user_permission_organization_request;
 use rust_learn::repositories::platform_repository::user_permission_platform_request;
 use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::rewards::reward_amount_decision_use_case::PostgresRewardAmountDecisionUseCase;
 use rust_learn::services::delegated_permission_service::{
     grant_delegated_permission, revoke_delegated_permission,
 };
 use rust_learn::services::reward_candidate_service::{
-    decide_reward_amount, decide_reward_candidate_by_teacher, submit_course_reward_candidate,
-    submit_organization_reward_candidate, RewardAmountDecisionRequest, RewardCandidateError,
+    decide_reward_candidate_by_teacher, submit_course_reward_candidate,
+    submit_organization_reward_candidate, RewardCandidateError,
     SubmitRewardCandidateRequest, TeacherRewardCandidateDecisionRequest,
 };
 use serde_json::json;
@@ -52,6 +57,37 @@ async fn setup_conn(
     pool.get()
         .await
         .expect("failed to get DB connection from pool")
+}
+
+async fn decide_reward_amount(
+    _conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    candidate_id: i64,
+    request: RewardAmountDecisionRequest,
+) -> Result<RewardAmountDecisionOutput, RewardCandidateError> {
+    let pool = establish_connection();
+    PostgresRewardAmountDecisionUseCase::new(pool)
+        .decide_reward_amount(actor_user_id, candidate_id, request)
+        .await
+        .map_err(map_reward_amount_decision_error)
+}
+
+fn map_reward_amount_decision_error(error: RewardAmountDecisionError) -> RewardCandidateError {
+    match error {
+        RewardAmountDecisionError::PermissionDenied(permission) => {
+            RewardCandidateError::PermissionDenied(permission)
+        }
+        RewardAmountDecisionError::InvalidInput(message) => {
+            RewardCandidateError::InvalidInput(message)
+        }
+        RewardAmountDecisionError::InvalidStatus(message) => {
+            RewardCandidateError::InvalidStatus(message)
+        }
+        RewardAmountDecisionError::NotFound => RewardCandidateError::NotFound,
+        RewardAmountDecisionError::Connection(message) | RewardAmountDecisionError::Database(message) => {
+            RewardCandidateError::Database(message)
+        }
+    }
 }
 
 async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {

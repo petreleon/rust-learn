@@ -1,4 +1,5 @@
 include!("reward_candidates/imports.rs");
+include!("reward_candidates/amount_decision_helper.rs");
 include!("reward_candidates/link_course_to_organization.rs");
 include!("reward_candidates/force_assign_organization_role.rs");
 include!("reward_candidates/assert_scoped_fraud_block_pauses_reward_activity.rs");

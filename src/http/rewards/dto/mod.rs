@@ -1,3 +1,4 @@
+mod amount_decision;
 mod candidate_audit;
 mod course_candidates;
 mod fraud_block;
@@ -6,6 +7,7 @@ mod reward_history;
 mod reward_policy;
 mod teacher_decision;
 
+pub use amount_decision::{RewardAmountDecisionRequest, RewardAmountDecisionResponse};
 pub use candidate_audit::RewardCandidateAuditEventResponse;
 pub use course_candidates::{CourseRewardCandidateResponse, ListCourseRewardCandidatesRequest};
 pub use fraud_block::{

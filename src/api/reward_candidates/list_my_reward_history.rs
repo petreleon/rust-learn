@@ -6,10 +6,6 @@ pub fn configure_reward_candidate_routes(cfg: &mut web::ServiceConfig) {
     .service(
         web::resource("/organizations/{organization_id}/courses/{course_id}/reward-candidates")
             .route(web::post().to(submit_organization_reward_candidate)),
-    )
-    .service(
-        web::resource("/reward-candidates/{candidate_id}/amount-decision")
-            .route(web::put().to(decide_reward_amount)),
     );
 }
 

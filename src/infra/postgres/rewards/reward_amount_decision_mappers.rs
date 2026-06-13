@@ -1,10 +1,10 @@
-use crate::application::rewards::decide_teacher_candidate::{
-    TeacherRewardCandidateDecisionError, TeacherRewardCandidateDecisionOutput,
+use crate::application::rewards::decide_amount::{
+    RewardAmountDecisionError, RewardAmountDecisionOutput,
 };
 use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::RewardCandidateFraudBlockError;
 use crate::models::reward_candidate::RewardCandidate;
 
-impl From<RewardCandidate> for TeacherRewardCandidateDecisionOutput {
+impl From<RewardCandidate> for RewardAmountDecisionOutput {
     fn from(candidate: RewardCandidate) -> Self {
         Self {
             id: candidate.id,
@@ -21,7 +21,7 @@ impl From<RewardCandidate> for TeacherRewardCandidateDecisionOutput {
             teacher_decision_reason: candidate.teacher_decision_reason,
             teacher_decided_at: candidate.teacher_decided_at,
             amount_reviewer_user_id: candidate.amount_reviewer_user_id,
-            approved_amount: candidate.approved_amount.map(|amount| amount.to_string()),
+            approved_amount: candidate.approved_amount,
             amount_decision_reason: candidate.amount_decision_reason,
             amount_decided_at: candidate.amount_decided_at,
             created_at: candidate.created_at,
@@ -30,16 +30,16 @@ impl From<RewardCandidate> for TeacherRewardCandidateDecisionOutput {
     }
 }
 
-pub(super) fn map_teacher_decision_error(
+pub(super) fn map_reward_amount_decision_error(
     error: diesel::result::Error,
-) -> TeacherRewardCandidateDecisionError {
+) -> RewardAmountDecisionError {
     match error {
-        diesel::result::Error::NotFound => TeacherRewardCandidateDecisionError::NotFound,
-        other => TeacherRewardCandidateDecisionError::Database(other.to_string()),
+        diesel::result::Error::NotFound => RewardAmountDecisionError::NotFound,
+        other => RewardAmountDecisionError::Database(other.to_string()),
     }
 }
 
-impl From<RewardCandidateFraudBlockError> for TeacherRewardCandidateDecisionError {
+impl From<RewardCandidateFraudBlockError> for RewardAmountDecisionError {
     fn from(error: RewardCandidateFraudBlockError) -> Self {
         match error {
             RewardCandidateFraudBlockError::Blocked(message) => Self::InvalidStatus(message),

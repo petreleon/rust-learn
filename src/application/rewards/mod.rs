@@ -1,3 +1,4 @@
+pub mod decide_amount;
 pub mod decide_teacher_candidate;
 pub mod list_candidate_audit;
 pub mod list_course_candidates;

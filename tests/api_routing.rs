@@ -3,6 +3,7 @@ use actix_web::{
     test, web, App, HttpResponse,
 };
 
+mod api_routing_amount_decision_fake;
 mod api_routing_route_fakes;
 mod api_routing_teacher_decision_fake;
 
@@ -31,6 +32,7 @@ async fn api_scope_and_following_routes_are_reachable() {
         App::new()
             .app_data(api_routing_route_fakes::reward_fraud_block_data())
             .app_data(api_routing_route_fakes::reward_candidate_audit_data())
+            .app_data(api_routing_amount_decision_fake::reward_amount_decision_data())
             .app_data(api_routing_route_fakes::course_reward_candidates_data())
             .app_data(api_routing_route_fakes::platform_reward_candidates_data())
             .app_data(api_routing_teacher_decision_fake::teacher_reward_candidate_decision_data())

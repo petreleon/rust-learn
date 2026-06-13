@@ -10,7 +10,7 @@ use crate::application::rewards::decide_teacher_candidate::{
 use crate::config::constants::permissions::Permissions;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::rewards::candidate::transition;
-use crate::infra::postgres::rewards::teacher_reward_candidate_decision_fraud_blocks::ensure_no_active_reward_fraud_block;
+use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::ensure_no_active_reward_fraud_block;
 use crate::infra::postgres::rewards::teacher_reward_candidate_decision_mappers::map_teacher_decision_error;
 use crate::models::reward_audit_event::{NewRewardAuditEvent, REWARD_AUDIT_EVENT_TEACHER_DECISION};
 use crate::repositories::course_repository::user_permission_course_request;
