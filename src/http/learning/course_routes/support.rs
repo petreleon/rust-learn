@@ -1,12 +1,12 @@
 use actix_web::HttpResponse;
 
 use crate::application::learning::assessment::AssessmentReadError;
+use crate::application::learning::course_enrollment::CourseEnrollmentError;
 use crate::application::learning::create_course::CourseCreationError;
 use crate::application::learning::learner_progress::LearnerProgressError;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionError;
 use crate::application::learning::update_course::CourseUpdateError;
 use crate::application::learning::update_course_lifecycle::CourseLifecycleError;
-use crate::services::course_enrollment_service::CourseEnrollmentError;
 use crate::services::course_service::{LearnerCourseCatalogError, TeacherCourseDashboardError};
 
 pub(super) fn lifecycle_error_response(error: CourseLifecycleError) -> HttpResponse {
@@ -68,6 +68,13 @@ pub(super) fn course_enrollment_error_response(error: CourseEnrollmentError) -> 
         CourseEnrollmentError::InvalidStatus(message) => HttpResponse::BadRequest().body(message),
         CourseEnrollmentError::NotFound => {
             HttpResponse::NotFound().body("Course enrollment not found")
+        }
+        CourseEnrollmentError::Connection(message) => {
+            log::error!(
+                "event=course_enrollment_connection_failed error={}",
+                message
+            );
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
         }
         CourseEnrollmentError::Database(message) => {
             log::error!("event=course_enrollment_failed error={}", message);

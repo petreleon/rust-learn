@@ -1,4 +1,3 @@
-pub mod course_enrollment_service;
 pub mod course_service;
 pub mod delegated_permission_service;
 pub mod kyc_service;

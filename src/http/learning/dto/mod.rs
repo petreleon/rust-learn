@@ -2,6 +2,7 @@ mod assessment;
 mod course;
 mod course_creation;
 mod course_discovery;
+mod course_enrollment;
 mod course_lifecycle;
 mod course_organization;
 mod course_role_assignment;
@@ -15,6 +16,9 @@ pub use assessment::{
 pub use course::CourseResponse;
 pub use course_creation::CreateCourseRequest;
 pub use course_discovery::CourseDiscoveryResponse;
+pub use course_enrollment::{
+    CourseEnrollmentRemovalResponse, CourseJoinDecisionRequest, CourseJoinRequestResponse,
+};
 pub use course_lifecycle::CourseLifecycleUpdateRequest;
 pub use course_organization::CourseOrganizationResponse;
 pub use course_role_assignment::AssignCourseRoleRequest;

@@ -8,6 +8,7 @@ use crate::application::content::request_media_url::ContentMediaUrlUseCase;
 use crate::application::content::request_upload_url::ContentUploadUrlUseCase;
 use crate::application::identity::current_session::CurrentSessionUseCase;
 use crate::application::learning::assign_course_role::CourseRoleAssignmentUseCase;
+use crate::application::learning::course_enrollment::CourseEnrollmentUseCase;
 use crate::application::learning::create_course::CourseCreationUseCase;
 use crate::application::learning::delete_course::CourseDeletionUseCase;
 use crate::application::learning::discover_courses::CourseDiscoveryUseCase;
@@ -58,6 +59,7 @@ pub struct AppState {
     pub course_read_use_case: Arc<dyn CourseReadUseCase>,
     pub course_organizations_use_case: Arc<dyn CourseOrganizationsUseCase>,
     pub course_role_assignment_use_case: Arc<dyn CourseRoleAssignmentUseCase>,
+    pub course_enrollment_use_case: Arc<dyn CourseEnrollmentUseCase>,
     pub course_update_use_case: Arc<dyn CourseUpdateUseCase>,
     pub course_lifecycle_use_case: Arc<dyn CourseLifecycleUseCase>,
     pub learner_progress_use_case: Arc<dyn LearnerProgressUseCase>,
