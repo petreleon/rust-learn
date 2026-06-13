@@ -8,11 +8,16 @@ use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::OrganizationRole;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
+use rust_learn::application::organizations::list_organization_members::OrganizationMemberListUseCase;
+use rust_learn::infra::postgres::organizations::organization_member_list_use_case::PostgresOrganizationMemberListUseCase;
 use rust_learn::repositories::delegated_permission_repository::create_delegated_permission;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::Value;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
 
 static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -67,6 +72,14 @@ async fn assign_organization_role(
     UserRoleOrganization::assign(conn, user_id, organization_id, role_id)
         .await
         .expect("failed to assign organization role");
+}
+
+fn organization_member_list_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn OrganizationMemberListUseCase>> {
+    web::Data::new(Arc::new(PostgresOrganizationMemberListUseCase::new(
+        pool.clone(),
+    )))
 }
 
 fn token_for(user_id: i32) -> String {

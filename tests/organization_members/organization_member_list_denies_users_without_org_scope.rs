@@ -13,6 +13,7 @@ async fn organization_member_list_denies_users_without_org_scope() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(organization_member_list_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::organizations::organization_scope()),
     )

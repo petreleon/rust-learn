@@ -1,15 +1,19 @@
+use std::sync::Arc;
+
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
-use crate::db;
-use crate::services::organization_service::{self, OrganizationMemberListError};
+use crate::application::organizations::list_organization_members::{
+    OrganizationMemberListError, OrganizationMemberListQuery, OrganizationMemberListUseCase,
+};
 use crate::utils::request_auth::authenticated_user;
 
 use super::dto::OrganizationMemberListParams;
+use super::member_dto::OrganizationMemberListResponse;
 
 pub(super) async fn get_organization_members(
     req: HttpRequest,
     path: web::Path<i32>,
-    pool: web::Data<db::DbPool>,
+    use_case: web::Data<Arc<dyn OrganizationMemberListUseCase>>,
     query: web::Query<OrganizationMemberListParams>,
 ) -> impl Responder {
     let requester = match authenticated_user(&req) {
@@ -17,12 +21,10 @@ pub(super) async fn get_organization_members(
         Err(response) => return response,
     };
     let organization_id = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
 
-    let list_query = organization_service::OrganizationMemberListQuery::new(
+    let list_query = OrganizationMemberListQuery::new(
+        requester.user_id,
+        organization_id,
         query.search.clone(),
         query.role.clone(),
         query.permission.clone(),
@@ -30,19 +32,20 @@ pub(super) async fn get_organization_members(
         query.offset,
     );
 
-    match organization_service::list_organization_members(
-        &mut conn,
-        requester.user_id,
-        organization_id,
-        list_query,
-    )
-    .await
-    {
-        Ok(members) => HttpResponse::Ok().json(members),
+    match use_case.list_organization_members(list_query).await {
+        Ok(members) => HttpResponse::Ok().json(OrganizationMemberListResponse::from(members)),
         Err(OrganizationMemberListError::PermissionDenied) => HttpResponse::Forbidden()
             .body("User does not have permission to view organization members"),
         Err(OrganizationMemberListError::NotFound) => {
             HttpResponse::NotFound().body("Organization not found")
+        }
+        Err(OrganizationMemberListError::Connection(error)) => {
+            log::error!(
+                "event=organization_members_connection_failed organization_id={} error={}",
+                organization_id,
+                error
+            );
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
         }
         Err(OrganizationMemberListError::Database(error)) => {
             log::error!(

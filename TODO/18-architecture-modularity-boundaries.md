@@ -1001,35 +1001,35 @@ remaining gaps.
 | 103 | Moved `GET /courses/teaching/{id}/enrollments` behind `application/learning/get_teacher_course_enrollment_workspace`, shared teacher enrollment vocabulary, Postgres join-request/roster/reward-eligibility adapters, an HTTP-owned enrollment workspace response DTO, and bootstrap app-data wiring; the enrollments route no longer opens the DB pool or calls `course_service::get_teacher_course_enrollment_workspace`. |
 | 104 | Moved `GET /courses/teaching/{id}/students` behind `application/learning/get_teacher_course_students`, Postgres roster/progress/reward-evidence adapters, an HTTP-owned students response DTO, and bootstrap app-data wiring; `http/learning/course_routes/teaching.rs` no longer imports `DbPool` or `course_service`. |
 | 105 | Started the organizations application/infra context by moving `GET /organizations/{id}/courses` behind `application/organizations/list_organization_courses`, Postgres organization course adapters, HTTP-owned course-list DTOs, and bootstrap app-data wiring; the route no longer opens the DB pool or calls `course_service::discover_organization_courses`. |
+| 106 | Moved `GET /organizations/{id}/members` behind `application/organizations/list_organization_members`, Postgres member/permission/delegation adapters, HTTP-owned member-list DTOs, and bootstrap app-data wiring; the route no longer opens the DB pool or calls `organization_service::list_organization_members`. |
 
 ## Recent Slice Evidence
 
-Slice 105: move organization course list into an injected use case.
+Slice 106: move organization member list into an injected use case.
 
-- [x] Add `application/organizations/list_organization_courses` with normalized
+- [x] Add `application/organizations/list_organization_members` with normalized
       query, output, error, store port, handler, and use-case trait.
-- [x] Add the first `infra/postgres/organizations` modules: course-list store,
-      use case, permission queries, course summary queries, and course metric
-      queries.
-- [x] Add HTTP-owned organization course-list and nested response DTOs while
-      preserving the JSON shape for organization, courses, teachers, content,
-      rewards, roster, reward queue, and permissions.
-- [x] Wire the concrete organization course-list use case through
+- [x] Add Postgres organizations modules for member row aggregation, direct
+      permission loading, active delegation loading, operator permissions, and
+      member-list orchestration.
+- [x] Add HTTP-owned organization member-list response DTOs while preserving the
+      JSON shape for organization, members, permission sets/counts, filters,
+      pagination, and operator permissions.
+- [x] Wire the concrete organization member-list use case through
       `bootstrap/app_state`, `bootstrap/use_case_wiring`, and
       `bootstrap/app_data`.
-- [x] Update course discovery and API routing tests to inject the production
-      Postgres organization course-list use case or a route-only fake use case
+- [x] Update organization member and API routing tests to inject the production
+      Postgres organization member-list use case or a route-only fake use case
       as appropriate.
-- [x] Self-critique: organization course permissions still call legacy
+- [x] Self-critique: organization member permissions still call legacy
       repository permission helpers from the Postgres adapter. This keeps HTTP
       clean for this slice, but a later access-control slice should move
       organization permission decisions behind an application access-control
       port.
-- [x] Prove behavior with binary compile, organization course discovery
-      regression tests, API route reachability, formatting, line-count checks,
-      `git diff --check`, and boundary scans proving
-      `http/organizations/courses.rs` no longer imports DB pools or legacy
-      course services.
+- [x] Prove behavior with binary compile, organization member regression tests,
+      API route reachability, formatting, line-count checks, `git diff --check`,
+      and boundary scans proving `http/organizations/member_list.rs` no longer
+      imports DB pools or legacy organization services.
 
 ## Legacy Transition Rules
 
@@ -1251,8 +1251,13 @@ boundary checks from the matrix above to every canonical context.
 - [x] `GET /organizations/{id}/courses` now has application query/output/error
       and store-port contracts, Postgres adapters, HTTP DTO mapping, bootstrap
       wiring, and course discovery/API route tests.
-- [ ] Move organization CRUD/member/dashboard orchestration into application
-      use cases with Postgres adapters.
+- [x] `GET /organizations/{id}/members` now has application query/output/error
+      and store-port contracts, Postgres member/permission/delegation adapters,
+      HTTP DTO mapping, bootstrap wiring, and organization member/API route
+      tests.
+- [ ] Move remaining organization CRUD, member invite/role/removal/audit,
+      dashboard, and organization teacher-application orchestration into
+      application use cases with Postgres adapters.
 
 ## KYC Context
 

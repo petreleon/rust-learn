@@ -31,6 +31,7 @@ use crate::application::notifications::notification_inbox::NotificationInboxUseC
 use crate::application::notifications::preference_service::NotificationPreferencesUseCase;
 use crate::application::operations::readiness_check::ReadinessUseCase;
 use crate::application::organizations::list_organization_courses::OrganizationCourseListUseCase;
+use crate::application::organizations::list_organization_members::OrganizationMemberListUseCase;
 use crate::application::reporting::organization_reward_dashboard::OrganizationRewardDashboardUseCase;
 use crate::application::reporting::organization_summary::OrganizationSummaryUseCase;
 use crate::application::reporting::platform_csv_exports::PlatformCsvExportsUseCase;
@@ -88,6 +89,7 @@ pub struct AppState {
     pub notification_inbox_use_case: Arc<dyn NotificationInboxUseCase>,
     pub notification_preferences_use_case: Arc<dyn NotificationPreferencesUseCase>,
     pub organization_course_list_use_case: Arc<dyn OrganizationCourseListUseCase>,
+    pub organization_member_list_use_case: Arc<dyn OrganizationMemberListUseCase>,
     pub chapter_use_cases: Arc<dyn ChapterUseCases>,
     pub content_item_use_cases: Arc<dyn ContentItemUseCases>,
     pub content_upload_url_use_case: Arc<dyn ContentUploadUrlUseCase>,

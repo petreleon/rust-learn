@@ -5,6 +5,7 @@ mod dashboard;
 mod dto;
 mod handlers;
 mod member_audit;
+mod member_dto;
 mod member_invites;
 mod member_list;
 mod member_removal;

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::bootstrap::app_state::AppState;
+use crate::bootstrap::organization_wiring::build_organization_use_cases;
 use crate::bootstrap::readiness::RuntimeReadinessUseCase;
 use crate::db::DbPool;
 use crate::infra::postgres::access_control::role_catalog_use_case::PostgresRoleCatalogUseCase;
@@ -31,7 +32,6 @@ use crate::infra::postgres::learning::teacher_course_students_use_case::Postgres
 use crate::infra::postgres::learning::teacher_course_workspace_use_case::PostgresTeacherCourseWorkspaceUseCase;
 use crate::infra::postgres::notifications::notification_inbox_use_case::PostgresNotificationInboxUseCase;
 use crate::infra::postgres::notifications::notification_preferences_use_case::PostgresNotificationPreferencesUseCase;
-use crate::infra::postgres::organizations::organization_course_list_use_case::PostgresOrganizationCourseListUseCase;
 use crate::infra::postgres::reporting::organization_reward_dashboard_use_case::PostgresOrganizationRewardDashboardUseCase;
 use crate::infra::postgres::reporting::organization_summary_use_case::PostgresOrganizationSummaryUseCase;
 use crate::infra::postgres::reporting::platform_csv_export_use_case::PostgresPlatformCsvExportsUseCase;
@@ -58,6 +58,8 @@ use crate::utils::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
 
 pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
+    let organization_use_cases = build_organization_use_cases(&pool);
+
     AppState {
         role_catalog_use_case: Arc::new(PostgresRoleCatalogUseCase::new(pool.clone())),
         current_session_use_case: Arc::new(PostgresCurrentSessionUseCase::new(pool.clone())),
@@ -105,9 +107,8 @@ pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
         notification_preferences_use_case: Arc::new(PostgresNotificationPreferencesUseCase::new(
             pool.clone(),
         )),
-        organization_course_list_use_case: Arc::new(PostgresOrganizationCourseListUseCase::new(
-            pool.clone(),
-        )),
+        organization_course_list_use_case: organization_use_cases.course_list,
+        organization_member_list_use_case: organization_use_cases.member_list,
         chapter_use_cases: Arc::new(PostgresChapterUseCases::new(pool.clone())),
         content_item_use_cases: Arc::new(PostgresContentItemUseCases::new(pool.clone())),
         content_upload_url_use_case: Arc::new(PostgresContentUploadUrlUseCase::new(
