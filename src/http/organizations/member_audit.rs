@@ -1,37 +1,69 @@
-use actix_web::{web, HttpResponse, Responder};
-use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use std::sync::Arc;
 
-use crate::db;
-use crate::db::schema::organization_member_audit_events;
-use crate::models::organization_member_audit_event::OrganizationMemberAuditEvent;
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+
+use crate::application::organizations::list_organization_member_audit::{
+    OrganizationMemberAuditError, OrganizationMemberAuditEventOutput, OrganizationMemberAuditQuery,
+    OrganizationMemberAuditUseCase,
+};
+use crate::utils::request_auth::authenticated_user;
+
+use super::member_audit_dto::OrganizationMemberAuditEventResponse;
 
 pub(super) async fn get_member_audit_route(
+    req: HttpRequest,
     path: web::Path<(i32, i32)>,
-    pool: web::Data<db::DbPool>,
+    use_case: web::Data<Arc<dyn OrganizationMemberAuditUseCase>>,
 ) -> impl Responder {
-    let (org_id, user_id) = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("DB unavailable"),
+    let requester = match authenticated_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let (organization_id, target_user_id) = path.into_inner();
+
+    let query = OrganizationMemberAuditQuery {
+        actor_user_id: requester.user_id,
+        organization_id,
+        target_user_id,
     };
 
-    match organization_member_audit_events::table
-        .filter(organization_member_audit_events::organization_id.eq(org_id))
-        .filter(organization_member_audit_events::target_user_id.eq(user_id))
-        .order(organization_member_audit_events::created_at.desc())
-        .load::<OrganizationMemberAuditEvent>(&mut conn)
-        .await
-    {
-        Ok(events) => HttpResponse::Ok().json(events),
-        Err(e) => {
+    match use_case.list_member_audit(query).await {
+        Ok(events) => HttpResponse::Ok().json(audit_event_responses(events)),
+        Err(error) => organization_member_audit_error_response(error, organization_id),
+    }
+}
+
+fn organization_member_audit_error_response(
+    error: OrganizationMemberAuditError,
+    organization_id: i32,
+) -> HttpResponse {
+    match error {
+        OrganizationMemberAuditError::PermissionDenied(_) => HttpResponse::Forbidden()
+            .body("User does not have permission to view organization member audit"),
+        OrganizationMemberAuditError::Connection(error) => {
             log::error!(
-                "event=member_audit_fetch_failed org_id={} user_id={} error={}",
-                org_id,
-                user_id,
-                e
+                "event=member_audit_connection_failed organization_id={} error={}",
+                organization_id,
+                error
+            );
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
+        }
+        OrganizationMemberAuditError::Database(error) => {
+            log::error!(
+                "event=member_audit_fetch_failed organization_id={} error={}",
+                organization_id,
+                error
             );
             HttpResponse::InternalServerError().body("Failed to load audit events")
         }
     }
+}
+
+fn audit_event_responses(
+    events: Vec<OrganizationMemberAuditEventOutput>,
+) -> Vec<OrganizationMemberAuditEventResponse> {
+    events
+        .into_iter()
+        .map(OrganizationMemberAuditEventResponse::from)
+        .collect()
 }

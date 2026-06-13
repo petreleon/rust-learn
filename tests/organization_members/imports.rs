@@ -1,14 +1,19 @@
 use actix_web::{http::StatusCode, test, web, App};
 use chrono::NaiveDate;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::db::schema::organizations;
+use rust_learn::application::organizations::list_organization_member_audit::OrganizationMemberAuditUseCase;
+use rust_learn::application::organizations::list_organization_members::OrganizationMemberListUseCase;
+use rust_learn::db::schema::{organization_member_audit_events, organizations};
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::delegated_permission::NewDelegatedPermission;
 use rust_learn::models::organization::{NewOrganization, Organization};
+use rust_learn::models::organization_member_audit_event::{
+    NewOrganizationMemberAuditEvent, OrganizationMemberAuditEvent,
+};
 use rust_learn::models::role::OrganizationRole;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
-use rust_learn::application::organizations::list_organization_members::OrganizationMemberListUseCase;
+use rust_learn::infra::postgres::organizations::organization_member_audit_use_case::PostgresOrganizationMemberAuditUseCase;
 use rust_learn::infra::postgres::organizations::organization_member_list_use_case::PostgresOrganizationMemberListUseCase;
 use rust_learn::repositories::delegated_permission_repository::create_delegated_permission;
 use rust_learn::repositories::user_repository::create_user;
@@ -78,6 +83,14 @@ fn organization_member_list_use_case_data(
     pool: &DbPool,
 ) -> web::Data<Arc<dyn OrganizationMemberListUseCase>> {
     web::Data::new(Arc::new(PostgresOrganizationMemberListUseCase::new(
+        pool.clone(),
+    )))
+}
+
+fn organization_member_audit_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn OrganizationMemberAuditUseCase>> {
+    web::Data::new(Arc::new(PostgresOrganizationMemberAuditUseCase::new(
         pool.clone(),
     )))
 }

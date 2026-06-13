@@ -50,15 +50,10 @@ pub fn organization_scope() -> actix_web::Scope {
             web::resource("/{id}/dashboard")
                 .route(web::get().to(dashboard::get_organization_dashboard)),
         )
-        .service(web::resource("/{id}/members/{user_id}/audit").route(
-            web::get().to(member_audit::get_member_audit_route).wrap(
-                OrganizationPermissionMiddleware::require(
-                    Permissions::VIEW_ORGANIZATION.to_string(),
-                    ParamType::Path,
-                    "id".to_string(),
-                ),
-            ),
-        ))
+        .service(
+            web::resource("/{id}/members/{user_id}/audit")
+                .route(web::get().to(member_audit::get_member_audit_route)),
+        )
         .service(
             web::resource("/{id}")
                 .route(web::get().to(handlers::get_organization).wrap(

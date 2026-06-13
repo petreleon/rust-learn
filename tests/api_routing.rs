@@ -57,6 +57,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_course_read_fake::course_read_data())
             .app_data(api_routing_course_update_fake::course_update_data())
             .app_data(api_routing_organization_courses_fake::organization_course_list_data())
+            .app_data(api_routing_organization_courses_fake::organization_member_audit_data())
             .app_data(api_routing_organization_courses_fake::organization_member_list_data())
             .app_data(api_routing_route_fakes::course_reward_candidates_data())
             .app_data(api_routing_route_fakes::platform_reward_candidates_data())

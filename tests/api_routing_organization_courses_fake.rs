@@ -1,10 +1,15 @@
 use std::sync::Arc;
 
 use actix_web::web;
+use chrono::Utc;
 use futures::future::{ready, BoxFuture, FutureExt};
 use rust_learn::application::organizations::list_organization_courses::{
     OrganizationCourseListError, OrganizationCourseListOutput, OrganizationCourseListQuery,
     OrganizationCourseListUseCase, OrganizationCourseSummaryOutput,
+};
+use rust_learn::application::organizations::list_organization_member_audit::{
+    OrganizationMemberAuditError, OrganizationMemberAuditEventOutput, OrganizationMemberAuditQuery,
+    OrganizationMemberAuditUseCase,
 };
 use rust_learn::application::organizations::list_organization_members::{
     OrganizationMemberListError, OrganizationMemberListOutput, OrganizationMemberListQuery,
@@ -13,6 +18,7 @@ use rust_learn::application::organizations::list_organization_members::{
 };
 
 struct RouteOnlyOrganizationCourseListUseCase;
+struct RouteOnlyOrganizationMemberAuditUseCase;
 struct RouteOnlyOrganizationMemberListUseCase;
 
 pub fn organization_course_list_data() -> web::Data<Arc<dyn OrganizationCourseListUseCase>> {
@@ -25,6 +31,11 @@ pub fn organization_member_list_data() -> web::Data<Arc<dyn OrganizationMemberLi
     web::Data::new(
         Arc::new(RouteOnlyOrganizationMemberListUseCase) as Arc<dyn OrganizationMemberListUseCase>
     )
+}
+
+pub fn organization_member_audit_data() -> web::Data<Arc<dyn OrganizationMemberAuditUseCase>> {
+    web::Data::new(Arc::new(RouteOnlyOrganizationMemberAuditUseCase)
+        as Arc<dyn OrganizationMemberAuditUseCase>)
 }
 
 impl OrganizationCourseListUseCase for RouteOnlyOrganizationCourseListUseCase {
@@ -45,6 +56,26 @@ impl OrganizationCourseListUseCase for RouteOnlyOrganizationCourseListUseCase {
             lifecycle_status: query.lifecycle_status,
             reward_available: query.reward_available,
         }))
+        .boxed()
+    }
+}
+
+impl OrganizationMemberAuditUseCase for RouteOnlyOrganizationMemberAuditUseCase {
+    fn list_member_audit(
+        &self,
+        query: OrganizationMemberAuditQuery,
+    ) -> BoxFuture<'_, Result<Vec<OrganizationMemberAuditEventOutput>, OrganizationMemberAuditError>>
+    {
+        ready(Ok(vec![OrganizationMemberAuditEventOutput {
+            id: 1,
+            organization_id: query.organization_id,
+            actor_user_id: Some(query.actor_user_id),
+            target_user_id: query.target_user_id,
+            event_type: "route_smoke".to_string(),
+            role_name: None,
+            reason: None,
+            created_at: Utc::now(),
+        }]))
         .boxed()
     }
 }
