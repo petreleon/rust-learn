@@ -1,3 +1,5 @@
+mod course_dto;
+mod course_nested_dto;
 mod courses;
 mod dashboard;
 mod dto;

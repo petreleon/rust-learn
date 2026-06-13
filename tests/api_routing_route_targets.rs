@@ -58,6 +58,7 @@ pub fn route_smoke_targets() -> Vec<(Method, &'static str)> {
             "/api/reports/platform/delegated-permissions.csv",
         ),
         (Method::GET, "/api/reports/platform/wallet-reconciliation"),
+        (Method::GET, "/api/organizations/56/courses"),
         (Method::GET, "/api/reports/organizations/56/summary"),
         (Method::GET, "/api/reports/organizations/56/summary.csv"),
         (

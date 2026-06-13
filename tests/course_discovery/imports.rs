@@ -16,11 +16,13 @@ use rust_learn::application::learning::get_learner_course_detail::LearnerCourseD
 use rust_learn::application::learning::get_learner_course_learning::LearnerCourseLearningUseCase;
 use rust_learn::application::learning::learner_progress::LearnerProgressUseCase;
 use rust_learn::application::learning::list_learner_course_catalog::LearnerCourseCatalogListUseCase;
+use rust_learn::application::organizations::list_organization_courses::OrganizationCourseListUseCase;
 use rust_learn::infra::postgres::learning::course_discovery_use_case::PostgresCourseDiscoveryUseCase;
 use rust_learn::infra::postgres::learning::learner_course_catalog_list_use_case::PostgresLearnerCourseCatalogListUseCase;
 use rust_learn::infra::postgres::learning::learner_course_detail_use_case::PostgresLearnerCourseDetailUseCase;
 use rust_learn::infra::postgres::learning::learner_course_learning_use_case::PostgresLearnerCourseLearningUseCase;
 use rust_learn::infra::postgres::learning::learner_progress_use_case::PostgresLearnerProgressUseCase;
+use rust_learn::infra::postgres::organizations::organization_course_list_use_case::PostgresOrganizationCourseListUseCase;
 use rust_learn::models::chapter::NewChapter;
 use rust_learn::models::content::NewContent;
 use rust_learn::models::course::{Course, NewCourse, COURSE_STATUS_PUBLISHED};
@@ -161,6 +163,14 @@ fn learner_course_catalog_use_case_data(
     pool: &DbPool,
 ) -> web::Data<Arc<dyn LearnerCourseCatalogListUseCase>> {
     web::Data::new(Arc::new(PostgresLearnerCourseCatalogListUseCase::new(
+        pool.clone(),
+    )))
+}
+
+fn organization_course_list_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn OrganizationCourseListUseCase>> {
+    web::Data::new(Arc::new(PostgresOrganizationCourseListUseCase::new(
         pool.clone(),
     )))
 }

@@ -1,0 +1,103 @@
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use crate::application::organizations::list_organization_courses::{
+    OrganizationCourseListError, OrganizationCourseRewardQueueSummaryOutput,
+    OrganizationCourseRosterSummaryOutput,
+};
+use crate::db::schema::{course_join_requests, course_roles, reward_candidates, user_role_course};
+use crate::models::course_join_request::{
+    COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
+};
+use crate::models::reward_candidate::{
+    REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
+};
+
+pub async fn load_course_roster_summary(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+) -> Result<OrganizationCourseRosterSummaryOutput, OrganizationCourseListError> {
+    let enrolled_student_count = user_role_course::table
+        .inner_join(
+            course_roles::table
+                .on(user_role_course::course_role_id.eq(course_roles::id.nullable())),
+        )
+        .filter(user_role_course::course_id.eq(course_id))
+        .filter(course_roles::name.eq("STUDENT"))
+        .count()
+        .get_result::<i64>(conn)
+        .await
+        .map_err(map_organization_error)?;
+
+    Ok(OrganizationCourseRosterSummaryOutput {
+        enrolled_student_count,
+        pending_join_request_count: count_join_requests(
+            conn,
+            course_id,
+            COURSE_JOIN_STATUS_PENDING,
+        )
+        .await?,
+        waitlisted_join_request_count: count_join_requests(
+            conn,
+            course_id,
+            COURSE_JOIN_STATUS_WAITLISTED,
+        )
+        .await?,
+    })
+}
+
+pub async fn load_course_reward_queue_summary(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+) -> Result<OrganizationCourseRewardQueueSummaryOutput, OrganizationCourseListError> {
+    Ok(OrganizationCourseRewardQueueSummaryOutput {
+        pending_teacher_count: count_reward_candidates(
+            conn,
+            course_id,
+            REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+        )
+        .await?,
+        teacher_approved_count: count_reward_candidates(
+            conn,
+            course_id,
+            REWARD_STATUS_TEACHER_APPROVED,
+        )
+        .await?,
+        failed_count: count_reward_candidates(conn, course_id, REWARD_STATUS_FAILED).await?,
+    })
+}
+
+async fn count_join_requests(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    status: &str,
+) -> Result<i64, OrganizationCourseListError> {
+    course_join_requests::table
+        .filter(course_join_requests::course_id.eq(course_id))
+        .filter(course_join_requests::status.eq(status))
+        .count()
+        .get_result::<i64>(conn)
+        .await
+        .map_err(map_organization_error)
+}
+
+async fn count_reward_candidates(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    status: &str,
+) -> Result<i64, OrganizationCourseListError> {
+    reward_candidates::table
+        .filter(reward_candidates::course_id.eq(course_id))
+        .filter(reward_candidates::status.eq(status))
+        .count()
+        .get_result::<i64>(conn)
+        .await
+        .map_err(map_organization_error)
+}
+
+fn map_organization_error(error: diesel::result::Error) -> OrganizationCourseListError {
+    match error {
+        diesel::result::Error::NotFound => OrganizationCourseListError::NotFound,
+        other => OrganizationCourseListError::Database(other.to_string()),
+    }
+}
