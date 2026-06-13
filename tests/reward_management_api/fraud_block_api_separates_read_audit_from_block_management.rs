@@ -15,7 +15,7 @@ async fn fraud_block_api_separates_read_audit_from_block_management() {
             .app_data(web::Data::new(pool.clone()))
             .app_data(web::Data::new(reward_fraud_block_use_case(&pool)))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::reward_fraud_blocks::reward_fraud_block_scope()),
+            .service(rust_learn::http::rewards::reward_fraud_block_scope()),
     )
     .await;
 

@@ -964,24 +964,25 @@ remaining gaps.
 | 72-73 | Moved request-parameter parsing into `http/request_params`; moved reporting route composition into `http/reporting::configure_routes`, deleted the legacy `api/reports` wrapper, and narrowed reporting resource exports to the context boundary. |
 | 74 | Moved wallet route composition into `http/wallet::configure_routes`, deleted the legacy `api/wallets` wrapper, and kept wallet resource registration internal to the wallet HTTP context. |
 | 75 | Moved access-control role route composition behind `http/access_control::configure_routes`, deleted the legacy `api/roles` wrapper, and kept the raw roles scope internal. |
+| 76 | Deleted the one-line `api/reward_policies` and `api/reward_fraud_blocks` compatibility wrappers; the remaining reward route public surface stays in `http/rewards` until a dedicated reward-route boundary pass. |
 
 ## Recent Slice Evidence
 
-Slice 75: move role route composition into the access-control HTTP ring.
+Slice 76: remove reward compatibility wrappers from the legacy API ring.
 
-- [x] Add `http/access_control/scope.rs` so the access-control context owns
-      role route composition and exposes `configure_routes` as its public
-      mount point.
-- [x] Keep the raw `/roles` scope `pub(super)` and update `api_scope()` to use
-      the access-control configurator.
-- [x] Delete the thin `src/api/roles.rs` compatibility wrapper.
-- [x] Update the role-read middleware regression test to mount
-      `http/access_control::configure_routes`.
-- [x] Self-critique: `src/api/mod.rs` still composes many legacy scopes; later
-      slices should keep replacing those with context-owned `configure_routes`
-      functions.
-- [x] Prove role route reachability, role permission behavior,
-      formatting, line-count, and stale import scans.
+- [x] Remove `pub mod reward_policies` and `pub mod reward_fraud_blocks` from
+      `src/api/mod.rs`.
+- [x] Delete `src/api/reward_policies.rs` and
+      `src/api/reward_fraud_blocks.rs`; both only re-exported `http/rewards`
+      route functions.
+- [x] Update the fraud-block API regression test to import the route from
+      `http/rewards` directly.
+- [x] Self-critique: `http/rewards` still publicly exports several raw route
+      resources for legacy course/organization test composition; a later
+      reward-route pass should narrow that surface behind context
+      configurators where possible.
+- [x] Prove reward route reachability, fraud-block API behavior, formatting,
+      line-count, and stale import scans.
 
 ## Legacy Transition Rules
 
@@ -1041,6 +1042,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Core rewards DTOs for policy, fraud block, history, audit, candidate
       lists/review, teacher decision, amount decision, and submission now live
       in `http/rewards/dto`.
+- [x] Legacy `api/reward_policies` and `api/reward_fraud_blocks`
+      compatibility wrappers have been deleted; callers import reward routes
+      from `http/rewards`.
 - [ ] Move remaining reward request/response structs out of service imports and
       into `http/rewards/dto`.
 - [ ] Move candidate transition rules into pure domain functions:

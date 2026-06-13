@@ -7,8 +7,6 @@ pub mod delegated_permissions;
 pub mod health;
 pub mod kyc;
 pub mod organizations;
-pub mod reward_fraud_blocks;
-pub mod reward_policies;
 pub mod session;
 pub mod teacher_applications;
 pub mod users;
