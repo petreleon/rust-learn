@@ -1,11 +1,12 @@
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use serde::Deserialize;
+
 use crate::db;
 use crate::models::delegated_permission::GrantDelegatedPermissionRequest;
 use crate::services::delegated_permission_service::{
     self, DelegatedPermissionError, ListDelegatedPermissionsRequest,
 };
 use crate::utils::request_auth::authenticated_user;
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
-use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 struct RevokeDelegatedPermissionRequest {
@@ -108,7 +109,7 @@ async fn revoke_delegated_permission(
     }
 }
 
-pub fn delegated_permission_scope() -> actix_web::Scope {
+pub(super) fn delegated_permission_scope() -> actix_web::Scope {
     web::scope("/delegated-permissions")
         .service(
             web::resource("")

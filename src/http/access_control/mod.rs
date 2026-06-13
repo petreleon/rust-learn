@@ -1,3 +1,4 @@
+mod delegated_permissions;
 pub mod dto;
 mod handlers;
 mod routes;

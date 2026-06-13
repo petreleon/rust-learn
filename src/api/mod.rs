@@ -1,7 +1,6 @@
 // src/api/mod.rs
 pub mod authentication;
 pub mod courses;
-pub mod delegated_permissions;
 pub mod kyc;
 pub mod organizations;
 pub mod teacher_applications;
@@ -35,7 +34,6 @@ pub fn api_scope() -> Scope<
         .service(courses::course_scope())
         .service(organizations::organization_scope())
         .configure(crate::http::reporting::configure_routes)
-        .service(delegated_permissions::delegated_permission_scope())
         .service(kyc::kyc_scope())
         .configure(crate::http::rewards::configure_routes)
         .configure(crate::http::access_control::configure_routes)

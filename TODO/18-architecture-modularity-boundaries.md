@@ -968,26 +968,27 @@ remaining gaps.
 | 77 | Deleted the `api/health` and `api/session` compatibility wrappers; health/readiness tests now import operations routes directly, and identity/notification handlers no longer leak through `api/session`. |
 | 78 | Deleted `api/chapters` and `api/contents`; course routes now compose `http/content::configure_routes` directly, and chapter/content-item route helpers are private to the content HTTP context. |
 | 79 | Moved platform user list/read/role-assignment HTTP handlers and `/user` scope from `api/users` into `http/identity`, then deleted the legacy `api/users` module. |
+| 80 | Moved delegated-permission HTTP handlers and `/delegated-permissions` scope from `api/delegated_permissions` into `http/access_control`, then mounted them from the access-control route configurator. |
 
 ## Recent Slice Evidence
 
-Slice 79: move platform user routes into the identity HTTP ring.
+Slice 80: move delegated-permission routes into the access-control HTTP ring.
 
-- [x] Move user list/read handlers into `http/identity/user_handlers.rs` while
-      keeping existing identity application use cases and Postgres store
-      wiring.
-- [x] Move platform role assignment into
-      `http/identity/platform_role_assignment.rs`; notification behavior is
-      unchanged.
-- [x] Add `http/identity/user_routes.rs` and mount `/user` from
-      `http/identity::configure_routes`.
-- [x] Delete `src/api/users*` and remove `pub mod users` plus
-      `users::user_scope()` from `src/api/mod.rs`.
-- [x] Self-critique: the platform role-assignment handler still calls legacy
-      repository hierarchy logic directly; a later identity/access-control
-      slice should push that decision behind an application use case.
-- [x] Prove platform user list/read/role behavior, API route reachability,
-      line-count, and stale import scans.
+- [x] Move grant/list/revoke handlers and the `/delegated-permissions` scope
+      into `http/access_control/delegated_permissions.rs`.
+- [x] Mount delegated-permission routes from
+      `http/access_control::configure_routes` alongside role routes.
+- [x] Delete `src/api/delegated_permissions.rs` and remove
+      `pub mod delegated_permissions` plus the direct scope registration from
+      `src/api/mod.rs`.
+- [x] Update the delegated-permission API regression test to mount
+      `http/access_control::configure_routes`.
+- [x] Self-critique: delegated-permission request/query types still live in
+      `models` and `services`; later access-control slices should move public
+      request DTOs into `http/access_control/dto` and put the workflow behind
+      an application use case.
+- [x] Prove delegated-permission API behavior, access-control role behavior,
+      API route reachability, formatting, line-count, and stale import scans.
 
 ## Legacy Transition Rules
 
@@ -1116,6 +1117,8 @@ boundary checks from the matrix above to every canonical context.
       Postgres permission adapters for the moved wallet/reward use cases.
 - [x] `http/access_control` owns role route composition and exposes a
       context-level route configurator for the app.
+- [x] `http/access_control` owns delegated-permission route composition; the
+      legacy `api/delegated_permissions` module has been deleted.
 - [ ] Create one access-control API for `can(actor, action, scope)` style
       decisions.
 - [ ] Encode scope as types instead of loose strings where practical:

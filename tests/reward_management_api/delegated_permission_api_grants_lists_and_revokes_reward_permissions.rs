@@ -14,7 +14,7 @@ async fn delegated_permission_api_grants_lists_and_revokes_reward_permissions() 
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::delegated_permissions::delegated_permission_scope()),
+            .configure(rust_learn::http::access_control::configure_routes),
     )
     .await;
 
