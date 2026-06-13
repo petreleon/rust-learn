@@ -1,7 +1,6 @@
 // src/api/mod.rs
 pub mod authentication;
 pub mod courses;
-pub mod kyc;
 pub mod organizations;
 pub mod teacher_applications;
 use actix_service::ServiceFactory;
@@ -34,7 +33,7 @@ pub fn api_scope() -> Scope<
         .service(courses::course_scope())
         .service(organizations::organization_scope())
         .configure(crate::http::reporting::configure_routes)
-        .service(kyc::kyc_scope())
+        .configure(crate::http::kyc::configure_routes)
         .configure(crate::http::rewards::configure_routes)
         .configure(crate::http::access_control::configure_routes)
         .service(teacher_applications::teacher_application_scope())

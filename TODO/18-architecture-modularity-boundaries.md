@@ -969,26 +969,24 @@ remaining gaps.
 | 78 | Deleted `api/chapters` and `api/contents`; course routes now compose `http/content::configure_routes` directly, and chapter/content-item route helpers are private to the content HTTP context. |
 | 79 | Moved platform user list/read/role-assignment HTTP handlers and `/user` scope from `api/users` into `http/identity`, then deleted the legacy `api/users` module. |
 | 80 | Moved delegated-permission HTTP handlers and `/delegated-permissions` scope from `api/delegated_permissions` into `http/access_control`, then mounted them from the access-control route configurator. |
+| 81 | Moved KYC HTTP handlers and `/kyc` scope from `api/kyc` into `http/kyc`, then mounted the context from `api_scope()` through `http/kyc::configure_routes`. |
 
 ## Recent Slice Evidence
 
-Slice 80: move delegated-permission routes into the access-control HTTP ring.
+Slice 81: move KYC routes into the KYC HTTP ring.
 
-- [x] Move grant/list/revoke handlers and the `/delegated-permissions` scope
-      into `http/access_control/delegated_permissions.rs`.
-- [x] Mount delegated-permission routes from
-      `http/access_control::configure_routes` alongside role routes.
-- [x] Delete `src/api/delegated_permissions.rs` and remove
-      `pub mod delegated_permissions` plus the direct scope registration from
-      `src/api/mod.rs`.
-- [x] Update the delegated-permission API regression test to mount
-      `http/access_control::configure_routes`.
-- [x] Self-critique: delegated-permission request/query types still live in
-      `models` and `services`; later access-control slices should move public
-      request DTOs into `http/access_control/dto` and put the workflow behind
-      an application use case.
-- [x] Prove delegated-permission API behavior, access-control role behavior,
-      API route reachability, formatting, line-count, and stale import scans.
+- [x] Add `http/kyc` with a context-level `configure_routes` entrypoint.
+- [x] Move KYC status, submission, review decision, review queue, and audit
+      handlers into `http/kyc/routes.rs`.
+- [x] Delete `src/api/kyc.rs` and remove `pub mod kyc` plus the direct
+      `kyc::kyc_scope()` registration from `src/api/mod.rs`.
+- [x] Mount KYC routes from `api_scope()` through
+      `http/kyc::configure_routes`, preserving `/api/kyc/...` URLs.
+- [x] Self-critique: KYC request/response types and workflow still live in
+      `services/kyc_service`; later KYC slices should introduce
+      `application/kyc`, `infra/postgres/kyc`, and `http/kyc/dto` ownership.
+- [x] Prove KYC service behavior, API route reachability, formatting,
+      line-count, and stale import scans.
 
 ## Legacy Transition Rules
 
@@ -1134,6 +1132,11 @@ boundary checks from the matrix above to every canonical context.
 
 - [x] `http/identity` owns current-session and platform `/user` route
       composition; the legacy `api/users` module has been deleted.
+
+## KYC Context
+
+- [x] `http/kyc` owns KYC route composition; the legacy `api/kyc` module has
+      been deleted.
 
 ## Data Boundary Rules
 

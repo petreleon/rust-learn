@@ -1,7 +1,8 @@
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+
 use crate::db;
 use crate::services::kyc_service::{self, KycDecisionRequest, KycError, SubmitKycRequest};
 use crate::utils::request_auth::authenticated_user;
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
 fn service_error_response(error: KycError) -> HttpResponse {
     match error {
@@ -114,7 +115,11 @@ async fn list_kyc_audit(
     }
 }
 
-pub fn kyc_scope() -> actix_web::Scope {
+pub fn configure_routes(cfg: &mut web::ServiceConfig) {
+    cfg.service(kyc_scope());
+}
+
+fn kyc_scope() -> actix_web::Scope {
     web::scope("/kyc")
         .service(
             web::resource("/me")
