@@ -6,9 +6,10 @@ use crate::application::learning::create_course::CourseCreationError;
 use crate::application::learning::learner_course_catalog::LearnerCourseCatalogError as LearnerCourseReadError;
 use crate::application::learning::learner_progress::LearnerProgressError;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionError;
+use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError as ApplicationTeacherCourseDashboardError;
 use crate::application::learning::update_course::CourseUpdateError;
 use crate::application::learning::update_course_lifecycle::CourseLifecycleError;
-use crate::services::course_service::TeacherCourseDashboardError;
+use crate::services::course_service::TeacherCourseDashboardError as LegacyTeacherCourseDashboardError;
 
 pub(super) fn lifecycle_error_response(error: CourseLifecycleError) -> HttpResponse {
     match error {
@@ -122,13 +123,38 @@ pub(super) fn learner_progress_error_response(error: LearnerProgressError) -> Ht
 }
 
 pub(super) fn teacher_course_dashboard_error_response(
-    error: TeacherCourseDashboardError,
+    error: LegacyTeacherCourseDashboardError,
 ) -> HttpResponse {
     match error {
-        TeacherCourseDashboardError::PermissionDenied(_) => HttpResponse::Forbidden()
+        LegacyTeacherCourseDashboardError::PermissionDenied(_) => HttpResponse::Forbidden()
             .body("User does not have permission to view this teaching course"),
-        TeacherCourseDashboardError::NotFound => HttpResponse::NotFound().body("Course not found"),
-        TeacherCourseDashboardError::Database(message) => {
+        LegacyTeacherCourseDashboardError::NotFound => {
+            HttpResponse::NotFound().body("Course not found")
+        }
+        LegacyTeacherCourseDashboardError::Database(message) => {
+            log::error!("event=teacher_course_dashboard_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to load teaching courses")
+        }
+    }
+}
+
+pub(super) fn teacher_course_dashboard_list_error_response(
+    error: ApplicationTeacherCourseDashboardError,
+) -> HttpResponse {
+    match error {
+        ApplicationTeacherCourseDashboardError::PermissionDenied(_) => HttpResponse::Forbidden()
+            .body("User does not have permission to view this teaching course"),
+        ApplicationTeacherCourseDashboardError::NotFound => {
+            HttpResponse::NotFound().body("Course not found")
+        }
+        ApplicationTeacherCourseDashboardError::Connection(message) => {
+            log::error!(
+                "event=teacher_course_dashboard_connection_failed error={}",
+                message
+            );
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
+        }
+        ApplicationTeacherCourseDashboardError::Database(message) => {
             log::error!("event=teacher_course_dashboard_failed error={}", message);
             HttpResponse::InternalServerError().body("Failed to load teaching courses")
         }

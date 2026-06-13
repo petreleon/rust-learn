@@ -996,34 +996,38 @@ remaining gaps.
 | 98 | Moved `GET /courses/catalog/{id}/learn` behind `application/learning/get_learner_course_learning`, learner-course Postgres read helpers, an HTTP-owned learning response DTO, and bootstrap app-data wiring; the route no longer opens the DB pool or calls `course_service::get_learner_course_learning`. |
 | 99 | Moved `GET /courses/catalog/{id}` behind `application/learning/get_learner_course_detail`, shared learner catalog read vocabulary, Postgres detail/chapter adapters, an HTTP-owned detail response DTO, and bootstrap app-data wiring; app-state construction moved into `bootstrap/use_case_wiring.rs` so `startup.rs` stays focused on environment and startup tasks. |
 | 100 | Moved `GET /courses/catalog` behind `application/learning/list_learner_course_catalog`, a Postgres catalog list adapter/use case, an HTTP-owned catalog list response DTO, and bootstrap app-data wiring; the learner catalog HTTP module no longer imports `DbPool` or `course_service`. |
+| 101 | Moved `GET /courses/teaching` behind `application/learning/list_teacher_course_dashboard`, teacher dashboard application vocabulary, Postgres scope/permission/summary adapters, an HTTP-owned dashboard list response DTO, and bootstrap app-data wiring; the list route no longer opens the DB pool or calls `course_service::discover_teacher_course_dashboard`. |
 
 ## Recent Slice Evidence
 
-Slice 100: move learner course catalog list into an injected use case.
+Slice 101: move teacher course dashboard list into an injected use case.
 
-- [x] Add `application/learning/list_learner_course_catalog` with a normalized
+- [x] Add `application/learning/list_teacher_course_dashboard` with normalized
       query, output, store port, handler, use-case trait, and unit coverage for
       trim/default/clamp behavior.
-- [x] Add `infra/postgres/learning/learner_course_catalog_list_*` so Diesel
-      search, organization, lifecycle, visibility, reward, enrollment, paging,
-      and literal wildcard escaping live in Postgres infra rather than HTTP or
-      legacy services.
-- [x] Add `LearnerCourseCatalogResponse` under HTTP DTO ownership and keep the
+- [x] Add `application/learning/teacher_course_dashboard` vocabulary for course
+      dashboard items, organizations, content/reward summaries, roster counts,
+      reward queues, permission summaries, and application errors.
+- [x] Add focused Postgres adapters for teacher candidate scope, delegated
+      scope, permission summaries, roster/reward metrics, dashboard item
+      assembly, list orchestration, and use-case pool ownership.
+- [x] Add `TeacherCourseDashboardResponse` under HTTP DTO ownership and keep the
       existing JSON shape for `courses`, `total`, `limit`, `offset`, `search`,
-      `organization_id`, `lifecycle_status`, `enrollment_status`, and
-      `reward_available`.
-- [x] Wire the concrete catalog list use case through `bootstrap/app_state`,
+      `lifecycle_status`, course summaries, queue counts, and permissions.
+- [x] Wire the concrete dashboard list use case through `bootstrap/app_state`,
       `bootstrap/use_case_wiring`, and `bootstrap/app_data`.
-- [x] Update catalog route tests to inject the production Postgres catalog list
-      use case while preserving published summary, pending enrollment,
-      reward-available filtering, own-draft visibility, and enrolled filtering.
-- [x] Self-critique: learner catalog HTTP is now clean, but teacher dashboard
-      reads still call legacy `course_service` from `http/learning`.
-- [x] Prove behavior with binary compile, full `course_discovery` test target,
-      API route reachability, query normalization unit test, formatting,
-      line-count checks, `git diff --check`, and boundary scans proving the
-      learner catalog HTTP/application DTO path no longer imports DB/Diesel,
-      Postgres stores, or legacy services.
+- [x] Update teacher dashboard and API routing tests to inject the production
+      Postgres dashboard list use case or route-only fake use case as
+      appropriate.
+- [x] Self-critique: `/courses/teaching` is now clean, but
+      `/courses/teaching/{id}`, `/courses/teaching/{id}/enrollments`, and
+      `/courses/teaching/{id}/students` still open the DB pool and call legacy
+      `course_service` from `http/learning`.
+- [x] Prove behavior with binary compile, full teacher dashboard integration
+      test, API route reachability, query normalization unit test, formatting,
+      line-count checks, `git diff --check`, and boundary scans proving the new
+      application/HTTP DTO path does not import DB/Diesel, Postgres internals,
+      or legacy services.
 
 ## Legacy Transition Rules
 
@@ -1213,6 +1217,9 @@ boundary checks from the matrix above to every canonical context.
       command/output/error and store-port contracts, Postgres adapters/use case,
       HTTP DTO mapping, bootstrap wiring, and application/integration/route
       tests; the old include-based enrollment service was deleted.
+- [x] `GET /courses/teaching` now has application query/output/error and
+      store-port contracts, Postgres scope/permission/summary adapters, HTTP DTO
+      mapping, bootstrap wiring, and teacher dashboard/API route tests.
 - [x] Assessment listing, attempt listing, and attempt submission routes now
       receive injected application use cases with Postgres adapters/use cases,
       bootstrap wiring, and route tests; the HTTP assessment handler no longer

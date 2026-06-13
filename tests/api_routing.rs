@@ -1,4 +1,4 @@
-use actix_web::http::{Method, StatusCode};
+use actix_web::http::StatusCode;
 use actix_web::{test, web, App, HttpResponse};
 
 mod api_routing_amount_decision_fake;
@@ -11,7 +11,9 @@ mod api_routing_course_read_fake;
 mod api_routing_course_update_fake;
 mod api_routing_reporting_fake;
 mod api_routing_route_fakes;
+mod api_routing_route_targets;
 mod api_routing_submission_fake;
+mod api_routing_teacher_dashboard_fake;
 mod api_routing_teacher_decision_fake;
 
 #[actix_web::test]
@@ -44,6 +46,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_course_creation_fake::course_creation_data())
             .app_data(api_routing_course_deletion_fake::course_deletion_data())
             .app_data(api_routing_course_discovery_fake::course_discovery_data())
+            .app_data(api_routing_teacher_dashboard_fake::teacher_dashboard_data())
             .app_data(api_routing_course_lifecycle_fake::course_lifecycle_data())
             .app_data(api_routing_course_organization_fake::course_organizations_data())
             .app_data(api_routing_course_read_fake::course_read_data())
@@ -80,79 +83,7 @@ async fn api_scope_and_following_routes_are_reachable() {
     .await;
     assert_ne!(auth_user_id.status(), StatusCode::NOT_FOUND);
 
-    for (method, route) in [
-        (Method::GET, "/api/courses"),
-        (Method::POST, "/api/courses"),
-        (Method::GET, "/api/user"),
-        (Method::GET, "/api/user/12"),
-        (Method::POST, "/api/user/12/role"),
-        (Method::GET, "/api/teacher-applications"),
-        (Method::GET, "/api/teacher-applications/review"),
-        (Method::GET, "/api/teacher-applications/me"),
-        (Method::POST, "/api/teacher-applications"),
-        (Method::PUT, "/api/teacher-applications/34/decision"),
-        (Method::GET, "/api/kyc/me"),
-        (Method::POST, "/api/kyc/me"),
-        (Method::GET, "/api/kyc/review"),
-        (Method::PUT, "/api/kyc/review/34"),
-        (Method::GET, "/api/kyc/review/34/audit"),
-        (Method::GET, "/api/courses/teaching"),
-        (Method::GET, "/api/courses/teaching/12"),
-        (Method::GET, "/api/courses/12"),
-        (Method::PUT, "/api/courses/12"),
-        (Method::GET, "/api/courses/12/organizations"),
-        (Method::PUT, "/api/courses/12/lifecycle"),
-        (Method::DELETE, "/api/courses/12"),
-        (Method::GET, "/api/reward-candidates/me/history"),
-        (Method::GET, "/api/reward-candidates/review"),
-        (Method::GET, "/api/courses/12/reward-candidates"),
-        (Method::POST, "/api/courses/12/reward-candidates"),
-        (
-            Method::PUT,
-            "/api/courses/12/reward-candidates/34/teacher-decision",
-        ),
-        (Method::PUT, "/api/reward-candidates/34/amount-decision"),
-        (Method::GET, "/api/reward-candidates/34/audit"),
-        (
-            Method::POST,
-            "/api/organizations/56/courses/12/reward-candidates",
-        ),
-        (Method::GET, "/api/reports/platform/summary"),
-        (Method::GET, "/api/reports/platform/summary.csv"),
-        (Method::GET, "/api/reports/platform/reward-dashboard"),
-        (Method::GET, "/api/reports/platform/reward-dashboard.csv"),
-        (Method::GET, "/api/reports/platform/fraud-dashboard"),
-        (Method::GET, "/api/reports/platform/fraud-dashboard.csv"),
-        (
-            Method::GET,
-            "/api/reports/platform/teacher-applications.csv",
-        ),
-        (Method::GET, "/api/reports/platform/reward-approvals.csv"),
-        (Method::GET, "/api/reports/platform/token-payouts.csv"),
-        (Method::GET, "/api/reports/platform/wallet-credits.csv"),
-        (
-            Method::GET,
-            "/api/reports/platform/delegated-permissions.csv",
-        ),
-        (Method::GET, "/api/reports/platform/wallet-reconciliation"),
-        (Method::GET, "/api/reports/organizations/56/summary"),
-        (Method::GET, "/api/reports/organizations/56/summary.csv"),
-        (
-            Method::GET,
-            "/api/reports/organizations/56/reward-dashboard",
-        ),
-        (
-            Method::GET,
-            "/api/reports/organizations/56/reward-dashboard.csv",
-        ),
-        (Method::GET, "/api/reward-fraud-blocks"),
-        (Method::POST, "/api/reward-fraud-blocks"),
-        (Method::PUT, "/api/reward-fraud-blocks/78/revoke"),
-        (Method::GET, "/api/reward-fraud-blocks/78/audit"),
-        (Method::GET, "/api/delegated-permissions"),
-        (Method::POST, "/api/delegated-permissions"),
-        (Method::PUT, "/api/delegated-permissions/90/revoke"),
-    ] {
+    for (method, route) in api_routing_route_targets::route_smoke_targets() {
         match test::try_call_service(
             &app,
             test::TestRequest::default()

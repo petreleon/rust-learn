@@ -25,6 +25,7 @@ use crate::infra::postgres::learning::learner_course_catalog_list_use_case::Post
 use crate::infra::postgres::learning::learner_course_detail_use_case::PostgresLearnerCourseDetailUseCase;
 use crate::infra::postgres::learning::learner_course_learning_use_case::PostgresLearnerCourseLearningUseCase;
 use crate::infra::postgres::learning::learner_progress_use_case::PostgresLearnerProgressUseCase;
+use crate::infra::postgres::learning::teacher_course_dashboard_list_use_case::PostgresTeacherCourseDashboardListUseCase;
 use crate::infra::postgres::notifications::notification_inbox_use_case::PostgresNotificationInboxUseCase;
 use crate::infra::postgres::notifications::notification_preferences_use_case::PostgresNotificationPreferencesUseCase;
 use crate::infra::postgres::reporting::organization_reward_dashboard_use_case::PostgresOrganizationRewardDashboardUseCase;
@@ -69,6 +70,9 @@ pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
         learner_course_learning_use_case: Arc::new(PostgresLearnerCourseLearningUseCase::new(
             pool.clone(),
         )),
+        teacher_course_dashboard_use_case: Arc::new(
+            PostgresTeacherCourseDashboardListUseCase::new(pool.clone()),
+        ),
         course_organizations_use_case: Arc::new(PostgresCourseOrganizationsUseCase::new(
             pool.clone(),
         )),

@@ -20,6 +20,7 @@ use crate::application::learning::list_assessment_attempts::AssessmentAttemptsUs
 use crate::application::learning::list_course_assessments::CourseAssessmentsUseCase;
 use crate::application::learning::list_course_organizations::CourseOrganizationsUseCase;
 use crate::application::learning::list_learner_course_catalog::LearnerCourseCatalogListUseCase;
+use crate::application::learning::list_teacher_course_dashboard::TeacherCourseDashboardListUseCase;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionUseCase;
 use crate::application::learning::update_course::CourseUpdateUseCase;
 use crate::application::learning::update_course_lifecycle::CourseLifecycleUseCase;
@@ -66,6 +67,7 @@ pub struct AppState {
     pub learner_course_catalog_use_case: Arc<dyn LearnerCourseCatalogListUseCase>,
     pub learner_course_detail_use_case: Arc<dyn LearnerCourseDetailUseCase>,
     pub learner_course_learning_use_case: Arc<dyn LearnerCourseLearningUseCase>,
+    pub teacher_course_dashboard_use_case: Arc<dyn TeacherCourseDashboardListUseCase>,
     pub course_organizations_use_case: Arc<dyn CourseOrganizationsUseCase>,
     pub course_role_assignment_use_case: Arc<dyn CourseRoleAssignmentUseCase>,
     pub course_enrollment_use_case: Arc<dyn CourseEnrollmentUseCase>,
