@@ -2,7 +2,7 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
 use crate::db;
 use crate::http::teacher_applications::support::{
-    notify_teacher_application_event, service_error_response,
+    notify_teacher_application_event, service_error_response, TeacherApplicationNotification,
 };
 use crate::services::teacher_application_service::{self, OrganizationTeacherNominationRequest};
 use crate::utils::request_auth::authenticated_user;
@@ -34,8 +34,7 @@ pub async fn nominate_application(
         Ok(application) => {
             notify_teacher_application_event(
                 &req,
-                &mut conn,
-                &application,
+                &TeacherApplicationNotification::from(&application),
                 "organization_nominated",
                 None,
             )

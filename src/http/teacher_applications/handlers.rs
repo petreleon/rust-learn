@@ -8,46 +8,40 @@ use crate::application::teacher_applications::get_my_application::{
 use crate::application::teacher_applications::list_applications::{
     TeacherApplicationListError, TeacherApplicationListUseCase,
 };
+use crate::application::teacher_applications::submit_application::{
+    TeacherApplicationSubmitError, TeacherApplicationSubmitUseCase,
+};
 use crate::db;
 use crate::http::extractors::auth_user::AuthUser;
 use crate::http::teacher_applications::dto::{
-    teacher_application_responses, ListTeacherApplicationsParams, TeacherApplicationSelfResponse,
+    teacher_application_responses, ListTeacherApplicationsParams, SubmitTeacherApplicationRequest,
+    TeacherApplicationResponse, TeacherApplicationSelfResponse,
 };
 use crate::http::teacher_applications::support::{
-    notify_teacher_application_event, service_error_response,
+    notify_teacher_application_event, service_error_response, TeacherApplicationNotification,
 };
-use crate::services::teacher_application_service::{
-    self, SubmitTeacherApplicationRequest, TeacherApplicationDecisionRequest,
-};
+use crate::services::teacher_application_service::{self, TeacherApplicationDecisionRequest};
 use crate::utils::request_auth::authenticated_user;
 
 pub(super) async fn submit_application(
     req: HttpRequest,
-    pool: web::Data<db::DbPool>,
+    requester: AuthUser,
+    use_case: web::Data<Arc<dyn TeacherApplicationSubmitUseCase>>,
     body: web::Json<SubmitTeacherApplicationRequest>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match teacher_application_service::submit_application(
-        &mut conn,
-        requester.user_id,
-        body.into_inner(),
-    )
-    .await
-    {
+    let command = body.into_inner().into_command(requester.user_id());
+    match use_case.submit_application(command).await {
         Ok(application) => {
-            notify_teacher_application_event(&req, &mut conn, &application, "submitted", None)
-                .await;
-            HttpResponse::Created().json(application)
+            notify_teacher_application_event(
+                &req,
+                &TeacherApplicationNotification::from(&application),
+                "submitted",
+                None,
+            )
+            .await;
+            HttpResponse::Created().json(TeacherApplicationResponse::from(application))
         }
-        Err(error) => service_error_response(error),
+        Err(error) => submit_application_error_response(error),
     }
 }
 
@@ -102,8 +96,7 @@ pub(super) async fn decide_application(
             let event_type = application.status.clone();
             notify_teacher_application_event(
                 &req,
-                &mut conn,
-                &application,
+                &TeacherApplicationNotification::from(&application),
                 &event_type,
                 decision_reason.as_deref(),
             )
@@ -111,6 +104,28 @@ pub(super) async fn decide_application(
             HttpResponse::Ok().json(application)
         }
         Err(error) => service_error_response(error),
+    }
+}
+
+fn submit_application_error_response(error: TeacherApplicationSubmitError) -> HttpResponse {
+    match error {
+        TeacherApplicationSubmitError::PermissionDenied(_) => {
+            HttpResponse::Forbidden().body("User does not have the required permission")
+        }
+        TeacherApplicationSubmitError::InvalidInput(message) => {
+            HttpResponse::BadRequest().body(message)
+        }
+        TeacherApplicationSubmitError::InvalidTransition(message) => {
+            HttpResponse::Conflict().body(message)
+        }
+        TeacherApplicationSubmitError::Connection(message)
+        | TeacherApplicationSubmitError::Database(message) => {
+            log::error!(
+                "event=teacher_application_submit_api_failed error={}",
+                message
+            );
+            HttpResponse::InternalServerError().body("Failed to process teacher application")
+        }
     }
 }
 

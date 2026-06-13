@@ -24,6 +24,7 @@ mod api_routing_teacher_application_audit_fake;
 mod api_routing_teacher_application_list_fake;
 mod api_routing_teacher_application_platform_review_fake;
 mod api_routing_teacher_application_self_fake;
+mod api_routing_teacher_application_submit_fake;
 mod api_routing_teacher_dashboard_fake;
 mod api_routing_teacher_decision_fake;
 mod api_routing_teacher_students_fake;
@@ -68,6 +69,7 @@ async fn api_scope_and_following_routes_are_reachable() {
                 api_routing_teacher_application_platform_review_fake::teacher_application_platform_review_data(),
             )
             .app_data(api_routing_teacher_application_self_fake::teacher_application_self_data())
+            .app_data(api_routing_teacher_application_submit_fake::teacher_application_submit_data())
             .app_data(api_routing_teacher_students_fake::teacher_students_data())
             .app_data(api_routing_course_lifecycle_fake::course_lifecycle_data())
             .app_data(api_routing_course_organization_fake::course_organizations_data())

@@ -1015,44 +1015,47 @@ remaining gaps.
 | 117 | Moved `GET /teacher-applications/{id}/audit` behind `application/teacher_applications/list_application_audit`, a Postgres audit adapter/use case, shared teacher-application audit output, HTTP-owned audit DTO mapping, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns Diesel audit records, or calls `teacher_application_service::list_audit_events`. |
 | 118 | Moved `GET /teacher-applications` behind `domain/teacher_applications` status normalization, `application/teacher_applications/list_applications`, a Postgres list adapter/use case, HTTP-owned list query/response DTOs, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns Diesel application records, or calls `teacher_application_service::list_applications`. |
 | 119 | Moved `GET /teacher-applications/review` behind `application/teacher_applications/list_platform_review`, a granular Postgres review store/use case/context mapper, HTTP-owned platform-review query/response DTO modules, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns service response structs, or calls `teacher_application_service::list_platform_applications`. |
+| 120 | Moved `POST /teacher-applications` behind `domain/teacher_applications` scope validation, `application/teacher_applications/submit_application`, a Postgres submit adapter/use case, HTTP-owned submit request mapping, and teacher-application bootstrap wiring; the route no longer opens the DB pool for creation or calls `teacher_application_service::submit_application`. |
 
 ## Recent Slice Evidence
 
-Slice 119: move teacher-application platform review reads into Level 2 rings.
+Slice 120: move teacher-application applicant submission into Level 2 rings.
 
-- [x] Add `application/teacher_applications/list_platform_review` with
-      query/output/error/store/service contracts and a fake-tested handler that
-      gates the queue on review permission, normalizes status/search filters,
-      preserves legacy summary-vs-filtered-total semantics, and exposes
-      operator approve/reject/request-change capabilities.
-- [x] Add Postgres platform-review store/use-case/context modules under
-      `infra/postgres/teacher_applications`, keeping permission checks, Diesel
-      application/user/course/organization/audit queries, JSON portfolio-link
-      parsing, audit summaries, and persistence-to-application mapping outside
-      HTTP and application code.
-- [x] Split platform-review HTTP ownership into dedicated handler and DTO
-      modules so `/teacher-applications/review` uses `AuthUser`, an injected use
-      case, and HTTP response mapping instead of opening `DbPool` or serializing
-      service response structs.
-- [x] Register the platform-review use case through
-      `bootstrap/teacher_application_wiring`/`app_data` and add an API routing
-      fake for route reachability tests.
-- [x] Delete the obsolete `teacher_application_service::list_platform_applications`
-      function, platform-only legacy item/permission structs, and stale
-      platform search helper while keeping organization-list helpers for the
-      still-legacy organization path.
-- [x] Self-critique: submit, decision, and organization nomination still use the
-      legacy `teacher_application_service`; those mutation paths also own audit
-      writes, role assignment, idempotency, and notification side effects, so
-      they should move in separate slices with explicit output/notification
-      boundaries.
-- [x] Prove behavior with platform-review application unit tests, the focused
-      platform-review integration test including the HTTP review route assertion,
-      the full `teacher_applications` integration suite, teacher-application
-      service unit tests, API route reachability, formatting, line-count checks,
-      `git diff --check`, and boundary scans proving the platform-review
-      application module does not import Actix, Diesel, DB pools, services,
-      repositories, or persistence models.
+- [x] Add `domain/teacher_applications/scope` for requested-scope
+      normalization and target validation so applicant submission no longer
+      relies on service-local scope rules.
+- [x] Add `application/teacher_applications/submit_application` with
+      command/error/submission/store/service contracts and fake-tested handler
+      behavior for submit permission, trimming, idempotent replay, conflicting
+      idempotency keys, and existing non-rejected application conflicts.
+- [x] Add Postgres submit store/use-case modules under
+      `infra/postgres/teacher_applications`, keeping platform permission lookup,
+      idempotency/latest-application queries, insert transaction, audit write,
+      and persistence-to-application mapping outside HTTP and application code.
+- [x] Rework `POST /teacher-applications` to use `AuthUser`, an HTTP-owned
+      submit request DTO, an injected submit use case, and HTTP response mapping
+      instead of opening `DbPool` for creation or serializing the Diesel
+      application record directly.
+- [x] Make teacher-application notification fan-out use a small HTTP snapshot so
+      submit, decision, and nomination handlers can notify without passing
+      Diesel models into the notification helper; recipient lookup still remains
+      a temporary HTTP support concern until notification boundaries are moved.
+- [x] Register the submit use case through `bootstrap/teacher_application_wiring`
+      and add an API routing fake for route reachability tests.
+- [x] Delete the obsolete `teacher_application_service::submit_application`
+      function after moving integration helpers and the HTTP route to the new
+      application/Postgres path.
+- [x] Self-critique: decision and organization nomination still use the legacy
+      `teacher_application_service`; decision owns transition/role assignment
+      and nomination owns actor/applicant separation plus organization
+      permission, so they should move in separate slices.
+- [x] Prove behavior with domain scope tests, submit application unit tests, the
+      focused submit/idempotency integration test including the HTTP POST route
+      assertion, the full `teacher_applications` integration suite,
+      teacher-application service unit tests, API route reachability,
+      formatting, line-count checks, `git diff --check`, and boundary scans
+      proving the submit application module does not import Actix, Diesel, DB
+      pools, services, repositories, or persistence models.
 
 ## Legacy Transition Rules
 
@@ -1338,8 +1341,12 @@ boundary checks from the matrix above to every canonical context.
       query/output/error/store contracts, a Postgres review adapter/use case,
       HTTP query/response DTO mapping, bootstrap wiring, and
       application/integration/API route tests.
-- [ ] Move teacher-application submit, decision, and organization nomination
-      routes behind application use cases with Postgres adapters.
+- [x] `POST /teacher-applications` now has domain scope validation,
+      application command/output/error/store contracts, a Postgres submit
+      adapter/use case, HTTP request/response DTO mapping, bootstrap wiring,
+      and application/integration/API route tests.
+- [ ] Move teacher-application decision and organization nomination routes
+      behind application use cases with Postgres adapters.
 
 ## Data Boundary Rules
 

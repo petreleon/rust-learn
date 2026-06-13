@@ -10,3 +10,5 @@ pub mod teacher_application_platform_review_use_case;
 mod teacher_application_self_mappers;
 pub mod teacher_application_self_store;
 pub mod teacher_application_self_use_case;
+pub mod teacher_application_submit_store;
+pub mod teacher_application_submit_use_case;

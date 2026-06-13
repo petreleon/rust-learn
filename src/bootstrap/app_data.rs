@@ -172,5 +172,6 @@ pub fn configure_app_data(cfg: &mut web::ServiceConfig, app_state: &AppState) {
         .app_data(web::Data::new(teacher_applications.list.clone()))
         .app_data(web::Data::new(teacher_applications.platform_review.clone()))
         .app_data(web::Data::new(teacher_applications.self_status.clone()))
+        .app_data(web::Data::new(teacher_applications.submit.clone()))
         .app_data(web::Data::new(app_state.readiness_use_case.clone()));
 }

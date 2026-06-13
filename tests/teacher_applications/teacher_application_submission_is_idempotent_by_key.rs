@@ -43,6 +43,36 @@ async fn teacher_application_submission_is_idempotent_by_key() {
         TeacherApplicationError::InvalidInput(message)
             if message.contains("idempotency key is already used")
     ));
+
+    let http_applicant = create_user_helper(&mut conn, "teacher_apply_http").await;
+    assign_role_to_user(&mut conn, http_applicant.id(), Roles::USER)
+        .await
+        .expect("failed to assign USER role");
+    let app = test::init_service(
+        App::new()
+            .app_data(teacher_application_submit_data())
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .configure(rust_learn::http::teacher_applications::configure_routes),
+    )
+    .await;
+    let response = test::call_service(
+        &app,
+        test::TestRequest::post()
+            .uri("/teacher-applications")
+            .insert_header((
+                "Authorization",
+                format!("Bearer {}", token_for(http_applicant.id())),
+            ))
+            .set_json(platform_application_request())
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let body: serde_json::Value = test::read_body_json(response).await;
+    assert_eq!(
+        body["applicant_user_id"].as_i64(),
+        Some(i64::from(http_applicant.id()))
+    );
 }
 
 #[actix_web::test]

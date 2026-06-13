@@ -4,6 +4,7 @@ use serde_json::Value;
 
 use crate::application::teacher_applications::get_my_application::TeacherApplicationSelfOutput;
 use crate::application::teacher_applications::list_applications::TeacherApplicationListQuery;
+use crate::application::teacher_applications::submit_application::TeacherApplicationSubmitCommand;
 use crate::application::teacher_applications::{
     TeacherApplicationAuditEventOutput, TeacherApplicationOutput,
 };
@@ -15,6 +16,17 @@ pub(super) struct ListTeacherApplicationsParams {
     pub(super) organization_sponsor_id: Option<i32>,
     pub(super) limit: Option<i64>,
     pub(super) offset: Option<i64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub(super) struct SubmitTeacherApplicationRequest {
+    pub(super) requested_scope: String,
+    pub(super) requested_organization_id: Option<i32>,
+    pub(super) requested_course_id: Option<i32>,
+    pub(super) experience_summary: String,
+    pub(super) organization_sponsor_id: Option<i32>,
+    pub(super) portfolio_links: Option<Vec<String>>,
+    pub(super) idempotency_key: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -72,6 +84,21 @@ impl ListTeacherApplicationsParams {
             offset: self.offset,
             organization_sponsor_id: self.organization_sponsor_id,
             status: self.status,
+        }
+    }
+}
+
+impl SubmitTeacherApplicationRequest {
+    pub(super) fn into_command(self, actor_user_id: i32) -> TeacherApplicationSubmitCommand {
+        TeacherApplicationSubmitCommand {
+            actor_user_id,
+            experience_summary: self.experience_summary,
+            idempotency_key: self.idempotency_key,
+            organization_sponsor_id: self.organization_sponsor_id,
+            portfolio_links: self.portfolio_links,
+            requested_course_id: self.requested_course_id,
+            requested_organization_id: self.requested_organization_id,
+            requested_scope: self.requested_scope,
         }
     }
 }
