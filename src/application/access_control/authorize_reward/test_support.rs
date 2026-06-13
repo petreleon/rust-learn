@@ -9,8 +9,10 @@ use crate::domain::access_control::permission::Permission;
 pub(crate) struct FakeRewardAuthorizationStore {
     pub platform_permissions: Vec<Permission>,
     pub course_permissions: Vec<(i32, Permission)>,
+    pub organization_permissions: Vec<(i32, Permission)>,
     pub platform_checks: Vec<Permission>,
     pub course_checks: Vec<(i32, Permission)>,
+    pub organization_checks: Vec<(i32, Permission)>,
 }
 
 impl RewardAuthorizationStore for FakeRewardAuthorizationStore {
@@ -33,6 +35,19 @@ impl RewardAuthorizationStore for FakeRewardAuthorizationStore {
         ready(Ok(self
             .course_permissions
             .contains(&(course_id, permission))))
+        .boxed()
+    }
+
+    fn has_organization_permission(
+        &mut self,
+        _actor_user_id: i32,
+        organization_id: i32,
+        permission: Permission,
+    ) -> BoxFuture<'_, Result<bool, RewardAuthorizationError>> {
+        self.organization_checks.push((organization_id, permission));
+        ready(Ok(self
+            .organization_permissions
+            .contains(&(organization_id, permission))))
         .boxed()
     }
 }

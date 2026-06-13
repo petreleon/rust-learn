@@ -62,6 +62,15 @@ pub async fn authorize_reward_action(
             )
             .await
         }
+        RewardAuthorizationAction::SubmitOrganizationCourseRewardEvent { organization_id } => {
+            store
+                .has_organization_permission(
+                    actor_user_id,
+                    organization_id,
+                    Permission::SubmitOrgCourseRewardEvent,
+                )
+                .await
+        }
         RewardAuthorizationAction::ViewCourseRewardStatus { course_id } => {
             store
                 .has_course_permission(actor_user_id, course_id, Permission::ViewCourseRewardStatus)

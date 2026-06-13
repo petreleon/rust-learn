@@ -92,6 +92,19 @@ pub(super) async fn can_submit_course_reward_event(
     .await
 }
 
+pub(super) async fn can_submit_organization_course_reward_event(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    organization_id: i32,
+) -> Result<bool, RewardAuthorizationError> {
+    authorize(
+        conn,
+        actor_user_id,
+        RewardAuthorizationAction::SubmitOrganizationCourseRewardEvent { organization_id },
+    )
+    .await
+}
+
 pub(super) async fn can_view_course_reward_status(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,

@@ -2556,6 +2556,41 @@ application ring.
       Postgres access-control adapter for the moved checks, and keep touched
       non-generated Rust files under the manual line limit.
 
+Slice 53: move organization-scoped reward submission authorization into the
+access-control application ring.
+
+- [x] Extend `application/access_control/authorize_reward` with
+      `SubmitOrganizationCourseRewardEvent` so organization-scoped candidate
+      submission uses the same reward authorization boundary as platform and
+      course reward checks.
+- [x] Extend `domain/access_control/permission` with the typed
+      `SubmitOrgCourseRewardEvent` permission value.
+- [x] Extend `RewardAuthorizationStore` and
+      `infra/postgres/access_control/reward_authorization_store.rs` with an
+      organization permission probe. The Postgres access-control adapter is now
+      the only owner of `user_permission_organization_request` for the reward
+      organization submission check moved in this slice.
+- [x] Update `infra/postgres/rewards/reward_candidate_submission_store.rs` to
+      call `reward_authorization_access::can_submit_organization_course_reward_event`
+      instead of importing `SUBMIT_ORG_COURSE_REWARD_EVENT` or calling the
+      organization permission repository directly.
+- [x] Preserve legacy behavior: organization reward-candidate submission still
+      requires `SUBMIT_ORG_COURSE_REWARD_EVENT`, still checks course existence
+      and course-organization attachment before the organization permission
+      gate, and still returns the same application denial string from the
+      submit-candidate use case.
+- [x] Self-critique: fraud-block scope permissions and fraud-block
+      notification recipient permission lists still duplicate permission
+      grouping inside the rewards Postgres adapter; delegated middleware and
+      session capabilities still need the later generic access-control API.
+- [x] Prove organization-scoped reward submission authorization with
+      application fake-port tests, `submit_candidate` use-case tests,
+      `organization_submission_requires_linked_course_and_still_waits_for_teacher`,
+      `delegated_course_permission_submits_candidate_without_course_role`, and
+      `cargo check --features app-bin --bin rust-learn`; prove boundary scans
+      show direct organization permission probes only in the Postgres
+      access-control adapter for the moved check.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -2904,6 +2939,11 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - The direct course permission repository probe for the moved reward course
   checks now lives only in
   `infra/postgres/access_control/reward_authorization_store.rs`.
+- Organization-scoped reward submission authorization now lives in
+  `application/access_control/authorize_reward`, and
+  `infra/postgres/rewards/reward_candidate_submission_store.rs` delegates to
+  `reward_authorization_access` instead of calling organization permission
+  repositories directly.
 - The legacy `api/wallets` include fragments no longer own GET wallet reads,
   POST wallet links, token-tax routes, deposit-intent creation, or
   retirements. `api/wallets` is now only the `/api/wallets` scope bridge into
@@ -3384,6 +3424,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move course-scoped reward submission, teacher-decision, course-listing,
       student-history visibility, and reward-target eligibility permission
       checks through `application/access_control`.
+- [x] Move organization-scoped reward submission permission checks through
+      `application/access_control`.
 - [ ] Move reward permission decisions through `application/access_control`
       instead of calling `user_permission_*_request` directly from reward use
       cases.
@@ -3464,6 +3506,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move course-scoped reward submission, teacher-decision, course-listing,
       student-history visibility, and reward-target eligibility authorization
       decisions into `application/access_control/authorize_reward`.
+- [x] Move organization-scoped reward submission authorization decisions into
+      `application/access_control/authorize_reward`.
 - [ ] Create one access-control API for `can(actor, action, scope)` style
       decisions.
 - [ ] Encode scope as types instead of loose strings where practical:

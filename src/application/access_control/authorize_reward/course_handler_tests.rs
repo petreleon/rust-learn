@@ -72,6 +72,27 @@ fn submit_course_reward_event_accepts_submit_or_create_course_permission() {
 }
 
 #[test]
+fn submit_organization_course_reward_event_checks_exact_organization_permission() {
+    let mut store = FakeRewardAuthorizationStore {
+        organization_permissions: vec![(9, Permission::SubmitOrgCourseRewardEvent)],
+        ..Default::default()
+    };
+
+    let allowed = block_on(authorize_reward_action(
+        &mut store,
+        7,
+        RewardAuthorizationAction::SubmitOrganizationCourseRewardEvent { organization_id: 9 },
+    ))
+    .unwrap();
+
+    assert!(allowed);
+    assert_eq!(
+        store.organization_checks,
+        vec![(9, Permission::SubmitOrgCourseRewardEvent)]
+    );
+}
+
+#[test]
 fn view_course_reward_status_checks_exact_course_permission() {
     let mut store = FakeRewardAuthorizationStore {
         course_permissions: vec![(42, Permission::ViewCourseRewardStatus)],

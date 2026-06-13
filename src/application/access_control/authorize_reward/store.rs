@@ -16,4 +16,11 @@ pub trait RewardAuthorizationStore {
         course_id: i32,
         permission: Permission,
     ) -> BoxFuture<'_, Result<bool, RewardAuthorizationError>>;
+
+    fn has_organization_permission(
+        &mut self,
+        actor_user_id: i32,
+        organization_id: i32,
+        permission: Permission,
+    ) -> BoxFuture<'_, Result<bool, RewardAuthorizationError>>;
 }

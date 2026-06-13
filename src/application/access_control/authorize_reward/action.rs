@@ -7,6 +7,7 @@ pub enum RewardAuthorizationAction {
     ManageRewardPolicy,
     RecordRewardCompensation,
     SubmitCourseRewardEvent { course_id: i32 },
+    SubmitOrganizationCourseRewardEvent { organization_id: i32 },
     ViewCourseRewardStatus { course_id: i32 },
     ViewRewardAudit,
 }

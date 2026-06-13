@@ -6,6 +6,7 @@ use crate::application::access_control::authorize_reward::{
 };
 use crate::domain::access_control::permission::Permission;
 use crate::repositories::course_repository::user_permission_course_request;
+use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
 
 pub struct PostgresRewardAuthorizationStore<'conn> {
@@ -42,6 +43,25 @@ impl RewardAuthorizationStore for PostgresRewardAuthorizationStore<'_> {
             user_permission_course_request(self.conn, actor_user_id, course_id, permission.as_str())
                 .await
                 .map_err(|error| RewardAuthorizationError::PermissionCheck(error.to_string()))
+        }
+        .boxed()
+    }
+
+    fn has_organization_permission(
+        &mut self,
+        actor_user_id: i32,
+        organization_id: i32,
+        permission: Permission,
+    ) -> BoxFuture<'_, Result<bool, RewardAuthorizationError>> {
+        async move {
+            user_permission_organization_request(
+                self.conn,
+                actor_user_id,
+                organization_id,
+                permission.as_str(),
+            )
+            .await
+            .map_err(|error| RewardAuthorizationError::PermissionCheck(error.to_string()))
         }
         .boxed()
     }

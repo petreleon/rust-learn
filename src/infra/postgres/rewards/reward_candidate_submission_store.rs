@@ -7,12 +7,10 @@ use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmission, RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
     RewardCandidateSubmissionStore,
 };
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{courses, courses_organizations};
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_submission_mappers::map_reward_candidate_submission_error;
 use crate::infra::postgres::rewards::reward_candidate_submission_mutation::submit_reward_candidate;
-use crate::repositories::organization_repository::user_permission_organization_request;
 
 pub struct PostgresRewardCandidateSubmissionStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -82,14 +80,13 @@ impl RewardCandidateSubmissionStore for PostgresRewardCandidateSubmissionStore<'
         organization_id: i32,
     ) -> BoxFuture<'_, Result<bool, RewardCandidateSubmissionError>> {
         async move {
-            user_permission_organization_request(
+            reward_authorization_access::can_submit_organization_course_reward_event(
                 self.conn,
                 actor_user_id,
                 organization_id,
-                &Permissions::SUBMIT_ORG_COURSE_REWARD_EVENT.to_string(),
             )
             .await
-            .map_err(map_reward_candidate_submission_error)
+            .map_err(|error| RewardCandidateSubmissionError::Database(error.to_string()))
         }
         .boxed()
     }
