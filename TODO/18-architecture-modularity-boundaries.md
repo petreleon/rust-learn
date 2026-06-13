@@ -486,6 +486,7 @@ src/
         token_confirmation_store.rs
         wallet_credit_store.rs
         wallet_credit_notification_store.rs
+        reconciliation_store.rs
         compensation_store.rs
         mappers.rs
       wallet/
@@ -712,6 +713,7 @@ src/
         token_confirmation_store.rs
         wallet_credit_store.rs
         wallet_credit_notification_store.rs
+        reconciliation_store.rs
         compensation_store.rs
         reward_history_read_store.rs
         mappers.rs
@@ -1936,6 +1938,48 @@ and Postgres rings.
       or notification utilities, touched non-generated Rust files stay under
       the manual line limit, and the app binary still checks.
 
+Slice 40: move reward reconciliation into the rewards application and Postgres
+rings.
+
+- [x] Use reconciliation as the next reward-execution migration because it is
+      the orchestration that repairs missing payout links, wallet-credit side
+      effects, notification side effects, internal transaction links, and the
+      reconciliation audit event.
+- [x] Create `application/rewards/reconcile_candidate` with explicit
+      output/error/service/store/handler modules. Preserve legacy ordering:
+      direct calls reconcile without actor context, while actor-triggered calls
+      check `EXECUTE_REWARD_PAYOUT` before persistence.
+- [x] Move Postgres reconciliation behavior behind `infra/postgres/rewards`,
+      split into mapper, validation, link repair, audit, transaction, store,
+      and use-case adapter modules.
+- [x] Preserve legacy reconciliation semantics: only confirmed/reconcilable
+      reward candidate states can reconcile, missing external transaction links
+      are repaired idempotently, missing wallet credit is created only for
+      eligible confirmed states and only when payout evidence exists where
+      required, missing internal transaction links are repaired idempotently,
+      missing wallet-credit notifications are repaired through the
+      wallet-credit notification transaction, and a reconciliation audit event
+      is inserted only when at least one repair happened.
+- [x] Move legacy public reconciliation entry points to delegate through the
+      application handler and `PostgresRewardReconciliationStore`.
+- [x] Remove stale private reward-execution include fragments:
+      `reconcile_reward_candidate_with_actor.rs`,
+      `record_external_reward_transaction.rs`,
+      `ensure_wallet_credit_allowed.rs`,
+      `credit_reward_wallet_for_candidate.rs`, and
+      `notify_reward_wallet_credit_for_candidate.rs`.
+- [x] Self-critique: reconciliation now has a Level 2 boundary and the legacy
+      reward execution service is much thinner, but reward execution route
+      wiring, wallet audit, reporting read models, and access-control
+      unification still need their own slices before the rewards context is
+      complete.
+- [x] Prove application fake-port tests and the existing DB-backed
+      reward-execution regressions pass with reconciliation routed through
+      `PostgresRewardReconciliationUseCase`; application import scans stay
+      clean, new infra does not call legacy reward execution or wallet
+      services, touched non-generated Rust files stay under the manual line
+      limit, and the app binary still checks.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -2159,6 +2203,18 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   Reconciliation temporarily calls the new notification infra transaction
   bridge until the reconciliation slice moves fully into
   `application/rewards/reconcile_candidate`.
+- Reward reconciliation is now an application-facing
+  `RewardReconciliationUseCase`; concrete DbPool/Postgres wiring lives in
+  `infra/postgres/rewards/reward_reconciliation_use_case.rs`.
+- Reward reconciliation candidate eligibility, external/internal transaction
+  link repair, wallet-credit repair, wallet-credit notification repair, and
+  reconciliation audit insertion now live behind `RewardReconciliationStore`
+  plus granular Postgres helpers under
+  `infra/postgres/rewards/reward_reconciliation_*`.
+- The legacy reward-execution reconciliation entry points now delegate through
+  the new application handler and Postgres store, and stale private
+  reward-execution include fragments for wallet-credit/notification candidate
+  bridges plus external/internal link repair were removed.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -2586,9 +2642,11 @@ boundary checks from the matrix above to every canonical context.
 - [x] Define module-local `RewardWalletCreditStore` for `credit_wallet`.
 - [x] Define module-local `RewardWalletCreditNotificationStore` for
       `notify_wallet_credit`.
+- [x] Define module-local `RewardReconciliationStore` for
+      `reconcile_candidate`.
 - [ ] Define remaining repository ports needed by reward use cases before
-      moving Diesel code. Examples: reconciliation, wallet audit, and reward
-      reporting read models.
+      moving Diesel code. Examples: wallet audit and reward reporting read
+      models.
 - [x] Move reward policy Diesel implementation behind `infra/postgres/rewards`.
 - [x] Move reward fraud-block Diesel implementation behind
       `infra/postgres/rewards`.
@@ -2615,6 +2673,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move reward wallet credit Diesel implementation behind
       `infra/postgres/rewards`.
 - [x] Move reward wallet-credit notification Diesel implementation behind
+      `infra/postgres/rewards`.
+- [x] Move reward reconciliation Diesel implementation behind
       `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.

@@ -10,6 +10,7 @@ pub mod manage_reward_policy;
 pub mod notify_wallet_credit;
 pub mod plan_payout;
 pub mod ports;
+pub mod reconcile_candidate;
 pub mod record_compensation;
 pub mod record_token_confirmation;
 pub mod submit_candidate;

@@ -30,18 +30,6 @@ pub async fn record_reward_token_confirmation_for_actor(
     .map_err(RewardExecutionError::from)
 }
 
-async fn ensure_can_execute_reward_payout(
-    conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-) -> Result<(), RewardExecutionError> {
-    let permission = Permissions::EXECUTE_REWARD_PAYOUT.to_string();
-    if user_permission_platform_request(conn, actor_user_id, &permission).await? {
-        Ok(())
-    } else {
-        Err(RewardExecutionError::PermissionDenied(permission))
-    }
-}
-
 #[cfg(test)]
 #[allow(dead_code)]
 fn ensure_candidate_ready_for_payout(
