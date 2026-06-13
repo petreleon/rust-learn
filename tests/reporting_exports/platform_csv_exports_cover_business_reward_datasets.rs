@@ -53,7 +53,7 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
             .app_data(csv_exports_use_case)
             .app_data(wallet_reconciliation_use_case)
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::reports::reports_scope()),
+            .configure(rust_learn::http::reporting::configure_routes),
     )
     .await;
     for path in [

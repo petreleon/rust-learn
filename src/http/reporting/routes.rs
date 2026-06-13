@@ -10,7 +10,7 @@ use crate::http::request_params::ParamType;
 use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 
-pub fn platform_summary_resource() -> actix_web::Resource {
+pub(super) fn platform_summary_resource() -> actix_web::Resource {
     web::resource("/platform/summary").route(
         web::get().to(platform_summary::get_platform_summary).wrap(
             PlatformPermissionMiddleware::require(Permissions::VIEW_REPORT.to_string()),
@@ -18,7 +18,7 @@ pub fn platform_summary_resource() -> actix_web::Resource {
     )
 }
 
-pub fn platform_summary_csv_resource() -> actix_web::Resource {
+pub(super) fn platform_summary_csv_resource() -> actix_web::Resource {
     web::resource("/platform/summary.csv").route(
         web::get()
             .to(platform_summary::export_platform_summary)
@@ -28,7 +28,7 @@ pub fn platform_summary_csv_resource() -> actix_web::Resource {
     )
 }
 
-pub fn platform_reward_dashboard_resource() -> actix_web::Resource {
+pub(super) fn platform_reward_dashboard_resource() -> actix_web::Resource {
     web::resource("/platform/reward-dashboard").route(
         web::get()
             .to(platform_reward_dashboard::get_platform_reward_dashboard)
@@ -38,7 +38,7 @@ pub fn platform_reward_dashboard_resource() -> actix_web::Resource {
     )
 }
 
-pub fn platform_reward_dashboard_csv_resource() -> actix_web::Resource {
+pub(super) fn platform_reward_dashboard_csv_resource() -> actix_web::Resource {
     web::resource("/platform/reward-dashboard.csv").route(
         web::get()
             .to(platform_reward_dashboard::export_platform_reward_dashboard)
@@ -48,7 +48,7 @@ pub fn platform_reward_dashboard_csv_resource() -> actix_web::Resource {
     )
 }
 
-pub fn platform_fraud_dashboard_resource() -> actix_web::Resource {
+pub(super) fn platform_fraud_dashboard_resource() -> actix_web::Resource {
     web::resource("/platform/fraud-dashboard").route(
         web::get()
             .to(platform_fraud_dashboard::get_platform_fraud_dashboard)
@@ -58,7 +58,7 @@ pub fn platform_fraud_dashboard_resource() -> actix_web::Resource {
     )
 }
 
-pub fn platform_fraud_dashboard_csv_resource() -> actix_web::Resource {
+pub(super) fn platform_fraud_dashboard_csv_resource() -> actix_web::Resource {
     web::resource("/platform/fraud-dashboard.csv").route(
         web::get()
             .to(platform_fraud_dashboard::export_platform_fraud_dashboard)
@@ -68,7 +68,7 @@ pub fn platform_fraud_dashboard_csv_resource() -> actix_web::Resource {
     )
 }
 
-pub fn platform_wallet_reconciliation_resource() -> actix_web::Resource {
+pub(super) fn platform_wallet_reconciliation_resource() -> actix_web::Resource {
     web::resource("/platform/wallet-reconciliation").route(
         web::get()
             .to(platform_wallet_reconciliation::get_platform_wallet_reconciliation)
@@ -78,7 +78,7 @@ pub fn platform_wallet_reconciliation_resource() -> actix_web::Resource {
     )
 }
 
-pub fn platform_teacher_applications_csv_resource() -> actix_web::Resource {
+pub(super) fn platform_teacher_applications_csv_resource() -> actix_web::Resource {
     web::resource("/platform/teacher-applications.csv").route(
         web::get()
             .to(platform_csv_exports::export_platform_teacher_applications)
@@ -88,7 +88,7 @@ pub fn platform_teacher_applications_csv_resource() -> actix_web::Resource {
     )
 }
 
-pub fn platform_reward_approvals_csv_resource() -> actix_web::Resource {
+pub(super) fn platform_reward_approvals_csv_resource() -> actix_web::Resource {
     web::resource("/platform/reward-approvals.csv").route(
         web::get()
             .to(platform_csv_exports::export_platform_reward_approvals)
@@ -98,7 +98,7 @@ pub fn platform_reward_approvals_csv_resource() -> actix_web::Resource {
     )
 }
 
-pub fn platform_token_payouts_csv_resource() -> actix_web::Resource {
+pub(super) fn platform_token_payouts_csv_resource() -> actix_web::Resource {
     web::resource("/platform/token-payouts.csv").route(
         web::get()
             .to(platform_csv_exports::export_platform_token_payouts)
@@ -108,7 +108,7 @@ pub fn platform_token_payouts_csv_resource() -> actix_web::Resource {
     )
 }
 
-pub fn platform_wallet_credits_csv_resource() -> actix_web::Resource {
+pub(super) fn platform_wallet_credits_csv_resource() -> actix_web::Resource {
     web::resource("/platform/wallet-credits.csv").route(
         web::get()
             .to(platform_csv_exports::export_platform_wallet_credits)
@@ -118,7 +118,7 @@ pub fn platform_wallet_credits_csv_resource() -> actix_web::Resource {
     )
 }
 
-pub fn platform_delegated_permissions_csv_resource() -> actix_web::Resource {
+pub(super) fn platform_delegated_permissions_csv_resource() -> actix_web::Resource {
     web::resource("/platform/delegated-permissions.csv").route(
         web::get()
             .to(platform_csv_exports::export_platform_delegated_permissions)
@@ -128,7 +128,7 @@ pub fn platform_delegated_permissions_csv_resource() -> actix_web::Resource {
     )
 }
 
-pub fn organization_summary_resource() -> actix_web::Resource {
+pub(super) fn organization_summary_resource() -> actix_web::Resource {
     web::resource("/organizations/{id}/summary").route(
         web::get()
             .to(organization_summary::get_organization_summary)
@@ -140,7 +140,7 @@ pub fn organization_summary_resource() -> actix_web::Resource {
     )
 }
 
-pub fn organization_summary_csv_resource() -> actix_web::Resource {
+pub(super) fn organization_summary_csv_resource() -> actix_web::Resource {
     web::resource("/organizations/{id}/summary.csv").route(
         web::get()
             .to(organization_summary::export_organization_summary)
@@ -152,7 +152,7 @@ pub fn organization_summary_csv_resource() -> actix_web::Resource {
     )
 }
 
-pub fn organization_reward_dashboard_resource() -> actix_web::Resource {
+pub(super) fn organization_reward_dashboard_resource() -> actix_web::Resource {
     web::resource("/organizations/{id}/reward-dashboard").route(
         web::get()
             .to(organization_reward_dashboard::get_organization_reward_dashboard)
@@ -164,7 +164,7 @@ pub fn organization_reward_dashboard_resource() -> actix_web::Resource {
     )
 }
 
-pub fn organization_reward_dashboard_csv_resource() -> actix_web::Resource {
+pub(super) fn organization_reward_dashboard_csv_resource() -> actix_web::Resource {
     web::resource("/organizations/{id}/reward-dashboard.csv").route(
         web::get()
             .to(organization_reward_dashboard::export_organization_reward_dashboard)

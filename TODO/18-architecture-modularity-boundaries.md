@@ -961,23 +961,26 @@ remaining gaps.
 | 56 | Moved production Actix app-data registration out of `main.rs`; `main.rs` is now process orchestration while bootstrap owns concrete state and route wiring. |
 | 57-64 | Typed reward audit, execution job, candidate, fraud-block, policy, payout-method, token, wallet-credit, and compensation transaction vocabulary in the rewards domain while keeping compatibility aliases where legacy callers still need them. |
 | 65-71 | Moved platform summary, platform fraud dashboard, organization summary, organization reward dashboard, platform reward dashboard, platform wallet reconciliation, and platform CSV export behavior into `application/reporting`, `infra/postgres/reporting`, and `http/reporting`; legacy report URLs still flow through the existing reports scope while matching old service queries/DTOs/CSV helpers were removed. |
+| 72-73 | Moved request-parameter parsing into `http/request_params`; moved reporting route composition into `http/reporting::configure_routes`, deleted the legacy `api/reports` wrapper, and narrowed reporting resource exports to the context boundary. |
 
 ## Recent Slice Evidence
 
-Slice 72: move request-parameter source ownership out of persistence models.
+Slice 73: move reporting route composition into the reporting HTTP ring.
 
-- [x] Move the `ParamType` request source enum and `extract_param` helper into
-      `http/request_params`.
-- [x] Update course, organization, content, reporting, and permission/hierarchy
-      middleware to import request parameter parsing from the HTTP boundary
-      instead of `models` or `utils`.
-- [x] Delete `models/param_type.rs` and `utils/request_utils.rs`, leaving
-      `models` closer to persistence records and `utils` less HTTP-shaped.
-- [x] Self-critique: permission middleware still performs direct repository
-      permission checks; later access-control slices should route middleware
-      through `application/access_control`.
-- [x] Prove request parameter behavior, middleware permission behavior,
-      route reachability, formatting, line-count, and stale import scans.
+- [x] Add `http/reporting/scope.rs` so the reporting context owns its
+      `/reports` Actix scope and exposes `configure_routes` as the public
+      composition point.
+- [x] Update `api_scope()` and reporting regression tests to mount
+      `http/reporting::configure_routes` instead of `api::reports`.
+- [x] Delete the thin `src/api/reports*` wrapper while preserving all existing
+      report URLs under `/api/reports` in the production API scope.
+- [x] Narrow reporting resource functions to `pub(super)` so external callers
+      consume the reporting context boundary rather than individual endpoints.
+- [x] Self-critique: `src/api/mod.rs` still composes many legacy scopes; later
+      slices should keep replacing those with context-owned `configure_routes`
+      functions.
+- [x] Prove reporting route reachability, reporting export behavior,
+      formatting, line-count, and stale import scans.
 
 ## Legacy Transition Rules
 
@@ -1072,6 +1075,8 @@ boundary checks from the matrix above to every canonical context.
       organization reward dashboard now live in `application/reporting`,
       `infra/postgres/reporting`, and `http/reporting` with legacy report URLs
       preserved.
+- [x] `http/reporting` owns the `/reports` Actix scope and exposes only a
+      context-level route configurator to the rest of the app.
 
 ## Wallet Context
 

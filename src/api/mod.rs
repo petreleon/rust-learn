@@ -7,7 +7,6 @@ pub mod delegated_permissions;
 pub mod health;
 pub mod kyc;
 pub mod organizations;
-pub mod reports;
 pub mod reward_fraud_blocks;
 pub mod reward_policies;
 pub mod roles;
@@ -45,7 +44,7 @@ pub fn api_scope() -> Scope<
         .service(authentication::auth_scope())
         .service(courses::course_scope())
         .service(organizations::organization_scope())
-        .service(reports::reports_scope())
+        .configure(crate::http::reporting::configure_routes)
         .service(delegated_permissions::delegated_permission_scope())
         .service(kyc::kyc_scope())
         .configure(crate::http::rewards::configure_routes)

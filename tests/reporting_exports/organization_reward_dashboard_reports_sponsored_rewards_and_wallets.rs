@@ -48,7 +48,7 @@ async fn organization_reward_dashboard_reports_sponsored_rewards_and_wallets() {
             .app_data(web::Data::new(pool.clone()))
             .app_data(organization_reward_dashboard_use_case(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::reports::reports_scope()),
+            .configure(rust_learn::http::reporting::configure_routes),
     )
     .await;
 
