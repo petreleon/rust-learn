@@ -9,6 +9,7 @@ pub fn configure_app_data(cfg: &mut web::ServiceConfig, app_state: &AppState) {
         .app_data(web::Data::new(app_state.role_catalog_use_case.clone()))
         .app_data(web::Data::new(app_state.current_session_use_case.clone()))
         .app_data(web::Data::new(app_state.course_deletion_use_case.clone()))
+        .app_data(web::Data::new(app_state.course_discovery_use_case.clone()))
         .app_data(web::Data::new(app_state.course_read_use_case.clone()))
         .app_data(web::Data::new(
             app_state.course_organizations_use_case.clone(),

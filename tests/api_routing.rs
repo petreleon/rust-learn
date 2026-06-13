@@ -5,6 +5,7 @@ use actix_web::{
 
 mod api_routing_amount_decision_fake;
 mod api_routing_course_deletion_fake;
+mod api_routing_course_discovery_fake;
 mod api_routing_course_organization_fake;
 mod api_routing_course_read_fake;
 mod api_routing_reporting_fake;
@@ -40,6 +41,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_amount_decision_fake::reward_amount_decision_data())
             .app_data(api_routing_submission_fake::reward_candidate_submission_data())
             .app_data(api_routing_course_deletion_fake::course_deletion_data())
+            .app_data(api_routing_course_discovery_fake::course_discovery_data())
             .app_data(api_routing_course_organization_fake::course_organizations_data())
             .app_data(api_routing_course_read_fake::course_read_data())
             .app_data(api_routing_route_fakes::course_reward_candidates_data())

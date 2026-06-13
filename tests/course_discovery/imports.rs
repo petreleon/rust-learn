@@ -11,6 +11,8 @@ use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::domain::rewards::policy::{
     REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
+use rust_learn::application::learning::discover_courses::CourseDiscoveryUseCase;
+use rust_learn::infra::postgres::learning::course_discovery_use_case::PostgresCourseDiscoveryUseCase;
 use rust_learn::models::chapter::NewChapter;
 use rust_learn::models::content::NewContent;
 use rust_learn::models::course::{Course, NewCourse, COURSE_STATUS_PUBLISHED};
@@ -27,7 +29,10 @@ use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::Value;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
 
 static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -114,4 +119,10 @@ async fn publish_course(conn: &mut AsyncPgConnection, course_id: i32) {
         .execute(conn)
         .await
         .expect("failed to publish course");
+}
+
+fn course_discovery_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn CourseDiscoveryUseCase>> {
+    web::Data::new(Arc::new(PostgresCourseDiscoveryUseCase::new(pool.clone())))
 }

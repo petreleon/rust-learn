@@ -283,7 +283,7 @@ Level 2 completion matrix:
 | `identity` | users, credentials, sessions, verification states | registration, login, password reset, email verification, current session | users, credentials, tokens, session read models | verification and password-reset mailers | auth, session, and user profile routes |
 | `access_control` | permissions, roles, scopes, hierarchy, delegation rules | authorization decisions, role assignment, delegated permission grants/revokes | role catalogs, permission checks, hierarchy and delegation stores | none unless an external policy engine is introduced | role, permission, delegation, and capability routes |
 | `organizations` | organization, membership, membership audit rules | organization CRUD, member management, dashboards, invitations | organizations, memberships, invites, member audit, dashboard read models | organization notification hooks when needed | organization, member, invite, and dashboard routes |
-| `learning` | courses, enrollment, progress, assessment rules | course discovery, course detail reads, lifecycle, deletion, enrollment decisions, progress writes, assessment reads/submission, course-organization reads | courses, course-organization links, enrollments, progress, assessments, attempts | none by default | course, course-organization, enrollment, progress, and assessment routes |
+| `learning` | courses, enrollment, progress, assessment rules | course discovery/listing, course detail reads, lifecycle, deletion, enrollment decisions, progress writes, assessment reads/submission, course-organization reads | courses, course-organization links, enrollments, progress, assessments, attempts | none by default | course, course-organization, enrollment, progress, and assessment routes |
 | `content` | chapters, content items, upload jobs, media rules | chapter/content item management, upload URL requests, media URL requests, upload job processing | chapters, content items, upload jobs, media metadata | object storage upload/media providers, worker-facing media adapters | chapter, content, media, and upload routes |
 | `teacher_applications` | application lifecycle, decisions, audit vocabulary | submit, nominate, list, review, audit application decisions | applications, review decisions, audit events | teacher application mailers | teacher application and audit routes |
 | `kyc` | submission lifecycle, review decisions, audit vocabulary | submit KYC, review KYC, list KYC audit | KYC submissions, review decisions, audit events | external KYC provider adapter if added later | KYC submission, review, and audit routes |
@@ -523,6 +523,7 @@ src/
         mappers.rs
       learning/
         course_store.rs
+        course_discovery_store.rs
         course_read_store.rs
         course_deletion_store.rs
         enrollment_store.rs
@@ -967,47 +968,39 @@ remaining gaps.
 | 56 | Moved production Actix app-data registration out of `main.rs`; `main.rs` is now process orchestration while bootstrap owns concrete state and route wiring. |
 | 57-64 | Typed reward audit, execution job, candidate, fraud-block, policy, payout-method, token, wallet-credit, and compensation transaction vocabulary in the rewards domain while keeping compatibility aliases where legacy callers still need them. |
 | 65-71 | Moved platform summary, platform fraud dashboard, organization summary, organization reward dashboard, platform reward dashboard, platform wallet reconciliation, and platform CSV export behavior into `application/reporting`, `infra/postgres/reporting`, and `http/reporting`; legacy report URLs still flow through the existing reports scope while matching old service queries/DTOs/CSV helpers were removed. |
-| 72-73 | Moved request-parameter parsing into `http/request_params`; moved reporting route composition into `http/reporting::configure_routes`, deleted the legacy `api/reports` wrapper, and narrowed reporting resource exports to the context boundary. |
-| 74 | Moved wallet route composition into `http/wallet::configure_routes`, deleted the legacy `api/wallets` wrapper, and kept wallet resource registration internal to the wallet HTTP context. |
-| 75 | Moved access-control role route composition behind `http/access_control::configure_routes`, deleted the legacy `api/roles` wrapper, and kept the raw roles scope internal. |
-| 76 | Deleted the one-line `api/reward_policies` and `api/reward_fraud_blocks` compatibility wrappers; the remaining reward route public surface stays in `http/rewards` until a dedicated reward-route boundary pass. |
-| 77 | Deleted the `api/health` and `api/session` compatibility wrappers; health/readiness tests now import operations routes directly, and identity/notification handlers no longer leak through `api/session`. |
-| 78 | Deleted `api/chapters` and `api/contents`; course routes now compose `http/content::configure_routes` directly, and chapter/content-item route helpers are private to the content HTTP context. |
-| 79 | Moved platform user list/read/role-assignment HTTP handlers and `/user` scope from `api/users` into `http/identity`, then deleted the legacy `api/users` module. |
-| 80 | Moved delegated-permission HTTP handlers and `/delegated-permissions` scope from `api/delegated_permissions` into `http/access_control`, then mounted them from the access-control route configurator. |
-| 81 | Moved KYC HTTP handlers and `/kyc` scope from `api/kyc` into `http/kyc`, then mounted the context from `api_scope()` through `http/kyc::configure_routes`. |
-| 82 | Moved teacher-application HTTP handlers and `/teacher-applications` scope from `api/teacher_applications` into normal `http/teacher_applications` modules, then updated organization nomination routes to call that context. |
-| 83 | Moved authentication routes, password policy, email verification, password reset, login, session user-id, and JWKS handling into `http/identity/authentication`; bootstrap, seed validation, and auth-flow tests now import identity instead of `api/authentication`. |
-| 84 | Retired the `src/api` module: `/api` composition now lives in `http/routes.rs`, course route ownership lives in `http/learning`, organization route ownership lives in `http/organizations`, and tests import context HTTP modules directly. |
+| 72-84 | Finished the legacy HTTP route cleanup: request params/reporting, wallet, access-control roles/delegation, reward-policy/fraud-block wrappers, operations/session/content, platform users, KYC, teacher applications, authentication, course/organization route ownership, and `/api` composition all moved into `http/<context>` modules; the legacy `src/api` module was retired. |
 | 85 | Split `http/organizations` away from `include!` and `imports.rs` into explicit modules for DTOs, CRUD handlers, course lists, dashboard, member list/invite/audit/role/removal flows, teacher-application tracking, and route composition. |
 | 86 | Split `http/learning/course_routes` away from `include!` and `imports.rs` into explicit modules for DTOs, support/error mapping, catalog, teaching dashboard, management, lifecycle, organizations, roles, progress, enrollment, assessments, and routes. |
 | 87 | Moved `/courses/{id}/organizations` behind `application/learning/list_course_organizations`, `infra/postgres/learning` adapters, an HTTP-owned response DTO, and bootstrap app-data wiring; route and permission tests now cover the injected use case. |
 | 88 | Moved `DELETE /courses/{id}` behind `application/learning/delete_course`, a Postgres delete adapter/use case, and bootstrap app-data wiring; the HTTP management handler no longer owns Diesel deletion. |
 | 89 | Moved `GET /courses/{id}` behind `application/learning/get_course`, a Postgres read adapter/use case, and an HTTP-owned `CourseResponse`; the catalog handler no longer returns the Diesel `Course` record directly. |
+| 90 | Moved `GET /courses` behind `application/learning/discover_courses`, a Postgres discovery adapter/use case, and an HTTP-owned `CourseDiscoveryResponse`; literal wildcard search behavior is covered by course discovery tests. |
 
 ## Recent Slice Evidence
 
-Slice 89: move course detail reads into the learning use-case boundary.
+Slice 90: move course discovery/list reads into the learning use-case boundary.
 
-- [x] Add `application/learning/get_course` with output, error, use-case,
-      store port, and module-local fake-port application test.
-- [x] Add `infra/postgres/learning/course_read_store.rs` and
-      `course_read_use_case.rs` so Diesel lookup and model mapping stay outside
-      HTTP.
-- [x] Add `http/learning/dto/CourseResponse`; `GET /courses/{id}` now maps
-      application output into an HTTP contract instead of serializing the
-      Diesel `Course` record.
-- [x] Inject `CourseReadUseCase` through `bootstrap/app_state`,
+- [x] Add `application/learning/discover_courses` with query normalization,
+      output, error, use-case, store port, and module-local fake-port
+      application test.
+- [x] Add `infra/postgres/learning/course_discovery_store.rs` and
+      `course_discovery_use_case.rs` so search, organization filtering,
+      pagination, Diesel lookup, and model mapping stay outside HTTP.
+- [x] Add `http/learning/dto/CourseDiscoveryResponse`; `GET /courses` now maps
+      application output into an HTTP contract instead of returning the legacy
+      service response and Diesel `Course` records.
+- [x] Inject `CourseDiscoveryUseCase` through `bootstrap/app_state`,
       `bootstrap/startup`, and `bootstrap/app_data`.
-- [x] Keep the existing HTTP contract: found courses return the same public JSON
-      fields, missing courses return `404`, and DB failures return `500`.
-- [x] Self-critique: this only removes the direct course-detail query. Course
-      discovery/catalog list, learner catalog detail/learning, teaching reads,
-      enrollment, progress, roles, lifecycle, and create/update still need
-      deeper Level 2 extraction.
+- [x] Keep the existing HTTP contract: `courses`, `total`, `limit`, `offset`,
+      `search`, and `organization_id` fields remain stable; escaped `%` and
+      `_` search behavior is preserved.
+- [x] Self-critique: this removes the platform course-list query only. Learner
+      catalog detail/learning, teaching reads, enrollment, progress, roles,
+      lifecycle, and create/update still need deeper Level 2 extraction.
 - [x] Prove behavior with binary compile, application fake-port test,
       API route reachability, course-read permission test with the real
-      Postgres use case, formatting, line-count checks, and a boundary scan
+      Postgres use case, full course discovery integration tests, wildcard
+      search regression, formatting, line-count checks, and a boundary scan
       proving Diesel/schema/model references only appear in the Postgres
       adapter for this slice.
 
@@ -1176,6 +1169,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] `GET /courses/{id}` now has application output/error/port contracts, a
       Postgres adapter/use case, HTTP DTO mapping, bootstrap wiring, and
       route/permission/application tests.
+- [x] `GET /courses` now has application query/output/error/port contracts, a
+      Postgres adapter/use case, HTTP DTO mapping, bootstrap wiring, and
+      route/discovery/application tests.
 - [ ] Move remaining learning service/DB-heavy handlers into application use
       cases with Postgres adapters.
 

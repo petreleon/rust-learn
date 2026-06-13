@@ -2,6 +2,8 @@ pub mod assessment_read_store;
 pub mod assessment_submission_store;
 pub mod course_deletion_store;
 pub mod course_deletion_use_case;
+pub mod course_discovery_store;
+pub mod course_discovery_use_case;
 pub mod course_organization_store;
 pub mod course_organization_use_case;
 pub mod course_read_store;

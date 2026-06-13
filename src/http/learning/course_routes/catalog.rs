@@ -2,12 +2,15 @@ use std::sync::Arc;
 
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
+use crate::application::learning::discover_courses::{
+    CourseDiscoveryError, CourseDiscoveryQuery, CourseDiscoveryUseCase,
+};
 use crate::application::learning::get_course::{CourseReadError, CourseReadUseCase};
 use crate::db;
-use crate::http::learning::dto::CourseResponse;
+use crate::http::learning::dto::{CourseDiscoveryResponse, CourseResponse};
 use crate::services::course_service::{
-    discover_courses, discover_learner_course_catalog, get_learner_course_detail,
-    get_learner_course_learning, CourseDiscoveryQuery, LearnerCourseCatalogQuery,
+    discover_learner_course_catalog, get_learner_course_detail, get_learner_course_learning,
+    LearnerCourseCatalogQuery,
 };
 use crate::utils::request_auth::authenticated_user;
 
@@ -85,14 +88,9 @@ pub(super) async fn get_learner_course_catalog_detail(
 }
 
 pub(super) async fn list_courses(
-    pool: web::Data<db::DbPool>,
+    use_case: web::Data<Arc<dyn CourseDiscoveryUseCase>>,
     query: web::Query<CourseDiscoveryParams>,
 ) -> impl Responder {
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
     let discovery = CourseDiscoveryQuery::new(
         query.search.clone(),
         query.organization_id,
@@ -100,16 +98,19 @@ pub(super) async fn list_courses(
         query.offset,
     );
 
-    match discover_courses(&mut conn, discovery).await {
-        Ok(course_list) => HttpResponse::Ok().json(course_list),
-        Err(e) => {
+    match use_case.discover_courses(discovery).await {
+        Ok(course_list) => HttpResponse::Ok().json(CourseDiscoveryResponse::from(course_list)),
+        Err(CourseDiscoveryError::Connection(_)) => {
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
+        }
+        Err(CourseDiscoveryError::Database(message)) => {
             log::error!(
                 "event=course_list_failed search={:?} organization_id={:?} limit={:?} offset={:?} error={}",
                 query.search,
                 query.organization_id,
                 query.limit,
                 query.offset,
-                e
+                message
             );
             HttpResponse::InternalServerError().body("Failed to load courses")
         }
