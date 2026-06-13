@@ -226,10 +226,13 @@ reporting may have little or no domain logic, but it still belongs in
 application/reporting, infra/postgres/reporting, and http/reporting.
 ```
 
-Level 2 is complete only when the target is ring-complete,
-adapter-complete, use-case-complete, route-complete, boundary-complete,
-wiring-complete, and migration-complete:
+Level 2 is complete only when the target is context-complete, ring-complete,
+adapter-complete, use-case-complete, route-complete, contract-complete,
+boundary-complete, wiring-complete, migration-complete, and test-complete:
 
+- Context-complete means every canonical context has an explicit owner and a
+  recorded reason for any omitted ring. Empty folders are not completion; owned
+  behavior, ports, adapters, and routes are completion.
 - Ring-complete means every behavior-owning context has a stable home under
   `domain`, `application`, `infra`, and `http`; no context should remain a
   scattered collection of `api/*`, `services/*`, `repositories/*`, and
@@ -244,6 +247,9 @@ wiring-complete, and migration-complete:
   `reward_service`, `course_service`, or `session_service`.
 - Route-complete means every route is owned by `http/<context>`. Legacy `api/*`
   modules may exist only as temporary delegating shims with a deletion note.
+- Contract-complete means every use case has a narrow command/query input,
+  output type, error type, and port contract. Shared ports may live in
+  `application/<context>/ports.rs`; unique ports may live beside the use case.
 - Boundary-complete means HTTP DTOs, application command/output types, domain
   values, Diesel records, and provider payloads remain separate types unless a
   migration note explicitly accepts a temporary leak.
@@ -254,6 +260,9 @@ wiring-complete, and migration-complete:
   `utils/*` no longer own behavior. Anything left there is either a persistence
   record, a compatibility wrapper with a named deletion condition, or shared
   code waiting on an explicit migration slice.
+- Test-complete means the slice has the smallest useful set of pure domain,
+  application fake-port, adapter, route, or integration tests needed for its
+  risk, plus boundary import scans when new modules are introduced.
 
 Granularity levels:
 
@@ -278,7 +287,7 @@ Level 2 completion matrix:
 | `content` | chapters, content items, upload jobs, media rules | chapter/content item management, upload URL requests, media URL requests, upload job processing | chapters, content items, upload jobs, media metadata | object storage upload/media providers, worker-facing media adapters | chapter, content, media, and upload routes |
 | `teacher_applications` | application lifecycle, decisions, audit vocabulary | submit, nominate, list, review, audit application decisions | applications, review decisions, audit events | teacher application mailers | teacher application and audit routes |
 | `kyc` | submission lifecycle, review decisions, audit vocabulary | submit KYC, review KYC, list KYC audit | KYC submissions, review decisions, audit events | external KYC provider adapter if added later | KYC submission, review, and audit routes |
-| `rewards` | candidates, policies, fraud blocks, payouts, compensation, transition rules | candidate submission, teacher decision, amount decision, policy/fraud management, payout planning, token confirmation, wallet credit, reconciliation, reward history | candidates, policies, fraud blocks, audit, execution jobs, payout records, compensation, wallet credit records, reward read models | Ethereum reward contract gateway, reward notification hooks | reward candidate, policy, fraud block, payout, history, and review routes |
+| `rewards` | candidates, policies, fraud blocks, payouts, compensation, transition rules | candidate submission, teacher decision, amount decision, policy/fraud management, payout planning, token confirmation, wallet credit, reconciliation, reward history | candidates, policies, fraud blocks, audit, execution jobs, payout records, compensation, wallet credit records, reward read models | Ethereum reward contract gateway, reward notification hooks | reward candidate, policy, fraud block, history, and review routes; payout routes only if exposed |
 | `wallet` | wallets, deposits, transfers, token ledger, wallet audit rules | wallet linking, deposit intents, deposit indexing, token transfers, wallet audit | wallets, transactions, deposit intents, wallet credit records | Ethereum wallet transfer gateway | wallet, deposit, transfer, and audit routes |
 | `reporting` | report vocabulary and pure aggregation rules only when useful | platform summaries, organization summaries, reward/fraud dashboards, exports, reconciliation views | report queries, reconciliation queries, CSV export read models | file/export sinks if added later | report dashboard and export routes |
 | `notifications` | preferences, notification records, delivery decisions | preference reads/writes, inbox actions, notification creation, dispatch planning | preferences, inbox records, outbox records, delivery attempts | dispatcher, channel router, email/push/SMS providers | preference, inbox, and notification routes |
@@ -287,6 +296,58 @@ Level 2 completion matrix:
 If a matrix cell is empty in the filesystem, that is a migration gap, not a
 target-shape decision. If a context genuinely does not need a ring or adapter,
 record that as `none` in this file before omitting the folder.
+
+Minimum Level 2 unit:
+
+```text
+domain/<context>/<aggregate>/        pure vocabulary, invariants, transitions
+application/<context>/<use_case>/    command/query, handler, output, error
+application/<context>/ports.rs       shared external contracts for the context
+infra/<adapter>/<context>/           concrete adapter implementation and mappers
+http/<context>/dto/                  request/response contracts for route use cases
+http/<context>/handlers/             Actix handlers that call application use cases
+http/<context>/routes.rs             route composition for the context
+bootstrap/                           concrete wiring for routes, workers, and startup
+```
+
+Use-case folders are mandatory for business actions. Aggregate folders are
+mandatory once a context has more than one domain concept. HTTP folders are
+mandatory only for route-backed use cases; worker-only and startup-only use
+cases must instead be wired from `bootstrap` or `src/bin/*` and documented in
+the context checklist.
+
+Cross-context ownership rule:
+
+- `rewards` owns reward candidates, policy, fraud blocks, payout planning,
+  token confirmation, reward compensation, and reconciliation of reward
+  execution state.
+- `wallet` owns wallet linking, deposits, token transfers, ledger views, and
+  wallet audit. Reward wallet credits may be produced by rewards, but wallet
+  audit read models belong to wallet unless a reporting view explicitly owns
+  the projection.
+- `reporting` owns cross-context read models, dashboards, exports, and
+  reconciliation views. It reads from other contexts through query adapters; it
+  should not become a second home for command-side business rules.
+- `notifications` owns notification preferences, inbox records, outbox records,
+  dispatch planning, and delivery adapters. Other contexts request
+  notifications through application ports instead of inserting provider payloads
+  directly.
+- `access_control` owns permission vocabulary and authorization decisions. Other
+  contexts ask it questions; they do not duplicate permission matrices.
+
+Self-critique gate before marking any Level 2 slice complete:
+
+- Can a new contributor start at `application/<context>/<use_case>` and find
+  the command, output, errors, ports, adapter, route, and tests without knowing
+  legacy service names?
+- Does every cross-context dependency go through a named application port or a
+  documented read model?
+- Can the domain and application modules compile without Actix, Diesel, S3,
+  Ethereum, environment variables, or HTTP DTOs?
+- Is `bootstrap` the only place that knows the concrete adapter graph for that
+  slice?
+- Is any remaining legacy wrapper thin, named, temporary, and covered by a
+  deletion condition?
 
 Complete Level 2 shape for the application:
 
@@ -402,11 +463,15 @@ src/
       manage_reward_policy/
       manage_fraud_block/
       plan_payout/
-      confirm_token_payout/
+      record_token_confirmation/
+      record_compensation/
       credit_wallet/
       notify_wallet_credit/
       reconcile_candidate/
       list_reward_history/
+      list_candidate_audit/
+      list_course_candidates/
+      list_platform_candidates/
       ports.rs
     wallet/
       link_wallet/
@@ -477,18 +542,23 @@ src/
         audit_store.rs
         mappers.rs
       rewards/
-        candidate_store.rs
-        policy_store.rs
-        audit_store.rs
-        fraud_block_store.rs
-        execution_job_store.rs
-        payout_record_store.rs
-        token_confirmation_store.rs
-        wallet_credit_store.rs
-        wallet_credit_notification_store.rs
-        reconciliation_store.rs
-        compensation_store.rs
-        mappers.rs
+        reward_candidate_submission_store.rs
+        teacher_reward_candidate_decision_store.rs
+        reward_amount_decision_store.rs
+        reward_policy_store.rs
+        reward_fraud_block_store.rs
+        reward_payout_plan_store.rs
+        reward_token_confirmation_store.rs
+        reward_compensation_store.rs
+        reward_wallet_credit_store.rs
+        reward_wallet_credit_notification_store.rs
+        reward_reconciliation_store.rs
+        reward_history_store.rs
+        reward_candidate_audit_store.rs
+        course_reward_candidate_store.rs
+        platform_reward_candidate_store.rs
+        *_mappers.rs
+        *_use_case.rs
       wallet/
         wallet_store.rs
         transaction_store.rs
@@ -679,7 +749,12 @@ src/
         command.rs
         handler.rs
         error.rs
-      confirm_token_payout/
+      record_token_confirmation/
+        mod.rs
+        command.rs
+        handler.rs
+        error.rs
+      record_compensation/
         mod.rs
         command.rs
         handler.rs
@@ -699,45 +774,83 @@ src/
         command.rs
         handler.rs
         error.rs
+      list_reward_history/
+        mod.rs
+        query.rs
+        handler.rs
+        output.rs
+        error.rs
+      list_candidate_audit/
+        mod.rs
+        handler.rs
+        output.rs
+        error.rs
+      list_course_candidates/
+        mod.rs
+        query.rs
+        handler.rs
+        output.rs
+        error.rs
+      list_platform_candidates/
+        mod.rs
+        query.rs
+        handler.rs
+        output.rs
+        error.rs
       ports.rs
   infra/
     postgres/
       rewards/
-        candidate_store.rs
+        reward_candidate_submission_store.rs
+        teacher_reward_candidate_decision_store.rs
+        reward_amount_decision_store.rs
         reward_policy_store.rs
         reward_policy_mappers.rs
         reward_policy_use_case.rs
-        audit_store.rs
-        fraud_block_store.rs
-        payout_record_store.rs
-        token_confirmation_store.rs
-        wallet_credit_store.rs
-        wallet_credit_notification_store.rs
-        reconciliation_store.rs
-        compensation_store.rs
-        reward_history_read_store.rs
-        mappers.rs
+        reward_fraud_block_store.rs
+        reward_payout_plan_store.rs
+        reward_token_confirmation_store.rs
+        reward_compensation_store.rs
+        reward_wallet_credit_store.rs
+        reward_wallet_credit_notification_store.rs
+        reward_reconciliation_store.rs
+        reward_history_store.rs
+        reward_candidate_audit_store.rs
+        course_reward_candidate_store.rs
+        platform_reward_candidate_store.rs
+        *_mappers.rs
+        *_use_case.rs
   http/
     rewards/
       routes.rs
       dto/
         submit_candidate.rs
-        decide_teacher_candidate.rs
-        decide_amount.rs
+        teacher_decision.rs
+        amount_decision.rs
         reward_policy.rs
         fraud_block.rs
-        payout.rs
         reward_history.rs
+        candidate_audit.rs
+        course_candidates.rs
+        platform_candidates.rs
       handlers/
         submit_candidate.rs
-        decide_teacher_candidate.rs
-        decide_amount.rs
+        teacher_decision.rs
+        amount_decision.rs
         reward_policy.rs
         fraud_block.rs
-        payout.rs
         reward_history.rs
+        candidate_audit.rs
+        course_candidates.rs
+        platform_candidates.rs
       error.rs
 ```
+
+Rewards use cases that are worker-only or execution-only, such as wallet
+credit, wallet-credit notification, token confirmation, compensation recording,
+and reconciliation, do not need HTTP handlers unless a route is introduced.
+They still need application contracts, Postgres adapters, bootstrap or worker
+wiring, and focused tests.
 
 Optional Level 3 shape if module boundaries still feel too soft:
 
@@ -2586,11 +2699,14 @@ boundary checks from the matrix above to every canonical context.
 - [x] Create the rewards context across the top-level rings:
       `domain/rewards`, `application/rewards`, `infra/postgres/rewards`, and
       `http/rewards`.
-- [ ] Use Level 2 granularity inside rewards: split domain by aggregate
-      (`candidate`, `policy`, `fraud_block`) and application by use case
-      (`submit_candidate`, `decide_amount`, `plan_payout`,
-      `record_token_confirmation`, `record_compensation`,
-      `credit_wallet`, `notify_wallet_credit`, `reconcile_candidate`).
+- [x] Use Level 2 granularity inside rewards: split domain by aggregate
+      (`candidate`, `policy`, `fraud_block`, `payout`, `token`,
+      `wallet_credit`, `compensation`) and application by use case
+      (`submit_candidate`, `decide_teacher_candidate`, `decide_amount`,
+      `manage_reward_policy`, `manage_fraud_block`, `plan_payout`,
+      `record_token_confirmation`, `record_compensation`, `credit_wallet`,
+      `notify_wallet_credit`, `reconcile_candidate`, reward history, and
+      candidate review read models).
 - [x] Move reward policy scope, event, and payment-strategy normalization into
       `domain/rewards/policy`.
 - [x] Move reward fraud-block scope vocabulary and target matching into
@@ -2644,9 +2760,10 @@ boundary checks from the matrix above to every canonical context.
       `notify_wallet_credit`.
 - [x] Define module-local `RewardReconciliationStore` for
       `reconcile_candidate`.
-- [ ] Define remaining repository ports needed by reward use cases before
-      moving Diesel code. Examples: wallet audit and reward reporting read
-      models.
+- [ ] Define remaining context-owned repository ports before moving Diesel code.
+      Wallet audit belongs to `application/wallet/audit_wallet`; reward and
+      fraud dashboards belong to `application/reporting/*`; only reward command
+      and reward read-model ports stay in `application/rewards`.
 - [x] Move reward policy Diesel implementation behind `infra/postgres/rewards`.
 - [x] Move reward fraud-block Diesel implementation behind
       `infra/postgres/rewards`.
