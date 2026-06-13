@@ -108,6 +108,7 @@ pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
             pool.clone(),
         )),
         organization_course_list_use_case: organization_use_cases.course_list,
+        organization_dashboard_use_case: organization_use_cases.dashboard,
         organization_member_audit_use_case: organization_use_cases.member_audit,
         organization_member_list_use_case: organization_use_cases.member_list,
         chapter_use_cases: Arc::new(PostgresChapterUseCases::new(pool.clone())),

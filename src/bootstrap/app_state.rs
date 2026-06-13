@@ -30,6 +30,7 @@ use crate::application::learning::update_course_lifecycle::CourseLifecycleUseCas
 use crate::application::notifications::notification_inbox::NotificationInboxUseCase;
 use crate::application::notifications::preference_service::NotificationPreferencesUseCase;
 use crate::application::operations::readiness_check::ReadinessUseCase;
+use crate::application::organizations::get_organization_dashboard::OrganizationDashboardUseCase;
 use crate::application::organizations::list_organization_courses::OrganizationCourseListUseCase;
 use crate::application::organizations::list_organization_member_audit::OrganizationMemberAuditUseCase;
 use crate::application::organizations::list_organization_members::OrganizationMemberListUseCase;
@@ -90,6 +91,7 @@ pub struct AppState {
     pub notification_inbox_use_case: Arc<dyn NotificationInboxUseCase>,
     pub notification_preferences_use_case: Arc<dyn NotificationPreferencesUseCase>,
     pub organization_course_list_use_case: Arc<dyn OrganizationCourseListUseCase>,
+    pub organization_dashboard_use_case: Arc<dyn OrganizationDashboardUseCase>,
     pub organization_member_audit_use_case: Arc<dyn OrganizationMemberAuditUseCase>,
     pub organization_member_list_use_case: Arc<dyn OrganizationMemberListUseCase>,
     pub chapter_use_cases: Arc<dyn ChapterUseCases>,

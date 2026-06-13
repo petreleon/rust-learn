@@ -1003,35 +1003,36 @@ remaining gaps.
 | 105 | Started the organizations application/infra context by moving `GET /organizations/{id}/courses` behind `application/organizations/list_organization_courses`, Postgres organization course adapters, HTTP-owned course-list DTOs, and bootstrap app-data wiring; the route no longer opens the DB pool or calls `course_service::discover_organization_courses`. |
 | 106 | Moved `GET /organizations/{id}/members` behind `application/organizations/list_organization_members`, Postgres member/permission/delegation adapters, HTTP-owned member-list DTOs, and bootstrap app-data wiring; the route no longer opens the DB pool or calls `organization_service::list_organization_members`. |
 | 107 | Moved `GET /organizations/{id}/members/{user_id}/audit` behind `application/organizations/list_organization_member_audit`, a Postgres member-audit adapter/use case, an HTTP-owned audit response DTO, and bootstrap app-data wiring; the route no longer opens the DB pool, imports Diesel/schema/model types, or relies on route middleware to run the audit query. |
+| 108 | Moved `GET /organizations/{id}/dashboard` behind `application/organizations/get_organization_dashboard`, granular Postgres dashboard read adapters, HTTP-owned dashboard DTOs, and bootstrap app-data wiring; the route no longer opens the DB pool or calls `organization_service::get_organization_dashboard`, while dashboard gating, missing-permission sections, health, and alerts now live in application code. |
 
 ## Recent Slice Evidence
 
-Slice 107: move organization member audit into an injected use case.
+Slice 108: move organization dashboard into an injected use case.
 
-- [x] Add `application/organizations/list_organization_member_audit` with query,
-      output, error, store port, handler, use-case trait, and fake-store unit
-      tests for permission gating.
-- [x] Add Postgres organizations modules for member-audit permission checks,
-      Diesel audit-event loading, application-output mapping, and concrete
-      use-case orchestration.
-- [x] Add an HTTP-owned organization member-audit response DTO while preserving
-      the prior event JSON shape.
-- [x] Wire the concrete organization member-audit use case through
+- [x] Add `application/organizations/get_organization_dashboard` with query,
+      output, error, store port, handler, use-case trait, pure gating helpers,
+      alert construction, and fake-store tests.
+- [x] Add granular Postgres organizations modules for dashboard permission
+      checks, member/course/teacher-application summaries, reward/wallet
+      summaries, Diesel error mapping, and concrete use-case orchestration.
+- [x] Add HTTP-owned organization dashboard response DTOs while preserving the
+      JSON shape for organization, health, sections, operator permissions, and
+      alerts.
+- [x] Wire the concrete organization dashboard use case through
       `bootstrap/app_state`, `bootstrap/use_case_wiring`, and
       `bootstrap/app_data`.
-- [x] Update organization member and API routing tests to inject the production
-      Postgres organization member-audit use case or a route-only fake use case
+- [x] Update organization dashboard and API routing tests to inject the
+      production Postgres organization dashboard use case or a route-only fake
       as appropriate.
-- [x] Self-critique: the Postgres adapter intentionally preserves the old
-      organization-scoped `VIEW_ORGANIZATION` permission behavior instead of
-      broadening audit access to platform-level permission checks. A later
-      access-control slice should still move organization permission decisions
-      behind an application access-control port.
+- [x] Self-critique: dashboard permission checks still call legacy repository
+      permission helpers from the Postgres adapter. This keeps HTTP and
+      application clean for this slice, but a later access-control slice should
+      move organization permission decisions behind an application port.
 - [x] Prove behavior with binary compile, isolated application unit tests,
-      organization member regression tests, API route reachability, formatting,
-      line-count checks, `git diff --check`, and boundary scans proving
-      `http/organizations/member_audit.rs` no longer imports DB pools, Diesel,
-      schema, or Diesel model types.
+      organization dashboard regression tests, API route reachability,
+      formatting, line-count checks, `git diff --check`, and boundary scans
+      proving `http/organizations/dashboard.rs` no longer imports DB pools,
+      services, Diesel, schema, repositories, or Diesel model types.
 
 ## Legacy Transition Rules
 
@@ -1261,9 +1262,12 @@ boundary checks from the matrix above to every canonical context.
       query/output/error and store-port contracts, a Postgres member-audit
       adapter/use case, HTTP DTO mapping, bootstrap wiring, and organization
       member/API route tests.
-- [ ] Move remaining organization CRUD, member invite/role/removal, dashboard,
-      and organization teacher-application orchestration into application use
-      cases with Postgres adapters.
+- [x] `GET /organizations/{id}/dashboard` now has application query/output/error
+      and store-port contracts, Postgres summary/permission adapters, HTTP DTO
+      mapping, bootstrap wiring, and organization dashboard/API route tests.
+- [ ] Move remaining organization CRUD, member invite/role/removal, and
+      organization teacher-application orchestration into application use cases
+      with Postgres adapters.
 
 ## KYC Context
 
