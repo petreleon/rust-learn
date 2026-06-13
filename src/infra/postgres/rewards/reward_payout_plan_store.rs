@@ -4,7 +4,7 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::rewards::plan_payout::{
     RewardPayoutCandidate, RewardPayoutPlanError, RewardPayoutPlanStore, RewardPayoutPolicy,
 };
-use crate::infra::postgres::rewards::reward_execution_access;
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_payout_plan_mappers::map_reward_payout_plan_error;
 use crate::infra::postgres::rewards::reward_payout_plan_policy_lookup::active_reward_payout_policy;
 use crate::repositories::{persistent_state_repository, reward_candidate_repository};
@@ -25,7 +25,7 @@ impl RewardPayoutPlanStore for PostgresRewardPayoutPlanStore<'_> {
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, RewardPayoutPlanError>> {
         async move {
-            reward_execution_access::can_execute_reward_payout(self.conn, actor_user_id)
+            reward_authorization_access::can_execute_reward_payout(self.conn, actor_user_id)
                 .await
                 .map_err(|error| RewardPayoutPlanError::Database(error.to_string()))
         }

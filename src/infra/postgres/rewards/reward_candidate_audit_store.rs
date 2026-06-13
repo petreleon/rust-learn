@@ -7,11 +7,10 @@ use crate::application::rewards::list_candidate_audit::{
     RewardCandidateAuditError, RewardCandidateAuditEvent,
 };
 use crate::application::rewards::ports::RewardCandidateAuditStore;
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{reward_audit_events, reward_candidates};
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_audit_mappers::map_reward_candidate_audit_error;
 use crate::models::reward_audit_event::RewardAuditEvent;
-use crate::repositories::platform_repository::user_permission_platform_request;
 
 pub struct PostgresRewardCandidateAuditStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -29,13 +28,9 @@ impl RewardCandidateAuditStore for PostgresRewardCandidateAuditStore<'_> {
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, RewardCandidateAuditError>> {
         async move {
-            user_permission_platform_request(
-                self.conn,
-                actor_user_id,
-                &Permissions::VIEW_REWARD_AUDIT.to_string(),
-            )
-            .await
-            .map_err(map_reward_candidate_audit_error)
+            reward_authorization_access::can_view_reward_audit(self.conn, actor_user_id)
+                .await
+                .map_err(|error| RewardCandidateAuditError::Database(error.to_string()))
         }
         .boxed()
     }

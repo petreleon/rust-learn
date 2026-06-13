@@ -7,15 +7,14 @@ use crate::application::rewards::decide_amount::{
     RewardAmountDecision, RewardAmountDecisionError, RewardAmountDecisionOutput,
     RewardAmountDecisionStore,
 };
-use crate::config::constants::permissions::Permissions;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::rewards::reward_amount_decision_mappers::map_reward_amount_decision_error;
 use crate::infra::postgres::rewards::reward_amount_decision_transition::{
     candidate_teacher_user_ids, ensure_amount_transition,
 };
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::ensure_no_active_reward_fraud_block;
 use crate::models::reward_audit_event::{NewRewardAuditEvent, REWARD_AUDIT_EVENT_AMOUNT_DECISION};
-use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::repositories::{
     reward_audit_event_repository, reward_candidate_repository, reward_execution_job_repository,
 };
@@ -36,13 +35,9 @@ impl RewardAmountDecisionStore for PostgresRewardAmountDecisionStore<'_> {
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, RewardAmountDecisionError>> {
         async move {
-            user_permission_platform_request(
-                self.conn,
-                actor_user_id,
-                &Permissions::APPROVE_REWARD_AMOUNT.to_string(),
-            )
-            .await
-            .map_err(map_reward_amount_decision_error)
+            reward_authorization_access::can_approve_reward_amount(self.conn, actor_user_id)
+                .await
+                .map_err(|error| RewardAmountDecisionError::Database(error.to_string()))
         }
         .boxed()
     }

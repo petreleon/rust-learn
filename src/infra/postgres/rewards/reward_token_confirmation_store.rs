@@ -5,7 +5,7 @@ use crate::application::rewards::record_token_confirmation::{
     RewardTokenConfirmation, RewardTokenConfirmationError, RewardTokenConfirmationOutput,
     RewardTokenConfirmationStore,
 };
-use crate::infra::postgres::rewards::reward_execution_access;
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_token_confirmation_mappers::{
     map_transaction_error, RewardTokenConfirmationTransactionError,
 };
@@ -26,7 +26,7 @@ impl RewardTokenConfirmationStore for PostgresRewardTokenConfirmationStore<'_> {
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, RewardTokenConfirmationError>> {
         async move {
-            reward_execution_access::can_execute_reward_payout(self.conn, actor_user_id)
+            reward_authorization_access::can_execute_reward_payout(self.conn, actor_user_id)
                 .await
                 .map_err(|error| RewardTokenConfirmationError::Database(error.to_string()))
         }

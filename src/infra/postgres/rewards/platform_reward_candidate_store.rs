@@ -7,10 +7,9 @@ use crate::application::rewards::list_platform_candidates::{
     PlatformRewardCandidateCourseSummary, PlatformRewardCandidateRecord,
     PlatformRewardCandidateUserSummary, PlatformRewardCandidatesError,
 };
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{courses, users};
 use crate::infra::postgres::rewards::platform_reward_candidate_mappers::map_platform_reward_candidate_error;
-use crate::repositories::platform_repository::user_permission_platform_request;
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::repositories::reward_candidate_repository::{self, RewardCandidateFilter};
 
 pub struct PostgresPlatformRewardCandidateStore<'conn> {
@@ -28,14 +27,24 @@ impl PlatformRewardCandidateStore for PostgresPlatformRewardCandidateStore<'_> {
         &mut self,
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, PlatformRewardCandidatesError>> {
-        self.platform_permission(actor_user_id, Permissions::VIEW_REWARD_AUDIT)
+        async move {
+            reward_authorization_access::can_view_reward_audit(self.conn, actor_user_id)
+                .await
+                .map_err(|error| PlatformRewardCandidatesError::Database(error.to_string()))
+        }
+        .boxed()
     }
 
     fn can_approve_reward_amount(
         &mut self,
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, PlatformRewardCandidatesError>> {
-        self.platform_permission(actor_user_id, Permissions::APPROVE_REWARD_AMOUNT)
+        async move {
+            reward_authorization_access::can_approve_reward_amount(self.conn, actor_user_id)
+                .await
+                .map_err(|error| PlatformRewardCandidatesError::Database(error.to_string()))
+        }
+        .boxed()
     }
 
     fn list_candidate_records(
@@ -138,21 +147,6 @@ impl PlatformRewardCandidateStore for PostgresPlatformRewardCandidateStore<'_> {
                         .map(|(id, title)| PlatformRewardCandidateCourseSummary { id, title })
                         .collect()
                 })
-                .map_err(map_platform_reward_candidate_error)
-        }
-        .boxed()
-    }
-}
-
-impl PostgresPlatformRewardCandidateStore<'_> {
-    fn platform_permission(
-        &mut self,
-        actor_user_id: i32,
-        permission: Permissions,
-    ) -> BoxFuture<'_, Result<bool, PlatformRewardCandidatesError>> {
-        async move {
-            user_permission_platform_request(self.conn, actor_user_id, &permission.to_string())
-                .await
                 .map_err(map_platform_reward_candidate_error)
         }
         .boxed()

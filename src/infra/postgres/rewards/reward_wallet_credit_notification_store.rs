@@ -5,7 +5,7 @@ use crate::application::rewards::notify_wallet_credit::{
     RewardWalletCreditNotification, RewardWalletCreditNotificationError,
     RewardWalletCreditNotificationOutput, RewardWalletCreditNotificationStore,
 };
-use crate::infra::postgres::rewards::reward_execution_access;
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_wallet_credit_notification_mappers::{
     map_transaction_error, RewardWalletCreditNotificationTransactionError,
 };
@@ -26,7 +26,7 @@ impl RewardWalletCreditNotificationStore for PostgresRewardWalletCreditNotificat
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, RewardWalletCreditNotificationError>> {
         async move {
-            reward_execution_access::can_execute_reward_payout(self.conn, actor_user_id)
+            reward_authorization_access::can_execute_reward_payout(self.conn, actor_user_id)
                 .await
                 .map_err(|error| RewardWalletCreditNotificationError::Database(error.to_string()))
         }

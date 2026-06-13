@@ -5,7 +5,7 @@ use crate::application::rewards::reconcile_candidate::{
     RewardReconciliation, RewardReconciliationError, RewardReconciliationOutput,
     RewardReconciliationStore,
 };
-use crate::infra::postgres::rewards::reward_execution_access;
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_reconciliation_mappers::{
     map_transaction_error, RewardReconciliationTransactionError,
 };
@@ -26,7 +26,7 @@ impl RewardReconciliationStore for PostgresRewardReconciliationStore<'_> {
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, RewardReconciliationError>> {
         async move {
-            reward_execution_access::can_execute_reward_payout(self.conn, actor_user_id)
+            reward_authorization_access::can_execute_reward_payout(self.conn, actor_user_id)
                 .await
                 .map_err(|error| RewardReconciliationError::Database(error.to_string()))
         }

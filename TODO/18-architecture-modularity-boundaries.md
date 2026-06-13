@@ -2453,7 +2453,7 @@ application ring.
       stores.
 - [x] Move the platform permission repository probe behind
       `infra/postgres/access_control/reward_authorization_store.rs`.
-- [x] Add `infra/postgres/rewards/reward_execution_access.rs` as the thin
+- [x] Add `infra/postgres/rewards/reward_authorization_access.rs` as the thin
       rewards-side adapter helper that delegates execution permission checks to
       `application/access_control/authorize_reward`.
 - [x] Update payout planning, token confirmation, wallet credit,
@@ -2473,7 +2473,44 @@ application ring.
       `cargo check --features app-bin --bin rust-learn`, and prove the exact
       execution-permission scan: `EXECUTE_REWARD_PAYOUT` appears only in the
       typed permission vocabulary/access-control adapter path, while the five
-      reward execution stores call `reward_execution_access`.
+      reward execution stores call `reward_authorization_access`.
+
+Slice 51: move platform reward authorization policy into the access-control
+application ring.
+
+- [x] Extend `application/access_control/authorize_reward` with platform
+      reward actions for reward policy management, reward audit reads, reward
+      amount approval, and reward compensation recording.
+- [x] Extend `domain/access_control/permission` with typed
+      `SetRewardPolicy`, `ApproveRewardAmount`, and `ViewRewardAudit`
+      permission values. Reward compensation reuses the existing typed wallet
+      permissions `ReconcileWallets` and `ManageWallets`.
+- [x] Rename the reward-side access bridge to
+      `infra/postgres/rewards/reward_authorization_access.rs` so it can serve
+      both execution and non-execution reward authorization checks.
+- [x] Update reward policy, reward amount decision, reward candidate audit,
+      platform reward-candidate review, and reward compensation Postgres stores
+      to call `reward_authorization_access` instead of importing permission
+      constants or calling `user_permission_platform_request` directly.
+- [x] Preserve legacy platform permission behavior: reward policies still
+      require `SET_REWARD_POLICY`, amount decisions still require
+      `APPROVE_REWARD_AMOUNT`, candidate audit/platform review still use
+      `VIEW_REWARD_AUDIT` for view capability, platform review still reports
+      `APPROVE_REWARD_AMOUNT` capability separately, and reward compensation
+      still accepts either `RECONCILE_WALLETS` or `MANAGE_WALLETS`.
+- [x] Self-critique: this still leaves scoped course and organization reward
+      permissions outside access-control. Teacher decisions, course candidate
+      listing, student reward history course visibility, candidate submission,
+      fraud-block target permissions, fraud-block notification recipients, and
+      delegated middleware/session capabilities need scoped follow-up slices.
+- [x] Prove the expanded reward authorization policy with application
+      fake-port tests; prove affected behavior with `reward_policies`,
+      `reward_candidate_audit`, `reward_compensations`, `reward_execution`,
+      `platform_reward_candidate_review_returns_enriched_items`, and
+      `reward_amount_approval_requires_platform_scoped_permission`; prove
+      binary wiring with `cargo check --features app-bin --bin rust-learn`;
+      prove targeted scans show the direct platform permission probe for these
+      moved checks only in the Postgres access-control adapter.
 
 Progress evidence from 2026-06-12 and 2026-06-13:
 
@@ -2808,7 +2845,14 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - Reward execution Postgres stores no longer import
   `Permissions::EXECUTE_REWARD_PAYOUT` or call
   `user_permission_platform_request` directly; they delegate through
-  `infra/postgres/rewards/reward_execution_access.rs`.
+  `infra/postgres/rewards/reward_authorization_access.rs`.
+- Reward policy management, reward amount approval, reward candidate audit,
+  platform reward-candidate review capabilities, and reward compensation
+  authorization now also delegate through
+  `application/access_control/authorize_reward`.
+- The direct platform permission repository probe for the moved reward
+  platform checks now lives only in
+  `infra/postgres/access_control/reward_authorization_store.rs`.
 - The legacy `api/wallets` include fragments no longer own GET wallet reads,
   POST wallet links, token-tax routes, deposit-intent creation, or
   retirements. `api/wallets` is now only the `/api/wallets` scope bridge into
@@ -3283,6 +3327,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move reward-execution payout permission checks through
       `application/access_control` instead of calling
       `user_permission_platform_request` directly from reward execution stores.
+- [x] Move platform reward policy, audit, amount-review, platform-review
+      capability, and compensation permission checks through
+      `application/access_control`.
 - [ ] Move reward permission decisions through `application/access_control`
       instead of calling `user_permission_*_request` directly from reward use
       cases.
@@ -3357,6 +3404,9 @@ boundary checks from the matrix above to every canonical context.
       `application/access_control/authorize_reward` with a typed
       `domain/access_control::Permission` vocabulary and a Postgres permission
       adapter.
+- [x] Move platform reward policy, audit, amount-review, platform-review
+      capability, and compensation authorization decisions into
+      `application/access_control/authorize_reward`.
 - [ ] Create one access-control API for `can(actor, action, scope)` style
       decisions.
 - [ ] Encode scope as types instead of loose strings where practical:

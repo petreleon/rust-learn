@@ -4,7 +4,7 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::rewards::credit_wallet::{
     RewardWalletCredit, RewardWalletCreditError, RewardWalletCreditOutput, RewardWalletCreditStore,
 };
-use crate::infra::postgres::rewards::reward_execution_access;
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_wallet_credit_mappers::{
     map_transaction_error, RewardWalletCreditTransactionError,
 };
@@ -25,7 +25,7 @@ impl RewardWalletCreditStore for PostgresRewardWalletCreditStore<'_> {
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, RewardWalletCreditError>> {
         async move {
-            reward_execution_access::can_execute_reward_payout(self.conn, actor_user_id)
+            reward_authorization_access::can_execute_reward_payout(self.conn, actor_user_id)
                 .await
                 .map_err(|error| RewardWalletCreditError::Database(error.to_string()))
         }

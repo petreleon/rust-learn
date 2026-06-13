@@ -7,12 +7,11 @@ use crate::application::rewards::manage_reward_policy::{
     RewardPolicyDraft, RewardPolicyError, RewardPolicyListFilter, RewardPolicyOutput,
 };
 use crate::application::rewards::ports::RewardPolicyStore;
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{courses, organizations};
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_policy_mappers::{
     map_reward_policy_error, new_reward_policy,
 };
-use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::repositories::reward_policy_repository::{self, RewardPolicyFilter};
 
 pub struct PostgresRewardPolicyStore<'conn> {
@@ -31,13 +30,9 @@ impl RewardPolicyStore for PostgresRewardPolicyStore<'_> {
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, RewardPolicyError>> {
         async move {
-            user_permission_platform_request(
-                self.conn,
-                actor_user_id,
-                &Permissions::SET_REWARD_POLICY.to_string(),
-            )
-            .await
-            .map_err(map_reward_policy_error)
+            reward_authorization_access::can_manage_reward_policy(self.conn, actor_user_id)
+                .await
+                .map_err(|error| RewardPolicyError::Database(error.to_string()))
         }
         .boxed()
     }

@@ -4,8 +4,7 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::rewards::record_compensation::{
     RewardCompensation, RewardCompensationError, RewardCompensationOutput, RewardCompensationStore,
 };
-use crate::config::constants::permissions::Permissions;
-use crate::repositories::platform_repository::user_permission_platform_request;
+use crate::infra::postgres::rewards::reward_authorization_access;
 
 pub struct PostgresRewardCompensationStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -23,19 +22,9 @@ impl RewardCompensationStore for PostgresRewardCompensationStore<'_> {
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, RewardCompensationError>> {
         async move {
-            for permission in [Permissions::RECONCILE_WALLETS, Permissions::MANAGE_WALLETS] {
-                if user_permission_platform_request(
-                    self.conn,
-                    actor_user_id,
-                    &permission.to_string(),
-                )
+            reward_authorization_access::can_record_reward_compensation(self.conn, actor_user_id)
                 .await
-                .map_err(|error| RewardCompensationError::Database(error.to_string()))?
-                {
-                    return Ok(true);
-                }
-            }
-            Ok(false)
+                .map_err(|error| RewardCompensationError::Database(error.to_string()))
         }
         .boxed()
     }
