@@ -6,6 +6,7 @@ use crate::application::rewards::notify_wallet_credit::{
     RewardWalletCreditNotificationOutput,
 };
 use crate::db::schema::reward_candidates;
+use crate::domain::rewards::audit::RewardAuditEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::rewards::reward_wallet_credit_notification_mappers::{
     map_diesel_error, RewardWalletCreditNotificationTransactionError,
@@ -15,9 +16,7 @@ use crate::infra::postgres::rewards::reward_wallet_credit_notification_validatio
     approved_positive_amount, ensure_missing_notification_can_be_created,
     ensure_notification_can_be_inspected,
 };
-use crate::models::reward_audit_event::{
-    NewRewardAuditEvent, REWARD_AUDIT_EVENT_WALLET_CREDIT_NOTIFIED,
-};
+use crate::models::reward_audit_event::NewRewardAuditEvent;
 use crate::models::reward_candidate::RewardCandidate;
 use crate::repositories::{
     reward_audit_event_repository, reward_candidate_repository,
@@ -95,7 +94,9 @@ pub(crate) async fn notify_reward_wallet_credit_for_candidate(
         NewRewardAuditEvent {
             reward_candidate_id: updated.id,
             actor_user_id,
-            event_type: REWARD_AUDIT_EVENT_WALLET_CREDIT_NOTIFIED.to_string(),
+            event_type: RewardAuditEventType::WalletCreditNotified
+                .as_str()
+                .to_string(),
             from_status: Some(candidate.status.clone()),
             to_status: updated.status,
             reason: None,

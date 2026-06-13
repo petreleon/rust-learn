@@ -5,11 +5,12 @@ use crate::application::rewards::record_token_confirmation::{
     RewardTokenConfirmation, RewardTokenConfirmationError, RewardTokenConfirmationOutput,
 };
 use crate::db::schema::reward_candidates;
+use crate::domain::rewards::audit::RewardAuditEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::rewards::candidate::transition::{apply_transition, TransitionAction};
 use crate::infra::postgres::rewards::reward_token_confirmation_external_transactions::record_external_reward_transaction;
 use crate::infra::postgres::rewards::reward_token_confirmation_mappers::RewardTokenConfirmationTransactionError;
-use crate::models::reward_audit_event::{NewRewardAuditEvent, REWARD_AUDIT_EVENT_TOKEN_CONFIRMED};
+use crate::models::reward_audit_event::NewRewardAuditEvent;
 use crate::models::reward_candidate::RewardCandidate;
 use crate::models::reward_payout_record::NewRewardPayoutRecord;
 use crate::repositories::{
@@ -60,7 +61,7 @@ pub(super) async fn record_reward_token_confirmation(
         NewRewardAuditEvent {
             reward_candidate_id: updated.id,
             actor_user_id: confirmation.actor_user_id,
-            event_type: REWARD_AUDIT_EVENT_TOKEN_CONFIRMED.to_string(),
+            event_type: RewardAuditEventType::TokenConfirmed.as_str().to_string(),
             from_status: Some(candidate.status.clone()),
             to_status: updated.status,
             reason: None,

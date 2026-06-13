@@ -1,3 +1,4 @@
+pub mod audit;
 pub mod candidate;
 pub mod compensation;
 pub mod fraud_block;

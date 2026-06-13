@@ -4,10 +4,9 @@ use serde_json::json;
 use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
 };
+use crate::domain::rewards::audit::RewardAuditEventType;
 use crate::infra::postgres::rewards::reward_candidate_submission_mappers::map_reward_candidate_submission_error;
-use crate::models::reward_audit_event::{
-    NewRewardAuditEvent, REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED,
-};
+use crate::models::reward_audit_event::NewRewardAuditEvent;
 use crate::models::reward_candidate::NewRewardCandidate;
 use crate::repositories::{reward_audit_event_repository, reward_candidate_repository};
 
@@ -26,7 +25,9 @@ pub(super) async fn create_candidate_with_audit(
                     NewRewardAuditEvent {
                         reward_candidate_id: created.id,
                         actor_user_id: Some(actor_user_id),
-                        event_type: REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED.to_string(),
+                        event_type: RewardAuditEventType::CandidateSubmitted
+                            .as_str()
+                            .to_string(),
                         from_status: None,
                         to_status: created.status.clone(),
                         reason: None,

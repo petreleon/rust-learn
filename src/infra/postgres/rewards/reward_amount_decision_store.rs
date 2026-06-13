@@ -7,6 +7,7 @@ use crate::application::rewards::decide_amount::{
     RewardAmountDecision, RewardAmountDecisionError, RewardAmountDecisionOutput,
     RewardAmountDecisionStore,
 };
+use crate::domain::rewards::audit::RewardAuditEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::rewards::reward_amount_decision_mappers::map_reward_amount_decision_error;
 use crate::infra::postgres::rewards::reward_amount_decision_transition::{
@@ -14,7 +15,7 @@ use crate::infra::postgres::rewards::reward_amount_decision_transition::{
 };
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::ensure_no_active_reward_fraud_block;
-use crate::models::reward_audit_event::{NewRewardAuditEvent, REWARD_AUDIT_EVENT_AMOUNT_DECISION};
+use crate::models::reward_audit_event::NewRewardAuditEvent;
 use crate::repositories::{
     reward_audit_event_repository, reward_candidate_repository, reward_execution_job_repository,
 };
@@ -145,7 +146,7 @@ async fn apply_amount_decision(
         NewRewardAuditEvent {
             reward_candidate_id: updated.id,
             actor_user_id: Some(decision.actor_user_id),
-            event_type: REWARD_AUDIT_EVENT_AMOUNT_DECISION.to_string(),
+            event_type: RewardAuditEventType::AmountDecision.as_str().to_string(),
             from_status: Some(from_status),
             to_status: updated.status.clone(),
             reason: decision.decision_reason,

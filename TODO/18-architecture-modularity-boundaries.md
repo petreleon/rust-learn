@@ -2671,6 +2671,37 @@ Slice 56: move production Actix app-data registration out of `main.rs`.
       `cargo check --features app-bin --bin rust-learn`, prove route
       composition with `api_routing`, and prove formatting/line-count checks.
 
+Slice 57: move reward audit event vocabulary into the rewards domain.
+
+- [x] Create `domain/rewards/audit.rs` with `RewardAuditEventType`, stable
+      audit event keys, parsing, and unit tests for the candidate-submitted,
+      teacher-decision, amount-decision, token-confirmed, wallet-credited,
+      wallet-credit-notified, and reconciled event types.
+- [x] Update Level 2 rewards Postgres writers to use
+      `RewardAuditEventType` when creating audit events for candidate
+      submission, teacher decisions, amount decisions, token confirmation,
+      wallet credit, wallet-credit notification, and reconciliation.
+- [x] Stop exposing reward-execution audit event constants from
+      `models/reward_audit_event.rs`; reward-execution tests now import those
+      keys directly from `domain/rewards/audit`.
+- [x] Preserve temporary model aliases only for candidate-submitted,
+      teacher-decision, and amount-decision audit keys because legacy
+      `services/reward_candidate_service` still uses them until that
+      compatibility surface is deleted.
+- [x] Self-critique: audit event vocabulary is now domain-owned for new rewards
+      infra, but legacy reward-candidate services still consume model aliases,
+      and other remaining reward status/event vocabularies such as execution
+      job status still need their own domain slices.
+- [x] Prove the domain vocabulary with `domain::rewards::audit`, preserve
+      candidate audit behavior with
+      `teacher_submits_and_approves_then_platform_reviewer_sets_amount`,
+      preserve execution audit behavior with
+      `wallet_credit_notification_persists_context_and_is_idempotent` and
+      `token_confirmation_records_external_transaction_and_candidate_link`,
+      prove binary wiring with `cargo check --features app-bin --bin
+      rust-learn`, and prove formatting, whitespace, line-count, and boundary
+      scans.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -3032,6 +3063,9 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `application/access_control/reward_fraud_block_notifications`; rewards
   Postgres code converts typed `Permission` values to database keys only when
   building recipient queries.
+- Reward audit event vocabulary now lives in `domain/rewards/audit`; Level 2
+  rewards Postgres audit writers use the domain `RewardAuditEventType` and the
+  model keeps only temporary aliases needed by legacy candidate service code.
 - `infra/postgres/rewards/reward_authorization_access` is now a module folder
   split by platform, course, and fraud-block helper shape, keeping the
   rewards-side access bridge granular while preserving the existing caller
@@ -3426,6 +3460,7 @@ boundary checks from the matrix above to every canonical context.
       `domain/rewards/fraud_block`.
 - [x] Move reward candidate status normalization into
       `domain/rewards/candidate/status`.
+- [x] Move reward audit event type vocabulary into `domain/rewards/audit`.
 - [ ] Move remaining reward statuses and event types into domain enums/newtypes.
       Keep database string conversion at the infra boundary.
 - [x] Move reward policy request/response structs out of service imports and

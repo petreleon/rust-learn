@@ -5,6 +5,7 @@ use crate::application::rewards::credit_wallet::{
     RewardWalletCredit, RewardWalletCreditError, RewardWalletCreditOutput,
 };
 use crate::db::schema::reward_candidates;
+use crate::domain::rewards::audit::RewardAuditEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::rewards::reward_wallet_credit_mappers::{
     map_diesel_error, RewardWalletCreditTransactionError,
@@ -18,7 +19,7 @@ use crate::infra::postgres::rewards::reward_wallet_credit_validation::{
 use crate::infra::postgres::rewards::reward_wallet_credit_wallets::{
     credit_wallet_balance, link_user_wallet,
 };
-use crate::models::reward_audit_event::{NewRewardAuditEvent, REWARD_AUDIT_EVENT_WALLET_CREDITED};
+use crate::models::reward_audit_event::NewRewardAuditEvent;
 use crate::models::reward_candidate::RewardCandidate;
 use crate::models::reward_wallet_credit_record::NewRewardWalletCreditRecord;
 use crate::repositories::{
@@ -93,7 +94,7 @@ pub(crate) async fn credit_reward_wallet_for_candidate(
         NewRewardAuditEvent {
             reward_candidate_id: updated.id,
             actor_user_id,
-            event_type: REWARD_AUDIT_EVENT_WALLET_CREDITED.to_string(),
+            event_type: RewardAuditEventType::WalletCredited.as_str().to_string(),
             from_status: Some(candidate.status.clone()),
             to_status: updated.status,
             reason: None,

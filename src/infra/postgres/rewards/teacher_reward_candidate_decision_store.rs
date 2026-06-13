@@ -7,12 +7,13 @@ use crate::application::rewards::decide_teacher_candidate::{
     TeacherRewardCandidateDecision, TeacherRewardCandidateDecisionError,
     TeacherRewardCandidateDecisionOutput, TeacherRewardCandidateDecisionStore,
 };
+use crate::domain::rewards::audit::RewardAuditEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::rewards::candidate::transition;
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::ensure_no_active_reward_fraud_block;
 use crate::infra::postgres::rewards::teacher_reward_candidate_decision_mappers::map_teacher_decision_error;
-use crate::models::reward_audit_event::{NewRewardAuditEvent, REWARD_AUDIT_EVENT_TEACHER_DECISION};
+use crate::models::reward_audit_event::NewRewardAuditEvent;
 use crate::repositories::{reward_audit_event_repository, reward_candidate_repository};
 
 pub struct PostgresTeacherRewardCandidateDecisionStore<'conn> {
@@ -145,7 +146,7 @@ async fn apply_teacher_decision(
         NewRewardAuditEvent {
             reward_candidate_id: updated.id,
             actor_user_id: Some(decision.actor_user_id),
-            event_type: REWARD_AUDIT_EVENT_TEACHER_DECISION.to_string(),
+            event_type: RewardAuditEventType::TeacherDecision.as_str().to_string(),
             from_status: Some(from_status),
             to_status: updated.status.clone(),
             reason: decision.decision_reason,
