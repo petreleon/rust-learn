@@ -129,22 +129,3 @@ async fn reconcile_reward_candidate_with_actor(
 
     Ok(result)
 }
-
-pub async fn record_reward_token_confirmation(
-    conn: &mut AsyncPgConnection,
-    candidate_id: i64,
-    request: RewardTokenConfirmationRequest,
-) -> Result<RewardTokenConfirmationResult, RewardExecutionError> {
-    record_reward_token_confirmation_with_actor(conn, candidate_id, request, None).await
-}
-
-pub async fn record_reward_token_confirmation_for_actor(
-    conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-    candidate_id: i64,
-    request: RewardTokenConfirmationRequest,
-) -> Result<RewardTokenConfirmationResult, RewardExecutionError> {
-    ensure_can_execute_reward_payout(conn, actor_user_id).await?;
-    record_reward_token_confirmation_with_actor(conn, candidate_id, request, Some(actor_user_id))
-        .await
-}

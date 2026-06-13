@@ -1779,6 +1779,53 @@ Postgres rings.
       services, touched non-generated Rust files stay under the manual line
       limit, and the app binary still checks.
 
+Slice 37: move reward token confirmation into the rewards application and
+Postgres rings.
+
+- [x] Use token confirmation as the next reward-execution migration because it
+      is the token-side mutation between payout planning and wallet credit:
+      command validation, actor permission gating, external transaction
+      idempotency, payout-record creation, candidate status transition, and
+      audit insertion previously lived in the include-based reward execution
+      service.
+- [x] Create `application/rewards/record_token_confirmation` with explicit
+      command/output/error/service/store/validation modules. Preserve legacy
+      ordering: direct calls validate before persistence, while actor-triggered
+      calls check `EXECUTE_REWARD_PAYOUT` before command validation.
+- [x] Move token event to transaction-type vocabulary into
+      `domain/rewards/token`.
+- [x] Move Postgres token-confirmation behavior behind
+      `infra/postgres/rewards`, split into mapper, external-transaction,
+      transaction, store, and use-case adapter modules. The transaction uses
+      the domain candidate transition rule for `TokenPending -> TokenConfirmed`
+      while preserving the legacy invalid-status message.
+- [x] Preserve legacy token-confirmation semantics: existing payout records are
+      returned idempotently without a second audit event, candidates must be
+      token pending before confirmation, external transactions are reused by
+      `(chain_id, transaction_hash, log_index)`, missing transaction links are
+      repaired, the candidate is marked token confirmed, and audit metadata
+      includes transaction, external transaction, payout record, and insert
+      status.
+- [x] Remove stale token-confirmation logic from the legacy reward execution
+      service. Its public token-confirmation entry points now delegate through
+      the application handler and Postgres store; the old external transaction
+      include only keeps the reconciliation link-repair helper needed by the
+      remaining legacy reconciliation slice.
+- [x] Remove orphaned `src/services/reward_execution_service/tests*` files
+      whose included tests were no longer compiled and still referenced moved
+      legacy helpers.
+- [x] Self-critique: token confirmation now has a Level 2 boundary, but wallet
+      credit, wallet credit notification, reconciliation, wallet audit, and
+      reporting read models still need their own Level 2 slices before reward
+      execution can be retired cleanly.
+- [x] Prove domain token mapping tests, application fake-port and validation
+      tests, and the existing DB-backed reward-execution regressions pass with
+      token-confirmation helpers routed through
+      `PostgresRewardTokenConfirmationUseCase`; application/domain import
+      scans stay clean, new infra does not call legacy reward execution or
+      wallet services, touched non-generated Rust files stay under the manual
+      line limit, and the app binary still checks.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -1957,6 +2004,20 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   through the new application handler and Postgres store while wallet credit,
   token confirmation, reconciliation, and notification side effects remain the
   next reward-execution migration surface.
+- Reward token confirmation is now an application-facing
+  `RewardTokenConfirmationUseCase`; concrete DbPool/Postgres wiring lives in
+  `infra/postgres/rewards/reward_token_confirmation_use_case.rs`.
+- Reward token confirmation permission probing, external transaction
+  idempotency, payout record creation, candidate status transition, and audit
+  insertion now live behind `RewardTokenConfirmationStore` plus granular
+  Postgres helpers under `infra/postgres/rewards/reward_token_confirmation_*`.
+- Token event to transaction-type vocabulary now lives in
+  `domain/rewards/token`.
+- The legacy reward-execution token-confirmation entry points now delegate
+  through the new application handler and Postgres store. The old
+  `record_external_reward_transaction.rs` include was reduced to the external
+  transaction link-repair helper still needed by reconciliation, and orphaned
+  uncompiled `src/services/reward_execution_service/tests*` files were removed.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -2137,6 +2198,14 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   payout-planning regressions routed through `PostgresRewardPayoutPlanUseCase`.
 - `./scripts/run-host-tests.sh cargo test --lib services::reward_execution_service`
   passes.
+- `./scripts/run-host-tests.sh cargo test --lib domain::rewards::token` passes.
+- `./scripts/run-host-tests.sh cargo test --lib application::rewards::record_token_confirmation`
+  passes.
+- `./scripts/run-host-tests.sh cargo test --test reward_execution` passes with
+  token-confirmation regressions routed through
+  `PostgresRewardTokenConfirmationUseCase`.
+- `./scripts/run-host-tests.sh cargo test --tests -- --list > /tmp/rust-learn-integration-tests.list`
+  compiles and lists the integration test suite.
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env|crate::services" src/application/rewards/record_compensation src/domain/rewards/compensation.rs`
   returns no matches.
 - `rg "crate::services::wallet_service|crate::services::reward_compensation_service|services::reward_compensation_service" src/infra/postgres/rewards/reward_compensation_* src/application/rewards/record_compensation`
@@ -2144,6 +2213,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env|crate::services" src/application/rewards/plan_payout src/domain/rewards/payout.rs`
   returns no matches.
 - `rg "crate::services::reward_execution_service|crate::services::wallet_service" src/infra/postgres/rewards/reward_payout_plan_* src/application/rewards/plan_payout`
+  returns no matches.
+- `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env|crate::services" src/application/rewards/record_token_confirmation src/domain/rewards/token.rs`
+  returns no matches.
+- `rg "crate::services::reward_execution_service|crate::services::wallet_service" src/infra/postgres/rewards/reward_token_confirmation_* src/application/rewards/record_token_confirmation`
   returns no matches.
 - `rg "reward_policies::reward_policy_scope|api::reward_policies|crate::api::reward_policies" src/api/mod.rs tests/api_routing.rs`
   returns no matches.
@@ -2319,7 +2392,8 @@ boundary checks from the matrix above to every canonical context.
 - [ ] Use Level 2 granularity inside rewards: split domain by aggregate
       (`candidate`, `policy`, `fraud_block`) and application by use case
       (`submit_candidate`, `decide_amount`, `plan_payout`,
-      `record_compensation`, `reconcile_candidate`).
+      `record_token_confirmation`, `record_compensation`,
+      `reconcile_candidate`).
 - [x] Move reward policy scope, event, and payment-strategy normalization into
       `domain/rewards/policy`.
 - [x] Move reward fraud-block scope vocabulary and target matching into
@@ -2366,6 +2440,8 @@ boundary checks from the matrix above to every canonical context.
       `submit_candidate`.
 - [x] Define module-local `RewardCompensationStore` for `record_compensation`.
 - [x] Define module-local `RewardPayoutPlanStore` for `plan_payout`.
+- [x] Define module-local `RewardTokenConfirmationStore` for
+      `record_token_confirmation`.
 - [ ] Define remaining repository ports needed by reward use cases before moving Diesel
       code. Examples: `RewardCandidateStore`, `RewardPolicyStore`,
       `RewardAuditStore`, `RewardFraudBlockStore`.
@@ -2389,6 +2465,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move reward compensation Diesel implementation behind
       `infra/postgres/rewards`.
 - [x] Move reward payout planning Diesel implementation behind
+      `infra/postgres/rewards`.
+- [x] Move reward token confirmation Diesel implementation behind
       `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.

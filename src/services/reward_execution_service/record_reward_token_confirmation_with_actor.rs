@@ -1,91 +1,33 @@
-async fn record_reward_token_confirmation_with_actor(
+pub async fn record_reward_token_confirmation(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
     request: RewardTokenConfirmationRequest,
-    actor_user_id: Option<i32>,
 ) -> Result<RewardTokenConfirmationResult, RewardExecutionError> {
-    validate_token_confirmation_request(&request)?;
+    let mut store = PostgresRewardTokenConfirmationStore::new(conn);
+    crate::application::rewards::record_token_confirmation::record_reward_token_confirmation(
+        &mut store,
+        candidate_id,
+        request,
+    )
+    .await
+    .map_err(RewardExecutionError::from)
+}
 
-    let result = conn
-        .transaction::<_, RewardExecutionError, _>(|conn| {
-            Box::pin(async move {
-                if let Some(existing_record) =
-                    reward_payout_record_repository::find_reward_payout_record_by_candidate(
-                        conn,
-                        candidate_id,
-                    )
-                    .await?
-                {
-                    return Ok(RewardTokenConfirmationResult {
-                        candidate_id,
-                        transaction_id: existing_record.transaction_id,
-                        external_transaction_id: existing_record.external_transaction_id,
-                        payout_record_id: existing_record.id,
-                        inserted_external_transaction: false,
-                    });
-                }
-
-                let candidate =
-                    reward_candidate_repository::find_candidate(conn, candidate_id).await?;
-                if candidate.status != REWARD_STATUS_TOKEN_PENDING {
-                    return Err(RewardExecutionError::InvalidStatus(
-                        "reward candidate must be token pending before token confirmation"
-                            .to_string(),
-                    ));
-                }
-
-                let (transaction_id, external_transaction_id, inserted_external_transaction) =
-                    record_external_reward_transaction(conn, &request).await?;
-                let payout_record = reward_payout_record_repository::create_reward_payout_record(
-                    conn,
-                    NewRewardPayoutRecord {
-                        reward_candidate_id: candidate.id,
-                        transaction_id,
-                        external_transaction_id,
-                    },
-                )
-                .await?;
-                let updated = mark_candidate_token_confirmed(conn, candidate.id).await?;
-                reward_audit_event_repository::create_reward_audit_event(
-                    conn,
-                    NewRewardAuditEvent {
-                        reward_candidate_id: updated.id,
-                        actor_user_id,
-                        event_type: REWARD_AUDIT_EVENT_TOKEN_CONFIRMED.to_string(),
-                        from_status: Some(candidate.status.clone()),
-                        to_status: updated.status,
-                        reason: None,
-                        metadata: serde_json::json!({
-                            "transaction_id": transaction_id,
-                            "external_transaction_id": external_transaction_id,
-                            "payout_record_id": payout_record.id,
-                            "inserted_external_transaction": inserted_external_transaction,
-                        }),
-                    },
-                )
-                .await?;
-
-                Ok(RewardTokenConfirmationResult {
-                    candidate_id: candidate.id,
-                    transaction_id,
-                    external_transaction_id,
-                    payout_record_id: payout_record.id,
-                    inserted_external_transaction,
-                })
-            })
-        })
-        .await?;
-
-    log::info!(
-        "event=reward_token_confirmed candidate_id={} transaction_id={} external_transaction_id={} payout_record_id={} inserted_external_transaction={}",
-        result.candidate_id,
-        result.transaction_id,
-        result.external_transaction_id,
-        result.payout_record_id,
-        result.inserted_external_transaction
-    );
-
-    Ok(result)
+pub async fn record_reward_token_confirmation_for_actor(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    candidate_id: i64,
+    request: RewardTokenConfirmationRequest,
+) -> Result<RewardTokenConfirmationResult, RewardExecutionError> {
+    let mut store = PostgresRewardTokenConfirmationStore::new(conn);
+    crate::application::rewards::record_token_confirmation::record_reward_token_confirmation_for_actor(
+        &mut store,
+        actor_user_id,
+        candidate_id,
+        request,
+    )
+    .await
+    .map_err(RewardExecutionError::from)
 }
 
 async fn ensure_can_execute_reward_payout(

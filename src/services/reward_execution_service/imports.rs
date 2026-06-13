@@ -1,29 +1,34 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{
-    courses, external_transactions, internal_transactions, reward_candidates, transactions,
-    transactions_external_transactions, transactions_internal_transactions, wallets,
+    courses, internal_transactions, reward_candidates, transactions, transactions_external_transactions,
+    transactions_internal_transactions, wallets,
 };
-use crate::application::rewards::plan_payout::RewardPayoutPlanError;
 pub use crate::application::rewards::plan_payout::RewardPayoutPlan;
+use crate::application::rewards::plan_payout::RewardPayoutPlanError;
+pub use crate::application::rewards::record_token_confirmation::{
+    RewardTokenConfirmationCommand as RewardTokenConfirmationRequest,
+    RewardTokenConfirmationOutput as RewardTokenConfirmationResult,
+};
+use crate::application::rewards::record_token_confirmation::RewardTokenConfirmationError;
 pub use crate::domain::rewards::payout::{
     REWARD_PAYOUT_METHOD_MINT, REWARD_PAYOUT_METHOD_OFF_CHAIN,
     REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER, REWARD_PAYOUT_METHOD_TREASURY_TRANSFER,
 };
 use crate::infra::postgres::rewards::reward_payout_plan_store::PostgresRewardPayoutPlanStore;
+use crate::infra::postgres::rewards::reward_token_confirmation_store::PostgresRewardTokenConfirmationStore;
 use crate::models::reward_audit_event::{
-    NewRewardAuditEvent, REWARD_AUDIT_EVENT_RECONCILED, REWARD_AUDIT_EVENT_TOKEN_CONFIRMED,
-    REWARD_AUDIT_EVENT_WALLET_CREDITED, REWARD_AUDIT_EVENT_WALLET_CREDIT_NOTIFIED,
+    NewRewardAuditEvent, REWARD_AUDIT_EVENT_RECONCILED, REWARD_AUDIT_EVENT_WALLET_CREDITED,
+    REWARD_AUDIT_EVENT_WALLET_CREDIT_NOTIFIED,
 };
 use crate::models::reward_candidate::{
     RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_COMPLETED,
     REWARD_STATUS_NEEDS_RECONCILIATION, REWARD_STATUS_NOTIFIED, REWARD_STATUS_TOKEN_CONFIRMED,
-    REWARD_STATUS_TOKEN_PENDING, REWARD_STATUS_WALLET_CREDITED,
+    REWARD_STATUS_WALLET_CREDITED,
 };
-use crate::models::reward_payout_record::NewRewardPayoutRecord;
 use crate::models::reward_wallet_credit_record::NewRewardWalletCreditRecord;
 use crate::models::transaction::{
-    ExternalTransaction, NewExternalTransaction, NewInternalTransaction, NewTransaction,
-    NewTransactionExternalTransactionLink, NewTransactionInternalTransactionLink,
+    NewInternalTransaction, NewTransaction, NewTransactionExternalTransactionLink,
+    NewTransactionInternalTransactionLink,
 };
 use crate::models::wallet::Wallet;
 use crate::repositories::platform_repository::user_permission_platform_request;
@@ -71,27 +76,6 @@ pub struct RewardReconciliationResult {
     pub final_status: String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct RewardTokenConfirmationRequest {
-    pub chain_id: i64,
-    pub contract_address: String,
-    pub transaction_hash: String,
-    pub log_index: i64,
-    pub event_type: String,
-    pub from_address: Option<String>,
-    pub to_address: String,
-    pub amount: BigDecimal,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct RewardTokenConfirmationResult {
-    pub candidate_id: i64,
-    pub transaction_id: i64,
-    pub external_transaction_id: i64,
-    pub payout_record_id: i64,
-    pub inserted_external_transaction: bool,
-}
-
 #[derive(Debug, PartialEq)]
 pub enum RewardExecutionError {
     PermissionDenied(String),
@@ -125,6 +109,27 @@ impl From<RewardPayoutPlanError> for RewardExecutionError {
             RewardPayoutPlanError::NoActivePolicy => RewardExecutionError::NoActivePolicy,
             RewardPayoutPlanError::Connection(message)
             | RewardPayoutPlanError::Database(message) => {
+                RewardExecutionError::Database(message)
+            }
+        }
+    }
+}
+
+impl From<RewardTokenConfirmationError> for RewardExecutionError {
+    fn from(error: RewardTokenConfirmationError) -> Self {
+        match error {
+            RewardTokenConfirmationError::PermissionDenied(permission) => {
+                RewardExecutionError::PermissionDenied(permission)
+            }
+            RewardTokenConfirmationError::InvalidStatus(message) => {
+                RewardExecutionError::InvalidStatus(message)
+            }
+            RewardTokenConfirmationError::InvalidInput(message) => {
+                RewardExecutionError::InvalidInput(message)
+            }
+            RewardTokenConfirmationError::NotFound => RewardExecutionError::NoActivePolicy,
+            RewardTokenConfirmationError::Connection(message)
+            | RewardTokenConfirmationError::Database(message) => {
                 RewardExecutionError::Database(message)
             }
         }

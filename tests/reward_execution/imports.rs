@@ -30,14 +30,10 @@ use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::repositories::persistent_state_repository::set_persistent_state;
 use rust_learn::repositories::reward_audit_event_repository::list_reward_audit_events;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::application::rewards::plan_payout::{
-    RewardPayoutPlan, RewardPayoutPlanError, RewardPayoutPlanUseCase,
-};
-use rust_learn::infra::postgres::rewards::reward_payout_plan_use_case::PostgresRewardPayoutPlanUseCase;
+use rust_learn::application::rewards::record_token_confirmation::RewardTokenConfirmationCommand as RewardTokenConfirmationRequest;
 use rust_learn::services::reward_execution_service::{
     credit_reward_wallet, credit_reward_wallet_for_actor, notify_reward_wallet_credit,
-    reconcile_reward_candidate, record_reward_token_confirmation, record_reward_token_confirmation_for_actor,
-    RewardExecutionError, RewardTokenConfirmationRequest, REWARD_PAYOUT_METHOD_MINT,
+    reconcile_reward_candidate, RewardExecutionError, REWARD_PAYOUT_METHOD_MINT,
     REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER, REWARD_TRANSACTION_TYPE_WALLET_CREDIT,
 };
 use serde_json::json;
@@ -69,33 +65,6 @@ async fn setup_conn(
     pool.get()
         .await
         .expect("failed to get DB connection from pool")
-}
-
-async fn plan_reward_payout(
-    _conn: &mut AsyncPgConnection,
-    candidate_id: i64,
-) -> Result<RewardPayoutPlan, RewardExecutionError> {
-    let pool = establish_connection();
-    PostgresRewardPayoutPlanUseCase::new(pool)
-        .plan_reward_payout(candidate_id)
-        .await
-        .map_err(map_reward_payout_plan_error)
-}
-
-fn map_reward_payout_plan_error(error: RewardPayoutPlanError) -> RewardExecutionError {
-    match error {
-        RewardPayoutPlanError::PermissionDenied(permission) => {
-            RewardExecutionError::PermissionDenied(permission)
-        }
-        RewardPayoutPlanError::InvalidStatus(message) => {
-            RewardExecutionError::InvalidStatus(message)
-        }
-        RewardPayoutPlanError::InvalidInput(message) => RewardExecutionError::InvalidInput(message),
-        RewardPayoutPlanError::NoActivePolicy => RewardExecutionError::NoActivePolicy,
-        RewardPayoutPlanError::Connection(message) | RewardPayoutPlanError::Database(message) => {
-            RewardExecutionError::Database(message)
-        }
-    }
 }
 
 async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {
