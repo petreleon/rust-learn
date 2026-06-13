@@ -1,3 +1,6 @@
+pub mod reward_candidate_audit_mappers;
+pub mod reward_candidate_audit_store;
+pub mod reward_candidate_audit_use_case;
 pub mod reward_fraud_block_mappers;
 pub mod reward_fraud_block_notification_permissions;
 pub mod reward_fraud_block_notification_recipients;

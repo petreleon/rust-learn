@@ -29,6 +29,7 @@ async fn api_scope_and_following_routes_are_reachable() {
     let app = test::init_service(
         App::new()
             .app_data(api_routing_route_fakes::reward_fraud_block_data())
+            .app_data(api_routing_route_fakes::reward_candidate_audit_data())
             .app_data(api_routing_route_fakes::student_reward_history_data())
             .route(
                 "/hey",
@@ -80,6 +81,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             "/api/courses/12/reward-candidates/34/teacher-decision",
         ),
         (Method::PUT, "/api/reward-candidates/34/amount-decision"),
+        (Method::GET, "/api/reward-candidates/34/audit"),
         (
             Method::POST,
             "/api/organizations/56/courses/12/reward-candidates",

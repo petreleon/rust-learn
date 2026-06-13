@@ -1404,6 +1404,44 @@ Slice 28: move student reward history into the rewards HTTP ring.
       pass, the focused student history route test passes, route composition
       still passes, and the app binary still checks.
 
+Slice 29: move reward candidate audit reads into the rewards HTTP ring.
+
+- [x] Use `GET /reward-candidates/{candidate_id}/audit` as the next rewards
+      migration because it is a read-only platform audit slice with one
+      permission gate and no candidate state mutation.
+- [x] Create `application/rewards/list_candidate_audit` with explicit
+      output/error/service modules and a `RewardCandidateAuditStore` port under
+      `application/rewards/ports.rs`.
+- [x] Move the candidate existence check, platform audit permission gate, and
+      audit-event list operation out of the legacy include-based
+      `services/reward_candidate_service`.
+- [x] Move reward candidate audit Diesel reads behind
+      `infra/postgres/rewards/reward_candidate_audit_store.rs`, with DbPool
+      wiring in `reward_candidate_audit_use_case.rs` and model-to-application
+      mapping in `reward_candidate_audit_mappers.rs`.
+- [x] Move `/api/reward-candidates/{candidate_id}/audit` response DTO,
+      handler, and route composition into `http/rewards` while preserving the
+      legacy URL and response field names.
+- [x] Remove the candidate-audit route from the legacy reward-candidate API
+      configurator so only `http/rewards` owns that route.
+- [x] Wire the reward candidate audit use-case trait object through
+      `bootstrap::AppState`, production Actix app data, route tests, and a
+      focused reward candidate audit API test.
+- [x] Preserve the legacy forbidden body, missing-candidate body,
+      DB-unavailable body, generic processing-error body, and audit-event JSON
+      field names.
+- [x] Self-critique: this moves candidate audit reads only. Candidate
+      submission, course candidate listing, platform review listing, teacher
+      decisions, amount decisions, payout execution, compensation, and
+      reporting remain legacy reward surfaces. Platform audit permission still
+      goes through the existing platform permission repository from the
+      Postgres adapter until access-control is centralized.
+- [x] Prove the legacy candidate-audit handler is gone, the audit route
+      ownership moved to `http/rewards`, reward HTTP has no
+      Diesel/repository/service imports, application fake-port tests pass, the
+      focused audit route test passes, route composition still passes, and the
+      app binary still checks.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -1477,6 +1515,16 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `reward_history_financials.rs`.
 - Legacy `src/services/reward_history_service.rs` and
   `src/services/reward_history_service/` have been removed.
+- Reward candidate audit HTTP handler and response DTO now live under
+  `http/rewards`, while preserving the legacy
+  `/reward-candidates/{candidate_id}/audit` URL.
+- Reward candidate audit reads are injected as an application-facing
+  `RewardCandidateAuditUseCase`; concrete DbPool/Postgres wiring lives in
+  `infra/postgres/rewards/reward_candidate_audit_use_case.rs` and
+  `bootstrap::AppState`.
+- Reward candidate existence, platform audit permission, and reward audit-event
+  reads now live behind `RewardCandidateAuditStore` in
+  `infra/postgres/rewards/reward_candidate_audit_store.rs`.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -1594,6 +1642,8 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `rg "reward_history_service|services::reward_history_service|include!\\(\"reward_history_service" src tests`
   returns no matches.
+- `rg "list_reward_candidate_audit|reward-candidates/\\{candidate_id\\}/audit" src/api/reward_candidates src/services/reward_candidate_service`
+  returns no matches.
 - `rg "crate::db|DbPool|diesel|diesel_async|RunQueryDsl|schema::|crate::services|crate::repositories" src/api/reward_policies.rs src/http/rewards`
   returns no matches.
 - `rg "crate::db|DbPool|diesel|diesel_async|RunQueryDsl|schema::|crate::services|crate::repositories" src/api/reward_fraud_blocks.rs src/http/rewards`
@@ -1601,6 +1651,8 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `rg "crate::db|DbPool|diesel|diesel_async|RunQueryDsl|schema::|crate::services|crate::repositories" src/http/rewards src/api/reward_candidates.rs`
   returns no matches.
 - `rg "reward-candidates/me/history" src/api/reward_candidates src/http/rewards/routes.rs`
+  returns only the `http/rewards/routes.rs` owner.
+- `rg "reward-candidates/\\{candidate_id\\}/audit" src/api/reward_candidates src/http/rewards/routes.rs`
   returns only the `http/rewards/routes.rs` owner.
 - `rg "reward_policies::reward_policy_scope|api::reward_policies|crate::api::reward_policies" src/api/mod.rs tests/api_routing.rs`
   returns no matches.
@@ -1656,6 +1708,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `./scripts/run-host-tests.sh cargo test application::rewards::list_reward_history --lib`
   passes.
 - `./scripts/run-host-tests.sh cargo test --test student_reward_history` passes.
+- `./scripts/run-host-tests.sh cargo test application::rewards::list_candidate_audit --lib`
+  passes.
+- `./scripts/run-host-tests.sh cargo test --test reward_candidate_audit`
+  passes.
 - `./scripts/run-host-tests.sh cargo test --test course_content_management`
   passes.
 - `./scripts/run-host-tests.sh cargo test course_video_upload_can_be_queued_and_processed --test video_upload_flow`
@@ -1776,6 +1832,8 @@ notifications, reporting, and platform review.
       and into `http/rewards/dto`.
 - [x] Move student reward history request/response structs out of service
       imports and into `http/rewards/dto`.
+- [x] Move reward candidate audit response structs out of service imports and
+      into `http/rewards/dto`.
 - [ ] Move remaining reward request/response structs out of service imports and
       into `http/rewards/dto`.
 - [ ] Move candidate transition rules into pure domain functions:
@@ -1785,6 +1843,7 @@ notifications, reporting, and platform review.
       `RewardPolicyStore` for `manage_reward_policy`.
 - [x] Define `RewardFraudBlockStore` for `manage_fraud_block`.
 - [x] Define `StudentRewardHistoryStore` for `list_reward_history`.
+- [x] Define `RewardCandidateAuditStore` for `list_candidate_audit`.
 - [ ] Define remaining repository ports needed by reward use cases before moving Diesel
       code. Examples: `RewardCandidateStore`, `RewardPolicyStore`,
       `RewardAuditStore`, `RewardFraudBlockStore`.
@@ -1792,6 +1851,8 @@ notifications, reporting, and platform review.
 - [x] Move reward fraud-block Diesel implementation behind
       `infra/postgres/rewards`.
 - [x] Move student reward history Diesel implementation behind
+      `infra/postgres/rewards`.
+- [x] Move reward candidate audit Diesel implementation behind
       `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.

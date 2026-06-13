@@ -1,11 +1,12 @@
 use actix_web::web;
 
-use crate::http::rewards::handlers::{fraud_block, reward_history, reward_policy};
+use crate::http::rewards::handlers::{candidate_audit, fraud_block, reward_history, reward_policy};
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(reward_policy_scope())
         .service(reward_fraud_block_scope())
-        .service(student_reward_history_resource());
+        .service(student_reward_history_resource())
+        .service(reward_candidate_audit_resource());
 }
 
 pub fn reward_policy_scope() -> actix_web::Scope {
@@ -36,4 +37,9 @@ pub fn reward_fraud_block_scope() -> actix_web::Scope {
 pub fn student_reward_history_resource() -> actix_web::Resource {
     web::resource("/reward-candidates/me/history")
         .route(web::get().to(reward_history::list_my_reward_history))
+}
+
+pub fn reward_candidate_audit_resource() -> actix_web::Resource {
+    web::resource("/reward-candidates/{candidate_id}/audit")
+        .route(web::get().to(candidate_audit::list_reward_candidate_audit))
 }

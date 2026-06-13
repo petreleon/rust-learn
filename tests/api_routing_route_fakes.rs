@@ -2,6 +2,9 @@ use std::sync::Arc;
 
 use actix_web::web;
 use futures::future::{ready, BoxFuture, FutureExt};
+use rust_learn::application::rewards::list_candidate_audit::{
+    RewardCandidateAuditError, RewardCandidateAuditEvent, RewardCandidateAuditUseCase,
+};
 use rust_learn::application::rewards::list_reward_history::{
     StudentRewardHistoryEntry, StudentRewardHistoryError, StudentRewardHistoryQuery,
     StudentRewardHistoryUseCase,
@@ -13,6 +16,7 @@ use rust_learn::application::rewards::manage_fraud_block::{
 };
 
 struct RouteOnlyRewardFraudBlockUseCase;
+struct RouteOnlyRewardCandidateAuditUseCase;
 struct RouteOnlyStudentRewardHistoryUseCase;
 
 pub fn reward_fraud_block_data() -> web::Data<Arc<dyn RewardFraudBlockUseCase>> {
@@ -22,6 +26,12 @@ pub fn reward_fraud_block_data() -> web::Data<Arc<dyn RewardFraudBlockUseCase>> 
 pub fn student_reward_history_data() -> web::Data<Arc<dyn StudentRewardHistoryUseCase>> {
     web::Data::new(
         Arc::new(RouteOnlyStudentRewardHistoryUseCase) as Arc<dyn StudentRewardHistoryUseCase>
+    )
+}
+
+pub fn reward_candidate_audit_data() -> web::Data<Arc<dyn RewardCandidateAuditUseCase>> {
+    web::Data::new(
+        Arc::new(RouteOnlyRewardCandidateAuditUseCase) as Arc<dyn RewardCandidateAuditUseCase>
     )
 }
 
@@ -66,6 +76,19 @@ impl StudentRewardHistoryUseCase for RouteOnlyStudentRewardHistoryUseCase {
         _query: StudentRewardHistoryQuery,
     ) -> BoxFuture<'_, Result<Vec<StudentRewardHistoryEntry>, StudentRewardHistoryError>> {
         ready(Err(StudentRewardHistoryError::Database(
+            "route-only use case".to_string(),
+        )))
+        .boxed()
+    }
+}
+
+impl RewardCandidateAuditUseCase for RouteOnlyRewardCandidateAuditUseCase {
+    fn list_reward_candidate_audit(
+        &self,
+        _actor_user_id: i32,
+        _candidate_id: i64,
+    ) -> BoxFuture<'_, Result<Vec<RewardCandidateAuditEvent>, RewardCandidateAuditError>> {
+        ready(Err(RewardCandidateAuditError::Database(
             "route-only use case".to_string(),
         )))
         .boxed()

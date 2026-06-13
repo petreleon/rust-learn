@@ -1,5 +1,8 @@
 use futures::future::BoxFuture;
 
+use crate::application::rewards::list_candidate_audit::{
+    RewardCandidateAuditError, RewardCandidateAuditEvent,
+};
 use crate::application::rewards::list_reward_history::{
     StudentRewardCandidateRecord, StudentRewardHistoryError, StudentRewardHistoryFilter,
     StudentRewardTokenTransaction, StudentRewardWalletCredit,
@@ -97,4 +100,21 @@ pub trait StudentRewardHistoryStore {
         &mut self,
         reward_candidate_id: i64,
     ) -> BoxFuture<'_, Result<Option<StudentRewardTokenTransaction>, StudentRewardHistoryError>>;
+}
+
+pub trait RewardCandidateAuditStore {
+    fn can_view_reward_audit(
+        &mut self,
+        actor_user_id: i32,
+    ) -> BoxFuture<'_, Result<bool, RewardCandidateAuditError>>;
+
+    fn reward_candidate_exists(
+        &mut self,
+        candidate_id: i64,
+    ) -> BoxFuture<'_, Result<(), RewardCandidateAuditError>>;
+
+    fn list_candidate_audit_events(
+        &mut self,
+        candidate_id: i64,
+    ) -> BoxFuture<'_, Result<Vec<RewardCandidateAuditEvent>, RewardCandidateAuditError>>;
 }

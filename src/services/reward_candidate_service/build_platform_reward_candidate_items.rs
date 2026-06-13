@@ -87,21 +87,5 @@ async fn build_platform_reward_candidate_items(
     Ok(items)
 }
 
-pub async fn list_reward_candidate_audit(
-    conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-    candidate_id: i64,
-) -> Result<Vec<crate::models::reward_audit_event::RewardAuditEvent>, RewardCandidateError> {
-    ensure_platform_permission(conn, actor_user_id, Permissions::VIEW_REWARD_AUDIT).await?;
-
-    let candidate = reward_candidate_repository::find_candidate(conn, candidate_id)
-        .await
-        .map_err(RewardCandidateError::from)?;
-
-    reward_audit_event_repository::list_reward_audit_events(conn, candidate.id)
-        .await
-        .map_err(RewardCandidateError::from)
-}
-
 #[cfg(test)]
 mod tests;
