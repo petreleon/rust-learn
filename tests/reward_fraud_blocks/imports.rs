@@ -108,6 +108,20 @@ fn reward_fraud_block_use_case(pool: &DbPool) -> PostgresRewardFraudBlockUseCase
     PostgresRewardFraudBlockUseCase::new(pool.clone())
 }
 
+async fn count_fraud_block_notifications(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    title: &str,
+) -> i64 {
+    notifications::table
+        .filter(notifications::user_id.eq(Some(user_id)))
+        .filter(notifications::title.eq(title))
+        .count()
+        .get_result::<i64>(conn)
+        .await
+        .expect("fraud block notifications should be countable")
+}
+
 fn teacher_block_request(teacher_user_id: i32) -> CreateRewardFraudBlockCommand {
     CreateRewardFraudBlockCommand {
         scope_type: REWARD_FRAUD_BLOCK_SCOPE_TEACHER.to_string(),

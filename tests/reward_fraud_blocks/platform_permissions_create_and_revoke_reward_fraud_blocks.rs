@@ -62,20 +62,14 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
     assert_eq!(teacher_block.teacher_user_id, Some(teacher.id()));
     assert_eq!(teacher_block.created_by_user_id, admin.id());
     assert_eq!(teacher_block.reason, "suspicious reward approvals");
-    assert_eq!(
-        teacher_block.evidence_reference.as_deref(),
-        Some("case://teacher-block")
-    );
+    assert_eq!(teacher_block.evidence_reference.as_deref(), Some("case://teacher-block"));
     assert!(teacher_block.revoked_at.is_none());
     let mut conn = setup_conn(&pool).await;
-    let teacher_notification_count = notifications::table
-        .filter(notifications::user_id.eq(Some(teacher.id())))
-        .filter(notifications::title.eq("reward_fraud_block:created"))
-        .count()
-        .get_result::<i64>(&mut conn)
-        .await
-        .expect("teacher fraud block notifications should be countable");
-    assert_eq!(teacher_notification_count, 1);
+    assert_eq!(
+        count_fraud_block_notifications(&mut conn, teacher.id(), "reward_fraud_block:created")
+            .await,
+        1
+    );
 
     let admin_notifications = notifications::table
         .filter(notifications::user_id.eq(Some(admin.id())))
@@ -87,14 +81,15 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
     assert!(admin_notifications[0]
         .body
         .contains("suspicious reward approvals"));
-    let delegated_platform_notification_count = notifications::table
-        .filter(notifications::user_id.eq(Some(delegated_platform_auditor.id())))
-        .filter(notifications::title.eq("reward_fraud_block:created"))
-        .count()
-        .get_result::<i64>(&mut conn)
-        .await
-        .expect("delegated platform fraud notifications should be countable");
-    assert_eq!(delegated_platform_notification_count, 1);
+    assert_eq!(
+        count_fraud_block_notifications(
+            &mut conn,
+            delegated_platform_auditor.id(),
+            "reward_fraud_block:created",
+        )
+        .await,
+        1
+    );
     drop(conn);
 
     let revoked = fraud_blocks
@@ -104,14 +99,11 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
     assert_eq!(revoked.revoked_by_user_id, Some(admin.id()));
     assert!(revoked.revoked_at.is_some());
     let mut conn = setup_conn(&pool).await;
-    let teacher_revoked_notification_count = notifications::table
-        .filter(notifications::user_id.eq(Some(teacher.id())))
-        .filter(notifications::title.eq("reward_fraud_block:revoked"))
-        .count()
-        .get_result::<i64>(&mut conn)
-        .await
-        .expect("teacher revoked fraud block notifications should be countable");
-    assert_eq!(teacher_revoked_notification_count, 1);
+    assert_eq!(
+        count_fraud_block_notifications(&mut conn, teacher.id(), "reward_fraud_block:revoked")
+            .await,
+        1
+    );
     drop(conn);
 
     let organization_block = fraud_blocks
@@ -136,22 +128,24 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
     );
     assert_eq!(organization_block.organization_id, Some(organization.id));
     let mut conn = setup_conn(&pool).await;
-    let organization_operator_notification_count = notifications::table
-        .filter(notifications::user_id.eq(Some(org_operator.id())))
-        .filter(notifications::title.eq("reward_fraud_block:created"))
-        .count()
-        .get_result::<i64>(&mut conn)
-        .await
-        .expect("organization operator fraud block notifications should be countable");
-    assert_eq!(organization_operator_notification_count, 1);
-    let delegated_organization_operator_notification_count = notifications::table
-        .filter(notifications::user_id.eq(Some(delegated_org_operator.id())))
-        .filter(notifications::title.eq("reward_fraud_block:created"))
-        .count()
-        .get_result::<i64>(&mut conn)
-        .await
-        .expect("delegated organization fraud block notifications should be countable");
-    assert_eq!(delegated_organization_operator_notification_count, 1);
+    assert_eq!(
+        count_fraud_block_notifications(
+            &mut conn,
+            org_operator.id(),
+            "reward_fraud_block:created",
+        )
+        .await,
+        1
+    );
+    assert_eq!(
+        count_fraud_block_notifications(
+            &mut conn,
+            delegated_org_operator.id(),
+            "reward_fraud_block:created",
+        )
+        .await,
+        1
+    );
     drop(conn);
 
     let course_block = fraud_blocks

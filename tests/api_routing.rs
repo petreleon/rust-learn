@@ -2,61 +2,8 @@ use actix_web::{
     http::{Method, StatusCode},
     test, web, App, HttpResponse,
 };
-use futures::future::{ready, BoxFuture, FutureExt};
-use rust_learn::application::rewards::manage_fraud_block::{
-    CreateRewardFraudBlockCommand, ListRewardFraudBlocksOutput, ListRewardFraudBlocksQuery,
-    RewardFraudBlockAuditEventOutput, RewardFraudBlockError, RewardFraudBlockOutput,
-    RewardFraudBlockUseCase,
-};
-use std::sync::Arc;
 
-struct RouteOnlyRewardFraudBlockUseCase;
-
-impl RewardFraudBlockUseCase for RouteOnlyRewardFraudBlockUseCase {
-    fn create_reward_fraud_block(
-        &self,
-        _actor_user_id: i32,
-        _command: CreateRewardFraudBlockCommand,
-    ) -> BoxFuture<'_, Result<RewardFraudBlockOutput, RewardFraudBlockError>> {
-        ready(Err(RewardFraudBlockError::Database(
-            "route-only use case".to_string(),
-        )))
-        .boxed()
-    }
-
-    fn list_reward_fraud_blocks(
-        &self,
-        _actor_user_id: i32,
-        _query: ListRewardFraudBlocksQuery,
-    ) -> BoxFuture<'_, Result<ListRewardFraudBlocksOutput, RewardFraudBlockError>> {
-        ready(Err(RewardFraudBlockError::Database(
-            "route-only use case".to_string(),
-        )))
-        .boxed()
-    }
-
-    fn revoke_reward_fraud_block(
-        &self,
-        _actor_user_id: i32,
-        _block_id: i64,
-    ) -> BoxFuture<'_, Result<RewardFraudBlockOutput, RewardFraudBlockError>> {
-        ready(Err(RewardFraudBlockError::Database(
-            "route-only use case".to_string(),
-        )))
-        .boxed()
-    }
-
-    fn reward_fraud_block_audit_history(
-        &self,
-        _actor_user_id: i32,
-        _block_id: i64,
-    ) -> BoxFuture<'_, Result<Vec<RewardFraudBlockAuditEventOutput>, RewardFraudBlockError>> {
-        ready(Err(RewardFraudBlockError::Database(
-            "route-only use case".to_string(),
-        )))
-        .boxed()
-    }
-}
+mod api_routing_route_fakes;
 
 #[actix_web::test]
 async fn bootstrap_routes_expose_index_and_health() {
@@ -81,9 +28,8 @@ async fn bootstrap_routes_expose_index_and_health() {
 async fn api_scope_and_following_routes_are_reachable() {
     let app = test::init_service(
         App::new()
-            .app_data(web::Data::new(
-                Arc::new(RouteOnlyRewardFraudBlockUseCase) as Arc<dyn RewardFraudBlockUseCase>
-            ))
+            .app_data(api_routing_route_fakes::reward_fraud_block_data())
+            .app_data(api_routing_route_fakes::student_reward_history_data())
             .route(
                 "/hey",
                 web::get().to(|| async { HttpResponse::Ok().body("hey") }),

@@ -61,6 +61,11 @@ impl RewardCandidateStatus {
             }),
         }
     }
+
+    pub fn normalize(value: &str) -> Result<String, StatusParseError> {
+        let normalized = value.trim().to_ascii_lowercase().replace(['-', ' '], "_");
+        Self::parse(&normalized).map(|status| status.as_str().to_string())
+    }
 }
 
 impl fmt::Display for RewardCandidateStatus {
@@ -94,5 +99,17 @@ mod tests {
     #[test]
     fn rejects_unknown_status() {
         assert!(RewardCandidateStatus::parse("surprise").is_err());
+    }
+
+    #[test]
+    fn normalizes_common_status_spellings() {
+        assert_eq!(
+            RewardCandidateStatus::normalize(" wallet-credited ").unwrap(),
+            "wallet_credited"
+        );
+        assert_eq!(
+            RewardCandidateStatus::normalize("needs reconciliation").unwrap(),
+            "needs_reconciliation"
+        );
     }
 }

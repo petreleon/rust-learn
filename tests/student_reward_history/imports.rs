@@ -3,6 +3,7 @@ use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::rewards::list_reward_history::StudentRewardHistoryUseCase;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{
     courses, external_transactions, internal_transactions, reward_candidates,
@@ -18,10 +19,12 @@ use rust_learn::models::role::CourseRole;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
 use rust_learn::models::wallet::Wallet;
+use rust_learn::infra::postgres::rewards::reward_history_use_case::PostgresStudentRewardHistoryUseCase;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::wallet_service;
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::{json, Value};
+use std::sync::Arc;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -30,6 +33,12 @@ fn unique_string(prefix: &str) -> String {
 
 fn token_for(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to create JWT")
+}
+
+fn student_reward_history_use_case(
+    pool: &rust_learn::db::DbPool,
+) -> Arc<dyn StudentRewardHistoryUseCase> {
+    Arc::new(PostgresStudentRewardHistoryUseCase::new(pool.clone()))
 }
 
 async fn setup_conn(

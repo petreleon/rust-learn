@@ -1364,6 +1364,46 @@ Slice 27: move reward fraud-block routes into the rewards HTTP ring.
       still passes, reward-candidate fraud-block regressions still pass, and
       the app binary still checks.
 
+Slice 28: move student reward history into the rewards HTTP ring.
+
+- [x] Use `GET /reward-candidates/me/history` as the next rewards migration
+      because it is a read-only student-facing reward history slice with
+      existing route-level coverage and no candidate mutation behavior.
+- [x] Move reward candidate status normalization into
+      `domain/rewards/candidate/status`.
+- [x] Create `application/rewards/list_reward_history` with explicit
+      query/output/error/service modules and a `StudentRewardHistoryStore` port
+      under `application/rewards/ports.rs`.
+- [x] Move history status validation, pagination clamping, course-status
+      permission filtering, and financial-reference assembly out of the legacy
+      include-based `services/reward_history_service`.
+- [x] Move student reward history Diesel reads behind
+      `infra/postgres/rewards/reward_history_store.rs`, with DbPool wiring in
+      `reward_history_use_case.rs` and wallet/token financial lookups split
+      into `reward_history_financials.rs`.
+- [x] Move `/api/reward-candidates/me/history` request/response DTOs, handler,
+      and route composition into `http/rewards` while preserving the legacy URL.
+- [x] Remove the student-history route from the legacy reward-candidate API
+      configurator so only `http/rewards` owns that route.
+- [x] Wire the student reward history use-case trait object through
+      `bootstrap::AppState`, production Actix app data, route tests, and the
+      focused student reward history API test.
+- [x] Delete the legacy `services/reward_history_service` include module.
+- [x] Preserve existing JSON field names, status filter normalization, invalid
+      status bad-request body, DB-unavailable body, and generic history-load
+      body.
+- [x] Self-critique: this moves student reward history only. Candidate
+      submission, teacher review, platform amount review, candidate audit,
+      payout execution, compensation, and reporting remain legacy reward
+      surfaces. Course reward-status permission still goes through the existing
+      course repository from the Postgres adapter until access-control is
+      centralized.
+- [x] Prove the reward history service module is gone, student history route
+      ownership moved to `http/rewards`, reward HTTP has no
+      Diesel/repository/service imports, pure status/history validation tests
+      pass, the focused student history route test passes, route composition
+      still passes, and the app binary still checks.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -1425,6 +1465,18 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `reward_fraud_block_notification_recipients.rs`.
 - Legacy `src/services/reward_fraud_block_service.rs` and
   `src/services/reward_fraud_block_service/` have been removed.
+- Student reward history HTTP handlers and request/response DTOs now live under
+  `http/rewards`, while preserving the legacy `/reward-candidates/me/history`
+  URL.
+- Student reward history is injected as an application-facing
+  `StudentRewardHistoryUseCase`; concrete DbPool/Postgres wiring lives in
+  `infra/postgres/rewards/reward_history_use_case.rs` and
+  `bootstrap::AppState`.
+- Student reward history candidate, wallet-credit, and token-transaction reads
+  now live under `infra/postgres/rewards/reward_history_store.rs` and
+  `reward_history_financials.rs`.
+- Legacy `src/services/reward_history_service.rs` and
+  `src/services/reward_history_service/` have been removed.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -1540,10 +1592,16 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `rg "reward_fraud_block_service|services::reward_fraud_block_service|include!\\(\"reward_fraud_block_service" src tests`
   returns no matches.
+- `rg "reward_history_service|services::reward_history_service|include!\\(\"reward_history_service" src tests`
+  returns no matches.
 - `rg "crate::db|DbPool|diesel|diesel_async|RunQueryDsl|schema::|crate::services|crate::repositories" src/api/reward_policies.rs src/http/rewards`
   returns no matches.
 - `rg "crate::db|DbPool|diesel|diesel_async|RunQueryDsl|schema::|crate::services|crate::repositories" src/api/reward_fraud_blocks.rs src/http/rewards`
   returns no matches.
+- `rg "crate::db|DbPool|diesel|diesel_async|RunQueryDsl|schema::|crate::services|crate::repositories" src/http/rewards src/api/reward_candidates.rs`
+  returns no matches.
+- `rg "reward-candidates/me/history" src/api/reward_candidates src/http/rewards/routes.rs`
+  returns only the `http/rewards/routes.rs` owner.
 - `rg "reward_policies::reward_policy_scope|api::reward_policies|crate::api::reward_policies" src/api/mod.rs tests/api_routing.rs`
   returns no matches.
 - `rg "reward_fraud_blocks::reward_fraud_block_scope|api::reward_fraud_blocks|crate::api::reward_fraud_blocks" src/api/mod.rs tests/api_routing.rs`
@@ -1593,6 +1651,11 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `./scripts/run-host-tests.sh cargo test fraud_block_api_separates_read_audit_from_block_management --test reward_management_api`
   passes.
 - `./scripts/run-host-tests.sh cargo test --test reward_candidates` passes.
+- `./scripts/run-host-tests.sh cargo test domain::rewards::candidate::status --lib`
+  passes.
+- `./scripts/run-host-tests.sh cargo test application::rewards::list_reward_history --lib`
+  passes.
+- `./scripts/run-host-tests.sh cargo test --test student_reward_history` passes.
 - `./scripts/run-host-tests.sh cargo test --test course_content_management`
   passes.
 - `./scripts/run-host-tests.sh cargo test course_video_upload_can_be_queued_and_processed --test video_upload_flow`
@@ -1703,12 +1766,16 @@ notifications, reporting, and platform review.
       `domain/rewards/policy`.
 - [x] Move reward fraud-block scope vocabulary and target matching into
       `domain/rewards/fraud_block`.
+- [x] Move reward candidate status normalization into
+      `domain/rewards/candidate/status`.
 - [ ] Move remaining reward statuses and event types into domain enums/newtypes.
       Keep database string conversion at the infra boundary.
 - [x] Move reward policy request/response structs out of service imports and
       into `http/rewards/dto`.
 - [x] Move reward fraud-block request/response structs out of service imports
       and into `http/rewards/dto`.
+- [x] Move student reward history request/response structs out of service
+      imports and into `http/rewards/dto`.
 - [ ] Move remaining reward request/response structs out of service imports and
       into `http/rewards/dto`.
 - [ ] Move candidate transition rules into pure domain functions:
@@ -1717,11 +1784,14 @@ notifications, reporting, and platform review.
 - [x] Define the first reward repository port:
       `RewardPolicyStore` for `manage_reward_policy`.
 - [x] Define `RewardFraudBlockStore` for `manage_fraud_block`.
+- [x] Define `StudentRewardHistoryStore` for `list_reward_history`.
 - [ ] Define remaining repository ports needed by reward use cases before moving Diesel
       code. Examples: `RewardCandidateStore`, `RewardPolicyStore`,
       `RewardAuditStore`, `RewardFraudBlockStore`.
 - [x] Move reward policy Diesel implementation behind `infra/postgres/rewards`.
 - [x] Move reward fraud-block Diesel implementation behind
+      `infra/postgres/rewards`.
+- [x] Move student reward history Diesel implementation behind
       `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.

@@ -1,29 +1,3 @@
-async fn list_my_reward_history(
-    req: HttpRequest,
-    pool: web::Data<db::DbPool>,
-    query: web::Query<StudentRewardHistoryRequest>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match reward_history_service::list_student_reward_history(
-        &mut conn,
-        requester.user_id,
-        query.into_inner(),
-    )
-    .await
-    {
-        Ok(history) => HttpResponse::Ok().json(history),
-        Err(error) => reward_history_error_response(error),
-    }
-}
-
 async fn list_course_reward_candidates(
     req: HttpRequest,
     path: web::Path<i32>,
@@ -106,9 +80,6 @@ async fn list_reward_candidate_audit(
 
 pub fn configure_reward_candidate_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
-        web::resource("/reward-candidates/me/history").route(web::get().to(list_my_reward_history)),
-    )
-    .service(
         web::resource("/reward-candidates/review")
             .route(web::get().to(list_platform_reward_candidates)),
     )

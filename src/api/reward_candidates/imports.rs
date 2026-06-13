@@ -4,9 +4,6 @@ use crate::services::reward_candidate_service::{
     RewardAmountDecisionRequest, RewardCandidateError, SubmitRewardCandidateRequest,
     TeacherRewardCandidateDecisionRequest,
 };
-use crate::services::reward_history_service::{
-    self, StudentRewardHistoryError, StudentRewardHistoryRequest,
-};
 use crate::utils::request_auth::authenticated_user;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
@@ -23,18 +20,6 @@ fn reward_candidate_error_response(error: RewardCandidateError) -> HttpResponse 
         RewardCandidateError::Database(message) => {
             log::error!("event=reward_candidate_api_failed error={}", message);
             HttpResponse::InternalServerError().body("Failed to process reward candidate")
-        }
-    }
-}
-
-fn reward_history_error_response(error: StudentRewardHistoryError) -> HttpResponse {
-    match error {
-        StudentRewardHistoryError::InvalidInput(message) => {
-            HttpResponse::BadRequest().body(message)
-        }
-        StudentRewardHistoryError::Database(message) => {
-            log::error!("event=student_reward_history_api_failed error={}", message);
-            HttpResponse::InternalServerError().body("Failed to load reward history")
         }
     }
 }

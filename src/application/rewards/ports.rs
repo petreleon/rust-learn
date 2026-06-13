@@ -1,5 +1,9 @@
 use futures::future::BoxFuture;
 
+use crate::application::rewards::list_reward_history::{
+    StudentRewardCandidateRecord, StudentRewardHistoryError, StudentRewardHistoryFilter,
+    StudentRewardTokenTransaction, StudentRewardWalletCredit,
+};
 use crate::application::rewards::manage_fraud_block::{
     RewardFraudBlockDraft, RewardFraudBlockError, RewardFraudBlockListFilter,
     RewardFraudBlockOutput,
@@ -70,4 +74,27 @@ pub trait RewardFraudBlockStore {
         block: &'a RewardFraudBlockOutput,
         event_type: &'a str,
     ) -> BoxFuture<'a, Result<(), RewardFraudBlockError>>;
+}
+
+pub trait StudentRewardHistoryStore {
+    fn list_student_reward_candidates(
+        &mut self,
+        filter: StudentRewardHistoryFilter,
+    ) -> BoxFuture<'_, Result<Vec<StudentRewardCandidateRecord>, StudentRewardHistoryError>>;
+
+    fn can_view_course_reward_status(
+        &mut self,
+        actor_user_id: i32,
+        course_id: i32,
+    ) -> BoxFuture<'_, Result<bool, StudentRewardHistoryError>>;
+
+    fn load_wallet_credit(
+        &mut self,
+        reward_candidate_id: i64,
+    ) -> BoxFuture<'_, Result<Option<StudentRewardWalletCredit>, StudentRewardHistoryError>>;
+
+    fn load_token_transaction(
+        &mut self,
+        reward_candidate_id: i64,
+    ) -> BoxFuture<'_, Result<Option<StudentRewardTokenTransaction>, StudentRewardHistoryError>>;
 }
