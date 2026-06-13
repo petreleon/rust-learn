@@ -967,23 +967,26 @@ remaining gaps.
 | 76 | Deleted the one-line `api/reward_policies` and `api/reward_fraud_blocks` compatibility wrappers; the remaining reward route public surface stays in `http/rewards` until a dedicated reward-route boundary pass. |
 | 77 | Deleted the `api/health` and `api/session` compatibility wrappers; health/readiness tests now import operations routes directly, and identity/notification handlers no longer leak through `api/session`. |
 | 78 | Deleted `api/chapters` and `api/contents`; course routes now compose `http/content::configure_routes` directly, and chapter/content-item route helpers are private to the content HTTP context. |
+| 79 | Moved platform user list/read/role-assignment HTTP handlers and `/user` scope from `api/users` into `http/identity`, then deleted the legacy `api/users` module. |
 
 ## Recent Slice Evidence
 
-Slice 78: move content route composition behind the content HTTP boundary.
+Slice 79: move platform user routes into the identity HTTP ring.
 
-- [x] Make `http/content` expose `configure_routes` as the only public route
-      composition entrypoint.
-- [x] Keep chapter and content-item route helpers private inside
-      `http/content/routes.rs`.
-- [x] Update the legacy course scope to compose `http/content::configure_routes`
-      directly.
-- [x] Delete the thin `src/api/chapters.rs` and `src/api/contents.rs`
-      wrappers and remove them from `src/api/mod.rs`.
-- [x] Self-critique: `api/courses` still owns the broader course scope and
-      includes route files; later learning/content slices should move course
-      route composition into context-owned HTTP modules.
-- [x] Prove content route behavior, API route reachability, formatting,
+- [x] Move user list/read handlers into `http/identity/user_handlers.rs` while
+      keeping existing identity application use cases and Postgres store
+      wiring.
+- [x] Move platform role assignment into
+      `http/identity/platform_role_assignment.rs`; notification behavior is
+      unchanged.
+- [x] Add `http/identity/user_routes.rs` and mount `/user` from
+      `http/identity::configure_routes`.
+- [x] Delete `src/api/users*` and remove `pub mod users` plus
+      `users::user_scope()` from `src/api/mod.rs`.
+- [x] Self-critique: the platform role-assignment handler still calls legacy
+      repository hierarchy logic directly; a later identity/access-control
+      slice should push that decision behind an application use case.
+- [x] Prove platform user list/read/role behavior, API route reachability,
       line-count, and stale import scans.
 
 ## Legacy Transition Rules
@@ -1123,6 +1126,11 @@ boundary checks from the matrix above to every canonical context.
       only place that protects business actions.
 - [ ] Return frontend capabilities from session endpoints so `web/src/lib`
       does not duplicate backend permission groupings.
+
+## Identity Context
+
+- [x] `http/identity` owns current-session and platform `/user` route
+      composition; the legacy `api/users` module has been deleted.
 
 ## Data Boundary Rules
 

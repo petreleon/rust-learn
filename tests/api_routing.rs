@@ -77,6 +77,9 @@ async fn api_scope_and_following_routes_are_reachable() {
 
     for (method, route) in [
         (Method::GET, "/api/courses"),
+        (Method::GET, "/api/user"),
+        (Method::GET, "/api/user/12"),
+        (Method::POST, "/api/user/12/role"),
         (Method::GET, "/api/teacher-applications"),
         (Method::GET, "/api/teacher-applications/review"),
         (Method::GET, "/api/teacher-applications/me"),

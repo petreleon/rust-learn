@@ -19,7 +19,7 @@ async fn test_platform_permission_middleware() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::users::user_scope()),
+            .configure(rust_learn::http::identity::configure_routes),
     )
     .await;
 
@@ -89,7 +89,7 @@ async fn platform_role_assignment_enforces_hierarchy() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::users::user_scope()),
+            .configure(rust_learn::http::identity::configure_routes),
     )
     .await;
 

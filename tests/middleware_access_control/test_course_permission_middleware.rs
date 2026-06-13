@@ -86,7 +86,7 @@ async fn read_user_routes_require_view_user_or_self() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::users::user_scope()),
+            .configure(rust_learn::http::identity::configure_routes),
     )
     .await;
 

@@ -5,7 +5,6 @@ pub mod delegated_permissions;
 pub mod kyc;
 pub mod organizations;
 pub mod teacher_applications;
-pub mod users;
 use actix_service::ServiceFactory;
 use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, Scope};
 
@@ -32,7 +31,6 @@ pub fn api_scope() -> Scope<
         .service(web::resource("/.well-known/jwks.json").route(web::get().to(authentication::jwks)))
         .configure(crate::http::identity::configure_routes)
         .configure(crate::http::notifications::configure_routes)
-        .service(users::user_scope())
         .service(authentication::auth_scope())
         .service(courses::course_scope())
         .service(organizations::organization_scope())

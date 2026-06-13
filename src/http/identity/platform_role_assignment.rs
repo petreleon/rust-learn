@@ -1,12 +1,13 @@
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use serde::Deserialize;
+
 use crate::db;
 use crate::repositories::platform_repository::assign_role_to_user_with_hierarchy;
 use crate::utils::notifications::NotificationsState;
 use crate::utils::request_auth::authenticated_user_id;
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
-use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub struct AssignRoleRequest {
+pub(super) struct AssignRoleRequest {
     pub role_name: String,
 }
 

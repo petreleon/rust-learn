@@ -1,5 +1,7 @@
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+
 use crate::application::identity::get_user_profile;
-use crate::application::identity::list_users;
+use crate::application::identity::list_users as list_users_use_case;
 use crate::application::identity::user_profile::UserProfileError;
 use crate::config::constants::permissions::Permissions;
 use crate::db;
@@ -7,18 +9,8 @@ use crate::http::identity::dto::{ListUsersRequest, UserProfileResponse, UsersRes
 use crate::infra::postgres::identity::user_profile_store::PostgresUserProfileStore;
 use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::utils::request_auth::authenticated_user;
-use actix_web::{web, HttpRequest};
-use actix_web::{HttpResponse, Responder};
 
-mod role_assignment;
-mod routes;
-
-use role_assignment::assign_role;
-
-pub use routes::user_scope;
-
-// GET /user -> list users for callers with VIEW_USER.
-async fn list_users(
+pub(super) async fn list_users(
     pool: web::Data<db::DbPool>,
     query: web::Query<ListUsersRequest>,
 ) -> impl Responder {
@@ -29,7 +21,7 @@ async fn list_users(
     let mut store = PostgresUserProfileStore::new(&mut conn);
     let query = query.into_inner().into();
 
-    match list_users::list_users(&mut store, query).await {
+    match list_users_use_case::list_users(&mut store, query).await {
         Ok(users) => HttpResponse::Ok().json(UsersResponse::from(users)),
         Err(e) => {
             log::error!(
@@ -41,8 +33,7 @@ async fn list_users(
     }
 }
 
-// GET /user/{id} -> users can read themselves; VIEW_USER can read anyone.
-async fn get_user(
+pub(super) async fn get_user(
     req: HttpRequest,
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
