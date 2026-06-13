@@ -1742,6 +1742,43 @@ Postgres rings.
       legacy compensation or wallet services, touched non-generated Rust files
       stay under the manual line limit, and the app binary still checks.
 
+Slice 36: move reward payout planning into the rewards application and
+Postgres rings.
+
+- [x] Use payout planning as the next rewards migration because it is the
+      decision point between approved reward candidates, active reward
+      policies, configured token infrastructure, and execution strategy.
+- [x] Create `application/rewards/plan_payout` with explicit
+      output/error/service/store/validation modules. The application use case
+      owns candidate readiness checks, approved-amount validation, active
+      policy requirement, payout-method selection, and actor permission gating.
+- [x] Move payout-method vocabulary into `domain/rewards/payout` while keeping
+      payment-strategy normalization in `domain/rewards/policy`.
+- [x] Move Postgres payout-planning behavior behind `infra/postgres/rewards`,
+      split into mapper, policy lookup, store, and use-case adapter modules.
+      Policy lookup preserves the legacy priority: course policy, linked
+      organization policy, then platform policy.
+- [x] Preserve legacy payout-planning semantics: only amount-approved
+      candidates can be planned, approved amount must be present and positive,
+      `EXECUTE_REWARD_PAYOUT` gates actor-triggered planning, treasury
+      strategies use the presigner contract when configured, mint and
+      treasury strategies require token confirmation, and off-chain payouts do
+      not.
+- [x] Remove the legacy `select_payout_method.rs` include. The legacy
+      `plan_reward_payout` service entry points now delegate through the
+      application handler and Postgres store while the surrounding wallet
+      credit flow is migrated separately.
+- [x] Self-critique: payout planning now has a Level 2 boundary, but reward
+      token confirmation, wallet credit, wallet credit notification,
+      reconciliation, wallet audit, and reporting read models still need their
+      own Level 2 slices before reward execution can be retired cleanly.
+- [x] Prove application fake-port and validation tests pass, the existing
+      reward-execution payout-planning regressions pass through
+      `PostgresRewardPayoutPlanUseCase`, application/domain import scans stay
+      clean, new infra does not call legacy reward execution or wallet
+      services, touched non-generated Rust files stay under the manual line
+      limit, and the app binary still checks.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -1906,6 +1943,20 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `infra/postgres/rewards/reward_compensation_*`.
 - `src/services/reward_compensation_service.rs` and
   `src/services/reward_compensation_service/` have been removed.
+- Reward payout planning is now an application-facing `RewardPayoutPlanUseCase`;
+  concrete DbPool/Postgres wiring lives in
+  `infra/postgres/rewards/reward_payout_plan_use_case.rs`.
+- Reward payout candidate loading, active policy lookup, presigner availability,
+  and permission probing now live behind `RewardPayoutPlanStore` plus granular
+  Postgres helpers under `infra/postgres/rewards/reward_payout_plan_*`.
+- Reward payout method names now live in `domain/rewards/payout`, and
+  reward-policy scope/payment-strategy callers import the canonical
+  `domain/rewards/policy` constants instead of model-layer duplicate literals.
+- `src/services/reward_execution_service/select_payout_method.rs` has been
+  removed. The legacy reward-execution payout-planning entry points delegate
+  through the new application handler and Postgres store while wallet credit,
+  token confirmation, reconciliation, and notification side effects remain the
+  next reward-execution migration surface.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -2080,9 +2131,19 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   passes.
 - `./scripts/run-host-tests.sh cargo test --test reward_compensations` passes
   through `PostgresRewardCompensationUseCase`.
+- `./scripts/run-host-tests.sh cargo test --lib application::rewards::plan_payout`
+  passes.
+- `./scripts/run-host-tests.sh cargo test --test reward_execution` passes with
+  payout-planning regressions routed through `PostgresRewardPayoutPlanUseCase`.
+- `./scripts/run-host-tests.sh cargo test --lib services::reward_execution_service`
+  passes.
 - `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env|crate::services" src/application/rewards/record_compensation src/domain/rewards/compensation.rs`
   returns no matches.
 - `rg "crate::services::wallet_service|crate::services::reward_compensation_service|services::reward_compensation_service" src/infra/postgres/rewards/reward_compensation_* src/application/rewards/record_compensation`
+  returns no matches.
+- `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env|crate::services" src/application/rewards/plan_payout src/domain/rewards/payout.rs`
+  returns no matches.
+- `rg "crate::services::reward_execution_service|crate::services::wallet_service" src/infra/postgres/rewards/reward_payout_plan_* src/application/rewards/plan_payout`
   returns no matches.
 - `rg "reward_policies::reward_policy_scope|api::reward_policies|crate::api::reward_policies" src/api/mod.rs tests/api_routing.rs`
   returns no matches.
@@ -2257,7 +2318,8 @@ boundary checks from the matrix above to every canonical context.
       `http/rewards`.
 - [ ] Use Level 2 granularity inside rewards: split domain by aggregate
       (`candidate`, `policy`, `fraud_block`) and application by use case
-      (`submit_candidate`, `decide_amount`, `reconcile_candidate`).
+      (`submit_candidate`, `decide_amount`, `plan_payout`,
+      `record_compensation`, `reconcile_candidate`).
 - [x] Move reward policy scope, event, and payment-strategy normalization into
       `domain/rewards/policy`.
 - [x] Move reward fraud-block scope vocabulary and target matching into
@@ -2303,6 +2365,7 @@ boundary checks from the matrix above to every canonical context.
 - [x] Define module-local `RewardCandidateSubmissionStore` for
       `submit_candidate`.
 - [x] Define module-local `RewardCompensationStore` for `record_compensation`.
+- [x] Define module-local `RewardPayoutPlanStore` for `plan_payout`.
 - [ ] Define remaining repository ports needed by reward use cases before moving Diesel
       code. Examples: `RewardCandidateStore`, `RewardPolicyStore`,
       `RewardAuditStore`, `RewardFraudBlockStore`.
@@ -2324,6 +2387,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move reward candidate submission Diesel implementation behind
       `infra/postgres/rewards`.
 - [x] Move reward compensation Diesel implementation behind
+      `infra/postgres/rewards`.
+- [x] Move reward payout planning Diesel implementation behind
       `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.

@@ -8,6 +8,9 @@ use rust_learn::db::schema::{
     organizations, reward_candidates, reward_policies,
 };
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::domain::rewards::policy::{
+    REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
+};
 use rust_learn::models::chapter::NewChapter;
 use rust_learn::models::content::NewContent;
 use rust_learn::models::course::{Course, NewCourse, COURSE_STATUS_PUBLISHED};
@@ -21,9 +24,7 @@ use rust_learn::models::reward_candidate::{
     NewRewardCandidate, REWARD_SOURCE_COURSE, REWARD_STATUS_FAILED,
     REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
 };
-use rust_learn::models::reward_policy::{
-    NewRewardPolicy, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
-};
+use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::role::{CourseRole, PlatformRole};
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;

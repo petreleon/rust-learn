@@ -7,4 +7,3 @@ include!("reward_execution_service/credit_reward_wallet_for_candidate.rs");
 include!("reward_execution_service/notify_reward_wallet_credit_for_candidate.rs");
 include!("reward_execution_service/ensure_wallet_credit_allowed.rs");
 include!("reward_execution_service/record_external_reward_transaction.rs");
-include!("reward_execution_service/select_payout_method.rs");

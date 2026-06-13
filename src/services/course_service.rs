@@ -6,6 +6,9 @@ use crate::db::schema::{
     role_permission_course, role_permission_organization, role_permission_platform, upload_jobs,
     user_role_course, user_role_organization, user_role_platform, users,
 };
+use crate::domain::rewards::policy::{
+    REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
+};
 use crate::models::course::{
     Course, NewCourse, UpdateCourse, COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED,
     COURSE_STATUS_DRAFT, COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED,
@@ -26,9 +29,6 @@ use crate::models::pending_course_organization_invites::{
 use crate::models::reward_candidate::{
     REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
     REWARD_STATUS_TEACHER_APPROVED, REWARD_STATUS_TEACHER_REJECTED,
-};
-use crate::models::reward_policy::{
-    REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
 };
 use crate::repositories::course_repository::user_permission_course_request;
 use crate::repositories::organization_repository::user_permission_organization_request;

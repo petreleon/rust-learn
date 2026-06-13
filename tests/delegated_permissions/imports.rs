@@ -11,6 +11,9 @@ use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{
     courses, courses_organizations, delegated_permissions, organizations, reward_policies, users,
 };
+use rust_learn::domain::rewards::policy::{
+    REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
+};
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::delegated_permission::{
@@ -22,9 +25,7 @@ use rust_learn::models::reward_candidate::{
     REWARD_EVENT_COURSE_COMPLETION, REWARD_STATUS_AMOUNT_APPROVED,
     REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
 };
-use rust_learn::models::reward_policy::{
-    NewRewardPolicy, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
-};
+use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::role::{CourseRole, PlatformRole};
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;

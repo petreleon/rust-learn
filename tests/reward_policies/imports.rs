@@ -7,14 +7,14 @@ use rust_learn::application::rewards::manage_reward_policy::{
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::schema::{courses, organizations};
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::domain::rewards::policy::{
+    REWARD_PAYMENT_MINT, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
+    REWARD_POLICY_SCOPE_PLATFORM,
+};
 use rust_learn::infra::postgres::rewards::reward_policy_use_case::PostgresRewardPolicyUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_candidate::REWARD_EVENT_COURSE_COMPLETION;
-use rust_learn::models::reward_policy::{
-    REWARD_PAYMENT_MINT, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
-    REWARD_POLICY_SCOPE_PLATFORM,
-};
 use rust_learn::models::user::User;
 use rust_learn::repositories::platform_repository::assign_role_to_user;
 use rust_learn::repositories::user_repository::create_user;

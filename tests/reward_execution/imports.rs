@@ -10,6 +10,10 @@ use rust_learn::db::schema::{
     role_permission_platform, transactions, transactions_external_transactions,
     transactions_internal_transactions, wallets,
 };
+use rust_learn::domain::rewards::policy::{
+    REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN, REWARD_PAYMENT_TREASURY_TRANSFER,
+    REWARD_POLICY_SCOPE_COURSE,
+};
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::reward_audit_event::{
     REWARD_AUDIT_EVENT_TOKEN_CONFIRMED, REWARD_AUDIT_EVENT_WALLET_CREDITED,
@@ -20,20 +24,20 @@ use rust_learn::models::reward_candidate::{
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_NOTIFIED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
     REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_TOKEN_PENDING, REWARD_STATUS_WALLET_CREDITED,
 };
-use rust_learn::models::reward_policy::{
-    NewRewardPolicy, REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN,
-    REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
-};
+use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::repositories::persistent_state_repository::set_persistent_state;
 use rust_learn::repositories::reward_audit_event_repository::list_reward_audit_events;
 use rust_learn::repositories::user_repository::create_user;
+use rust_learn::application::rewards::plan_payout::{
+    RewardPayoutPlan, RewardPayoutPlanError, RewardPayoutPlanUseCase,
+};
+use rust_learn::infra::postgres::rewards::reward_payout_plan_use_case::PostgresRewardPayoutPlanUseCase;
 use rust_learn::services::reward_execution_service::{
     credit_reward_wallet, credit_reward_wallet_for_actor, notify_reward_wallet_credit,
-    plan_reward_payout, reconcile_reward_candidate, record_reward_token_confirmation,
-    record_reward_token_confirmation_for_actor, RewardExecutionError,
-    RewardTokenConfirmationRequest, REWARD_PAYOUT_METHOD_MINT,
+    reconcile_reward_candidate, record_reward_token_confirmation, record_reward_token_confirmation_for_actor,
+    RewardExecutionError, RewardTokenConfirmationRequest, REWARD_PAYOUT_METHOD_MINT,
     REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER, REWARD_TRANSACTION_TYPE_WALLET_CREDIT,
 };
 use serde_json::json;
@@ -65,6 +69,33 @@ async fn setup_conn(
     pool.get()
         .await
         .expect("failed to get DB connection from pool")
+}
+
+async fn plan_reward_payout(
+    _conn: &mut AsyncPgConnection,
+    candidate_id: i64,
+) -> Result<RewardPayoutPlan, RewardExecutionError> {
+    let pool = establish_connection();
+    PostgresRewardPayoutPlanUseCase::new(pool)
+        .plan_reward_payout(candidate_id)
+        .await
+        .map_err(map_reward_payout_plan_error)
+}
+
+fn map_reward_payout_plan_error(error: RewardPayoutPlanError) -> RewardExecutionError {
+    match error {
+        RewardPayoutPlanError::PermissionDenied(permission) => {
+            RewardExecutionError::PermissionDenied(permission)
+        }
+        RewardPayoutPlanError::InvalidStatus(message) => {
+            RewardExecutionError::InvalidStatus(message)
+        }
+        RewardPayoutPlanError::InvalidInput(message) => RewardExecutionError::InvalidInput(message),
+        RewardPayoutPlanError::NoActivePolicy => RewardExecutionError::NoActivePolicy,
+        RewardPayoutPlanError::Connection(message) | RewardPayoutPlanError::Database(message) => {
+            RewardExecutionError::Database(message)
+        }
+    }
 }
 
 async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {

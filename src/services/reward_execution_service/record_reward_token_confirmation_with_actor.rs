@@ -100,6 +100,8 @@ async fn ensure_can_execute_reward_payout(
     }
 }
 
+#[cfg(test)]
+#[allow(dead_code)]
 fn ensure_candidate_ready_for_payout(
     candidate: &RewardCandidate,
 ) -> Result<(), RewardExecutionError> {
