@@ -1701,6 +1701,47 @@ Slice 34: move reward candidate submission into the rewards HTTP ring.
       and HTTP import scans stay clean, touched non-generated Rust files stay
       under the manual line limit, and the app binary still checks.
 
+Slice 35: move reward compensation recording into the rewards application and
+Postgres rings.
+
+- [x] Use reward compensation as the next rewards migration because it is a
+      compact but real mutation: platform permission, command validation,
+      idempotency replay, reward candidate lookup, wallet linking, guarded
+      wallet adjustment, transaction linking, and compensation record creation
+      previously lived in one include-based service.
+- [x] Create `application/rewards/record_compensation` with explicit
+      command/output/error/service/store/validation modules. Preserve the
+      legacy order: permission is checked before request validation, and the
+      store is not called when either step fails.
+- [x] Move the compensation transaction type vocabulary into
+      `domain/rewards/compensation`.
+- [x] Move Postgres compensation behavior behind `infra/postgres/rewards`,
+      split into mapper, wallet, transaction, transaction-body, store, and
+      use-case adapter modules. The new infra module reimplements the small
+      user-wallet link query locally instead of calling the legacy wallet
+      service from a new ring.
+- [x] Preserve legacy compensation semantics: `RECONCILE_WALLETS` or
+      `MANAGE_WALLETS` can record compensation, zero amount is invalid,
+      negative compensation is allowed as long as the guarded wallet update does
+      not go below zero, reason/idempotency key must be nonblank, same
+      idempotency key returns the existing record without reapplying the wallet
+      adjustment, and compensation does not mutate reward candidate decision
+      fields.
+- [x] Remove `src/services/reward_compensation_service.rs` and
+      `src/services/reward_compensation_service/`.
+- [x] Move the reward compensation regression helper onto
+      `PostgresRewardCompensationUseCase` so the DB-backed compensation test
+      exercises the new Level 2 path.
+- [x] Self-critique: this removes one include-based reward service, but reward
+      execution, token confirmation, wallet credit notification, reconciliation,
+      wallet audit, and reporting read models still need their own Level 2
+      slices.
+- [x] Prove application fake-port and validation tests pass, the existing
+      compensation regression passes through the new Postgres use case,
+      application/domain import scans stay clean, new infra does not call the
+      legacy compensation or wallet services, touched non-generated Rust files
+      stay under the manual line limit, and the app binary still checks.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -1856,6 +1897,15 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   removed; reward candidate routes are composed by `http/rewards`, with bridge
   resources in the legacy course and organization scopes until those broader
   scopes move.
+- Reward compensation recording is now an application-facing
+  `RewardCompensationUseCase`; concrete DbPool/Postgres wiring lives in
+  `infra/postgres/rewards/reward_compensation_use_case.rs`.
+- Reward compensation permission probing, idempotency replay, wallet linking,
+  guarded wallet adjustment, transaction creation, and record insertion now live
+  behind `RewardCompensationStore` plus granular Postgres helpers under
+  `infra/postgres/rewards/reward_compensation_*`.
+- `src/services/reward_compensation_service.rs` and
+  `src/services/reward_compensation_service/` have been removed.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -2026,6 +2076,14 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   passes through `PostgresRewardCandidateSubmissionUseCase`.
 - `./scripts/run-host-tests.sh cargo test delegated_course_permission_submits_candidate_without_course_role --test delegated_permissions`
   passes through `PostgresRewardCandidateSubmissionUseCase`.
+- `./scripts/run-host-tests.sh cargo test --lib application::rewards::record_compensation`
+  passes.
+- `./scripts/run-host-tests.sh cargo test --test reward_compensations` passes
+  through `PostgresRewardCompensationUseCase`.
+- `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env|crate::services" src/application/rewards/record_compensation src/domain/rewards/compensation.rs`
+  returns no matches.
+- `rg "crate::services::wallet_service|crate::services::reward_compensation_service|services::reward_compensation_service" src/infra/postgres/rewards/reward_compensation_* src/application/rewards/record_compensation`
+  returns no matches.
 - `rg "reward_policies::reward_policy_scope|api::reward_policies|crate::api::reward_policies" src/api/mod.rs tests/api_routing.rs`
   returns no matches.
 - `rg "reward_fraud_blocks::reward_fraud_block_scope|api::reward_fraud_blocks|crate::api::reward_fraud_blocks" src/api/mod.rs tests/api_routing.rs`
@@ -2244,6 +2302,7 @@ boundary checks from the matrix above to every canonical context.
 - [x] Define module-local `RewardAmountDecisionStore` for `decide_amount`.
 - [x] Define module-local `RewardCandidateSubmissionStore` for
       `submit_candidate`.
+- [x] Define module-local `RewardCompensationStore` for `record_compensation`.
 - [ ] Define remaining repository ports needed by reward use cases before moving Diesel
       code. Examples: `RewardCandidateStore`, `RewardPolicyStore`,
       `RewardAuditStore`, `RewardFraudBlockStore`.
@@ -2263,6 +2322,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move reward amount decision Diesel implementation behind
       `infra/postgres/rewards`.
 - [x] Move reward candidate submission Diesel implementation behind
+      `infra/postgres/rewards`.
+- [x] Move reward compensation Diesel implementation behind
       `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.

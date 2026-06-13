@@ -14,10 +14,12 @@ use rust_learn::models::user::User;
 use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::repositories::reward_candidate_repository::find_candidate;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::services::reward_compensation_service::{
-    record_reward_compensation, RewardCompensationError, RewardCompensationRequest,
-    REWARD_TRANSACTION_TYPE_COMPENSATION,
+use rust_learn::application::rewards::record_compensation::{
+    RecordRewardCompensationCommand as RewardCompensationRequest, RewardCompensationError,
+    RewardCompensationOutput, RewardCompensationUseCase,
 };
+use rust_learn::domain::rewards::compensation::REWARD_TRANSACTION_TYPE_COMPENSATION;
+use rust_learn::infra::postgres::rewards::reward_compensation_use_case::PostgresRewardCompensationUseCase;
 use serde_json::json;
 
 fn unique_string(prefix: &str) -> String {
@@ -32,6 +34,17 @@ async fn setup_conn(
     pool.get()
         .await
         .expect("failed to get DB connection from pool")
+}
+
+async fn record_reward_compensation(
+    _conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    request: RewardCompensationRequest,
+) -> Result<RewardCompensationOutput, RewardCompensationError> {
+    let pool = establish_connection();
+    PostgresRewardCompensationUseCase::new(pool)
+        .record_reward_compensation(actor_user_id, request)
+        .await
 }
 
 async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {
