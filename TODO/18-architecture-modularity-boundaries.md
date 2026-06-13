@@ -1013,38 +1013,42 @@ remaining gaps.
 | 115 | Moved delegated-permission grant/list/revoke behind `domain/access_control/delegation`, `application/access_control/manage_delegated_permissions`, a Postgres delegated-permission adapter/use case, HTTP-owned DTOs, and access-control bootstrap wiring; the include-based `services/delegated_permission_service` was deleted and `http/access_control/delegated_permissions.rs` no longer opens DB pools or calls services. |
 | 116 | Moved `GET /teacher-applications/me` behind `application/teacher_applications/get_my_application`, a Postgres teacher-application self adapter/use case, HTTP-owned self snapshot DTOs, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns Diesel records, or calls `teacher_application_service::get_my_application`. |
 | 117 | Moved `GET /teacher-applications/{id}/audit` behind `application/teacher_applications/list_application_audit`, a Postgres audit adapter/use case, shared teacher-application audit output, HTTP-owned audit DTO mapping, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns Diesel audit records, or calls `teacher_application_service::list_audit_events`. |
+| 118 | Moved `GET /teacher-applications` behind `domain/teacher_applications` status normalization, `application/teacher_applications/list_applications`, a Postgres list adapter/use case, HTTP-owned list query/response DTOs, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns Diesel application records, or calls `teacher_application_service::list_applications`. |
 
 ## Recent Slice Evidence
 
-Slice 117: move teacher-application audit reads into Level 2 rings.
+Slice 118: move teacher-application list reads into Level 2 rings.
 
-- [x] Add `application/teacher_applications/list_application_audit` with
-      query/error/store/service contracts and a fake-tested handler that gates
-      audit reads on the review permission before loading events.
-- [x] Promote `TeacherApplicationAuditEventOutput` to shared
-      `application/teacher_applications` vocabulary so self-status and audit
+- [x] Add `domain/teacher_applications` status normalization so list filters
+      reject unknown states before persistence code is reached.
+- [x] Promote `TeacherApplicationOutput` to shared
+      `application/teacher_applications` vocabulary so self-status and list
       routes use one application output at the HTTP/infra boundary.
-- [x] Add Postgres audit store/use-case modules under
+- [x] Add `application/teacher_applications/list_applications` with
+      query/error/store/service contracts and a fake-tested handler that gates
+      list reads on the review permission before loading applications.
+- [x] Add Postgres list store/use-case modules under
       `infra/postgres/teacher_applications`, keeping platform permission lookup,
-      Diesel queries, and persistence-to-application audit mapping out of HTTP
-      and application code.
-- [x] Rework `GET /teacher-applications/{id}/audit` to use `AuthUser`, typed
-      audit queries, an injected audit use case, and HTTP-owned audit response
-      DTOs instead of opening `DbPool` or returning Diesel audit records
+      Diesel filters, pagination defaults, and persistence-to-application
+      mapping out of HTTP and application code.
+- [x] Rework `GET /teacher-applications` to use `AuthUser`, typed HTTP query
+      DTOs, an injected list use case, and HTTP-owned response DTO mapping
+      instead of opening `DbPool` or returning Diesel application records
       directly.
-- [x] Register the audit use case through `bootstrap/teacher_application_wiring`
+- [x] Register the list use case through `bootstrap/teacher_application_wiring`
       and add an API routing fake for route reachability tests.
-- [x] Delete the obsolete `teacher_application_service::list_audit_events`
-      function after moving the route to the new application/Postgres path.
-- [x] Self-critique: submit, list, platform review, decision, and organization
-      nomination routes still use the legacy `teacher_application_service`.
-      Those should move in separate slices because they carry mutation,
-      filtering, transition, and notification behavior.
-- [x] Prove behavior with teacher-application audit application unit tests, the
-      full `teacher_applications` integration suite including the HTTP audit
+- [x] Delete the obsolete `teacher_application_service::list_applications`
+      function after moving the route and test helper to the new
+      application/Postgres path.
+- [x] Self-critique: submit, platform review, decision, and organization
+      nomination routes still use the legacy `teacher_application_service`;
+      platform review is the most complex remaining read path because it returns
+      enriched review context rather than plain applications.
+- [x] Prove behavior with teacher-application domain/application unit tests, the
+      full `teacher_applications` integration suite including the HTTP list
       route assertion, API route reachability, formatting, line-count checks,
-      `git diff --check`, and boundary scans proving the audit application
-      module does not import Actix, Diesel, DB pools, services, repositories, or
+      `git diff --check`, and boundary scans proving the list application module
+      does not import Actix, Diesel, DB pools, services, repositories, or
       persistence models.
 
 ## Legacy Transition Rules
@@ -1323,7 +1327,11 @@ boundary checks from the matrix above to every canonical context.
 - [x] `GET /teacher-applications/{id}/audit` now has application
       query/output/error/store contracts, a Postgres adapter/use case, HTTP DTO
       mapping, bootstrap wiring, and application/integration/API route tests.
-- [ ] Move teacher-application submit, list, platform review, decision, and
+- [x] `GET /teacher-applications` now has domain status normalization,
+      application query/output/error/store contracts, a Postgres adapter/use
+      case, HTTP query/response DTO mapping, bootstrap wiring, and
+      application/integration/API route tests.
+- [ ] Move teacher-application submit, platform review, decision, and
       organization nomination routes behind application use cases with Postgres
       adapters.
 

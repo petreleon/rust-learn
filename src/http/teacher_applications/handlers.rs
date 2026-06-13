@@ -5,15 +5,20 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::teacher_applications::get_my_application::{
     TeacherApplicationSelfError, TeacherApplicationSelfUseCase,
 };
+use crate::application::teacher_applications::list_applications::{
+    TeacherApplicationListError, TeacherApplicationListUseCase,
+};
 use crate::db;
 use crate::http::extractors::auth_user::AuthUser;
-use crate::http::teacher_applications::dto::TeacherApplicationSelfResponse;
+use crate::http::teacher_applications::dto::{
+    teacher_application_responses, ListTeacherApplicationsParams, TeacherApplicationSelfResponse,
+};
 use crate::http::teacher_applications::support::{
     notify_teacher_application_event, service_error_response,
 };
 use crate::services::teacher_application_service::{
-    self, ListTeacherApplicationsRequest, PlatformTeacherApplicationsRequest,
-    SubmitTeacherApplicationRequest, TeacherApplicationDecisionRequest,
+    self, PlatformTeacherApplicationsRequest, SubmitTeacherApplicationRequest,
+    TeacherApplicationDecisionRequest,
 };
 use crate::utils::request_auth::authenticated_user;
 
@@ -48,28 +53,14 @@ pub(super) async fn submit_application(
 }
 
 pub(super) async fn list_applications(
-    req: HttpRequest,
-    pool: web::Data<db::DbPool>,
-    query: web::Query<ListTeacherApplicationsRequest>,
+    requester: AuthUser,
+    use_case: web::Data<Arc<dyn TeacherApplicationListUseCase>>,
+    query: web::Query<ListTeacherApplicationsParams>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match teacher_application_service::list_applications(
-        &mut conn,
-        requester.user_id,
-        query.into_inner(),
-    )
-    .await
-    {
-        Ok(applications) => HttpResponse::Ok().json(applications),
-        Err(error) => service_error_response(error),
+    let query = query.into_inner().into_query(requester.user_id());
+    match use_case.list_applications(query).await {
+        Ok(applications) => HttpResponse::Ok().json(teacher_application_responses(applications)),
+        Err(error) => list_applications_error_response(error),
     }
 }
 
@@ -156,6 +147,25 @@ fn self_application_error_response(error: TeacherApplicationSelfError) -> HttpRe
         | TeacherApplicationSelfError::Database(message) => {
             log::error!(
                 "event=teacher_application_self_api_failed error={}",
+                message
+            );
+            HttpResponse::InternalServerError().body("Failed to process teacher application")
+        }
+    }
+}
+
+fn list_applications_error_response(error: TeacherApplicationListError) -> HttpResponse {
+    match error {
+        TeacherApplicationListError::PermissionDenied(_) => {
+            HttpResponse::Forbidden().body("User does not have the required permission")
+        }
+        TeacherApplicationListError::InvalidInput(message) => {
+            HttpResponse::BadRequest().body(message)
+        }
+        TeacherApplicationListError::Connection(message)
+        | TeacherApplicationListError::Database(message) => {
+            log::error!(
+                "event=teacher_application_list_api_failed error={}",
                 message
             );
             HttpResponse::InternalServerError().body("Failed to process teacher application")

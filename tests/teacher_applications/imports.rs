@@ -6,6 +6,10 @@ use rust_learn::application::teacher_applications::get_my_application::{
     TeacherApplicationSelfOutput, TeacherApplicationSelfUseCase,
 };
 use rust_learn::application::teacher_applications::list_application_audit::TeacherApplicationAuditUseCase;
+use rust_learn::application::teacher_applications::list_applications::{
+    TeacherApplicationListQuery, TeacherApplicationListUseCase,
+};
+use rust_learn::application::teacher_applications::TeacherApplicationOutput;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::establish_connection;
@@ -26,12 +30,12 @@ use rust_learn::repositories::platform_repository::user_permission_platform_requ
 use rust_learn::repositories::teacher_application_repository::list_audit_events;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::infra::postgres::teacher_applications::teacher_application_audit_use_case::PostgresTeacherApplicationAuditUseCase;
+use rust_learn::infra::postgres::teacher_applications::teacher_application_list_use_case::PostgresTeacherApplicationListUseCase;
 use rust_learn::infra::postgres::teacher_applications::teacher_application_self_use_case::PostgresTeacherApplicationSelfUseCase;
 use rust_learn::services::teacher_application_service::{
-    decide_application, list_applications, list_platform_applications, nominate_application,
-    submit_application, ListTeacherApplicationsRequest, OrganizationTeacherNominationRequest,
-    PlatformTeacherApplicationsRequest, SubmitTeacherApplicationRequest,
-    TeacherApplicationDecisionRequest, TeacherApplicationError,
+    decide_application, list_platform_applications, nominate_application, submit_application,
+    OrganizationTeacherNominationRequest, PlatformTeacherApplicationsRequest,
+    SubmitTeacherApplicationRequest, TeacherApplicationDecisionRequest, TeacherApplicationError,
 };
 use rust_learn::utils::jwt_utils::create_jwt;
 use std::sync::Arc;
@@ -61,6 +65,33 @@ async fn get_my_application(
         .await
 }
 
+#[derive(Debug, Clone, Default)]
+struct ListTeacherApplicationsRequest {
+    status: Option<String>,
+    applicant_user_id: Option<i32>,
+    organization_sponsor_id: Option<i32>,
+    limit: Option<i64>,
+    offset: Option<i64>,
+}
+
+async fn list_applications(
+    _conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    request: ListTeacherApplicationsRequest,
+) -> Result<Vec<TeacherApplicationOutput>, rust_learn::application::teacher_applications::list_applications::TeacherApplicationListError>
+{
+    PostgresTeacherApplicationListUseCase::new(establish_connection())
+        .list_applications(TeacherApplicationListQuery {
+            actor_user_id,
+            applicant_user_id: request.applicant_user_id,
+            limit: request.limit,
+            offset: request.offset,
+            organization_sponsor_id: request.organization_sponsor_id,
+            status: request.status,
+        })
+        .await
+}
+
 fn teacher_application_self_data() -> web::Data<Arc<dyn TeacherApplicationSelfUseCase>> {
     web::Data::new(
         Arc::new(PostgresTeacherApplicationSelfUseCase::new(establish_connection()))
@@ -72,6 +103,13 @@ fn teacher_application_audit_data() -> web::Data<Arc<dyn TeacherApplicationAudit
     web::Data::new(
         Arc::new(PostgresTeacherApplicationAuditUseCase::new(establish_connection()))
             as Arc<dyn TeacherApplicationAuditUseCase>,
+    )
+}
+
+fn teacher_application_list_data() -> web::Data<Arc<dyn TeacherApplicationListUseCase>> {
+    web::Data::new(
+        Arc::new(PostgresTeacherApplicationListUseCase::new(establish_connection()))
+            as Arc<dyn TeacherApplicationListUseCase>,
     )
 }
 

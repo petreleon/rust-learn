@@ -1,11 +1,21 @@
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::application::teacher_applications::get_my_application::{
-    TeacherApplicationOutput, TeacherApplicationSelfOutput,
+use crate::application::teacher_applications::get_my_application::TeacherApplicationSelfOutput;
+use crate::application::teacher_applications::list_applications::TeacherApplicationListQuery;
+use crate::application::teacher_applications::{
+    TeacherApplicationAuditEventOutput, TeacherApplicationOutput,
 };
-use crate::application::teacher_applications::TeacherApplicationAuditEventOutput;
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub(super) struct ListTeacherApplicationsParams {
+    pub(super) status: Option<String>,
+    pub(super) applicant_user_id: Option<i32>,
+    pub(super) organization_sponsor_id: Option<i32>,
+    pub(super) limit: Option<i64>,
+    pub(super) offset: Option<i64>,
+}
 
 #[derive(Debug, Serialize)]
 pub(super) struct TeacherApplicationSelfResponse {
@@ -51,6 +61,28 @@ impl From<TeacherApplicationSelfOutput> for TeacherApplicationSelfResponse {
             audit_events: output.audit_events.into_iter().map(Into::into).collect(),
         }
     }
+}
+
+impl ListTeacherApplicationsParams {
+    pub(super) fn into_query(self, actor_user_id: i32) -> TeacherApplicationListQuery {
+        TeacherApplicationListQuery {
+            actor_user_id,
+            applicant_user_id: self.applicant_user_id,
+            limit: self.limit,
+            offset: self.offset,
+            organization_sponsor_id: self.organization_sponsor_id,
+            status: self.status,
+        }
+    }
+}
+
+pub(super) fn teacher_application_responses(
+    applications: Vec<TeacherApplicationOutput>,
+) -> Vec<TeacherApplicationResponse> {
+    applications
+        .into_iter()
+        .map(TeacherApplicationResponse::from)
+        .collect()
 }
 
 impl From<TeacherApplicationOutput> for TeacherApplicationResponse {

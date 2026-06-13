@@ -17,7 +17,7 @@ use crate::models::user_role_organization::UserRoleOrganization;
 use crate::models::user_role_platform::UserRolePlatform;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
-use crate::repositories::teacher_application_repository::{self, TeacherApplicationFilter};
+use crate::repositories::teacher_application_repository;
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use serde::{Deserialize, Serialize};
@@ -67,15 +67,6 @@ pub struct OrganizationTeacherNominationRequest {
 pub struct TeacherApplicationDecisionRequest {
     pub status: String,
     pub decision_reason: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize, Default)]
-pub struct ListTeacherApplicationsRequest {
-    pub status: Option<String>,
-    pub applicant_user_id: Option<i32>,
-    pub organization_sponsor_id: Option<i32>,
-    pub limit: Option<i64>,
-    pub offset: Option<i64>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

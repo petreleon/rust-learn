@@ -47,6 +47,32 @@ async fn platform_admin_reviews_and_approves_while_moderator_is_denied() {
     .expect("admin should list teacher applications");
     assert!(pending.iter().any(|item| item.id == application.id));
 
+    let list_app = test::init_service(
+        App::new()
+            .app_data(teacher_application_list_data())
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .configure(rust_learn::http::teacher_applications::configure_routes),
+    )
+    .await;
+    let list_response = test::call_service(
+        &list_app,
+        test::TestRequest::get()
+            .uri(&format!(
+                "/teacher-applications?status={}",
+                TEACHER_APPLICATION_STATUS_SUBMITTED
+            ))
+            .insert_header(("Authorization", format!("Bearer {}", token_for(admin.id()))))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(list_response.status(), StatusCode::OK);
+    let list_body: serde_json::Value = test::read_body_json(list_response).await;
+    assert!(list_body
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|item| item["id"].as_i64() == Some(application.id)));
+
     let approved = decide_application(
         &mut conn,
         admin.id(),

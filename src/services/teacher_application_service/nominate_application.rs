@@ -82,34 +82,3 @@ pub async fn nominate_application(
 
     Ok(application)
 }
-
-pub async fn list_applications(
-    conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-    request: ListTeacherApplicationsRequest,
-) -> Result<Vec<TeacherApplication>, TeacherApplicationError> {
-    ensure_platform_permission(
-        conn,
-        actor_user_id,
-        Permissions::REVIEW_TEACHER_APPLICATIONS,
-    )
-    .await?;
-
-    let status = match request.status {
-        Some(status) => Some(normalize_status(&status)?),
-        None => None,
-    };
-
-    teacher_application_repository::list_applications(
-        conn,
-        TeacherApplicationFilter {
-            status,
-            applicant_user_id: request.applicant_user_id,
-            organization_sponsor_id: request.organization_sponsor_id,
-            limit: request.limit,
-            offset: request.offset,
-        },
-    )
-    .await
-    .map_err(TeacherApplicationError::from)
-}

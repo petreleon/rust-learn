@@ -3,4 +3,5 @@ pub mod content;
 pub mod kyc;
 pub mod learning;
 pub mod rewards;
+pub mod teacher_applications;
 pub mod wallet;
