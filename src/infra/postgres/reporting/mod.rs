@@ -1,3 +1,6 @@
+pub mod organization_reward_dashboard_queries;
+pub mod organization_reward_dashboard_store;
+pub mod organization_reward_dashboard_use_case;
 pub mod organization_summary_store;
 pub mod organization_summary_use_case;
 pub mod platform_fraud_dashboard_store;

@@ -1,7 +1,14 @@
+mod organization_reward_dashboard;
+mod organization_reward_dashboard_csv;
 mod organization_summary;
 mod platform_fraud_dashboard;
 mod platform_summary;
 
+pub use organization_reward_dashboard::{
+    OrganizationCourseRewardDashboardRowResponse, OrganizationRewardDashboardResponse,
+    OrganizationWalletBalanceRowResponse, TeacherApplicationDashboardSummaryResponse,
+};
+pub use organization_reward_dashboard_csv::organization_reward_dashboard_csv;
 pub use organization_summary::{organization_summary_csv, OrganizationSummaryResponse};
 pub use platform_fraud_dashboard::{
     platform_fraud_dashboard_csv, FraudBlockDashboardRowResponse, FraudBlockScopeSummaryResponse,

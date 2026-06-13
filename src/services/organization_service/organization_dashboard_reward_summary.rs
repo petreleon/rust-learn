@@ -2,7 +2,11 @@ async fn organization_dashboard_reward_summary(
     conn: &mut diesel_async::AsyncPgConnection,
     organization_id: i32,
 ) -> Result<OrganizationDashboardRewardSummary, OrganizationDashboardError> {
-    let reward_dashboard = organization_reward_dashboard(conn, organization_id, None, None).await?;
+    let mut store = PostgresOrganizationRewardDashboardStore::new(conn);
+    let reward_dashboard =
+        load_organization_reward_dashboard(&mut store, organization_id, None, None)
+            .await
+            .map_err(map_reward_dashboard_error)?;
     let course_ids = courses_organizations::table
         .filter(courses_organizations::organization_id.eq(organization_id))
         .select(courses_organizations::course_id)
@@ -36,6 +40,18 @@ async fn organization_dashboard_reward_summary(
         failed_count,
         needs_reconciliation_count,
     })
+}
+
+fn map_reward_dashboard_error(
+    error: OrganizationRewardDashboardError,
+) -> OrganizationDashboardError {
+    match error {
+        OrganizationRewardDashboardError::NotFound => OrganizationDashboardError::NotFound,
+        OrganizationRewardDashboardError::Connection(message)
+        | OrganizationRewardDashboardError::Database(message) => {
+            OrganizationDashboardError::Reporting(message)
+        }
+    }
 }
 
 async fn organization_dashboard_wallet_summary(

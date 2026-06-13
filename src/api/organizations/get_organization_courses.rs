@@ -127,5 +127,13 @@ async fn get_organization_dashboard(
             );
             HttpResponse::InternalServerError().body("Failed to fetch organization dashboard")
         }
+        Err(OrganizationDashboardError::Reporting(error)) => {
+            log::error!(
+                "event=organization_dashboard_fetch_failed organization_id={} error={}",
+                organization_id,
+                error
+            );
+            HttpResponse::InternalServerError().body("Failed to fetch organization dashboard")
+        }
     }
 }

@@ -1,22 +1,12 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db;
-use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
-use crate::models::param_type::ParamType;
 use crate::services::reporting_service::{
-    organization_reward_dashboard, organization_reward_dashboard_csv,
     platform_delegated_permissions_csv, platform_reward_approvals_csv, platform_reward_dashboard,
     platform_reward_dashboard_csv, platform_teacher_applications_csv, platform_token_payouts_csv,
     platform_wallet_credits_csv, platform_wallet_reconciliation,
 };
 use actix_web::{web, HttpResponse, Responder};
-use std::collections::HashMap;
-
-fn parse_date_query(query: &HashMap<String, String>, key: &str) -> Option<chrono::NaiveDate> {
-    query
-        .get(key)
-        .and_then(|v| chrono::NaiveDate::parse_from_str(v, "%Y-%m-%d").ok())
-}
 
 fn csv_response(filename: &str, body: String) -> HttpResponse {
     HttpResponse::Ok()

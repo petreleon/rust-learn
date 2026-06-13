@@ -43,6 +43,7 @@ pub enum OrganizationDashboardError {
     PermissionDenied,
     NotFound,
     Database(DieselError),
+    Reporting(String),
 }
 
 impl From<DieselError> for OrganizationDashboardError {

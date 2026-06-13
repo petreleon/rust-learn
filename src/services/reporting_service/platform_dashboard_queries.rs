@@ -95,3 +95,16 @@ pub async fn platform_reward_dashboard(
         reconciliation_mismatches,
     })
 }
+
+impl From<RewardExecutionJob> for RewardExecutionFailureRow {
+    fn from(job: RewardExecutionJob) -> Self {
+        RewardExecutionFailureRow {
+            reward_execution_job_id: job.id,
+            reward_candidate_id: job.reward_candidate_id,
+            status: job.status,
+            attempts: job.attempts,
+            last_error: job.last_error,
+            updated_at: job.updated_at,
+        }
+    }
+}

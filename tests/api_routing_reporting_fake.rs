@@ -1,7 +1,12 @@
 use std::sync::Arc;
 
 use actix_web::web;
+use chrono::NaiveDate;
 use futures::future::{ready, BoxFuture, FutureExt};
+use rust_learn::application::reporting::organization_reward_dashboard::{
+    OrganizationRewardDashboardError, OrganizationRewardDashboardOutput,
+    OrganizationRewardDashboardUseCase,
+};
 use rust_learn::application::reporting::organization_summary::{
     OrganizationSummaryError, OrganizationSummaryOutput, OrganizationSummaryUseCase,
 };
@@ -9,8 +14,15 @@ use rust_learn::application::reporting::platform_fraud_dashboard::{
     PlatformFraudDashboardError, PlatformFraudDashboardOutput, PlatformFraudDashboardUseCase,
 };
 
+struct RouteOnlyOrganizationRewardDashboardUseCase;
 struct RouteOnlyOrganizationSummaryUseCase;
 struct RouteOnlyPlatformFraudDashboardUseCase;
+
+pub fn organization_reward_dashboard_data() -> web::Data<Arc<dyn OrganizationRewardDashboardUseCase>>
+{
+    web::Data::new(Arc::new(RouteOnlyOrganizationRewardDashboardUseCase)
+        as Arc<dyn OrganizationRewardDashboardUseCase>)
+}
 
 pub fn organization_summary_data() -> web::Data<Arc<dyn OrganizationSummaryUseCase>> {
     web::Data::new(
@@ -22,6 +34,21 @@ pub fn platform_fraud_dashboard_data() -> web::Data<Arc<dyn PlatformFraudDashboa
     web::Data::new(
         Arc::new(RouteOnlyPlatformFraudDashboardUseCase) as Arc<dyn PlatformFraudDashboardUseCase>
     )
+}
+
+impl OrganizationRewardDashboardUseCase for RouteOnlyOrganizationRewardDashboardUseCase {
+    fn load_organization_reward_dashboard(
+        &self,
+        _organization_id: i32,
+        _from: Option<NaiveDate>,
+        _to: Option<NaiveDate>,
+    ) -> BoxFuture<'_, Result<OrganizationRewardDashboardOutput, OrganizationRewardDashboardError>>
+    {
+        ready(Err(OrganizationRewardDashboardError::Database(
+            "route-only use case".to_string(),
+        )))
+        .boxed()
+    }
 }
 
 impl OrganizationSummaryUseCase for RouteOnlyOrganizationSummaryUseCase {

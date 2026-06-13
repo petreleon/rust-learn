@@ -1,7 +1,7 @@
 use crate::db::schema::{
-    courses, courses_organizations, delegated_permissions, external_transactions,
-    internal_transactions, organizations, reward_candidates, reward_execution_jobs,
-    reward_payout_records, reward_wallet_credit_records, teacher_applications, wallets,
+    delegated_permissions, external_transactions, internal_transactions, reward_candidates,
+    reward_execution_jobs, reward_payout_records, reward_wallet_credit_records,
+    teacher_applications, wallets,
 };
 use crate::domain::rewards::execution::RewardExecutionJobStatus;
 use crate::models::delegated_permission::DelegatedPermission;
@@ -34,44 +34,6 @@ pub struct PlatformReportSummary {
     pub total_courses: i64,
     pub total_wallets: i64,
     pub total_notifications: i64,
-}
-
-#[derive(Debug, Serialize)]
-pub struct OrganizationRewardDashboard {
-    pub organization_id: i32,
-    pub organization_name: String,
-    pub sponsored_teacher_applications: TeacherApplicationDashboardSummary,
-    pub course_reward_count: i64,
-    pub approved_reward_count: i64,
-    pub approved_amount_total: String,
-    pub courses: Vec<OrganizationCourseRewardDashboardRow>,
-    pub wallets: Vec<OrganizationWalletBalanceRow>,
-    pub wallet_balance_total: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct OrganizationCourseRewardDashboardRow {
-    pub course_id: i32,
-    pub course_title: String,
-    pub reward_candidate_count: i64,
-    pub approved_reward_count: i64,
-    pub approved_amount_total: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct OrganizationWalletBalanceRow {
-    pub wallet_id: i32,
-    pub balance: String,
-}
-
-struct OrganizationCourseRewardDashboardData {
-    row: OrganizationCourseRewardDashboardRow,
-    approved_amount_total: BigDecimal,
-}
-
-struct OrganizationWalletBalanceData {
-    row: OrganizationWalletBalanceRow,
-    balance: BigDecimal,
 }
 
 #[derive(Debug, Serialize)]

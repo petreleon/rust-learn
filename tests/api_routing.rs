@@ -40,6 +40,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_route_fakes::platform_reward_candidates_data())
             .app_data(api_routing_teacher_decision_fake::teacher_reward_candidate_decision_data())
             .app_data(api_routing_route_fakes::student_reward_history_data())
+            .app_data(api_routing_reporting_fake::organization_reward_dashboard_data())
             .app_data(api_routing_reporting_fake::organization_summary_data())
             .app_data(api_routing_reporting_fake::platform_fraud_dashboard_data())
             .route(

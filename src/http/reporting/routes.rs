@@ -2,7 +2,7 @@ use actix_web::web;
 
 use crate::config::constants::permissions::Permissions;
 use crate::http::reporting::handlers::{
-    organization_summary, platform_fraud_dashboard, platform_summary,
+    organization_reward_dashboard, organization_summary, platform_fraud_dashboard, platform_summary,
 };
 use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
@@ -64,6 +64,30 @@ pub fn organization_summary_csv_resource() -> actix_web::Resource {
             .to(organization_summary::export_organization_summary)
             .wrap(OrganizationPermissionMiddleware::require(
                 Permissions::GENERATE_REPORT.to_string(),
+                ParamType::Path,
+                "id".to_string(),
+            )),
+    )
+}
+
+pub fn organization_reward_dashboard_resource() -> actix_web::Resource {
+    web::resource("/organizations/{id}/reward-dashboard").route(
+        web::get()
+            .to(organization_reward_dashboard::get_organization_reward_dashboard)
+            .wrap(OrganizationPermissionMiddleware::require(
+                Permissions::VIEW_ORG_REWARD_REPORTS.to_string(),
+                ParamType::Path,
+                "id".to_string(),
+            )),
+    )
+}
+
+pub fn organization_reward_dashboard_csv_resource() -> actix_web::Resource {
+    web::resource("/organizations/{id}/reward-dashboard.csv").route(
+        web::get()
+            .to(organization_reward_dashboard::export_organization_reward_dashboard)
+            .wrap(OrganizationPermissionMiddleware::require(
+                Permissions::VIEW_ORG_REWARD_REPORTS.to_string(),
                 ParamType::Path,
                 "id".to_string(),
             )),

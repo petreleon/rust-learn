@@ -46,24 +46,6 @@ pub fn reports_scope() -> actix_web::Scope {
         ))
         .service(crate::http::reporting::organization_summary_resource())
         .service(crate::http::reporting::organization_summary_csv_resource())
-        .service(web::resource("/organizations/{id}/reward-dashboard").route(
-            web::get().to(get_organization_reward_dashboard).wrap(
-                OrganizationPermissionMiddleware::require(
-                    Permissions::VIEW_ORG_REWARD_REPORTS.to_string(),
-                    ParamType::Path,
-                    "id".to_string(),
-                ),
-            ),
-        ))
-        .service(
-            web::resource("/organizations/{id}/reward-dashboard.csv").route(
-                web::get().to(export_organization_reward_dashboard).wrap(
-                    OrganizationPermissionMiddleware::require(
-                        Permissions::VIEW_ORG_REWARD_REPORTS.to_string(),
-                        ParamType::Path,
-                        "id".to_string(),
-                    ),
-                ),
-            ),
-        )
+        .service(crate::http::reporting::organization_reward_dashboard_resource())
+        .service(crate::http::reporting::organization_reward_dashboard_csv_resource())
 }
