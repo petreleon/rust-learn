@@ -2438,6 +2438,43 @@ ring.
       direct permission repository probes now appear only in the Postgres
       access-control adapter.
 
+Slice 50: move reward-execution authorization policy into the access-control
+application ring.
+
+- [x] Create `application/access_control/authorize_reward` with explicit
+      action, error, service, store, handler, fake-store, and handler-test
+      modules. This first reward authorization slice owns the
+      `ExecuteRewardPayout` decision used by payout planning, token
+      confirmation, wallet credit, wallet-credit notification, and
+      reconciliation.
+- [x] Extend `domain/access_control/permission` with the typed
+      `ExecuteRewardPayout` permission value so reward execution policy no
+      longer passes the raw `EXECUTE_REWARD_PAYOUT` string through reward
+      stores.
+- [x] Move the platform permission repository probe behind
+      `infra/postgres/access_control/reward_authorization_store.rs`.
+- [x] Add `infra/postgres/rewards/reward_execution_access.rs` as the thin
+      rewards-side adapter helper that delegates execution permission checks to
+      `application/access_control/authorize_reward`.
+- [x] Update payout planning, token confirmation, wallet credit,
+      wallet-credit notification, and reward reconciliation Postgres stores to
+      use the reward execution access-control helper instead of importing
+      `Permissions::EXECUTE_REWARD_PAYOUT` or calling
+      `user_permission_platform_request` directly.
+- [x] Self-critique: this removes the most repeated reward execution
+      permission leak only. Reward policy, fraud block, reward audit, reward
+      amount review, course candidate review, reward history, candidate
+      submission, and reward compensation authorization still need separate
+      access-control slices before the rewards context has one backend
+      permission source.
+- [x] Prove reward execution authorization with application fake-port tests,
+      prove payout planning application behavior, prove DB-backed reward
+      execution regressions, prove binary wiring with
+      `cargo check --features app-bin --bin rust-learn`, and prove the exact
+      execution-permission scan: `EXECUTE_REWARD_PAYOUT` appears only in the
+      typed permission vocabulary/access-control adapter path, while the five
+      reward execution stores call `reward_execution_access`.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -2763,6 +2800,15 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `infra/postgres/access_control/wallet_authorization_store.rs`; wallet
   Postgres adapters call the access-control application handler instead of
   duplicating local permission matrices.
+- Reward execution authorization for payout planning, token confirmation,
+  wallet credit, wallet-credit notification, and reconciliation now lives in
+  `application/access_control/authorize_reward`, with concrete platform
+  permission probing behind
+  `infra/postgres/access_control/reward_authorization_store.rs`.
+- Reward execution Postgres stores no longer import
+  `Permissions::EXECUTE_REWARD_PAYOUT` or call
+  `user_permission_platform_request` directly; they delegate through
+  `infra/postgres/rewards/reward_execution_access.rs`.
 - The legacy `api/wallets` include fragments no longer own GET wallet reads,
   POST wallet links, token-tax routes, deposit-intent creation, or
   retirements. `api/wallets` is now only the `/api/wallets` scope bridge into
@@ -3234,6 +3280,9 @@ boundary checks from the matrix above to every canonical context.
       `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.
+- [x] Move reward-execution payout permission checks through
+      `application/access_control` instead of calling
+      `user_permission_platform_request` directly from reward execution stores.
 - [ ] Move reward permission decisions through `application/access_control`
       instead of calling `user_permission_*_request` directly from reward use
       cases.
@@ -3302,6 +3351,10 @@ boundary checks from the matrix above to every canonical context.
 
 - [x] Move wallet read/link/token-tax authorization decisions into
       `application/access_control/authorize_wallet` with a typed
+      `domain/access_control::Permission` vocabulary and a Postgres permission
+      adapter.
+- [x] Move reward-execution authorization decisions into
+      `application/access_control/authorize_reward` with a typed
       `domain/access_control::Permission` vocabulary and a Postgres permission
       adapter.
 - [ ] Create one access-control API for `can(actor, action, scope)` style

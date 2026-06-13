@@ -1,3 +1,4 @@
+pub mod authorize_reward;
 pub mod authorize_wallet;
 pub mod list_roles;
 pub mod ports;

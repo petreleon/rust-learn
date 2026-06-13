@@ -1,6 +1,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Permission {
     CreateWallet,
+    ExecuteRewardPayout,
     ManageOrgRewardBudget,
     ManageOrgWallets,
     ManageWallets,
@@ -16,6 +17,7 @@ impl Permission {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::CreateWallet => "CREATE_WALLET",
+            Self::ExecuteRewardPayout => "EXECUTE_REWARD_PAYOUT",
             Self::ManageOrgRewardBudget => "MANAGE_ORG_REWARD_BUDGET",
             Self::ManageOrgWallets => "MANAGE_ORG_WALLETS",
             Self::ManageWallets => "MANAGE_WALLETS",

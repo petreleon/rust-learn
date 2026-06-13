@@ -26,6 +26,7 @@ pub mod reward_compensation_transaction;
 pub mod reward_compensation_transactions;
 pub mod reward_compensation_use_case;
 pub mod reward_compensation_wallets;
+pub mod reward_execution_access;
 pub mod reward_fraud_block_mappers;
 pub mod reward_fraud_block_notification_permissions;
 pub mod reward_fraud_block_notification_recipients;
