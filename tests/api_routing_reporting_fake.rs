@@ -16,11 +16,16 @@ use rust_learn::application::reporting::platform_fraud_dashboard::{
 use rust_learn::application::reporting::platform_reward_dashboard::{
     PlatformRewardDashboardError, PlatformRewardDashboardOutput, PlatformRewardDashboardUseCase,
 };
+use rust_learn::application::reporting::platform_wallet_reconciliation::{
+    PlatformWalletReconciliationError, PlatformWalletReconciliationOutput,
+    PlatformWalletReconciliationUseCase,
+};
 
 struct RouteOnlyOrganizationRewardDashboardUseCase;
 struct RouteOnlyOrganizationSummaryUseCase;
 struct RouteOnlyPlatformFraudDashboardUseCase;
 struct RouteOnlyPlatformRewardDashboardUseCase;
+struct RouteOnlyPlatformWalletReconciliationUseCase;
 
 pub fn organization_reward_dashboard_data() -> web::Data<Arc<dyn OrganizationRewardDashboardUseCase>>
 {
@@ -43,6 +48,12 @@ pub fn platform_fraud_dashboard_data() -> web::Data<Arc<dyn PlatformFraudDashboa
 pub fn platform_reward_dashboard_data() -> web::Data<Arc<dyn PlatformRewardDashboardUseCase>> {
     web::Data::new(Arc::new(RouteOnlyPlatformRewardDashboardUseCase)
         as Arc<dyn PlatformRewardDashboardUseCase>)
+}
+
+pub fn platform_wallet_reconciliation_data(
+) -> web::Data<Arc<dyn PlatformWalletReconciliationUseCase>> {
+    web::Data::new(Arc::new(RouteOnlyPlatformWalletReconciliationUseCase)
+        as Arc<dyn PlatformWalletReconciliationUseCase>)
 }
 
 impl OrganizationRewardDashboardUseCase for RouteOnlyOrganizationRewardDashboardUseCase {
@@ -88,6 +99,18 @@ impl PlatformRewardDashboardUseCase for RouteOnlyPlatformRewardDashboardUseCase 
         &self,
     ) -> BoxFuture<'_, Result<PlatformRewardDashboardOutput, PlatformRewardDashboardError>> {
         ready(Err(PlatformRewardDashboardError::Database(
+            "route-only use case".to_string(),
+        )))
+        .boxed()
+    }
+}
+
+impl PlatformWalletReconciliationUseCase for RouteOnlyPlatformWalletReconciliationUseCase {
+    fn load_platform_wallet_reconciliation(
+        &self,
+    ) -> BoxFuture<'_, Result<PlatformWalletReconciliationOutput, PlatformWalletReconciliationError>>
+    {
+        ready(Err(PlatformWalletReconciliationError::Database(
             "route-only use case".to_string(),
         )))
         .boxed()

@@ -1,29 +1,15 @@
 use crate::db::schema::{
     delegated_permissions, external_transactions, internal_transactions, reward_candidates,
-    reward_payout_records, reward_wallet_credit_records, teacher_applications, wallets,
+    reward_payout_records, reward_wallet_credit_records, teacher_applications,
 };
 use crate::models::delegated_permission::DelegatedPermission;
-use crate::models::reward_candidate::{
-    RewardCandidate, REWARD_STATUS_COMPLETED, REWARD_STATUS_NEEDS_RECONCILIATION,
-    REWARD_STATUS_NOTIFIED, REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_WALLET_CREDITED,
-};
+use crate::models::reward_candidate::RewardCandidate;
 use crate::models::reward_payout_record::RewardPayoutRecord;
 use crate::models::reward_wallet_credit_record::RewardWalletCreditRecord;
 use crate::models::teacher_application::TeacherApplication;
-use crate::models::wallet::Wallet;
 use bigdecimal::BigDecimal;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use serde::Serialize;
-
-#[derive(Debug, Serialize)]
-pub struct PlatformReportSummary {
-    pub total_users: i64,
-    pub total_organizations: i64,
-    pub total_courses: i64,
-    pub total_wallets: i64,
-    pub total_notifications: i64,
-}
 
 fn csv_value(value: impl AsRef<str>) -> String {
     let value = value.as_ref();

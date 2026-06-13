@@ -12,3 +12,8 @@ pub mod platform_reward_dashboard_summaries;
 pub mod platform_reward_dashboard_use_case;
 pub mod platform_summary_store;
 pub mod platform_summary_use_case;
+pub mod platform_wallet_reconciliation_counts;
+pub mod platform_wallet_reconciliation_missing;
+pub mod platform_wallet_reconciliation_queries;
+pub mod platform_wallet_reconciliation_store;
+pub mod platform_wallet_reconciliation_use_case;

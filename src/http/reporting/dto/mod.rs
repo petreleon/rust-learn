@@ -5,6 +5,7 @@ mod platform_fraud_dashboard;
 mod platform_reward_dashboard;
 mod platform_reward_dashboard_csv;
 mod platform_summary;
+mod platform_wallet_reconciliation;
 
 pub use organization_reward_dashboard::{
     OrganizationCourseRewardDashboardRowResponse, OrganizationRewardDashboardResponse,
@@ -23,3 +24,6 @@ pub use platform_reward_dashboard::{
 };
 pub use platform_reward_dashboard_csv::platform_reward_dashboard_csv;
 pub use platform_summary::{platform_summary_csv, PlatformSummaryResponse};
+pub use platform_wallet_reconciliation::{
+    PlatformWalletReconciliationResponse, PlatformWalletReconciliationRowResponse,
+};

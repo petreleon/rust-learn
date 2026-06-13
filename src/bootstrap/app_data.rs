@@ -69,5 +69,8 @@ pub fn configure_app_data(cfg: &mut web::ServiceConfig, app_state: &AppState) {
             app_state.platform_reward_dashboard_use_case.clone(),
         ))
         .app_data(web::Data::new(app_state.platform_summary_use_case.clone()))
+        .app_data(web::Data::new(
+            app_state.platform_wallet_reconciliation_use_case.clone(),
+        ))
         .app_data(web::Data::new(app_state.readiness_use_case.clone()));
 }

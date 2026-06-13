@@ -3,7 +3,7 @@ use actix_web::web;
 use crate::config::constants::permissions::Permissions;
 use crate::http::reporting::handlers::{
     organization_reward_dashboard, organization_summary, platform_fraud_dashboard,
-    platform_reward_dashboard, platform_summary,
+    platform_reward_dashboard, platform_summary, platform_wallet_reconciliation,
 };
 use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
@@ -63,6 +63,16 @@ pub fn platform_fraud_dashboard_csv_resource() -> actix_web::Resource {
             .to(platform_fraud_dashboard::export_platform_fraud_dashboard)
             .wrap(PlatformPermissionMiddleware::require(
                 Permissions::EXPORT_DATA.to_string(),
+            )),
+    )
+}
+
+pub fn platform_wallet_reconciliation_resource() -> actix_web::Resource {
+    web::resource("/platform/wallet-reconciliation").route(
+        web::get()
+            .to(platform_wallet_reconciliation::get_platform_wallet_reconciliation)
+            .wrap(PlatformPermissionMiddleware::require(
+                Permissions::MANAGE_WALLETS.to_string(),
             )),
     )
 }

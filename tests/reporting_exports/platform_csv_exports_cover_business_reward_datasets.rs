@@ -37,9 +37,16 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
         create_platform_delegated_permission(&mut conn, platform_admin.id(), submitter.id()).await;
     drop(conn);
 
+    use rust_learn::application::reporting::platform_wallet_reconciliation::PlatformWalletReconciliationUseCase;
+    use rust_learn::infra::postgres::reporting::platform_wallet_reconciliation_use_case::PostgresPlatformWalletReconciliationUseCase;
+
+    let wallet_reconciliation_use_case = web::Data::new(Arc::new(
+        PostgresPlatformWalletReconciliationUseCase::new(pool.clone()),
+    ) as Arc<dyn PlatformWalletReconciliationUseCase>);
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(wallet_reconciliation_use_case)
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::api::reports::reports_scope()),
     )
@@ -51,6 +58,7 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
         "/reports/platform/token-payouts.csv",
         "/reports/platform/wallet-credits.csv",
         "/reports/platform/delegated-permissions.csv",
+        "/reports/platform/wallet-reconciliation",
     ] {
         let denied_req = test::TestRequest::get()
             .uri(path)
@@ -145,4 +153,25 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
     assert!(delegated_permissions_csv.contains(&format!("{delegation_id},")));
     assert!(delegated_permissions_csv.contains("APPROVE_REWARD_AMOUNT"));
     assert!(delegated_permissions_csv.contains(",active,"));
+
+    let wallet_reconciliation_req = test::TestRequest::get()
+        .uri("/reports/platform/wallet-reconciliation")
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(platform_admin.id())),
+        ))
+        .to_request();
+    let wallet_reconciliation_resp = test::call_service(&app, wallet_reconciliation_req).await;
+    assert_eq!(wallet_reconciliation_resp.status(), StatusCode::OK);
+    let wallet_reconciliation: Value =
+        test::read_body_json(wallet_reconciliation_resp).await;
+    assert!(wallet_reconciliation["total_wallets"].as_i64().unwrap_or_default() >= 1);
+    assert!(wallet_reconciliation["total_reward_records"].as_i64().unwrap_or_default() >= 1);
+    assert!(
+        wallet_reconciliation["wallets"]
+            .as_array()
+            .expect("wallet rows")
+            .iter()
+            .any(|wallet| wallet["wallet_id"].as_i64() == Some(i64::from(wallet_id)))
+    );
 }

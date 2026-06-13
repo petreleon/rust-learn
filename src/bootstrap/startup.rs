@@ -21,6 +21,7 @@ use crate::infra::postgres::reporting::organization_summary_use_case::PostgresOr
 use crate::infra::postgres::reporting::platform_fraud_dashboard_use_case::PostgresPlatformFraudDashboardUseCase;
 use crate::infra::postgres::reporting::platform_reward_dashboard_use_case::PostgresPlatformRewardDashboardUseCase;
 use crate::infra::postgres::reporting::platform_summary_use_case::PostgresPlatformSummaryUseCase;
+use crate::infra::postgres::reporting::platform_wallet_reconciliation_use_case::PostgresPlatformWalletReconciliationUseCase;
 use crate::infra::postgres::rewards::course_reward_candidate_use_case::PostgresCourseRewardCandidatesUseCase;
 use crate::infra::postgres::rewards::platform_reward_candidate_use_case::PostgresPlatformRewardCandidatesUseCase;
 use crate::infra::postgres::rewards::reward_amount_decision_use_case::PostgresRewardAmountDecisionUseCase;
@@ -116,6 +117,9 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
             pool.clone(),
         )),
         platform_summary_use_case: Arc::new(PostgresPlatformSummaryUseCase::new(pool.clone())),
+        platform_wallet_reconciliation_use_case: Arc::new(
+            PostgresPlatformWalletReconciliationUseCase::new(pool.clone()),
+        ),
         readiness_use_case: Arc::new(RuntimeReadinessUseCase::new(pool.clone(), s3.clone())),
         notifications: NotificationsState::new(pool.clone()),
         pool,

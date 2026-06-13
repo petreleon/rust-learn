@@ -39,23 +39,3 @@ fn some_value_to_string() {
 fn none_is_empty() {
     assert_eq!(csv_optional(None::<i32>), "");
 }
-
-// ── platform_report_csv ──
-
-#[test]
-fn generates_platform_report_csv() {
-    let summary = PlatformReportSummary {
-        total_users: 10,
-        total_organizations: 3,
-        total_courses: 5,
-        total_wallets: 8,
-        total_notifications: 25,
-    };
-    let csv = platform_report_csv(&summary);
-    assert!(csv.starts_with("metric,value\n"));
-    assert!(csv.contains("users,10\n"));
-    assert!(csv.contains("organizations,3\n"));
-    assert!(csv.contains("courses,5\n"));
-    assert!(csv.contains("wallets,8\n"));
-    assert!(csv.contains("notifications,25\n"));
-}

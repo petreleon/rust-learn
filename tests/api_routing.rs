@@ -44,6 +44,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_reporting_fake::organization_summary_data())
             .app_data(api_routing_reporting_fake::platform_fraud_dashboard_data())
             .app_data(api_routing_reporting_fake::platform_reward_dashboard_data())
+            .app_data(api_routing_reporting_fake::platform_wallet_reconciliation_data())
             .route(
                 "/hey",
                 web::get().to(|| async { HttpResponse::Ok().body("hey") }),
@@ -118,6 +119,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             Method::GET,
             "/api/reports/platform/delegated-permissions.csv",
         ),
+        (Method::GET, "/api/reports/platform/wallet-reconciliation"),
         (Method::GET, "/api/reports/organizations/56/summary"),
         (Method::GET, "/api/reports/organizations/56/summary.csv"),
         (

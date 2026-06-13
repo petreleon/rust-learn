@@ -960,36 +960,33 @@ remaining gaps.
 | 49-55 | Moved wallet and reward authorization decisions through `application/access_control`, including payout, platform, course, organization, fraud-block, and notification-recipient policies. |
 | 56 | Moved production Actix app-data registration out of `main.rs`; `main.rs` is now process orchestration while bootstrap owns concrete state and route wiring. |
 | 57-64 | Typed reward audit, execution job, candidate, fraud-block, policy, payout-method, token, wallet-credit, and compensation transaction vocabulary in the rewards domain while keeping compatibility aliases where legacy callers still need them. |
-| 65 | Moved platform report summary read/export into `application/reporting`, `infra/postgres/reporting`, and `http/reporting` while preserving legacy report URLs through the existing reports scope. |
-| 66 | Moved platform fraud dashboard read/export into reporting rings and removed the old legacy reporting-service fraud dashboard query/DTO/CSV code. |
-| 67 | Moved organization report summary read/export into reporting rings and removed the old legacy reporting-service organization summary query/DTO/CSV code. |
-| 68 | Moved organization reward dashboard read/export into reporting rings while preserving the legacy organization dashboard summary through the new Postgres reporting store. |
+| 65-69 | Moved platform summary, platform fraud dashboard, organization summary, organization reward dashboard, and platform reward dashboard read/export behavior into `application/reporting`, `infra/postgres/reporting`, and `http/reporting`; legacy report URLs still flow through the existing reports scope while matching old service queries/DTOs/CSV helpers were removed. |
 
 ## Recent Slice Evidence
 
-Slice 69: move platform reward dashboard read/export into the reporting
-application, HTTP, and Postgres rings.
+Slice 70: move platform wallet reconciliation into the reporting application,
+HTTP, and Postgres rings.
 
-- [x] Create `application/reporting/platform_reward_dashboard` with
+- [x] Create `application/reporting/platform_wallet_reconciliation` with
       explicit output, error, store port, service trait, and handler modules.
-- [x] Move platform reward dashboard teacher-application summary,
-      reward-candidate summary, amount-review rows, payout failures, and
-      reconciliation mismatch aggregation behind `infra/postgres/reporting`.
-- [x] Move platform reward dashboard JSON and CSV response contracts into
-      `http/reporting/dto`.
-- [x] Move `/reports/platform/reward-dashboard` and
-      `/reports/platform/reward-dashboard.csv` route resources into
-      `http/reporting` while preserving legacy URLs through the reports scope.
-- [x] Remove the old legacy reporting-service platform reward dashboard query,
-      summary helpers, row DTOs, CSV helper, and service-level CSV test copy.
-- [x] Self-critique: wallet reconciliation and remaining platform CSV exports
-      still live in the legacy include-based reporting service; organization
-      route resources still depend on the existing middleware `ParamType` from
-      `models`.
-- [x] Prove the application fake-port behavior, platform reward dashboard CSV
-      contract, DB-backed platform reward dashboard read/export regression,
-      API route reachability, binary wiring, formatting, whitespace,
-      line-count, and boundary scans.
+- [x] Move platform wallet reconciliation wallet loading, candidate discovery,
+      per-wallet counts, and missing-record checks behind
+      `infra/postgres/reporting`.
+- [x] Move the platform wallet reconciliation JSON response contract and
+      `/reports/platform/wallet-reconciliation` route resource into
+      `http/reporting` while preserving the legacy `MANAGE_WALLETS`
+      permission.
+- [x] Remove the old include-based reporting-service wallet reconciliation
+      query, the misleading service-side `platform_fraud_dashboard_csv` structs,
+      and the obsolete service-side platform summary CSV helper/test.
+- [x] Self-critique: remaining platform CSV exports still live in the legacy
+      include-based reporting service; the new wallet reconciliation read model
+      preserves the legacy per-wallet query shape and should later be batched if
+      platform wallet counts become large; organization route resources still
+      depend on middleware `ParamType` from `models`.
+- [x] Prove application fake-port behavior, API route reachability,
+      DB-backed reporting route behavior, formatting, whitespace, line-count,
+      binary wiring, and boundary scans.
 
 ## Legacy Transition Rules
 
@@ -1037,134 +1034,38 @@ reporting, and platform review. This section tracks rewards work only; it does
 not narrow the complete Level 2 target. Apply the same ring, adapter, route, and
 boundary checks from the matrix above to every canonical context.
 
-- [x] Create the rewards context across the top-level rings:
-      `domain/rewards`, `application/rewards`, `infra/postgres/rewards`, and
-      `http/rewards`.
-- [x] Use Level 2 granularity inside rewards: split domain by aggregate
-      (`candidate`, `policy`, `fraud_block`, `payout`, `token`,
-      `wallet_credit`, `compensation`) and application by use case
-      (`submit_candidate`, `decide_teacher_candidate`, `decide_amount`,
-      `manage_reward_policy`, `manage_fraud_block`, `plan_payout`,
-      `record_token_confirmation`, `record_compensation`, `credit_wallet`,
-      `notify_wallet_credit`, `reconcile_candidate`, reward history, and
-      candidate review read models).
-- [x] Move reward policy scope, event, and payment-strategy normalization into
-      `domain/rewards/policy`.
-- [x] Type reward policy scope and payment-strategy vocabulary in
-      `domain/rewards/policy`.
-- [x] Move reward fraud-block scope vocabulary and target matching into
-      `domain/rewards/fraud_block`.
-- [x] Remove reward fraud-block scope constants from
-      `models/reward_fraud_block`.
-- [x] Move reward candidate status normalization into
-      `domain/rewards/candidate/status`.
-- [x] Move reward candidate source/status/event stable keys into
-      `domain/rewards/candidate`.
-- [x] Move reward audit event type vocabulary into `domain/rewards/audit`.
-- [x] Move reward execution job status vocabulary into
-      `domain/rewards/execution`.
-- [x] Type reward payout method vocabulary in `domain/rewards/payout`.
-- [x] Type reward token event and transaction vocabulary in
-      `domain/rewards/token`.
-- [x] Type reward wallet-credit and compensation transaction vocabulary in
-      `domain/rewards/wallet_credit` and `domain/rewards/compensation`.
+- [x] Rewards now has Level 2 ring folders with aggregate/use-case granularity
+      across candidate, policy, fraud block, payout, token, wallet credit,
+      compensation, review, history, and reconciliation flows.
+- [x] Core rewards vocabulary now lives in `domain/rewards` for policy,
+      fraud-block, candidate, audit, execution, payout, token, wallet-credit,
+      and compensation concepts; compatibility aliases remain only where legacy
+      callers still need them.
 - [ ] Move remaining reward statuses and event types into domain enums/newtypes.
       Keep database string conversion at the infra boundary.
-- [x] Move reward policy request/response structs out of service imports and
-      into `http/rewards/dto`.
-- [x] Move reward fraud-block request/response structs out of service imports
-      and into `http/rewards/dto`.
-- [x] Move student reward history request/response structs out of service
-      imports and into `http/rewards/dto`.
-- [x] Move reward candidate audit response structs out of service imports and
-      into `http/rewards/dto`.
-- [x] Move course reward-candidate list request/response structs out of
-      service imports and into `http/rewards/dto`.
-- [x] Move platform reward-candidate review request/response structs out of
-      service imports and into `http/rewards/dto`.
-- [x] Move teacher reward-candidate decision request/response structs out of
-      service imports and into `http/rewards/dto`.
-- [x] Move reward amount decision request/response structs out of service
-      imports and into `http/rewards/dto`.
-- [x] Move reward candidate submission request/response structs out of service
-      imports and into `http/rewards/dto`.
+- [x] Core rewards DTOs for policy, fraud block, history, audit, candidate
+      lists/review, teacher decision, amount decision, and submission now live
+      in `http/rewards/dto`.
 - [ ] Move remaining reward request/response structs out of service imports and
       into `http/rewards/dto`.
 - [ ] Move candidate transition rules into pure domain functions:
       submit, teacher approve/reject, amount approve/reject, token confirmed,
       wallet credited, notified, reconciliation needed.
-- [x] Define the first reward repository port:
-      `RewardPolicyStore` for `manage_reward_policy`.
-- [x] Define `RewardFraudBlockStore` for `manage_fraud_block`.
-- [x] Define `StudentRewardHistoryStore` for `list_reward_history`.
-- [x] Define `RewardCandidateAuditStore` for `list_candidate_audit`.
-- [x] Define `CourseRewardCandidateStore` for `list_course_candidates`.
-- [x] Define module-local `PlatformRewardCandidateStore` for
-      `list_platform_candidates`.
-- [x] Define module-local `TeacherRewardCandidateDecisionStore` for
-      `decide_teacher_candidate`.
-- [x] Define module-local `RewardAmountDecisionStore` for `decide_amount`.
-- [x] Define module-local `RewardCandidateSubmissionStore` for
-      `submit_candidate`.
-- [x] Define module-local `RewardCompensationStore` for `record_compensation`.
-- [x] Define module-local `RewardPayoutPlanStore` for `plan_payout`.
-- [x] Define module-local `RewardTokenConfirmationStore` for
-      `record_token_confirmation`.
-- [x] Define module-local `RewardWalletCreditStore` for `credit_wallet`.
-- [x] Define module-local `RewardWalletCreditNotificationStore` for
-      `notify_wallet_credit`.
-- [x] Define module-local `RewardReconciliationStore` for
-      `reconcile_candidate`.
+- [x] Reward command/read use cases now have module-local store ports and
+      Postgres adapters for policy, fraud block, history, candidate audit,
+      course/platform candidate lists, teacher/amount decisions, submission,
+      compensation, payout planning, token confirmation, wallet credit,
+      wallet-credit notification, and reconciliation.
 - [ ] Define remaining context-owned repository ports before moving Diesel code.
       Reward and fraud dashboards belong to `application/reporting/*`; only
       reward command and reward read-model ports stay in
       `application/rewards`.
-- [x] Move reward policy Diesel implementation behind `infra/postgres/rewards`.
-- [x] Move reward fraud-block Diesel implementation behind
-      `infra/postgres/rewards`.
-- [x] Move student reward history Diesel implementation behind
-      `infra/postgres/rewards`.
-- [x] Move reward candidate audit Diesel implementation behind
-      `infra/postgres/rewards`.
-- [x] Move course reward-candidate list Diesel implementation behind
-      `infra/postgres/rewards`.
-- [x] Move platform reward-candidate review Diesel implementation behind
-      `infra/postgres/rewards`.
-- [x] Move teacher reward-candidate decision Diesel implementation behind
-      `infra/postgres/rewards`.
-- [x] Move reward amount decision Diesel implementation behind
-      `infra/postgres/rewards`.
-- [x] Move reward candidate submission Diesel implementation behind
-      `infra/postgres/rewards`.
-- [x] Move reward compensation Diesel implementation behind
-      `infra/postgres/rewards`.
-- [x] Move reward payout planning Diesel implementation behind
-      `infra/postgres/rewards`.
-- [x] Move reward token confirmation Diesel implementation behind
-      `infra/postgres/rewards`.
-- [x] Move reward wallet credit Diesel implementation behind
-      `infra/postgres/rewards`.
-- [x] Move reward wallet-credit notification Diesel implementation behind
-      `infra/postgres/rewards`.
-- [x] Move reward reconciliation Diesel implementation behind
-      `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.
-- [x] Move reward-execution payout permission checks through
-      `application/access_control` instead of calling
-      `user_permission_platform_request` directly from reward execution stores.
-- [x] Move platform reward policy, audit, amount-review, platform-review
-      capability, and compensation permission checks through
-      `application/access_control`.
-- [x] Move course-scoped reward submission, teacher-decision, course-listing,
-      student-history visibility, and reward-target eligibility permission
-      checks through `application/access_control`.
-- [x] Move organization-scoped reward submission permission checks through
-      `application/access_control`.
-- [x] Move reward fraud-block scope/list/audit permission checks through
-      `application/access_control`.
-- [x] Move reward fraud-block notification recipient permission groups through
-      `application/access_control`.
+- [x] Most reward permission checks now flow through
+      `application/access_control`, including payout, platform review/policy,
+      compensation, course/organization reward actions, fraud-block actions,
+      and notification recipient groups.
 - [ ] Move reward permission decisions through `application/access_control`
       instead of calling `user_permission_*_request` directly from reward use
       cases.
@@ -1175,105 +1076,26 @@ boundary checks from the matrix above to every canonical context.
 
 ## Reporting Context
 
-- [x] Create `application/reporting/platform_summary` with explicit output,
-      error, store, service, and handler modules.
-- [x] Move platform summary Postgres counts behind
-      `infra/postgres/reporting`.
-- [x] Move platform summary JSON and CSV response contracts into
-      `http/reporting/dto`.
-- [x] Move `/api/reports/platform/summary` and
-      `/api/reports/platform/summary.csv` route ownership into
-      `http/reporting` while preserving legacy URLs through the existing
-      reports scope.
-- [x] Move platform reward dashboard read/export behavior into
-      `application/reporting` and `http/reporting`.
-- [x] Move platform fraud dashboard read/export behavior into
-      `application/reporting` and `http/reporting`.
-- [ ] Move platform CSV exports and wallet reconciliation into reporting
-      application use cases and Postgres query adapters.
-- [x] Move organization summary read/export behavior into
-      `application/reporting` and `http/reporting`.
-- [x] Move organization reward dashboard read/export
-      behavior into `application/reporting` and `http/reporting`.
+- [x] Platform summary, fraud dashboard, reward dashboard, wallet
+      reconciliation, organization summary, and organization reward dashboard
+      now live in `application/reporting`, `infra/postgres/reporting`, and
+      `http/reporting` with legacy report URLs preserved.
+- [ ] Move remaining platform CSV exports into reporting application use cases
+      and Postgres query adapters.
 
 ## Wallet Context
 
-- [x] Create `domain/wallet/audit` for pure wallet-audit reconciliation
-      classification.
-- [x] Create `application/wallet/audit_wallet` with explicit target, output,
-      error, service, store, and handler modules.
-- [x] Move wallet audit Diesel implementation behind `infra/postgres/wallet`
-      with granular query and mapper modules.
-- [x] Move wallet audit response mapping into `http/wallet/dto`.
-- [x] Remove the include-based `services/wallet_audit_service` implementation
-      and the temporary compatibility wrapper.
-- [x] Move wallet audit route handlers from `api/wallets` into `http/wallet`
-      while preserving `/api/wallets/me/audit`,
-      `/api/wallets/users/{id}/audit`, and
-      `/api/wallets/organizations/{id}/audit`.
-- [x] Create `application/wallet/read_wallet` with explicit subject, output,
-      error, service, store, and handler modules.
-- [x] Move wallet read Diesel implementation behind `infra/postgres/wallet`
-      with granular read store, mapper, and use-case adapter modules.
-- [x] Move wallet read route handlers from `api/wallets` into `http/wallet`
-      while preserving `/api/wallets/me`, `/api/wallets/users/{id}`, and
-      `/api/wallets/organizations/{id}`.
-- [x] Create `application/wallet/link_wallet` with explicit subject, output,
-      error, service, store, and handler modules.
-- [x] Move wallet link Diesel implementation behind `infra/postgres/wallet`
-      with granular link store, record, mapper, and use-case adapter modules.
-- [x] Move wallet link route handlers from `api/wallets` into `http/wallet`
-      while preserving `/api/wallets/me/link`,
-      `/api/wallets/users/{id}/link`, and
-      `/api/wallets/organizations/{id}/link`.
-- [x] Create `application/wallet/manage_token_tax` with explicit operation,
-      output, error, service, store, and handler modules.
-- [x] Move wallet token-tax persistence behind `infra/postgres/wallet`.
-- [x] Move wallet token-tax route handlers from `api/wallets` into
-      `http/wallet` while preserving `/api/wallets/token-taxes`,
-      `/api/wallets/token-taxes/deposit`, and
-      `/api/wallets/token-taxes/retire`.
-- [x] Create `application/wallet/create_deposit_intent` with explicit request,
-      draft, output, gas-payer, error, service, store, and handler modules.
-- [x] Move wallet deposit-intent persistence behind `infra/postgres/wallet`.
-- [x] Move wallet deposit route handler from `api/wallets` into `http/wallet`
-      while preserving `/api/wallets/me/deposits`.
-- [x] Create `application/wallet/retire_tokens` with explicit request, draft,
-      output, gas-payer, error, service, store, and handler modules.
-- [x] Move wallet retirement persistence behind `infra/postgres/wallet`.
-- [x] Move wallet retirement route handler from `api/wallets` into
-      `http/wallet` while preserving `/api/wallets/me/retirements`.
-- [x] Create `application/wallet/index_deposit` with explicit observed event,
-      output, error, service, store, and handler modules.
-- [x] Move wallet observed-deposit indexing persistence behind
-      `infra/postgres/wallet`.
-- [x] Move the wallet deposit indexer worker path to call the new
-      `application/wallet/index_deposit` handler after Ethereum event fetches.
-- [x] Move wallet access checks through `application/access_control` instead of
-      direct repository permission probes in wallet handlers.
+- [x] Wallet audit, read, link, token-tax, deposit-intent, retirement, and
+      observed-deposit indexing now have Level 2 application/use-case,
+      Postgres, and HTTP/worker ownership with legacy routes preserved.
+- [x] Wallet audit reconciliation classification lives in `domain/wallet`, and
+      wallet access checks flow through `application/access_control`.
 
 ## Access Control Context
 
-- [x] Move wallet read/link/token-tax authorization decisions into
-      `application/access_control/authorize_wallet` with a typed
-      `domain/access_control::Permission` vocabulary and a Postgres permission
-      adapter.
-- [x] Move reward-execution authorization decisions into
-      `application/access_control/authorize_reward` with a typed
-      `domain/access_control::Permission` vocabulary and a Postgres permission
-      adapter.
-- [x] Move platform reward policy, audit, amount-review, platform-review
-      capability, and compensation authorization decisions into
-      `application/access_control/authorize_reward`.
-- [x] Move course-scoped reward submission, teacher-decision, course-listing,
-      student-history visibility, and reward-target eligibility authorization
-      decisions into `application/access_control/authorize_reward`.
-- [x] Move organization-scoped reward submission authorization decisions into
-      `application/access_control/authorize_reward`.
-- [x] Move reward fraud-block scope/list/audit authorization decisions into
-      `application/access_control/authorize_reward`.
-- [x] Move reward fraud-block notification recipient permission groups into
-      `application/access_control/reward_fraud_block_notifications`.
+- [x] Wallet and reward authorization decisions now use
+      `application/access_control` with typed permission vocabulary and
+      Postgres permission adapters for the moved wallet/reward use cases.
 - [ ] Create one access-control API for `can(actor, action, scope)` style
       decisions.
 - [ ] Encode scope as types instead of loose strings where practical:

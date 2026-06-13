@@ -1,14 +1,3 @@
-pub fn platform_report_csv(summary: &PlatformReportSummary) -> String {
-    format!(
-        "metric,value\nusers,{}\norganizations,{}\ncourses,{}\nwallets,{}\nnotifications,{}\n",
-        summary.total_users,
-        summary.total_organizations,
-        summary.total_courses,
-        summary.total_wallets,
-        summary.total_notifications
-    )
-}
-
 pub async fn platform_teacher_applications_csv(
     conn: &mut AsyncPgConnection,
 ) -> QueryResult<String> {

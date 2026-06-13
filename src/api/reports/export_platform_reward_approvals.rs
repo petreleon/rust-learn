@@ -34,24 +34,6 @@ async fn export_platform_token_payouts(pool: web::Data<db::DbPool>) -> impl Resp
     }
 }
 
-async fn get_platform_wallet_reconciliation(pool: web::Data<db::DbPool>) -> impl Responder {
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match platform_wallet_reconciliation(&mut conn).await {
-        Ok(data) => HttpResponse::Ok().json(data),
-        Err(err) => {
-            log::error!(
-                "event=report_load_failed scope=platform report=wallet_reconciliation error={:?}",
-                err
-            );
-            HttpResponse::InternalServerError().body("Failed to load wallet reconciliation")
-        }
-    }
-}
-
 async fn export_platform_wallet_credits(pool: web::Data<db::DbPool>) -> impl Responder {
     let mut conn = match pool.get().await {
         Ok(conn) => conn,

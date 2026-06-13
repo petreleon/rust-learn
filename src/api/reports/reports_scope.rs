@@ -6,6 +6,7 @@ pub fn reports_scope() -> actix_web::Scope {
         .service(crate::http::reporting::platform_reward_dashboard_csv_resource())
         .service(crate::http::reporting::platform_fraud_dashboard_resource())
         .service(crate::http::reporting::platform_fraud_dashboard_csv_resource())
+        .service(crate::http::reporting::platform_wallet_reconciliation_resource())
         .service(web::resource("/platform/teacher-applications.csv").route(
             web::get().to(export_platform_teacher_applications).wrap(
                 PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
@@ -29,11 +30,6 @@ pub fn reports_scope() -> actix_web::Scope {
         .service(web::resource("/platform/delegated-permissions.csv").route(
             web::get().to(export_platform_delegated_permissions).wrap(
                 PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
-            ),
-        ))
-        .service(web::resource("/platform/wallet-reconciliation").route(
-            web::get().to(get_platform_wallet_reconciliation).wrap(
-                PlatformPermissionMiddleware::require(Permissions::MANAGE_WALLETS.to_string()),
             ),
         ))
         .service(crate::http::reporting::organization_summary_resource())
