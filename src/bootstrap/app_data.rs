@@ -78,6 +78,12 @@ pub fn configure_app_data(cfg: &mut web::ServiceConfig, app_state: &AppState) {
         .app_data(web::Data::new(
             app_state.organization_use_cases.member_removal.clone(),
         ))
+        .app_data(web::Data::new(
+            app_state
+                .organization_use_cases
+                .member_role_assignment
+                .clone(),
+        ))
         .app_data(web::Data::new(app_state.chapter_use_cases.clone()))
         .app_data(web::Data::new(app_state.content_item_use_cases.clone()))
         .app_data(web::Data::new(

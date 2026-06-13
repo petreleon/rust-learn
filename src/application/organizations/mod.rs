@@ -1,3 +1,4 @@
+pub mod assign_organization_member_role;
 pub mod get_organization_dashboard;
 pub mod invite_organization_member;
 pub mod list_organization_courses;

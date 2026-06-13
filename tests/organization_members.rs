@@ -4,3 +4,4 @@ include!("organization_members/organization_member_list_returns_scoped_members_p
 include!("organization_members/organization_member_list_denies_users_without_org_scope.rs");
 include!("organization_members/organization_member_invite_adds_member_and_logs_audit.rs");
 include!("organization_members/organization_member_removal_removes_member_and_logs_audit.rs");
+include!("organization_members/organization_member_role_assignment_assigns_role_and_logs_audit.rs");

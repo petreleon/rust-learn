@@ -68,15 +68,10 @@ pub fn organization_scope() -> actix_web::Scope {
                     ),
                 )),
         )
-        .service(web::resource("/{id}/users/{user_id}/roles").route(
-            web::post().to(member_roles::assign_role).wrap(
-                OrganizationPermissionMiddleware::require(
-                    Permissions::ASSIGN_ROLES_TO_ORG_USERS.to_string(),
-                    ParamType::Path,
-                    "id".to_string(),
-                ),
-            ),
-        ))
+        .service(
+            web::resource("/{id}/users/{user_id}/roles")
+                .route(web::post().to(member_roles::assign_role)),
+        )
         .service(
             web::resource("/{id}/users/{user_id}")
                 .route(web::delete().to(member_removal::remove_organization_member_route)),

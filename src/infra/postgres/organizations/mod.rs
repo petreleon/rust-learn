@@ -23,3 +23,5 @@ mod organization_member_permission_queries;
 mod organization_member_removal_mappers;
 pub mod organization_member_removal_store;
 pub mod organization_member_removal_use_case;
+pub mod organization_member_role_assignment_store;
+pub mod organization_member_role_assignment_use_case;

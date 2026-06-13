@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::organizations::assign_organization_member_role::OrganizationMemberRoleAssignmentUseCase;
 use crate::application::organizations::get_organization_dashboard::OrganizationDashboardUseCase;
 use crate::application::organizations::invite_organization_member::OrganizationMemberInviteUseCase;
 use crate::application::organizations::list_organization_courses::OrganizationCourseListUseCase;
@@ -13,6 +14,7 @@ use crate::infra::postgres::organizations::organization_member_audit_use_case::P
 use crate::infra::postgres::organizations::organization_member_invite_use_case::PostgresOrganizationMemberInviteUseCase;
 use crate::infra::postgres::organizations::organization_member_list_use_case::PostgresOrganizationMemberListUseCase;
 use crate::infra::postgres::organizations::organization_member_removal_use_case::PostgresOrganizationMemberRemovalUseCase;
+use crate::infra::postgres::organizations::organization_member_role_assignment_use_case::PostgresOrganizationMemberRoleAssignmentUseCase;
 
 #[derive(Clone)]
 pub struct OrganizationUseCases {
@@ -22,6 +24,7 @@ pub struct OrganizationUseCases {
     pub member_invite: Arc<dyn OrganizationMemberInviteUseCase>,
     pub member_list: Arc<dyn OrganizationMemberListUseCase>,
     pub member_removal: Arc<dyn OrganizationMemberRemovalUseCase>,
+    pub member_role_assignment: Arc<dyn OrganizationMemberRoleAssignmentUseCase>,
 }
 
 pub fn build_organization_use_cases(pool: &DbPool) -> OrganizationUseCases {
@@ -32,5 +35,8 @@ pub fn build_organization_use_cases(pool: &DbPool) -> OrganizationUseCases {
         member_invite: Arc::new(PostgresOrganizationMemberInviteUseCase::new(pool.clone())),
         member_list: Arc::new(PostgresOrganizationMemberListUseCase::new(pool.clone())),
         member_removal: Arc::new(PostgresOrganizationMemberRemovalUseCase::new(pool.clone())),
+        member_role_assignment: Arc::new(PostgresOrganizationMemberRoleAssignmentUseCase::new(
+            pool.clone(),
+        )),
     }
 }
