@@ -1,5 +1,6 @@
 pub mod dto;
 mod handlers;
 mod routes;
+mod scope;
 
-pub use routes::roles_scope;
+pub use scope::configure_routes;

@@ -4,7 +4,7 @@ use crate::config::constants::permissions::Permissions;
 use crate::http::access_control::handlers;
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 
-pub fn roles_scope() -> actix_web::Scope {
+pub(super) fn roles_scope() -> actix_web::Scope {
     web::scope("/roles")
         .service(
             web::resource("").route(web::get().to(handlers::list_platform_roles).wrap(

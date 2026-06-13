@@ -9,7 +9,6 @@ pub mod kyc;
 pub mod organizations;
 pub mod reward_fraud_blocks;
 pub mod reward_policies;
-pub mod roles;
 pub mod session;
 pub mod teacher_applications;
 pub mod users;
@@ -47,7 +46,7 @@ pub fn api_scope() -> Scope<
         .service(delegated_permissions::delegated_permission_scope())
         .service(kyc::kyc_scope())
         .configure(crate::http::rewards::configure_routes)
-        .service(crate::http::access_control::roles_scope())
+        .configure(crate::http::access_control::configure_routes)
         .service(teacher_applications::teacher_application_scope())
         .configure(crate::http::wallet::configure_routes)
 }

@@ -963,24 +963,24 @@ remaining gaps.
 | 65-71 | Moved platform summary, platform fraud dashboard, organization summary, organization reward dashboard, platform reward dashboard, platform wallet reconciliation, and platform CSV export behavior into `application/reporting`, `infra/postgres/reporting`, and `http/reporting`; legacy report URLs still flow through the existing reports scope while matching old service queries/DTOs/CSV helpers were removed. |
 | 72-73 | Moved request-parameter parsing into `http/request_params`; moved reporting route composition into `http/reporting::configure_routes`, deleted the legacy `api/reports` wrapper, and narrowed reporting resource exports to the context boundary. |
 | 74 | Moved wallet route composition into `http/wallet::configure_routes`, deleted the legacy `api/wallets` wrapper, and kept wallet resource registration internal to the wallet HTTP context. |
+| 75 | Moved access-control role route composition behind `http/access_control::configure_routes`, deleted the legacy `api/roles` wrapper, and kept the raw roles scope internal. |
 
 ## Recent Slice Evidence
 
-Slice 74: move wallet route composition into the wallet HTTP ring.
+Slice 75: move role route composition into the access-control HTTP ring.
 
-- [x] Add `http/wallet/scope.rs` so the wallet context owns the `/wallets`
-      Actix scope and exposes `configure_routes` as its public composition
-      point.
-- [x] Rename the relative wallet resource registration to
-      `configure_wallet_routes` and keep it `pub(super)`.
-- [x] Update `api_scope()` and wallet regression test setup to mount
-      `http/wallet::configure_routes` instead of `api::wallets`.
-- [x] Delete the thin `src/api/wallets*` wrapper while preserving all existing
-      wallet URLs under `/api/wallets`.
+- [x] Add `http/access_control/scope.rs` so the access-control context owns
+      role route composition and exposes `configure_routes` as its public
+      mount point.
+- [x] Keep the raw `/roles` scope `pub(super)` and update `api_scope()` to use
+      the access-control configurator.
+- [x] Delete the thin `src/api/roles.rs` compatibility wrapper.
+- [x] Update the role-read middleware regression test to mount
+      `http/access_control::configure_routes`.
 - [x] Self-critique: `src/api/mod.rs` still composes many legacy scopes; later
       slices should keep replacing those with context-owned `configure_routes`
       functions.
-- [x] Prove wallet route reachability, wallet linking/transfer behavior,
+- [x] Prove role route reachability, role permission behavior,
       formatting, line-count, and stale import scans.
 
 ## Legacy Transition Rules
@@ -1094,6 +1094,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Wallet and reward authorization decisions now use
       `application/access_control` with typed permission vocabulary and
       Postgres permission adapters for the moved wallet/reward use cases.
+- [x] `http/access_control` owns role route composition and exposes a
+      context-level route configurator for the app.
 - [ ] Create one access-control API for `can(actor, action, scope)` style
       decisions.
 - [ ] Encode scope as types instead of loose strings where practical:
