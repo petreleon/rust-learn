@@ -30,7 +30,7 @@ async fn course_video_upload_can_be_queued_and_processed() {
             .app_data(media_url_use_case_data(&pool, &s3))
             .app_data(content_processing_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope()),
+            .service(rust_learn::http::learning::course_scope()),
     )
     .await;
 

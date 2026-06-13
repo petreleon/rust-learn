@@ -35,9 +35,9 @@
 - `src/bin/abi_export.rs` — untested
 - `src/bin/mock_email.rs` — untested
 
-### 3. API Handlers (LOW)
-- `src/api/roles.rs` — no dedicated test file (exercised by integration tests)
-- `src/api/users.rs` — no dedicated test file (exercised by integration tests)
+### 3. HTTP Handlers (LOW)
+- `src/http/access_control` role routes — no dedicated test file (exercised by integration tests)
+- `src/http/identity` user routes — no dedicated test file (exercised by integration tests)
 
 ### 4. Config Migration Data (LOW)
 - `src/config/db_setup/updates/update_v1.rs` — seed data insertion not verified

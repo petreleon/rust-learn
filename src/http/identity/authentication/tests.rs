@@ -1,5 +1,7 @@
 use super::{
-    email_log_hash, normalize_email, validate_password_strength, PASSWORD_TOO_LONG_MESSAGE,
+    auth_scope,
+    password_policy::{validate_password_strength, PASSWORD_TOO_LONG_MESSAGE},
+    support::{email_log_hash, normalize_email},
 };
 use crate::models::user_jwt::UserJWT;
 use crate::utils::jwt_utils::create_jwt;
@@ -87,7 +89,7 @@ fn email_log_hash_distinguishes_different_addresses() {
 
 #[actix_web::test]
 async fn user_id_requires_authorization_header() {
-    let app = actix_test::init_service(App::new().service(super::auth_scope())).await;
+    let app = actix_test::init_service(App::new().service(auth_scope())).await;
 
     let response = actix_test::call_service(
         &app,
@@ -104,7 +106,7 @@ async fn user_id_requires_authorization_header() {
 
 #[actix_web::test]
 async fn user_id_rejects_malformed_authorization_header() {
-    let app = actix_test::init_service(App::new().service(super::auth_scope())).await;
+    let app = actix_test::init_service(App::new().service(auth_scope())).await;
 
     let response = actix_test::call_service(
         &app,
@@ -122,7 +124,7 @@ async fn user_id_rejects_malformed_authorization_header() {
 
 #[actix_web::test]
 async fn user_id_rejects_invalid_bearer_token() {
-    let app = actix_test::init_service(App::new().service(super::auth_scope())).await;
+    let app = actix_test::init_service(App::new().service(auth_scope())).await;
 
     let response = actix_test::call_service(
         &app,
@@ -142,7 +144,7 @@ async fn user_id_rejects_invalid_bearer_token() {
 async fn user_id_returns_id_for_valid_bearer_token() {
     let _ = dotenvy::dotenv();
     let token = create_jwt(42).expect("test JWT should be created");
-    let app = actix_test::init_service(App::new().service(super::auth_scope())).await;
+    let app = actix_test::init_service(App::new().service(auth_scope())).await;
 
     let response = actix_test::call_service(
         &app,
@@ -160,7 +162,7 @@ async fn user_id_returns_id_for_valid_bearer_token() {
 
 #[actix_web::test]
 async fn user_id_uses_decoded_request_extension() {
-    let app = actix_test::init_service(App::new().service(super::auth_scope())).await;
+    let app = actix_test::init_service(App::new().service(auth_scope())).await;
     let request = actix_test::TestRequest::get()
         .uri("/auth/user_id")
         .to_request();

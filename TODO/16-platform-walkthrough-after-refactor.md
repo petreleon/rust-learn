@@ -149,7 +149,7 @@ what changed by exercising the product, not just reading the code.
 
 ## Refactor Quality Review
 
-- [ ] Pick one module from `src/api/`, `src/services/`, `src/repositories/`,
+- [ ] Pick one module from `src/http/`, `src/services/`, `src/repositories/`,
       `src/utils/`, `tests/`, and `web/`.
 - [ ] Confirm each split file has a clear responsibility.
 - [ ] Confirm aggregator files are easy to scan.

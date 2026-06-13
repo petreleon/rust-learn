@@ -3,7 +3,7 @@ async fn assert_teacher_dashboard_list(fixture: &TeacherDashboardFixture) {
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope()),
+            .service(rust_learn::http::learning::course_scope()),
     )
     .await;
 

@@ -38,7 +38,7 @@ screens pretend to be complete.
         progress exists.
 - [x] Define assessment APIs before marking assessment-taking screens complete.
       `GET /api/courses/{id}/assessments`, `POST .../submit`, `GET .../attempts`
-      all registered in `src/api/courses.rs`.
+      all registered through `http/learning` course routes.
 - [x] Define notification list/read APIs before making notification UX a core
       navigation feature. `GET/PUT/DELETE /api/me/notifications` registered,
       frontend helpers exist.

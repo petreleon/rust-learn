@@ -45,7 +45,7 @@ fn auth_test_app(
 > {
     App::new()
         .app_data(web::Data::new(pool))
-        .service(web::scope("/api").service(rust_learn::api::authentication::auth_scope()))
+        .service(web::scope("/api").service(rust_learn::http::identity::auth_scope()))
 }
 
 #[actix_web::test]

@@ -1,7 +1,3 @@
-// src/api/mod.rs
-pub mod authentication;
-pub mod courses;
-pub mod organizations;
 use actix_service::ServiceFactory;
 use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, Scope};
 
@@ -25,12 +21,10 @@ pub fn api_scope() -> Scope<
             |_req: &ServiceRequest| Box::pin(futures::future::ready(Ok(true))),
             || actix_web::error::ErrorUnauthorized("Denied by conditional middleware"),
         ))
-        .service(web::resource("/.well-known/jwks.json").route(web::get().to(authentication::jwks)))
         .configure(crate::http::identity::configure_routes)
         .configure(crate::http::notifications::configure_routes)
-        .service(authentication::auth_scope())
-        .service(courses::course_scope())
-        .service(organizations::organization_scope())
+        .configure(crate::http::learning::configure_routes)
+        .configure(crate::http::organizations::configure_routes)
         .configure(crate::http::reporting::configure_routes)
         .configure(crate::http::kyc::configure_routes)
         .configure(crate::http::rewards::configure_routes)

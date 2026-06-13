@@ -21,7 +21,7 @@ async fn organization_dashboard_gates_sensitive_sections_for_basic_member() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::organizations::organization_scope()),
+            .service(rust_learn::http::organizations::organization_scope()),
     )
     .await;
 
@@ -80,7 +80,7 @@ async fn organization_dashboard_denies_outsiders_without_org_scope() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::organizations::organization_scope()),
+            .service(rust_learn::http::organizations::organization_scope()),
     )
     .await;
 

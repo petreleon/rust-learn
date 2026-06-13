@@ -37,10 +37,10 @@ reconciliation, and system health.
       The frontend `/admin/rewards/amount-review` defaults to `teacher_approved`
       but supports all statuses for audit visibility.
 - [x] Fraud block list, create, audit, revoke, expiration, and scoped target
-      search. Full API in `src/api/reward_fraud_blocks.rs`, frontend route
+      search. HTTP routes live in `http/rewards`, frontend route
       `/admin/fraud-blocks` with `AdminFraudBlocksRoute` component.
 - [x] Delegated permission list, grant, revoke, expiration, scope, and usage
-      audit. Full API in `src/api/delegated_permissions.rs`, frontend route
+      audit. HTTP routes live in `http/access_control`, frontend route
       `/admin/delegations` with `AdminDelegationsRoute` component.
 - [x] Export endpoints with CSV response handling and status/failure behavior.
 - [x] Wallet reconciliation and transaction audit endpoints.

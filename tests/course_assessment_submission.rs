@@ -112,7 +112,7 @@ async fn assessment_submit_attempt_scores_persists_and_enforces_max_attempts() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope()),
+            .service(rust_learn::http::learning::course_scope()),
     )
     .await;
     let uri = format!(

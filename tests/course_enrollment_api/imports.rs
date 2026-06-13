@@ -95,7 +95,7 @@ fn course_enrollment_test_app(
         .app_data(web::Data::new(pool.clone()))
         .app_data(web::Data::new(NotificationsState::new(pool)))
         .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-        .service(rust_learn::api::courses::course_scope())
+        .service(rust_learn::http::learning::course_scope())
 }
 
 async fn notification_count(conn: &mut AsyncPgConnection, user_id: i32, title: &str) -> i64 {

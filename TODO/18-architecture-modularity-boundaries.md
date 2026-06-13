@@ -913,9 +913,9 @@ Wiring rule:
 
 ## Actix-Specific Refactor Rules
 
-- [ ] Each HTTP context exposes one route configurator from `http/<context>`,
+- [x] Each HTTP context exposes one route configurator from `http/<context>`,
       e.g. `pub fn configure_routes(cfg: &mut web::ServiceConfig)`.
-- [ ] `api::api_scope()` should only compose context route configurators and
+- [x] `http::api_scope()` composes context route configurators and
       cross-cutting middleware.
 - [ ] Build an `AppState` or context-specific state structs once outside the
       `HttpServer::new` closure, then pass them with `web::Data`.
@@ -971,31 +971,46 @@ remaining gaps.
 | 80 | Moved delegated-permission HTTP handlers and `/delegated-permissions` scope from `api/delegated_permissions` into `http/access_control`, then mounted them from the access-control route configurator. |
 | 81 | Moved KYC HTTP handlers and `/kyc` scope from `api/kyc` into `http/kyc`, then mounted the context from `api_scope()` through `http/kyc::configure_routes`. |
 | 82 | Moved teacher-application HTTP handlers and `/teacher-applications` scope from `api/teacher_applications` into normal `http/teacher_applications` modules, then updated organization nomination routes to call that context. |
+| 83 | Moved authentication routes, password policy, email verification, password reset, login, session user-id, and JWKS handling into `http/identity/authentication`; bootstrap, seed validation, and auth-flow tests now import identity instead of `api/authentication`. |
+| 84 | Retired the `src/api` module: `/api` composition now lives in `http/routes.rs`, course route ownership lives in `http/learning`, organization route ownership lives in `http/organizations`, and tests import context HTTP modules directly. |
 
 ## Recent Slice Evidence
 
-Slice 82: move teacher-application routes into the teacher-application HTTP ring.
+Slices 83-84: move auth, course, organization, and `/api` route ownership into
+the HTTP ring.
 
-- [x] Add `http/teacher_applications` with normal modules for support,
-      handlers, organization nomination, audit routes, and route composition.
-- [x] Remove the legacy `include!`-based `src/api/teacher_applications*`
-      module and mount `/teacher-applications` from
-      `http/teacher_applications::configure_routes`.
-- [x] Update organization nomination routing to call
-      `http/teacher_applications::nominate_application`.
-- [x] Preserve teacher-application notification behavior while moving the
-      notification helper into the teacher-application HTTP context.
-- [x] Self-critique: teacher-application request/response contracts and
-      workflow still live in `services/teacher_application_service`; later
-      slices should add `application/teacher_applications`,
-      `infra/postgres/teacher_applications`, and context DTO ownership.
-- [x] Prove teacher-application and organization teacher-application behavior,
-      API route reachability, formatting, line-count, and stale import scans.
+- [x] Add `http/identity/authentication` with normal modules for password
+      policy, support helpers, login, registration, email verification,
+      password reset, session user-id, JWKS, and tests.
+- [x] Remove the legacy `api/authentication` include-based module and mount
+      `/api/auth`, `/api/.well-known/jwks.json`, and root
+      `/.well-known/jwks.json` through `http/identity`.
+- [x] Move course route ownership from `api/courses` into
+      `http/learning/course_routes` and expose it through
+      `http/learning::configure_routes`.
+- [x] Move organization route ownership from `api/organizations` into
+      `http/organizations` and expose it through
+      `http/organizations::configure_routes`.
+- [x] Move top-level `/api` composition from `api::api_scope()` into
+      `http::api_scope()` and remove the `src/api` module from the library and
+      binary.
+- [x] Self-critique: route-complete is now true, but learning and organization
+      are still not use-case-complete or adapter-complete. Their HTTP route
+      fragments still carry legacy `include!`/`imports.rs` structure and call
+      `services::*`, `repositories::*`, direct Diesel, and Diesel models. Next
+      slices should split those handlers by real use case, then move business
+      orchestration into `application/learning` and `application/organizations`
+      with Postgres ports/adapters.
+- [x] Prove behavior with binary compile, route reachability, authentication,
+      current-session, course discovery/assessment/content/enrollment, teacher
+      course dashboard, organization dashboard/member/teacher-application, and
+      middleware/permission tests.
 
 ## Legacy Transition Rules
 
-- [ ] New ring-based modules may be called from existing `api`, `services`, and
-      `repositories` while migration is in progress.
+- [x] Legacy `api` wrappers are gone; new ring-based modules may still be
+      called from existing `services` and `repositories` while deeper
+      extraction is in progress.
 - [ ] New ring-based modules must not call old `services::*` modules.
 - [ ] New domain and application modules must not call old `models::*` async DB
       methods. Use a temporary infra adapter if a legacy query still lives
@@ -1136,6 +1151,28 @@ boundary checks from the matrix above to every canonical context.
 
 - [x] `http/identity` owns current-session and platform `/user` route
       composition; the legacy `api/users` module has been deleted.
+- [x] `http/identity/authentication` owns `/auth`, JWKS, login, registration,
+      email verification, password reset, and auth session helper routes; the
+      legacy `api/authentication` module has been deleted.
+
+## Learning Context
+
+- [x] `http/learning` owns `/courses` route composition, including content,
+      reward candidate, catalog, teaching dashboard, enrollment, progress, and
+      assessment routes; the legacy `api/courses` module has been deleted.
+- [ ] Split `http/learning/course_routes` away from legacy
+      `include!`/`imports.rs` structure and move remaining service/DB-heavy
+      handlers into application use cases with Postgres adapters.
+
+## Organizations Context
+
+- [x] `http/organizations` owns `/organizations` route composition, including
+      members, dashboard, course lists, reward submissions, and teacher
+      application nomination/list routes; the legacy `api/organizations` module
+      has been deleted.
+- [ ] Split `http/organizations` away from legacy `include!`/`imports.rs`
+      structure and move organization CRUD/member/dashboard orchestration into
+      application use cases with Postgres adapters.
 
 ## KYC Context
 
@@ -1169,10 +1206,10 @@ boundary checks from the matrix above to every canonical context.
 4. Introduce `access_control` and route all permission checks through it.
 5. Finish the active rewards extraction across `domain`, `application`,
    `infra/postgres`, `infra/ethereum`, `http`, and `notifications`.
-6. Complete already-started contexts next: identity, learning, content,
+6. Deepen already-started contexts next: identity, learning, content,
    notifications, operations, access control, reporting, and wallet.
-7. Extract organizations, teacher applications, and KYC with the same Level 2
-   matrix instead of leaving them in legacy services.
+7. Deepen organizations, teacher applications, and KYC with the same Level 2
+   matrix instead of leaving orchestration in legacy services.
 8. Convert reporting to explicit read-model/query modules rather than general
    business services.
 9. Update frontend permission/capability helpers to consume backend capability
@@ -1191,6 +1228,8 @@ boundary checks from the matrix above to every canonical context.
       mapping; no complex Diesel query builders.
 - [ ] Permission behavior has one backend source of truth.
 - [x] `main.rs` is mostly logging/env setup, bootstrap calls, and server start.
+- [x] Route ownership is complete: `src/api` has been removed and the `/api`
+      scope is assembled from `http` context route configurators.
 - [ ] Existing route URLs and response semantics remain backward compatible
       unless a migration note explicitly says otherwise.
 - [ ] New `domain`, `application`, `http`, and `infra` modules pass the import

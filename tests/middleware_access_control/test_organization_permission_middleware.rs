@@ -29,7 +29,7 @@ async fn test_organization_permission_middleware() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::organizations::organization_scope()),
+            .service(rust_learn::http::organizations::organization_scope()),
     )
     .await;
 

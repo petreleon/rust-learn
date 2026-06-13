@@ -1,19 +1,35 @@
+use actix_web::{post, web, HttpResponse, Responder};
+use bcrypt::{non_truncating_hash, DEFAULT_COST};
+use diesel::prelude::*;
+use diesel::result::Error as DieselError;
+use diesel_async::{AsyncConnection, RunQueryDsl};
+use serde::Deserialize;
+
+use super::password_policy::validate_password_strength;
+use super::support::{email_log_hash, normalize_email};
+use crate::db;
+use crate::models::password_reset_token::{PasswordResetResult, PasswordResetToken};
+use crate::models::user::User;
+use crate::utils::email::{
+    generate_verification_token, print_mock_password_reset_email, verification_token_hash,
+};
+
 const PASSWORD_RESET_REQUEST_MESSAGE: &str =
     "If an account matches that email, a password reset link has been sent.";
 
 #[derive(Deserialize)]
-pub struct ForgotPasswordRequest {
-    pub email: String,
+pub(super) struct ForgotPasswordRequest {
+    email: String,
 }
 
 #[derive(Deserialize)]
-pub struct ResetPasswordRequest {
-    pub token: String,
-    pub password: String,
+pub(super) struct ResetPasswordRequest {
+    token: String,
+    password: String,
 }
 
 #[post("/forgot-password")]
-pub async fn forgot_password(
+pub(super) async fn forgot_password(
     pool: web::Data<db::DbPool>,
     req: web::Json<ForgotPasswordRequest>,
 ) -> impl Responder {
@@ -68,7 +84,7 @@ pub async fn forgot_password(
 }
 
 #[post("/reset-password")]
-pub async fn reset_password(
+pub(super) async fn reset_password(
     pool: web::Data<db::DbPool>,
     req: web::Json<ResetPasswordRequest>,
 ) -> impl Responder {

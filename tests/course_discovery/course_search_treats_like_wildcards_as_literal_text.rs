@@ -22,7 +22,7 @@ async fn course_search_treats_like_wildcards_as_literal_text() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope()),
+            .service(rust_learn::http::learning::course_scope()),
     )
     .await;
     let token = token_for(viewer.id());

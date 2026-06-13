@@ -1,5 +1,32 @@
+use actix_web::{post, web, HttpResponse, Responder};
+use bcrypt::{non_truncating_hash, DEFAULT_COST};
+use chrono::NaiveDate;
+use diesel::result::Error as DieselError;
+use diesel_async::AsyncConnection;
+use serde::Deserialize;
+
+use super::password_policy::validate_password_strength;
+use super::support::{normalize_email, registration_db_error_response};
+use crate::db;
+use crate::models::authentication::Authentication;
+use crate::models::email_verification_token::EmailVerificationToken;
+use crate::models::role::PlatformRole;
+use crate::models::user::{NewUser, User};
+use crate::models::user_role_platform::UserRolePlatform;
+use crate::utils::email::{
+    generate_verification_token, print_mock_verification_email, verification_token_hash,
+};
+
+#[derive(Deserialize)]
+pub(super) struct RegisterRequest {
+    email: String,
+    password: String,
+    name: String,
+    date_of_birth: Option<NaiveDate>,
+}
+
 #[post("/register")]
-pub async fn register(
+pub(super) async fn register(
     pool: web::Data<db::DbPool>,
     req: web::Json<RegisterRequest>,
 ) -> impl Responder {
@@ -51,7 +78,6 @@ pub async fn register(
         .transaction::<_, DieselError, _>(|conn| {
             Box::pin(async move {
                 let inserted_user = User::create(new_user_data, conn).await?;
-
                 let role_id = PlatformRole::find_by_name("STUDENT", conn).await?;
                 UserRolePlatform::assign(conn, inserted_user.id(), role_id).await?;
 
@@ -61,7 +87,6 @@ pub async fn register(
                     info_auth: hashed_password,
                 };
                 Authentication::create(new_auth, conn).await?;
-
                 EmailVerificationToken::create_for_user(conn, inserted_user.id(), token_hash)
                     .await?;
 
@@ -71,9 +96,7 @@ pub async fn register(
         .await
     {
         Ok(user) => user,
-        Err(err) => {
-            return registration_db_error_response(err, &req.email);
-        }
+        Err(err) => return registration_db_error_response(err, &req.email),
     };
 
     print_mock_verification_email(
@@ -84,72 +107,3 @@ pub async fn register(
 
     HttpResponse::Ok().body("Registration successful")
 }
-
-#[get("/verify-email")]
-pub async fn verify_email(
-    pool: web::Data<db::DbPool>,
-    query: web::Query<VerifyEmailQuery>,
-) -> impl Responder {
-    let token = query.token.trim();
-    if token.is_empty() {
-        return HttpResponse::BadRequest().body("Verification token is required");
-    }
-
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    let token_hash = verification_token_hash(token);
-    match EmailVerificationToken::verify(&mut conn, &token_hash).await {
-        Ok(EmailVerificationResult::Verified) => {
-            HttpResponse::Ok().body("Email verified successfully")
-        }
-        Ok(EmailVerificationResult::AlreadyVerified) => {
-            HttpResponse::Ok().body("Email already verified")
-        }
-        Ok(EmailVerificationResult::Expired) => {
-            HttpResponse::BadRequest().body("Verification token expired")
-        }
-        Ok(EmailVerificationResult::Invalid) => {
-            HttpResponse::BadRequest().body("Invalid verification token")
-        }
-        Err(err) => {
-            log::error!("event=email_verification_failed error={}", err);
-            HttpResponse::InternalServerError().body("Failed to verify email token")
-        }
-    }
-}
-
-#[get("/user_id")]
-pub async fn user_id(req: HttpRequest) -> impl Responder {
-    match authenticated_user_id(&req) {
-        Ok(user_id) => HttpResponse::Ok().body(format!("Hello! Your ID is {}", user_id)),
-        Err(response) => response,
-    }
-}
-
-pub async fn jwks() -> impl Responder {
-    match public_jwks_from_env() {
-        Ok(jwks) => HttpResponse::Ok().json(jwks),
-        Err(err) => {
-            log::error!("event=jwks_build_failed error={}", err);
-            HttpResponse::InternalServerError().body("Failed to build JWKS response")
-        }
-    }
-}
-
-// Define the scope for authentication-related routes
-pub fn auth_scope() -> actix_web::Scope {
-    web::scope("/auth")
-        .service(forgot_password)
-        .service(login)
-        .service(register)
-        .service(resend_verification)
-        .service(reset_password)
-        .service(verify_email)
-        .service(user_id)
-}
-
-#[cfg(test)]
-mod tests;

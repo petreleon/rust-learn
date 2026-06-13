@@ -3,7 +3,7 @@ async fn assert_teacher_workspace(fixture: &TeacherDashboardFixture) {
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope()),
+            .service(rust_learn::http::learning::course_scope()),
     )
     .await;
 
@@ -61,7 +61,7 @@ async fn assert_teacher_enrollments(fixture: &TeacherDashboardFixture) {
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope()),
+            .service(rust_learn::http::learning::course_scope()),
     )
     .await;
 
@@ -143,7 +143,7 @@ async fn assert_teacher_pending_filter(fixture: &TeacherDashboardFixture) {
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope()),
+            .service(rust_learn::http::learning::course_scope()),
     )
     .await;
     let req = test::TestRequest::get()

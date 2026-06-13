@@ -1,7 +1,7 @@
 // src/config/db_setup/updates/update_v2.rs
 
-use crate::api::authentication::validate_password_strength;
 use crate::config::constants::roles::Roles;
+use crate::http::identity::validate_password_strength;
 use crate::repositories::platform_repository::assign_role_to_user;
 use crate::repositories::user_repository::create_user;
 use anyhow::{anyhow, Context, Result};
