@@ -1153,6 +1153,36 @@ Slice 23: move notification inbox routes into the notifications HTTP ring.
 - [x] Prove ownership filtering, mark-read, clear, route composition,
       application notification behavior, and binary wiring with focused tests.
 
+Slice 24: move current-session routes into the identity HTTP ring.
+
+- [x] Add an application-facing `CurrentSessionUseCase` trait under
+      `application/identity/current_session`.
+- [x] Add a `CurrentSessionStore` port plus application output/error types so
+      the current-session contract is not a Diesel record or HTTP DTO.
+- [x] Add `infra/postgres/identity/current_session_store.rs` and
+      `current_session_use_case.rs` as the DbPool-backed implementation.
+- [x] Move current-session scope assembly behind the Postgres identity adapter,
+      split into session load, delegation application, and scope-builder
+      modules.
+- [x] Move `/me` handler and route configuration into `http/identity`.
+- [x] Add current-session response DTO mapping in `http/identity/dto` while
+      preserving the existing JSON field names.
+- [x] Make `src/api/session.rs` a thin compatibility re-export for identity and
+      notification handlers.
+- [x] Wire the current-session use-case trait object through
+      `bootstrap::AppState`, production Actix app data, and focused test app
+      data.
+- [x] Preserve existing current-session error codes/messages for
+      unauthorized, missing user, unverified email, DB-unavailable, and
+      session-load failures.
+- [x] Self-critique: the old include-based `services/session_service` module
+      still exists for legacy unit coverage and should be removed after its
+      remaining builder tests are either moved into `infra/postgres/identity`
+      or replaced by application/store-level tests.
+- [x] Prove profile/scope/delegation output, authorization rejection, missing
+      user, unverified email, application fake-port behavior, route
+      composition, and binary wiring with focused tests.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -1173,6 +1203,14 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `src/api/session` also re-exports notification inbox handlers from
   `http::notifications`; `/me/notifications` list/read/clear route
   composition now lives in `http/notifications`.
+- `src/api/session` re-exports the current-session handler from
+  `http::identity`; `/me` route composition now lives in `http/identity`.
+- Current-session HTTP handlers and response DTOs now live under
+  `http/identity`.
+- Current-session reads are injected as an application-facing
+  `CurrentSessionUseCase`; concrete DbPool/Postgres wiring lives in
+  `infra/postgres/identity/current_session_use_case.rs` and
+  `bootstrap::AppState`.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -1278,6 +1316,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `rg "api::session::get_notification_preferences|api::session::save_notification_preferences|session::get_notification_preferences|session::save_notification_preferences" src/api/mod.rs tests/current_session_api/current_session_test_app.rs`
   returns no matches.
+- `rg "session::get_current_session|api::session::get_current_session|crate::services::session_service|crate::db::DbPool|diesel|diesel_async|schema::|RunQueryDsl" src/api/session.rs src/http/identity src/api/mod.rs`
+  returns no matches.
+- `rg "api::session::get_current_session|session::get_current_session" src/api/mod.rs tests/current_session_api/current_session_test_app.rs`
+  returns no matches.
 - `rg "diesel|diesel_async|schema::|RunQueryDsl|QueryDsl|ExpressionMethods|models::user::User" src/api/users.rs`
   returns no matches.
 - `rg "diesel|diesel_async|RunQueryDsl|assessment_attempts::table|assessments::table" src/api/courses/list_assessment_attempts.rs`
@@ -1351,6 +1393,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   passes.
 - `./scripts/run-host-tests.sh cargo test application::notifications` passes
   with fake-port coverage for notification inbox list, mark-read, and clear.
+- `./scripts/run-host-tests.sh cargo test current_session_ --test current_session_api`
+  passes.
+- `./scripts/run-host-tests.sh cargo test application::identity::current_session`
+  passes.
 - `./scripts/run-host-tests.sh cargo check --features app-bin --bin rust-learn`
   passes.
 

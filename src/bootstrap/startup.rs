@@ -13,6 +13,7 @@ use crate::infra::postgres::content::content_item_use_cases::PostgresContentItem
 use crate::infra::postgres::content::media_url_use_case::PostgresContentMediaUrlUseCase;
 use crate::infra::postgres::content::processing_use_case::PostgresContentProcessingUseCase;
 use crate::infra::postgres::content::upload_url_use_case::PostgresContentUploadUrlUseCase;
+use crate::infra::postgres::identity::current_session_use_case::PostgresCurrentSessionUseCase;
 use crate::infra::postgres::notifications::notification_inbox_use_case::PostgresNotificationInboxUseCase;
 use crate::infra::postgres::notifications::notification_preferences_use_case::PostgresNotificationPreferencesUseCase;
 use crate::utils::notifications::NotificationsState;
@@ -35,6 +36,7 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
 
     Ok(AppState {
         role_catalog_use_case: Arc::new(PostgresRoleCatalogUseCase::new(pool.clone())),
+        current_session_use_case: Arc::new(PostgresCurrentSessionUseCase::new(pool.clone())),
         notification_inbox_use_case: Arc::new(PostgresNotificationInboxUseCase::new(pool.clone())),
         notification_preferences_use_case: Arc::new(PostgresNotificationPreferencesUseCase::new(
             pool.clone(),

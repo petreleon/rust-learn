@@ -40,7 +40,7 @@ pub fn api_scope() -> Scope<
             || actix_web::error::ErrorUnauthorized("Denied by conditional middleware"),
         ))
         .service(web::resource("/.well-known/jwks.json").route(web::get().to(authentication::jwks)))
-        .service(web::resource("/me").route(web::get().to(session::get_current_session)))
+        .configure(crate::http::identity::configure_routes)
         .configure(crate::http::notifications::configure_routes)
         .service(users::user_scope())
         .service(authentication::auth_scope())

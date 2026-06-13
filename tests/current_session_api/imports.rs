@@ -2,10 +2,12 @@ use actix_web::{http::StatusCode, test, web, App};
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::identity::current_session::CurrentSessionUseCase;
 use rust_learn::application::notifications::notification_inbox::NotificationInboxUseCase;
 use rust_learn::application::notifications::preference_service::NotificationPreferencesUseCase;
 use rust_learn::db::schema::{courses, organizations, users};
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::identity::current_session_use_case::PostgresCurrentSessionUseCase;
 use rust_learn::infra::postgres::notifications::notification_inbox_use_case::PostgresNotificationInboxUseCase;
 use rust_learn::infra::postgres::notifications::notification_preferences_use_case::PostgresNotificationPreferencesUseCase;
 use rust_learn::models::course::{Course, NewCourse};
@@ -34,6 +36,10 @@ fn notification_preferences_use_case_data(
     web::Data::new(Arc::new(PostgresNotificationPreferencesUseCase::new(
         pool.clone(),
     )))
+}
+
+fn current_session_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn CurrentSessionUseCase>> {
+    web::Data::new(Arc::new(PostgresCurrentSessionUseCase::new(pool.clone())))
 }
 
 fn notification_inbox_use_case_data(
