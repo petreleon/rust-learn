@@ -14,5 +14,6 @@ pub struct RoleCatalogEntry {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RoleCatalogError {
+    Connection(String),
     Database(String),
 }

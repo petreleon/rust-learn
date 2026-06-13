@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::access_control::list_roles::RoleCatalogUseCase;
 use crate::application::content::manage_chapter::ChapterUseCases;
 use crate::application::content::manage_content_item::ContentItemUseCases;
 use crate::application::content::process_upload_job::ContentProcessingUseCase;
@@ -15,6 +16,7 @@ pub struct AppState {
     pub pool: DbPool,
     pub s3: S3State,
     pub notifications: NotificationsState,
+    pub role_catalog_use_case: Arc<dyn RoleCatalogUseCase>,
     pub chapter_use_cases: Arc<dyn ChapterUseCases>,
     pub content_item_use_cases: Arc<dyn ContentItemUseCases>,
     pub content_upload_url_use_case: Arc<dyn ContentUploadUrlUseCase>,

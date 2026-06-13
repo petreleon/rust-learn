@@ -7,13 +7,16 @@ use rust_learn::utils::jwt_utils::create_jwt;
 
 use actix_service::Service;
 use chrono::NaiveDate;
+use rust_learn::application::access_control::list_roles::RoleCatalogUseCase;
 use rust_learn::db::schema::{courses, organizations};
+use rust_learn::infra::postgres::access_control::role_catalog_use_case::PostgresRoleCatalogUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
 use rust_learn::models::user_role_course::UserRoleCourse;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::models::user_role_platform::UserRolePlatform; // Import Service trait for .call()
+use std::sync::Arc;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -43,6 +46,10 @@ async fn create_test_user(conn: &mut AsyncPgConnection, name: &str) -> User {
 
 fn generate_token(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to generate token")
+}
+
+fn role_catalog_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn RoleCatalogUseCase>> {
+    web::Data::new(Arc::new(PostgresRoleCatalogUseCase::new(pool.clone())))
 }
 
 fn response_status<B>(

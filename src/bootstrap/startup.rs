@@ -7,6 +7,7 @@ use crate::bootstrap::app_state::AppState;
 use crate::bootstrap::readiness::RuntimeReadinessUseCase;
 use crate::config::db_setup::version_updater;
 use crate::db;
+use crate::infra::postgres::access_control::role_catalog_use_case::PostgresRoleCatalogUseCase;
 use crate::infra::postgres::content::chapter_use_cases::PostgresChapterUseCases;
 use crate::infra::postgres::content::content_item_use_cases::PostgresContentItemUseCases;
 use crate::infra::postgres::content::media_url_use_case::PostgresContentMediaUrlUseCase;
@@ -31,6 +32,7 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
     run_startup_tasks(&pool).await?;
 
     Ok(AppState {
+        role_catalog_use_case: Arc::new(PostgresRoleCatalogUseCase::new(pool.clone())),
         chapter_use_cases: Arc::new(PostgresChapterUseCases::new(pool.clone())),
         content_item_use_cases: Arc::new(PostgresContentItemUseCases::new(pool.clone())),
         content_upload_url_use_case: Arc::new(PostgresContentUploadUrlUseCase::new(
