@@ -1,0 +1,57 @@
+use diesel_async::{AsyncConnection, AsyncPgConnection};
+use futures::future::{BoxFuture, FutureExt};
+
+use crate::application::rewards::credit_wallet::{
+    RewardWalletCredit, RewardWalletCreditError, RewardWalletCreditOutput, RewardWalletCreditStore,
+};
+use crate::config::constants::permissions::Permissions;
+use crate::infra::postgres::rewards::reward_wallet_credit_mappers::{
+    map_diesel_error, map_transaction_error, RewardWalletCreditTransactionError,
+};
+use crate::repositories::platform_repository::user_permission_platform_request;
+
+pub struct PostgresRewardWalletCreditStore<'conn> {
+    conn: &'conn mut AsyncPgConnection,
+}
+
+impl<'conn> PostgresRewardWalletCreditStore<'conn> {
+    pub fn new(conn: &'conn mut AsyncPgConnection) -> Self {
+        Self { conn }
+    }
+}
+
+impl RewardWalletCreditStore for PostgresRewardWalletCreditStore<'_> {
+    fn can_execute_reward_payout(
+        &mut self,
+        actor_user_id: i32,
+    ) -> BoxFuture<'_, Result<bool, RewardWalletCreditError>> {
+        async move {
+            user_permission_platform_request(
+                self.conn,
+                actor_user_id,
+                &Permissions::EXECUTE_REWARD_PAYOUT.to_string(),
+            )
+            .await
+            .map_err(map_diesel_error)
+        }
+        .boxed()
+    }
+
+    fn credit_reward_wallet(
+        &mut self,
+        credit: RewardWalletCredit,
+    ) -> BoxFuture<'_, Result<RewardWalletCreditOutput, RewardWalletCreditError>> {
+        async move {
+            self.conn
+                .transaction::<_, RewardWalletCreditTransactionError, _>(|conn| {
+                    Box::pin(async move {
+                        super::reward_wallet_credit_transaction::credit_reward_wallet(conn, credit)
+                            .await
+                    })
+                })
+                .await
+                .map_err(map_transaction_error)
+        }
+        .boxed()
+    }
+}

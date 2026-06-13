@@ -14,6 +14,7 @@ use rust_learn::domain::rewards::policy::{
     REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN, REWARD_PAYMENT_TREASURY_TRANSFER,
     REWARD_POLICY_SCOPE_COURSE,
 };
+use rust_learn::domain::rewards::wallet_credit::REWARD_TRANSACTION_TYPE_WALLET_CREDIT;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::reward_audit_event::{
     REWARD_AUDIT_EVENT_TOKEN_CONFIRMED, REWARD_AUDIT_EVENT_WALLET_CREDITED,
@@ -32,9 +33,8 @@ use rust_learn::repositories::reward_audit_event_repository::list_reward_audit_e
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::application::rewards::record_token_confirmation::RewardTokenConfirmationCommand as RewardTokenConfirmationRequest;
 use rust_learn::services::reward_execution_service::{
-    credit_reward_wallet, credit_reward_wallet_for_actor, notify_reward_wallet_credit,
-    reconcile_reward_candidate, RewardExecutionError, REWARD_PAYOUT_METHOD_MINT,
-    REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER, REWARD_TRANSACTION_TYPE_WALLET_CREDIT,
+    notify_reward_wallet_credit, reconcile_reward_candidate, RewardExecutionError,
+    REWARD_PAYOUT_METHOD_MINT, REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER,
 };
 use serde_json::json;
 use std::sync::atomic::{AtomicU64, Ordering};

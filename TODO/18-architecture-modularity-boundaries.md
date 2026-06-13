@@ -328,7 +328,10 @@ src/
       policy/
       fraud_block/
       payout/
+      token/
+      wallet_credit/
       compensation/
+      reconciliation/
     wallet/
       wallet/
       deposit/
@@ -479,6 +482,8 @@ src/
         fraud_block_store.rs
         execution_job_store.rs
         payout_record_store.rs
+        token_confirmation_store.rs
+        wallet_credit_store.rs
         compensation_store.rs
         mappers.rs
       wallet/
@@ -621,7 +626,17 @@ src/
       payout/
         mod.rs
         status.rs
+      token/
+        mod.rs
+        event_type.rs
+        transaction_type.rs
+      wallet_credit/
+        mod.rs
+        transaction_type.rs
       compensation/
+        mod.rs
+        rule.rs
+      reconciliation/
         mod.rs
         rule.rs
   application/
@@ -687,6 +702,8 @@ src/
         audit_store.rs
         fraud_block_store.rs
         payout_record_store.rs
+        token_confirmation_store.rs
+        wallet_credit_store.rs
         compensation_store.rs
         reward_history_read_store.rs
         mappers.rs
@@ -1826,6 +1843,49 @@ Postgres rings.
       wallet services, touched non-generated Rust files stay under the manual
       line limit, and the app binary still checks.
 
+Slice 38: move reward wallet credit into the rewards application and Postgres
+rings.
+
+- [x] Use wallet credit as the next reward-execution migration because it is
+      the off-chain/token-confirmed side effect after payout planning:
+      permission gating, approved-amount validation, active policy checks,
+      idempotent reward-wallet-credit records, wallet linking, guarded wallet
+      balance updates, internal/generic transaction creation, candidate status
+      transition, and audit insertion previously lived in the include-based
+      reward execution service.
+- [x] Create `application/rewards/credit_wallet` with explicit
+      output/error/service/store/handler modules. Preserve legacy ordering:
+      direct calls credit without actor context, while actor-triggered calls
+      check `EXECUTE_REWARD_PAYOUT` before persistence.
+- [x] Move reward wallet-credit transaction vocabulary into
+      `domain/rewards/wallet_credit`.
+- [x] Move Postgres wallet-credit behavior behind `infra/postgres/rewards`,
+      split into mapper, policy, wallet, transaction, validation, store, and
+      use-case adapter modules. The rewards adapter links/creates wallets
+      locally instead of calling the legacy wallet service from a new ring.
+- [x] Preserve legacy wallet-credit semantics: existing credit records replay
+      idempotently, wallet-credited/notified/completed candidates without a
+      record are rejected, token-confirmed candidates can be credited, amount
+      approved candidates can be credited only for active off-chain reward
+      policies, reconciliation credit remains explicitly gated, wallet balance
+      is adjusted before the internal/generic transaction and credit record,
+      and audit metadata records the wallet, credit record, transaction, and
+      internal transaction IDs.
+- [x] Move legacy public wallet-credit entry points to delegate through the
+      application handler and `PostgresRewardWalletCreditStore`. The remaining
+      reconciliation bridge temporarily calls the new infra transaction helper
+      until reconciliation gets its own Level 2 slice.
+- [x] Self-critique: wallet credit now has a Level 2 boundary, but wallet
+      credit notification, reconciliation, wallet audit, reward execution route
+      wiring, and reporting read models still need their own slices before the
+      legacy reward execution service can be retired cleanly.
+- [x] Prove application fake-port tests and the existing DB-backed
+      reward-execution regressions pass with wallet-credit helpers routed
+      through `PostgresRewardWalletCreditUseCase`; application/domain import
+      scans stay clean, new infra does not call legacy reward execution or
+      wallet services, touched non-generated Rust files stay under the manual
+      line limit, and the app binary still checks.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -2018,6 +2078,20 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `record_external_reward_transaction.rs` include was reduced to the external
   transaction link-repair helper still needed by reconciliation, and orphaned
   uncompiled `src/services/reward_execution_service/tests*` files were removed.
+- Reward wallet credit is now an application-facing
+  `RewardWalletCreditUseCase`; concrete DbPool/Postgres wiring lives in
+  `infra/postgres/rewards/reward_wallet_credit_use_case.rs`.
+- Reward wallet credit permission probing, wallet linking, active off-chain
+  policy eligibility, guarded/idempotent credit-record creation, internal and
+  generic transaction creation, candidate status transition, and audit
+  insertion now live behind `RewardWalletCreditStore` plus granular Postgres
+  helpers under `infra/postgres/rewards/reward_wallet_credit_*`.
+- Reward wallet-credit transaction vocabulary now lives in
+  `domain/rewards/wallet_credit`.
+- The legacy reward-execution wallet-credit entry points now delegate through
+  the new application handler and Postgres store. Reconciliation temporarily
+  calls the new wallet-credit infra transaction bridge until the reconciliation
+  slice moves fully into `application/rewards/reconcile_candidate`.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -2393,7 +2467,7 @@ boundary checks from the matrix above to every canonical context.
       (`candidate`, `policy`, `fraud_block`) and application by use case
       (`submit_candidate`, `decide_amount`, `plan_payout`,
       `record_token_confirmation`, `record_compensation`,
-      `reconcile_candidate`).
+      `credit_wallet`, `reconcile_candidate`).
 - [x] Move reward policy scope, event, and payment-strategy normalization into
       `domain/rewards/policy`.
 - [x] Move reward fraud-block scope vocabulary and target matching into
@@ -2442,9 +2516,10 @@ boundary checks from the matrix above to every canonical context.
 - [x] Define module-local `RewardPayoutPlanStore` for `plan_payout`.
 - [x] Define module-local `RewardTokenConfirmationStore` for
       `record_token_confirmation`.
-- [ ] Define remaining repository ports needed by reward use cases before moving Diesel
-      code. Examples: `RewardCandidateStore`, `RewardPolicyStore`,
-      `RewardAuditStore`, `RewardFraudBlockStore`.
+- [x] Define module-local `RewardWalletCreditStore` for `credit_wallet`.
+- [ ] Define remaining repository ports needed by reward use cases before
+      moving Diesel code. Examples: wallet-credit notification,
+      reconciliation, wallet audit, and reward reporting read models.
 - [x] Move reward policy Diesel implementation behind `infra/postgres/rewards`.
 - [x] Move reward fraud-block Diesel implementation behind
       `infra/postgres/rewards`.
@@ -2467,6 +2542,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move reward payout planning Diesel implementation behind
       `infra/postgres/rewards`.
 - [x] Move reward token confirmation Diesel implementation behind
+      `infra/postgres/rewards`.
+- [x] Move reward wallet credit Diesel implementation behind
       `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.

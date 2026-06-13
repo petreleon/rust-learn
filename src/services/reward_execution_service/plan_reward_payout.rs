@@ -27,28 +27,10 @@ pub async fn credit_reward_wallet(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
 ) -> Result<RewardWalletCreditResult, RewardExecutionError> {
-    let result = conn
-        .transaction::<_, RewardExecutionError, _>(|conn| {
-            Box::pin(async move {
-                let candidate =
-                    reward_candidate_repository::find_candidate(conn, candidate_id).await?;
-                credit_reward_wallet_for_candidate(conn, &candidate, false, None).await
-            })
-        })
-        .await?;
-
-    log::info!(
-        "event=reward_wallet_credit candidate_id={} wallet_id={} amount={} credited={} credit_record_id={:?} transaction_id={:?} internal_transaction_id={:?}",
-        result.candidate_id,
-        result.wallet_id,
-        result.amount,
-        result.credited,
-        result.credit_record_id,
-        result.transaction_id,
-        result.internal_transaction_id
-    );
-
-    Ok(result)
+    let mut store = PostgresRewardWalletCreditStore::new(conn);
+    crate::application::rewards::credit_wallet::credit_reward_wallet(&mut store, candidate_id)
+        .await
+        .map_err(RewardExecutionError::from)
 }
 
 pub async fn credit_reward_wallet_for_actor(
@@ -56,31 +38,14 @@ pub async fn credit_reward_wallet_for_actor(
     actor_user_id: i32,
     candidate_id: i64,
 ) -> Result<RewardWalletCreditResult, RewardExecutionError> {
-    ensure_can_execute_reward_payout(conn, actor_user_id).await?;
-    let result = conn
-        .transaction::<_, RewardExecutionError, _>(|conn| {
-            Box::pin(async move {
-                let candidate =
-                    reward_candidate_repository::find_candidate(conn, candidate_id).await?;
-                credit_reward_wallet_for_candidate(conn, &candidate, false, Some(actor_user_id))
-                    .await
-            })
-        })
-        .await?;
-
-    log::info!(
-        "event=reward_wallet_credit actor_user_id={} candidate_id={} wallet_id={} amount={} credited={} credit_record_id={:?} transaction_id={:?} internal_transaction_id={:?}",
+    let mut store = PostgresRewardWalletCreditStore::new(conn);
+    crate::application::rewards::credit_wallet::credit_reward_wallet_for_actor(
+        &mut store,
         actor_user_id,
-        result.candidate_id,
-        result.wallet_id,
-        result.amount,
-        result.credited,
-        result.credit_record_id,
-        result.transaction_id,
-        result.internal_transaction_id
-    );
-
-    Ok(result)
+        candidate_id,
+    )
+    .await
+    .map_err(RewardExecutionError::from)
 }
 
 pub async fn notify_reward_wallet_credit(
