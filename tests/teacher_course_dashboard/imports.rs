@@ -31,10 +31,12 @@ use rust_learn::models::user_role_course::UserRoleCourse;
 use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::application::learning::get_teacher_course_enrollment_workspace::TeacherCourseEnrollmentWorkspaceUseCase;
+use rust_learn::application::learning::get_teacher_course_students::TeacherCourseStudentsUseCase;
 use rust_learn::application::learning::get_teacher_course_workspace::TeacherCourseWorkspaceUseCase;
 use rust_learn::application::learning::list_teacher_course_dashboard::TeacherCourseDashboardListUseCase;
 use rust_learn::infra::postgres::learning::teacher_course_dashboard_list_use_case::PostgresTeacherCourseDashboardListUseCase;
 use rust_learn::infra::postgres::learning::teacher_course_enrollment_workspace_use_case::PostgresTeacherCourseEnrollmentWorkspaceUseCase;
+use rust_learn::infra::postgres::learning::teacher_course_students_use_case::PostgresTeacherCourseStudentsUseCase;
 use rust_learn::infra::postgres::learning::teacher_course_workspace_use_case::PostgresTeacherCourseWorkspaceUseCase;
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::{json, Value};
@@ -71,6 +73,14 @@ fn teacher_workspace_use_case_data(
     pool: &DbPool,
 ) -> web::Data<Arc<dyn TeacherCourseWorkspaceUseCase>> {
     web::Data::new(Arc::new(PostgresTeacherCourseWorkspaceUseCase::new(
+        pool.clone(),
+    )))
+}
+
+fn teacher_students_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn TeacherCourseStudentsUseCase>> {
+    web::Data::new(Arc::new(PostgresTeacherCourseStudentsUseCase::new(
         pool.clone(),
     )))
 }

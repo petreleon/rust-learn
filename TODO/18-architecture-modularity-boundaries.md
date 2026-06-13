@@ -999,39 +999,35 @@ remaining gaps.
 | 101 | Moved `GET /courses/teaching` behind `application/learning/list_teacher_course_dashboard`, teacher dashboard application vocabulary, Postgres scope/permission/summary adapters, an HTTP-owned dashboard list response DTO, and bootstrap app-data wiring; the list route no longer opens the DB pool or calls `course_service::discover_teacher_course_dashboard`. |
 | 102 | Moved `GET /courses/teaching/{id}` behind `application/learning/get_teacher_course_workspace`, Postgres teacher workspace adapters, shared learning content-processing display helpers, an HTTP-owned workspace response DTO, and bootstrap app-data wiring; the workspace route no longer opens the DB pool or calls `course_service::get_teacher_course_workspace`. |
 | 103 | Moved `GET /courses/teaching/{id}/enrollments` behind `application/learning/get_teacher_course_enrollment_workspace`, shared teacher enrollment vocabulary, Postgres join-request/roster/reward-eligibility adapters, an HTTP-owned enrollment workspace response DTO, and bootstrap app-data wiring; the enrollments route no longer opens the DB pool or calls `course_service::get_teacher_course_enrollment_workspace`. |
+| 104 | Moved `GET /courses/teaching/{id}/students` behind `application/learning/get_teacher_course_students`, Postgres roster/progress/reward-evidence adapters, an HTTP-owned students response DTO, and bootstrap app-data wiring; `http/learning/course_routes/teaching.rs` no longer imports `DbPool` or `course_service`. |
 
 ## Recent Slice Evidence
 
-Slice 103: move teacher course enrollment workspace into an injected use case.
+Slice 104: move teacher course students/progress into an injected use case.
 
-- [x] Add `application/learning/get_teacher_course_enrollment_workspace` with
-      normalized query, output, store port, handler, use-case trait, and unit
-      coverage for status/default/limit/offset behavior.
-- [x] Add shared `application/learning/teacher_course_enrollment` vocabulary for
-      join request pages, roster pages, enrollment user summaries, course reward
-      eligibility, and per-student reward eligibility.
-- [x] Add focused Postgres adapters for join-request pagination/status filters,
-      roster learners, enrollment user summaries, latest join-request status,
-      reward eligibility, and enrollment workspace orchestration.
-- [x] Add HTTP-owned enrollment/roster DTOs plus
-      `TeacherCourseEnrollmentWorkspaceResponse` while preserving the existing
-      JSON shape for `join_requests`, `roster`, `reward_eligibility`,
-      `progress_supported`, and teacher roles.
-- [x] Wire the concrete enrollment workspace use case through
+- [x] Add `application/learning/get_teacher_course_students` with query,
+      output, store port, handler, and use-case trait.
+- [x] Add focused Postgres adapters for course content counts, student lesson
+      progress, student reward-progress counters, latest reward evidence, and
+      teacher-students orchestration.
+- [x] Reuse existing teacher dashboard, roster, role, and reward-eligibility
+      application vocabulary instead of returning legacy service structs.
+- [x] Add an HTTP-owned `TeacherCourseStudentsResponse` while preserving the
+      existing JSON shape for course summary, teacher roles, students,
+      progress, reward eligibility, and latest reward candidate evidence.
+- [x] Wire the concrete students use case through
       `bootstrap/app_state`, `bootstrap/use_case_wiring`, and
       `bootstrap/app_data`.
 - [x] Update teacher dashboard and API routing tests to inject the production
-      Postgres enrollment workspace use case or route-only fake use case as
-      appropriate.
-- [x] Self-critique: `/courses/teaching`, `/courses/teaching/{id}`, and
-      `/courses/teaching/{id}/enrollments` are now clean, but
-      `/courses/teaching/{id}/students` still opens the DB pool and calls
-      legacy `course_service` from `http/learning`.
+      Postgres students use case or a route-only fake use case as appropriate.
+- [x] Self-critique: the students store still reuses the enrollment roster page
+      loader, which preserves behavior but duplicates some reward-eligibility
+      work; a later granular slice should extract a lean roster identity query
+      if this endpoint becomes a performance hotspot.
 - [x] Prove behavior with binary compile, full teacher dashboard integration
-      test, API route reachability, query normalization unit test, formatting,
-      line-count checks, `git diff --check`, and boundary scans proving the new
-      application/HTTP DTO path does not import DB/Diesel, Postgres internals,
-      or legacy services.
+      test, API route reachability, formatting, line-count checks,
+      `git diff --check`, and boundary scans proving `teaching.rs` no longer
+      imports DB pools or legacy course services.
 
 ## Legacy Transition Rules
 
@@ -1231,6 +1227,10 @@ boundary checks from the matrix above to every canonical context.
       query/output/error and store-port contracts, Postgres
       join-request/roster/reward-eligibility adapters, HTTP DTO mapping,
       bootstrap wiring, and teacher dashboard/API route tests.
+- [x] `GET /courses/teaching/{id}/students` now has application query/output
+      and store-port contracts, Postgres progress/reward-evidence adapters,
+      HTTP DTO mapping, bootstrap wiring, and teacher dashboard/API route
+      tests.
 - [x] Assessment listing, attempt listing, and attempt submission routes now
       receive injected application use cases with Postgres adapters/use cases,
       bootstrap wiring, and route tests; the HTTP assessment handler no longer

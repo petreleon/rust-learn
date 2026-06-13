@@ -57,7 +57,7 @@ pub async fn load_teacher_student_reward_eligibility(
     ))
 }
 
-fn teacher_student_reward_eligibility_from_count(
+pub fn teacher_student_reward_eligibility_from_count(
     course_eligibility: &TeacherCourseRewardEligibilitySummaryOutput,
     reward_candidate_count: i64,
 ) -> TeacherStudentRewardEligibilitySummaryOutput {

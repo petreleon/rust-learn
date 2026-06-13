@@ -9,7 +9,6 @@ use crate::application::learning::submit_assessment_attempt::AssessmentSubmissio
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError as ApplicationTeacherCourseDashboardError;
 use crate::application::learning::update_course::CourseUpdateError;
 use crate::application::learning::update_course_lifecycle::CourseLifecycleError;
-use crate::services::course_service::TeacherCourseDashboardError as LegacyTeacherCourseDashboardError;
 
 pub(super) fn lifecycle_error_response(error: CourseLifecycleError) -> HttpResponse {
     match error {
@@ -118,22 +117,6 @@ pub(super) fn learner_progress_error_response(error: LearnerProgressError) -> Ht
         LearnerProgressError::Database(message) => {
             log::error!("event=learner_progress_failed error={}", message);
             HttpResponse::InternalServerError().body("Failed to load course catalog")
-        }
-    }
-}
-
-pub(super) fn teacher_course_dashboard_error_response(
-    error: LegacyTeacherCourseDashboardError,
-) -> HttpResponse {
-    match error {
-        LegacyTeacherCourseDashboardError::PermissionDenied(_) => HttpResponse::Forbidden()
-            .body("User does not have permission to view this teaching course"),
-        LegacyTeacherCourseDashboardError::NotFound => {
-            HttpResponse::NotFound().body("Course not found")
-        }
-        LegacyTeacherCourseDashboardError::Database(message) => {
-            log::error!("event=teacher_course_dashboard_failed error={}", message);
-            HttpResponse::InternalServerError().body("Failed to load teaching courses")
         }
     }
 }

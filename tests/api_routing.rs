@@ -15,6 +15,7 @@ mod api_routing_route_targets;
 mod api_routing_submission_fake;
 mod api_routing_teacher_dashboard_fake;
 mod api_routing_teacher_decision_fake;
+mod api_routing_teacher_students_fake;
 
 #[actix_web::test]
 async fn bootstrap_routes_expose_index_and_health() {
@@ -49,6 +50,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_teacher_dashboard_fake::teacher_dashboard_data())
             .app_data(api_routing_teacher_dashboard_fake::teacher_workspace_data())
             .app_data(api_routing_teacher_dashboard_fake::teacher_enrollment_data())
+            .app_data(api_routing_teacher_students_fake::teacher_students_data())
             .app_data(api_routing_course_lifecycle_fake::course_lifecycle_data())
             .app_data(api_routing_course_organization_fake::course_organizations_data())
             .app_data(api_routing_course_read_fake::course_read_data())

@@ -27,6 +27,7 @@ use crate::infra::postgres::learning::learner_course_learning_use_case::Postgres
 use crate::infra::postgres::learning::learner_progress_use_case::PostgresLearnerProgressUseCase;
 use crate::infra::postgres::learning::teacher_course_dashboard_list_use_case::PostgresTeacherCourseDashboardListUseCase;
 use crate::infra::postgres::learning::teacher_course_enrollment_workspace_use_case::PostgresTeacherCourseEnrollmentWorkspaceUseCase;
+use crate::infra::postgres::learning::teacher_course_students_use_case::PostgresTeacherCourseStudentsUseCase;
 use crate::infra::postgres::learning::teacher_course_workspace_use_case::PostgresTeacherCourseWorkspaceUseCase;
 use crate::infra::postgres::notifications::notification_inbox_use_case::PostgresNotificationInboxUseCase;
 use crate::infra::postgres::notifications::notification_preferences_use_case::PostgresNotificationPreferencesUseCase;
@@ -76,6 +77,9 @@ pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
             PostgresTeacherCourseDashboardListUseCase::new(pool.clone()),
         ),
         teacher_course_workspace_use_case: Arc::new(PostgresTeacherCourseWorkspaceUseCase::new(
+            pool.clone(),
+        )),
+        teacher_course_students_use_case: Arc::new(PostgresTeacherCourseStudentsUseCase::new(
             pool.clone(),
         )),
         teacher_course_enrollment_workspace_use_case: Arc::new(
