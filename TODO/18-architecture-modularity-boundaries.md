@@ -438,7 +438,7 @@ src/
       update_course_lifecycle/
       request_enrollment/
       decide_enrollment/
-      save_progress/
+      learner_progress/
       list_course_organizations/
       list_course_assessments/
       list_assessment_attempts/
@@ -535,7 +535,7 @@ src/
         course_permission_checks.rs
         enrollment_store.rs
         course_organization_store.rs
-        progress_store.rs
+        learner_progress_store.rs
         assessment_read_store.rs
         assessment_submission_store.rs
         assessment_store.rs
@@ -985,38 +985,34 @@ remaining gaps.
 | 91 | Moved `PUT /courses/{id}/lifecycle` behind `application/learning/update_course_lifecycle`, a Postgres lifecycle adapter/use case, HTTP request DTO mapping, and bootstrap app-data wiring; lifecycle status normalization and permission selection now live outside the route. |
 | 92 | Moved `PUT /courses/{id}` behind `application/learning/update_course`, a Postgres update adapter/use case, HTTP request DTO mapping, and bootstrap app-data wiring; course settings permission checks now use a shared learning Postgres permission adapter. |
 | 93 | Moved `POST /courses` behind `application/learning/create_course`, a Postgres creation adapter/use case, HTTP request DTO mapping, and bootstrap app-data wiring; course creation permissions, owner organization linking, and pending organization invites now live outside the route. |
+| 94 | Moved `GET/POST /courses/{id}/progress` behind `application/learning/learner_progress`, a Postgres progress adapter/use case, HTTP request/response DTOs, and bootstrap app-data wiring; visibility, enrollment, and content-membership checks now live outside the route. |
 
 ## Recent Slice Evidence
 
-Slice 93: move course creation into the learning use-case boundary.
+Slice 94: move learner progress tracking into the learning use-case boundary.
 
-- [x] Add `application/learning/create_course` with command, output, error,
-      use-case, store port, create-course permission decision, and
-      module-local fake-port application tests.
-- [x] Add `infra/postgres/learning/course_creation_store.rs` and
-      `course_creation_use_case.rs`; keep the course insert, first-organization
-      link, pending organization invite ordering, and transaction in infra.
-- [x] Extend `infra/postgres/learning/course_permission_checks.rs` with
-      organization-scoped permission checks so creation can use the same
-      adapter as course update/lifecycle use cases.
-- [x] Add an HTTP-owned `CreateCourseRequest`; `POST /courses` now maps
-      request data into an application command and maps application output into
-      `CourseResponse`.
-- [x] Inject `CourseCreationUseCase` through `bootstrap/app_state`,
+- [x] Add `application/learning/learner_progress` with save command, output,
+      error, use-case, store port, course visibility/enrollment/content
+      membership decisions, and module-local fake-port application tests.
+- [x] Add `infra/postgres/learning/learner_progress_store.rs`,
+      `learner_progress_queries.rs`, and `learner_progress_use_case.rs`; keep
+      course/role/join/content lookups and progress upsert/read SQL in infra.
+- [x] Add HTTP-owned `SaveProgressRequest` and `LearnerProgressResponse`;
+      `GET/POST /courses/{id}/progress` now map through the application use
+      case instead of returning the Diesel `CourseProgress` record directly.
+- [x] Inject `LearnerProgressUseCase` through `bootstrap/app_state`,
       `bootstrap/startup`, and `bootstrap/app_data`.
-- [x] Keep the existing HTTP contract: request body fields remain `title` and
-      `organization_ids`, and the response still exposes course id/title/status
-      plus optional course metadata.
-- [x] Self-critique: this completes the course management create/update/delete
-      trio only. Learner catalog detail/learning, teaching reads, enrollment,
-      progress, roles, and assessment listing still need deeper Level 2
-      extraction.
-- [x] Prove behavior with binary compile, application fake-port test, course
-      creation integration tests through the real Postgres use case, pending
-      organization invite regression, course update/lifecycle regressions after
-      sharing permission checks, API route reachability, formatting,
-      line-count checks, `git diff --check`, and boundary scans proving the
-      creation route no longer calls the old service or imports Diesel/schema.
+- [x] Keep the existing HTTP contract: save body still accepts `content_id`,
+      successful reads still return the same progress fields or `null`, and
+      denied/not-found statuses remain stable.
+- [x] Self-critique: this removes learner progress only. Learner catalog
+      detail/learning, teaching reads, enrollment, roles, and assessment
+      listing still need deeper Level 2 extraction.
+- [x] Prove behavior with binary compile, application fake-port test, real
+      progress route/integration test with enrollment/content regressions, API
+      route reachability, formatting, line-count checks, `git diff --check`,
+      and boundary scans proving the progress route no longer calls the old
+      service or imports Diesel/schema.
 
 ## Legacy Transition Rules
 
@@ -1194,6 +1190,9 @@ boundary checks from the matrix above to every canonical context.
       mapping, bootstrap wiring, and application/integration/route tests.
 - [x] `POST /courses` now has application command/output/error and store-port
       contracts, a Postgres adapter/use case, HTTP request DTO mapping,
+      bootstrap wiring, and application/integration/route tests.
+- [x] `GET/POST /courses/{id}/progress` now has application command/output/error
+      and store-port contracts, a Postgres adapter/use case, HTTP DTO mapping,
       bootstrap wiring, and application/integration/route tests.
 - [ ] Move remaining learning service/DB-heavy handlers into application use
       cases with Postgres adapters.

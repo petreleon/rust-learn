@@ -2,6 +2,7 @@ use actix_web::HttpResponse;
 
 use crate::application::learning::assessment::AssessmentReadError;
 use crate::application::learning::create_course::CourseCreationError;
+use crate::application::learning::learner_progress::LearnerProgressError;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionError;
 use crate::application::learning::update_course::CourseUpdateError;
 use crate::application::learning::update_course_lifecycle::CourseLifecycleError;
@@ -85,6 +86,23 @@ pub(super) fn learner_course_catalog_error_response(
         LearnerCourseCatalogError::NotFound => HttpResponse::NotFound().body("Course not found"),
         LearnerCourseCatalogError::Database(message) => {
             log::error!("event=learner_course_catalog_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to load course catalog")
+        }
+    }
+}
+
+pub(super) fn learner_progress_error_response(error: LearnerProgressError) -> HttpResponse {
+    match error {
+        LearnerProgressError::PermissionDenied(_) => {
+            HttpResponse::Forbidden().body("User does not have permission to view course content")
+        }
+        LearnerProgressError::NotFound => HttpResponse::NotFound().body("Course not found"),
+        LearnerProgressError::Connection(message) => {
+            log::error!("event=learner_progress_connection_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
+        }
+        LearnerProgressError::Database(message) => {
+            log::error!("event=learner_progress_failed error={}", message);
             HttpResponse::InternalServerError().body("Failed to load course catalog")
         }
     }

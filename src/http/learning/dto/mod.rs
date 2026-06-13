@@ -5,6 +5,7 @@ mod course_discovery;
 mod course_lifecycle;
 mod course_organization;
 mod course_update;
+mod learner_progress;
 
 pub use assessment::{
     AssessmentAttemptResponse, AssessmentResponse, SubmitAssessmentAttemptRequest,
@@ -16,3 +17,4 @@ pub use course_discovery::CourseDiscoveryResponse;
 pub use course_lifecycle::CourseLifecycleUpdateRequest;
 pub use course_organization::CourseOrganizationResponse;
 pub use course_update::CourseUpdateRequest;
+pub use learner_progress::{LearnerProgressResponse, SaveProgressRequest};

@@ -12,7 +12,9 @@ use rust_learn::domain::rewards::policy::{
     REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
 use rust_learn::application::learning::discover_courses::CourseDiscoveryUseCase;
+use rust_learn::application::learning::learner_progress::LearnerProgressUseCase;
 use rust_learn::infra::postgres::learning::course_discovery_use_case::PostgresCourseDiscoveryUseCase;
+use rust_learn::infra::postgres::learning::learner_progress_use_case::PostgresLearnerProgressUseCase;
 use rust_learn::models::chapter::NewChapter;
 use rust_learn::models::content::NewContent;
 use rust_learn::models::course::{Course, NewCourse, COURSE_STATUS_PUBLISHED};
@@ -125,4 +127,10 @@ fn course_discovery_use_case_data(
     pool: &DbPool,
 ) -> web::Data<Arc<dyn CourseDiscoveryUseCase>> {
     web::Data::new(Arc::new(PostgresCourseDiscoveryUseCase::new(pool.clone())))
+}
+
+fn learner_progress_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn LearnerProgressUseCase>> {
+    web::Data::new(Arc::new(PostgresLearnerProgressUseCase::new(pool.clone())))
 }

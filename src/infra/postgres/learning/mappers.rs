@@ -2,8 +2,10 @@ use crate::application::learning::assessment::{
     AssessmentAttemptOutput, AssessmentOutput, AssessmentQuestionForScoring,
 };
 use crate::application::learning::create_course::CourseCreationOutput;
+use crate::application::learning::learner_progress::LearnerProgressOutput;
 use crate::models::assessment::{Assessment, AssessmentAttempt, AssessmentQuestion};
 use crate::models::course::Course;
+use crate::models::course_progress::CourseProgress;
 
 impl From<Course> for CourseCreationOutput {
     fn from(course: Course) -> Self {
@@ -14,6 +16,18 @@ impl From<Course> for CourseCreationOutput {
             description: course.description,
             topics: course.topics,
             prerequisites: course.prerequisites,
+        }
+    }
+}
+
+impl From<CourseProgress> for LearnerProgressOutput {
+    fn from(progress: CourseProgress) -> Self {
+        Self {
+            id: progress.id,
+            user_id: progress.user_id,
+            course_id: progress.course_id,
+            content_id: progress.content_id,
+            viewed_at: progress.viewed_at,
         }
     }
 }

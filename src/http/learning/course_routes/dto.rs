@@ -38,8 +38,3 @@ pub(super) struct TeacherCourseEnrollmentParams {
     pub(super) limit: Option<i64>,
     pub(super) offset: Option<i64>,
 }
-
-#[derive(Deserialize)]
-pub(super) struct SaveProgressRequest {
-    pub(super) content_id: i32,
-}
