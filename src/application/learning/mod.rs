@@ -7,6 +7,7 @@ pub mod list_course_assessments;
 pub mod list_course_organizations;
 pub mod ports;
 pub mod submit_assessment_attempt;
+pub mod update_course;
 pub mod update_course_lifecycle;
 
 #[cfg(test)]

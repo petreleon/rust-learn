@@ -2,10 +2,11 @@ use actix_web::HttpResponse;
 
 use crate::application::learning::assessment::AssessmentReadError;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionError;
+use crate::application::learning::update_course::CourseUpdateError;
 use crate::application::learning::update_course_lifecycle::CourseLifecycleError;
 use crate::services::course_enrollment_service::CourseEnrollmentError;
 use crate::services::course_service::{
-    CourseCreationError, CourseUpdateError, LearnerCourseCatalogError, TeacherCourseDashboardError,
+    CourseCreationError, LearnerCourseCatalogError, TeacherCourseDashboardError,
 };
 
 pub(super) fn lifecycle_error_response(error: CourseLifecycleError) -> HttpResponse {
@@ -44,6 +45,10 @@ pub(super) fn course_update_error_response(error: CourseUpdateError) -> HttpResp
             HttpResponse::Forbidden().body("User does not have permission to update course")
         }
         CourseUpdateError::NotFound => HttpResponse::NotFound().body("Course not found"),
+        CourseUpdateError::Connection(message) => {
+            log::error!("event=course_update_connection_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
+        }
         CourseUpdateError::Database(message) => {
             log::error!("event=course_update_failed error={}", message);
             HttpResponse::InternalServerError().body("Failed to update course")

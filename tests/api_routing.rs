@@ -7,6 +7,7 @@ mod api_routing_course_discovery_fake;
 mod api_routing_course_lifecycle_fake;
 mod api_routing_course_organization_fake;
 mod api_routing_course_read_fake;
+mod api_routing_course_update_fake;
 mod api_routing_reporting_fake;
 mod api_routing_route_fakes;
 mod api_routing_submission_fake;
@@ -44,6 +45,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_course_lifecycle_fake::course_lifecycle_data())
             .app_data(api_routing_course_organization_fake::course_organizations_data())
             .app_data(api_routing_course_read_fake::course_read_data())
+            .app_data(api_routing_course_update_fake::course_update_data())
             .app_data(api_routing_route_fakes::course_reward_candidates_data())
             .app_data(api_routing_route_fakes::platform_reward_candidates_data())
             .app_data(api_routing_teacher_decision_fake::teacher_reward_candidate_decision_data())
@@ -54,10 +56,6 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_reporting_fake::platform_fraud_dashboard_data())
             .app_data(api_routing_reporting_fake::platform_reward_dashboard_data())
             .app_data(api_routing_reporting_fake::platform_wallet_reconciliation_data())
-            .route(
-                "/hey",
-                web::get().to(|| async { HttpResponse::Ok().body("hey") }),
-            )
             .configure(rust_learn::http::operations::configure_routes)
             .service(rust_learn::http::api_scope())
             .route(
@@ -66,9 +64,6 @@ async fn api_scope_and_following_routes_are_reachable() {
             ),
     )
     .await;
-
-    let hey = test::call_service(&app, test::TestRequest::get().uri("/hey").to_request()).await;
-    assert_eq!(hey.status(), StatusCode::OK);
 
     let health =
         test::call_service(&app, test::TestRequest::get().uri("/health").to_request()).await;
@@ -101,6 +96,7 @@ async fn api_scope_and_following_routes_are_reachable() {
         (Method::GET, "/api/courses/teaching"),
         (Method::GET, "/api/courses/teaching/12"),
         (Method::GET, "/api/courses/12"),
+        (Method::PUT, "/api/courses/12"),
         (Method::GET, "/api/courses/12/organizations"),
         (Method::PUT, "/api/courses/12/lifecycle"),
         (Method::DELETE, "/api/courses/12"),

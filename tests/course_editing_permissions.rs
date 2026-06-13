@@ -1,28 +1,38 @@
 use chrono::NaiveDate;
+use diesel_async::pooled_connection::deadpool::Object;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::learning::update_course::{
+    CourseUpdateCommand, CourseUpdateError, CourseUpdateUseCase,
+};
 use rust_learn::config::constants::roles::Roles;
-use rust_learn::db::establish_connection;
 use rust_learn::db::schema::courses;
-use rust_learn::models::course::{Course, NewCourse, UpdateCourse};
+use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::learning::course_update_use_case::PostgresCourseUpdateUseCase;
+use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::role::CourseRole;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
 use rust_learn::repositories::platform_repository::assign_role_to_user;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::services::course_service::{update_course_for_actor, CourseUpdateError};
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
 }
 
-async fn setup_conn(
-) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
+fn setup_pool() -> DbPool {
     let _ = dotenvy::dotenv();
-    let pool = establish_connection();
+    establish_connection()
+}
+
+async fn setup_conn(pool: &DbPool) -> Object<AsyncPgConnection> {
     pool.get()
         .await
         .expect("failed to get DB connection from pool")
+}
+
+fn course_update_use_case(pool: &DbPool) -> PostgresCourseUpdateUseCase {
+    PostgresCourseUpdateUseCase::new(pool.clone())
 }
 
 async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {
@@ -66,71 +76,71 @@ async fn force_assign_course_role(
 
 #[actix_web::test]
 async fn course_teacher_can_edit_course_settings() {
-    let mut conn = setup_conn().await;
+    let pool = setup_pool();
+    let mut conn = setup_conn(&pool).await;
     let teacher = create_user_helper(&mut conn, "course_edit_teacher").await;
     let course = create_course(&mut conn, &unique_string("EditableCourse")).await;
     force_assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER").await;
+    drop(conn);
 
-    let updated = update_course_for_actor(
-        &mut conn,
-        teacher.id(),
-        course.id,
-        UpdateCourse {
+    let updated = course_update_use_case(&pool)
+        .update_course(CourseUpdateCommand {
+            actor_user_id: teacher.id(),
+            course_id: course.id,
             title: Some("Teacher Updated Course".to_string()),
             description: None,
             topics: None,
             prerequisites: None,
-        },
-    )
-    .await
-    .expect("course teacher should update course");
+        })
+        .await
+        .expect("course teacher should update course");
     assert_eq!(updated.title, "Teacher Updated Course");
 }
 
 #[actix_web::test]
 async fn platform_modify_course_permission_can_edit_without_course_role() {
-    let mut conn = setup_conn().await;
+    let pool = setup_pool();
+    let mut conn = setup_conn(&pool).await;
     let platform_admin = create_user_helper(&mut conn, "course_edit_platform").await;
     let course = create_course(&mut conn, &unique_string("PlatformEditableCourse")).await;
     assign_role_to_user(&mut conn, platform_admin.id(), Roles::SUPER_ADMIN)
         .await
         .expect("failed to assign SUPER_ADMIN role");
+    drop(conn);
 
-    let updated = update_course_for_actor(
-        &mut conn,
-        platform_admin.id(),
-        course.id,
-        UpdateCourse {
+    let updated = course_update_use_case(&pool)
+        .update_course(CourseUpdateCommand {
+            actor_user_id: platform_admin.id(),
+            course_id: course.id,
             title: Some("Platform Updated Course".to_string()),
             description: None,
             topics: None,
             prerequisites: None,
-        },
-    )
-    .await
-    .expect("platform MODIFY_COURSE should update course");
+        })
+        .await
+        .expect("platform MODIFY_COURSE should update course");
     assert_eq!(updated.title, "Platform Updated Course");
 }
 
 #[actix_web::test]
 async fn course_student_cannot_edit_course_settings() {
-    let mut conn = setup_conn().await;
+    let pool = setup_pool();
+    let mut conn = setup_conn(&pool).await;
     let student = create_user_helper(&mut conn, "course_edit_student").await;
     let course = create_course(&mut conn, &unique_string("DeniedEditableCourse")).await;
     force_assign_course_role(&mut conn, student.id(), course.id, "STUDENT").await;
+    drop(conn);
 
-    let denied = update_course_for_actor(
-        &mut conn,
-        student.id(),
-        course.id,
-        UpdateCourse {
+    let denied = course_update_use_case(&pool)
+        .update_course(CourseUpdateCommand {
+            actor_user_id: student.id(),
+            course_id: course.id,
             title: Some("Student Update".to_string()),
             description: None,
             topics: None,
             prerequisites: None,
-        },
-    )
-    .await
-    .expect_err("course student should not update course");
+        })
+        .await
+        .expect_err("course student should not update course");
     assert!(matches!(denied, CourseUpdateError::PermissionDenied(_)));
 }

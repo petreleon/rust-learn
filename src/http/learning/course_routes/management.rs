@@ -5,11 +5,10 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::learning::delete_course::{
     CourseDeletionError, CourseDeletionOutcome, CourseDeletionUseCase,
 };
+use crate::application::learning::update_course::CourseUpdateUseCase;
 use crate::db;
-use crate::models::course::UpdateCourse;
-use crate::services::course_service::{
-    create_course_with_invites_for_actor, update_course_for_actor,
-};
+use crate::http::learning::dto::{CourseResponse, CourseUpdateRequest};
+use crate::services::course_service::create_course_with_invites_for_actor;
 use crate::utils::request_auth::authenticated_user;
 
 use super::dto::CreateCourseRequest;
@@ -46,24 +45,19 @@ pub(super) async fn create_course(
 pub(super) async fn update_course(
     req: HttpRequest,
     path: web::Path<i32>,
-    pool: web::Data<db::DbPool>,
-    body: web::Json<UpdateCourse>,
+    use_case: web::Data<Arc<dyn CourseUpdateUseCase>>,
+    body: web::Json<CourseUpdateRequest>,
 ) -> impl Responder {
     let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
     let course_id = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
 
-    let result =
-        update_course_for_actor(&mut conn, requester.user_id, course_id, body.into_inner()).await;
+    let command = body.into_inner().into_command(requester.user_id, course_id);
 
-    match result {
-        Ok(course) => HttpResponse::Ok().json(course),
+    match use_case.update_course(command).await {
+        Ok(course) => HttpResponse::Ok().json(CourseResponse::from(course)),
         Err(error) => course_update_error_response(error),
     }
 }
