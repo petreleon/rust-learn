@@ -1,6 +1,4 @@
 include!("reporting_service/imports.rs");
-include!("reporting_service/platform_dashboard_queries.rs");
-include!("reporting_service/teacher_application_dashboard_summary.rs");
 include!("reporting_service/platform_teacher_applications_csv.rs");
 include!("reporting_service/platform_reward_approvals_csv.rs");
 include!("reporting_service/platform_delegated_permissions_csv.rs");

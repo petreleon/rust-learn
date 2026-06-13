@@ -963,35 +963,33 @@ remaining gaps.
 | 65 | Moved platform report summary read/export into `application/reporting`, `infra/postgres/reporting`, and `http/reporting` while preserving legacy report URLs through the existing reports scope. |
 | 66 | Moved platform fraud dashboard read/export into reporting rings and removed the old legacy reporting-service fraud dashboard query/DTO/CSV code. |
 | 67 | Moved organization report summary read/export into reporting rings and removed the old legacy reporting-service organization summary query/DTO/CSV code. |
+| 68 | Moved organization reward dashboard read/export into reporting rings while preserving the legacy organization dashboard summary through the new Postgres reporting store. |
 
 ## Recent Slice Evidence
 
-Slice 68: move organization reward dashboard read/export into the reporting
+Slice 69: move platform reward dashboard read/export into the reporting
 application, HTTP, and Postgres rings.
 
-- [x] Create `application/reporting/organization_reward_dashboard` with
+- [x] Create `application/reporting/platform_reward_dashboard` with
       explicit output, error, store port, service trait, and handler modules.
-- [x] Move organization reward dashboard course, teacher-application, and
-      wallet aggregation behind `infra/postgres/reporting`.
-- [x] Move organization reward dashboard JSON and CSV response contracts into
+- [x] Move platform reward dashboard teacher-application summary,
+      reward-candidate summary, amount-review rows, payout failures, and
+      reconciliation mismatch aggregation behind `infra/postgres/reporting`.
+- [x] Move platform reward dashboard JSON and CSV response contracts into
       `http/reporting/dto`.
-- [x] Move `/reports/organizations/{id}/reward-dashboard` and
-      `/reports/organizations/{id}/reward-dashboard.csv` route resources into
+- [x] Move `/reports/platform/reward-dashboard` and
+      `/reports/platform/reward-dashboard.csv` route resources into
       `http/reporting` while preserving legacy URLs through the reports scope.
-- [x] Remove the old legacy reporting-service organization reward dashboard
-      query, helper rows, DTOs, CSV helper, API include handler, and service
-      CSV test copy.
-- [x] Keep the legacy organization dashboard summary working by bridging its
-      reward totals through the new Postgres reporting store.
-- [x] Self-critique: platform reward dashboard, wallet reconciliation, and
-      remaining platform CSV exports still live in the legacy include-based
-      reporting service; organization route resources still depend on the
-      existing middleware `ParamType` from `models`.
-- [x] Prove the application fake-port behavior, organization reward dashboard
-      CSV contract, DB-backed organization reward dashboard read/export
-      regression, organization dashboard summary regression, API route
-      reachability, binary wiring, formatting, whitespace, line-count, and
-      boundary scans.
+- [x] Remove the old legacy reporting-service platform reward dashboard query,
+      summary helpers, row DTOs, CSV helper, and service-level CSV test copy.
+- [x] Self-critique: wallet reconciliation and remaining platform CSV exports
+      still live in the legacy include-based reporting service; organization
+      route resources still depend on the existing middleware `ParamType` from
+      `models`.
+- [x] Prove the application fake-port behavior, platform reward dashboard CSV
+      contract, DB-backed platform reward dashboard read/export regression,
+      API route reachability, binary wiring, formatting, whitespace,
+      line-count, and boundary scans.
 
 ## Legacy Transition Rules
 
@@ -1187,7 +1185,7 @@ boundary checks from the matrix above to every canonical context.
       `/api/reports/platform/summary.csv` route ownership into
       `http/reporting` while preserving legacy URLs through the existing
       reports scope.
-- [ ] Move platform reward dashboard read/export behavior into
+- [x] Move platform reward dashboard read/export behavior into
       `application/reporting` and `http/reporting`.
 - [x] Move platform fraud dashboard read/export behavior into
       `application/reporting` and `http/reporting`.

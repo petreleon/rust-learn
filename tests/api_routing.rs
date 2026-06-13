@@ -43,6 +43,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_reporting_fake::organization_reward_dashboard_data())
             .app_data(api_routing_reporting_fake::organization_summary_data())
             .app_data(api_routing_reporting_fake::platform_fraud_dashboard_data())
+            .app_data(api_routing_reporting_fake::platform_reward_dashboard_data())
             .route(
                 "/hey",
                 web::get().to(|| async { HttpResponse::Ok().body("hey") }),

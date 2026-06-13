@@ -42,6 +42,7 @@ async fn platform_reward_dashboard_reports_actionable_reward_audit_work() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(platform_reward_dashboard_use_case(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::api::reports::reports_scope()),
     )

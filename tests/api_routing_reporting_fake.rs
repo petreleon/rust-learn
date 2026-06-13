@@ -13,10 +13,14 @@ use rust_learn::application::reporting::organization_summary::{
 use rust_learn::application::reporting::platform_fraud_dashboard::{
     PlatformFraudDashboardError, PlatformFraudDashboardOutput, PlatformFraudDashboardUseCase,
 };
+use rust_learn::application::reporting::platform_reward_dashboard::{
+    PlatformRewardDashboardError, PlatformRewardDashboardOutput, PlatformRewardDashboardUseCase,
+};
 
 struct RouteOnlyOrganizationRewardDashboardUseCase;
 struct RouteOnlyOrganizationSummaryUseCase;
 struct RouteOnlyPlatformFraudDashboardUseCase;
+struct RouteOnlyPlatformRewardDashboardUseCase;
 
 pub fn organization_reward_dashboard_data() -> web::Data<Arc<dyn OrganizationRewardDashboardUseCase>>
 {
@@ -34,6 +38,11 @@ pub fn platform_fraud_dashboard_data() -> web::Data<Arc<dyn PlatformFraudDashboa
     web::Data::new(
         Arc::new(RouteOnlyPlatformFraudDashboardUseCase) as Arc<dyn PlatformFraudDashboardUseCase>
     )
+}
+
+pub fn platform_reward_dashboard_data() -> web::Data<Arc<dyn PlatformRewardDashboardUseCase>> {
+    web::Data::new(Arc::new(RouteOnlyPlatformRewardDashboardUseCase)
+        as Arc<dyn PlatformRewardDashboardUseCase>)
 }
 
 impl OrganizationRewardDashboardUseCase for RouteOnlyOrganizationRewardDashboardUseCase {
@@ -68,6 +77,17 @@ impl PlatformFraudDashboardUseCase for RouteOnlyPlatformFraudDashboardUseCase {
         &self,
     ) -> BoxFuture<'_, Result<PlatformFraudDashboardOutput, PlatformFraudDashboardError>> {
         ready(Err(PlatformFraudDashboardError::Database(
+            "route-only use case".to_string(),
+        )))
+        .boxed()
+    }
+}
+
+impl PlatformRewardDashboardUseCase for RouteOnlyPlatformRewardDashboardUseCase {
+    fn load_platform_reward_dashboard(
+        &self,
+    ) -> BoxFuture<'_, Result<PlatformRewardDashboardOutput, PlatformRewardDashboardError>> {
+        ready(Err(PlatformRewardDashboardError::Database(
             "route-only use case".to_string(),
         )))
         .boxed()

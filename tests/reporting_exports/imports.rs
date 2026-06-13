@@ -16,6 +16,7 @@ use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::application::reporting::organization_reward_dashboard::OrganizationRewardDashboardUseCase;
 use rust_learn::application::reporting::organization_summary::OrganizationSummaryUseCase;
 use rust_learn::application::reporting::platform_fraud_dashboard::PlatformFraudDashboardUseCase;
+use rust_learn::application::reporting::platform_reward_dashboard::PlatformRewardDashboardUseCase;
 use rust_learn::application::reporting::platform_summary::PlatformSummaryUseCase;
 use rust_learn::domain::rewards::execution::RewardExecutionJobStatus;
 use rust_learn::domain::rewards::fraud_block::{
@@ -47,6 +48,7 @@ use rust_learn::repositories::user_repository::create_user;
 use rust_learn::infra::postgres::reporting::organization_reward_dashboard_use_case::PostgresOrganizationRewardDashboardUseCase;
 use rust_learn::infra::postgres::reporting::organization_summary_use_case::PostgresOrganizationSummaryUseCase;
 use rust_learn::infra::postgres::reporting::platform_fraud_dashboard_use_case::PostgresPlatformFraudDashboardUseCase;
+use rust_learn::infra::postgres::reporting::platform_reward_dashboard_use_case::PostgresPlatformRewardDashboardUseCase;
 use rust_learn::infra::postgres::reporting::platform_summary_use_case::PostgresPlatformSummaryUseCase;
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::json;
@@ -87,6 +89,15 @@ fn platform_fraud_dashboard_use_case(
     web::Data::new(
         Arc::new(PostgresPlatformFraudDashboardUseCase::new(pool.clone()))
             as Arc<dyn PlatformFraudDashboardUseCase>,
+    )
+}
+
+fn platform_reward_dashboard_use_case(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn PlatformRewardDashboardUseCase>> {
+    web::Data::new(
+        Arc::new(PostgresPlatformRewardDashboardUseCase::new(pool.clone()))
+            as Arc<dyn PlatformRewardDashboardUseCase>,
     )
 }
 

@@ -13,6 +13,7 @@ use crate::application::operations::readiness_check::ReadinessUseCase;
 use crate::application::reporting::organization_reward_dashboard::OrganizationRewardDashboardUseCase;
 use crate::application::reporting::organization_summary::OrganizationSummaryUseCase;
 use crate::application::reporting::platform_fraud_dashboard::PlatformFraudDashboardUseCase;
+use crate::application::reporting::platform_reward_dashboard::PlatformRewardDashboardUseCase;
 use crate::application::reporting::platform_summary::PlatformSummaryUseCase;
 use crate::application::rewards::decide_amount::RewardAmountDecisionUseCase;
 use crate::application::rewards::decide_teacher_candidate::TeacherRewardCandidateDecisionUseCase;
@@ -65,6 +66,7 @@ pub struct AppState {
     pub organization_reward_dashboard_use_case: Arc<dyn OrganizationRewardDashboardUseCase>,
     pub organization_summary_use_case: Arc<dyn OrganizationSummaryUseCase>,
     pub platform_fraud_dashboard_use_case: Arc<dyn PlatformFraudDashboardUseCase>,
+    pub platform_reward_dashboard_use_case: Arc<dyn PlatformRewardDashboardUseCase>,
     pub platform_summary_use_case: Arc<dyn PlatformSummaryUseCase>,
     pub readiness_use_case: Arc<dyn ReadinessUseCase>,
 }

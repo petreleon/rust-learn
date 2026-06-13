@@ -19,6 +19,7 @@ use crate::infra::postgres::notifications::notification_preferences_use_case::Po
 use crate::infra::postgres::reporting::organization_reward_dashboard_use_case::PostgresOrganizationRewardDashboardUseCase;
 use crate::infra::postgres::reporting::organization_summary_use_case::PostgresOrganizationSummaryUseCase;
 use crate::infra::postgres::reporting::platform_fraud_dashboard_use_case::PostgresPlatformFraudDashboardUseCase;
+use crate::infra::postgres::reporting::platform_reward_dashboard_use_case::PostgresPlatformRewardDashboardUseCase;
 use crate::infra::postgres::reporting::platform_summary_use_case::PostgresPlatformSummaryUseCase;
 use crate::infra::postgres::rewards::course_reward_candidate_use_case::PostgresCourseRewardCandidatesUseCase;
 use crate::infra::postgres::rewards::platform_reward_candidate_use_case::PostgresPlatformRewardCandidatesUseCase;
@@ -109,6 +110,9 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
             pool.clone(),
         )),
         platform_fraud_dashboard_use_case: Arc::new(PostgresPlatformFraudDashboardUseCase::new(
+            pool.clone(),
+        )),
+        platform_reward_dashboard_use_case: Arc::new(PostgresPlatformRewardDashboardUseCase::new(
             pool.clone(),
         )),
         platform_summary_use_case: Arc::new(PostgresPlatformSummaryUseCase::new(pool.clone())),

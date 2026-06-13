@@ -2,7 +2,8 @@ use actix_web::web;
 
 use crate::config::constants::permissions::Permissions;
 use crate::http::reporting::handlers::{
-    organization_reward_dashboard, organization_summary, platform_fraud_dashboard, platform_summary,
+    organization_reward_dashboard, organization_summary, platform_fraud_dashboard,
+    platform_reward_dashboard, platform_summary,
 };
 use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
@@ -20,6 +21,26 @@ pub fn platform_summary_csv_resource() -> actix_web::Resource {
     web::resource("/platform/summary.csv").route(
         web::get()
             .to(platform_summary::export_platform_summary)
+            .wrap(PlatformPermissionMiddleware::require(
+                Permissions::EXPORT_DATA.to_string(),
+            )),
+    )
+}
+
+pub fn platform_reward_dashboard_resource() -> actix_web::Resource {
+    web::resource("/platform/reward-dashboard").route(
+        web::get()
+            .to(platform_reward_dashboard::get_platform_reward_dashboard)
+            .wrap(PlatformPermissionMiddleware::require(
+                Permissions::VIEW_REWARD_AUDIT.to_string(),
+            )),
+    )
+}
+
+pub fn platform_reward_dashboard_csv_resource() -> actix_web::Resource {
+    web::resource("/platform/reward-dashboard.csv").route(
+        web::get()
+            .to(platform_reward_dashboard::export_platform_reward_dashboard)
             .wrap(PlatformPermissionMiddleware::require(
                 Permissions::EXPORT_DATA.to_string(),
             )),

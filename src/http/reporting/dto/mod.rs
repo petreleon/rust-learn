@@ -2,6 +2,8 @@ mod organization_reward_dashboard;
 mod organization_reward_dashboard_csv;
 mod organization_summary;
 mod platform_fraud_dashboard;
+mod platform_reward_dashboard;
+mod platform_reward_dashboard_csv;
 mod platform_summary;
 
 pub use organization_reward_dashboard::{
@@ -14,4 +16,10 @@ pub use platform_fraud_dashboard::{
     platform_fraud_dashboard_csv, FraudBlockDashboardRowResponse, FraudBlockScopeSummaryResponse,
     PlatformFraudDashboardResponse,
 };
+pub use platform_reward_dashboard::{
+    PlatformRewardDashboardResponse, PlatformTeacherApplicationDashboardSummaryResponse,
+    RewardCandidateDashboardRowResponse, RewardCandidateDashboardSummaryResponse,
+    RewardExecutionFailureRowResponse, RewardReconciliationMismatchRowResponse,
+};
+pub use platform_reward_dashboard_csv::platform_reward_dashboard_csv;
 pub use platform_summary::{platform_summary_csv, PlatformSummaryResponse};
