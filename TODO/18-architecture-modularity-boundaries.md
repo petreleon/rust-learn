@@ -2653,6 +2653,24 @@ into the access-control application ring.
       wiring with `cargo check --features app-bin --bin rust-learn`, and prove
       formatting, whitespace, line guard, and boundary scans.
 
+Slice 56: move production Actix app-data registration out of `main.rs`.
+
+- [x] Create `bootstrap/app_data.rs` so production `web::Data` registration is
+      owned by bootstrap wiring instead of the binary entrypoint.
+- [x] Keep `main.rs` as a thin process runner: env loading, logging, app-state
+      initialization, Actix app construction, route bootstrap, bind, and run.
+- [x] Preserve the existing app-data graph exactly: DB pool, S3 state,
+      notification state, access-control, identity, notifications, content,
+      rewards, wallet, and readiness use-case trait objects are still
+      registered as before.
+- [x] Self-critique: this improves process-level modularity only. `AppState`
+      and `bootstrap/startup.rs` still know the full concrete adapter graph,
+      which is acceptable for Level 2 bootstrap wiring but should stay the only
+      place where those concrete dependencies meet.
+- [x] Prove production wiring with
+      `cargo check --features app-bin --bin rust-learn`, prove route
+      composition with `api_routing`, and prove formatting/line-count checks.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -3045,8 +3063,9 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   Diesel `User` record for user reads; it delegates list/search/profile reads
   through `application/identity` and `infra/postgres/identity`.
 - User profile HTTP response DTOs now live under `http/identity/dto`.
-- `src/main.rs` is now 49 lines and delegates app state initialization and
-  route composition to `bootstrap/startup.rs`, `bootstrap/app_state.rs`, and
+- `src/main.rs` is now 33 lines and delegates app state initialization, app
+  data registration, and route composition to `bootstrap/startup.rs`,
+  `bootstrap/app_state.rs`, `bootstrap/app_data.rs`, and
   `bootstrap/routes.rs`.
 - `src/api/courses/list_assessment_attempts.rs` no longer contains direct
   Diesel usage; it delegates user attempt history through

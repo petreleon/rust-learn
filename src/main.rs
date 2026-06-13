@@ -13,7 +13,7 @@ pub mod services;
 pub mod shared;
 pub mod utils;
 
-use actix_web::{web, App, HttpServer};
+use actix_web::{App, HttpServer};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -24,60 +24,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(app_state.pool.clone()))
-            .app_data(web::Data::new(app_state.s3.clone()))
-            .app_data(web::Data::new(app_state.notifications.clone()))
-            .app_data(web::Data::new(app_state.role_catalog_use_case.clone()))
-            .app_data(web::Data::new(app_state.current_session_use_case.clone()))
-            .app_data(web::Data::new(
-                app_state.notification_inbox_use_case.clone(),
-            ))
-            .app_data(web::Data::new(
-                app_state.notification_preferences_use_case.clone(),
-            ))
-            .app_data(web::Data::new(app_state.chapter_use_cases.clone()))
-            .app_data(web::Data::new(app_state.content_item_use_cases.clone()))
-            .app_data(web::Data::new(
-                app_state.content_upload_url_use_case.clone(),
-            ))
-            .app_data(web::Data::new(app_state.content_media_url_use_case.clone()))
-            .app_data(web::Data::new(
-                app_state.content_processing_use_case.clone(),
-            ))
-            .app_data(web::Data::new(
-                app_state.reward_fraud_block_use_case.clone(),
-            ))
-            .app_data(web::Data::new(
-                app_state.reward_candidate_audit_use_case.clone(),
-            ))
-            .app_data(web::Data::new(
-                app_state.reward_amount_decision_use_case.clone(),
-            ))
-            .app_data(web::Data::new(
-                app_state.reward_candidate_submission_use_case.clone(),
-            ))
-            .app_data(web::Data::new(
-                app_state.course_reward_candidates_use_case.clone(),
-            ))
-            .app_data(web::Data::new(
-                app_state.platform_reward_candidates_use_case.clone(),
-            ))
-            .app_data(web::Data::new(
-                app_state.teacher_reward_candidate_decision_use_case.clone(),
-            ))
-            .app_data(web::Data::new(
-                app_state.student_reward_history_use_case.clone(),
-            ))
-            .app_data(web::Data::new(app_state.reward_policy_use_case.clone()))
-            .app_data(web::Data::new(app_state.wallet_audit_use_case.clone()))
-            .app_data(web::Data::new(
-                app_state.wallet_deposit_intent_use_case.clone(),
-            ))
-            .app_data(web::Data::new(app_state.wallet_link_use_case.clone()))
-            .app_data(web::Data::new(app_state.wallet_read_use_case.clone()))
-            .app_data(web::Data::new(app_state.wallet_retirement_use_case.clone()))
-            .app_data(web::Data::new(app_state.wallet_token_tax_use_case.clone()))
-            .app_data(web::Data::new(app_state.readiness_use_case.clone()))
+            .configure(|cfg| bootstrap::app_data::configure_app_data(cfg, &app_state))
             .configure(bootstrap::routes::configure_routes)
     })
     .bind("0.0.0.0:8080")?
