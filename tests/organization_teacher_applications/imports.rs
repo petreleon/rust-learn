@@ -2,6 +2,7 @@ use actix_web::{http::StatusCode, test, web, App};
 use chrono::NaiveDate;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::application::organizations::list_organization_teacher_applications::OrganizationTeacherApplicationListUseCase;
+use rust_learn::application::teacher_applications::TeacherApplicationOutput;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::schema::organizations;
 use rust_learn::db::{establish_connection, DbPool};
@@ -13,8 +14,7 @@ use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::repositories::platform_repository::assign_role_to_user;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::teacher_application_service::{
-    decide_application, nominate_application, OrganizationTeacherNominationRequest,
-    TeacherApplicationDecisionRequest,
+    nominate_application, OrganizationTeacherNominationRequest, TeacherApplicationError,
 };
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::Value;

@@ -65,29 +65,6 @@ fn rejects_invalid_status() {
     assert!(normalize_status("in_review").is_err());
 }
 
-// ── normalize_decision_status ──
-
-#[test]
-fn normalizes_decision_statuses() {
-    assert_eq!(normalize_decision_status("approved").unwrap(), "approved");
-    assert_eq!(normalize_decision_status("rejected").unwrap(), "rejected");
-    assert_eq!(
-        normalize_decision_status("needs_changes").unwrap(),
-        "needs_changes"
-    );
-}
-
-#[test]
-fn decision_status_rejects_submitted() {
-    assert!(normalize_decision_status(TEACHER_APPLICATION_STATUS_SUBMITTED).is_err());
-}
-
-#[test]
-fn decision_status_rejects_invalid() {
-    assert!(normalize_decision_status("pending").is_err());
-    assert!(normalize_decision_status("").is_err());
-}
-
 // ── normalize_optional_text ──
 
 #[test]

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::application::teacher_applications::decide_application::TeacherApplicationDecisionUseCase;
 use crate::application::teacher_applications::get_my_application::TeacherApplicationSelfUseCase;
 use crate::application::teacher_applications::list_application_audit::TeacherApplicationAuditUseCase;
 use crate::application::teacher_applications::list_applications::TeacherApplicationListUseCase;
@@ -7,6 +8,7 @@ use crate::application::teacher_applications::list_platform_review::TeacherAppli
 use crate::application::teacher_applications::submit_application::TeacherApplicationSubmitUseCase;
 use crate::db::DbPool;
 use crate::infra::postgres::teacher_applications::teacher_application_audit_use_case::PostgresTeacherApplicationAuditUseCase;
+use crate::infra::postgres::teacher_applications::teacher_application_decision_use_case::PostgresTeacherApplicationDecisionUseCase;
 use crate::infra::postgres::teacher_applications::teacher_application_list_use_case::PostgresTeacherApplicationListUseCase;
 use crate::infra::postgres::teacher_applications::teacher_application_platform_review_use_case::PostgresTeacherApplicationPlatformReviewUseCase;
 use crate::infra::postgres::teacher_applications::teacher_application_self_use_case::PostgresTeacherApplicationSelfUseCase;
@@ -15,6 +17,7 @@ use crate::infra::postgres::teacher_applications::teacher_application_submit_use
 #[derive(Clone)]
 pub struct TeacherApplicationUseCases {
     pub audit: Arc<dyn TeacherApplicationAuditUseCase>,
+    pub decision: Arc<dyn TeacherApplicationDecisionUseCase>,
     pub list: Arc<dyn TeacherApplicationListUseCase>,
     pub platform_review: Arc<dyn TeacherApplicationPlatformReviewUseCase>,
     pub self_status: Arc<dyn TeacherApplicationSelfUseCase>,
@@ -24,6 +27,7 @@ pub struct TeacherApplicationUseCases {
 pub fn build_teacher_application_use_cases(pool: &DbPool) -> TeacherApplicationUseCases {
     TeacherApplicationUseCases {
         audit: Arc::new(PostgresTeacherApplicationAuditUseCase::new(pool.clone())),
+        decision: Arc::new(PostgresTeacherApplicationDecisionUseCase::new(pool.clone())),
         list: Arc::new(PostgresTeacherApplicationListUseCase::new(pool.clone())),
         platform_review: Arc::new(PostgresTeacherApplicationPlatformReviewUseCase::new(
             pool.clone(),

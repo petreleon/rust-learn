@@ -11,17 +11,14 @@ use crate::application::teacher_applications::list_applications::{
 use crate::application::teacher_applications::submit_application::{
     TeacherApplicationSubmitError, TeacherApplicationSubmitUseCase,
 };
-use crate::db;
 use crate::http::extractors::auth_user::AuthUser;
 use crate::http::teacher_applications::dto::{
     teacher_application_responses, ListTeacherApplicationsParams, SubmitTeacherApplicationRequest,
     TeacherApplicationResponse, TeacherApplicationSelfResponse,
 };
 use crate::http::teacher_applications::support::{
-    notify_teacher_application_event, service_error_response, TeacherApplicationNotification,
+    notify_teacher_application_event, TeacherApplicationNotification,
 };
-use crate::services::teacher_application_service::{self, TeacherApplicationDecisionRequest};
-use crate::utils::request_auth::authenticated_user;
 
 pub(super) async fn submit_application(
     req: HttpRequest,
@@ -64,46 +61,6 @@ pub(super) async fn get_my_application(
     match use_case.get_my_application(requester.user_id()).await {
         Ok(snapshot) => HttpResponse::Ok().json(TeacherApplicationSelfResponse::from(snapshot)),
         Err(error) => self_application_error_response(error),
-    }
-}
-
-pub(super) async fn decide_application(
-    req: HttpRequest,
-    path: web::Path<i64>,
-    pool: web::Data<db::DbPool>,
-    body: web::Json<TeacherApplicationDecisionRequest>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-    let decision = body.into_inner();
-    let decision_reason = decision.decision_reason.clone();
-
-    match teacher_application_service::decide_application(
-        &mut conn,
-        requester.user_id,
-        path.into_inner(),
-        decision,
-    )
-    .await
-    {
-        Ok(application) => {
-            let event_type = application.status.clone();
-            notify_teacher_application_event(
-                &req,
-                &TeacherApplicationNotification::from(&application),
-                &event_type,
-                decision_reason.as_deref(),
-            )
-            .await;
-            HttpResponse::Ok().json(application)
-        }
-        Err(error) => service_error_response(error),
     }
 }
 

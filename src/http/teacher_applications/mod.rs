@@ -1,4 +1,6 @@
 mod audit;
+mod decision;
+mod decision_dto;
 mod dto;
 mod handlers;
 mod organization_nomination;

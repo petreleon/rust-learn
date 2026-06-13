@@ -21,6 +21,18 @@ pub fn normalize_status(status: &str) -> Result<String, TeacherApplicationStatus
     }
 }
 
+pub fn normalize_decision_status(status: &str) -> Result<String, TeacherApplicationStatusError> {
+    let normalized = normalize_status(status)?;
+    match normalized.as_str() {
+        TEACHER_APPLICATION_STATUS_APPROVED
+        | TEACHER_APPLICATION_STATUS_NEEDS_CHANGES
+        | TEACHER_APPLICATION_STATUS_REJECTED => Ok(normalized),
+        _ => Err(TeacherApplicationStatusError::InvalidStatus(
+            "decision status must be approved, rejected, or needs_changes".to_string(),
+        )),
+    }
+}
+
 pub fn normalize_optional_status(
     status: Option<String>,
 ) -> Result<Option<String>, TeacherApplicationStatusError> {
@@ -43,5 +55,20 @@ mod tests {
     fn rejects_unknown_statuses() {
         assert!(normalize_status("pending").is_err());
         assert!(normalize_status("").is_err());
+    }
+
+    #[test]
+    fn normalizes_decision_statuses() {
+        assert_eq!(normalize_decision_status(" APPROVED ").unwrap(), "approved");
+        assert_eq!(
+            normalize_decision_status("needs_changes").unwrap(),
+            "needs_changes"
+        );
+        assert_eq!(normalize_decision_status("rejected").unwrap(), "rejected");
+    }
+
+    #[test]
+    fn rejects_submitted_as_decision_status() {
+        assert!(normalize_decision_status("submitted").is_err());
     }
 }

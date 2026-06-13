@@ -90,17 +90,5 @@ fn normalize_status(status: &str) -> Result<String, TeacherApplicationError> {
     }
 }
 
-fn normalize_decision_status(status: &str) -> Result<String, TeacherApplicationError> {
-    let normalized = normalize_status(status)?;
-    match normalized.as_str() {
-        TEACHER_APPLICATION_STATUS_APPROVED
-        | TEACHER_APPLICATION_STATUS_REJECTED
-        | TEACHER_APPLICATION_STATUS_NEEDS_CHANGES => Ok(normalized),
-        _ => Err(TeacherApplicationError::InvalidInput(
-            "decision status must be approved, rejected, or needs_changes".to_string(),
-        )),
-    }
-}
-
 #[cfg(test)]
 mod tests;

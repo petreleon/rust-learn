@@ -1,5 +1,8 @@
 pub mod teacher_application_audit_store;
 pub mod teacher_application_audit_use_case;
+mod teacher_application_decision_roles;
+pub mod teacher_application_decision_store;
+pub mod teacher_application_decision_use_case;
 pub mod teacher_application_list_store;
 pub mod teacher_application_list_use_case;
 mod teacher_application_platform_review_audit;

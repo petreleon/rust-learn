@@ -1,10 +1,7 @@
 use crate::config::constants::permissions::Permissions;
-use crate::config::constants::roles::Roles;
 use crate::db::schema::{
-    courses, organizations, teacher_application_audit_events, teacher_applications,
-    user_role_course, user_role_organization, user_role_platform, users,
+    courses, organizations, teacher_application_audit_events, teacher_applications, users,
 };
-use crate::models::role::{CourseRole, OrganizationRole, PlatformRole};
 use crate::models::teacher_application::{
     NewTeacherApplication, NewTeacherApplicationAuditEvent, TeacherApplication,
     TeacherApplicationAuditEvent, TEACHER_APPLICATION_SCOPE_COURSE,
@@ -12,9 +9,6 @@ use crate::models::teacher_application::{
     TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
     TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
 };
-use crate::models::user_role_course::UserRoleCourse;
-use crate::models::user_role_organization::UserRoleOrganization;
-use crate::models::user_role_platform::UserRolePlatform;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::repositories::teacher_application_repository;
@@ -61,12 +55,6 @@ pub struct OrganizationTeacherNominationRequest {
     pub experience_summary: String,
     pub portfolio_links: Option<Vec<String>>,
     pub idempotency_key: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct TeacherApplicationDecisionRequest {
-    pub status: String,
-    pub decision_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]

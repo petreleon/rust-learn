@@ -169,6 +169,7 @@ pub fn configure_app_data(cfg: &mut web::ServiceConfig, app_state: &AppState) {
             app_state.platform_wallet_reconciliation_use_case.clone(),
         ))
         .app_data(web::Data::new(teacher_applications.audit.clone()))
+        .app_data(web::Data::new(teacher_applications.decision.clone()))
         .app_data(web::Data::new(teacher_applications.list.clone()))
         .app_data(web::Data::new(teacher_applications.platform_review.clone()))
         .app_data(web::Data::new(teacher_applications.self_status.clone()))

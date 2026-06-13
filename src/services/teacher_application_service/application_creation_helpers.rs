@@ -1,21 +1,3 @@
-async fn ensure_decision_permission(
-    conn: &mut AsyncPgConnection,
-    user_id: i32,
-    target_status: &str,
-) -> Result<(), TeacherApplicationError> {
-    let permission = match target_status {
-        TEACHER_APPLICATION_STATUS_APPROVED => Permissions::APPROVE_TEACHER_APPLICATION,
-        TEACHER_APPLICATION_STATUS_REJECTED => Permissions::REJECT_TEACHER_APPLICATION,
-        TEACHER_APPLICATION_STATUS_NEEDS_CHANGES => Permissions::REVIEW_TEACHER_APPLICATIONS,
-        _ => {
-            return Err(TeacherApplicationError::InvalidInput(
-                "unsupported teacher application decision".to_string(),
-            ))
-        }
-    };
-    ensure_platform_permission(conn, user_id, permission).await
-}
-
 fn build_new_application(
     applicant_user_id: i32,
     request: SubmitTeacherApplicationRequest,

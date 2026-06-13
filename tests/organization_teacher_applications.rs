@@ -1,3 +1,4 @@
 include!("organization_teacher_applications/imports.rs");
+include!("teacher_applications/decision_support.rs");
 include!("organization_teacher_applications/organization_teacher_applications_return_scoped_tracking_rows.rs");
 include!("organization_teacher_applications/organization_teacher_applications_deny_users_without_scope.rs");
