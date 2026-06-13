@@ -10,6 +10,7 @@ use crate::application::identity::current_session::CurrentSessionUseCase;
 use crate::application::notifications::notification_inbox::NotificationInboxUseCase;
 use crate::application::notifications::preference_service::NotificationPreferencesUseCase;
 use crate::application::operations::readiness_check::ReadinessUseCase;
+use crate::application::rewards::manage_fraud_block::RewardFraudBlockUseCase;
 use crate::application::rewards::manage_reward_policy::RewardPolicyUseCase;
 use crate::db::DbPool;
 use crate::utils::notifications::NotificationsState;
@@ -29,6 +30,7 @@ pub struct AppState {
     pub content_upload_url_use_case: Arc<dyn ContentUploadUrlUseCase>,
     pub content_media_url_use_case: Arc<dyn ContentMediaUrlUseCase>,
     pub content_processing_use_case: Arc<dyn ContentProcessingUseCase>,
+    pub reward_fraud_block_use_case: Arc<dyn RewardFraudBlockUseCase>,
     pub reward_policy_use_case: Arc<dyn RewardPolicyUseCase>,
     pub readiness_use_case: Arc<dyn ReadinessUseCase>,
 }

@@ -1,14 +1,17 @@
 use actix_web::{http::StatusCode, test, web, App};
 use chrono::NaiveDate;
 use diesel_async::AsyncPgConnection;
+use rust_learn::application::rewards::manage_fraud_block::RewardFraudBlockUseCase;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
 use rust_learn::models::role::PlatformRole;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::{json, Value};
+use std::sync::Arc;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -47,4 +50,8 @@ async fn assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_n
 
 fn token_for(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to create JWT")
+}
+
+fn reward_fraud_block_use_case(pool: &DbPool) -> Arc<dyn RewardFraudBlockUseCase> {
+    Arc::new(PostgresRewardFraudBlockUseCase::new(pool.clone()))
 }

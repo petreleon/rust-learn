@@ -50,7 +50,6 @@ pub fn api_scope() -> Scope<
         .service(delegated_permissions::delegated_permission_scope())
         .service(kyc::kyc_scope())
         .configure(reward_candidates::configure_reward_candidate_routes)
-        .service(reward_fraud_blocks::reward_fraud_block_scope())
         .configure(crate::http::rewards::configure_routes)
         .service(crate::http::access_control::roles_scope())
         .service(teacher_applications::teacher_application_scope())

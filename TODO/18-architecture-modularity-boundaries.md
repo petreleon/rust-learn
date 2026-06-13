@@ -1319,6 +1319,51 @@ Slice 26: move reward policy routes into the rewards HTTP ring.
       reward policy integration behavior passes, route composition still
       passes, and the app binary still checks.
 
+Slice 27: move reward fraud-block routes into the rewards HTTP ring.
+
+- [x] Use `/reward-fraud-blocks` as the next rewards migration because fraud
+      blocks are a bounded management surface with create, list, revoke, audit,
+      permission checks, and notification fan-out.
+- [x] Move fraud-block scope vocabulary and target matching into
+      `domain/rewards/fraud_block`.
+- [x] Create `application/rewards/manage_fraud_block` with explicit
+      command/query/output/error/service modules and a `RewardFraudBlockStore`
+      port under `application/rewards/ports.rs`.
+- [x] Move fraud-block request normalization, exact-target validation, list
+      pagination shaping, revoke idempotency, and audit-event assembly out of
+      the legacy include-based service module.
+- [x] Move fraud-block Diesel persistence behind
+      `infra/postgres/rewards/reward_fraud_block_store.rs`, with DbPool wiring
+      in `reward_fraud_block_use_case.rs` and Diesel/application mapping in
+      `reward_fraud_block_mappers.rs`.
+- [x] Move fraud-block permission checks and notification recipient queries
+      behind dedicated Postgres rewards modules so application and HTTP do not
+      import permission constants, Diesel schema, or notification writes.
+- [x] Move `/api/reward-fraud-blocks` request/response DTOs, handlers, and
+      route composition into `http/rewards`.
+- [x] Make `src/api/reward_fraud_blocks.rs` a thin compatibility wrapper
+      around `http::rewards::reward_fraud_block_scope`.
+- [x] Wire the reward fraud-block use-case trait object through
+      `bootstrap::AppState`, production Actix app data, route tests, and
+      focused API tests.
+- [x] Delete the legacy `services/reward_fraud_block_service` include module
+      and move its pure scope/target/permission coverage beside the new
+      domain/application/infra owners.
+- [x] Preserve existing route paths, JSON field names, create/revoke
+      notification titles and bodies, permission denial body, DB-unavailable
+      body, not-found body, and generic processing-error body.
+- [x] Self-critique: this moves reward fraud-block management only. Reward
+      candidates still call legacy reward-candidate services, and payout
+      execution, compensation, history, and reporting still need their own
+      rewards slices. Fraud-block permission checks still call the existing
+      platform permission repository from the Postgres adapter until
+      `application/access_control` becomes the shared authorization source.
+- [x] Prove the fraud-block service module is gone, reward fraud-block HTTP has
+      no Diesel/repository/service imports, pure domain/application/infra tests
+      pass, focused fraud-block integration behavior passes, route composition
+      still passes, reward-candidate fraud-block regressions still pass, and
+      the app binary still checks.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -1364,6 +1409,22 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `application/rewards/manage_reward_policy`.
 - Legacy `src/services/reward_policy_service.rs` and
   `src/services/reward_policy_service/` have been removed.
+- `src/api/reward_fraud_blocks.rs` is now a thin compatibility wrapper around
+  `http::rewards`.
+- Reward fraud-block HTTP handlers, routes, and request/response DTOs now live
+  under `http/rewards`.
+- Reward fraud-block management is injected as an application-facing
+  `RewardFraudBlockUseCase`; concrete DbPool/Postgres wiring lives in
+  `infra/postgres/rewards/reward_fraud_block_use_case.rs` and
+  `bootstrap::AppState`.
+- Reward fraud-block scope vocabulary now lives under
+  `domain/rewards/fraud_block`; request target validation lives under
+  `application/rewards/manage_fraud_block`.
+- Reward fraud-block notification fan-out and recipient lookup now live under
+  `infra/postgres/rewards/reward_fraud_block_notifications.rs` and
+  `reward_fraud_block_notification_recipients.rs`.
+- Legacy `src/services/reward_fraud_block_service.rs` and
+  `src/services/reward_fraud_block_service/` have been removed.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -1477,9 +1538,15 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `rg "reward_policy_service|services::reward_policy_service|include!\\(\"reward_policy_service" src tests`
   returns no matches.
+- `rg "reward_fraud_block_service|services::reward_fraud_block_service|include!\\(\"reward_fraud_block_service" src tests`
+  returns no matches.
 - `rg "crate::db|DbPool|diesel|diesel_async|RunQueryDsl|schema::|crate::services|crate::repositories" src/api/reward_policies.rs src/http/rewards`
   returns no matches.
+- `rg "crate::db|DbPool|diesel|diesel_async|RunQueryDsl|schema::|crate::services|crate::repositories" src/api/reward_fraud_blocks.rs src/http/rewards`
+  returns no matches.
 - `rg "reward_policies::reward_policy_scope|api::reward_policies|crate::api::reward_policies" src/api/mod.rs tests/api_routing.rs`
+  returns no matches.
+- `rg "reward_fraud_blocks::reward_fraud_block_scope|api::reward_fraud_blocks|crate::api::reward_fraud_blocks" src/api/mod.rs tests/api_routing.rs`
   returns no matches.
 - `rg "diesel|diesel_async|schema::|RunQueryDsl|QueryDsl|ExpressionMethods|models::user::User" src/api/users.rs`
   returns no matches.
@@ -1514,6 +1581,18 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `./scripts/run-host-tests.sh cargo test application::rewards::manage_reward_policy --lib`
   passes.
 - `./scripts/run-host-tests.sh cargo test --test reward_policies` passes.
+- `./scripts/run-host-tests.sh cargo test domain::rewards::fraud_block --lib`
+  passes.
+- `./scripts/run-host-tests.sh cargo test application::rewards::manage_fraud_block --lib`
+  passes.
+- `./scripts/run-host-tests.sh cargo test reward_fraud_block_permissions --lib`
+  passes.
+- `./scripts/run-host-tests.sh cargo test reward_fraud_block_notification_permissions --lib`
+  passes.
+- `./scripts/run-host-tests.sh cargo test --test reward_fraud_blocks` passes.
+- `./scripts/run-host-tests.sh cargo test fraud_block_api_separates_read_audit_from_block_management --test reward_management_api`
+  passes.
+- `./scripts/run-host-tests.sh cargo test --test reward_candidates` passes.
 - `./scripts/run-host-tests.sh cargo test --test course_content_management`
   passes.
 - `./scripts/run-host-tests.sh cargo test course_video_upload_can_be_queued_and_processed --test video_upload_flow`
@@ -1622,10 +1701,14 @@ notifications, reporting, and platform review.
       (`submit_candidate`, `decide_amount`, `reconcile_candidate`).
 - [x] Move reward policy scope, event, and payment-strategy normalization into
       `domain/rewards/policy`.
+- [x] Move reward fraud-block scope vocabulary and target matching into
+      `domain/rewards/fraud_block`.
 - [ ] Move remaining reward statuses and event types into domain enums/newtypes.
       Keep database string conversion at the infra boundary.
 - [x] Move reward policy request/response structs out of service imports and
       into `http/rewards/dto`.
+- [x] Move reward fraud-block request/response structs out of service imports
+      and into `http/rewards/dto`.
 - [ ] Move remaining reward request/response structs out of service imports and
       into `http/rewards/dto`.
 - [ ] Move candidate transition rules into pure domain functions:
@@ -1633,10 +1716,13 @@ notifications, reporting, and platform review.
       wallet credited, notified, reconciliation needed.
 - [x] Define the first reward repository port:
       `RewardPolicyStore` for `manage_reward_policy`.
+- [x] Define `RewardFraudBlockStore` for `manage_fraud_block`.
 - [ ] Define remaining repository ports needed by reward use cases before moving Diesel
       code. Examples: `RewardCandidateStore`, `RewardPolicyStore`,
       `RewardAuditStore`, `RewardFraudBlockStore`.
 - [x] Move reward policy Diesel implementation behind `infra/postgres/rewards`.
+- [x] Move reward fraud-block Diesel implementation behind
+      `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.
 - [ ] Move reward permission decisions through `application/access_control`

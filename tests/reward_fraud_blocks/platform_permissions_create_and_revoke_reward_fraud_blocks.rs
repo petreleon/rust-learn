@@ -1,6 +1,7 @@
 #[actix_web::test]
 async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
-    let mut conn = setup_conn().await;
+    let pool = setup_pool();
+    let mut conn = setup_conn(&pool).await;
     let admin = create_user_helper(&mut conn, "fraud_block_admin").await;
     let moderator = create_user_helper(&mut conn, "fraud_block_moderator").await;
     let teacher = create_user_helper(&mut conn, "fraud_block_teacher").await;
@@ -44,20 +45,19 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
     )
     .await
     .expect("admin should delegate organization reward report notifications");
+    drop(conn);
 
-    let denied = create_reward_fraud_block(
-        &mut conn,
-        moderator.id(),
-        teacher_block_request(teacher.id()),
-    )
-    .await
-    .expect_err("moderator should not get teacher fraud block permission by default");
+    let fraud_blocks = reward_fraud_block_use_case(&pool);
+    let denied = fraud_blocks
+        .create_reward_fraud_block(moderator.id(), teacher_block_request(teacher.id()))
+        .await
+        .expect_err("moderator should not get teacher fraud block permission by default");
     assert!(matches!(denied, RewardFraudBlockError::PermissionDenied(_)));
 
-    let teacher_block =
-        create_reward_fraud_block(&mut conn, admin.id(), teacher_block_request(teacher.id()))
-            .await
-            .expect("admin should block teacher reward activity");
+    let teacher_block = fraud_blocks
+        .create_reward_fraud_block(admin.id(), teacher_block_request(teacher.id()))
+        .await
+        .expect("admin should block teacher reward activity");
     assert_eq!(teacher_block.scope_type, REWARD_FRAUD_BLOCK_SCOPE_TEACHER);
     assert_eq!(teacher_block.teacher_user_id, Some(teacher.id()));
     assert_eq!(teacher_block.created_by_user_id, admin.id());
@@ -67,6 +67,7 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
         Some("case://teacher-block")
     );
     assert!(teacher_block.revoked_at.is_none());
+    let mut conn = setup_conn(&pool).await;
     let teacher_notification_count = notifications::table
         .filter(notifications::user_id.eq(Some(teacher.id())))
         .filter(notifications::title.eq("reward_fraud_block:created"))
@@ -94,12 +95,15 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
         .await
         .expect("delegated platform fraud notifications should be countable");
     assert_eq!(delegated_platform_notification_count, 1);
+    drop(conn);
 
-    let revoked = revoke_reward_fraud_block(&mut conn, admin.id(), teacher_block.id)
+    let revoked = fraud_blocks
+        .revoke_reward_fraud_block(admin.id(), teacher_block.id)
         .await
         .expect("admin should revoke teacher reward fraud block");
     assert_eq!(revoked.revoked_by_user_id, Some(admin.id()));
     assert!(revoked.revoked_at.is_some());
+    let mut conn = setup_conn(&pool).await;
     let teacher_revoked_notification_count = notifications::table
         .filter(notifications::user_id.eq(Some(teacher.id())))
         .filter(notifications::title.eq("reward_fraud_block:revoked"))
@@ -108,11 +112,12 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
         .await
         .expect("teacher revoked fraud block notifications should be countable");
     assert_eq!(teacher_revoked_notification_count, 1);
+    drop(conn);
 
-    let organization_block = create_reward_fraud_block(
-        &mut conn,
-        admin.id(),
-        RewardFraudBlockRequest {
+    let organization_block = fraud_blocks
+        .create_reward_fraud_block(
+            admin.id(),
+            CreateRewardFraudBlockCommand {
             scope_type: REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION.to_string(),
             teacher_user_id: None,
             organization_id: Some(organization.id),
@@ -122,14 +127,15 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
             evidence_reference: None,
             expires_at: None,
         },
-    )
-    .await
-    .expect("admin should block organization reward activity");
+        )
+        .await
+        .expect("admin should block organization reward activity");
     assert_eq!(
         organization_block.scope_type,
         REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION
     );
     assert_eq!(organization_block.organization_id, Some(organization.id));
+    let mut conn = setup_conn(&pool).await;
     let organization_operator_notification_count = notifications::table
         .filter(notifications::user_id.eq(Some(org_operator.id())))
         .filter(notifications::title.eq("reward_fraud_block:created"))
@@ -146,11 +152,12 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
         .await
         .expect("delegated organization fraud block notifications should be countable");
     assert_eq!(delegated_organization_operator_notification_count, 1);
+    drop(conn);
 
-    let course_block = create_reward_fraud_block(
-        &mut conn,
-        admin.id(),
-        RewardFraudBlockRequest {
+    let course_block = fraud_blocks
+        .create_reward_fraud_block(
+            admin.id(),
+            CreateRewardFraudBlockCommand {
             scope_type: REWARD_FRAUD_BLOCK_SCOPE_COURSE.to_string(),
             teacher_user_id: None,
             organization_id: None,
@@ -160,12 +167,13 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
             evidence_reference: Some("case://course-block".to_string()),
             expires_at: None,
         },
-    )
-    .await
-    .expect("admin should block course reward activity through fraud management permission");
+        )
+        .await
+        .expect("admin should block course reward activity through fraud management permission");
     assert_eq!(course_block.scope_type, REWARD_FRAUD_BLOCK_SCOPE_COURSE);
     assert_eq!(course_block.course_id, Some(course.id));
 
+    let mut conn = setup_conn(&pool).await;
     let stored = reward_fraud_blocks::table
         .find(course_block.id)
         .first::<RewardFraudBlock>(&mut conn)

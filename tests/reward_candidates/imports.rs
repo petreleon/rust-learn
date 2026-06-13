@@ -2,6 +2,10 @@ use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::rewards::manage_fraud_block::{
+    CreateRewardFraudBlockCommand, RewardFraudBlockError, RewardFraudBlockOutput,
+    RewardFraudBlockUseCase,
+};
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{
@@ -22,10 +26,11 @@ use rust_learn::models::reward_candidate::{
     REWARD_STATUS_TEACHER_APPROVED,
 };
 use rust_learn::models::reward_execution_job::REWARD_EXECUTION_STATUS_QUEUED;
-use rust_learn::models::reward_fraud_block::{
+use rust_learn::domain::rewards::fraud_block::{
     REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
     REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
 };
+use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
 use rust_learn::models::reward_policy::{
     NewRewardPolicy, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
@@ -44,11 +49,10 @@ use rust_learn::services::reward_candidate_service::{
     PlatformRewardCandidatesRequest, RewardAmountDecisionRequest, RewardCandidateError,
     SubmitRewardCandidateRequest, TeacherRewardCandidateDecisionRequest,
 };
-use rust_learn::services::reward_fraud_block_service::{
-    create_reward_fraud_block, revoke_reward_fraud_block, RewardFraudBlockRequest,
-};
 use serde_json::json;
 use std::str::FromStr;
+
+type RewardFraudBlockRequest = CreateRewardFraudBlockCommand;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -62,6 +66,28 @@ async fn setup_conn(
     pool.get()
         .await
         .expect("failed to get DB connection from pool")
+}
+
+async fn create_reward_fraud_block(
+    _conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    request: RewardFraudBlockRequest,
+) -> Result<RewardFraudBlockOutput, RewardFraudBlockError> {
+    let pool = establish_connection();
+    PostgresRewardFraudBlockUseCase::new(pool)
+        .create_reward_fraud_block(actor_user_id, request)
+        .await
+}
+
+async fn revoke_reward_fraud_block(
+    _conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    block_id: i64,
+) -> Result<RewardFraudBlockOutput, RewardFraudBlockError> {
+    let pool = establish_connection();
+    PostgresRewardFraudBlockUseCase::new(pool)
+        .revoke_reward_fraud_block(actor_user_id, block_id)
+        .await
 }
 
 async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {

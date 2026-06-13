@@ -1,39 +1,44 @@
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::rewards::manage_fraud_block::{
+    CreateRewardFraudBlockCommand, RewardFraudBlockError, RewardFraudBlockUseCase,
+};
 use rust_learn::config::constants::permissions::Permissions;
-use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{courses, notifications, organizations, reward_fraud_blocks};
+use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::domain::rewards::fraud_block::{
+    REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
+    REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
+};
+use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::delegated_permission::{
     GrantDelegatedPermissionRequest, DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
 };
 use rust_learn::models::notification::Notification;
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::reward_fraud_block::{
-    RewardFraudBlock, REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
-    REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
-};
+use rust_learn::models::reward_fraud_block::RewardFraudBlock;
 use rust_learn::models::role::{OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::delegated_permission_service::grant_delegated_permission;
-use rust_learn::services::reward_fraud_block_service::{
-    create_reward_fraud_block, revoke_reward_fraud_block, RewardFraudBlockError,
-    RewardFraudBlockRequest,
-};
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
 }
 
-async fn setup_conn(
-) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
+fn setup_pool() -> DbPool {
     let _ = dotenvy::dotenv();
-    let pool = establish_connection();
+    establish_connection()
+}
+
+async fn setup_conn(
+    pool: &DbPool,
+) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
     pool.get()
         .await
         .expect("failed to get DB connection from pool")
@@ -99,8 +104,12 @@ async fn force_assign_organization_role(
         .expect("failed to assign organization role");
 }
 
-fn teacher_block_request(teacher_user_id: i32) -> RewardFraudBlockRequest {
-    RewardFraudBlockRequest {
+fn reward_fraud_block_use_case(pool: &DbPool) -> PostgresRewardFraudBlockUseCase {
+    PostgresRewardFraudBlockUseCase::new(pool.clone())
+}
+
+fn teacher_block_request(teacher_user_id: i32) -> CreateRewardFraudBlockCommand {
+    CreateRewardFraudBlockCommand {
         scope_type: REWARD_FRAUD_BLOCK_SCOPE_TEACHER.to_string(),
         teacher_user_id: Some(teacher_user_id),
         organization_id: None,

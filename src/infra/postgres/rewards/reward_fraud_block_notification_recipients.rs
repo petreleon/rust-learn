@@ -1,3 +1,47 @@
+use std::collections::HashSet;
+
+use chrono::Utc;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use crate::application::rewards::manage_fraud_block::{
+    RewardFraudBlockError, RewardFraudBlockOutput,
+};
+use crate::db::schema::{
+    courses_organizations, delegated_permissions, reward_policies, role_permission_organization,
+    role_permission_platform, user_role_organization, user_role_platform,
+};
+use crate::infra::postgres::rewards::reward_fraud_block_mappers::map_reward_fraud_block_error;
+use crate::infra::postgres::rewards::reward_fraud_block_notification_permissions::{
+    organization_fraud_notification_permissions, platform_fraud_notification_permissions,
+};
+use crate::models::delegated_permission::{DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM};
+
+pub(super) async fn reward_fraud_block_notification_recipients(
+    conn: &mut AsyncPgConnection,
+    block: &RewardFraudBlockOutput,
+) -> Result<HashSet<i32>, RewardFraudBlockError> {
+    let mut recipients = HashSet::new();
+
+    if let Some(teacher_user_id) = block.teacher_user_id {
+        recipients.insert(teacher_user_id);
+    }
+    if let Some(organization_id) = block.organization_id {
+        recipients.extend(organization_reward_operator_user_ids(conn, organization_id).await?);
+    }
+    if let Some(course_id) = block.course_id {
+        for organization_id in course_organization_ids(conn, course_id).await? {
+            recipients.extend(organization_reward_operator_user_ids(conn, organization_id).await?);
+        }
+    }
+    if let Some(reward_policy_id) = block.reward_policy_id {
+        recipients.extend(reward_policy_operator_user_ids(conn, reward_policy_id).await?);
+    }
+
+    recipients.extend(platform_reward_reviewer_user_ids(conn).await?);
+    Ok(recipients)
+}
+
 async fn platform_reward_reviewer_user_ids(
     conn: &mut AsyncPgConnection,
 ) -> Result<Vec<i32>, RewardFraudBlockError> {
@@ -11,7 +55,8 @@ async fn platform_reward_reviewer_user_ids(
         .filter(role_permission_platform::permission.eq_any(permissions.as_slice()))
         .distinct()
         .load::<Option<i32>>(conn)
-        .await?
+        .await
+        .map_err(map_reward_fraud_block_error)?
         .into_iter()
         .flatten()
         .collect::<Vec<_>>();
@@ -31,7 +76,8 @@ async fn platform_reward_reviewer_user_ids(
             )
             .distinct()
             .load::<i32>(conn)
-            .await?,
+            .await
+            .map_err(map_reward_fraud_block_error)?,
     );
 
     reviewers.sort_unstable();
@@ -55,7 +101,8 @@ async fn organization_reward_operator_user_ids(
         .select(user_role_organization::user_id)
         .distinct()
         .load::<Option<i32>>(conn)
-        .await?
+        .await
+        .map_err(map_reward_fraud_block_error)?
         .into_iter()
         .flatten()
         .collect::<Vec<_>>();
@@ -75,26 +122,13 @@ async fn organization_reward_operator_user_ids(
             )
             .distinct()
             .load::<i32>(conn)
-            .await?,
+            .await
+            .map_err(map_reward_fraud_block_error)?,
     );
 
     operators.sort_unstable();
     operators.dedup();
     Ok(operators)
-}
-
-fn platform_fraud_notification_permissions() -> [String; 2] {
-    [
-        Permissions::VIEW_REWARD_AUDIT.to_string(),
-        Permissions::MANAGE_REWARD_FRAUD_BLOCKS.to_string(),
-    ]
-}
-
-fn organization_fraud_notification_permissions() -> [String; 2] {
-    [
-        Permissions::VIEW_ORG_REWARD_REPORTS.to_string(),
-        Permissions::MANAGE_ORG_REWARD_BUDGET.to_string(),
-    ]
 }
 
 async fn course_organization_ids(
@@ -106,7 +140,7 @@ async fn course_organization_ids(
         .select(courses_organizations::organization_id)
         .load::<i32>(conn)
         .await
-        .map_err(RewardFraudBlockError::from)
+        .map_err(map_reward_fraud_block_error)
 }
 
 async fn reward_policy_operator_user_ids(
@@ -117,7 +151,8 @@ async fn reward_policy_operator_user_ids(
         .find(reward_policy_id)
         .select((reward_policies::organization_id, reward_policies::course_id))
         .first::<(Option<i32>, Option<i32>)>(conn)
-        .await?;
+        .await
+        .map_err(map_reward_fraud_block_error)?;
 
     let mut recipients = Vec::new();
     if let Some(organization_id) = organization_id {
@@ -129,15 +164,4 @@ async fn reward_policy_operator_user_ids(
         }
     }
     Ok(recipients)
-}
-
-struct NormalizedRewardFraudBlock {
-    scope_type: String,
-    teacher_user_id: Option<i32>,
-    organization_id: Option<i32>,
-    course_id: Option<i32>,
-    reward_policy_id: Option<i64>,
-    reason: String,
-    evidence_reference: Option<String>,
-    expires_at: Option<DateTime<Utc>>,
 }

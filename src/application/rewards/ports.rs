@@ -1,5 +1,9 @@
 use futures::future::BoxFuture;
 
+use crate::application::rewards::manage_fraud_block::{
+    RewardFraudBlockDraft, RewardFraudBlockError, RewardFraudBlockListFilter,
+    RewardFraudBlockOutput,
+};
 use crate::application::rewards::manage_reward_policy::{
     RewardPolicyDraft, RewardPolicyError, RewardPolicyListFilter, RewardPolicyOutput,
 };
@@ -26,4 +30,44 @@ pub trait RewardPolicyStore {
         &mut self,
         filter: RewardPolicyListFilter,
     ) -> BoxFuture<'_, Result<Vec<RewardPolicyOutput>, RewardPolicyError>>;
+}
+
+pub trait RewardFraudBlockStore {
+    fn can_manage_fraud_block_scope<'a>(
+        &'a mut self,
+        actor_user_id: i32,
+        scope_type: &'a str,
+    ) -> BoxFuture<'a, Result<bool, RewardFraudBlockError>>;
+
+    fn can_view_fraud_blocks(
+        &mut self,
+        actor_user_id: i32,
+    ) -> BoxFuture<'_, Result<bool, RewardFraudBlockError>>;
+
+    fn create_fraud_block(
+        &mut self,
+        draft: RewardFraudBlockDraft,
+    ) -> BoxFuture<'_, Result<RewardFraudBlockOutput, RewardFraudBlockError>>;
+
+    fn find_fraud_block(
+        &mut self,
+        block_id: i64,
+    ) -> BoxFuture<'_, Result<RewardFraudBlockOutput, RewardFraudBlockError>>;
+
+    fn list_fraud_blocks(
+        &mut self,
+        filter: RewardFraudBlockListFilter,
+    ) -> BoxFuture<'_, Result<(Vec<RewardFraudBlockOutput>, i64), RewardFraudBlockError>>;
+
+    fn revoke_fraud_block(
+        &mut self,
+        block_id: i64,
+        actor_user_id: i32,
+    ) -> BoxFuture<'_, Result<RewardFraudBlockOutput, RewardFraudBlockError>>;
+
+    fn notify_fraud_block_transition<'a>(
+        &'a mut self,
+        block: &'a RewardFraudBlockOutput,
+        event_type: &'a str,
+    ) -> BoxFuture<'a, Result<(), RewardFraudBlockError>>;
 }
