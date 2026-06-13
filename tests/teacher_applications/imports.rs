@@ -27,16 +27,22 @@ use rust_learn::repositories::course_repository::user_permission_course_request;
 use rust_learn::repositories::organization_repository::user_permission_organization_request;
 use rust_learn::repositories::platform_repository::assign_role_to_user;
 use rust_learn::repositories::platform_repository::user_permission_platform_request;
-use rust_learn::repositories::teacher_application_repository::list_audit_events;
-use rust_learn::repositories::user_repository::create_user;
 use rust_learn::infra::postgres::teacher_applications::teacher_application_audit_use_case::PostgresTeacherApplicationAuditUseCase;
 use rust_learn::infra::postgres::teacher_applications::teacher_application_list_use_case::PostgresTeacherApplicationListUseCase;
 use rust_learn::infra::postgres::teacher_applications::teacher_application_self_use_case::PostgresTeacherApplicationSelfUseCase;
-use rust_learn::services::teacher_application_service::{
-    nominate_application, OrganizationTeacherNominationRequest, TeacherApplicationError,
-};
+use rust_learn::repositories::teacher_application_repository::list_audit_events;
+use rust_learn::repositories::user_repository::create_user;
 use rust_learn::utils::jwt_utils::create_jwt;
 use std::sync::Arc;
+
+#[derive(Debug, PartialEq, Eq)]
+enum TeacherApplicationError {
+    PermissionDenied(String),
+    InvalidInput(String),
+    InvalidTransition(String),
+    NotFound,
+    Database(String),
+}
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);

@@ -1,37 +1,13 @@
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{web, HttpRequest};
 use std::collections::HashSet;
 
 use crate::application::teacher_applications::TeacherApplicationOutput;
 use crate::config::constants::permissions::Permissions;
 use crate::db;
-use crate::models::teacher_application::TeacherApplication;
 use crate::repositories::teacher_application_repository::{
     list_organization_user_ids_with_permission, list_platform_user_ids_with_permission,
 };
-use crate::services::teacher_application_service::TeacherApplicationError;
 use crate::utils::notifications::NotificationsState;
-
-pub(super) fn service_error_response(error: TeacherApplicationError) -> HttpResponse {
-    match error {
-        TeacherApplicationError::PermissionDenied(_) => {
-            HttpResponse::Forbidden().body("User does not have the required permission")
-        }
-        TeacherApplicationError::InvalidInput(message) => HttpResponse::BadRequest().body(message),
-        TeacherApplicationError::InvalidTransition(message) => {
-            HttpResponse::Conflict().body(message)
-        }
-        TeacherApplicationError::NotFound => {
-            HttpResponse::NotFound().body("Teacher application not found")
-        }
-        TeacherApplicationError::Database(message) => {
-            log::error!(
-                "event=teacher_application_api_failed reason=database error={}",
-                message
-            );
-            HttpResponse::InternalServerError().body("Failed to process teacher application")
-        }
-    }
-}
 
 pub(super) async fn notify_teacher_application_event(
     req: &HttpRequest,
@@ -123,19 +99,6 @@ pub(super) struct TeacherApplicationNotification {
     organization_sponsor_id: Option<i32>,
     status: String,
     requested_scope: String,
-}
-
-impl From<&TeacherApplication> for TeacherApplicationNotification {
-    fn from(application: &TeacherApplication) -> Self {
-        Self {
-            applicant_user_id: application.applicant_user_id,
-            id: application.id,
-            organization_sponsor_id: application.organization_sponsor_id,
-            requested_organization_id: application.requested_organization_id,
-            requested_scope: application.requested_scope.clone(),
-            status: application.status.clone(),
-        }
-    }
 }
 
 impl From<&TeacherApplicationOutput> for TeacherApplicationNotification {

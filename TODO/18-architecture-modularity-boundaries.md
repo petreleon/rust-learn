@@ -1017,46 +1017,47 @@ remaining gaps.
 | 119 | Moved `GET /teacher-applications/review` behind `application/teacher_applications/list_platform_review`, a granular Postgres review store/use case/context mapper, HTTP-owned platform-review query/response DTO modules, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns service response structs, or calls `teacher_application_service::list_platform_applications`. |
 | 120 | Moved `POST /teacher-applications` behind `domain/teacher_applications` scope validation, `application/teacher_applications/submit_application`, a Postgres submit adapter/use case, HTTP-owned submit request mapping, and teacher-application bootstrap wiring; the route no longer opens the DB pool for creation or calls `teacher_application_service::submit_application`. |
 | 121 | Moved `PUT /teacher-applications/{id}/decision` behind `domain/teacher_applications` decision-status normalization, `application/teacher_applications/decide_application`, a Postgres decision adapter/use case with role-assignment helpers, HTTP-owned decision request mapping, and teacher-application bootstrap wiring; the route no longer opens the DB pool or calls `teacher_application_service::decide_application`. |
+| 122 | Moved `POST /organizations/{id}/teacher-applications` behind `application/teacher_applications/nominate_application`, a Postgres nomination adapter/use case, HTTP-owned nomination request mapping, and teacher-application bootstrap wiring; the route no longer opens the DB pool or calls `teacher_application_service::nominate_application`, and the include-based `teacher_application_service` module was deleted. |
 
 ## Recent Slice Evidence
 
-Slice 121: move teacher-application decision into Level 2 rings.
+Slice 122: move organization-sponsored teacher nomination into Level 2 rings.
 
-- [x] Add `domain/teacher_applications/status::normalize_decision_status` so
-      decision-only statuses are validated in pure domain code and `submitted`
-      cannot be used as a reviewer decision.
-- [x] Add `application/teacher_applications/decide_application` with
+- [x] Add `application/teacher_applications/nominate_application` with
       command/error/store/service contracts and fake-tested handler behavior for
-      target permission selection, invalid decision status, final-state
-      rejection, and successful decision application.
-- [x] Add Postgres decision store/use-case modules under
-      `infra/postgres/teacher_applications`, keeping permission lookup, current
-      application loading, update/audit transaction, persistence mapping, and
-      approved-teacher role assignment outside HTTP and application code.
-- [x] Rework `PUT /teacher-applications/{id}/decision` to use `AuthUser`, an
-      HTTP-owned decision request DTO, an injected decision use case, HTTP
-      response/error mapping, and the existing notification snapshot helper
+      organization permission, default organization scope, active-application
+      conflicts, and idempotency mismatch rejection.
+- [x] Reuse the teacher-application submission value for nomination
+      persistence while keeping actor and applicant separate; organization
+      nomination forces `requested_organization_id` and
+      `organization_sponsor_id` to the sponsoring organization.
+- [x] Add Postgres nomination store/use-case modules under
+      `infra/postgres/teacher_applications`, keeping organization permission
+      lookup, idempotency/latest-application queries, insert transaction,
+      `organization_nominated` audit write, and persistence mapping outside
+      HTTP and application code.
+- [x] Rework `POST /organizations/{id}/teacher-applications` to use `AuthUser`,
+      an HTTP-owned nomination request DTO, an injected nomination use case,
+      HTTP response/error mapping, and the existing notification snapshot helper
       instead of opening `DbPool` or serializing Diesel records directly.
-- [x] Register the decision use case through
+- [x] Register the nomination use case through
       `bootstrap/teacher_application_wiring`, add bootstrap app-data wiring, and
-      add an API routing fake so route reachability tests exercise the injected
-      use case.
-- [x] Delete the obsolete `teacher_application_service::decide_application`
-      path, its service-local request type, its decision permission helper, and
-      decision-only role-assignment helpers after moving tests and HTTP to the
-      new application/Postgres path.
-- [x] Self-critique: organization nomination remains the only
-      teacher-application route still backed by the legacy service; notification
-      fan-out recipient lookup remains a temporary HTTP support concern until
-      notification boundaries move behind an application port.
-- [x] Prove behavior with domain decision-status tests, decision application
-      unit tests, focused decision/permission/course-scope integration tests,
-      the full `teacher_applications` integration suite,
-      `organization_teacher_applications`, teacher-application service unit
-      tests, API route reachability, formatting, line-count checks,
-      `git diff --check`, stale legacy service scans, and boundary scans proving
-      the decision application module does not import Actix, Diesel, DB pools,
-      services, repositories, or persistence models.
+      add an API routing fake plus smoke target for the organization nomination
+      route.
+- [x] Delete the obsolete include-based `services/teacher_application_service`
+      module after moving submit, list, review, audit, decision, and nomination
+      tests onto application/Postgres paths.
+- [x] Self-critique: teacher-application route behavior is now Level 2-owned,
+      but notification fan-out recipient lookup remains a temporary HTTP
+      support concern until notification boundaries move behind an application
+      port.
+- [x] Prove behavior with nomination application unit tests, focused
+      organization-nomination integration, the full `teacher_applications`
+      suite, `organization_teacher_applications`, API route reachability,
+      formatting, line-count checks, `git diff --check`, stale legacy service
+      scans, and boundary scans proving the nomination application module does
+      not import Actix, Diesel, DB pools, services, repositories, or persistence
+      models.
 
 ## Legacy Transition Rules
 
@@ -1350,8 +1351,13 @@ boundary checks from the matrix above to every canonical context.
       normalization, application command/output/error/store contracts, a
       Postgres decision adapter/use case, HTTP request/response DTO mapping,
       bootstrap wiring, and application/integration/API route tests.
-- [ ] Move teacher-application organization nomination behind an application
-      use case with a Postgres adapter.
+- [x] `POST /organizations/{id}/teacher-applications` now has application
+      command/output/error/store contracts, a Postgres nomination adapter/use
+      case, HTTP request/response DTO mapping, bootstrap wiring, and
+      application/integration/API route tests.
+- [x] The include-based `services/teacher_application_service` module has been
+      deleted after all teacher-application routes moved behind Level 2
+      application/Postgres/HTTP ownership.
 
 ## Data Boundary Rules
 

@@ -1,36 +1,30 @@
+use std::sync::Arc;
+
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
-use crate::db;
-use crate::http::teacher_applications::support::{
-    notify_teacher_application_event, service_error_response, TeacherApplicationNotification,
+use crate::application::teacher_applications::nominate_application::{
+    TeacherApplicationNominationError, TeacherApplicationNominationUseCase,
 };
-use crate::services::teacher_application_service::{self, OrganizationTeacherNominationRequest};
-use crate::utils::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
+use crate::http::teacher_applications::dto::TeacherApplicationResponse;
+use crate::http::teacher_applications::organization_nomination_dto::OrganizationTeacherNominationRequest;
+use crate::http::teacher_applications::support::{
+    notify_teacher_application_event, TeacherApplicationNotification,
+};
 
-pub async fn nominate_application(
+pub(crate) async fn nominate_application(
     req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
-    pool: web::Data<db::DbPool>,
+    use_case: web::Data<Arc<dyn TeacherApplicationNominationUseCase>>,
     body: web::Json<OrganizationTeacherNominationRequest>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
     let organization_id = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
+    let command = body
+        .into_inner()
+        .into_command(requester.user_id(), organization_id);
 
-    match teacher_application_service::nominate_application(
-        &mut conn,
-        requester.user_id,
-        organization_id,
-        body.into_inner(),
-    )
-    .await
-    {
+    match use_case.nominate_application(command).await {
         Ok(application) => {
             notify_teacher_application_event(
                 &req,
@@ -39,8 +33,33 @@ pub async fn nominate_application(
                 None,
             )
             .await;
-            HttpResponse::Created().json(application)
+            HttpResponse::Created().json(TeacherApplicationResponse::from(application))
         }
-        Err(error) => service_error_response(error),
+        Err(error) => nomination_error_response(error),
+    }
+}
+
+fn nomination_error_response(error: TeacherApplicationNominationError) -> HttpResponse {
+    match error {
+        TeacherApplicationNominationError::PermissionDenied(_) => {
+            HttpResponse::Forbidden().body("User does not have the required permission")
+        }
+        TeacherApplicationNominationError::InvalidInput(message) => {
+            HttpResponse::BadRequest().body(message)
+        }
+        TeacherApplicationNominationError::InvalidTransition(message) => {
+            HttpResponse::Conflict().body(message)
+        }
+        TeacherApplicationNominationError::NotFound => {
+            HttpResponse::NotFound().body("Teacher application not found")
+        }
+        TeacherApplicationNominationError::Connection(message)
+        | TeacherApplicationNominationError::Database(message) => {
+            log::error!(
+                "event=teacher_application_nomination_api_failed error={}",
+                message
+            );
+            HttpResponse::InternalServerError().body("Failed to process teacher application")
+        }
     }
 }
