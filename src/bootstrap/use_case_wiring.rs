@@ -21,6 +21,7 @@ use crate::infra::postgres::learning::course_organization_use_case::PostgresCour
 use crate::infra::postgres::learning::course_read_use_case::PostgresCourseReadUseCase;
 use crate::infra::postgres::learning::course_role_assignment_use_case::PostgresCourseRoleAssignmentUseCase;
 use crate::infra::postgres::learning::course_update_use_case::PostgresCourseUpdateUseCase;
+use crate::infra::postgres::learning::learner_course_catalog_list_use_case::PostgresLearnerCourseCatalogListUseCase;
 use crate::infra::postgres::learning::learner_course_detail_use_case::PostgresLearnerCourseDetailUseCase;
 use crate::infra::postgres::learning::learner_course_learning_use_case::PostgresLearnerCourseLearningUseCase;
 use crate::infra::postgres::learning::learner_progress_use_case::PostgresLearnerProgressUseCase;
@@ -59,6 +60,9 @@ pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
         course_deletion_use_case: Arc::new(PostgresCourseDeletionUseCase::new(pool.clone())),
         course_discovery_use_case: Arc::new(PostgresCourseDiscoveryUseCase::new(pool.clone())),
         course_read_use_case: Arc::new(PostgresCourseReadUseCase::new(pool.clone())),
+        learner_course_catalog_use_case: Arc::new(PostgresLearnerCourseCatalogListUseCase::new(
+            pool.clone(),
+        )),
         learner_course_detail_use_case: Arc::new(PostgresLearnerCourseDetailUseCase::new(
             pool.clone(),
         )),

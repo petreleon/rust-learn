@@ -8,9 +8,7 @@ use crate::application::learning::learner_progress::LearnerProgressError;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionError;
 use crate::application::learning::update_course::CourseUpdateError;
 use crate::application::learning::update_course_lifecycle::CourseLifecycleError;
-use crate::services::course_service::{
-    LearnerCourseCatalogError as LegacyLearnerCourseCatalogError, TeacherCourseDashboardError,
-};
+use crate::services::course_service::TeacherCourseDashboardError;
 
 pub(super) fn lifecycle_error_response(error: CourseLifecycleError) -> HttpResponse {
     match error {
@@ -82,23 +80,6 @@ pub(super) fn course_enrollment_error_response(error: CourseEnrollmentError) -> 
         CourseEnrollmentError::Database(message) => {
             log::error!("event=course_enrollment_failed error={}", message);
             HttpResponse::InternalServerError().body("Failed to manage course enrollment")
-        }
-    }
-}
-
-pub(super) fn learner_course_catalog_error_response(
-    error: LegacyLearnerCourseCatalogError,
-) -> HttpResponse {
-    match error {
-        LegacyLearnerCourseCatalogError::PermissionDenied(_) => {
-            HttpResponse::Forbidden().body("User does not have permission to view course content")
-        }
-        LegacyLearnerCourseCatalogError::NotFound => {
-            HttpResponse::NotFound().body("Course not found")
-        }
-        LegacyLearnerCourseCatalogError::Database(message) => {
-            log::error!("event=learner_course_catalog_failed error={}", message);
-            HttpResponse::InternalServerError().body("Failed to load course catalog")
         }
     }
 }

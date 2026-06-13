@@ -12,32 +12,30 @@ use crate::application::learning::get_learner_course_detail::{
 use crate::application::learning::get_learner_course_learning::{
     LearnerCourseLearningQuery, LearnerCourseLearningUseCase,
 };
-use crate::db;
-use crate::http::learning::dto::{
-    CourseDiscoveryResponse, CourseResponse, LearnerCourseDetailResponse,
-    LearnerCourseLearningResponse,
+use crate::application::learning::list_learner_course_catalog::{
+    LearnerCourseCatalogListUseCase, LearnerCourseCatalogQuery,
 };
-use crate::services::course_service::{discover_learner_course_catalog, LearnerCourseCatalogQuery};
+use crate::http::learning::dto::{
+    CourseDiscoveryResponse, CourseResponse, LearnerCourseCatalogResponse,
+    LearnerCourseDetailResponse, LearnerCourseLearningResponse,
+};
 use crate::utils::request_auth::authenticated_user;
 
 use super::dto::{CourseDiscoveryParams, LearnerCourseCatalogParams};
-use super::support::{learner_course_catalog_error_response, learner_course_read_error_response};
+use super::support::learner_course_read_error_response;
 
 pub(super) async fn list_learner_course_catalog(
     req: HttpRequest,
-    pool: web::Data<db::DbPool>,
+    use_case: web::Data<Arc<dyn LearnerCourseCatalogListUseCase>>,
     query: web::Query<LearnerCourseCatalogParams>,
 ) -> impl Responder {
     let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
 
     let catalog_query = LearnerCourseCatalogQuery::new(
+        requester.user_id,
         query.search.clone(),
         query.organization_id,
         query.lifecycle_status.clone(),
@@ -47,9 +45,9 @@ pub(super) async fn list_learner_course_catalog(
         query.offset,
     );
 
-    match discover_learner_course_catalog(&mut conn, requester.user_id, catalog_query).await {
-        Ok(catalog) => HttpResponse::Ok().json(catalog),
-        Err(error) => learner_course_catalog_error_response(error),
+    match use_case.list_learner_course_catalog(catalog_query).await {
+        Ok(catalog) => HttpResponse::Ok().json(LearnerCourseCatalogResponse::from(catalog)),
+        Err(error) => learner_course_read_error_response(error),
     }
 }
 

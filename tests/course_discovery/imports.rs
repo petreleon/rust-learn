@@ -15,7 +15,9 @@ use rust_learn::application::learning::discover_courses::CourseDiscoveryUseCase;
 use rust_learn::application::learning::get_learner_course_detail::LearnerCourseDetailUseCase;
 use rust_learn::application::learning::get_learner_course_learning::LearnerCourseLearningUseCase;
 use rust_learn::application::learning::learner_progress::LearnerProgressUseCase;
+use rust_learn::application::learning::list_learner_course_catalog::LearnerCourseCatalogListUseCase;
 use rust_learn::infra::postgres::learning::course_discovery_use_case::PostgresCourseDiscoveryUseCase;
+use rust_learn::infra::postgres::learning::learner_course_catalog_list_use_case::PostgresLearnerCourseCatalogListUseCase;
 use rust_learn::infra::postgres::learning::learner_course_detail_use_case::PostgresLearnerCourseDetailUseCase;
 use rust_learn::infra::postgres::learning::learner_course_learning_use_case::PostgresLearnerCourseLearningUseCase;
 use rust_learn::infra::postgres::learning::learner_progress_use_case::PostgresLearnerProgressUseCase;
@@ -151,6 +153,14 @@ fn learner_course_detail_use_case_data(
     pool: &DbPool,
 ) -> web::Data<Arc<dyn LearnerCourseDetailUseCase>> {
     web::Data::new(Arc::new(PostgresLearnerCourseDetailUseCase::new(
+        pool.clone(),
+    )))
+}
+
+fn learner_course_catalog_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn LearnerCourseCatalogListUseCase>> {
+    web::Data::new(Arc::new(PostgresLearnerCourseCatalogListUseCase::new(
         pool.clone(),
     )))
 }

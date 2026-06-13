@@ -26,6 +26,8 @@ pub mod course_update_use_case;
 mod learner_course_access_queries;
 mod learner_course_catalog_chapter_queries;
 mod learner_course_catalog_item_queries;
+pub mod learner_course_catalog_list_store;
+pub mod learner_course_catalog_list_use_case;
 pub mod learner_course_detail_store;
 pub mod learner_course_detail_use_case;
 mod learner_course_enrollment_summary_queries;
