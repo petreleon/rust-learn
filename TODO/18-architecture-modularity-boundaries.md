@@ -974,29 +974,33 @@ remaining gaps.
 | 83 | Moved authentication routes, password policy, email verification, password reset, login, session user-id, and JWKS handling into `http/identity/authentication`; bootstrap, seed validation, and auth-flow tests now import identity instead of `api/authentication`. |
 | 84 | Retired the `src/api` module: `/api` composition now lives in `http/routes.rs`, course route ownership lives in `http/learning`, organization route ownership lives in `http/organizations`, and tests import context HTTP modules directly. |
 | 85 | Split `http/organizations` away from `include!` and `imports.rs` into explicit modules for DTOs, CRUD handlers, course lists, dashboard, member list/invite/audit/role/removal flows, teacher-application tracking, and route composition. |
+| 86 | Split `http/learning/course_routes` away from `include!` and `imports.rs` into explicit modules for DTOs, support/error mapping, catalog, teaching dashboard, management, lifecycle, organizations, roles, progress, enrollment, assessments, and routes. |
 
 ## Recent Slice Evidence
 
-Slice 85: split organization HTTP into explicit modules.
+Slice 86: split learning course HTTP into explicit modules.
 
-- [x] Replace `http/organizations.rs` plus `include!` fragments with
-      `http/organizations/mod.rs` and named modules for DTOs, CRUD handlers,
-      course lists, dashboard, member list, member invites, member audit,
-      member role assignment, member removal, teacher-application tracking, and
-      routes.
-- [x] Keep `organization_scope()` and `configure_routes()` as the only public
-      HTTP surface for the context; route handlers and DTOs are `pub(super)`.
-- [x] Preserve all existing `/organizations` paths and middleware placement,
-      including reward candidate submission and teacher nomination composition.
-- [x] Self-critique: this slice fixes module granularity only. Organization
-      CRUD, members, dashboard, and teacher-application tracking still call
-      legacy services, direct Diesel-backed model methods, and service-owned
-      DTOs. The next organization-depth slice should move those workflows into
-      `application/organizations` with `infra/postgres/organizations` ports.
-- [x] Prove behavior with binary compile, API route reachability,
-      organization member/dashboard/teacher-application tests, organization
-      course-list tests, middleware access-control tests, formatting, line
-      count, and stale `include!`/`imports.rs` scans.
+- [x] Replace `http/learning/course_routes.rs` plus `include!` fragments with
+      named modules for DTOs, support/error mapping, learner catalog/detail,
+      teaching dashboard/workspace routes, course management, lifecycle,
+      course organizations, role assignment, learner progress, enrollment, and
+      assessments.
+- [x] Keep `course_scope()` as the only public course-route surface; handlers
+      and DTOs are `pub(super)`.
+- [x] Preserve all existing `/courses` paths and middleware placement,
+      including content route composition and course-scoped reward candidate
+      resources.
+- [x] Self-critique: this slice fixes HTTP module granularity only. Learning
+      still calls legacy `course_service`, `course_enrollment_service`,
+      repositories, direct Diesel queries, and service/model DTOs. The next
+      learning-depth slices should move course management, catalog/teaching
+      reads, enrollment, progress, and course-organization reads into
+      `application/learning` with `infra/postgres/learning` ports.
+- [x] Prove behavior with binary compile, API route reachability, course
+      discovery/catalog/progress tests, teacher dashboard tests, assessment
+      read/submit tests, course content/upload tests, enrollment notification
+      tests, middleware access-control tests, formatting, line count, and stale
+      `include!`/`imports.rs` scans.
 
 ## Legacy Transition Rules
 
@@ -1152,9 +1156,10 @@ boundary checks from the matrix above to every canonical context.
 - [x] `http/learning` owns `/courses` route composition, including content,
       reward candidate, catalog, teaching dashboard, enrollment, progress, and
       assessment routes; the legacy `api/courses` module has been deleted.
-- [ ] Split `http/learning/course_routes` away from legacy
-      `include!`/`imports.rs` structure and move remaining service/DB-heavy
-      handlers into application use cases with Postgres adapters.
+- [x] `http/learning/course_routes` uses normal modules instead of legacy
+      `include!`/`imports.rs` structure.
+- [ ] Move remaining learning service/DB-heavy handlers into application use
+      cases with Postgres adapters.
 
 ## Organizations Context
 

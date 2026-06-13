@@ -1,32 +1,47 @@
-async fn update_course_lifecycle(
-    req: HttpRequest,
-    path: web::Path<i32>,
-    pool: web::Data<db::DbPool>,
-    body: web::Json<CourseLifecycleUpdateRequest>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-    match crate::services::course_service::update_course_lifecycle(
-        &mut conn,
-        requester.user_id,
-        path.into_inner(),
-        body.into_inner(),
-    )
-    .await
+use crate::db;
+use crate::db::schema::{course_join_requests, courses};
+use crate::models::course_join_request::COURSE_JOIN_STATUS_APPROVED;
+use crate::services::course_enrollment_service::{
+    decide_course_join_request as decide_course_join_request_for_actor,
+    remove_course_enrollment as remove_course_enrollment_for_actor,
+    request_course_join as request_course_join_for_actor, CourseJoinDecisionRequest,
+};
+use crate::utils::notifications::NotificationsState;
+use crate::utils::request_auth::authenticated_user;
+
+use super::support::course_enrollment_error_response;
+
+async fn send_enrollment_notification_for_course(
+    conn: &mut AsyncPgConnection,
+    notifications: &NotificationsState,
+    target_user_id: i32,
+    course_id: i32,
+) {
+    let course_title = courses::table
+        .find(course_id)
+        .select(courses::title)
+        .first::<String>(conn)
+        .await
+        .unwrap_or_else(|_| format!("course #{}", course_id));
+
+    if let Err(err) = notifications
+        .send_enrollment_notification(target_user_id, course_id, course_title)
+        .await
     {
-        Ok(course) => HttpResponse::Ok().json(course),
-        Err(error) => lifecycle_error_response(error),
+        log::warn!(
+            "event=notification_send_failed kind=enrollment course_id={} target_user_id={} error={:?}",
+            course_id,
+            target_user_id,
+            err
+        );
     }
 }
 
-async fn request_course_join(
+pub(super) async fn request_course_join(
     req: HttpRequest,
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
@@ -46,7 +61,7 @@ async fn request_course_join(
     }
 }
 
-async fn decide_course_join_request(
+pub(super) async fn decide_course_join_request(
     req: HttpRequest,
     path: web::Path<(i32, i64)>,
     pool: web::Data<db::DbPool>,
@@ -101,7 +116,7 @@ async fn decide_course_join_request(
     }
 }
 
-async fn remove_course_enrollment(
+pub(super) async fn remove_course_enrollment(
     req: HttpRequest,
     path: web::Path<(i32, i32)>,
     pool: web::Data<db::DbPool>,
@@ -121,35 +136,5 @@ async fn remove_course_enrollment(
     {
         Ok(removal) => HttpResponse::Ok().json(removal),
         Err(error) => course_enrollment_error_response(error),
-    }
-}
-
-async fn delete_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
-    let course_id = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    let result = diesel::delete(courses::table.find(course_id))
-        .execute(&mut conn)
-        .await;
-
-    match result {
-        Ok(count) => {
-            if count > 0 {
-                HttpResponse::Ok().body("Course deleted")
-            } else {
-                HttpResponse::NotFound().body("Course not found")
-            }
-        }
-        Err(e) => {
-            log::error!(
-                "event=course_delete_failed course_id={} error={}",
-                course_id,
-                e
-            );
-            HttpResponse::InternalServerError().body("Failed to delete course")
-        }
     }
 }

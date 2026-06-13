@@ -1,4 +1,50 @@
-async fn get_learner_course_learning_route(
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
+
+use crate::db;
+use crate::db::schema::courses;
+use crate::models::course::Course;
+use crate::services::course_service::{
+    discover_courses, discover_learner_course_catalog, get_learner_course_detail,
+    get_learner_course_learning, CourseDiscoveryQuery, LearnerCourseCatalogQuery,
+};
+use crate::utils::request_auth::authenticated_user;
+
+use super::dto::{CourseDiscoveryParams, LearnerCourseCatalogParams};
+use super::support::learner_course_catalog_error_response;
+
+pub(super) async fn list_learner_course_catalog(
+    req: HttpRequest,
+    pool: web::Data<db::DbPool>,
+    query: web::Query<LearnerCourseCatalogParams>,
+) -> impl Responder {
+    let requester = match authenticated_user(&req) {
+        Ok(user) => user,
+        Err(response) => return response,
+    };
+    let mut conn = match pool.get().await {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+    };
+
+    let catalog_query = LearnerCourseCatalogQuery::new(
+        query.search.clone(),
+        query.organization_id,
+        query.lifecycle_status.clone(),
+        query.enrollment_status.clone(),
+        query.reward_available,
+        query.limit,
+        query.offset,
+    );
+
+    match discover_learner_course_catalog(&mut conn, requester.user_id, catalog_query).await {
+        Ok(catalog) => HttpResponse::Ok().json(catalog),
+        Err(error) => learner_course_catalog_error_response(error),
+    }
+}
+
+pub(super) async fn get_learner_course_learning_route(
     req: HttpRequest,
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
@@ -18,7 +64,7 @@ async fn get_learner_course_learning_route(
     }
 }
 
-async fn get_learner_course_catalog_detail(
+pub(super) async fn get_learner_course_catalog_detail(
     req: HttpRequest,
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
@@ -38,7 +84,7 @@ async fn get_learner_course_catalog_detail(
     }
 }
 
-async fn list_courses(
+pub(super) async fn list_courses(
     pool: web::Data<db::DbPool>,
     query: web::Query<CourseDiscoveryParams>,
 ) -> impl Responder {
@@ -53,9 +99,8 @@ async fn list_courses(
         query.limit,
         query.offset,
     );
-    let result = discover_courses(&mut conn, discovery).await;
 
-    match result {
+    match discover_courses(&mut conn, discovery).await {
         Ok(course_list) => HttpResponse::Ok().json(course_list),
         Err(e) => {
             log::error!(
@@ -71,7 +116,10 @@ async fn list_courses(
     }
 }
 
-async fn get_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
+pub(super) async fn get_course(
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
     let course_id = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(c) => c,
@@ -94,65 +142,5 @@ async fn get_course(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl R
             );
             HttpResponse::InternalServerError().body("Failed to fetch course")
         }
-    }
-}
-
-use crate::db::schema::courses_organizations;
-#[derive(Deserialize)]
-pub struct CreateCourseRequest {
-    pub title: String,
-    pub organization_ids: Vec<i32>,
-}
-
-async fn create_course(
-    req: HttpRequest,
-    pool: web::Data<db::DbPool>,
-    body: web::Json<CreateCourseRequest>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    let result = create_course_with_invites_for_actor(
-        &mut conn,
-        requester.user_id,
-        body.title.clone(),
-        body.organization_ids.clone(),
-    )
-    .await;
-
-    match result {
-        Ok(course) => HttpResponse::Created().json(course),
-        Err(error) => course_creation_error_response(error),
-    }
-}
-
-async fn update_course(
-    req: HttpRequest,
-    path: web::Path<i32>,
-    pool: web::Data<db::DbPool>,
-    body: web::Json<UpdateCourse>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let course_id = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    let result =
-        update_course_for_actor(&mut conn, requester.user_id, course_id, body.into_inner()).await;
-
-    match result {
-        Ok(course) => HttpResponse::Ok().json(course),
-        Err(error) => course_update_error_response(error),
     }
 }
