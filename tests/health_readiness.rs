@@ -8,7 +8,8 @@ use std::sync::Arc;
 
 #[actix_web::test]
 async fn health_returns_ok_without_dependencies() {
-    let app = test::init_service(App::new().service(rust_learn::api::health::health_scope())).await;
+    let app =
+        test::init_service(App::new().service(rust_learn::http::operations::health_scope())).await;
 
     let req = test::TestRequest::get().uri("/health").to_request();
     let resp = test::call_service(&app, req).await;
@@ -20,7 +21,8 @@ async fn health_returns_ok_without_dependencies() {
 
 #[actix_web::test]
 async fn readiness_reports_not_ready_without_configured_use_case() {
-    let app = test::init_service(App::new().service(rust_learn::api::health::health_scope())).await;
+    let app =
+        test::init_service(App::new().service(rust_learn::http::operations::health_scope())).await;
 
     let req = test::TestRequest::get().uri("/ready").to_request();
     let resp = test::call_service(&app, req).await;
@@ -41,7 +43,7 @@ async fn readiness_checks_database_s3_and_ethereum() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .app_data(readiness_use_case_data(pool, s3))
-            .service(rust_learn::api::health::health_scope()),
+            .service(rust_learn::http::operations::health_scope()),
     )
     .await;
 

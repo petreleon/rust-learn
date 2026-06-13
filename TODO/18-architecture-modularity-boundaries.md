@@ -965,23 +965,21 @@ remaining gaps.
 | 74 | Moved wallet route composition into `http/wallet::configure_routes`, deleted the legacy `api/wallets` wrapper, and kept wallet resource registration internal to the wallet HTTP context. |
 | 75 | Moved access-control role route composition behind `http/access_control::configure_routes`, deleted the legacy `api/roles` wrapper, and kept the raw roles scope internal. |
 | 76 | Deleted the one-line `api/reward_policies` and `api/reward_fraud_blocks` compatibility wrappers; the remaining reward route public surface stays in `http/rewards` until a dedicated reward-route boundary pass. |
+| 77 | Deleted the `api/health` and `api/session` compatibility wrappers; health/readiness tests now import operations routes directly, and identity/notification handlers no longer leak through `api/session`. |
 
 ## Recent Slice Evidence
 
-Slice 76: remove reward compatibility wrappers from the legacy API ring.
+Slice 77: remove health and session compatibility wrappers.
 
-- [x] Remove `pub mod reward_policies` and `pub mod reward_fraud_blocks` from
-      `src/api/mod.rs`.
-- [x] Delete `src/api/reward_policies.rs` and
-      `src/api/reward_fraud_blocks.rs`; both only re-exported `http/rewards`
-      route functions.
-- [x] Update the fraud-block API regression test to import the route from
-      `http/rewards` directly.
-- [x] Self-critique: `http/rewards` still publicly exports several raw route
-      resources for legacy course/organization test composition; a later
-      reward-route pass should narrow that surface behind context
-      configurators where possible.
-- [x] Prove reward route reachability, fraud-block API behavior, formatting,
+- [x] Remove `pub mod health` and `pub mod session` from `src/api/mod.rs`.
+- [x] Delete `src/api/health.rs`; health/readiness tests now mount
+      `http/operations::health_scope` directly.
+- [x] Delete `src/api/session.rs`, which only re-exported identity and
+      notification HTTP handlers and had no remaining callers.
+- [x] Self-critique: `api/chapters` and `api/contents` are still thin content
+      wrappers used by course route composition; they need a dedicated content
+      route-composition pass.
+- [x] Prove health/readiness behavior, API route reachability, formatting,
       line-count, and stale import scans.
 
 ## Legacy Transition Rules
@@ -1092,6 +1090,11 @@ boundary checks from the matrix above to every canonical context.
       wallet access checks flow through `application/access_control`.
 - [x] `http/wallet` owns the `/wallets` Actix scope and exposes only a
       context-level route configurator to the rest of the app.
+
+## Operations Context
+
+- [x] `http/operations` owns health/readiness route composition; the legacy
+      `api/health` compatibility wrapper has been deleted.
 
 ## Access Control Context
 
