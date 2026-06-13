@@ -164,3 +164,6 @@ pub(super) fn delegated_permission_session(
         expires_at: delegation.expires_at,
     }
 }
+
+#[cfg(test)]
+mod tests;

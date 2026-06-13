@@ -1176,12 +1176,29 @@ Slice 24: move current-session routes into the identity HTTP ring.
       unauthorized, missing user, unverified email, DB-unavailable, and
       session-load failures.
 - [x] Self-critique: the old include-based `services/session_service` module
-      still exists for legacy unit coverage and should be removed after its
-      remaining builder tests are either moved into `infra/postgres/identity`
-      or replaced by application/store-level tests.
+      still exists for legacy unit coverage after this slice. Resolved by
+      Slice 25 by moving the builder tests to the new identity infra module and
+      deleting the legacy service module.
 - [x] Prove profile/scope/delegation output, authorization rejection, missing
       user, unverified email, application fake-port behavior, route
       composition, and binary wiring with focused tests.
+
+Slice 25: retire the legacy current-session service module.
+
+- [x] Move the remaining current-session scope-builder tests from
+      `services/session_service/tests.rs` to
+      `infra/postgres/identity/current_session_scope_builder/tests.rs`.
+- [x] Keep the moved tests beside the Postgres identity mapper/builder code
+      that now owns this behavior.
+- [x] Remove `pub mod session_service` from `src/services/mod.rs`.
+- [x] Delete the include-based `src/services/session_service.rs` wrapper and
+      the `src/services/session_service/` folder.
+- [x] Preserve current-session API behavior by relying on the already migrated
+      `http/identity` + `application/identity/current_session` +
+      `infra/postgres/identity` path.
+- [x] Prove the old module is gone, the moved builder tests pass, the
+      current-session API tests still pass, route composition still passes, and
+      the app binary still checks.
 
 Progress evidence from 2026-06-12 and 2026-06-13:
 
@@ -1211,6 +1228,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `CurrentSessionUseCase`; concrete DbPool/Postgres wiring lives in
   `infra/postgres/identity/current_session_use_case.rs` and
   `bootstrap::AppState`.
+- Legacy `src/services/session_service.rs` and
+  `src/services/session_service/` have been removed; the remaining
+  current-session builder tests live beside
+  `infra/postgres/identity/current_session_scope_builder.rs`.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -1320,6 +1341,8 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `rg "api::session::get_current_session|session::get_current_session" src/api/mod.rs tests/current_session_api/current_session_test_app.rs`
   returns no matches.
+- `rg "session_service|services::session_service|pub mod session_service|include!\\(\"session_service" src tests`
+  returns no matches.
 - `rg "diesel|diesel_async|schema::|RunQueryDsl|QueryDsl|ExpressionMethods|models::user::User" src/api/users.rs`
   returns no matches.
 - `rg "diesel|diesel_async|RunQueryDsl|assessment_attempts::table|assessments::table" src/api/courses/list_assessment_attempts.rs`
@@ -1396,6 +1419,8 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `./scripts/run-host-tests.sh cargo test current_session_ --test current_session_api`
   passes.
 - `./scripts/run-host-tests.sh cargo test application::identity::current_session`
+  passes.
+- `./scripts/run-host-tests.sh cargo test current_session_scope_builder --lib`
   passes.
 - `./scripts/run-host-tests.sh cargo check --features app-bin --bin rust-learn`
   passes.

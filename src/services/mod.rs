@@ -10,7 +10,6 @@ pub mod reward_execution_service;
 pub mod reward_fraud_block_service;
 pub mod reward_history_service;
 pub mod reward_policy_service;
-pub mod session_service;
 pub mod teacher_application_service;
 pub mod token_reconciliation;
 pub mod wallet_audit_service;
