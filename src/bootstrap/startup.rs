@@ -18,6 +18,7 @@ use crate::infra::postgres::learning::course_discovery_use_case::PostgresCourseD
 use crate::infra::postgres::learning::course_lifecycle_use_case::PostgresCourseLifecycleUseCase;
 use crate::infra::postgres::learning::course_organization_use_case::PostgresCourseOrganizationsUseCase;
 use crate::infra::postgres::learning::course_read_use_case::PostgresCourseReadUseCase;
+use crate::infra::postgres::learning::course_role_assignment_use_case::PostgresCourseRoleAssignmentUseCase;
 use crate::infra::postgres::learning::course_update_use_case::PostgresCourseUpdateUseCase;
 use crate::infra::postgres::learning::learner_progress_use_case::PostgresLearnerProgressUseCase;
 use crate::infra::postgres::notifications::notification_inbox_use_case::PostgresNotificationInboxUseCase;
@@ -68,6 +69,9 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
         course_discovery_use_case: Arc::new(PostgresCourseDiscoveryUseCase::new(pool.clone())),
         course_read_use_case: Arc::new(PostgresCourseReadUseCase::new(pool.clone())),
         course_organizations_use_case: Arc::new(PostgresCourseOrganizationsUseCase::new(
+            pool.clone(),
+        )),
+        course_role_assignment_use_case: Arc::new(PostgresCourseRoleAssignmentUseCase::new(
             pool.clone(),
         )),
         course_update_use_case: Arc::new(PostgresCourseUpdateUseCase::new(pool.clone())),

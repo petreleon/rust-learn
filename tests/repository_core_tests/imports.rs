@@ -1,9 +1,14 @@
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::learning::assign_course_role::{
+    assign_course_role as run_course_role_assignment, CourseRoleAssignmentCommand,
+    CourseRoleAssignmentError, CourseRoleAssignmentOutput,
+};
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{courses, organizations, users};
+use rust_learn::infra::postgres::learning::course_role_assignment_store::PostgresCourseRoleAssignmentStore;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
@@ -107,4 +112,24 @@ async fn assign_org_role(conn: &mut AsyncPgConnection, user_id: i32, org_id: i32
     UserRoleOrganization::assign(conn, user_id, org_id, role_id)
         .await
         .expect("failed to assign org role");
+}
+
+async fn assign_course_role_with_use_case(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    target_user_id: i32,
+    course_id: i32,
+    role_name: &str,
+) -> Result<CourseRoleAssignmentOutput, CourseRoleAssignmentError> {
+    let mut store = PostgresCourseRoleAssignmentStore::new(conn);
+    run_course_role_assignment(
+        &mut store,
+        CourseRoleAssignmentCommand {
+            actor_user_id,
+            course_id,
+            target_user_id,
+            role_name: role_name.to_string(),
+        },
+    )
+    .await
 }

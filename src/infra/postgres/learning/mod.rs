@@ -13,6 +13,8 @@ pub mod course_organization_use_case;
 mod course_permission_checks;
 pub mod course_read_store;
 pub mod course_read_use_case;
+pub mod course_role_assignment_store;
+pub mod course_role_assignment_use_case;
 pub mod course_update_store;
 pub mod course_update_use_case;
 mod learner_progress_queries;

@@ -1,11 +1,6 @@
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-pub(super) struct AssignRoleRequest {
-    pub(super) role_name: String,
-}
-
-#[derive(Deserialize)]
 pub(super) struct CourseDiscoveryParams {
     pub(super) search: Option<String>,
     pub(super) organization_id: Option<i32>,

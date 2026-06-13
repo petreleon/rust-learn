@@ -1,9 +1,13 @@
+use std::sync::Arc;
+
 use actix_web::{http::StatusCode, test, web, App};
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::learning::assign_course_role::CourseRoleAssignmentUseCase;
 use rust_learn::db::schema::{courses, notifications};
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::learning::course_role_assignment_use_case::PostgresCourseRoleAssignmentUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::course_join_request::COURSE_JOIN_STATUS_APPROVED;
 use rust_learn::models::role::{CourseRole, PlatformRole};
@@ -93,9 +97,16 @@ fn course_enrollment_test_app(
 > {
     App::new()
         .app_data(web::Data::new(pool.clone()))
+        .app_data(course_role_assignment_use_case_data(&pool))
         .app_data(web::Data::new(NotificationsState::new(pool)))
         .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
         .service(rust_learn::http::learning::course_scope())
+}
+
+fn course_role_assignment_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn CourseRoleAssignmentUseCase>> {
+    web::Data::new(Arc::new(PostgresCourseRoleAssignmentUseCase::new(pool.clone())))
 }
 
 async fn notification_count(conn: &mut AsyncPgConnection, user_id: i32, title: &str) -> i64 {

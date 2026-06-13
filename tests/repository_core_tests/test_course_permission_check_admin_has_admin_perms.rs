@@ -47,7 +47,7 @@ async fn test_course_role_assignment_admin_can_assign_student() {
     let admin_role_id = get_course_admin_role_id(&mut conn).await;
     assign_course_role(&mut conn, admin.id(), course.id, admin_role_id).await;
 
-    let result = rust_learn::repositories::course_repository::assign_role_to_user_in_course(
+    let result = assign_course_role_with_use_case(
         &mut conn,
         admin.id(),
         student.id(),

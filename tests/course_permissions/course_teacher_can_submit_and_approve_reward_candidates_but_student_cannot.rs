@@ -94,7 +94,7 @@ async fn assign_hierarchy_check_success() {
     let student_user = create_user_helper(&mut conn, "new_student").await;
 
     // 3. Teacher assigns STUDENT role
-    let result = assign_role_to_user_in_course(
+    let result = assign_course_role_via_use_case(
         &mut conn,
         teacher_user.id(),
         student_user.id(),

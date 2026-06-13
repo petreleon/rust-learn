@@ -436,6 +436,7 @@ src/
       update_course/
       delete_course/
       update_course_lifecycle/
+      assign_course_role/
       request_enrollment/
       decide_enrollment/
       learner_progress/
@@ -532,6 +533,7 @@ src/
         course_deletion_store.rs
         course_update_store.rs
         course_lifecycle_store.rs
+        course_role_assignment_store.rs
         course_permission_checks.rs
         enrollment_store.rs
         course_organization_store.rs
@@ -986,33 +988,39 @@ remaining gaps.
 | 92 | Moved `PUT /courses/{id}` behind `application/learning/update_course`, a Postgres update adapter/use case, HTTP request DTO mapping, and bootstrap app-data wiring; course settings permission checks now use a shared learning Postgres permission adapter. |
 | 93 | Moved `POST /courses` behind `application/learning/create_course`, a Postgres creation adapter/use case, HTTP request DTO mapping, and bootstrap app-data wiring; course creation permissions, owner organization linking, and pending organization invites now live outside the route. |
 | 94 | Moved `GET/POST /courses/{id}/progress` behind `application/learning/learner_progress`, a Postgres progress adapter/use case, HTTP request/response DTOs, and bootstrap app-data wiring; visibility, enrollment, and content-membership checks now live outside the route. |
+| 95 | Moved `POST /courses/{id}/users/{user_id}/roles` behind `application/learning/assign_course_role`, a Postgres role-assignment adapter/use case, HTTP request DTO mapping, and bootstrap app-data wiring; course role hierarchy checks now live outside the route and repository. |
 
 ## Recent Slice Evidence
 
-Slice 94: move learner progress tracking into the learning use-case boundary.
+Slice 95: move course role assignment into the learning use-case boundary.
 
-- [x] Add `application/learning/learner_progress` with save command, output,
-      error, use-case, store port, course visibility/enrollment/content
-      membership decisions, and module-local fake-port application tests.
-- [x] Add `infra/postgres/learning/learner_progress_store.rs`,
-      `learner_progress_queries.rs`, and `learner_progress_use_case.rs`; keep
-      course/role/join/content lookups and progress upsert/read SQL in infra.
-- [x] Add HTTP-owned `SaveProgressRequest` and `LearnerProgressResponse`;
-      `GET/POST /courses/{id}/progress` now map through the application use
-      case instead of returning the Diesel `CourseProgress` record directly.
-- [x] Inject `LearnerProgressUseCase` through `bootstrap/app_state`,
-      `bootstrap/startup`, and `bootstrap/app_data`.
-- [x] Keep the existing HTTP contract: save body still accepts `content_id`,
-      successful reads still return the same progress fields or `null`, and
-      denied/not-found statuses remain stable.
-- [x] Self-critique: this removes learner progress only. Learner catalog
-      detail/learning, teaching reads, enrollment, roles, and assessment
-      listing still need deeper Level 2 extraction.
-- [x] Prove behavior with binary compile, application fake-port test, real
-      progress route/integration test with enrollment/content regressions, API
-      route reachability, formatting, line-count checks, `git diff --check`,
-      and boundary scans proving the progress route no longer calls the old
-      service or imports Diesel/schema.
+- [x] Add `application/learning/assign_course_role` with command, output,
+      error, use-case, store port, role hierarchy decision, and module-local
+      fake-port application tests for allowed and rejected assignments.
+- [x] Add `infra/postgres/learning/course_role_assignment_store.rs` and
+      `course_role_assignment_use_case.rs`; keep course-role lookup, hierarchy
+      lookup, target/actor rank lookup, and `user_role_course` insertion in
+      infra.
+- [x] Add HTTP-owned `AssignCourseRoleRequest`; `POST
+      /courses/{id}/users/{user_id}/roles` now maps through the application use
+      case instead of calling `repositories::course_repository` or matching
+      Diesel errors in the route; the old repository assignment function was
+      removed after migrating its tests to the new use-case boundary.
+- [x] Inject `CourseRoleAssignmentUseCase` through `bootstrap/app_state`,
+      `bootstrap/startup`, and `bootstrap/app_data`; route tests receive the
+      same Postgres adapter as production.
+- [x] Keep the existing HTTP contract: request body still accepts `role_name`,
+      success still returns `Role assigned successfully`, hierarchy failures
+      stay `403`, missing role/user stays `400`, and notification behavior stays
+      at the HTTP edge.
+- [x] Self-critique: this removes course role assignment only. Enrollment
+      requests/decisions, catalog learning detail, teaching dashboard reads, and
+      assessment listing still need deeper Level 2 extraction.
+- [x] Prove behavior with binary compile, application fake-port tests, real
+      role-assignment notification route test, enrollment notification
+      regression, API route reachability, formatting, line-count checks,
+      `git diff --check`, and boundary scans proving the role route no longer
+      calls the old repository or imports Diesel/schema.
 
 ## Legacy Transition Rules
 
@@ -1194,6 +1202,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] `GET/POST /courses/{id}/progress` now has application command/output/error
       and store-port contracts, a Postgres adapter/use case, HTTP DTO mapping,
       bootstrap wiring, and application/integration/route tests.
+- [x] `POST /courses/{id}/users/{user_id}/roles` now has application
+      command/output/error and store-port contracts, a Postgres adapter/use
+      case, HTTP DTO mapping, bootstrap wiring, and application/route tests.
 - [ ] Move remaining learning service/DB-heavy handlers into application use
       cases with Postgres adapters.
 
