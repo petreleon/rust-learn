@@ -4,3 +4,4 @@ pub(crate) mod contract_startup;
 pub mod readiness;
 pub mod routes;
 pub mod startup;
+mod use_case_wiring;

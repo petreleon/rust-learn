@@ -994,31 +994,39 @@ remaining gaps.
 | 96 | Moved course join request, join decision, waitlist approval, enrollment notification payload, and enrollment removal behind `application/learning/course_enrollment`, Postgres adapters, HTTP DTOs, and bootstrap wiring; the include-based `course_enrollment_service` was deleted. |
 | 97 | Finished assessment route wiring for `GET /courses/{id}/assessments`, `GET /courses/{id}/assessments/{assessment_id}/attempts`, and `POST /courses/{id}/assessments/{assessment_id}/submit`; HTTP now receives injected assessment use cases instead of DB pools or Postgres stores. |
 | 98 | Moved `GET /courses/catalog/{id}/learn` behind `application/learning/get_learner_course_learning`, learner-course Postgres read helpers, an HTTP-owned learning response DTO, and bootstrap app-data wiring; the route no longer opens the DB pool or calls `course_service::get_learner_course_learning`. |
+| 99 | Moved `GET /courses/catalog/{id}` behind `application/learning/get_learner_course_detail`, shared learner catalog read vocabulary, Postgres detail/chapter adapters, an HTTP-owned detail response DTO, and bootstrap app-data wiring; app-state construction moved into `bootstrap/use_case_wiring.rs` so `startup.rs` stays focused on environment and startup tasks. |
 
 ## Recent Slice Evidence
 
-Slice 98: move learner course learning into an injected learning use case.
+Slice 99: move learner course detail and split bootstrap use-case wiring.
 
-- [x] Add `application/learning/get_learner_course_learning` with a narrow
-      query, output, error, store port, handler, and use-case trait.
-- [x] Add `infra/postgres/learning/learner_course_*` adapters for learner
-      visibility, catalog item assembly, enrollment summary, learning content
-      state, and DB-pool use-case wiring. Split helper files to keep every new
-      manually maintained Rust file below the 180-line repository limit.
-- [x] Add HTTP-owned learner catalog/learning response DTOs so the route no
-      longer serializes legacy service types directly.
-- [x] Wire the concrete Postgres learner learning use case through
-      `bootstrap/app_state`, `bootstrap/startup`, and `bootstrap/app_data`.
-- [x] Update the learner learning route test to inject the use case while
-      preserving active-content selection, processing display states, scoped
-      denial, and enrolled/preview `progress_supported` behavior.
-- [x] Self-critique: this removes the learning endpoint's direct service/DB
-      dependency, but learner catalog list/detail and all teacher dashboard
-      reads still call legacy `course_service` from HTTP.
-- [x] Prove behavior with binary compile, learner learning endpoint test, API
-      route reachability, formatting, line-count checks, `git diff --check`,
-      and boundary scans proving the new application/HTTP DTO modules do not
-      import DB/Diesel/Postgres stores or legacy services.
+- [x] Add shared `application/learning/learner_course_catalog` read vocabulary
+      for learner catalog item summaries, detail chapters, content summaries,
+      reward summaries, enrollment summaries, access summaries, and the common
+      learner catalog read error.
+- [x] Move `GET /courses/catalog/{id}` behind
+      `application/learning/get_learner_course_detail`, a narrow query/output,
+      store port, handler, and use-case trait.
+- [x] Add `infra/postgres/learning/learner_course_detail_*` and
+      `learner_course_catalog_chapter_queries.rs`; retarget existing learner
+      catalog assembly helpers to the shared catalog read vocabulary instead
+      of the learning endpoint's output module.
+- [x] Add an HTTP-owned `LearnerCourseDetailResponse` and route the detail
+      handler through injected app data instead of opening `DbPool` and calling
+      `course_service::get_learner_course_detail`.
+- [x] Split concrete app-state construction into
+      `bootstrap/use_case_wiring.rs`; `bootstrap/startup.rs` now stays under
+      the line limit and owns startup setup instead of the whole adapter graph.
+- [x] Update detail route tests to inject the production Postgres detail use
+      case while preserving own-draft visibility, chapter/content shape, and
+      unscoped draft `404` behavior.
+- [x] Self-critique: learner catalog list and all teacher dashboard reads still
+      call legacy `course_service` from HTTP; the next learning slice should
+      remove `/courses/catalog` list or begin the teacher dashboard read model.
+- [x] Prove behavior with binary compile, full `course_discovery` test target,
+      API route reachability, formatting, line-count checks, `git diff
+      --check`, and boundary scans proving the new application/HTTP DTO modules
+      do not import DB/Diesel/Postgres stores or legacy services.
 
 ## Legacy Transition Rules
 

@@ -8,11 +8,8 @@ mod store;
 pub use error::LearnerCourseLearningError;
 pub use handler::get_learner_course_learning;
 pub use output::{
-    LearnerCourseAccessSummaryOutput, LearnerCourseCatalogItemOutput,
-    LearnerCourseCatalogOrganizationOutput, LearnerCourseCatalogTeacherOutput,
-    LearnerCourseContentSummaryOutput, LearnerCourseEnrollmentSummaryOutput,
     LearnerCourseLearningChapterOutput, LearnerCourseLearningContentOutput,
-    LearnerCourseLearningOutput, LearnerCourseRewardSummaryOutput,
+    LearnerCourseLearningOutput,
 };
 pub use query::LearnerCourseLearningQuery;
 pub use service::LearnerCourseLearningUseCase;

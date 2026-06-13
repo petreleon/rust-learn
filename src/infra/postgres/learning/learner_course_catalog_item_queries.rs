@@ -4,10 +4,10 @@ use bigdecimal::BigDecimal;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::application::learning::get_learner_course_learning::{
-    LearnerCourseCatalogItemOutput, LearnerCourseCatalogOrganizationOutput,
-    LearnerCourseCatalogTeacherOutput, LearnerCourseContentSummaryOutput,
-    LearnerCourseLearningError, LearnerCourseRewardSummaryOutput,
+use crate::application::learning::learner_course_catalog::{
+    LearnerCourseCatalogError, LearnerCourseCatalogItemOutput,
+    LearnerCourseCatalogOrganizationOutput, LearnerCourseCatalogTeacherOutput,
+    LearnerCourseContentSummaryOutput, LearnerCourseRewardSummaryOutput,
 };
 use crate::db::schema::{
     chapters, contents, course_roles, courses_organizations, organizations, reward_policies,
@@ -22,7 +22,7 @@ pub async fn build_learner_course_catalog_item(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course: Course,
-) -> Result<LearnerCourseCatalogItemOutput, LearnerCourseLearningError> {
+) -> Result<LearnerCourseCatalogItemOutput, LearnerCourseCatalogError> {
     let organizations = load_learner_course_organizations(conn, course.id).await?;
     let teachers = load_learner_course_teachers(conn, course.id).await?;
     let content = load_learner_course_content_summary(conn, course.id).await?;
@@ -58,7 +58,7 @@ pub async fn build_learner_course_catalog_item(
 async fn load_learner_course_organizations(
     conn: &mut AsyncPgConnection,
     course_id: i32,
-) -> Result<Vec<LearnerCourseCatalogOrganizationOutput>, LearnerCourseLearningError> {
+) -> Result<Vec<LearnerCourseCatalogOrganizationOutput>, LearnerCourseCatalogError> {
     let rows = courses_organizations::table
         .inner_join(
             organizations::table.on(courses_organizations::organization_id.eq(organizations::id)),
@@ -79,7 +79,7 @@ async fn load_learner_course_organizations(
 async fn load_learner_course_teachers(
     conn: &mut AsyncPgConnection,
     course_id: i32,
-) -> Result<Vec<LearnerCourseCatalogTeacherOutput>, LearnerCourseLearningError> {
+) -> Result<Vec<LearnerCourseCatalogTeacherOutput>, LearnerCourseCatalogError> {
     let rows = user_role_course::table
         .inner_join(
             course_roles::table
@@ -103,7 +103,7 @@ async fn load_learner_course_teachers(
 async fn load_learner_course_content_summary(
     conn: &mut AsyncPgConnection,
     course_id: i32,
-) -> Result<LearnerCourseContentSummaryOutput, LearnerCourseLearningError> {
+) -> Result<LearnerCourseContentSummaryOutput, LearnerCourseCatalogError> {
     let chapter_count = chapters::table
         .filter(chapters::course_id.eq(course_id))
         .count()
@@ -131,7 +131,7 @@ async fn load_learner_course_content_summary(
 async fn load_learner_course_reward_summary(
     conn: &mut AsyncPgConnection,
     course_id: i32,
-) -> Result<LearnerCourseRewardSummaryOutput, LearnerCourseLearningError> {
+) -> Result<LearnerCourseRewardSummaryOutput, LearnerCourseCatalogError> {
     let rows = reward_policies::table
         .filter(reward_policies::course_id.eq(course_id))
         .filter(reward_policies::active.eq(true))
@@ -169,9 +169,9 @@ fn parse_topics(topics: Option<&str>) -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn map_learning_error(error: diesel::result::Error) -> LearnerCourseLearningError {
+fn map_learning_error(error: diesel::result::Error) -> LearnerCourseCatalogError {
     match error {
-        diesel::result::Error::NotFound => LearnerCourseLearningError::NotFound,
-        other => LearnerCourseLearningError::Database(other.to_string()),
+        diesel::result::Error::NotFound => LearnerCourseCatalogError::NotFound,
+        other => LearnerCourseCatalogError::Database(other.to_string()),
     }
 }

@@ -13,6 +13,7 @@ use crate::application::learning::create_course::CourseCreationUseCase;
 use crate::application::learning::delete_course::CourseDeletionUseCase;
 use crate::application::learning::discover_courses::CourseDiscoveryUseCase;
 use crate::application::learning::get_course::CourseReadUseCase;
+use crate::application::learning::get_learner_course_detail::LearnerCourseDetailUseCase;
 use crate::application::learning::get_learner_course_learning::LearnerCourseLearningUseCase;
 use crate::application::learning::learner_progress::LearnerProgressUseCase;
 use crate::application::learning::list_assessment_attempts::AssessmentAttemptsUseCase;
@@ -61,6 +62,7 @@ pub struct AppState {
     pub course_deletion_use_case: Arc<dyn CourseDeletionUseCase>,
     pub course_discovery_use_case: Arc<dyn CourseDiscoveryUseCase>,
     pub course_read_use_case: Arc<dyn CourseReadUseCase>,
+    pub learner_course_detail_use_case: Arc<dyn LearnerCourseDetailUseCase>,
     pub learner_course_learning_use_case: Arc<dyn LearnerCourseLearningUseCase>,
     pub course_organizations_use_case: Arc<dyn CourseOrganizationsUseCase>,
     pub course_role_assignment_use_case: Arc<dyn CourseRoleAssignmentUseCase>,

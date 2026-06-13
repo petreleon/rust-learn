@@ -6,22 +6,22 @@ use crate::application::learning::discover_courses::{
     CourseDiscoveryError, CourseDiscoveryQuery, CourseDiscoveryUseCase,
 };
 use crate::application::learning::get_course::{CourseReadError, CourseReadUseCase};
+use crate::application::learning::get_learner_course_detail::{
+    LearnerCourseDetailQuery, LearnerCourseDetailUseCase,
+};
 use crate::application::learning::get_learner_course_learning::{
     LearnerCourseLearningQuery, LearnerCourseLearningUseCase,
 };
 use crate::db;
 use crate::http::learning::dto::{
-    CourseDiscoveryResponse, CourseResponse, LearnerCourseLearningResponse,
+    CourseDiscoveryResponse, CourseResponse, LearnerCourseDetailResponse,
+    LearnerCourseLearningResponse,
 };
-use crate::services::course_service::{
-    discover_learner_course_catalog, get_learner_course_detail, LearnerCourseCatalogQuery,
-};
+use crate::services::course_service::{discover_learner_course_catalog, LearnerCourseCatalogQuery};
 use crate::utils::request_auth::authenticated_user;
 
 use super::dto::{CourseDiscoveryParams, LearnerCourseCatalogParams};
-use super::support::{
-    learner_course_catalog_error_response, learner_course_learning_error_response,
-};
+use super::support::{learner_course_catalog_error_response, learner_course_read_error_response};
 
 pub(super) async fn list_learner_course_catalog(
     req: HttpRequest,
@@ -66,27 +66,24 @@ pub(super) async fn get_learner_course_learning_route(
     let query = LearnerCourseLearningQuery::new(requester.user_id, path.into_inner());
     match use_case.get_learner_course_learning(query).await {
         Ok(learning) => HttpResponse::Ok().json(LearnerCourseLearningResponse::from(learning)),
-        Err(error) => learner_course_learning_error_response(error),
+        Err(error) => learner_course_read_error_response(error),
     }
 }
 
 pub(super) async fn get_learner_course_catalog_detail(
     req: HttpRequest,
     path: web::Path<i32>,
-    pool: web::Data<db::DbPool>,
+    use_case: web::Data<Arc<dyn LearnerCourseDetailUseCase>>,
 ) -> impl Responder {
     let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
 
-    match get_learner_course_detail(&mut conn, requester.user_id, path.into_inner()).await {
-        Ok(detail) => HttpResponse::Ok().json(detail),
-        Err(error) => learner_course_catalog_error_response(error),
+    let query = LearnerCourseDetailQuery::new(requester.user_id, path.into_inner());
+    match use_case.get_learner_course_detail(query).await {
+        Ok(detail) => HttpResponse::Ok().json(LearnerCourseDetailResponse::from(detail)),
+        Err(error) => learner_course_read_error_response(error),
     }
 }
 

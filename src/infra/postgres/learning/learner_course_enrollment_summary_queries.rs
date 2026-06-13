@@ -1,8 +1,8 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::application::learning::get_learner_course_learning::{
-    LearnerCourseEnrollmentSummaryOutput, LearnerCourseLearningError,
+use crate::application::learning::learner_course_catalog::{
+    LearnerCourseCatalogError, LearnerCourseEnrollmentSummaryOutput,
 };
 use crate::db::schema::{course_join_requests, course_roles, user_role_course};
 use crate::models::course::COURSE_STATUS_PUBLISHED;
@@ -17,7 +17,7 @@ pub async fn build_learner_course_enrollment(
     course_id: i32,
     lifecycle_status: &str,
     can_request_join: bool,
-) -> Result<LearnerCourseEnrollmentSummaryOutput, LearnerCourseLearningError> {
+) -> Result<LearnerCourseEnrollmentSummaryOutput, LearnerCourseCatalogError> {
     let roles = load_actor_course_roles(conn, actor_user_id, course_id).await?;
     let latest_request = course_join_requests::table
         .filter(course_join_requests::course_id.eq(course_id))
@@ -40,7 +40,7 @@ async fn load_actor_course_roles(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,
-) -> Result<Vec<String>, LearnerCourseLearningError> {
+) -> Result<Vec<String>, LearnerCourseCatalogError> {
     let mut roles = user_role_course::table
         .inner_join(
             course_roles::table
@@ -148,9 +148,9 @@ fn enrollment_summary(
     }
 }
 
-fn map_learning_error(error: diesel::result::Error) -> LearnerCourseLearningError {
+fn map_learning_error(error: diesel::result::Error) -> LearnerCourseCatalogError {
     match error {
-        diesel::result::Error::NotFound => LearnerCourseLearningError::NotFound,
-        other => LearnerCourseLearningError::Database(other.to_string()),
+        diesel::result::Error::NotFound => LearnerCourseCatalogError::NotFound,
+        other => LearnerCourseCatalogError::Database(other.to_string()),
     }
 }

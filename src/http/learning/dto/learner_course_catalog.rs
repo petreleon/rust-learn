@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::application::learning::get_learner_course_learning::{
+use crate::application::learning::learner_course_catalog::{
     LearnerCourseAccessSummaryOutput, LearnerCourseCatalogItemOutput,
     LearnerCourseCatalogOrganizationOutput, LearnerCourseCatalogTeacherOutput,
     LearnerCourseContentSummaryOutput, LearnerCourseEnrollmentSummaryOutput,

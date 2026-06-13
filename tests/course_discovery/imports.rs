@@ -12,9 +12,11 @@ use rust_learn::domain::rewards::policy::{
     REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
 use rust_learn::application::learning::discover_courses::CourseDiscoveryUseCase;
+use rust_learn::application::learning::get_learner_course_detail::LearnerCourseDetailUseCase;
 use rust_learn::application::learning::get_learner_course_learning::LearnerCourseLearningUseCase;
 use rust_learn::application::learning::learner_progress::LearnerProgressUseCase;
 use rust_learn::infra::postgres::learning::course_discovery_use_case::PostgresCourseDiscoveryUseCase;
+use rust_learn::infra::postgres::learning::learner_course_detail_use_case::PostgresLearnerCourseDetailUseCase;
 use rust_learn::infra::postgres::learning::learner_course_learning_use_case::PostgresLearnerCourseLearningUseCase;
 use rust_learn::infra::postgres::learning::learner_progress_use_case::PostgresLearnerProgressUseCase;
 use rust_learn::models::chapter::NewChapter;
@@ -141,6 +143,14 @@ fn learner_course_learning_use_case_data(
     pool: &DbPool,
 ) -> web::Data<Arc<dyn LearnerCourseLearningUseCase>> {
     web::Data::new(Arc::new(PostgresLearnerCourseLearningUseCase::new(
+        pool.clone(),
+    )))
+}
+
+fn learner_course_detail_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn LearnerCourseDetailUseCase>> {
+    web::Data::new(Arc::new(PostgresLearnerCourseDetailUseCase::new(
         pool.clone(),
     )))
 }

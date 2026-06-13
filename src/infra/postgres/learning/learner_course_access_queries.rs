@@ -1,8 +1,8 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::application::learning::get_learner_course_learning::{
-    LearnerCourseAccessSummaryOutput, LearnerCourseLearningError,
+use crate::application::learning::learner_course_catalog::{
+    LearnerCourseAccessSummaryOutput, LearnerCourseCatalogError,
 };
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::courses_organizations;
@@ -13,7 +13,7 @@ pub async fn course_visible_to_learner(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course: &Course,
-) -> Result<bool, LearnerCourseLearningError> {
+) -> Result<bool, LearnerCourseCatalogError> {
     if course.lifecycle_status == COURSE_STATUS_PUBLISHED {
         return Ok(true);
     }
@@ -47,7 +47,7 @@ pub async fn build_learner_course_access(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,
-) -> Result<LearnerCourseAccessSummaryOutput, LearnerCourseLearningError> {
+) -> Result<LearnerCourseAccessSummaryOutput, LearnerCourseCatalogError> {
     let can_view_course = has_permission_for_course_context(
         conn,
         actor_user_id,
@@ -90,7 +90,7 @@ async fn has_any_permission_for_course_context(
     actor_user_id: i32,
     course_id: i32,
     permissions: &[Permissions],
-) -> Result<bool, LearnerCourseLearningError> {
+) -> Result<bool, LearnerCourseCatalogError> {
     for permission in permissions {
         if has_permission_for_course_context(conn, actor_user_id, course_id, permission).await? {
             return Ok(true);
@@ -105,7 +105,7 @@ async fn has_permission_for_course_context(
     actor_user_id: i32,
     course_id: i32,
     permission: &Permissions,
-) -> Result<bool, LearnerCourseLearningError> {
+) -> Result<bool, LearnerCourseCatalogError> {
     let permission_name = permission.to_string();
     if course_permission_checks::has_course_permission(
         conn,
@@ -146,7 +146,7 @@ async fn has_permission_for_course_context(
 async fn course_organization_ids(
     conn: &mut AsyncPgConnection,
     course_id: i32,
-) -> Result<Vec<i32>, LearnerCourseLearningError> {
+) -> Result<Vec<i32>, LearnerCourseCatalogError> {
     courses_organizations::table
         .filter(courses_organizations::course_id.eq(course_id))
         .select(courses_organizations::organization_id)
@@ -155,9 +155,9 @@ async fn course_organization_ids(
         .map_err(map_learning_error)
 }
 
-fn map_learning_error(error: diesel::result::Error) -> LearnerCourseLearningError {
+fn map_learning_error(error: diesel::result::Error) -> LearnerCourseCatalogError {
     match error {
-        diesel::result::Error::NotFound => LearnerCourseLearningError::NotFound,
-        other => LearnerCourseLearningError::Database(other.to_string()),
+        diesel::result::Error::NotFound => LearnerCourseCatalogError::NotFound,
+        other => LearnerCourseCatalogError::Database(other.to_string()),
     }
 }

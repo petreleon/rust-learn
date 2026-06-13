@@ -1,7 +1,1 @@
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum LearnerCourseLearningError {
-    PermissionDenied(String),
-    NotFound,
-    Connection(String),
-    Database(String),
-}
+pub use crate::application::learning::learner_course_catalog::LearnerCourseCatalogError as LearnerCourseLearningError;
