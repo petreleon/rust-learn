@@ -2702,6 +2702,31 @@ Slice 57: move reward audit event vocabulary into the rewards domain.
       rust-learn`, and prove formatting, whitespace, line-count, and boundary
       scans.
 
+Slice 58: move reward execution job status vocabulary into the rewards domain.
+
+- [x] Create `domain/rewards/execution.rs` with `RewardExecutionJobStatus`,
+      stable queued/failed keys, parsing, display formatting, and unit tests.
+- [x] Update reward execution job enqueueing so the repository stores
+      `RewardExecutionJobStatus::Queued` instead of a model-owned string
+      constant.
+- [x] Update platform reward reporting failed-job filters so reporting uses
+      `RewardExecutionJobStatus::Failed` instead of raw `"failed"` literals.
+- [x] Remove `REWARD_EXECUTION_STATUS_QUEUED` from
+      `models/reward_execution_job.rs`; tests now import the queued key from
+      `domain/rewards/execution`.
+- [x] Self-critique: execution job status vocabulary is now domain-owned, but
+      reward candidate status aliases and candidate audit aliases still remain
+      in model modules for legacy services/tests. Reporting also still lives in
+      the legacy reporting service rather than a complete Level 2 reporting
+      extraction.
+- [x] Prove the domain vocabulary with `domain::rewards::execution`, preserve
+      queued job behavior with
+      `teacher_submits_and_approves_then_platform_reviewer_sets_amount` and
+      `test_fraud_block_revoke`, preserve failed-job reporting with
+      `platform_reward_dashboard_reports_actionable_reward_audit_work`, prove
+      binary wiring with `cargo check --features app-bin --bin rust-learn`, and
+      prove formatting, whitespace, line-count, and boundary scans.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -3066,6 +3091,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - Reward audit event vocabulary now lives in `domain/rewards/audit`; Level 2
   rewards Postgres audit writers use the domain `RewardAuditEventType` and the
   model keeps only temporary aliases needed by legacy candidate service code.
+- Reward execution job status vocabulary now lives in
+  `domain/rewards/execution`; enqueueing uses the domain queued status, failed
+  reporting filters use the domain failed status, and tests import execution
+  status keys from the domain.
 - `infra/postgres/rewards/reward_authorization_access` is now a module folder
   split by platform, course, and fraud-block helper shape, keeping the
   rewards-side access bridge granular while preserving the existing caller
@@ -3461,6 +3490,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move reward candidate status normalization into
       `domain/rewards/candidate/status`.
 - [x] Move reward audit event type vocabulary into `domain/rewards/audit`.
+- [x] Move reward execution job status vocabulary into
+      `domain/rewards/execution`.
 - [ ] Move remaining reward statuses and event types into domain enums/newtypes.
       Keep database string conversion at the infra boundary.
 - [x] Move reward policy request/response structs out of service imports and

@@ -22,6 +22,7 @@ use rust_learn::domain::rewards::fraud_block::{
 use rust_learn::domain::rewards::policy::{
     REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
+use rust_learn::domain::rewards::execution::REWARD_EXECUTION_STATUS_QUEUED;
 use rust_learn::infra::postgres::rewards::platform_reward_candidate_use_case::PostgresPlatformRewardCandidatesUseCase;
 use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
 use rust_learn::models::course::{Course, NewCourse};
@@ -36,7 +37,6 @@ use rust_learn::models::reward_candidate::{
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
     REWARD_STATUS_TEACHER_APPROVED,
 };
-use rust_learn::models::reward_execution_job::REWARD_EXECUTION_STATUS_QUEUED;
 use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;

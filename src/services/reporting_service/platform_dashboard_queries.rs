@@ -67,7 +67,7 @@ pub async fn platform_reward_dashboard(
         .await?;
 
     let payout_failures = reward_execution_jobs::table
-        .filter(reward_execution_jobs::status.eq("failed"))
+        .filter(reward_execution_jobs::status.eq(RewardExecutionJobStatus::Failed.as_str()))
         .order(reward_execution_jobs::updated_at.desc())
         .limit(50)
         .load::<RewardExecutionJob>(conn)
@@ -76,7 +76,7 @@ pub async fn platform_reward_dashboard(
         .map(RewardExecutionFailureRow::from)
         .collect::<Vec<_>>();
     let payout_failure_count = reward_execution_jobs::table
-        .filter(reward_execution_jobs::status.eq("failed"))
+        .filter(reward_execution_jobs::status.eq(RewardExecutionJobStatus::Failed.as_str()))
         .count()
         .get_result(conn)
         .await?;

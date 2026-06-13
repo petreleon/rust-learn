@@ -5,6 +5,7 @@ use crate::db::schema::{
     user_role_course, user_role_organization, users, wallets,
 };
 use crate::models::delegated_permission::DelegatedPermission;
+use crate::domain::rewards::execution::RewardExecutionJobStatus;
 use crate::models::reward_candidate::{
     RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED,
     REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_NEEDS_RECONCILIATION,
