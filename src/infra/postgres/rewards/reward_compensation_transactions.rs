@@ -3,7 +3,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::rewards::record_compensation::RewardCompensationError;
 use crate::db::schema::{internal_transactions, transactions, transactions_internal_transactions};
-use crate::domain::rewards::compensation::REWARD_TRANSACTION_TYPE_COMPENSATION;
+use crate::domain::rewards::compensation::RewardCompensationTransactionType;
 use crate::infra::postgres::rewards::reward_compensation_mappers::map_reward_compensation_error;
 use crate::models::transaction::{
     NewInternalTransaction, NewTransaction, NewTransactionInternalTransactionLink,
@@ -28,7 +28,7 @@ pub(super) async fn create_compensation_transaction(
 ) -> Result<i64, RewardCompensationError> {
     let transaction_id = diesel::insert_into(transactions::table)
         .values(NewTransaction {
-            type_: REWARD_TRANSACTION_TYPE_COMPENSATION,
+            type_: RewardCompensationTransactionType::Compensation.as_str(),
         })
         .returning(transactions::id)
         .get_result(conn)

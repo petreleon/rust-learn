@@ -959,31 +959,29 @@ remaining gaps.
 | 41-48 | Extracted wallet audit, wallet reads, wallet linking, token tax, deposit intents, retirements, and observed deposit indexing into wallet application/HTTP/Postgres ownership. |
 | 49-55 | Moved wallet and reward authorization decisions through `application/access_control`, including payout, platform, course, organization, fraud-block, and notification-recipient policies. |
 | 56 | Moved production Actix app-data registration out of `main.rs`; `main.rs` is now process orchestration while bootstrap owns concrete state and route wiring. |
-| 57-62 | Typed reward audit, execution job, candidate, fraud-block, policy, and payout-method vocabulary in the rewards domain while keeping compatibility aliases where legacy callers still need them. |
+| 57-63 | Typed reward audit, execution job, candidate, fraud-block, policy, payout-method, and token vocabulary in the rewards domain while keeping compatibility aliases where legacy callers still need them. |
 
 ## Recent Slice Evidence
 
-Slice 63: type reward token event and transaction vocabulary inside the rewards
-domain.
+Slice 64: type reward wallet-credit and compensation transaction vocabulary
+inside the rewards domain.
 
-- [x] Add `RewardTokenEventType` and `RewardTokenTransactionType` to
-      `domain/rewards/token` with stable persisted string keys, display
-      formatting, and event-to-transaction mapping.
-- [x] Keep `transaction_type_for_token_event` as an enum-backed compatibility
-      helper for legacy string callers.
-- [x] Update `application/rewards/record_token_confirmation` validation to
-      parse token events through the domain enum before returning the existing
-      persisted transaction-type string.
-- [x] Self-critique: token confirmation command/output and Postgres records
-      still carry strings at their boundaries; wallet-credit and compensation
-      transaction types also still need typed wrappers before the broad reward
-      vocabulary item can close.
-- [x] Prove the token vocabulary with `domain::rewards::token`, preserve
-      token-confirmation validation with
-      `application::rewards::record_token_confirmation`, preserve DB-backed
-      token confirmation with the reward-execution regression, prove binary
-      wiring with `cargo check --features app-bin --bin rust-learn`, and prove
-      formatting, whitespace, line-count, and boundary scans.
+- [x] Add `RewardWalletCreditTransactionType` to
+      `domain/rewards/wallet_credit` with the stable persisted transaction key,
+      parsing, and display formatting.
+- [x] Add `RewardCompensationTransactionType` to
+      `domain/rewards/compensation` with the stable persisted transaction key,
+      parsing, and display formatting.
+- [x] Update the wallet-credit and compensation Postgres transaction inserts to
+      obtain their persisted string keys from the domain types.
+- [x] Self-critique: wallet-credit and compensation use cases still expose
+      persistence-facing strings at some compatibility surfaces, and legacy
+      tests still import the old constants until those callers are migrated.
+- [x] Prove the domain transaction vocabulary with
+      `domain::rewards::wallet_credit` and `domain::rewards::compensation`,
+      preserve DB-backed wallet-credit and compensation regressions, prove
+      binary wiring with `cargo check --features app-bin --bin rust-learn`, and
+      prove formatting, whitespace, line-count, and boundary scans.
 
 ## Legacy Transition Rules
 
@@ -1060,6 +1058,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Type reward payout method vocabulary in `domain/rewards/payout`.
 - [x] Type reward token event and transaction vocabulary in
       `domain/rewards/token`.
+- [x] Type reward wallet-credit and compensation transaction vocabulary in
+      `domain/rewards/wallet_credit` and `domain/rewards/compensation`.
 - [ ] Move remaining reward statuses and event types into domain enums/newtypes.
       Keep database string conversion at the infra boundary.
 - [x] Move reward policy request/response structs out of service imports and
