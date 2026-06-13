@@ -13,7 +13,6 @@ pub mod roles;
 pub mod session;
 pub mod teacher_applications;
 pub mod users;
-pub mod wallets;
 use actix_service::ServiceFactory;
 use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, Scope};
 
@@ -50,5 +49,5 @@ pub fn api_scope() -> Scope<
         .configure(crate::http::rewards::configure_routes)
         .service(crate::http::access_control::roles_scope())
         .service(teacher_applications::teacher_application_scope())
-        .service(wallets::wallet_scope())
+        .configure(crate::http::wallet::configure_routes)
 }
