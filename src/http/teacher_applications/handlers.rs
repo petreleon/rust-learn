@@ -1,6 +1,13 @@
+use std::sync::Arc;
+
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
+use crate::application::teacher_applications::get_my_application::{
+    TeacherApplicationSelfError, TeacherApplicationSelfUseCase,
+};
 use crate::db;
+use crate::http::extractors::auth_user::AuthUser;
+use crate::http::teacher_applications::dto::TeacherApplicationSelfResponse;
 use crate::http::teacher_applications::support::{
     notify_teacher_application_event, service_error_response,
 };
@@ -93,21 +100,12 @@ pub(super) async fn list_platform_review_applications(
 }
 
 pub(super) async fn get_my_application(
-    req: HttpRequest,
-    pool: web::Data<db::DbPool>,
+    requester: AuthUser,
+    use_case: web::Data<Arc<dyn TeacherApplicationSelfUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match teacher_application_service::get_my_application(&mut conn, requester.user_id).await {
-        Ok(snapshot) => HttpResponse::Ok().json(snapshot),
-        Err(error) => service_error_response(error),
+    match use_case.get_my_application(requester.user_id()).await {
+        Ok(snapshot) => HttpResponse::Ok().json(TeacherApplicationSelfResponse::from(snapshot)),
+        Err(error) => self_application_error_response(error),
     }
 }
 
@@ -149,5 +147,18 @@ pub(super) async fn decide_application(
             HttpResponse::Ok().json(application)
         }
         Err(error) => service_error_response(error),
+    }
+}
+
+fn self_application_error_response(error: TeacherApplicationSelfError) -> HttpResponse {
+    match error {
+        TeacherApplicationSelfError::Connection(message)
+        | TeacherApplicationSelfError::Database(message) => {
+            log::error!(
+                "event=teacher_application_self_api_failed error={}",
+                message
+            );
+            HttpResponse::InternalServerError().body("Failed to process teacher application")
+        }
     }
 }

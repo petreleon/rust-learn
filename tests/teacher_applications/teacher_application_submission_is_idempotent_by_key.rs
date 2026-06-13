@@ -69,6 +69,26 @@ async fn applicant_can_read_latest_application_snapshot_without_review_permissio
     assert_eq!(snapshot.audit_events[0].application_id, application.id);
     assert_eq!(snapshot.audit_events[0].to_status, application.status);
 
+    let app = test::init_service(
+        App::new()
+            .app_data(teacher_application_self_data())
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .configure(rust_learn::http::teacher_applications::configure_routes),
+    )
+    .await;
+    let response = test::call_service(
+        &app,
+        test::TestRequest::get()
+            .uri("/teacher-applications/me")
+            .insert_header(("Authorization", format!("Bearer {}", token_for(applicant.id()))))
+            .to_request(),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = test::read_body_json(response).await;
+    assert_eq!(body["application"]["id"].as_i64(), Some(application.id));
+    assert_eq!(body["audit_events"].as_array().unwrap().len(), 1);
+
     let empty_snapshot = get_my_application(&mut conn, stranger.id())
         .await
         .expect("authenticated user without application should get an empty snapshot");

@@ -69,12 +69,6 @@ pub struct TeacherApplicationDecisionRequest {
     pub decision_reason: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct TeacherApplicationSelfResponse {
-    pub application: Option<TeacherApplication>,
-    pub audit_events: Vec<TeacherApplicationAuditEvent>,
-}
-
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct ListTeacherApplicationsRequest {
     pub status: Option<String>,

@@ -83,30 +83,6 @@ pub async fn nominate_application(
     Ok(application)
 }
 
-pub async fn get_my_application(
-    conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-) -> Result<TeacherApplicationSelfResponse, TeacherApplicationError> {
-    let application =
-        teacher_application_repository::find_latest_application_for_applicant(conn, actor_user_id)
-            .await
-            .map_err(TeacherApplicationError::from)?;
-
-    let audit_events = match application.as_ref() {
-        Some(application) => {
-            teacher_application_repository::list_audit_events(conn, application.id)
-                .await
-                .map_err(TeacherApplicationError::from)?
-        }
-        None => Vec::new(),
-    };
-
-    Ok(TeacherApplicationSelfResponse {
-        application,
-        audit_events,
-    })
-}
-
 pub async fn list_applications(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,

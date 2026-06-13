@@ -1,6 +1,10 @@
+use actix_web::{http::StatusCode, test, web, App};
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::teacher_applications::get_my_application::{
+    TeacherApplicationSelfOutput, TeacherApplicationSelfUseCase,
+};
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::establish_connection;
@@ -20,12 +24,15 @@ use rust_learn::repositories::platform_repository::assign_role_to_user;
 use rust_learn::repositories::platform_repository::user_permission_platform_request;
 use rust_learn::repositories::teacher_application_repository::list_audit_events;
 use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::teacher_applications::teacher_application_self_use_case::PostgresTeacherApplicationSelfUseCase;
 use rust_learn::services::teacher_application_service::{
-    decide_application, get_my_application, list_applications, list_platform_applications,
-    nominate_application, submit_application, ListTeacherApplicationsRequest,
-    OrganizationTeacherNominationRequest, PlatformTeacherApplicationsRequest,
-    SubmitTeacherApplicationRequest, TeacherApplicationDecisionRequest, TeacherApplicationError,
+    decide_application, list_applications, list_platform_applications, nominate_application,
+    submit_application, ListTeacherApplicationsRequest, OrganizationTeacherNominationRequest,
+    PlatformTeacherApplicationsRequest, SubmitTeacherApplicationRequest,
+    TeacherApplicationDecisionRequest, TeacherApplicationError,
 };
+use rust_learn::utils::jwt_utils::create_jwt;
+use std::sync::Arc;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -39,6 +46,28 @@ async fn setup_conn(
     pool.get()
         .await
         .expect("failed to get DB connection from pool")
+}
+
+async fn get_my_application(
+    _conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+) -> Result<TeacherApplicationSelfOutput, rust_learn::application::teacher_applications::get_my_application::TeacherApplicationSelfError>
+{
+    let pool = establish_connection();
+    PostgresTeacherApplicationSelfUseCase::new(pool)
+        .get_my_application(actor_user_id)
+        .await
+}
+
+fn teacher_application_self_data() -> web::Data<Arc<dyn TeacherApplicationSelfUseCase>> {
+    web::Data::new(
+        Arc::new(PostgresTeacherApplicationSelfUseCase::new(establish_connection()))
+            as Arc<dyn TeacherApplicationSelfUseCase>,
+    )
+}
+
+fn token_for(user_id: i32) -> String {
+    create_jwt(user_id).expect("failed to create JWT")
 }
 
 async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {

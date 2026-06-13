@@ -1,4 +1,5 @@
 mod audit;
+mod dto;
 mod handlers;
 mod organization_nomination;
 mod routes;

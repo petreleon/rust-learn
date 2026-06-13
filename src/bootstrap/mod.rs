@@ -7,4 +7,5 @@ mod organization_wiring;
 pub mod readiness;
 pub mod routes;
 pub mod startup;
+mod teacher_application_wiring;
 mod use_case_wiring;

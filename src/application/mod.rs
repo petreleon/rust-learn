@@ -8,4 +8,5 @@ pub mod operations;
 pub mod organizations;
 pub mod reporting;
 pub mod rewards;
+pub mod teacher_applications;
 pub mod wallet;

@@ -54,6 +54,7 @@ use crate::application::wallet::retire_tokens::WalletRetirementUseCase;
 use crate::bootstrap::access_control_wiring::AccessControlUseCases;
 use crate::bootstrap::kyc_wiring::KycUseCases;
 use crate::bootstrap::organization_wiring::OrganizationUseCases;
+use crate::bootstrap::teacher_application_wiring::TeacherApplicationUseCases;
 use crate::db::DbPool;
 use crate::utils::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
@@ -117,5 +118,6 @@ pub struct AppState {
     pub platform_reward_dashboard_use_case: Arc<dyn PlatformRewardDashboardUseCase>,
     pub platform_summary_use_case: Arc<dyn PlatformSummaryUseCase>,
     pub platform_wallet_reconciliation_use_case: Arc<dyn PlatformWalletReconciliationUseCase>,
+    pub(crate) teacher_application_use_cases: TeacherApplicationUseCases,
     pub readiness_use_case: Arc<dyn ReadinessUseCase>,
 }

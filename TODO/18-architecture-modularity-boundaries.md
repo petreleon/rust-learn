@@ -1011,43 +1011,38 @@ remaining gaps.
 | 113 | Moved organization CRUD routes behind `application/organizations/manage_organizations`, a Postgres management adapter/use case, HTTP-owned organization DTOs, and organization-context bootstrap wiring; `http/organizations/handlers.rs` no longer opens the DB pool, imports Diesel/model types, or calls `organization_service`. |
 | 114 | Moved KYC status/submission/review/audit flows behind `domain/kyc`, granular `application/kyc` use cases, a Postgres KYC adapter/use case, HTTP-owned DTOs, and bootstrap wiring; the include-based `services/kyc_service` was deleted and `http/kyc` no longer opens DB pools or calls services. |
 | 115 | Moved delegated-permission grant/list/revoke behind `domain/access_control/delegation`, `application/access_control/manage_delegated_permissions`, a Postgres delegated-permission adapter/use case, HTTP-owned DTOs, and access-control bootstrap wiring; the include-based `services/delegated_permission_service` was deleted and `http/access_control/delegated_permissions.rs` no longer opens DB pools or calls services. |
+| 116 | Moved `GET /teacher-applications/me` behind `application/teacher_applications/get_my_application`, a Postgres teacher-application self adapter/use case, HTTP-owned self snapshot DTOs, and teacher-application bootstrap wiring; the route no longer opens the DB pool, returns Diesel records, or calls `teacher_application_service::get_my_application`. |
 
 ## Recent Slice Evidence
 
-Slice 115: move delegated-permission grant/list/revoke into Level 2 rings.
+Slice 116: move teacher-application self snapshot into Level 2 rings.
 
-- [x] Add `domain/access_control/delegation` for delegated reward permission
-      validation, scope normalization, and platform/organization/course scope
-      invariants, split into permission and scope rule modules with pure unit
-      tests.
-- [x] Add `application/access_control/manage_delegated_permissions` command,
-      query, output, error, store-port, service-trait, and handler modules so
-      grant/list/revoke orchestration no longer depends on Actix, Diesel, or
-      persistence models.
-- [x] Add `infra/postgres/access_control/delegated_permissions` with thin
-      store/use-case adapters, private read/write Diesel query modules,
-      idempotent active-delegation replay, and persistence-to-application
-      mapping.
-- [x] Rework `http/access_control/delegated_permissions.rs` into auth/json/path
-      extraction, HTTP-owned request/response DTO mapping, and local
-      application-error responses through the injected delegated-permission use
+- [x] Add `application/teacher_applications/get_my_application` with explicit
+      output/error/store/service contracts and a handler that loads the latest
+      applicant application plus its audit events through a fake-testable port.
+- [x] Add `infra/postgres/teacher_applications` with a self-status store,
+      mapper, and pool-backed use case so Diesel schema access and persistence
+      records stay outside HTTP/application.
+- [x] Rework `GET /teacher-applications/me` to use `AuthUser`, an injected
+      teacher-application self use case, and HTTP-owned response DTOs instead
+      of opening `DbPool` or returning `TeacherApplication` records directly.
+- [x] Wire the self-status use case through
+      `bootstrap/teacher_application_wiring.rs`, app state, app data, and a
+      route-smoke fake for API routing tests.
+- [x] Delete the obsolete `teacher_application_service::get_my_application`
+      function and move the existing direct test helper to the new Postgres use
       case.
-- [x] Group role catalog and delegated-permission wiring in
-      `bootstrap/access_control_wiring.rs`, register both through app state/app
-      data, and add an API routing fake for delegated-permission smoke tests.
-- [x] Delete the include-based `services/delegated_permission_service` and the
-      stale model-layer grant request DTO after moving all production callers
-      and setup helpers to the new use case.
-- [x] Self-critique: the Postgres adapter still calls the legacy platform
-      permission repository to verify `DELEGATE_REWARD_APPROVAL`. That keeps
-      behavior stable; the later unified access-control slice should replace it
-      with the same typed permission port used by other reward/wallet actions.
-- [x] Prove behavior with delegation domain/application unit tests,
-      delegated-permission API and integration tests, the dependent
-      reward-fraud-block test, API route reachability, formatting,
-      line-count checks, `git diff --check`, and boundary scans proving
-      access-control HTTP/application/domain no longer cross their target
-      rings.
+- [x] Self-critique: submit, list, platform review, decision, audit, and
+      organization nomination routes still use the legacy
+      `teacher_application_service`; they should move as separate vertical
+      slices because they carry permission, transition, and notification side
+      effects.
+- [x] Prove behavior with teacher-application self application unit tests, the
+      full `teacher_applications` integration suite including the `/me` HTTP
+      route assertion, API route reachability, formatting, line-count checks,
+      `git diff --check`, and boundary scans proving the new application module
+      does not import Actix, Diesel, DB pools, services, repositories, or
+      persistence models.
 
 ## Legacy Transition Rules
 
@@ -1319,6 +1314,12 @@ boundary checks from the matrix above to every canonical context.
 - [x] `http/teacher_applications` owns teacher-application route composition;
       the legacy `api/teacher_applications` include-based module has been
       deleted.
+- [x] `GET /teacher-applications/me` now has application output/error/store
+      contracts, a Postgres adapter/use case, HTTP DTO mapping, bootstrap
+      wiring, and application/integration/API route tests.
+- [ ] Move teacher-application submit, list, platform review, decision, audit,
+      and organization nomination routes behind application use cases with
+      Postgres adapters.
 
 ## Data Boundary Rules
 
