@@ -3,7 +3,7 @@ use bigdecimal::BigDecimal;
 use crate::application::rewards::record_token_confirmation::{
     RewardTokenConfirmationCommand, RewardTokenConfirmationError,
 };
-use crate::domain::rewards::token::transaction_type_for_token_event;
+use crate::domain::rewards::token::RewardTokenEventType;
 
 pub fn validate_token_confirmation_command(
     command: &RewardTokenConfirmationCommand,
@@ -38,9 +38,9 @@ pub fn validate_token_confirmation_command(
             "amount must be positive".to_string(),
         ));
     }
-    transaction_type_for_token_event(&command.event_type)
-        .map(str::to_string)
-        .ok_or_else(|| {
+    RewardTokenEventType::parse(&command.event_type)
+        .map(|event| event.transaction_type().as_str().to_string())
+        .map_err(|_| {
             RewardTokenConfirmationError::InvalidInput("unsupported token event type".to_string())
         })
 }
