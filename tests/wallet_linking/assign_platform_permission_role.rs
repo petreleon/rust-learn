@@ -89,6 +89,8 @@ fn wallet_test_app(
 > {
     let wallet_audit_use_case: Arc<dyn WalletAuditUseCase> =
         Arc::new(PostgresWalletAuditUseCase::new(pool.clone()));
+    let wallet_deposit_intent_use_case: Arc<dyn WalletDepositIntentUseCase> =
+        Arc::new(PostgresWalletDepositIntentUseCase::new(pool.clone()));
     let wallet_link_use_case: Arc<dyn WalletLinkUseCase> =
         Arc::new(PostgresWalletLinkUseCase::new(pool.clone()));
     let wallet_read_use_case: Arc<dyn WalletReadUseCase> =
@@ -99,6 +101,7 @@ fn wallet_test_app(
     App::new()
         .app_data(web::Data::new(pool))
         .app_data(web::Data::new(wallet_audit_use_case))
+        .app_data(web::Data::new(wallet_deposit_intent_use_case))
         .app_data(web::Data::new(wallet_link_use_case))
         .app_data(web::Data::new(wallet_read_use_case))
         .app_data(web::Data::new(wallet_token_tax_use_case))

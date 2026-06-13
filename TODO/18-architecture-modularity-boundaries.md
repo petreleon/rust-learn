@@ -2279,6 +2279,45 @@ rings.
       `http/wallet`, no stale legacy token-tax handlers in `api/wallets`, and
       touched non-generated Rust files stay under the manual line limit.
 
+Slice 46: move wallet deposit-intent route ownership into the wallet
+application and HTTP rings.
+
+- [x] Create `application/wallet/create_deposit_intent` with explicit request,
+      draft, output, gas-payer, error, service, store, handler, fake store, and
+      handler tests. The application layer owns the legacy ordering: KYC is
+      checked before request validation, positive amount/address/external field
+      validation happens before tax/configuration loading, platform-paid tax
+      must be non-negative and no greater than the deposit amount, and
+      configured platform receiver matching is case-insensitive.
+- [x] Move deposit-intent persistence behind `infra/postgres/wallet`, split
+      into deposit-intent store, record insertion, and use-case adapter
+      modules. The adapter preserves configured receiver lookup from
+      persistent state/env and inserts pending wallet-token deposit intents in
+      the same transaction that links/creates the user wallet.
+- [x] Move `/api/wallets/me/deposits` into `http/wallet/routes.rs` while
+      preserving the existing URL path under the legacy `/api/wallets` scope.
+- [x] Add `http/wallet/handlers/deposit_intent.rs` and
+      `http/wallet/dto/deposit_intent.rs` so authentication, application
+      error-to-response mapping, request parsing, and deposit response
+      serialization live in the HTTP ring.
+- [x] Wire `WalletDepositIntentUseCase` through `bootstrap::AppState`,
+      production `main.rs` app data, and the wallet-linking route test app.
+- [x] Remove the legacy include-based deposit route handler from
+      `api/wallets`; the remaining compatibility shim now owns retirement,
+      transfer error mapping, and route composition only.
+- [x] Self-critique: wallet deposit intents, token tax, link, read, and audit
+      routes now have Level 2 application/infra/http boundaries, but
+      retirement and wallet permission-source unification still need their own
+      slices. Worker-side observed deposit credit still uses the legacy
+      wallet service until the related worker/write path is migrated.
+- [x] Prove application fake-port tests, app binary check, `wallet_linking`,
+      and `api_routing` pass; boundary scans show no
+      Actix/Diesel/service/repository imports in `domain/wallet` or
+      `application/wallet`, no Diesel/repository/infra/service imports in
+      `http/wallet`, `/api/wallets/me/deposits` is owned only by
+      `http/wallet`, and touched non-generated Rust files stay under the
+      manual line limit.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -2559,9 +2598,20 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - Wallet token-tax request/response mapping now lives in
   `http/wallet/dto/token_tax.rs`, and wallet token-tax handlers plus route
   resources now live in `http/wallet`.
+- Wallet deposit-intent creation is now an application-facing
+  `WalletDepositIntentUseCase`; concrete connection-backed behavior lives in
+  `infra/postgres/wallet/wallet_deposit_intent_use_case.rs`,
+  `infra/postgres/wallet/wallet_deposit_intent_store.rs`, and
+  `infra/postgres/wallet/wallet_deposit_intent_records.rs`.
+- Wallet deposit-intent KYC gating, amount/address/external-field validation,
+  platform-paid tax lookup, configured receiver matching, and pending intent
+  creation now sit behind the `WalletDepositIntentStore` port.
+- Wallet deposit-intent request/response mapping now lives in
+  `http/wallet/dto/deposit_intent.rs`, and `/api/wallets/me/deposits` is now
+  owned by `http/wallet`.
 - The legacy `api/wallets` include fragments no longer own GET wallet reads,
-  POST wallet links, or token-tax routes; they keep only deposit and retirement
-  behavior for the next wallet Level 2 slices.
+  POST wallet links, token-tax routes, or deposit-intent creation; they keep
+  only retirement behavior for the next wallet Level 2 slice.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -3074,7 +3124,12 @@ boundary checks from the matrix above to every canonical context.
       `http/wallet` while preserving `/api/wallets/token-taxes`,
       `/api/wallets/token-taxes/deposit`, and
       `/api/wallets/token-taxes/retire`.
-- [ ] Move wallet deposit and retirement use cases from
+- [x] Create `application/wallet/create_deposit_intent` with explicit request,
+      draft, output, gas-payer, error, service, store, and handler modules.
+- [x] Move wallet deposit-intent persistence behind `infra/postgres/wallet`.
+- [x] Move wallet deposit route handler from `api/wallets` into `http/wallet`
+      while preserving `/api/wallets/me/deposits`.
+- [ ] Move wallet retirement use case from
       legacy wallet services into `application/wallet`.
 - [ ] Move wallet access checks through `application/access_control` instead of
       direct repository permission probes in wallet handlers.
