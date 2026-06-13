@@ -10,7 +10,8 @@ fn current_session_test_app(
     >,
 > {
     App::new()
-        .app_data(web::Data::new(pool))
+        .app_data(web::Data::new(pool.clone()))
+        .app_data(notification_preferences_use_case_data(&pool))
         .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
         .service(
             web::scope("/api")
@@ -18,15 +19,7 @@ fn current_session_test_app(
                     web::resource("/me")
                         .route(web::get().to(rust_learn::api::session::get_current_session)),
                 )
-                .service(
-                    web::resource("/me/preferences")
-                        .route(web::get().to(
-                            rust_learn::api::session::get_notification_preferences,
-                        ))
-                        .route(web::put().to(
-                            rust_learn::api::session::save_notification_preferences,
-                        )),
-                ),
+                .configure(rust_learn::http::notifications::configure_routes),
         )
 }
 

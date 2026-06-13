@@ -28,6 +28,9 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(app_state.s3.clone()))
             .app_data(web::Data::new(app_state.notifications.clone()))
             .app_data(web::Data::new(app_state.role_catalog_use_case.clone()))
+            .app_data(web::Data::new(
+                app_state.notification_preferences_use_case.clone(),
+            ))
             .app_data(web::Data::new(app_state.chapter_use_cases.clone()))
             .app_data(web::Data::new(app_state.content_item_use_cases.clone()))
             .app_data(web::Data::new(

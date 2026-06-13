@@ -41,11 +41,7 @@ pub fn api_scope() -> Scope<
         ))
         .service(web::resource("/.well-known/jwks.json").route(web::get().to(authentication::jwks)))
         .service(web::resource("/me").route(web::get().to(session::get_current_session)))
-        .service(
-            web::resource("/me/preferences")
-                .route(web::get().to(session::get_notification_preferences))
-                .route(web::put().to(session::save_notification_preferences)),
-        )
+        .configure(crate::http::notifications::configure_routes)
         .service(
             web::resource("/me/notifications")
                 .route(web::get().to(session::list_notifications))

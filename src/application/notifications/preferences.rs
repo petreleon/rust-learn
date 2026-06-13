@@ -21,5 +21,6 @@ impl NotificationPreferenceOutput {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NotificationPreferencesError {
+    Connection(String),
     Database(String),
 }

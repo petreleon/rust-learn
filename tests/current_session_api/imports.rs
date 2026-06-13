@@ -2,8 +2,10 @@ use actix_web::{http::StatusCode, test, web, App};
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::notifications::preference_service::NotificationPreferencesUseCase;
 use rust_learn::db::schema::{courses, organizations, users};
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::notifications::notification_preferences_use_case::PostgresNotificationPreferencesUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::delegated_permission::NewDelegatedPermission;
 use rust_learn::models::organization::{NewOrganization, Organization};
@@ -16,10 +18,19 @@ use rust_learn::repositories::delegated_permission_repository::create_delegated_
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::Value;
+use std::sync::Arc;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}_{}", prefix, std::process::id(), ts)
+}
+
+fn notification_preferences_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn NotificationPreferencesUseCase>> {
+    web::Data::new(Arc::new(PostgresNotificationPreferencesUseCase::new(
+        pool.clone(),
+    )))
 }
 
 async fn setup_conn(

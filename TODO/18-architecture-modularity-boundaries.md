@@ -1099,6 +1099,27 @@ Slice 21: move role catalog routes into the access-control HTTP ring.
 - [x] Prove role route permissions, catalog reads, application helper behavior,
       and route composition with focused tests.
 
+Slice 22: move notification preference routes into the notifications HTTP ring.
+
+- [x] Add an application-facing `NotificationPreferencesUseCase` trait under
+      `application/notifications`.
+- [x] Add `infra/postgres/notifications/notification_preferences_use_case.rs`
+      as the DbPool-backed implementation.
+- [x] Move `/me/preferences` handlers and route configuration into
+      `http/notifications`.
+- [x] Keep `api::session` as a compatibility re-export for preference handlers.
+- [x] Wire the notification preference use-case trait object through
+      `bootstrap::AppState` and production Actix app data.
+- [x] Update the current-session API test app to compose `http::notifications`
+      directly and provide the injected use case.
+- [x] Preserve existing preference DB-unavailable and load/save failure
+      response bodies.
+- [x] Self-critique: `/me/notifications` list/read/clear still use the legacy
+      session notification handlers and `NotificationsState::from(pool)`. Move
+      that read-management surface in a separate notifications slice.
+- [x] Prove default preferences and save/reload behavior, application default
+      behavior, route composition, and binary wiring with focused tests.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -1113,11 +1134,15 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `infra/postgres/content/*_use_case*.rs` and `bootstrap::AppState`.
 - Chapter HTTP request/response DTOs now live under `http/content/dto`, while
   application output remains a non-Actix, non-Serialize type.
-- `src/api/session/notifications.rs` no longer contains direct Diesel usage for
-  notification preferences; it delegates preference reads and writes through
-  `application/notifications` and `infra/postgres/notifications`.
-- Notification preference HTTP request/response DTOs now live under
-  `http/notifications/dto`.
+- `src/api/session` re-exports notification preference handlers from
+  `http::notifications`; `/me/preferences` route composition now lives in
+  `http/notifications`.
+- Notification preference HTTP handlers and request/response DTOs now live
+  under `http/notifications`.
+- Notification preference reads/writes are injected as an application-facing
+  `NotificationPreferencesUseCase`; concrete DbPool/Postgres wiring lives in
+  `infra/postgres/notifications/notification_preferences_use_case.rs` and
+  `bootstrap::AppState`.
 - `src/api/roles.rs` is now a thin compatibility wrapper around
   `http::access_control`.
 - Role catalog HTTP handlers, routes, and response DTOs now live under
@@ -1130,7 +1155,7 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   Diesel `User` record for user reads; it delegates list/search/profile reads
   through `application/identity` and `infra/postgres/identity`.
 - User profile HTTP response DTOs now live under `http/identity/dto`.
-- `src/main.rs` is now 46 lines and delegates app state initialization and
+- `src/main.rs` is now 49 lines and delegates app state initialization and
   route composition to `bootstrap/startup.rs`, `bootstrap/app_state.rs`, and
   `bootstrap/routes.rs`.
 - `src/api/courses/list_assessment_attempts.rs` no longer contains direct
@@ -1206,6 +1231,11 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `rg "api::roles|crate::api::roles" src/api/mod.rs tests/middleware_access_control/role_read_routes_require_view_role_assignments_permission.rs`
   returns no matches.
+- `rg "PostgresNotificationPreferenceStore|crate::infra::postgres|crate::db::DbPool" src/http/notifications src/api/session/notifications.rs`
+  returns no matches for preference handlers; `src/api/session/notifications.rs`
+  still imports `crate::db` for legacy `/me/notifications` list/read/clear.
+- `rg "api::session::get_notification_preferences|api::session::save_notification_preferences|session::get_notification_preferences|session::save_notification_preferences" src/api/mod.rs tests/current_session_api/current_session_test_app.rs`
+  returns no matches.
 - `rg "diesel|diesel_async|schema::|RunQueryDsl|QueryDsl|ExpressionMethods|models::user::User" src/api/users.rs`
   returns no matches.
 - `rg "diesel|diesel_async|RunQueryDsl|assessment_attempts::table|assessments::table" src/api/courses/list_assessment_attempts.rs`
@@ -1240,6 +1270,9 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - `./scripts/run-host-tests.sh cargo test --lib content` passes.
 - `./scripts/run-host-tests.sh cargo test --test health_readiness` passes.
 - `./scripts/run-host-tests.sh cargo test --lib operations` passes.
+- `./scripts/run-host-tests.sh cargo test notification_preferences_default_and_save_round_trip --test current_session_api`
+  passes.
+- `./scripts/run-host-tests.sh cargo test application::notifications` passes.
 - `./scripts/run-host-tests.sh cargo test http::` passes.
 - `./scripts/run-host-tests.sh cargo test --lib learning` passes.
 - `./scripts/run-host-tests.sh cargo test application::access_control` passes.
