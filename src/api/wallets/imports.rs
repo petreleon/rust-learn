@@ -1,6 +1,7 @@
 use crate::config::constants::permissions::Permissions;
 use crate::db;
 use crate::db::schema::{organizations, users};
+use crate::http::wallet::dto::WalletAuditResponse;
 use crate::models::wallet::Wallet;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;

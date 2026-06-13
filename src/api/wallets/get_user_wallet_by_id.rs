@@ -56,7 +56,7 @@ async fn get_user_wallet_audit_by_id(
     match wallet_service::find_user_wallet(&mut conn, target_user_id).await {
         Ok(Some(wallet)) => match wallet_audit_service::build_wallet_audit(&mut conn, wallet).await
         {
-            Ok(audit) => HttpResponse::Ok().json(audit),
+            Ok(audit) => HttpResponse::Ok().json(WalletAuditResponse::from(audit)),
             Err(_) => HttpResponse::InternalServerError().body("Failed to load wallet audit"),
         },
         Ok(None) => wallet_not_linked_response(),

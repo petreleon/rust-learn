@@ -1,1 +1,11 @@
-// Wallet persistence adapters will move here.
+pub mod wallet_audit_candidate_ids;
+pub mod wallet_audit_compensation_records;
+pub mod wallet_audit_external_reward_transactions;
+pub mod wallet_audit_external_rows;
+pub mod wallet_audit_external_transactions;
+pub mod wallet_audit_external_wallet_transactions;
+pub mod wallet_audit_internal_transactions;
+pub mod wallet_audit_mappers;
+pub mod wallet_audit_reward_records;
+pub mod wallet_audit_store;
+pub mod wallet_audit_use_case;

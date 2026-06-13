@@ -7,3 +7,4 @@ pub mod learning;
 pub mod notifications;
 pub mod operations;
 pub mod rewards;
+pub mod wallet;

@@ -2093,6 +2093,44 @@ rings.
       services, touched non-generated Rust files stay under the manual line
       limit, and the app binary still checks.
 
+Slice 41: move wallet audit read model into the wallet application and
+Postgres rings.
+
+- [x] Use wallet audit as the first wallet-context deep slice because it was
+      the clearest cross-context ownership gap: wallet routes were calling an
+      include-based service that mixed Diesel queries, API response structs,
+      reward reconciliation classification, and wallet read-model assembly.
+- [x] Create `domain/wallet/audit` for the pure reward reconciliation
+      classification used by wallet audit. It depends on reward-domain status
+      vocabulary rather than Diesel reward models or model-layer constants.
+- [x] Create `application/wallet/audit_wallet` with explicit target, output,
+      error, service, store, and handler modules. The application use case
+      depends only on a `WalletAuditStore` port and no Actix, Diesel, db
+      schema, repositories, or legacy services.
+- [x] Move wallet audit Diesel behavior behind `infra/postgres/wallet`, split
+      into candidate-id loading, internal transactions, external transaction
+      reward/wallet queries, row mapping, reward records, compensation
+      records, store, mapper, and use-case adapter modules.
+- [x] Move wallet audit response mapping into `http/wallet/dto` so the legacy
+      wallet API no longer serializes application output types directly.
+- [x] Replace the old include-based `src/services/wallet_audit_service/*`
+      implementation with a deletion-marked compatibility wrapper that
+      delegates through `application/wallet/audit_wallet` and
+      `PostgresWalletAuditStore`.
+- [x] Preserve legacy wallet audit response behavior for user and organization
+      audit routes, including reward transaction visibility, reconciliation
+      status, compensation records, and organization access gates.
+- [x] Self-critique: wallet audit now has Level 2 domain/application/infra/DTO
+      boundaries, but route ownership still lives in legacy `api/wallets`.
+      A later wallet HTTP slice must move `/api/wallets/*/audit` route
+      handlers into `http/wallet` and then remove the compatibility wrapper.
+- [x] Prove pure domain tests, application fake-port tests, app binary check,
+      and the existing `wallet_linking` integration suite pass; boundary scans
+      show no Actix/Diesel/service imports in `domain/wallet` or
+      `application/wallet`, no Diesel/repository imports in `http/wallet`, no
+      remaining wallet-audit include files, and touched non-generated Rust
+      files stay under the manual line limit.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -2328,6 +2366,21 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   the new application handler and Postgres store, and stale private
   reward-execution include fragments for wallet-credit/notification candidate
   bridges plus external/internal link repair were removed.
+- Wallet audit is now an application-facing `WalletAuditUseCase`; concrete
+  connection-backed audit behavior lives in
+  `infra/postgres/wallet/wallet_audit_use_case.rs` and
+  `infra/postgres/wallet/wallet_audit_store.rs`.
+- Wallet audit candidate discovery, internal transactions, external
+  transactions, reward records, and compensation records now live behind
+  granular Postgres helpers under `infra/postgres/wallet/wallet_audit_*`.
+- Wallet audit reward reconciliation classification now lives in
+  `domain/wallet/audit`.
+- Wallet audit response mapping now lives in `http/wallet/dto`; legacy
+  `api/wallets` audit handlers call the compatibility wrapper and return the
+  new DTO until wallet route ownership moves to `http/wallet`.
+- The old include-based `src/services/wallet_audit_service/*` implementation
+  was removed; `src/services/wallet_audit_service.rs` is now a thin wrapper
+  with a named deletion condition.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -2761,9 +2814,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Define module-local `RewardReconciliationStore` for
       `reconcile_candidate`.
 - [ ] Define remaining context-owned repository ports before moving Diesel code.
-      Wallet audit belongs to `application/wallet/audit_wallet`; reward and
-      fraud dashboards belong to `application/reporting/*`; only reward command
-      and reward read-model ports stay in `application/rewards`.
+      Reward and fraud dashboards belong to `application/reporting/*`; only
+      reward command and reward read-model ports stay in
+      `application/rewards`.
 - [x] Move reward policy Diesel implementation behind `infra/postgres/rewards`.
 - [x] Move reward fraud-block Diesel implementation behind
       `infra/postgres/rewards`.
@@ -2802,6 +2855,26 @@ boundary checks from the matrix above to every canonical context.
 - [ ] Add tests at three levels: pure domain transition tests, application
       use-case tests with fake ports, and API regression tests for existing
       routes.
+
+## Wallet Context
+
+- [x] Create `domain/wallet/audit` for pure wallet-audit reconciliation
+      classification.
+- [x] Create `application/wallet/audit_wallet` with explicit target, output,
+      error, service, store, and handler modules.
+- [x] Move wallet audit Diesel implementation behind `infra/postgres/wallet`
+      with granular query and mapper modules.
+- [x] Move wallet audit response mapping into `http/wallet/dto`.
+- [x] Replace the include-based `services/wallet_audit_service` implementation
+      with a thin compatibility wrapper and named deletion condition.
+- [ ] Move wallet audit route handlers from `api/wallets` into `http/wallet`
+      while preserving `/api/wallets/me/audit`,
+      `/api/wallets/users/{id}/audit`, and
+      `/api/wallets/organizations/{id}/audit`.
+- [ ] Move wallet linking, token tax, deposit, and retirement use cases from
+      legacy wallet services into `application/wallet`.
+- [ ] Move wallet access checks through `application/access_control` instead of
+      direct repository permission probes in wallet handlers.
 
 ## Access Control Context
 
