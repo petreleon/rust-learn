@@ -2,4 +2,5 @@ pub mod authorize_reward;
 pub mod authorize_wallet;
 pub mod list_roles;
 pub mod ports;
+pub mod reward_fraud_block_notifications;
 pub mod role_catalog;

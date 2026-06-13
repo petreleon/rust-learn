@@ -2626,6 +2626,33 @@ application ring.
       whitespace, line guard, and boundary scans for the moved direct
       permission probes.
 
+Slice 55: move reward fraud-block notification recipient permission groups
+into the access-control application ring.
+
+- [x] Create `application/access_control/reward_fraud_block_notifications`
+      with typed permission sets for platform and organization users who
+      should receive reward fraud-block notifications.
+- [x] Delete
+      `infra/postgres/rewards/reward_fraud_block_notification_permissions.rs`
+      so the rewards Postgres adapter no longer owns the permission grouping.
+- [x] Update `reward_fraud_block_notification_recipients.rs` to consume the
+      access-control-owned `Permission` sets and convert them to database keys
+      only at the Diesel query boundary.
+- [x] Preserve legacy behavior: platform fraud-block notifications still target
+      `VIEW_REWARD_AUDIT` and `MANAGE_REWARD_FRAUD_BLOCKS`; organization
+      notifications still target `VIEW_ORG_REWARD_REPORTS` and
+      `MANAGE_ORG_REWARD_BUDGET`; role-based and delegated permission recipient
+      queries still use the same scopes.
+- [x] Self-critique: this removes the remaining fraud-block notification
+      permission grouping from rewards infra, but broader reporting
+      permission groups, middleware route guards, session capabilities, and the
+      final generic `can(actor, action, scope)` API still need access-control
+      slices.
+- [x] Prove the permission grouping with application unit tests, preserve
+      DB-backed notification behavior with `reward_fraud_blocks`, prove binary
+      wiring with `cargo check --features app-bin --bin rust-learn`, and prove
+      formatting, whitespace, line guard, and boundary scans.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -2983,6 +3010,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `application/access_control/authorize_reward`; the rewards Postgres adapter
   maps legacy fraud-block scope strings to typed reward authorization actions
   instead of local permission vectors.
+- Reward fraud-block notification recipient permission grouping now lives in
+  `application/access_control/reward_fraud_block_notifications`; rewards
+  Postgres code converts typed `Permission` values to database keys only when
+  building recipient queries.
 - `infra/postgres/rewards/reward_authorization_access` is now a module folder
   split by platform, course, and fraud-block helper shape, keeping the
   rewards-side access bridge granular while preserving the existing caller
@@ -3471,6 +3502,8 @@ boundary checks from the matrix above to every canonical context.
       `application/access_control`.
 - [x] Move reward fraud-block scope/list/audit permission checks through
       `application/access_control`.
+- [x] Move reward fraud-block notification recipient permission groups through
+      `application/access_control`.
 - [ ] Move reward permission decisions through `application/access_control`
       instead of calling `user_permission_*_request` directly from reward use
       cases.
@@ -3555,6 +3588,8 @@ boundary checks from the matrix above to every canonical context.
       `application/access_control/authorize_reward`.
 - [x] Move reward fraud-block scope/list/audit authorization decisions into
       `application/access_control/authorize_reward`.
+- [x] Move reward fraud-block notification recipient permission groups into
+      `application/access_control/reward_fraud_block_notifications`.
 - [ ] Create one access-control API for `can(actor, action, scope)` style
       decisions.
 - [ ] Encode scope as types instead of loose strings where practical:

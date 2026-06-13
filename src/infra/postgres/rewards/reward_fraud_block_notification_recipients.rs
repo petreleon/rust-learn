@@ -4,6 +4,10 @@ use chrono::Utc;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
+use crate::application::access_control::reward_fraud_block_notifications::{
+    organization_reward_fraud_block_notification_permissions,
+    platform_reward_fraud_block_notification_permissions,
+};
 use crate::application::rewards::manage_fraud_block::{
     RewardFraudBlockError, RewardFraudBlockOutput,
 };
@@ -11,10 +15,8 @@ use crate::db::schema::{
     courses_organizations, delegated_permissions, reward_policies, role_permission_organization,
     role_permission_platform, user_role_organization, user_role_platform,
 };
+use crate::domain::access_control::permission::Permission;
 use crate::infra::postgres::rewards::reward_fraud_block_mappers::map_reward_fraud_block_error;
-use crate::infra::postgres::rewards::reward_fraud_block_notification_permissions::{
-    organization_fraud_notification_permissions, platform_fraud_notification_permissions,
-};
 use crate::models::delegated_permission::{DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM};
 
 pub(super) async fn reward_fraud_block_notification_recipients(
@@ -46,7 +48,7 @@ async fn platform_reward_reviewer_user_ids(
     conn: &mut AsyncPgConnection,
 ) -> Result<Vec<i32>, RewardFraudBlockError> {
     let now = Utc::now();
-    let permissions = platform_fraud_notification_permissions();
+    let permissions = permission_keys(platform_reward_fraud_block_notification_permissions());
     let mut reviewers = user_role_platform::table
         .inner_join(role_permission_platform::table.on(
             user_role_platform::platform_role_id.eq(role_permission_platform::platform_role_id),
@@ -90,7 +92,7 @@ async fn organization_reward_operator_user_ids(
     organization_id: i32,
 ) -> Result<Vec<i32>, RewardFraudBlockError> {
     let now = Utc::now();
-    let permissions = organization_fraud_notification_permissions();
+    let permissions = permission_keys(organization_reward_fraud_block_notification_permissions());
     let mut operators = user_role_organization::table
         .inner_join(
             role_permission_organization::table.on(user_role_organization::organization_role_id
@@ -164,4 +166,8 @@ async fn reward_policy_operator_user_ids(
         }
     }
     Ok(recipients)
+}
+
+fn permission_keys<const N: usize>(permissions: [Permission; N]) -> [&'static str; N] {
+    permissions.map(Permission::as_str)
 }
