@@ -61,18 +61,6 @@ pub fn organization_reward_dashboard_csv(dashboard: &OrganizationRewardDashboard
     csv
 }
 
-pub fn organization_report_csv(summary: &OrganizationReportSummary) -> String {
-    format!(
-        "metric,value\norganization_id,{}\norganization_name,{}\ncourses,{}\nmembers,{}\nwallets,{}\ncourse_role_assignments,{}\n",
-        summary.organization_id,
-        csv_value(&summary.organization_name),
-        summary.course_count,
-        summary.member_count,
-        summary.wallet_count,
-        summary.course_role_assignment_count
-    )
-}
-
 #[derive(Debug, Clone, Serialize)]
 pub struct PlatformWalletReconciliationRow {
     pub wallet_id: i32,

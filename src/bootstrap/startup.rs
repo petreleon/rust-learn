@@ -16,6 +16,7 @@ use crate::infra::postgres::content::upload_url_use_case::PostgresContentUploadU
 use crate::infra::postgres::identity::current_session_use_case::PostgresCurrentSessionUseCase;
 use crate::infra::postgres::notifications::notification_inbox_use_case::PostgresNotificationInboxUseCase;
 use crate::infra::postgres::notifications::notification_preferences_use_case::PostgresNotificationPreferencesUseCase;
+use crate::infra::postgres::reporting::organization_summary_use_case::PostgresOrganizationSummaryUseCase;
 use crate::infra::postgres::reporting::platform_fraud_dashboard_use_case::PostgresPlatformFraudDashboardUseCase;
 use crate::infra::postgres::reporting::platform_summary_use_case::PostgresPlatformSummaryUseCase;
 use crate::infra::postgres::rewards::course_reward_candidate_use_case::PostgresCourseRewardCandidatesUseCase;
@@ -100,6 +101,9 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
         wallet_read_use_case: Arc::new(PostgresWalletReadUseCase::new(pool.clone())),
         wallet_retirement_use_case: Arc::new(PostgresWalletRetirementUseCase::new(pool.clone())),
         wallet_token_tax_use_case: Arc::new(PostgresWalletTokenTaxUseCase::new(pool.clone())),
+        organization_summary_use_case: Arc::new(PostgresOrganizationSummaryUseCase::new(
+            pool.clone(),
+        )),
         platform_fraud_dashboard_use_case: Arc::new(PostgresPlatformFraudDashboardUseCase::new(
             pool.clone(),
         )),

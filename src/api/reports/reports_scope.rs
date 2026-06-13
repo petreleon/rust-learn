@@ -44,24 +44,8 @@ pub fn reports_scope() -> actix_web::Scope {
                 PlatformPermissionMiddleware::require(Permissions::MANAGE_WALLETS.to_string()),
             ),
         ))
-        .service(web::resource("/organizations/{id}/summary").route(
-            web::get().to(get_organization_summary).wrap(
-                OrganizationPermissionMiddleware::require(
-                    Permissions::VIEW_REPORT.to_string(),
-                    ParamType::Path,
-                    "id".to_string(),
-                ),
-            ),
-        ))
-        .service(web::resource("/organizations/{id}/summary.csv").route(
-            web::get().to(export_organization_summary).wrap(
-                OrganizationPermissionMiddleware::require(
-                    Permissions::GENERATE_REPORT.to_string(),
-                    ParamType::Path,
-                    "id".to_string(),
-                ),
-            ),
-        ))
+        .service(crate::http::reporting::organization_summary_resource())
+        .service(crate::http::reporting::organization_summary_csv_resource())
         .service(web::resource("/organizations/{id}/reward-dashboard").route(
             web::get().to(get_organization_reward_dashboard).wrap(
                 OrganizationPermissionMiddleware::require(

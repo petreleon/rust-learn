@@ -1,8 +1,7 @@
 use crate::db::schema::{
     courses, courses_organizations, delegated_permissions, external_transactions,
     internal_transactions, organizations, reward_candidates, reward_execution_jobs,
-    reward_payout_records, reward_wallet_credit_records, teacher_applications, user_role_course,
-    user_role_organization, wallets,
+    reward_payout_records, reward_wallet_credit_records, teacher_applications, wallets,
 };
 use crate::domain::rewards::execution::RewardExecutionJobStatus;
 use crate::models::delegated_permission::DelegatedPermission;
@@ -35,16 +34,6 @@ pub struct PlatformReportSummary {
     pub total_courses: i64,
     pub total_wallets: i64,
     pub total_notifications: i64,
-}
-
-#[derive(Debug, Serialize)]
-pub struct OrganizationReportSummary {
-    pub organization_id: i32,
-    pub organization_name: String,
-    pub course_count: i64,
-    pub member_count: i64,
-    pub wallet_count: i64,
-    pub course_role_assignment_count: i64,
 }
 
 #[derive(Debug, Serialize)]

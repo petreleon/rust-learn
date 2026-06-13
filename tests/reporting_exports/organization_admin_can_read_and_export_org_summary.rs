@@ -15,6 +15,7 @@ async fn organization_admin_can_read_and_export_org_summary() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(organization_summary_use_case(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::api::reports::reports_scope()),
     )

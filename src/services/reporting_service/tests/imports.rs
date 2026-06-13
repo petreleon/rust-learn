@@ -60,24 +60,3 @@ fn generates_platform_report_csv() {
     assert!(csv.contains("wallets,8\n"));
     assert!(csv.contains("notifications,25\n"));
 }
-
-// ── organization_report_csv ──
-
-#[test]
-fn generates_organization_report_csv() {
-    let summary = OrganizationReportSummary {
-        organization_id: 1,
-        organization_name: "Test Org".into(),
-        course_count: 3,
-        member_count: 12,
-        wallet_count: 1,
-        course_role_assignment_count: 5,
-    };
-    let csv = organization_report_csv(&summary);
-    assert!(csv.starts_with("metric,value\n"));
-    assert!(csv.contains("organization_id,1\n"));
-    assert!(csv.contains("organization_name,Test Org\n"));
-    assert!(csv.contains("courses,3\n"));
-    assert!(csv.contains("members,12\n"));
-    assert!(csv.contains("wallets,1\n"));
-}
