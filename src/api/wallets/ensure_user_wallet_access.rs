@@ -126,15 +126,6 @@ async fn get_my_wallet(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Re
     get_user_wallet_by_id(pool, requester.user_id, requester.user_id).await
 }
 
-async fn get_my_wallet_audit(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
-    get_user_wallet_audit_by_id(pool, requester.user_id, requester.user_id).await
-}
-
 async fn link_my_wallet(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
     let requester = match authenticated_user(&req) {
         Ok(user) => user,

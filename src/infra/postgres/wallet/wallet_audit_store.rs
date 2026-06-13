@@ -4,11 +4,17 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::wallet::audit_wallet::{
     WalletAudit, WalletAuditError, WalletAuditStore, WalletAuditTarget, WalletAuditWallet,
 };
+use crate::infra::postgres::wallet::wallet_audit_access::{
+    can_view_organization_wallet, can_view_user_wallet,
+};
 use crate::infra::postgres::wallet::wallet_audit_candidate_ids::load_wallet_reward_candidate_ids;
 use crate::infra::postgres::wallet::wallet_audit_compensation_records::load_compensation_records;
 use crate::infra::postgres::wallet::wallet_audit_external_transactions::load_external_transactions;
 use crate::infra::postgres::wallet::wallet_audit_internal_transactions::load_internal_transactions;
 use crate::infra::postgres::wallet::wallet_audit_reward_records::load_reward_records;
+use crate::infra::postgres::wallet::wallet_audit_wallet_lookup::{
+    find_organization_wallet, find_user_wallet, organization_exists, user_exists,
+};
 
 pub struct PostgresWalletAuditStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -21,6 +27,47 @@ impl<'conn> PostgresWalletAuditStore<'conn> {
 }
 
 impl WalletAuditStore for PostgresWalletAuditStore<'_> {
+    fn can_view_user_wallet(
+        &mut self,
+        actor_user_id: i32,
+    ) -> BoxFuture<'_, Result<bool, WalletAuditError>> {
+        async move { can_view_user_wallet(self.conn, actor_user_id).await }.boxed()
+    }
+
+    fn can_view_organization_wallet(
+        &mut self,
+        actor_user_id: i32,
+        organization_id: i32,
+    ) -> BoxFuture<'_, Result<bool, WalletAuditError>> {
+        async move { can_view_organization_wallet(self.conn, actor_user_id, organization_id).await }
+            .boxed()
+    }
+
+    fn user_exists(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, WalletAuditError>> {
+        async move { user_exists(self.conn, user_id).await }.boxed()
+    }
+
+    fn organization_exists(
+        &mut self,
+        organization_id: i32,
+    ) -> BoxFuture<'_, Result<bool, WalletAuditError>> {
+        async move { organization_exists(self.conn, organization_id).await }.boxed()
+    }
+
+    fn find_user_wallet(
+        &mut self,
+        user_id: i32,
+    ) -> BoxFuture<'_, Result<Option<WalletAuditTarget>, WalletAuditError>> {
+        async move { find_user_wallet(self.conn, user_id).await }.boxed()
+    }
+
+    fn find_organization_wallet(
+        &mut self,
+        organization_id: i32,
+    ) -> BoxFuture<'_, Result<Option<WalletAuditTarget>, WalletAuditError>> {
+        async move { find_organization_wallet(self.conn, organization_id).await }.boxed()
+    }
+
     fn load_wallet_audit(
         &mut self,
         target: WalletAuditTarget,

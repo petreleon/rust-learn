@@ -11,5 +11,5 @@ pub fn wallet_audit_target_from_model(wallet: &Wallet) -> WalletAuditTarget {
 }
 
 pub(super) fn map_wallet_audit_error(error: diesel::result::Error) -> WalletAuditError {
-    WalletAuditError::Database(error.to_string())
+    WalletAuditError::AuditLoad(error.to_string())
 }

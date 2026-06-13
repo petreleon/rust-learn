@@ -1,5 +1,5 @@
 use crate::application::wallet::audit_wallet::{
-    WalletAudit, WalletAuditError, WalletAuditStore, WalletAuditTarget,
+    WalletAudit, WalletAuditError, WalletAuditStore, WalletAuditSubject, WalletAuditTarget,
 };
 
 pub async fn audit_wallet(
@@ -9,58 +9,65 @@ pub async fn audit_wallet(
     store.load_wallet_audit(target).await
 }
 
-#[cfg(test)]
-mod tests {
-    use futures::executor::block_on;
-    use futures::future::{ready, BoxFuture, FutureExt};
-
-    use super::audit_wallet;
-    use crate::application::wallet::audit_wallet::{
-        WalletAudit, WalletAuditError, WalletAuditStore, WalletAuditTarget, WalletAuditWallet,
-    };
-
-    #[test]
-    fn delegates_to_wallet_audit_store() {
-        let mut store = FakeWalletAuditStore::default();
-        let target = WalletAuditTarget {
-            id: 10,
-            user_id: Some(7),
-            organization_id: None,
-            value: "100".to_string(),
-        };
-
-        let audit = block_on(audit_wallet(&mut store, target)).expect("wallet audit should load");
-
-        assert!(store.loaded);
-        assert_eq!(audit.wallet.id, 10);
-        assert_eq!(audit.wallet.owner_type, "user");
-    }
-
-    #[derive(Default)]
-    struct FakeWalletAuditStore {
-        loaded: bool,
-    }
-
-    impl WalletAuditStore for FakeWalletAuditStore {
-        fn load_wallet_audit(
-            &mut self,
-            target: WalletAuditTarget,
-        ) -> BoxFuture<'_, Result<WalletAudit, WalletAuditError>> {
-            self.loaded = true;
-            ready(Ok(WalletAudit {
-                wallet: WalletAuditWallet {
-                    id: target.id,
-                    owner_type: target.owner_type().to_string(),
-                    user_id: target.user_id,
-                    organization_id: target.organization_id,
-                    value: target.value,
-                },
-                internal_transactions: Vec::new(),
-                external_transactions: Vec::new(),
-                reward_records: Vec::new(),
-                compensation_records: Vec::new(),
-            }))
-            .boxed()
+pub async fn audit_wallet_for_actor(
+    store: &mut impl WalletAuditStore,
+    actor_user_id: i32,
+    subject: WalletAuditSubject,
+) -> Result<WalletAudit, WalletAuditError> {
+    match subject {
+        WalletAuditSubject::OwnUser => audit_user_wallet(store, actor_user_id, actor_user_id).await,
+        WalletAuditSubject::User(user_id) => audit_user_wallet(store, actor_user_id, user_id).await,
+        WalletAuditSubject::Organization(organization_id) => {
+            audit_organization_wallet(store, actor_user_id, organization_id).await
         }
     }
 }
+
+async fn audit_user_wallet(
+    store: &mut impl WalletAuditStore,
+    actor_user_id: i32,
+    target_user_id: i32,
+) -> Result<WalletAudit, WalletAuditError> {
+    if actor_user_id != target_user_id && !store.can_view_user_wallet(actor_user_id).await? {
+        return Err(WalletAuditError::UserPermissionDenied);
+    }
+
+    if !store.user_exists(target_user_id).await? {
+        return Err(WalletAuditError::UserNotFound);
+    }
+
+    let target = store
+        .find_user_wallet(target_user_id)
+        .await?
+        .ok_or(WalletAuditError::WalletNotLinked)?;
+
+    store.load_wallet_audit(target).await
+}
+
+async fn audit_organization_wallet(
+    store: &mut impl WalletAuditStore,
+    actor_user_id: i32,
+    organization_id: i32,
+) -> Result<WalletAudit, WalletAuditError> {
+    if !store.organization_exists(organization_id).await? {
+        return Err(WalletAuditError::OrganizationNotFound);
+    }
+
+    if !store
+        .can_view_organization_wallet(actor_user_id, organization_id)
+        .await?
+    {
+        return Err(WalletAuditError::OrganizationPermissionDenied);
+    }
+
+    let target = store
+        .find_organization_wallet(organization_id)
+        .await?
+        .ok_or(WalletAuditError::WalletNotLinked)?;
+
+    store.load_wallet_audit(target).await
+}
+
+#[cfg(test)]
+#[path = "handler_tests.rs"]
+mod handler_tests;

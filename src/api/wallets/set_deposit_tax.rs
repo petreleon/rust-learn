@@ -107,19 +107,6 @@ async fn get_user_wallet(
     get_user_wallet_by_id(pool, requester.user_id, path.into_inner()).await
 }
 
-async fn get_user_wallet_audit(
-    req: HttpRequest,
-    path: web::Path<i32>,
-    pool: web::Data<db::DbPool>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
-    get_user_wallet_audit_by_id(pool, requester.user_id, path.into_inner()).await
-}
-
 async fn link_user_wallet(
     req: HttpRequest,
     path: web::Path<i32>,

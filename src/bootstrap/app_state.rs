@@ -19,6 +19,7 @@ use crate::application::rewards::list_reward_history::StudentRewardHistoryUseCas
 use crate::application::rewards::manage_fraud_block::RewardFraudBlockUseCase;
 use crate::application::rewards::manage_reward_policy::RewardPolicyUseCase;
 use crate::application::rewards::submit_candidate::RewardCandidateSubmissionUseCase;
+use crate::application::wallet::audit_wallet::WalletAuditUseCase;
 use crate::db::DbPool;
 use crate::utils::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
@@ -46,5 +47,6 @@ pub struct AppState {
     pub teacher_reward_candidate_decision_use_case: Arc<dyn TeacherRewardCandidateDecisionUseCase>,
     pub student_reward_history_use_case: Arc<dyn StudentRewardHistoryUseCase>,
     pub reward_policy_use_case: Arc<dyn RewardPolicyUseCase>,
+    pub wallet_audit_use_case: Arc<dyn WalletAuditUseCase>,
     pub readiness_use_case: Arc<dyn ReadinessUseCase>,
 }

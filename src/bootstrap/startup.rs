@@ -25,6 +25,7 @@ use crate::infra::postgres::rewards::reward_fraud_block_use_case::PostgresReward
 use crate::infra::postgres::rewards::reward_history_use_case::PostgresStudentRewardHistoryUseCase;
 use crate::infra::postgres::rewards::reward_policy_use_case::PostgresRewardPolicyUseCase;
 use crate::infra::postgres::rewards::teacher_reward_candidate_decision_use_case::PostgresTeacherRewardCandidateDecisionUseCase;
+use crate::infra::postgres::wallet::wallet_audit_use_case::PostgresWalletAuditUseCase;
 use crate::utils::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
 
@@ -84,6 +85,7 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
             pool.clone(),
         )),
         reward_policy_use_case: Arc::new(PostgresRewardPolicyUseCase::new(pool.clone())),
+        wallet_audit_use_case: Arc::new(PostgresWalletAuditUseCase::new(pool.clone())),
         readiness_use_case: Arc::new(RuntimeReadinessUseCase::new(pool.clone(), s3.clone())),
         notifications: NotificationsState::new(pool.clone()),
         pool,

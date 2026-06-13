@@ -2114,21 +2114,56 @@ Postgres rings.
 - [x] Move wallet audit response mapping into `http/wallet/dto` so the legacy
       wallet API no longer serializes application output types directly.
 - [x] Replace the old include-based `src/services/wallet_audit_service/*`
-      implementation with a deletion-marked compatibility wrapper that
-      delegates through `application/wallet/audit_wallet` and
-      `PostgresWalletAuditStore`.
+      implementation with the `application/wallet/audit_wallet` and
+      `infra/postgres/wallet` boundary. The temporary compatibility wrapper was
+      removed after route ownership moved in Slice 42.
 - [x] Preserve legacy wallet audit response behavior for user and organization
       audit routes, including reward transaction visibility, reconciliation
       status, compensation records, and organization access gates.
-- [x] Self-critique: wallet audit now has Level 2 domain/application/infra/DTO
-      boundaries, but route ownership still lives in legacy `api/wallets`.
-      A later wallet HTTP slice must move `/api/wallets/*/audit` route
-      handlers into `http/wallet` and then remove the compatibility wrapper.
+- [x] Self-critique: at the end of this slice, wallet audit had Level 2
+      domain/application/infra/DTO boundaries, but route ownership still lived
+      in legacy `api/wallets`. Slice 42 moved `/api/wallets/*/audit` route
+      ownership into `http/wallet` and removed the compatibility wrapper.
 - [x] Prove pure domain tests, application fake-port tests, app binary check,
       and the existing `wallet_linking` integration suite pass; boundary scans
       show no Actix/Diesel/service imports in `domain/wallet` or
       `application/wallet`, no Diesel/repository imports in `http/wallet`, no
       remaining wallet-audit include files, and touched non-generated Rust
+      files stay under the manual line limit.
+
+Slice 42: move wallet audit route ownership into the wallet HTTP ring.
+
+- [x] Move `/api/wallets/me/audit`, `/api/wallets/users/{id}/audit`, and
+      `/api/wallets/organizations/{id}/audit` route resources into
+      `http/wallet/routes.rs` while preserving the existing URL paths under
+      the legacy `/api/wallets` scope.
+- [x] Move wallet audit handlers into `http/wallet/handlers.rs`. The handlers
+      authenticate the actor, call the injected `WalletAuditUseCase`, map
+      application errors to the legacy response bodies, and return
+      `http/wallet/dto` responses.
+- [x] Expand `application/wallet/audit_wallet` from target-only audit loading
+      to actor-and-subject audit loading. The application layer now owns the
+      legacy ordering: user audit permission is checked before user existence
+      for non-self reads, while organization existence is checked before
+      organization wallet permissions.
+- [x] Expand `infra/postgres/wallet` with granular access and wallet lookup
+      helpers so HTTP does not call legacy services, repositories, Diesel
+      schema, or Postgres adapters directly.
+- [x] Wire `WalletAuditUseCase` through `bootstrap::AppState`, production
+      `main.rs` app data, and the wallet-linking route test app.
+- [x] Delete `src/services/wallet_audit_service.rs` and remove
+      `services::wallet_audit_service` from the service module list.
+- [x] Preserve legacy audit behavior and response semantics for user and
+      organization audit routes, including the existing forbidden/not-found
+      behavior and wallet audit JSON shape.
+- [x] Self-critique: wallet audit route ownership is now Level 2, but wallet
+      linking, token tax, deposits, retirements, and wallet permission-source
+      unification still live in legacy wallet services and API helpers.
+- [x] Prove application fake-port tests, app binary check, and the existing
+      `wallet_linking` integration suite pass; boundary scans show no
+      Actix/Diesel/service imports in `domain/wallet` or `application/wallet`,
+      no Diesel/repository/infra/service imports in `http/wallet`, no
+      remaining `wallet_audit_service` in `src`, and touched non-generated Rust
       files stay under the manual line limit.
 
 Progress evidence from 2026-06-12 and 2026-06-13:
@@ -2375,12 +2410,12 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   granular Postgres helpers under `infra/postgres/wallet/wallet_audit_*`.
 - Wallet audit reward reconciliation classification now lives in
   `domain/wallet/audit`.
-- Wallet audit response mapping now lives in `http/wallet/dto`; legacy
-  `api/wallets` audit handlers call the compatibility wrapper and return the
-  new DTO until wallet route ownership moves to `http/wallet`.
+- Wallet audit response mapping now lives in `http/wallet/dto`, and wallet
+  audit route handlers plus route resources now live in `http/wallet`.
+- `WalletAuditUseCase` is wired through `bootstrap::AppState`, production
+  `main.rs` app data, and the wallet-linking route test app.
 - The old include-based `src/services/wallet_audit_service/*` implementation
-  was removed; `src/services/wallet_audit_service.rs` is now a thin wrapper
-  with a named deletion condition.
+  and temporary `src/services/wallet_audit_service.rs` wrapper were removed.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -2865,9 +2900,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move wallet audit Diesel implementation behind `infra/postgres/wallet`
       with granular query and mapper modules.
 - [x] Move wallet audit response mapping into `http/wallet/dto`.
-- [x] Replace the include-based `services/wallet_audit_service` implementation
-      with a thin compatibility wrapper and named deletion condition.
-- [ ] Move wallet audit route handlers from `api/wallets` into `http/wallet`
+- [x] Remove the include-based `services/wallet_audit_service` implementation
+      and the temporary compatibility wrapper.
+- [x] Move wallet audit route handlers from `api/wallets` into `http/wallet`
       while preserving `/api/wallets/me/audit`,
       `/api/wallets/users/{id}/audit`, and
       `/api/wallets/organizations/{id}/audit`.

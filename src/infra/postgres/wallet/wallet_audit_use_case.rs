@@ -3,7 +3,7 @@ use diesel_async::AsyncPgConnection;
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::wallet::audit_wallet::{
-    self, WalletAudit, WalletAuditError, WalletAuditTarget, WalletAuditUseCase,
+    self, WalletAudit, WalletAuditError, WalletAuditSubject, WalletAuditUseCase,
 };
 use crate::db::DbPool;
 use crate::infra::postgres::wallet::wallet_audit_store::PostgresWalletAuditStore;
@@ -22,12 +22,13 @@ impl PostgresWalletAuditUseCase {
 impl WalletAuditUseCase for PostgresWalletAuditUseCase {
     fn audit_wallet(
         &self,
-        target: WalletAuditTarget,
+        actor_user_id: i32,
+        subject: WalletAuditSubject,
     ) -> BoxFuture<'_, Result<WalletAudit, WalletAuditError>> {
         async move {
             let mut conn = self.connection().await?;
             let mut store = PostgresWalletAuditStore::new(&mut conn);
-            audit_wallet::audit_wallet(&mut store, target).await
+            audit_wallet::audit_wallet_for_actor(&mut store, actor_user_id, subject).await
         }
         .boxed()
     }
