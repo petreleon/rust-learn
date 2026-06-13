@@ -7,10 +7,12 @@ use crate::application::organizations::list_organization_courses::OrganizationCo
 use crate::application::organizations::list_organization_member_audit::OrganizationMemberAuditUseCase;
 use crate::application::organizations::list_organization_members::OrganizationMemberListUseCase;
 use crate::application::organizations::list_organization_teacher_applications::OrganizationTeacherApplicationListUseCase;
+use crate::application::organizations::manage_organizations::OrganizationManagementUseCase;
 use crate::application::organizations::remove_organization_member::OrganizationMemberRemovalUseCase;
 use crate::db::DbPool;
 use crate::infra::postgres::organizations::organization_course_list_use_case::PostgresOrganizationCourseListUseCase;
 use crate::infra::postgres::organizations::organization_dashboard_use_case::PostgresOrganizationDashboardUseCase;
+use crate::infra::postgres::organizations::organization_management_use_case::PostgresOrganizationManagementUseCase;
 use crate::infra::postgres::organizations::organization_member_audit_use_case::PostgresOrganizationMemberAuditUseCase;
 use crate::infra::postgres::organizations::organization_member_invite_use_case::PostgresOrganizationMemberInviteUseCase;
 use crate::infra::postgres::organizations::organization_member_list_use_case::PostgresOrganizationMemberListUseCase;
@@ -22,6 +24,7 @@ use crate::infra::postgres::organizations::organization_teacher_application_use_
 pub struct OrganizationUseCases {
     pub course_list: Arc<dyn OrganizationCourseListUseCase>,
     pub dashboard: Arc<dyn OrganizationDashboardUseCase>,
+    pub management: Arc<dyn OrganizationManagementUseCase>,
     pub member_audit: Arc<dyn OrganizationMemberAuditUseCase>,
     pub member_invite: Arc<dyn OrganizationMemberInviteUseCase>,
     pub member_list: Arc<dyn OrganizationMemberListUseCase>,
@@ -34,6 +37,7 @@ pub fn build_organization_use_cases(pool: &DbPool) -> OrganizationUseCases {
     OrganizationUseCases {
         course_list: Arc::new(PostgresOrganizationCourseListUseCase::new(pool.clone())),
         dashboard: Arc::new(PostgresOrganizationDashboardUseCase::new(pool.clone())),
+        management: Arc::new(PostgresOrganizationManagementUseCase::new(pool.clone())),
         member_audit: Arc::new(PostgresOrganizationMemberAuditUseCase::new(pool.clone())),
         member_invite: Arc::new(PostgresOrganizationMemberInviteUseCase::new(pool.clone())),
         member_list: Arc::new(PostgresOrganizationMemberListUseCase::new(pool.clone())),

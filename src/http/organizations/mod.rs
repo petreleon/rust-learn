@@ -14,6 +14,7 @@ mod member_invites;
 mod member_list;
 mod member_removal;
 mod member_roles;
+mod organization_dto;
 mod routes;
 mod teacher_application_dto;
 mod teacher_application_nested_dto;

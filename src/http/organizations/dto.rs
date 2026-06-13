@@ -40,6 +40,13 @@ pub(super) struct CreateOrganizationRequest {
 }
 
 #[derive(Deserialize)]
+pub(super) struct UpdateOrganizationRequest {
+    pub(super) name: Option<String>,
+    pub(super) website_link: Option<String>,
+    pub(super) profile_url: Option<String>,
+}
+
+#[derive(Deserialize)]
 pub(super) struct AddMemberRequest {
     pub(super) email: String,
     pub(super) role_name: Option<String>,

@@ -1008,38 +1008,39 @@ remaining gaps.
 | 110 | Moved `POST /organizations/{id}/members` behind `application/organizations/invite_organization_member`, a Postgres member-invite adapter/use case, and organization-context bootstrap wiring; the route no longer opens the DB pool, looks up `User` records, calls `organization_service::assign_role`, or relies on route middleware for the invite permission check. |
 | 111 | Moved `POST /organizations/{id}/users/{user_id}/roles` behind `application/organizations/assign_organization_member_role`, a Postgres role-assignment adapter/use case, and organization-context bootstrap wiring; the route no longer opens the DB pool, calls `organization_service::assign_role`, or relies on route middleware for the assignment permission check. |
 | 112 | Moved `GET /organizations/{id}/teacher-applications` behind `application/organizations/list_organization_teacher_applications`, granular Postgres teacher-application read adapters, HTTP-owned response DTOs, and organization-context bootstrap wiring; the route no longer opens the DB pool or calls `teacher_application_service::list_organization_applications`. |
+| 113 | Moved organization CRUD routes behind `application/organizations/manage_organizations`, a Postgres management adapter/use case, HTTP-owned organization DTOs, and organization-context bootstrap wiring; `http/organizations/handlers.rs` no longer opens the DB pool, imports Diesel/model types, or calls `organization_service`. |
 
 ## Recent Slice Evidence
 
-Slice 112: move organization teacher-application listing into an injected use
-case.
+Slice 113: move organization CRUD routes into an injected management use case.
 
-- [x] Add `application/organizations/list_organization_teacher_applications`
-      with query, output, error, store port, handler, use-case trait, and
-      fake-store tests proving permission, status/search filtering, and
-      pagination behavior.
-- [x] Add granular Postgres organizations modules for organization lookup,
-      platform-or-organization permission checks, teacher-application reads,
-      context hydration, audit summaries, output mapping, and concrete use-case
-      orchestration.
-- [x] Rework `http/organizations/teacher_applications.rs` into an
-      auth/path/query/error mapper that calls the injected application use case
-      and serializes through HTTP-owned response DTOs.
-- [x] Wire the concrete organization teacher-application list use case through
-      the organization bootstrap bundle and app-data registration.
-- [x] Update organization teacher-application and API routing tests to inject
-      the production Postgres organization teacher-application list use case or
-      a route-only fake as appropriate.
-- [x] Self-critique: this slice deliberately duplicates the old private service
-      mapping helpers inside the Postgres organization adapter rather than
-      sharing them across rings. That keeps the new boundary independent; the
-      duplicate legacy service helper can be deleted when the wider teacher
-      application context is migrated.
-- [x] Prove behavior with isolated application unit tests, organization
-      teacher-application regression tests, API route reachability, formatting,
-      line-count checks, `git diff --check`, and boundary scans proving
-      `http/organizations/teacher_applications.rs` no longer imports DB pools,
-      services, Diesel, repositories, or Diesel model types.
+- [x] Add `application/organizations/manage_organizations` with create/update
+      commands, output, error, store port, handler functions, use-case trait,
+      and fake-store tests proving create delegation, update identity handling,
+      and delete-not-found mapping.
+- [x] Add `infra/postgres/organizations/organization_management_store.rs` and
+      `organization_management_use_case.rs` so list/get/create/update/delete
+      persistence, course-link insertion order, Diesel errors, and pool access
+      live outside HTTP.
+- [x] Rework `http/organizations/handlers.rs` into DTO extraction,
+      command/output mapping, and local error-to-response mapping through an
+      injected `OrganizationManagementUseCase`.
+- [x] Wire the concrete management use case through the organization bootstrap
+      bundle and app-data registration, plus route-only fakes for API routing
+      tests.
+- [x] Add `tests/organization_management` coverage for create, list, update,
+      get, delete, course-link ordering, and the existing authorization
+      middleware. Delete uses an organization-scoped delegated permission so
+      authorization is realistic without leaving a restrictive membership row.
+- [x] Self-critique: CRUD authorization remains in the existing platform and
+      organization route middleware to preserve route behavior. A later
+      access-control slice should move those decisions behind the same
+      application access-control service used by migrated command use cases.
+- [x] Prove behavior with application unit tests, the organization management
+      integration test, API route reachability, formatting, line-count checks,
+      `git diff --check`, and a boundary scan proving `src/http/organizations`
+      no longer imports DB pools, services, repositories, Diesel, or model
+      types.
 
 ## Legacy Transition Rules
 
@@ -1287,8 +1288,9 @@ boundary checks from the matrix above to every canonical context.
       query/output/error and store-port contracts, Postgres teacher-application
       read adapters, HTTP DTO mapping, bootstrap wiring, and organization
       teacher-application/API route tests.
-- [ ] Move remaining organization CRUD into application use cases with Postgres
-      adapters.
+- [x] Organization CRUD routes now have application command/output/error and
+      store-port contracts, a Postgres management adapter/use case, HTTP DTO
+      mapping, bootstrap wiring, and organization management/API route tests.
 
 ## KYC Context
 

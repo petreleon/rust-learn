@@ -11,6 +11,8 @@ mod organization_dashboard_reward_summary;
 pub mod organization_dashboard_store;
 mod organization_dashboard_teacher_summary;
 pub mod organization_dashboard_use_case;
+pub mod organization_management_store;
+pub mod organization_management_use_case;
 mod organization_member_audit_mappers;
 pub mod organization_member_audit_store;
 pub mod organization_member_audit_use_case;
