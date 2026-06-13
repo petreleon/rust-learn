@@ -1,6 +1,26 @@
 use super::*;
 
 #[test]
+fn exposes_stable_scope_keys() {
+    assert_eq!(
+        RewardFraudBlockScope::Teacher.as_str(),
+        REWARD_FRAUD_BLOCK_SCOPE_TEACHER
+    );
+    assert_eq!(
+        RewardFraudBlockScope::RewardPolicy.as_str(),
+        "reward_policy"
+    );
+}
+
+#[test]
+fn parses_known_scopes() {
+    assert_eq!(
+        RewardFraudBlockScope::parse(REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION).unwrap(),
+        RewardFraudBlockScope::Organization
+    );
+}
+
+#[test]
 fn normalizes_valid_scopes() {
     assert_eq!(
         normalize_scope_type(REWARD_FRAUD_BLOCK_SCOPE_TEACHER).unwrap(),

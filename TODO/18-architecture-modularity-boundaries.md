@@ -2759,6 +2759,32 @@ Slice 59: make reward candidate vocabulary domain-owned.
       rust-learn`, and prove formatting, whitespace, line-count, and boundary
       scans.
 
+Slice 60: make reward fraud-block scope vocabulary fully domain-owned.
+
+- [x] Add `RewardFraudBlockScope` to `domain/rewards/fraud_block` with stable
+      teacher, organization, course, and reward-policy scope keys, parsing,
+      normalization, display formatting, and target matching.
+- [x] Keep the existing `normalize_scope_type` and `scope_matches_target`
+      helpers as enum-backed compatibility helpers for application validation.
+- [x] Remove fraud-block scope constants from `models/reward_fraud_block.rs`;
+      the Diesel model now owns only the persistence records.
+- [x] Update reporting, legacy reward-candidate fraud-block checks, and
+      repository/reporting fixtures to import fraud-block scope keys from the
+      domain module.
+- [x] Self-critique: fraud-block scope vocabulary is now fully domain-owned,
+      but reporting still lives in the legacy `services/reporting_service`
+      module and many other reward candidate/status aliases remain in
+      compatibility surfaces.
+- [x] Prove the domain vocabulary with `domain::rewards::fraud_block`, preserve
+      fraud-block validation with `application::rewards::manage_fraud_block`,
+      preserve repository persistence with `test_fraud_block_create_and_find`,
+      preserve candidate blocking with
+      `teacher_fraud_block_pauses_submission_teacher_approval_and_amount_approval`,
+      preserve reporting aggregation with
+      `platform_fraud_dashboard_reports_active_blocks_by_scope`, prove binary
+      wiring with `cargo check --features app-bin --bin rust-learn`, and prove
+      formatting, whitespace, line-count, and boundary scans.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -3131,6 +3157,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `domain/rewards/candidate`; `application/rewards/submit_candidate` consumes
   the domain source scope and `models/reward_candidate.rs` keeps only temporary
   compatibility aliases.
+- Reward fraud-block scope vocabulary is now a typed
+  `RewardFraudBlockScope` in `domain/rewards/fraud_block`; reporting and
+  legacy reward-candidate checks import scope keys from the domain, and
+  `models/reward_fraud_block.rs` no longer exposes scope constants.
 - `infra/postgres/rewards/reward_authorization_access` is now a module folder
   split by platform, course, and fraud-block helper shape, keeping the
   rewards-side access bridge granular while preserving the existing caller
@@ -3523,6 +3553,8 @@ boundary checks from the matrix above to every canonical context.
       `domain/rewards/policy`.
 - [x] Move reward fraud-block scope vocabulary and target matching into
       `domain/rewards/fraud_block`.
+- [x] Remove reward fraud-block scope constants from
+      `models/reward_fraud_block`.
 - [x] Move reward candidate status normalization into
       `domain/rewards/candidate/status`.
 - [x] Move reward candidate source/status/event stable keys into

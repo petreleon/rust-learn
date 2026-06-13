@@ -13,10 +13,14 @@ use rust_learn::db::schema::{
     teacher_applications, transactions, wallets,
 };
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::domain::rewards::execution::RewardExecutionJobStatus;
+use rust_learn::domain::rewards::fraud_block::{
+    REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
+    REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
+};
 use rust_learn::domain::rewards::policy::{
     REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
-use rust_learn::domain::rewards::execution::RewardExecutionJobStatus;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::delegated_permission::{NewDelegatedPermission, DELEGATED_SCOPE_PLATFORM};
@@ -25,10 +29,7 @@ use rust_learn::models::reward_candidate::{
     NewRewardCandidate, REWARD_EVENT_COURSE_COMPLETION, REWARD_SOURCE_COURSE,
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_TEACHER_APPROVED, REWARD_STATUS_TOKEN_CONFIRMED,
 };
-use rust_learn::models::reward_fraud_block::{
-    NewRewardFraudBlock, REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
-    REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
-};
+use rust_learn::models::reward_fraud_block::NewRewardFraudBlock;
 use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::role::{OrganizationRole, PlatformRole};
 use rust_learn::models::teacher_application::{

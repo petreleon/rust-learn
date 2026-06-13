@@ -4,8 +4,12 @@ use crate::db::schema::{
     reward_fraud_blocks, reward_payout_records, reward_wallet_credit_records, teacher_applications,
     user_role_course, user_role_organization, users, wallets,
 };
-use crate::models::delegated_permission::DelegatedPermission;
 use crate::domain::rewards::execution::RewardExecutionJobStatus;
+use crate::domain::rewards::fraud_block::{
+    REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
+    REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
+};
+use crate::models::delegated_permission::DelegatedPermission;
 use crate::models::reward_candidate::{
     RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED,
     REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_NEEDS_RECONCILIATION,
@@ -14,10 +18,7 @@ use crate::models::reward_candidate::{
     REWARD_STATUS_WALLET_CREDITED,
 };
 use crate::models::reward_execution_job::RewardExecutionJob;
-use crate::models::reward_fraud_block::{
-    RewardFraudBlock, REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
-    REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
-};
+use crate::models::reward_fraud_block::RewardFraudBlock;
 use crate::models::reward_payout_record::RewardPayoutRecord;
 use crate::models::reward_wallet_credit_record::RewardWalletCreditRecord;
 use crate::models::teacher_application::{
