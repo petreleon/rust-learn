@@ -4,6 +4,9 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::learning::assessment::{
     AssessmentAttemptOutput, AssessmentOutput, AssessmentReadError,
 };
+use crate::application::learning::delete_course::{
+    delete_course, CourseDeletionError, CourseDeletionOutcome, CourseDeletionStore,
+};
 use crate::application::learning::list_assessment_attempts::list_user_assessment_attempts;
 use crate::application::learning::list_course_assessments::list_published_course_assessments;
 use crate::application::learning::list_course_organizations::{
@@ -24,6 +27,22 @@ struct FakeAssessmentReadStore {
 struct FakeCourseOrganizationStore {
     organizations: Vec<CourseOrganizationOutput>,
     requested_course_id: Option<i32>,
+}
+
+struct FakeCourseDeletionStore {
+    outcome: CourseDeletionOutcome,
+    requested_course_id: Option<i32>,
+}
+
+impl CourseDeletionStore for FakeCourseDeletionStore {
+    fn delete(
+        &mut self,
+        course_id: i32,
+    ) -> BoxFuture<'_, Result<CourseDeletionOutcome, CourseDeletionError>> {
+        self.requested_course_id = Some(course_id);
+        let outcome = self.outcome;
+        async move { Ok(outcome) }.boxed()
+    }
 }
 
 impl CourseOrganizationStore for FakeCourseOrganizationStore {
@@ -129,4 +148,19 @@ async fn list_course_organizations_uses_course_organization_port() {
 
     assert_eq!(result, vec![expected]);
     assert_eq!(store.requested_course_id, Some(7));
+}
+
+#[tokio::test]
+async fn delete_course_uses_course_deletion_port() {
+    let mut store = FakeCourseDeletionStore {
+        outcome: CourseDeletionOutcome::Deleted,
+        requested_course_id: None,
+    };
+
+    let result = delete_course(&mut store, 17)
+        .await
+        .expect("course delete should run");
+
+    assert_eq!(result, CourseDeletionOutcome::Deleted);
+    assert_eq!(store.requested_course_id, Some(17));
 }

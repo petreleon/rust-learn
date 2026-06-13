@@ -1,9 +1,11 @@
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
-use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use std::sync::Arc;
 
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+
+use crate::application::learning::delete_course::{
+    CourseDeletionError, CourseDeletionOutcome, CourseDeletionUseCase,
+};
 use crate::db;
-use crate::db::schema::courses;
 use crate::models::course::UpdateCourse;
 use crate::services::course_service::{
     create_course_with_invites_for_actor, update_course_for_actor,
@@ -68,31 +70,21 @@ pub(super) async fn update_course(
 
 pub(super) async fn delete_course(
     path: web::Path<i32>,
-    pool: web::Data<db::DbPool>,
+    use_case: web::Data<Arc<dyn CourseDeletionUseCase>>,
 ) -> impl Responder {
     let course_id = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
 
-    let result = diesel::delete(courses::table.find(course_id))
-        .execute(&mut conn)
-        .await;
-
-    match result {
-        Ok(count) => {
-            if count > 0 {
-                HttpResponse::Ok().body("Course deleted")
-            } else {
-                HttpResponse::NotFound().body("Course not found")
-            }
+    match use_case.delete_course(course_id).await {
+        Ok(CourseDeletionOutcome::Deleted) => HttpResponse::Ok().body("Course deleted"),
+        Ok(CourseDeletionOutcome::NotFound) => HttpResponse::NotFound().body("Course not found"),
+        Err(CourseDeletionError::Connection(_)) => {
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
         }
-        Err(e) => {
+        Err(CourseDeletionError::Database(message)) => {
             log::error!(
                 "event=course_delete_failed course_id={} error={}",
                 course_id,
-                e
+                message
             );
             HttpResponse::InternalServerError().body("Failed to delete course")
         }
