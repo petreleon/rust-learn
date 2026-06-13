@@ -33,8 +33,8 @@ use rust_learn::repositories::reward_audit_event_repository::list_reward_audit_e
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::application::rewards::record_token_confirmation::RewardTokenConfirmationCommand as RewardTokenConfirmationRequest;
 use rust_learn::services::reward_execution_service::{
-    notify_reward_wallet_credit, reconcile_reward_candidate, RewardExecutionError,
-    REWARD_PAYOUT_METHOD_MINT, REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER,
+    reconcile_reward_candidate, RewardExecutionError, REWARD_PAYOUT_METHOD_MINT,
+    REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER,
 };
 use serde_json::json;
 use std::sync::atomic::{AtomicU64, Ordering};

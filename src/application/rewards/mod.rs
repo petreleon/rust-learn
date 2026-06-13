@@ -7,6 +7,7 @@ pub mod list_platform_candidates;
 pub mod list_reward_history;
 pub mod manage_fraud_block;
 pub mod manage_reward_policy;
+pub mod notify_wallet_credit;
 pub mod plan_payout;
 pub mod ports;
 pub mod record_compensation;

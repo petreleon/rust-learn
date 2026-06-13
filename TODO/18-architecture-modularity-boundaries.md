@@ -404,6 +404,7 @@ src/
       plan_payout/
       confirm_token_payout/
       credit_wallet/
+      notify_wallet_credit/
       reconcile_candidate/
       list_reward_history/
       ports.rs
@@ -484,6 +485,7 @@ src/
         payout_record_store.rs
         token_confirmation_store.rs
         wallet_credit_store.rs
+        wallet_credit_notification_store.rs
         compensation_store.rs
         mappers.rs
       wallet/
@@ -686,6 +688,11 @@ src/
         command.rs
         handler.rs
         error.rs
+      notify_wallet_credit/
+        mod.rs
+        command.rs
+        handler.rs
+        error.rs
       reconcile_candidate/
         mod.rs
         command.rs
@@ -704,6 +711,7 @@ src/
         payout_record_store.rs
         token_confirmation_store.rs
         wallet_credit_store.rs
+        wallet_credit_notification_store.rs
         compensation_store.rs
         reward_history_read_store.rs
         mappers.rs
@@ -1886,6 +1894,48 @@ rings.
       wallet services, touched non-generated Rust files stay under the manual
       line limit, and the app binary still checks.
 
+Slice 39: move reward wallet-credit notification into the rewards application
+and Postgres rings.
+
+- [x] Use wallet-credit notification as the next reward-execution migration
+      because it is the user-facing side effect after wallet credit:
+      permission gating, notification idempotency, reward-wallet-credit record
+      updates, candidate notified status transition, and audit insertion
+      previously lived in the include-based reward execution service.
+- [x] Create `application/rewards/notify_wallet_credit` with explicit
+      output/error/service/store/handler modules. Preserve legacy ordering:
+      direct calls notify without actor context, while actor-triggered calls
+      check `EXECUTE_REWARD_PAYOUT` before persistence.
+- [x] Move reward wallet-credit notification title/body vocabulary into
+      `domain/rewards/wallet_credit` so the new reward adapter does not depend
+      on legacy `utils::notifications`.
+- [x] Move Postgres wallet-credit notification behavior behind
+      `infra/postgres/rewards`, split into mapper, notification insertion,
+      validation, transaction, store, and use-case adapter modules.
+- [x] Preserve legacy wallet-credit notification semantics: only
+      wallet-credited candidates can create a normal notification, existing
+      notification IDs replay idempotently without a second notification or
+      audit event, notified/completed/reconciliation states with missing
+      notification references are rejected, reconciliation repairs can create
+      the missing notification only from explicitly allowed confirmed states,
+      and audit metadata records the wallet, notification, and transaction IDs.
+- [x] Move legacy public wallet-credit notification entry points to delegate
+      through the application handler and
+      `PostgresRewardWalletCreditNotificationStore`. The remaining
+      reconciliation bridge temporarily calls the new infra transaction helper
+      until reconciliation gets its own Level 2 slice.
+- [x] Self-critique: wallet-credit notification now has a Level 2 boundary,
+      but reconciliation, wallet audit, reward execution route wiring, and
+      reporting read models still need their own slices before the legacy
+      reward execution service can be retired cleanly.
+- [x] Prove the domain notification message test, application fake-port tests,
+      and the existing DB-backed reward-execution regressions pass with the
+      wallet-credit notification regression routed through
+      `PostgresRewardWalletCreditNotificationUseCase`; application/domain
+      import scans stay clean, new infra does not call legacy reward execution
+      or notification utilities, touched non-generated Rust files stay under
+      the manual line limit, and the app binary still checks.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -2092,6 +2142,23 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   the new application handler and Postgres store. Reconciliation temporarily
   calls the new wallet-credit infra transaction bridge until the reconciliation
   slice moves fully into `application/rewards/reconcile_candidate`.
+- Reward wallet-credit notification is now an application-facing
+  `RewardWalletCreditNotificationUseCase`; concrete DbPool/Postgres wiring
+  lives in
+  `infra/postgres/rewards/reward_wallet_credit_notification_use_case.rs`.
+- Reward wallet-credit notification permission probing, notification
+  idempotency, credit-record notification updates, candidate notified status
+  transition, and audit insertion now live behind
+  `RewardWalletCreditNotificationStore` plus granular Postgres helpers under
+  `infra/postgres/rewards/reward_wallet_credit_notification_*`.
+- Reward wallet-credit notification title/body vocabulary now lives in
+  `domain/rewards/wallet_credit`, and the new reward adapter no longer calls
+  legacy `utils::notifications`.
+- The legacy reward-execution wallet-credit notification entry points now
+  delegate through the new application handler and Postgres store.
+  Reconciliation temporarily calls the new notification infra transaction
+  bridge until the reconciliation slice moves fully into
+  `application/rewards/reconcile_candidate`.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -2467,7 +2534,7 @@ boundary checks from the matrix above to every canonical context.
       (`candidate`, `policy`, `fraud_block`) and application by use case
       (`submit_candidate`, `decide_amount`, `plan_payout`,
       `record_token_confirmation`, `record_compensation`,
-      `credit_wallet`, `reconcile_candidate`).
+      `credit_wallet`, `notify_wallet_credit`, `reconcile_candidate`).
 - [x] Move reward policy scope, event, and payment-strategy normalization into
       `domain/rewards/policy`.
 - [x] Move reward fraud-block scope vocabulary and target matching into
@@ -2517,9 +2584,11 @@ boundary checks from the matrix above to every canonical context.
 - [x] Define module-local `RewardTokenConfirmationStore` for
       `record_token_confirmation`.
 - [x] Define module-local `RewardWalletCreditStore` for `credit_wallet`.
+- [x] Define module-local `RewardWalletCreditNotificationStore` for
+      `notify_wallet_credit`.
 - [ ] Define remaining repository ports needed by reward use cases before
-      moving Diesel code. Examples: wallet-credit notification,
-      reconciliation, wallet audit, and reward reporting read models.
+      moving Diesel code. Examples: reconciliation, wallet audit, and reward
+      reporting read models.
 - [x] Move reward policy Diesel implementation behind `infra/postgres/rewards`.
 - [x] Move reward fraud-block Diesel implementation behind
       `infra/postgres/rewards`.
@@ -2544,6 +2613,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move reward token confirmation Diesel implementation behind
       `infra/postgres/rewards`.
 - [x] Move reward wallet credit Diesel implementation behind
+      `infra/postgres/rewards`.
+- [x] Move reward wallet-credit notification Diesel implementation behind
       `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.

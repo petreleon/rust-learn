@@ -55,19 +55,3 @@ fn ensure_candidate_ready_for_payout(
         ))
     }
 }
-
-fn approved_positive_amount(
-    candidate: &RewardCandidate,
-) -> Result<BigDecimal, RewardExecutionError> {
-    let amount = candidate.approved_amount.clone().ok_or_else(|| {
-        RewardExecutionError::InvalidInput(
-            "reward candidate must have an approved amount".to_string(),
-        )
-    })?;
-    if amount <= BigDecimal::from(0) {
-        return Err(RewardExecutionError::InvalidInput(
-            "approved reward amount must be positive".to_string(),
-        ));
-    }
-    Ok(amount)
-}

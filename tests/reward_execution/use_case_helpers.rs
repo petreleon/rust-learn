@@ -2,6 +2,11 @@ use rust_learn::application::rewards::credit_wallet::{
     RewardWalletCreditError, RewardWalletCreditOutput as RewardWalletCreditResult,
     RewardWalletCreditUseCase,
 };
+use rust_learn::application::rewards::notify_wallet_credit::{
+    RewardWalletCreditNotificationError,
+    RewardWalletCreditNotificationOutput as RewardWalletCreditNotificationResult,
+    RewardWalletCreditNotificationUseCase,
+};
 use rust_learn::application::rewards::plan_payout::{
     RewardPayoutPlan, RewardPayoutPlanError, RewardPayoutPlanUseCase,
 };
@@ -11,6 +16,7 @@ use rust_learn::application::rewards::record_token_confirmation::{
 };
 use rust_learn::infra::postgres::rewards::reward_payout_plan_use_case::PostgresRewardPayoutPlanUseCase;
 use rust_learn::infra::postgres::rewards::reward_token_confirmation_use_case::PostgresRewardTokenConfirmationUseCase;
+use rust_learn::infra::postgres::rewards::reward_wallet_credit_notification_use_case::PostgresRewardWalletCreditNotificationUseCase;
 use rust_learn::infra::postgres::rewards::reward_wallet_credit_use_case::PostgresRewardWalletCreditUseCase;
 
 async fn plan_reward_payout(
@@ -122,6 +128,38 @@ fn map_reward_wallet_credit_error(error: RewardWalletCreditError) -> RewardExecu
             RewardExecutionError::NoActivePolicy
         }
         RewardWalletCreditError::Connection(message) | RewardWalletCreditError::Database(message) => {
+            RewardExecutionError::Database(message)
+        }
+    }
+}
+
+async fn notify_reward_wallet_credit(
+    _conn: &mut AsyncPgConnection,
+    candidate_id: i64,
+) -> Result<RewardWalletCreditNotificationResult, RewardExecutionError> {
+    let pool = establish_connection();
+    PostgresRewardWalletCreditNotificationUseCase::new(pool)
+        .notify_reward_wallet_credit(candidate_id)
+        .await
+        .map_err(map_reward_wallet_credit_notification_error)
+}
+
+fn map_reward_wallet_credit_notification_error(
+    error: RewardWalletCreditNotificationError,
+) -> RewardExecutionError {
+    match error {
+        RewardWalletCreditNotificationError::PermissionDenied(permission) => {
+            RewardExecutionError::PermissionDenied(permission)
+        }
+        RewardWalletCreditNotificationError::InvalidStatus(message) => {
+            RewardExecutionError::InvalidStatus(message)
+        }
+        RewardWalletCreditNotificationError::InvalidInput(message) => {
+            RewardExecutionError::InvalidInput(message)
+        }
+        RewardWalletCreditNotificationError::NotFound => RewardExecutionError::NoActivePolicy,
+        RewardWalletCreditNotificationError::Connection(message)
+        | RewardWalletCreditNotificationError::Database(message) => {
             RewardExecutionError::Database(message)
         }
     }

@@ -52,25 +52,11 @@ pub async fn notify_reward_wallet_credit(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
 ) -> Result<RewardWalletCreditNotificationResult, RewardExecutionError> {
-    let result = conn
-        .transaction::<_, RewardExecutionError, _>(|conn| {
-            Box::pin(async move {
-                let candidate =
-                    reward_candidate_repository::find_candidate(conn, candidate_id).await?;
-                notify_reward_wallet_credit_for_candidate(conn, &candidate, false, None).await
-            })
-        })
-        .await?;
-
-    log::info!(
-        "event=reward_wallet_credit_notification candidate_id={} wallet_id={} amount={} notified={} notification_id={:?} transaction_id={}",
-        result.candidate_id,
-        result.wallet_id,
-        result.amount,
-        result.notified,
-        result.notification_id,
-        result.transaction_id
-    );
-
-    Ok(result)
+    let mut store = PostgresRewardWalletCreditNotificationStore::new(conn);
+    crate::application::rewards::notify_wallet_credit::notify_reward_wallet_credit(
+        &mut store,
+        candidate_id,
+    )
+    .await
+    .map_err(RewardExecutionError::from)
 }

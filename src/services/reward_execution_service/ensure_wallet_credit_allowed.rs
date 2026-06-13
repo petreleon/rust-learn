@@ -17,16 +17,3 @@ async fn ensure_internal_transaction_link(
         .await?;
     Ok(inserted > 0)
 }
-
-async fn mark_candidate_notified(
-    conn: &mut AsyncPgConnection,
-    candidate_id: i64,
-) -> QueryResult<RewardCandidate> {
-    diesel::update(reward_candidates::table.find(candidate_id))
-        .set((
-            reward_candidates::status.eq(REWARD_STATUS_NOTIFIED),
-            reward_candidates::updated_at.eq(chrono::Utc::now()),
-        ))
-        .get_result(conn)
-        .await
-}
