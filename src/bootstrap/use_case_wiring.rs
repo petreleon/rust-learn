@@ -59,7 +59,6 @@ use crate::utils::s3_utils::S3State;
 
 pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
     let organization_use_cases = build_organization_use_cases(&pool);
-
     AppState {
         role_catalog_use_case: Arc::new(PostgresRoleCatalogUseCase::new(pool.clone())),
         current_session_use_case: Arc::new(PostgresCurrentSessionUseCase::new(pool.clone())),
@@ -111,6 +110,7 @@ pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
         organization_dashboard_use_case: organization_use_cases.dashboard,
         organization_member_audit_use_case: organization_use_cases.member_audit,
         organization_member_list_use_case: organization_use_cases.member_list,
+        organization_member_removal_use_case: organization_use_cases.member_removal,
         chapter_use_cases: Arc::new(PostgresChapterUseCases::new(pool.clone())),
         content_item_use_cases: Arc::new(PostgresContentItemUseCases::new(pool.clone())),
         content_upload_url_use_case: Arc::new(PostgresContentUploadUrlUseCase::new(

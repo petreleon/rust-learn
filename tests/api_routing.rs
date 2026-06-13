@@ -61,6 +61,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_organization_courses_fake::organization_course_list_data())
             .app_data(api_routing_organization_courses_fake::organization_member_audit_data())
             .app_data(api_routing_organization_courses_fake::organization_member_list_data())
+            .app_data(api_routing_organization_courses_fake::organization_member_removal_data())
             .app_data(api_routing_route_fakes::course_reward_candidates_data())
             .app_data(api_routing_route_fakes::platform_reward_candidates_data())
             .app_data(api_routing_teacher_decision_fake::teacher_reward_candidate_decision_data())

@@ -34,6 +34,7 @@ use crate::application::organizations::get_organization_dashboard::OrganizationD
 use crate::application::organizations::list_organization_courses::OrganizationCourseListUseCase;
 use crate::application::organizations::list_organization_member_audit::OrganizationMemberAuditUseCase;
 use crate::application::organizations::list_organization_members::OrganizationMemberListUseCase;
+use crate::application::organizations::remove_organization_member::OrganizationMemberRemovalUseCase;
 use crate::application::reporting::organization_reward_dashboard::OrganizationRewardDashboardUseCase;
 use crate::application::reporting::organization_summary::OrganizationSummaryUseCase;
 use crate::application::reporting::platform_csv_exports::PlatformCsvExportsUseCase;
@@ -94,6 +95,7 @@ pub struct AppState {
     pub organization_dashboard_use_case: Arc<dyn OrganizationDashboardUseCase>,
     pub organization_member_audit_use_case: Arc<dyn OrganizationMemberAuditUseCase>,
     pub organization_member_list_use_case: Arc<dyn OrganizationMemberListUseCase>,
+    pub organization_member_removal_use_case: Arc<dyn OrganizationMemberRemovalUseCase>,
     pub chapter_use_cases: Arc<dyn ChapterUseCases>,
     pub content_item_use_cases: Arc<dyn ContentItemUseCases>,
     pub content_upload_url_use_case: Arc<dyn ContentUploadUrlUseCase>,

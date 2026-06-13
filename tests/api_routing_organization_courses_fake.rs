@@ -16,10 +16,15 @@ use rust_learn::application::organizations::list_organization_members::{
     OrganizationMemberListUseCase, OrganizationMemberOperatorPermissionsOutput,
     OrganizationMemberOrganizationOutput,
 };
+use rust_learn::application::organizations::remove_organization_member::{
+    OrganizationMemberRemovalCommand, OrganizationMemberRemovalError,
+    OrganizationMemberRemovalUseCase,
+};
 
 struct RouteOnlyOrganizationCourseListUseCase;
 struct RouteOnlyOrganizationMemberAuditUseCase;
 struct RouteOnlyOrganizationMemberListUseCase;
+struct RouteOnlyOrganizationMemberRemovalUseCase;
 
 pub fn organization_course_list_data() -> web::Data<Arc<dyn OrganizationCourseListUseCase>> {
     web::Data::new(
@@ -36,6 +41,11 @@ pub fn organization_member_list_data() -> web::Data<Arc<dyn OrganizationMemberLi
 pub fn organization_member_audit_data() -> web::Data<Arc<dyn OrganizationMemberAuditUseCase>> {
     web::Data::new(Arc::new(RouteOnlyOrganizationMemberAuditUseCase)
         as Arc<dyn OrganizationMemberAuditUseCase>)
+}
+
+pub fn organization_member_removal_data() -> web::Data<Arc<dyn OrganizationMemberRemovalUseCase>> {
+    web::Data::new(Arc::new(RouteOnlyOrganizationMemberRemovalUseCase)
+        as Arc<dyn OrganizationMemberRemovalUseCase>)
 }
 
 impl OrganizationCourseListUseCase for RouteOnlyOrganizationCourseListUseCase {
@@ -77,6 +87,15 @@ impl OrganizationMemberAuditUseCase for RouteOnlyOrganizationMemberAuditUseCase 
             created_at: Utc::now(),
         }]))
         .boxed()
+    }
+}
+
+impl OrganizationMemberRemovalUseCase for RouteOnlyOrganizationMemberRemovalUseCase {
+    fn remove_organization_member(
+        &self,
+        _command: OrganizationMemberRemovalCommand,
+    ) -> BoxFuture<'_, Result<(), OrganizationMemberRemovalError>> {
+        ready(Ok(())).boxed()
     }
 }
 

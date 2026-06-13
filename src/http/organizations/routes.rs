@@ -86,15 +86,8 @@ pub fn organization_scope() -> actix_web::Scope {
             ),
         ))
         .service(
-            web::resource("/{id}/users/{user_id}").route(
-                web::delete()
-                    .to(member_removal::remove_organization_member_route)
-                    .wrap(OrganizationPermissionMiddleware::require(
-                        Permissions::MANAGE_ORG_MEMBERS.to_string(),
-                        ParamType::Path,
-                        "id".to_string(),
-                    )),
-            ),
+            web::resource("/{id}/users/{user_id}")
+                .route(web::delete().to(member_removal::remove_organization_member_route)),
         )
         .service(
             web::resource("/{id}/teacher-applications")

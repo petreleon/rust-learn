@@ -18,3 +18,6 @@ mod organization_member_builders;
 pub mod organization_member_list_store;
 pub mod organization_member_list_use_case;
 mod organization_member_permission_queries;
+mod organization_member_removal_mappers;
+pub mod organization_member_removal_store;
+pub mod organization_member_removal_use_case;
