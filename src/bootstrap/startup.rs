@@ -4,6 +4,7 @@ use std::time::Duration;
 use actix_web::rt::time::timeout;
 
 use crate::bootstrap::app_state::AppState;
+use crate::bootstrap::readiness::RuntimeReadinessUseCase;
 use crate::config::db_setup::version_updater;
 use crate::db;
 use crate::infra::postgres::content::chapter_use_cases::PostgresChapterUseCases;
@@ -41,6 +42,7 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
             s3.clone(),
         )),
         content_processing_use_case: Arc::new(PostgresContentProcessingUseCase::new(pool.clone())),
+        readiness_use_case: Arc::new(RuntimeReadinessUseCase::new(pool.clone(), s3.clone())),
         notifications: NotificationsState::new(pool.clone()),
         pool,
         s3,

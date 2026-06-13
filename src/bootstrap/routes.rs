@@ -18,7 +18,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         "/.well-known/jwks.json",
         web::get().to(api::authentication::jwks),
     )
-    .configure(api::health::configure_health_routes)
+    .configure(crate::http::operations::configure_routes)
     .service(api::api_scope())
     .service(api_index);
 }

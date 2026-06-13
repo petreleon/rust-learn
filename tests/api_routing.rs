@@ -30,7 +30,7 @@ async fn api_scope_and_following_routes_are_reachable() {
                 "/hey",
                 web::get().to(|| async { HttpResponse::Ok().body("hey") }),
             )
-            .configure(rust_learn::api::health::configure_health_routes)
+            .configure(rust_learn::http::operations::configure_routes)
             .service(rust_learn::api::api_scope())
             .route(
                 "/after-api",

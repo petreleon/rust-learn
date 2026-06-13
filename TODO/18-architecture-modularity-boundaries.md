@@ -843,10 +843,9 @@ Slice 10: migrate operations health/readiness checks.
 - [x] Preserve existing route paths and JSON strings: `/health` returns
       `{"status":"ok"}`, `/ready` returns `ready`/`not_ready`, and dependency
       checks use `ok`/`failed` with optional messages.
-- [x] Self-critique: keep concrete adapter construction in the legacy
-      `api::health` wrapper for now because full bootstrap wiring of operation
-      services is a larger route-composition cleanup. The handler no longer
-      owns Diesel, timeout orchestration, S3 calls, or Ethereum provider calls.
+- [x] Self-critique: the first operations slice kept concrete adapter
+      construction in the legacy `api::health` wrapper. Slice 20 removes that
+      temporary wiring and makes `api::health` a compatibility wrapper.
 - [x] Prove both liveness and full readiness behavior with the existing focused
       route-level regression test.
 
@@ -1058,6 +1057,27 @@ Slice 19: complete content HTTP use-case injection.
 - [x] Prove the content handler folder no longer imports concrete Postgres,
       object-storage providers, or `DbPool`, and prove the binary still checks.
 
+Slice 20: move operations routes and readiness wiring behind HTTP/bootstrap.
+
+- [x] Add an application-facing `ReadinessUseCase` trait under
+      `application/operations/readiness_check`.
+- [x] Add `bootstrap/readiness.rs` as the runtime implementation that wires
+      Postgres, S3, and Ethereum readiness dependencies.
+- [x] Move `/health` and `/ready` handlers and route configuration into
+      `http/operations`.
+- [x] Make `src/api/health.rs` a thin compatibility wrapper around
+      `http::operations`.
+- [x] Wire the readiness use-case trait object through `bootstrap::AppState`
+      and production Actix app data.
+- [x] Preserve `/ready` fallback behavior when readiness app data is missing:
+      it returns `503` with `not_ready` instead of an extractor failure.
+- [x] Update routing tests to compose `http::operations` directly.
+- [x] Self-critique: operations readiness is now properly routed and wired, but
+      several other legacy `api` modules still compose services/repositories
+      directly and should be migrated one context at a time.
+- [x] Prove liveness, missing-readiness fallback, full readiness, route
+      composition, and operations unit behavior with focused tests.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -1085,7 +1105,7 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   Diesel `User` record for user reads; it delegates list/search/profile reads
   through `application/identity` and `infra/postgres/identity`.
 - User profile HTTP response DTOs now live under `http/identity/dto`.
-- `src/main.rs` is now 35 lines and delegates app state initialization and
+- `src/main.rs` is now 45 lines and delegates app state initialization and
   route composition to `bootstrap/startup.rs`, `bootstrap/app_state.rs`, and
   `bootstrap/routes.rs`.
 - `src/api/courses/list_assessment_attempts.rs` no longer contains direct
@@ -1103,11 +1123,13 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `infra/postgres/learning/assessment_submission_store.rs`.
 - Assessment scoring rules now live under `domain/learning/assessment`.
 - Assessment submit request/response DTOs now live under `http/learning/dto`.
-- `src/api/health.rs` no longer contains direct Diesel, timeout orchestration,
-  object-storage health calls, or Ethereum provider calls; it delegates
-  readiness checks through `application/operations/readiness_check` and
-  infra adapters.
-- Operations liveness/readiness DTOs now live under `http/operations/dto`.
+- `src/api/health.rs` is now a thin compatibility wrapper around
+  `http::operations`.
+- Operations liveness/readiness handlers, routes, and DTOs now live under
+  `http/operations`.
+- Operations readiness is injected as an application-facing `ReadinessUseCase`;
+  concrete Postgres/S3/Ethereum dependency wiring lives in
+  `bootstrap/readiness.rs`.
 - Content item list/create/update/delete route handlers no longer contain
   direct Diesel calls or return Diesel content records; they delegate through
   `application/content/manage_content_item` and
@@ -1163,6 +1185,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `rg "diesel|diesel_async|RunQueryDsl|try_get_provider|provider|get_chainid|health_check\\(|timeout|crate::db::schema" src/api/health.rs`
   returns no matches.
+- `rg "crate::infra::postgres|crate::db::DbPool|crate::infra::object_storage|crate::infra::ethereum" src/api/health.rs src/http/operations`
+  returns no matches.
+- `rg "crate::api::health|api::health" src/bootstrap/routes.rs tests/api_routing.rs`
+  returns no matches.
 - `rg "diesel|diesel_async|insert_into|update\\(|delete\\(|contents::table|user_role_course|NewContent\\b|UpdateContent\\b|models::content" src/http/content/handlers/create_content.rs src/http/content/handlers/get_upload_url.rs`
   returns no matches.
 - `rg "ensure_bucket|presign_external_put|S3State::new_from_env|ensure_chapter_belongs_to_course|chapters::table|diesel|diesel_async|RunQueryDsl|serde_json::json" src/http/content/handlers/get_upload_url.rs`
@@ -1183,6 +1209,8 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   passes.
 - `./scripts/run-host-tests.sh cargo test --test api_routing` passes.
 - `./scripts/run-host-tests.sh cargo test --lib content` passes.
+- `./scripts/run-host-tests.sh cargo test --test health_readiness` passes.
+- `./scripts/run-host-tests.sh cargo test --lib operations` passes.
 - `./scripts/run-host-tests.sh cargo test http::` passes.
 - `./scripts/run-host-tests.sh cargo test --lib learning` passes.
 - `./scripts/run-host-tests.sh cargo test application::access_control` passes.

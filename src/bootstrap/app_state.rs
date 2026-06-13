@@ -5,6 +5,7 @@ use crate::application::content::manage_content_item::ContentItemUseCases;
 use crate::application::content::process_upload_job::ContentProcessingUseCase;
 use crate::application::content::request_media_url::ContentMediaUrlUseCase;
 use crate::application::content::request_upload_url::ContentUploadUrlUseCase;
+use crate::application::operations::readiness_check::ReadinessUseCase;
 use crate::db::DbPool;
 use crate::utils::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
@@ -19,4 +20,5 @@ pub struct AppState {
     pub content_upload_url_use_case: Arc<dyn ContentUploadUrlUseCase>,
     pub content_media_url_use_case: Arc<dyn ContentMediaUrlUseCase>,
     pub content_processing_use_case: Arc<dyn ContentProcessingUseCase>,
+    pub readiness_use_case: Arc<dyn ReadinessUseCase>,
 }

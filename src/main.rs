@@ -36,6 +36,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(
                 app_state.content_processing_use_case.clone(),
             ))
+            .app_data(web::Data::new(app_state.readiness_use_case.clone()))
             .configure(bootstrap::routes::configure_routes)
     })
     .bind("0.0.0.0:8080")?
