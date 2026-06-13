@@ -70,6 +70,7 @@ async fn main() -> std::io::Result<()> {
             ))
             .app_data(web::Data::new(app_state.reward_policy_use_case.clone()))
             .app_data(web::Data::new(app_state.wallet_audit_use_case.clone()))
+            .app_data(web::Data::new(app_state.wallet_link_use_case.clone()))
             .app_data(web::Data::new(app_state.wallet_read_use_case.clone()))
             .app_data(web::Data::new(app_state.readiness_use_case.clone()))
             .configure(bootstrap::routes::configure_routes)

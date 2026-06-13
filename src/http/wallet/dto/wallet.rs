@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::application::wallet::read_wallet::WalletView;
+use crate::application::wallet::wallet_view::WalletView;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct WalletResponse {

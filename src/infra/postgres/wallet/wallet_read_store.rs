@@ -7,7 +7,7 @@ use crate::db::schema::{organizations, users, wallets};
 use crate::infra::postgres::wallet::wallet_access::{
     can_view_organization_wallet, can_view_user_wallet,
 };
-use crate::infra::postgres::wallet::wallet_read_mappers::wallet_view_from_model;
+use crate::infra::postgres::wallet::wallet_mappers::wallet_view_from_model;
 use crate::models::wallet::Wallet;
 
 pub struct PostgresWalletReadStore<'conn> {

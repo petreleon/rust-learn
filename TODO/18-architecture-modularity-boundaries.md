@@ -2200,6 +2200,46 @@ Slice 43: move wallet read route ownership into the wallet HTTP ring.
       `http/wallet`, and no legacy wallet read handler ownership remains in
       `api/wallets`.
 
+Slice 44: move wallet link route ownership into the wallet application and HTTP
+rings.
+
+- [x] Create `application/wallet/link_wallet` with explicit subject, output,
+      error, service, store, handler, fake store, and handler tests. The
+      application layer owns the existing link ordering: self links skip the
+      permission probe, non-self user links check wallet-create/manage
+      permission before target-user existence, user links require KYC before
+      creation, and organization links check organization existence before
+      organization wallet-link permission.
+- [x] Move wallet link persistence behind `infra/postgres/wallet`, split into
+      link store, link records, shared wallet mapper, and use-case adapter
+      modules. Idempotent wallet creation still replays unique-violation races
+      into the existing wallet.
+- [x] Extend `infra/postgres/wallet/wallet_access.rs` with wallet-link
+      permission probes for user and organization wallets. These remain a
+      local adapter detail until the access-control context owns permission
+      decisions.
+- [x] Move `/api/wallets/me/link`, `/api/wallets/users/{id}/link`, and
+      `/api/wallets/organizations/{id}/link` POST resources into
+      `http/wallet/routes.rs` while preserving the existing URL paths under
+      the legacy `/api/wallets` scope.
+- [x] Add `http/wallet/handlers/link.rs` and `http/wallet/dto/link.rs` so
+      authentication, application error-to-response mapping, and link response
+      serialization live in the HTTP ring.
+- [x] Wire `WalletLinkUseCase` through `bootstrap::AppState`, production
+      `main.rs` app data, and the wallet-linking route test app.
+- [x] Remove legacy include-based link handlers, link DTOs, KYC query, and link
+      permission helpers from `api/wallets`; the remaining compatibility shim
+      now owns token tax, deposit, retirement, and route composition only.
+- [x] Self-critique: wallet link, read, and audit routes now have Level 2
+      application/infra/http boundaries, but token tax, deposit, retirement,
+      and wallet permission-source unification still need their own slices.
+- [x] Prove application fake-port tests, app binary check, `wallet_linking`,
+      and `api_routing` pass; boundary scans show no
+      Actix/Diesel/service/repository imports in `domain/wallet` or
+      `application/wallet`, no Diesel/repository/infra/service imports in
+      `http/wallet`, no stale legacy link/read handler names in `api/wallets`,
+      and touched non-generated Rust files stay under the manual line limit.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -2459,9 +2499,20 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   wallet-view permission helpers in `infra/postgres/wallet/wallet_access.rs`.
 - Wallet read response mapping now lives in `http/wallet/dto/wallet.rs`, and
   wallet read route handlers plus route resources now live in `http/wallet`.
-- The legacy `api/wallets` include fragments no longer own GET wallet reads;
-  they keep only link, token tax, deposit, and retirement behavior for the next
-  wallet Level 2 slices.
+- Wallet link is now an application-facing `WalletLinkUseCase`; concrete
+  connection-backed link behavior lives in
+  `infra/postgres/wallet/wallet_link_use_case.rs`,
+  `infra/postgres/wallet/wallet_link_store.rs`, and
+  `infra/postgres/wallet/wallet_link_records.rs`.
+- Wallet link permission probing, user/organization existence checks, KYC
+  gating, and idempotent wallet creation now sit behind the `WalletLinkStore`
+  port, with shared wallet-view permission/link helpers in
+  `infra/postgres/wallet/wallet_access.rs`.
+- Wallet link response mapping now lives in `http/wallet/dto/link.rs`, and
+  wallet link route handlers plus route resources now live in `http/wallet`.
+- The legacy `api/wallets` include fragments no longer own GET wallet reads or
+  POST wallet links; they keep only token tax, deposit, and retirement behavior
+  for the next wallet Level 2 slices.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -2959,7 +3010,15 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move wallet read route handlers from `api/wallets` into `http/wallet`
       while preserving `/api/wallets/me`, `/api/wallets/users/{id}`, and
       `/api/wallets/organizations/{id}`.
-- [ ] Move wallet linking, token tax, deposit, and retirement use cases from
+- [x] Create `application/wallet/link_wallet` with explicit subject, output,
+      error, service, store, and handler modules.
+- [x] Move wallet link Diesel implementation behind `infra/postgres/wallet`
+      with granular link store, record, mapper, and use-case adapter modules.
+- [x] Move wallet link route handlers from `api/wallets` into `http/wallet`
+      while preserving `/api/wallets/me/link`,
+      `/api/wallets/users/{id}/link`, and
+      `/api/wallets/organizations/{id}/link`.
+- [ ] Move wallet token tax, deposit, and retirement use cases from
       legacy wallet services into `application/wallet`.
 - [ ] Move wallet access checks through `application/access_control` instead of
       direct repository permission probes in wallet handlers.

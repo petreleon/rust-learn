@@ -1,4 +1,4 @@
-use crate::application::wallet::read_wallet::WalletView;
+use crate::application::wallet::wallet_view::WalletView;
 use crate::models::wallet::Wallet;
 
 pub(super) fn wallet_view_from_model(wallet: Wallet) -> WalletView {
