@@ -14,7 +14,10 @@ use crate::application::learning::delete_course::CourseDeletionUseCase;
 use crate::application::learning::discover_courses::CourseDiscoveryUseCase;
 use crate::application::learning::get_course::CourseReadUseCase;
 use crate::application::learning::learner_progress::LearnerProgressUseCase;
+use crate::application::learning::list_assessment_attempts::AssessmentAttemptsUseCase;
+use crate::application::learning::list_course_assessments::CourseAssessmentsUseCase;
 use crate::application::learning::list_course_organizations::CourseOrganizationsUseCase;
+use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionUseCase;
 use crate::application::learning::update_course::CourseUpdateUseCase;
 use crate::application::learning::update_course_lifecycle::CourseLifecycleUseCase;
 use crate::application::notifications::notification_inbox::NotificationInboxUseCase;
@@ -63,6 +66,9 @@ pub struct AppState {
     pub course_update_use_case: Arc<dyn CourseUpdateUseCase>,
     pub course_lifecycle_use_case: Arc<dyn CourseLifecycleUseCase>,
     pub learner_progress_use_case: Arc<dyn LearnerProgressUseCase>,
+    pub course_assessments_use_case: Arc<dyn CourseAssessmentsUseCase>,
+    pub assessment_attempts_use_case: Arc<dyn AssessmentAttemptsUseCase>,
+    pub assessment_submission_use_case: Arc<dyn AssessmentSubmissionUseCase>,
     pub notification_inbox_use_case: Arc<dyn NotificationInboxUseCase>,
     pub notification_preferences_use_case: Arc<dyn NotificationPreferencesUseCase>,
     pub chapter_use_cases: Arc<dyn ChapterUseCases>,

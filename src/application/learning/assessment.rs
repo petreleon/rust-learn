@@ -42,5 +42,6 @@ pub struct CompletedAssessmentAttempt {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AssessmentReadError {
+    Connection(String),
     Database(String),
 }

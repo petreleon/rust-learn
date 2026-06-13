@@ -539,7 +539,9 @@ src/
         course_organization_store.rs
         learner_progress_store.rs
         assessment_read_store.rs
+        assessment_read_use_case.rs
         assessment_submission_store.rs
+        assessment_submission_use_case.rs
         assessment_store.rs
         mappers.rs
       content/
@@ -990,41 +992,31 @@ remaining gaps.
 | 94 | Moved `GET/POST /courses/{id}/progress` behind `application/learning/learner_progress`, a Postgres progress adapter/use case, HTTP request/response DTOs, and bootstrap app-data wiring; visibility, enrollment, and content-membership checks now live outside the route. |
 | 95 | Moved `POST /courses/{id}/users/{user_id}/roles` behind `application/learning/assign_course_role`, a Postgres role-assignment adapter/use case, HTTP request DTO mapping, and bootstrap app-data wiring; course role hierarchy checks now live outside the route and repository. |
 | 96 | Moved course join request, join decision, waitlist approval, enrollment notification payload, and enrollment removal behind `application/learning/course_enrollment`, Postgres adapters, HTTP DTOs, and bootstrap wiring; the include-based `course_enrollment_service` was deleted. |
+| 97 | Finished assessment route wiring for `GET /courses/{id}/assessments`, `GET /courses/{id}/assessments/{assessment_id}/attempts`, and `POST /courses/{id}/assessments/{assessment_id}/submit`; HTTP now receives injected assessment use cases instead of DB pools or Postgres stores. |
 
 ## Recent Slice Evidence
 
-Slice 96: move course enrollment into the learning use-case boundary.
+Slice 97: finish assessment route wiring into injected learning use cases.
 
-- [x] Add `application/learning/course_enrollment` with request, decision, and
-      removal commands; join-request/removal/notification outputs; error,
-      use-case, store-port, validation, and status normalization tests.
-- [x] Add `infra/postgres/learning/course_enrollment_store.rs`,
-      `course_enrollment_use_case.rs`, `course_enrollment_queries.rs`, and
-      `course_enrollment_join_queries.rs`; keep permission lookup,
-      join-request persistence, student-role assignment/removal, course-title
-      lookup, and decision transaction handling in infra.
-- [x] Add HTTP-owned course enrollment DTOs; `/courses/{id}/join-requests`,
-      `/courses/{id}/join-requests/{request_id}/decision`, and
-      `/courses/{id}/enrollments/{user_id}` now map through the application use
-      case instead of opening DB connections or calling the old service.
-- [x] Inject `CourseEnrollmentUseCase` through `bootstrap/app_state`,
-      `bootstrap/startup`, and `bootstrap/app_data`; route tests receive the
-      same Postgres adapter as production.
-- [x] Delete the include-based `src/services/course_enrollment_service*` module
-      after migrating direct join-request tests to the application/Postgres
-      boundary.
-- [x] Keep the existing HTTP contract: request/decision/removal URLs and JSON
-      fields stay stable, approval notifications still send exactly once when a
-      request becomes approved, and role-assignment notifications remain
-      separate from enrollment notifications.
-- [x] Self-critique: this removes course enrollment only. Learner catalog
-      detail/learning, teaching dashboard reads, and assessment listing still
-      need deeper Level 2 extraction.
-- [x] Prove behavior with binary compile, status normalization unit test,
-      course-join integration suite, enrollment/role notification route
-      regressions, API route reachability, formatting, line-count checks,
-      `git diff --check`, and boundary scans proving enrollment HTTP/application
-      no longer import DB/repositories/services/Diesel.
+- [x] Add use-case traits for `list_course_assessments`,
+      `list_assessment_attempts`, and `submit_assessment_attempt` so HTTP can
+      depend on application contracts rather than concrete Postgres stores.
+- [x] Add `infra/postgres/learning/assessment_read_use_case.rs` and
+      `assessment_submission_use_case.rs`; keep DB pool acquisition and store
+      construction in infra.
+- [x] Wire assessment read/attempt/submission use cases through
+      `bootstrap/app_state`, `bootstrap/startup`, and `bootstrap/app_data`.
+- [x] Update assessment route tests to inject the production Postgres use cases
+      while preserving existing response JSON and max-attempt behavior.
+- [x] Keep existing route contracts and failure strings stable, including
+      `DB unavailable` for connection failures.
+- [x] Self-critique: this finishes assessment route wiring, but learner catalog
+      detail/learning and teaching dashboard reads still call the legacy course
+      service from HTTP.
+- [x] Prove behavior with binary compile, assessment read route test,
+      assessment submission route test, API route reachability, formatting,
+      line-count checks, `git diff --check`, and boundary scans proving
+      assessment HTTP/application no longer import DB/Diesel/Postgres stores.
 
 ## Legacy Transition Rules
 
@@ -1214,6 +1206,10 @@ boundary checks from the matrix above to every canonical context.
       command/output/error and store-port contracts, Postgres adapters/use case,
       HTTP DTO mapping, bootstrap wiring, and application/integration/route
       tests; the old include-based enrollment service was deleted.
+- [x] Assessment listing, attempt listing, and attempt submission routes now
+      receive injected application use cases with Postgres adapters/use cases,
+      bootstrap wiring, and route tests; the HTTP assessment handler no longer
+      owns DB pool access or concrete Postgres store construction.
 - [ ] Move remaining learning service/DB-heavy handlers into application use
       cases with Postgres adapters.
 

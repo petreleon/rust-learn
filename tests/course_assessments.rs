@@ -1,9 +1,14 @@
+use std::sync::Arc;
+
 use actix_web::{http::StatusCode, test, web, App};
 use chrono::{Duration, NaiveDate, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::learning::list_assessment_attempts::AssessmentAttemptsUseCase;
+use rust_learn::application::learning::list_course_assessments::CourseAssessmentsUseCase;
 use rust_learn::db::schema::{assessment_attempts, assessments, courses};
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::learning::assessment_read_use_case::PostgresAssessmentReadUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::user::User;
 use rust_learn::repositories::user_repository::create_user;
@@ -96,6 +101,16 @@ fn token_for(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to create JWT")
 }
 
+fn course_assessments_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn CourseAssessmentsUseCase>> {
+    web::Data::new(Arc::new(PostgresAssessmentReadUseCase::new(pool.clone())))
+}
+
+fn assessment_attempts_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn AssessmentAttemptsUseCase>> {
+    web::Data::new(Arc::new(PostgresAssessmentReadUseCase::new(pool.clone())))
+}
+
 #[actix_web::test]
 async fn assessment_read_routes_are_published_and_user_scoped() {
     let _ = dotenvy::dotenv();
@@ -115,6 +130,8 @@ async fn assessment_read_routes_are_published_and_user_scoped() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(course_assessments_use_case_data(&pool))
+            .app_data(assessment_attempts_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )

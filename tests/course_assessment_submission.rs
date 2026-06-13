@@ -1,9 +1,13 @@
+use std::sync::Arc;
+
 use actix_web::{http::StatusCode, test, web, App};
 use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::learning::submit_assessment_attempt::AssessmentSubmissionUseCase;
 use rust_learn::db::schema::{assessment_attempts, assessment_questions, assessments, courses};
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::learning::assessment_submission_use_case::PostgresAssessmentSubmissionUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::user::User;
 use rust_learn::repositories::user_repository::create_user;
@@ -96,6 +100,14 @@ fn token_for(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to create JWT")
 }
 
+fn assessment_submission_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn AssessmentSubmissionUseCase>> {
+    web::Data::new(Arc::new(PostgresAssessmentSubmissionUseCase::new(
+        pool.clone(),
+    )))
+}
+
 #[actix_web::test]
 async fn assessment_submit_attempt_scores_persists_and_enforces_max_attempts() {
     let _ = dotenvy::dotenv();
@@ -111,6 +123,7 @@ async fn assessment_submit_attempt_scores_persists_and_enforces_max_attempts() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(assessment_submission_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )

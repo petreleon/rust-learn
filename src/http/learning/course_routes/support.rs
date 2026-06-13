@@ -131,6 +131,7 @@ pub(super) fn teacher_course_dashboard_error_response(
 
 pub(super) fn assessment_read_error_log(error: &AssessmentReadError) -> String {
     match error {
+        AssessmentReadError::Connection(message) => message.clone(),
         AssessmentReadError::Database(message) => message.clone(),
     }
 }
@@ -139,6 +140,7 @@ pub(super) fn assessment_submission_error_log(error: &AssessmentSubmissionError)
     match error {
         AssessmentSubmissionError::NotFound => "not_found".to_string(),
         AssessmentSubmissionError::MaximumAttemptsReached => "maximum_attempts_reached".to_string(),
+        AssessmentSubmissionError::Connection(message) => message.clone(),
         AssessmentSubmissionError::LoadFailed(message)
         | AssessmentSubmissionError::SaveFailed(message) => message.clone(),
     }

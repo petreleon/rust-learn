@@ -2,6 +2,7 @@
 pub enum AssessmentSubmissionError {
     NotFound,
     MaximumAttemptsReached,
+    Connection(String),
     LoadFailed(String),
     SaveFailed(String),
 }

@@ -23,6 +23,15 @@ pub fn configure_app_data(cfg: &mut web::ServiceConfig, app_state: &AppState) {
         .app_data(web::Data::new(app_state.course_lifecycle_use_case.clone()))
         .app_data(web::Data::new(app_state.learner_progress_use_case.clone()))
         .app_data(web::Data::new(
+            app_state.course_assessments_use_case.clone(),
+        ))
+        .app_data(web::Data::new(
+            app_state.assessment_attempts_use_case.clone(),
+        ))
+        .app_data(web::Data::new(
+            app_state.assessment_submission_use_case.clone(),
+        ))
+        .app_data(web::Data::new(
             app_state.notification_inbox_use_case.clone(),
         ))
         .app_data(web::Data::new(
