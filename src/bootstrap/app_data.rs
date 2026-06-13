@@ -13,6 +13,9 @@ pub fn configure_app_data(cfg: &mut web::ServiceConfig, app_state: &AppState) {
         .app_data(web::Data::new(app_state.course_discovery_use_case.clone()))
         .app_data(web::Data::new(app_state.course_read_use_case.clone()))
         .app_data(web::Data::new(
+            app_state.learner_course_learning_use_case.clone(),
+        ))
+        .app_data(web::Data::new(
             app_state.course_organizations_use_case.clone(),
         ))
         .app_data(web::Data::new(

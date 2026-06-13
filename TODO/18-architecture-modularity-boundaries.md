@@ -993,30 +993,32 @@ remaining gaps.
 | 95 | Moved `POST /courses/{id}/users/{user_id}/roles` behind `application/learning/assign_course_role`, a Postgres role-assignment adapter/use case, HTTP request DTO mapping, and bootstrap app-data wiring; course role hierarchy checks now live outside the route and repository. |
 | 96 | Moved course join request, join decision, waitlist approval, enrollment notification payload, and enrollment removal behind `application/learning/course_enrollment`, Postgres adapters, HTTP DTOs, and bootstrap wiring; the include-based `course_enrollment_service` was deleted. |
 | 97 | Finished assessment route wiring for `GET /courses/{id}/assessments`, `GET /courses/{id}/assessments/{assessment_id}/attempts`, and `POST /courses/{id}/assessments/{assessment_id}/submit`; HTTP now receives injected assessment use cases instead of DB pools or Postgres stores. |
+| 98 | Moved `GET /courses/catalog/{id}/learn` behind `application/learning/get_learner_course_learning`, learner-course Postgres read helpers, an HTTP-owned learning response DTO, and bootstrap app-data wiring; the route no longer opens the DB pool or calls `course_service::get_learner_course_learning`. |
 
 ## Recent Slice Evidence
 
-Slice 97: finish assessment route wiring into injected learning use cases.
+Slice 98: move learner course learning into an injected learning use case.
 
-- [x] Add use-case traits for `list_course_assessments`,
-      `list_assessment_attempts`, and `submit_assessment_attempt` so HTTP can
-      depend on application contracts rather than concrete Postgres stores.
-- [x] Add `infra/postgres/learning/assessment_read_use_case.rs` and
-      `assessment_submission_use_case.rs`; keep DB pool acquisition and store
-      construction in infra.
-- [x] Wire assessment read/attempt/submission use cases through
+- [x] Add `application/learning/get_learner_course_learning` with a narrow
+      query, output, error, store port, handler, and use-case trait.
+- [x] Add `infra/postgres/learning/learner_course_*` adapters for learner
+      visibility, catalog item assembly, enrollment summary, learning content
+      state, and DB-pool use-case wiring. Split helper files to keep every new
+      manually maintained Rust file below the 180-line repository limit.
+- [x] Add HTTP-owned learner catalog/learning response DTOs so the route no
+      longer serializes legacy service types directly.
+- [x] Wire the concrete Postgres learner learning use case through
       `bootstrap/app_state`, `bootstrap/startup`, and `bootstrap/app_data`.
-- [x] Update assessment route tests to inject the production Postgres use cases
-      while preserving existing response JSON and max-attempt behavior.
-- [x] Keep existing route contracts and failure strings stable, including
-      `DB unavailable` for connection failures.
-- [x] Self-critique: this finishes assessment route wiring, but learner catalog
-      detail/learning and teaching dashboard reads still call the legacy course
-      service from HTTP.
-- [x] Prove behavior with binary compile, assessment read route test,
-      assessment submission route test, API route reachability, formatting,
-      line-count checks, `git diff --check`, and boundary scans proving
-      assessment HTTP/application no longer import DB/Diesel/Postgres stores.
+- [x] Update the learner learning route test to inject the use case while
+      preserving active-content selection, processing display states, scoped
+      denial, and enrolled/preview `progress_supported` behavior.
+- [x] Self-critique: this removes the learning endpoint's direct service/DB
+      dependency, but learner catalog list/detail and all teacher dashboard
+      reads still call legacy `course_service` from HTTP.
+- [x] Prove behavior with binary compile, learner learning endpoint test, API
+      route reachability, formatting, line-count checks, `git diff --check`,
+      and boundary scans proving the new application/HTTP DTO modules do not
+      import DB/Diesel/Postgres stores or legacy services.
 
 ## Legacy Transition Rules
 

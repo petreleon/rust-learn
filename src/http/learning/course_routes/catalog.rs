@@ -6,16 +6,22 @@ use crate::application::learning::discover_courses::{
     CourseDiscoveryError, CourseDiscoveryQuery, CourseDiscoveryUseCase,
 };
 use crate::application::learning::get_course::{CourseReadError, CourseReadUseCase};
+use crate::application::learning::get_learner_course_learning::{
+    LearnerCourseLearningQuery, LearnerCourseLearningUseCase,
+};
 use crate::db;
-use crate::http::learning::dto::{CourseDiscoveryResponse, CourseResponse};
+use crate::http::learning::dto::{
+    CourseDiscoveryResponse, CourseResponse, LearnerCourseLearningResponse,
+};
 use crate::services::course_service::{
-    discover_learner_course_catalog, get_learner_course_detail, get_learner_course_learning,
-    LearnerCourseCatalogQuery,
+    discover_learner_course_catalog, get_learner_course_detail, LearnerCourseCatalogQuery,
 };
 use crate::utils::request_auth::authenticated_user;
 
 use super::dto::{CourseDiscoveryParams, LearnerCourseCatalogParams};
-use super::support::learner_course_catalog_error_response;
+use super::support::{
+    learner_course_catalog_error_response, learner_course_learning_error_response,
+};
 
 pub(super) async fn list_learner_course_catalog(
     req: HttpRequest,
@@ -50,20 +56,17 @@ pub(super) async fn list_learner_course_catalog(
 pub(super) async fn get_learner_course_learning_route(
     req: HttpRequest,
     path: web::Path<i32>,
-    pool: web::Data<db::DbPool>,
+    use_case: web::Data<Arc<dyn LearnerCourseLearningUseCase>>,
 ) -> impl Responder {
     let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
 
-    match get_learner_course_learning(&mut conn, requester.user_id, path.into_inner()).await {
-        Ok(learning) => HttpResponse::Ok().json(learning),
-        Err(error) => learner_course_catalog_error_response(error),
+    let query = LearnerCourseLearningQuery::new(requester.user_id, path.into_inner());
+    match use_case.get_learner_course_learning(query).await {
+        Ok(learning) => HttpResponse::Ok().json(LearnerCourseLearningResponse::from(learning)),
+        Err(error) => learner_course_learning_error_response(error),
     }
 }
 
