@@ -52,6 +52,7 @@ use crate::application::wallet::link_wallet::WalletLinkUseCase;
 use crate::application::wallet::manage_token_tax::WalletTokenTaxUseCase;
 use crate::application::wallet::read_wallet::WalletReadUseCase;
 use crate::application::wallet::retire_tokens::WalletRetirementUseCase;
+use crate::bootstrap::kyc_wiring::KycUseCases;
 use crate::bootstrap::organization_wiring::OrganizationUseCases;
 use crate::db::DbPool;
 use crate::utils::notifications::NotificationsState;
@@ -64,6 +65,7 @@ pub struct AppState {
     pub notifications: NotificationsState,
     pub role_catalog_use_case: Arc<dyn RoleCatalogUseCase>,
     pub current_session_use_case: Arc<dyn CurrentSessionUseCase>,
+    pub(crate) kyc_use_cases: KycUseCases,
     pub course_creation_use_case: Arc<dyn CourseCreationUseCase>,
     pub course_deletion_use_case: Arc<dyn CourseDeletionUseCase>,
     pub course_discovery_use_case: Arc<dyn CourseDiscoveryUseCase>,

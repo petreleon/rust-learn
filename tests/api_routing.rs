@@ -9,6 +9,7 @@ mod api_routing_course_lifecycle_fake;
 mod api_routing_course_organization_fake;
 mod api_routing_course_read_fake;
 mod api_routing_course_update_fake;
+mod api_routing_kyc_fake;
 mod api_routing_organization_courses_fake;
 mod api_routing_organization_dashboard_fake;
 mod api_routing_organization_management_fake;
@@ -60,6 +61,10 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_course_organization_fake::course_organizations_data())
             .app_data(api_routing_course_read_fake::course_read_data())
             .app_data(api_routing_course_update_fake::course_update_data())
+            .app_data(api_routing_kyc_fake::kyc_audit_data())
+            .app_data(api_routing_kyc_fake::kyc_review_data())
+            .app_data(api_routing_kyc_fake::kyc_status_data())
+            .app_data(api_routing_kyc_fake::kyc_submission_data())
             .app_data(api_routing_organization_dashboard_fake::organization_dashboard_data())
             .app_data(api_routing_organization_management_fake::organization_management_data())
             .app_data(api_routing_organization_courses_fake::organization_course_list_data())

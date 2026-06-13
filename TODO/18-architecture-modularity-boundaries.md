@@ -1009,38 +1009,37 @@ remaining gaps.
 | 111 | Moved `POST /organizations/{id}/users/{user_id}/roles` behind `application/organizations/assign_organization_member_role`, a Postgres role-assignment adapter/use case, and organization-context bootstrap wiring; the route no longer opens the DB pool, calls `organization_service::assign_role`, or relies on route middleware for the assignment permission check. |
 | 112 | Moved `GET /organizations/{id}/teacher-applications` behind `application/organizations/list_organization_teacher_applications`, granular Postgres teacher-application read adapters, HTTP-owned response DTOs, and organization-context bootstrap wiring; the route no longer opens the DB pool or calls `teacher_application_service::list_organization_applications`. |
 | 113 | Moved organization CRUD routes behind `application/organizations/manage_organizations`, a Postgres management adapter/use case, HTTP-owned organization DTOs, and organization-context bootstrap wiring; `http/organizations/handlers.rs` no longer opens the DB pool, imports Diesel/model types, or calls `organization_service`. |
+| 114 | Moved KYC status/submission/review/audit flows behind `domain/kyc`, granular `application/kyc` use cases, a Postgres KYC adapter/use case, HTTP-owned DTOs, and bootstrap wiring; the include-based `services/kyc_service` was deleted and `http/kyc` no longer opens DB pools or calls services. |
 
 ## Recent Slice Evidence
 
-Slice 113: move organization CRUD routes into an injected management use case.
+Slice 114: move KYC lifecycle flows into Level 2 rings.
 
-- [x] Add `application/organizations/manage_organizations` with create/update
-      commands, output, error, store port, handler functions, use-case trait,
-      and fake-store tests proving create delegation, update identity handling,
-      and delete-not-found mapping.
-- [x] Add `infra/postgres/organizations/organization_management_store.rs` and
-      `organization_management_use_case.rs` so list/get/create/update/delete
-      persistence, course-link insertion order, Diesel errors, and pool access
-      live outside HTTP.
-- [x] Rework `http/organizations/handlers.rs` into DTO extraction,
-      command/output mapping, and local error-to-response mapping through an
-      injected `OrganizationManagementUseCase`.
-- [x] Wire the concrete management use case through the organization bootstrap
-      bundle and app-data registration, plus route-only fakes for API routing
-      tests.
-- [x] Add `tests/organization_management` coverage for create, list, update,
-      get, delete, course-link ordering, and the existing authorization
-      middleware. Delete uses an organization-scoped delegated permission so
-      authorization is realistic without leaving a restrictive membership row.
-- [x] Self-critique: CRUD authorization remains in the existing platform and
-      organization route middleware to preserve route behavior. A later
-      access-control slice should move those decisions behind the same
-      application access-control service used by migrated command use cases.
-- [x] Prove behavior with application unit tests, the organization management
-      integration test, API route reachability, formatting, line-count checks,
-      `git diff --check`, and a boundary scan proving `src/http/organizations`
-      no longer imports DB pools, services, repositories, Diesel, or model
-      types.
+- [x] Add `domain/kyc/submission` for KYC input normalization, allowed
+      decisions, duplicate/final-state transition guards, and next-action
+      calculation with pure unit tests.
+- [x] Add granular `application/kyc` use-case folders for current status,
+      submission, review queue/decision, and audit reads, sharing an explicit
+      KYC store port and application output/error contracts.
+- [x] Add `infra/postgres/kyc` with KYC query, transaction, audit, mapper, and
+      concrete use-case modules; Diesel records, schema access, review
+      permission lookup, audit writes, and user `kyc_verified` updates live
+      outside HTTP and application.
+- [x] Rework `http/kyc` into auth/json/path extraction, request/response DTO
+      mapping, and local application-error responses through injected KYC use
+      cases.
+- [x] Wire KYC use cases through `bootstrap/kyc_wiring.rs`, app state, and app
+      data registration, with API routing fakes for route reachability tests.
+- [x] Delete the include-based `services/kyc_service` after moving all callers
+      to the new KYC application/Postgres path.
+- [x] Self-critique: review authorization still uses the legacy platform
+      repository from the Postgres adapter. That keeps route behavior stable;
+      the later access-control unification slice should replace this with a
+      typed `application/access_control` permission port.
+- [x] Prove behavior with KYC domain unit tests, KYC Postgres integration tests,
+      API route reachability, formatting, line-count checks, `git diff --check`,
+      and boundary scans proving KYC HTTP/application/domain no longer import
+      DB pools, services, repositories, Diesel, or persistence models.
 
 ## Legacy Transition Rules
 
@@ -1295,6 +1294,11 @@ boundary checks from the matrix above to every canonical context.
 ## KYC Context
 
 - [x] `http/kyc` owns KYC route composition; the legacy `api/kyc` module has
+      been deleted.
+- [x] KYC status, submission, review queue/decision, and audit reads now have
+      domain validation/transition rules, granular application use-case
+      contracts, a Postgres adapter/use case, HTTP DTO mapping, bootstrap
+      wiring, and KYC/API route tests; the legacy include-based KYC service has
       been deleted.
 
 ## Teacher Applications Context
