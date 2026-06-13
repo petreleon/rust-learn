@@ -7,6 +7,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use std::sync::Arc;
 use rust_learn::application::wallet::audit_wallet::WalletAuditUseCase;
 use rust_learn::application::wallet::link_wallet::WalletLinkUseCase;
+use rust_learn::application::wallet::manage_token_tax::WalletTokenTaxUseCase;
 use rust_learn::application::wallet::read_wallet::WalletReadUseCase;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::schema::{
@@ -32,6 +33,7 @@ use rust_learn::repositories::user_repository::create_user;
 use rust_learn::infra::postgres::wallet::wallet_audit_use_case::PostgresWalletAuditUseCase;
 use rust_learn::infra::postgres::wallet::wallet_link_use_case::PostgresWalletLinkUseCase;
 use rust_learn::infra::postgres::wallet::wallet_read_use_case::PostgresWalletReadUseCase;
+use rust_learn::infra::postgres::wallet::wallet_token_tax_use_case::PostgresWalletTokenTaxUseCase;
 use rust_learn::services::wallet_service::{
     self, credit_observed_wallet_deposit, ObservedWalletDepositEvent, WalletTokenTransferRequest,
 };

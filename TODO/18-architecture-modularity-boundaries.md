@@ -2240,6 +2240,45 @@ rings.
       `http/wallet`, no stale legacy link/read handler names in `api/wallets`,
       and touched non-generated Rust files stay under the manual line limit.
 
+Slice 45: move wallet token-tax routes into the wallet application and HTTP
+rings.
+
+- [x] Create `application/wallet/manage_token_tax` with explicit operation,
+      output, error, service, store, handler, fake store, and handler tests.
+      The application layer owns the legacy ordering: set-tax permission is
+      checked before amount validation, tax amounts must be non-negative, and
+      list reads validate stored tax amounts before returning them.
+- [x] Move wallet token-tax persistence behind `infra/postgres/wallet`, split
+      into token-tax store and use-case adapter modules. The adapter preserves
+      the legacy persistent-state keys `wallet.deposit_tax_tokens` and
+      `wallet.retire_tax_tokens`.
+- [x] Keep platform tax permission probing in the Postgres adapter using
+      `SET_DEPOSIT_TAX` and `SET_RETIRE_TAX` until the access-control context
+      owns permission decisions.
+- [x] Move `/api/wallets/token-taxes`,
+      `/api/wallets/token-taxes/deposit`, and
+      `/api/wallets/token-taxes/retire` route resources into
+      `http/wallet/routes.rs` while preserving the existing URL paths under
+      the legacy `/api/wallets` scope.
+- [x] Add `http/wallet/handlers/token_tax.rs` and
+      `http/wallet/dto/token_tax.rs` so authentication, application
+      error-to-response mapping, request parsing, and tax response
+      serialization live in the HTTP ring.
+- [x] Wire `WalletTokenTaxUseCase` through `bootstrap::AppState`, production
+      `main.rs` app data, and the wallet-linking route test app.
+- [x] Remove legacy include-based token-tax handlers and token-tax DTO imports
+      from `api/wallets`; the remaining compatibility shim now owns deposit,
+      retirement, transfer error mapping, and route composition only.
+- [x] Self-critique: wallet token tax, link, read, and audit routes now have
+      Level 2 application/infra/http boundaries, but deposit, retirement, and
+      wallet permission-source unification still need their own slices.
+- [x] Prove application fake-port tests, app binary check, `wallet_linking`,
+      and `api_routing` pass; boundary scans show no
+      Actix/Diesel/service/repository imports in `domain/wallet` or
+      `application/wallet`, no Diesel/repository/infra/service imports in
+      `http/wallet`, no stale legacy token-tax handlers in `api/wallets`, and
+      touched non-generated Rust files stay under the manual line limit.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -2510,9 +2549,19 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `infra/postgres/wallet/wallet_access.rs`.
 - Wallet link response mapping now lives in `http/wallet/dto/link.rs`, and
   wallet link route handlers plus route resources now live in `http/wallet`.
-- The legacy `api/wallets` include fragments no longer own GET wallet reads or
-  POST wallet links; they keep only token tax, deposit, and retirement behavior
-  for the next wallet Level 2 slices.
+- Wallet token tax is now an application-facing `WalletTokenTaxUseCase`;
+  concrete connection-backed tax behavior lives in
+  `infra/postgres/wallet/wallet_token_tax_use_case.rs` and
+  `infra/postgres/wallet/wallet_token_tax_store.rs`.
+- Wallet token-tax permission probing, persistent-state reads/writes, stored
+  tax parsing, and non-negative validation now sit behind the
+  `WalletTokenTaxStore` port.
+- Wallet token-tax request/response mapping now lives in
+  `http/wallet/dto/token_tax.rs`, and wallet token-tax handlers plus route
+  resources now live in `http/wallet`.
+- The legacy `api/wallets` include fragments no longer own GET wallet reads,
+  POST wallet links, or token-tax routes; they keep only deposit and retirement
+  behavior for the next wallet Level 2 slices.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -3018,7 +3067,14 @@ boundary checks from the matrix above to every canonical context.
       while preserving `/api/wallets/me/link`,
       `/api/wallets/users/{id}/link`, and
       `/api/wallets/organizations/{id}/link`.
-- [ ] Move wallet token tax, deposit, and retirement use cases from
+- [x] Create `application/wallet/manage_token_tax` with explicit operation,
+      output, error, service, store, and handler modules.
+- [x] Move wallet token-tax persistence behind `infra/postgres/wallet`.
+- [x] Move wallet token-tax route handlers from `api/wallets` into
+      `http/wallet` while preserving `/api/wallets/token-taxes`,
+      `/api/wallets/token-taxes/deposit`, and
+      `/api/wallets/token-taxes/retire`.
+- [ ] Move wallet deposit and retirement use cases from
       legacy wallet services into `application/wallet`.
 - [ ] Move wallet access checks through `application/access_control` instead of
       direct repository permission probes in wallet handlers.

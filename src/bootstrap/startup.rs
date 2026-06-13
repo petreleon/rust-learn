@@ -28,6 +28,7 @@ use crate::infra::postgres::rewards::teacher_reward_candidate_decision_use_case:
 use crate::infra::postgres::wallet::wallet_audit_use_case::PostgresWalletAuditUseCase;
 use crate::infra::postgres::wallet::wallet_link_use_case::PostgresWalletLinkUseCase;
 use crate::infra::postgres::wallet::wallet_read_use_case::PostgresWalletReadUseCase;
+use crate::infra::postgres::wallet::wallet_token_tax_use_case::PostgresWalletTokenTaxUseCase;
 use crate::utils::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
 
@@ -90,6 +91,7 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
         wallet_audit_use_case: Arc::new(PostgresWalletAuditUseCase::new(pool.clone())),
         wallet_link_use_case: Arc::new(PostgresWalletLinkUseCase::new(pool.clone())),
         wallet_read_use_case: Arc::new(PostgresWalletReadUseCase::new(pool.clone())),
+        wallet_token_tax_use_case: Arc::new(PostgresWalletTokenTaxUseCase::new(pool.clone())),
         readiness_use_case: Arc::new(RuntimeReadinessUseCase::new(pool.clone(), s3.clone())),
         notifications: NotificationsState::new(pool.clone()),
         pool,

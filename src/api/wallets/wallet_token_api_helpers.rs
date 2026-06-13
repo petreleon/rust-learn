@@ -16,18 +16,3 @@ fn wallet_token_transfer_error_response(error: WalletTokenTransferError) -> Http
         }
     }
 }
-
-async fn list_wallet_token_taxes(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
-    if let Err(response) = authenticated_user(&req) {
-        return response;
-    }
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match wallet_service::get_wallet_token_taxes(&mut conn).await {
-        Ok(settings) => HttpResponse::Ok().json(settings),
-        Err(error) => wallet_token_transfer_error_response(error),
-    }
-}
