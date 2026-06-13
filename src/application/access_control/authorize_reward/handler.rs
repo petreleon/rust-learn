@@ -37,10 +37,37 @@ pub async fn authorize_reward_action(
                 )
                 .await
         }
+        RewardAuthorizationAction::ManageOrganizationRewardFraudBlock => {
+            has_any_platform_permission(
+                store,
+                actor_user_id,
+                &[
+                    Permission::BlockRewardOrganization,
+                    Permission::ManageRewardFraudBlocks,
+                ],
+            )
+            .await
+        }
+        RewardAuthorizationAction::ManageRewardFraudBlock => {
+            store
+                .has_platform_permission(actor_user_id, Permission::ManageRewardFraudBlocks)
+                .await
+        }
         RewardAuthorizationAction::ManageRewardPolicy => {
             store
                 .has_platform_permission(actor_user_id, Permission::SetRewardPolicy)
                 .await
+        }
+        RewardAuthorizationAction::ManageTeacherRewardFraudBlock => {
+            has_any_platform_permission(
+                store,
+                actor_user_id,
+                &[
+                    Permission::BlockRewardTeacher,
+                    Permission::ManageRewardFraudBlocks,
+                ],
+            )
+            .await
         }
         RewardAuthorizationAction::RecordRewardCompensation => {
             has_any_platform_permission(
@@ -75,6 +102,17 @@ pub async fn authorize_reward_action(
             store
                 .has_course_permission(actor_user_id, course_id, Permission::ViewCourseRewardStatus)
                 .await
+        }
+        RewardAuthorizationAction::ViewRewardFraudBlocks => {
+            has_any_platform_permission(
+                store,
+                actor_user_id,
+                &[
+                    Permission::ViewRewardAudit,
+                    Permission::ManageRewardFraudBlocks,
+                ],
+            )
+            .await
         }
         RewardAuthorizationAction::ViewRewardAudit => {
             store

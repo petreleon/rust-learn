@@ -2453,7 +2453,7 @@ application ring.
       stores.
 - [x] Move the platform permission repository probe behind
       `infra/postgres/access_control/reward_authorization_store.rs`.
-- [x] Add `infra/postgres/rewards/reward_authorization_access.rs` as the thin
+- [x] Add `infra/postgres/rewards/reward_authorization_access` as the thin
       rewards-side adapter helper that delegates execution permission checks to
       `application/access_control/authorize_reward`.
 - [x] Update payout planning, token confirmation, wallet credit,
@@ -2485,8 +2485,8 @@ application ring.
       `SetRewardPolicy`, `ApproveRewardAmount`, and `ViewRewardAudit`
       permission values. Reward compensation reuses the existing typed wallet
       permissions `ReconcileWallets` and `ManageWallets`.
-- [x] Rename the reward-side access bridge to
-      `infra/postgres/rewards/reward_authorization_access.rs` so it can serve
+- [x] Keep the reward-side access bridge under
+      `infra/postgres/rewards/reward_authorization_access` so it can serve
       both execution and non-execution reward authorization checks.
 - [x] Update reward policy, reward amount decision, reward candidate audit,
       platform reward-candidate review, and reward compensation Postgres stores
@@ -2531,7 +2531,7 @@ application ring.
 - [x] Update teacher reward-candidate decisions, course reward-candidate
       listing, student reward history visibility, course reward-candidate
       submission, and reward-target eligibility to call
-      `infra/postgres/rewards/reward_authorization_access.rs` instead of
+      `infra/postgres/rewards/reward_authorization_access` instead of
       importing course permission constants or calling
       `user_permission_course_request` directly.
 - [x] Preserve legacy course permission behavior: teacher decisions require
@@ -2590,6 +2590,41 @@ access-control application ring.
       `cargo check --features app-bin --bin rust-learn`; prove boundary scans
       show direct organization permission probes only in the Postgres
       access-control adapter for the moved check.
+
+Slice 54: move reward fraud-block authorization policy into the access-control
+application ring.
+
+- [x] Extend `application/access_control/authorize_reward` with fraud-block
+      actions for teacher fraud blocking, organization fraud blocking, general
+      reward fraud blocking, and fraud-block list/audit reads.
+- [x] Extend `domain/access_control/permission` with typed fraud-block
+      permission values: `BlockRewardTeacher`, `BlockRewardOrganization`, and
+      `ManageRewardFraudBlocks`.
+- [x] Update `infra/postgres/rewards/reward_fraud_block_permissions.rs` so
+      legacy fraud-block scope strings map to typed reward authorization
+      actions instead of local `Permissions` vectors.
+- [x] Preserve legacy behavior: teacher scope accepts
+      `BLOCK_REWARD_TEACHER` or `MANAGE_REWARD_FRAUD_BLOCKS`; organization
+      scope accepts `BLOCK_REWARD_ORGANIZATION` or
+      `MANAGE_REWARD_FRAUD_BLOCKS`; course and reward-policy scopes require
+      `MANAGE_REWARD_FRAUD_BLOCKS`; fraud-block reads accept
+      `VIEW_REWARD_AUDIT` or `MANAGE_REWARD_FRAUD_BLOCKS`.
+- [x] Split `infra/postgres/rewards/reward_authorization_access` into
+      platform, course, and fraud-block helper modules so the rewards-side
+      access bridge stays below the manual line guard while keeping one import
+      path for callers.
+- [x] Self-critique: fraud-block action gates now use the access-control
+      application ring, but fraud-block notification recipient permission
+      lists still duplicate permission groupings in the rewards Postgres
+      adapter. Delegated middleware/session capability grouping and the final
+      generic `can(actor, action, scope)` API remain open.
+- [x] Prove fraud-block authorization with application fake-port tests,
+      `reward_fraud_block_permissions` mapper tests,
+      `platform_permissions_create_and_revoke_reward_fraud_blocks`,
+      `fraud_block_api_separates_read_audit_from_block_management`, and
+      `cargo check --features app-bin --bin rust-learn`; prove formatting,
+      whitespace, line guard, and boundary scans for the moved direct
+      permission probes.
 
 Progress evidence from 2026-06-12 and 2026-06-13:
 
@@ -2924,7 +2959,7 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - Reward execution Postgres stores no longer import
   `Permissions::EXECUTE_REWARD_PAYOUT` or call
   `user_permission_platform_request` directly; they delegate through
-  `infra/postgres/rewards/reward_authorization_access.rs`.
+  `infra/postgres/rewards/reward_authorization_access`.
 - Reward policy management, reward amount approval, reward candidate audit,
   platform reward-candidate review capabilities, and reward compensation
   authorization now also delegate through
@@ -2944,6 +2979,14 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `infra/postgres/rewards/reward_candidate_submission_store.rs` delegates to
   `reward_authorization_access` instead of calling organization permission
   repositories directly.
+- Reward fraud-block create/revoke/list authorization now lives in
+  `application/access_control/authorize_reward`; the rewards Postgres adapter
+  maps legacy fraud-block scope strings to typed reward authorization actions
+  instead of local permission vectors.
+- `infra/postgres/rewards/reward_authorization_access` is now a module folder
+  split by platform, course, and fraud-block helper shape, keeping the
+  rewards-side access bridge granular while preserving the existing caller
+  import path.
 - The legacy `api/wallets` include fragments no longer own GET wallet reads,
   POST wallet links, token-tax routes, deposit-intent creation, or
   retirements. `api/wallets` is now only the `/api/wallets` scope bridge into
@@ -3426,6 +3469,8 @@ boundary checks from the matrix above to every canonical context.
       checks through `application/access_control`.
 - [x] Move organization-scoped reward submission permission checks through
       `application/access_control`.
+- [x] Move reward fraud-block scope/list/audit permission checks through
+      `application/access_control`.
 - [ ] Move reward permission decisions through `application/access_control`
       instead of calling `user_permission_*_request` directly from reward use
       cases.
@@ -3507,6 +3552,8 @@ boundary checks from the matrix above to every canonical context.
       student-history visibility, and reward-target eligibility authorization
       decisions into `application/access_control/authorize_reward`.
 - [x] Move organization-scoped reward submission authorization decisions into
+      `application/access_control/authorize_reward`.
+- [x] Move reward fraud-block scope/list/audit authorization decisions into
       `application/access_control/authorize_reward`.
 - [ ] Create one access-control API for `can(actor, action, scope)` style
       decisions.

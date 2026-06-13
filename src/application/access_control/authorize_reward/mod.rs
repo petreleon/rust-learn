@@ -7,6 +7,8 @@ mod store;
 #[cfg(test)]
 mod course_handler_tests;
 #[cfg(test)]
+mod fraud_block_handler_tests;
+#[cfg(test)]
 mod handler_tests;
 #[cfg(test)]
 pub(crate) mod test_support;

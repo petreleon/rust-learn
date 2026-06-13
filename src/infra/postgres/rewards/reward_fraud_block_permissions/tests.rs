@@ -1,28 +1,30 @@
 use super::*;
 
 #[test]
-fn teacher_scope_requires_two_permissions() {
-    let permissions = required_permissions_for_scope(REWARD_FRAUD_BLOCK_SCOPE_TEACHER).unwrap();
-    assert_eq!(permissions.len(), 2);
-    assert!(permissions.contains(&Permissions::BLOCK_REWARD_TEACHER));
+fn teacher_scope_uses_teacher_fraud_authorization() {
+    assert_eq!(
+        authorization_for_scope(REWARD_FRAUD_BLOCK_SCOPE_TEACHER).unwrap(),
+        FraudBlockAuthorization::Teacher
+    );
 }
 
 #[test]
-fn organization_scope_requires_two_permissions() {
-    let permissions =
-        required_permissions_for_scope(REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION).unwrap();
-    assert_eq!(permissions.len(), 2);
-    assert!(permissions.contains(&Permissions::BLOCK_REWARD_ORGANIZATION));
+fn organization_scope_uses_organization_fraud_authorization() {
+    assert_eq!(
+        authorization_for_scope(REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION).unwrap(),
+        FraudBlockAuthorization::Organization
+    );
 }
 
 #[test]
-fn course_and_policy_scopes_require_one_permission() {
+fn course_and_policy_scopes_use_general_fraud_authorization() {
     for scope in [
         REWARD_FRAUD_BLOCK_SCOPE_COURSE,
         REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY,
     ] {
-        let permissions = required_permissions_for_scope(scope).unwrap();
-        assert_eq!(permissions.len(), 1);
-        assert_eq!(permissions[0], Permissions::MANAGE_REWARD_FRAUD_BLOCKS);
+        assert_eq!(
+            authorization_for_scope(scope).unwrap(),
+            FraudBlockAuthorization::General
+        );
     }
 }
