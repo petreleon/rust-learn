@@ -8,8 +8,10 @@ use rust_learn::utils::jwt_utils::create_jwt;
 use actix_service::Service;
 use chrono::NaiveDate;
 use rust_learn::application::access_control::list_roles::RoleCatalogUseCase;
+use rust_learn::application::learning::list_course_organizations::CourseOrganizationsUseCase;
 use rust_learn::db::schema::{courses, organizations};
 use rust_learn::infra::postgres::access_control::role_catalog_use_case::PostgresRoleCatalogUseCase;
+use rust_learn::infra::postgres::learning::course_organization_use_case::PostgresCourseOrganizationsUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
@@ -50,6 +52,12 @@ fn generate_token(user_id: i32) -> String {
 
 fn role_catalog_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn RoleCatalogUseCase>> {
     web::Data::new(Arc::new(PostgresRoleCatalogUseCase::new(pool.clone())))
+}
+
+fn course_organizations_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn CourseOrganizationsUseCase>> {
+    web::Data::new(Arc::new(PostgresCourseOrganizationsUseCase::new(pool.clone())))
 }
 
 fn response_status<B>(

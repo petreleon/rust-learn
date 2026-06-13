@@ -6,6 +6,10 @@ use crate::application::learning::assessment::{
 };
 use crate::application::learning::list_assessment_attempts::list_user_assessment_attempts;
 use crate::application::learning::list_course_assessments::list_published_course_assessments;
+use crate::application::learning::list_course_organizations::{
+    list_course_organizations, CourseOrganizationOutput, CourseOrganizationReadError,
+    CourseOrganizationStore,
+};
 use crate::application::learning::ports::AssessmentReadStore;
 
 #[derive(Default)]
@@ -14,6 +18,23 @@ struct FakeAssessmentReadStore {
     attempts: Vec<AssessmentAttemptOutput>,
     requested_course_id: Option<i32>,
     requested_attempts: Option<(i32, i32)>,
+}
+
+#[derive(Default)]
+struct FakeCourseOrganizationStore {
+    organizations: Vec<CourseOrganizationOutput>,
+    requested_course_id: Option<i32>,
+}
+
+impl CourseOrganizationStore for FakeCourseOrganizationStore {
+    fn list_for_course(
+        &mut self,
+        course_id: i32,
+    ) -> BoxFuture<'_, Result<Vec<CourseOrganizationOutput>, CourseOrganizationReadError>> {
+        self.requested_course_id = Some(course_id);
+        let organizations = self.organizations.clone();
+        async move { Ok(organizations) }.boxed()
+    }
 }
 
 impl AssessmentReadStore for FakeAssessmentReadStore {
@@ -87,4 +108,25 @@ async fn list_user_assessment_attempts_uses_assessment_read_port() {
 
     assert_eq!(result, vec![expected]);
     assert_eq!(store.requested_attempts, Some((11, 5)));
+}
+
+#[tokio::test]
+async fn list_course_organizations_uses_course_organization_port() {
+    let expected = CourseOrganizationOutput {
+        id: 9,
+        name: "Learning Org".to_string(),
+        website_link: Some("https://example.test".to_string()),
+        profile_url: None,
+    };
+    let mut store = FakeCourseOrganizationStore {
+        organizations: vec![expected.clone()],
+        ..Default::default()
+    };
+
+    let result = list_course_organizations(&mut store, 7)
+        .await
+        .expect("course organizations should load");
+
+    assert_eq!(result, vec![expected]);
+    assert_eq!(store.requested_course_id, Some(7));
 }

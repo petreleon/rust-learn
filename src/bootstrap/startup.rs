@@ -1,9 +1,7 @@
 use std::sync::Arc;
-use std::time::Duration;
-
-use actix_web::rt::time::timeout;
 
 use crate::bootstrap::app_state::AppState;
+use crate::bootstrap::contract_startup::deploy_startup_contracts;
 use crate::bootstrap::readiness::RuntimeReadinessUseCase;
 use crate::config::db_setup::version_updater;
 use crate::db;
@@ -14,6 +12,7 @@ use crate::infra::postgres::content::media_url_use_case::PostgresContentMediaUrl
 use crate::infra::postgres::content::processing_use_case::PostgresContentProcessingUseCase;
 use crate::infra::postgres::content::upload_url_use_case::PostgresContentUploadUrlUseCase;
 use crate::infra::postgres::identity::current_session_use_case::PostgresCurrentSessionUseCase;
+use crate::infra::postgres::learning::course_organization_use_case::PostgresCourseOrganizationsUseCase;
 use crate::infra::postgres::notifications::notification_inbox_use_case::PostgresNotificationInboxUseCase;
 use crate::infra::postgres::notifications::notification_preferences_use_case::PostgresNotificationPreferencesUseCase;
 use crate::infra::postgres::reporting::organization_reward_dashboard_use_case::PostgresOrganizationRewardDashboardUseCase;
@@ -41,8 +40,6 @@ use crate::infra::postgres::wallet::wallet_token_tax_use_case::PostgresWalletTok
 use crate::utils::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
 
-const ETH_STARTUP_DEPLOY_TIMEOUT: Duration = Duration::from_secs(30);
-
 pub async fn initialize_app_state() -> std::io::Result<AppState> {
     let pool = db::try_establish_connection().map_err(|error| {
         log::error!("event=db_pool_init_failed error={}", error);
@@ -59,6 +56,9 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
     Ok(AppState {
         role_catalog_use_case: Arc::new(PostgresRoleCatalogUseCase::new(pool.clone())),
         current_session_use_case: Arc::new(PostgresCurrentSessionUseCase::new(pool.clone())),
+        course_organizations_use_case: Arc::new(PostgresCourseOrganizationsUseCase::new(
+            pool.clone(),
+        )),
         notification_inbox_use_case: Arc::new(PostgresNotificationInboxUseCase::new(pool.clone())),
         notification_preferences_use_case: Arc::new(PostgresNotificationPreferencesUseCase::new(
             pool.clone(),
@@ -144,36 +144,4 @@ async fn run_startup_tasks(pool: &db::DbPool) -> std::io::Result<()> {
 
     deploy_startup_contracts(&mut conn).await;
     Ok(())
-}
-
-async fn deploy_startup_contracts(conn: &mut diesel_async::AsyncPgConnection) {
-    match timeout(
-        ETH_STARTUP_DEPLOY_TIMEOUT,
-        crate::utils::eth_utils::deploy_all_startup(conn, "LearnToken", "LRN", 18),
-    )
-    .await
-    {
-        Ok(Ok((token_addr, presigner_addr, importer_addr))) => {
-            let presigner_address = presigner_addr
-                .map(|addr| format!("{:#x}", addr))
-                .unwrap_or_else(|| "none".to_string());
-            let importer_address = importer_addr
-                .map(|addr| format!("{:#x}", addr))
-                .unwrap_or_else(|| "none".to_string());
-            log::info!(
-                "event=eth_startup_deploy_ready token_address={:#x} presigner_address={} importer_address={}",
-                token_addr,
-                presigner_address,
-                importer_address
-            );
-        }
-        Ok(Err(error)) => log::error!(
-            "event=eth_startup_deploy_failed contract_scope=wallet_transfer error={:?}",
-            error
-        ),
-        Err(_) => log::error!(
-            "event=eth_startup_deploy_timed_out contract_scope=wallet_transfer timeout_seconds={}",
-            ETH_STARTUP_DEPLOY_TIMEOUT.as_secs()
-        ),
-    }
 }
