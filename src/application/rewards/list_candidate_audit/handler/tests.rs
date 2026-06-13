@@ -1,4 +1,5 @@
 use chrono::Utc;
+use futures::executor::block_on;
 use futures::future::{ready, BoxFuture, FutureExt};
 use serde_json::json;
 
@@ -8,12 +9,11 @@ use crate::application::rewards::list_candidate_audit::{
 };
 use crate::application::rewards::ports::RewardCandidateAuditStore;
 
-#[actix_web::test]
-async fn lists_events_after_permission_and_candidate_checks() {
+#[test]
+fn lists_events_after_permission_and_candidate_checks() {
     let mut store = FakeRewardCandidateAuditStore::allowed();
 
-    let events = list_reward_candidate_audit(&mut store, 42, 77)
-        .await
+    let events = block_on(list_reward_candidate_audit(&mut store, 42, 77))
         .expect("candidate audit should load");
 
     assert_eq!(events.len(), 1);
@@ -23,12 +23,11 @@ async fn lists_events_after_permission_and_candidate_checks() {
     assert!(store.listed_events);
 }
 
-#[actix_web::test]
-async fn rejects_without_listing_candidate_or_events() {
+#[test]
+fn rejects_without_listing_candidate_or_events() {
     let mut store = FakeRewardCandidateAuditStore::denied();
 
-    let error = list_reward_candidate_audit(&mut store, 42, 77)
-        .await
+    let error = block_on(list_reward_candidate_audit(&mut store, 42, 77))
         .expect_err("candidate audit should be permission gated");
 
     assert_eq!(

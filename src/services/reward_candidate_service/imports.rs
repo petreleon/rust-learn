@@ -59,14 +59,6 @@ pub struct RewardAmountDecisionRequest {
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
-pub struct ListRewardCandidatesRequest {
-    pub status: Option<String>,
-    pub student_user_id: Option<i32>,
-    pub limit: Option<i64>,
-    pub offset: Option<i64>,
-}
-
-#[derive(Debug, Clone, Deserialize, Default)]
 pub struct PlatformRewardCandidatesRequest {
     pub status: Option<String>,
     pub search: Option<String>,

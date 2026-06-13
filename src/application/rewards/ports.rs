@@ -3,6 +3,9 @@ use futures::future::BoxFuture;
 use crate::application::rewards::list_candidate_audit::{
     RewardCandidateAuditError, RewardCandidateAuditEvent,
 };
+use crate::application::rewards::list_course_candidates::{
+    CourseRewardCandidate, CourseRewardCandidatesError, CourseRewardCandidatesFilter,
+};
 use crate::application::rewards::list_reward_history::{
     StudentRewardCandidateRecord, StudentRewardHistoryError, StudentRewardHistoryFilter,
     StudentRewardTokenTransaction, StudentRewardWalletCredit,
@@ -117,4 +120,34 @@ pub trait RewardCandidateAuditStore {
         &mut self,
         candidate_id: i64,
     ) -> BoxFuture<'_, Result<Vec<RewardCandidateAuditEvent>, RewardCandidateAuditError>>;
+}
+
+pub trait CourseRewardCandidateStore {
+    fn course_exists(
+        &mut self,
+        course_id: i32,
+    ) -> BoxFuture<'_, Result<(), CourseRewardCandidatesError>>;
+
+    fn can_approve_student_reward_candidate(
+        &mut self,
+        actor_user_id: i32,
+        course_id: i32,
+    ) -> BoxFuture<'_, Result<bool, CourseRewardCandidatesError>>;
+
+    fn can_manage_course_reward_rules(
+        &mut self,
+        actor_user_id: i32,
+        course_id: i32,
+    ) -> BoxFuture<'_, Result<bool, CourseRewardCandidatesError>>;
+
+    fn can_view_course_reward_status(
+        &mut self,
+        actor_user_id: i32,
+        course_id: i32,
+    ) -> BoxFuture<'_, Result<bool, CourseRewardCandidatesError>>;
+
+    fn list_course_reward_candidates(
+        &mut self,
+        filter: CourseRewardCandidatesFilter,
+    ) -> BoxFuture<'_, Result<Vec<CourseRewardCandidate>, CourseRewardCandidatesError>>;
 }

@@ -1,7 +1,6 @@
 include!("reward_candidate_service/imports.rs");
 include!("reward_candidate_service/submit_organization_reward_candidate.rs");
 include!("reward_candidate_service/decide_reward_amount.rs");
-include!("reward_candidate_service/list_course_reward_candidates.rs");
 include!("reward_candidate_service/create_reward_candidate.rs");
 include!("reward_candidate_service/ensure_no_active_reward_fraud_block.rs");
 include!("reward_candidate_service/has_active_reward_policy_fraud_block.rs");

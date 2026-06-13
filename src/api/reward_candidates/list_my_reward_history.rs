@@ -1,31 +1,3 @@
-async fn list_course_reward_candidates(
-    req: HttpRequest,
-    path: web::Path<i32>,
-    pool: web::Data<db::DbPool>,
-    query: web::Query<ListRewardCandidatesRequest>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match reward_candidate_service::list_course_reward_candidates(
-        &mut conn,
-        requester.user_id,
-        path.into_inner(),
-        query.into_inner(),
-    )
-    .await
-    {
-        Ok(candidates) => HttpResponse::Ok().json(candidates),
-        Err(error) => reward_candidate_error_response(error),
-    }
-}
-
 async fn list_platform_reward_candidates(
     req: HttpRequest,
     pool: web::Data<db::DbPool>,
@@ -59,8 +31,7 @@ pub fn configure_reward_candidate_routes(cfg: &mut web::ServiceConfig) {
     )
     .service(
         web::resource("/courses/{course_id}/reward-candidates")
-            .route(web::post().to(submit_course_reward_candidate))
-            .route(web::get().to(list_course_reward_candidates)),
+            .route(web::post().to(submit_course_reward_candidate)),
     )
     .service(
         web::resource("/organizations/{organization_id}/courses/{course_id}/reward-candidates")
@@ -79,8 +50,7 @@ pub fn configure_reward_candidate_routes(cfg: &mut web::ServiceConfig) {
 pub fn configure_course_reward_candidate_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::resource("/{course_id}/reward-candidates")
-            .route(web::post().to(submit_course_reward_candidate))
-            .route(web::get().to(list_course_reward_candidates)),
+            .route(web::post().to(submit_course_reward_candidate)),
     )
     .service(
         web::resource("/{course_id}/reward-candidates/{candidate_id}/teacher-decision")

@@ -1,3 +1,6 @@
+pub mod course_reward_candidate_mappers;
+pub mod course_reward_candidate_store;
+pub mod course_reward_candidate_use_case;
 pub mod reward_candidate_audit_mappers;
 pub mod reward_candidate_audit_store;
 pub mod reward_candidate_audit_use_case;

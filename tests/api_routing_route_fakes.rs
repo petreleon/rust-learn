@@ -5,6 +5,10 @@ use futures::future::{ready, BoxFuture, FutureExt};
 use rust_learn::application::rewards::list_candidate_audit::{
     RewardCandidateAuditError, RewardCandidateAuditEvent, RewardCandidateAuditUseCase,
 };
+use rust_learn::application::rewards::list_course_candidates::{
+    CourseRewardCandidate, CourseRewardCandidatesError, CourseRewardCandidatesQuery,
+    CourseRewardCandidatesUseCase,
+};
 use rust_learn::application::rewards::list_reward_history::{
     StudentRewardHistoryEntry, StudentRewardHistoryError, StudentRewardHistoryQuery,
     StudentRewardHistoryUseCase,
@@ -17,6 +21,7 @@ use rust_learn::application::rewards::manage_fraud_block::{
 
 struct RouteOnlyRewardFraudBlockUseCase;
 struct RouteOnlyRewardCandidateAuditUseCase;
+struct RouteOnlyCourseRewardCandidatesUseCase;
 struct RouteOnlyStudentRewardHistoryUseCase;
 
 pub fn reward_fraud_block_data() -> web::Data<Arc<dyn RewardFraudBlockUseCase>> {
@@ -32,6 +37,12 @@ pub fn student_reward_history_data() -> web::Data<Arc<dyn StudentRewardHistoryUs
 pub fn reward_candidate_audit_data() -> web::Data<Arc<dyn RewardCandidateAuditUseCase>> {
     web::Data::new(
         Arc::new(RouteOnlyRewardCandidateAuditUseCase) as Arc<dyn RewardCandidateAuditUseCase>
+    )
+}
+
+pub fn course_reward_candidates_data() -> web::Data<Arc<dyn CourseRewardCandidatesUseCase>> {
+    web::Data::new(
+        Arc::new(RouteOnlyCourseRewardCandidatesUseCase) as Arc<dyn CourseRewardCandidatesUseCase>
     )
 }
 
@@ -89,6 +100,20 @@ impl RewardCandidateAuditUseCase for RouteOnlyRewardCandidateAuditUseCase {
         _candidate_id: i64,
     ) -> BoxFuture<'_, Result<Vec<RewardCandidateAuditEvent>, RewardCandidateAuditError>> {
         ready(Err(RewardCandidateAuditError::Database(
+            "route-only use case".to_string(),
+        )))
+        .boxed()
+    }
+}
+
+impl CourseRewardCandidatesUseCase for RouteOnlyCourseRewardCandidatesUseCase {
+    fn list_course_reward_candidates(
+        &self,
+        _actor_user_id: i32,
+        _course_id: i32,
+        _query: CourseRewardCandidatesQuery,
+    ) -> BoxFuture<'_, Result<Vec<CourseRewardCandidate>, CourseRewardCandidatesError>> {
+        ready(Err(CourseRewardCandidatesError::Database(
             "route-only use case".to_string(),
         )))
         .boxed()

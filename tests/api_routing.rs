@@ -30,6 +30,7 @@ async fn api_scope_and_following_routes_are_reachable() {
         App::new()
             .app_data(api_routing_route_fakes::reward_fraud_block_data())
             .app_data(api_routing_route_fakes::reward_candidate_audit_data())
+            .app_data(api_routing_route_fakes::course_reward_candidates_data())
             .app_data(api_routing_route_fakes::student_reward_history_data())
             .route(
                 "/hey",
