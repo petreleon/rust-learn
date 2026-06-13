@@ -1,8 +1,8 @@
 use crate::db::schema::{
     courses, courses_organizations, delegated_permissions, external_transactions,
-    internal_transactions, notifications, organizations, reward_candidates, reward_execution_jobs,
+    internal_transactions, organizations, reward_candidates, reward_execution_jobs,
     reward_fraud_blocks, reward_payout_records, reward_wallet_credit_records, teacher_applications,
-    user_role_course, user_role_organization, users, wallets,
+    user_role_course, user_role_organization, wallets,
 };
 use crate::domain::rewards::execution::RewardExecutionJobStatus;
 use crate::domain::rewards::fraud_block::{

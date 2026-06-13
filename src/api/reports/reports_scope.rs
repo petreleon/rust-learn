@@ -1,19 +1,7 @@
 pub fn reports_scope() -> actix_web::Scope {
     web::scope("/reports")
-        .service(
-            web::resource("/platform/summary").route(web::get().to(get_platform_summary).wrap(
-                PlatformPermissionMiddleware::require(Permissions::VIEW_REPORT.to_string()),
-            )),
-        )
-        .service(
-            web::resource("/platform/summary.csv").route(
-                web::get()
-                    .to(export_platform_summary)
-                    .wrap(PlatformPermissionMiddleware::require(
-                        Permissions::EXPORT_DATA.to_string(),
-                    )),
-            ),
-        )
+        .service(crate::http::reporting::platform_summary_resource())
+        .service(crate::http::reporting::platform_summary_csv_resource())
         .service(web::resource("/platform/reward-dashboard").route(
             web::get().to(get_platform_reward_dashboard).wrap(
                 PlatformPermissionMiddleware::require(Permissions::VIEW_REWARD_AUDIT.to_string()),

@@ -6,8 +6,8 @@ use crate::models::param_type::ParamType;
 use crate::services::reporting_service::{
     organization_report_csv, organization_report_summary, organization_reward_dashboard,
     organization_reward_dashboard_csv, platform_delegated_permissions_csv,
-    platform_fraud_dashboard, platform_fraud_dashboard_csv, platform_report_csv,
-    platform_report_summary, platform_reward_approvals_csv, platform_reward_dashboard,
+    platform_fraud_dashboard, platform_fraud_dashboard_csv, platform_reward_approvals_csv,
+    platform_reward_dashboard,
     platform_reward_dashboard_csv, platform_teacher_applications_csv, platform_token_payouts_csv,
     platform_wallet_credits_csv, platform_wallet_reconciliation,
 };
@@ -28,36 +28,6 @@ fn csv_response(filename: &str, body: String) -> HttpResponse {
             format!("attachment; filename=\"{}\"", filename),
         ))
         .body(body)
-}
-
-async fn get_platform_summary(pool: web::Data<db::DbPool>) -> impl Responder {
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match platform_report_summary(&mut conn).await {
-        Ok(summary) => HttpResponse::Ok().json(summary),
-        Err(err) => {
-            log::error!("event=report_load_failed scope=platform error={:?}", err);
-            HttpResponse::InternalServerError().body("Failed to load platform report")
-        }
-    }
-}
-
-async fn export_platform_summary(pool: web::Data<db::DbPool>) -> impl Responder {
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match platform_report_summary(&mut conn).await {
-        Ok(summary) => csv_response("platform-summary.csv", platform_report_csv(&summary)),
-        Err(err) => {
-            log::error!("event=report_export_failed scope=platform error={:?}", err);
-            HttpResponse::InternalServerError().body("Failed to export platform report")
-        }
-    }
 }
 
 async fn get_platform_reward_dashboard(pool: web::Data<db::DbPool>) -> impl Responder {

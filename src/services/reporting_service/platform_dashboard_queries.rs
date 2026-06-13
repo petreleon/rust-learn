@@ -132,15 +132,3 @@ pub async fn platform_fraud_dashboard(
             .collect(),
     })
 }
-
-pub async fn platform_report_summary(
-    conn: &mut AsyncPgConnection,
-) -> QueryResult<PlatformReportSummary> {
-    Ok(PlatformReportSummary {
-        total_users: users::table.count().get_result(conn).await?,
-        total_organizations: organizations::table.count().get_result(conn).await?,
-        total_courses: courses::table.count().get_result(conn).await?,
-        total_wallets: wallets::table.count().get_result(conn).await?,
-        total_notifications: notifications::table.count().get_result(conn).await?,
-    })
-}

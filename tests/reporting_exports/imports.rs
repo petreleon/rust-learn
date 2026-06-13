@@ -40,13 +40,23 @@ use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::models::user_role_platform::UserRolePlatform;
 use rust_learn::models::wallet::NewWallet;
 use rust_learn::repositories::user_repository::create_user;
+use rust_learn::application::reporting::platform_summary::PlatformSummaryUseCase;
+use rust_learn::infra::postgres::reporting::platform_summary_use_case::PostgresPlatformSummaryUseCase;
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::json;
 use serde_json::Value;
+use std::sync::Arc;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}_{}", prefix, std::process::id(), ts)
+}
+
+fn platform_summary_use_case(pool: &DbPool) -> web::Data<Arc<dyn PlatformSummaryUseCase>> {
+    web::Data::new(
+        Arc::new(PostgresPlatformSummaryUseCase::new(pool.clone()))
+            as Arc<dyn PlatformSummaryUseCase>,
+    )
 }
 
 async fn setup_conn(

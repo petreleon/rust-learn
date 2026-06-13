@@ -959,29 +959,28 @@ remaining gaps.
 | 41-48 | Extracted wallet audit, wallet reads, wallet linking, token tax, deposit intents, retirements, and observed deposit indexing into wallet application/HTTP/Postgres ownership. |
 | 49-55 | Moved wallet and reward authorization decisions through `application/access_control`, including payout, platform, course, organization, fraud-block, and notification-recipient policies. |
 | 56 | Moved production Actix app-data registration out of `main.rs`; `main.rs` is now process orchestration while bootstrap owns concrete state and route wiring. |
-| 57-63 | Typed reward audit, execution job, candidate, fraud-block, policy, payout-method, and token vocabulary in the rewards domain while keeping compatibility aliases where legacy callers still need them. |
+| 57-64 | Typed reward audit, execution job, candidate, fraud-block, policy, payout-method, token, wallet-credit, and compensation transaction vocabulary in the rewards domain while keeping compatibility aliases where legacy callers still need them. |
 
 ## Recent Slice Evidence
 
-Slice 64: type reward wallet-credit and compensation transaction vocabulary
-inside the rewards domain.
+Slice 65: move platform report summary into the reporting application and HTTP
+rings.
 
-- [x] Add `RewardWalletCreditTransactionType` to
-      `domain/rewards/wallet_credit` with the stable persisted transaction key,
-      parsing, and display formatting.
-- [x] Add `RewardCompensationTransactionType` to
-      `domain/rewards/compensation` with the stable persisted transaction key,
-      parsing, and display formatting.
-- [x] Update the wallet-credit and compensation Postgres transaction inserts to
-      obtain their persisted string keys from the domain types.
-- [x] Self-critique: wallet-credit and compensation use cases still expose
-      persistence-facing strings at some compatibility surfaces, and legacy
-      tests still import the old constants until those callers are migrated.
-- [x] Prove the domain transaction vocabulary with
-      `domain::rewards::wallet_credit` and `domain::rewards::compensation`,
-      preserve DB-backed wallet-credit and compensation regressions, prove
-      binary wiring with `cargo check --features app-bin --bin rust-learn`, and
-      prove formatting, whitespace, line-count, and boundary scans.
+- [x] Create `application/reporting/platform_summary` with explicit output,
+      error, store port, service trait, and handler modules.
+- [x] Move the platform summary count query behind
+      `infra/postgres/reporting` and wire it through bootstrap app data.
+- [x] Create `http/reporting` with platform summary JSON and CSV response
+      contracts plus route resources for `/reports/platform/summary` and
+      `/reports/platform/summary.csv`.
+- [x] Keep the legacy reports scope as a delegating wrapper for these two route
+      resources while the rest of reporting migrates.
+- [x] Self-critique: reward dashboards, fraud dashboards, organization reports,
+      reconciliation, and CSV export datasets still live in the legacy
+      include-based reporting service until their own reporting slices move.
+- [x] Prove the application fake-port behavior, platform-summary CSV contract,
+      DB-backed platform summary read/export regression, API route reachability,
+      binary wiring, formatting, whitespace, line-count, and boundary scans.
 
 ## Legacy Transition Rules
 
@@ -1164,6 +1163,27 @@ boundary checks from the matrix above to every canonical context.
 - [ ] Add tests at three levels: pure domain transition tests, application
       use-case tests with fake ports, and API regression tests for existing
       routes.
+
+## Reporting Context
+
+- [x] Create `application/reporting/platform_summary` with explicit output,
+      error, store, service, and handler modules.
+- [x] Move platform summary Postgres counts behind
+      `infra/postgres/reporting`.
+- [x] Move platform summary JSON and CSV response contracts into
+      `http/reporting/dto`.
+- [x] Move `/api/reports/platform/summary` and
+      `/api/reports/platform/summary.csv` route ownership into
+      `http/reporting` while preserving legacy URLs through the existing
+      reports scope.
+- [ ] Move platform reward dashboard read/export behavior into
+      `application/reporting` and `http/reporting`.
+- [ ] Move platform fraud dashboard read/export behavior into
+      `application/reporting` and `http/reporting`.
+- [ ] Move platform CSV exports and wallet reconciliation into reporting
+      application use cases and Postgres query adapters.
+- [ ] Move organization summary and organization reward dashboard read/export
+      behavior into `application/reporting` and `http/reporting`.
 
 ## Wallet Context
 

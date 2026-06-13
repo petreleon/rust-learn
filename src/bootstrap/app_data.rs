@@ -56,5 +56,6 @@ pub fn configure_app_data(cfg: &mut web::ServiceConfig, app_state: &AppState) {
         .app_data(web::Data::new(app_state.wallet_read_use_case.clone()))
         .app_data(web::Data::new(app_state.wallet_retirement_use_case.clone()))
         .app_data(web::Data::new(app_state.wallet_token_tax_use_case.clone()))
+        .app_data(web::Data::new(app_state.platform_summary_use_case.clone()))
         .app_data(web::Data::new(app_state.readiness_use_case.clone()));
 }
