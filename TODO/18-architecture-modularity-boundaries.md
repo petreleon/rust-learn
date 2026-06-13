@@ -2166,6 +2166,40 @@ Slice 42: move wallet audit route ownership into the wallet HTTP ring.
       remaining `wallet_audit_service` in `src`, and touched non-generated Rust
       files stay under the manual line limit.
 
+Slice 43: move wallet read route ownership into the wallet HTTP ring.
+
+- [x] Create `application/wallet/read_wallet` with explicit subject, output,
+      error, service, store, handler, fake store, and handler tests. The
+      application layer owns the existing read ordering: self reads skip the
+      permission probe, non-self user reads check wallet-view permission before
+      user existence, and organization reads check organization existence
+      before organization wallet-view permission.
+- [x] Move wallet read persistence behind `infra/postgres/wallet`, split into
+      read mapper, read store, and read use-case adapter modules. The shared
+      wallet-view permission probes now live in `wallet_access.rs` and are used
+      by both wallet audit and wallet read adapters.
+- [x] Move `/api/wallets/me`, `/api/wallets/users/{id}`, and
+      `/api/wallets/organizations/{id}` GET resources into
+      `http/wallet/routes.rs` while preserving the existing URL paths under
+      the legacy `/api/wallets` scope.
+- [x] Split wallet HTTP handlers into `http/wallet/handlers/read.rs` and
+      `http/wallet/handlers/audit.rs`, and add `http/wallet/dto/wallet.rs`
+      for read response mapping.
+- [x] Wire `WalletReadUseCase` through `bootstrap::AppState`, production
+      `main.rs` app data, and the wallet-linking route test app.
+- [x] Remove the old include-based wallet read handlers from `api/wallets` and
+      rename the remaining include fragments to their current link-wallet
+      responsibility.
+- [x] Self-critique: wallet read and wallet audit are now Level 2, but wallet
+      linking, token tax, deposits, retirements, and wallet permission-source
+      unification still live in legacy wallet services and API helpers.
+- [x] Prove application fake-port tests, app binary check, `wallet_linking`,
+      and `api_routing` pass; boundary scans show no
+      Actix/Diesel/service/repository imports in `domain/wallet` or
+      `application/wallet`, no Diesel/repository/infra/service imports in
+      `http/wallet`, and no legacy wallet read handler ownership remains in
+      `api/wallets`.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -2416,6 +2450,18 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `main.rs` app data, and the wallet-linking route test app.
 - The old include-based `src/services/wallet_audit_service/*` implementation
   and temporary `src/services/wallet_audit_service.rs` wrapper were removed.
+- Wallet read is now an application-facing `WalletReadUseCase`; concrete
+  connection-backed read behavior lives in
+  `infra/postgres/wallet/wallet_read_use_case.rs` and
+  `infra/postgres/wallet/wallet_read_store.rs`.
+- Wallet read permission probing, user/organization existence checks, and
+  wallet row mapping now sit behind the `WalletReadStore` port, with shared
+  wallet-view permission helpers in `infra/postgres/wallet/wallet_access.rs`.
+- Wallet read response mapping now lives in `http/wallet/dto/wallet.rs`, and
+  wallet read route handlers plus route resources now live in `http/wallet`.
+- The legacy `api/wallets` include fragments no longer own GET wallet reads;
+  they keep only link, token tax, deposit, and retirement behavior for the next
+  wallet Level 2 slices.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -2906,6 +2952,13 @@ boundary checks from the matrix above to every canonical context.
       while preserving `/api/wallets/me/audit`,
       `/api/wallets/users/{id}/audit`, and
       `/api/wallets/organizations/{id}/audit`.
+- [x] Create `application/wallet/read_wallet` with explicit subject, output,
+      error, service, store, and handler modules.
+- [x] Move wallet read Diesel implementation behind `infra/postgres/wallet`
+      with granular read store, mapper, and use-case adapter modules.
+- [x] Move wallet read route handlers from `api/wallets` into `http/wallet`
+      while preserving `/api/wallets/me`, `/api/wallets/users/{id}`, and
+      `/api/wallets/organizations/{id}`.
 - [ ] Move wallet linking, token tax, deposit, and retirement use cases from
       legacy wallet services into `application/wallet`.
 - [ ] Move wallet access checks through `application/access_control` instead of

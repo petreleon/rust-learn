@@ -9,12 +9,6 @@ async fn ensure_user_wallet_access(
     }
 
     let permissions = match operation {
-        WalletOperation::View => vec![
-            Permissions::VIEW_WALLET.to_string(),
-            Permissions::VIEW_TRANSACTIONS.to_string(),
-            Permissions::RECONCILE_WALLETS.to_string(),
-            Permissions::MANAGE_WALLETS.to_string(),
-        ],
         WalletOperation::Link => vec![
             Permissions::CREATE_WALLET.to_string(),
             Permissions::MANAGE_WALLETS.to_string(),
@@ -35,12 +29,6 @@ async fn ensure_organization_wallet_access(
     operation: WalletOperation,
 ) -> Result<(), HttpResponse> {
     let platform_permissions = match operation {
-        WalletOperation::View => vec![
-            Permissions::VIEW_WALLET.to_string(),
-            Permissions::VIEW_TRANSACTIONS.to_string(),
-            Permissions::RECONCILE_WALLETS.to_string(),
-            Permissions::MANAGE_WALLETS.to_string(),
-        ],
         WalletOperation::Link => vec![
             Permissions::CREATE_WALLET.to_string(),
             Permissions::MANAGE_WALLETS.to_string(),
@@ -56,11 +44,6 @@ async fn ensure_organization_wallet_access(
     }
 
     let organization_permissions = match operation {
-        WalletOperation::View => vec![
-            Permissions::MANAGE_ORG_WALLETS.to_string(),
-            Permissions::VIEW_ORG_REWARD_REPORTS.to_string(),
-            Permissions::MANAGE_ORG_REWARD_BUDGET.to_string(),
-        ],
         WalletOperation::Link => vec![Permissions::MANAGE_ORG_WALLETS.to_string()],
     };
 
@@ -81,10 +64,6 @@ async fn ensure_organization_wallet_access(
                 .body("Failed to check organization wallet access"))
         }
     }
-}
-
-fn wallet_not_linked_response() -> HttpResponse {
-    HttpResponse::NotFound().body("Wallet not linked")
 }
 
 fn link_response(linked_wallet: LinkedWallet) -> HttpResponse {
@@ -115,15 +94,6 @@ fn wallet_token_transfer_error_response(error: WalletTokenTransferError) -> Http
             HttpResponse::InternalServerError().body("Failed to process wallet token transfer")
         }
     }
-}
-
-async fn get_my_wallet(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
-    get_user_wallet_by_id(pool, requester.user_id, requester.user_id).await
 }
 
 async fn link_my_wallet(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {

@@ -58,7 +58,6 @@ impl From<LinkedWallet> for WalletLinkResponse {
 
 #[derive(Clone, Copy)]
 enum WalletOperation {
-    View,
     Link,
 }
 

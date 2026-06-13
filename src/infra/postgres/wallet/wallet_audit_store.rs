@@ -4,7 +4,7 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::wallet::audit_wallet::{
     WalletAudit, WalletAuditError, WalletAuditStore, WalletAuditTarget, WalletAuditWallet,
 };
-use crate::infra::postgres::wallet::wallet_audit_access::{
+use crate::infra::postgres::wallet::wallet_access::{
     can_view_organization_wallet, can_view_user_wallet,
 };
 use crate::infra::postgres::wallet::wallet_audit_candidate_ids::load_wallet_reward_candidate_ids;
@@ -31,7 +31,12 @@ impl WalletAuditStore for PostgresWalletAuditStore<'_> {
         &mut self,
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, WalletAuditError>> {
-        async move { can_view_user_wallet(self.conn, actor_user_id).await }.boxed()
+        async move {
+            can_view_user_wallet(self.conn, actor_user_id)
+                .await
+                .map_err(|error| WalletAuditError::UserAccessCheck(error.to_string()))
+        }
+        .boxed()
     }
 
     fn can_view_organization_wallet(
@@ -39,8 +44,12 @@ impl WalletAuditStore for PostgresWalletAuditStore<'_> {
         actor_user_id: i32,
         organization_id: i32,
     ) -> BoxFuture<'_, Result<bool, WalletAuditError>> {
-        async move { can_view_organization_wallet(self.conn, actor_user_id, organization_id).await }
-            .boxed()
+        async move {
+            can_view_organization_wallet(self.conn, actor_user_id, organization_id)
+                .await
+                .map_err(|error| WalletAuditError::OrganizationAccessCheck(error.to_string()))
+        }
+        .boxed()
     }
 
     fn user_exists(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, WalletAuditError>> {

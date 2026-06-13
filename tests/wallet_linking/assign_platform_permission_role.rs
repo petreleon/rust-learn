@@ -89,10 +89,13 @@ fn wallet_test_app(
 > {
     let wallet_audit_use_case: Arc<dyn WalletAuditUseCase> =
         Arc::new(PostgresWalletAuditUseCase::new(pool.clone()));
+    let wallet_read_use_case: Arc<dyn WalletReadUseCase> =
+        Arc::new(PostgresWalletReadUseCase::new(pool.clone()));
 
     App::new()
         .app_data(web::Data::new(pool))
         .app_data(web::Data::new(wallet_audit_use_case))
+        .app_data(web::Data::new(wallet_read_use_case))
         .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
         .service(web::scope("/api").service(rust_learn::api::wallets::wallet_scope()))
 }

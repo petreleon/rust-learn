@@ -1,4 +1,4 @@
-pub mod wallet_audit_access;
+pub mod wallet_access;
 pub mod wallet_audit_candidate_ids;
 pub mod wallet_audit_compensation_records;
 pub mod wallet_audit_external_reward_transactions;
@@ -11,3 +11,6 @@ pub mod wallet_audit_reward_records;
 pub mod wallet_audit_store;
 pub mod wallet_audit_use_case;
 pub mod wallet_audit_wallet_lookup;
+pub mod wallet_read_mappers;
+pub mod wallet_read_store;
+pub mod wallet_read_use_case;

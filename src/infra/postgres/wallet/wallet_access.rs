@@ -1,6 +1,5 @@
 use diesel_async::AsyncPgConnection;
 
-use crate::application::wallet::audit_wallet::WalletAuditError;
 use crate::config::constants::permissions::Permissions;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;
@@ -8,21 +7,16 @@ use crate::repositories::platform_repository::user_permission_platform_request;
 pub(super) async fn can_view_user_wallet(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
-) -> Result<bool, WalletAuditError> {
-    has_any_platform_permission(conn, actor_user_id, user_wallet_view_permissions())
-        .await
-        .map_err(|error| WalletAuditError::UserAccessCheck(error.to_string()))
+) -> diesel::QueryResult<bool> {
+    has_any_platform_permission(conn, actor_user_id, user_wallet_view_permissions()).await
 }
 
 pub(super) async fn can_view_organization_wallet(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,
-) -> Result<bool, WalletAuditError> {
-    if has_any_platform_permission(conn, actor_user_id, user_wallet_view_permissions())
-        .await
-        .map_err(|error| WalletAuditError::UserAccessCheck(error.to_string()))?
-    {
+) -> diesel::QueryResult<bool> {
+    if has_any_platform_permission(conn, actor_user_id, user_wallet_view_permissions()).await? {
         return Ok(true);
     }
 
@@ -33,7 +27,6 @@ pub(super) async fn can_view_organization_wallet(
         organization_wallet_view_permissions(),
     )
     .await
-    .map_err(|error| WalletAuditError::OrganizationAccessCheck(error.to_string()))
 }
 
 fn user_wallet_view_permissions() -> Vec<String> {
