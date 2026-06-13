@@ -227,27 +227,33 @@ application/reporting, infra/postgres/reporting, and http/reporting.
 ```
 
 Level 2 is complete only when the target is ring-complete,
-adapter-complete, and migration-aware:
+adapter-complete, use-case-complete, route-complete, boundary-complete,
+wiring-complete, and migration-complete:
 
 - Ring-complete means every behavior-owning context has a stable home under
   `domain`, `application`, `infra`, and `http`; no context should remain a
   scattered collection of `api/*`, `services/*`, `repositories/*`, and
   `utils/*` names.
-- Adapter-complete means `infra/postgres` is not a rewards-only folder. It
-  grows one context at a time as Diesel code moves behind application ports:
-  `infra/postgres/rewards` is the current pilot, while `infra/postgres/identity`,
-  `infra/postgres/content`, `infra/postgres/learning`, and the other canonical
-  contexts are equally part of the target.
-- Migration-aware means the current filesystem may show only the contexts that
-  have already moved. A missing context folder during migration is backlog, not
-  architecture guidance.
+- Adapter-complete means every external system is grouped first by adapter,
+  then by context. `infra/postgres` must contain every DB-backed context, not
+  only rewards. `infra/object_storage`, `infra/ethereum`, `infra/email`, and
+  other adapters follow the same rule for the contexts they serve.
 - Use-case-complete means application modules are named after user/business
   actions, not vague service buckets. Prefer `manage_reward_policy`,
   `submit_assessment_attempt`, and `notification_inbox` over
   `reward_service`, `course_service`, or `session_service`.
+- Route-complete means every route is owned by `http/<context>`. Legacy `api/*`
+  modules may exist only as temporary delegating shims with a deletion note.
 - Boundary-complete means HTTP DTOs, application command/output types, domain
-  values, Diesel records, and external adapters remain separate types unless a
+  values, Diesel records, and provider payloads remain separate types unless a
   migration note explicitly accepts a temporary leak.
+- Wiring-complete means `bootstrap` constructs concrete use cases and adapters.
+  HTTP handlers receive application services; they do not create Diesel,
+  Ethereum, S3, email, or notification adapters.
+- Migration-complete means old `services/*`, `repositories/*`, `models/*`, and
+  `utils/*` no longer own behavior. Anything left there is either a persistence
+  record, a compatibility wrapper with a named deletion condition, or shared
+  code waiting on an explicit migration slice.
 
 Granularity levels:
 
@@ -260,6 +266,27 @@ Granularity levels:
 - Level 3, optional later: split rings into Cargo crates or workspace packages
   when compiler-enforced boundaries become worth the extra build and dependency
   management cost.
+
+Level 2 completion matrix:
+
+| Context | Domain owns | Application owns | Postgres owns | Other infra owns | HTTP owns |
+| --- | --- | --- | --- | --- | --- |
+| `identity` | users, credentials, sessions, verification states | registration, login, password reset, email verification, current session | users, credentials, tokens, session read models | verification and password-reset mailers | auth, session, and user profile routes |
+| `access_control` | permissions, roles, scopes, hierarchy, delegation rules | authorization decisions, role assignment, delegated permission grants/revokes | role catalogs, permission checks, hierarchy and delegation stores | none unless an external policy engine is introduced | role, permission, delegation, and capability routes |
+| `organizations` | organization, membership, membership audit rules | organization CRUD, member management, dashboards, invitations | organizations, memberships, invites, member audit, dashboard read models | organization notification hooks when needed | organization, member, invite, and dashboard routes |
+| `learning` | courses, enrollment, progress, assessment rules | course discovery, lifecycle, enrollment decisions, progress writes, assessment reads/submission | courses, enrollments, progress, assessments, attempts | none by default | course, enrollment, progress, and assessment routes |
+| `content` | chapters, content items, upload jobs, media rules | chapter/content item management, upload URL requests, media URL requests, upload job processing | chapters, content items, upload jobs, media metadata | object storage upload/media providers, worker-facing media adapters | chapter, content, media, and upload routes |
+| `teacher_applications` | application lifecycle, decisions, audit vocabulary | submit, nominate, list, review, audit application decisions | applications, review decisions, audit events | teacher application mailers | teacher application and audit routes |
+| `kyc` | submission lifecycle, review decisions, audit vocabulary | submit KYC, review KYC, list KYC audit | KYC submissions, review decisions, audit events | external KYC provider adapter if added later | KYC submission, review, and audit routes |
+| `rewards` | candidates, policies, fraud blocks, payouts, compensation, transition rules | candidate submission, teacher decision, amount decision, policy/fraud management, payout planning, token confirmation, wallet credit, reconciliation, reward history | candidates, policies, fraud blocks, audit, execution jobs, payout records, compensation, wallet credit records, reward read models | Ethereum reward contract gateway, reward notification hooks | reward candidate, policy, fraud block, payout, history, and review routes |
+| `wallet` | wallets, deposits, transfers, token ledger, wallet audit rules | wallet linking, deposit intents, deposit indexing, token transfers, wallet audit | wallets, transactions, deposit intents, wallet credit records | Ethereum wallet transfer gateway | wallet, deposit, transfer, and audit routes |
+| `reporting` | report vocabulary and pure aggregation rules only when useful | platform summaries, organization summaries, reward/fraud dashboards, exports, reconciliation views | report queries, reconciliation queries, CSV export read models | file/export sinks if added later | report dashboard and export routes |
+| `notifications` | preferences, notification records, delivery decisions | preference reads/writes, inbox actions, notification creation, dispatch planning | preferences, inbox records, outbox records, delivery attempts | dispatcher, channel router, email/push/SMS providers | preference, inbox, and notification routes |
+| `operations` | health/startup state vocabulary | readiness checks, startup contract orchestration, operational status | persistent state, readiness queries, version checks | object storage, Ethereum, and runtime readiness adapters | health, readiness, and operational routes |
+
+If a matrix cell is empty in the filesystem, that is a migration gap, not a
+target-shape decision. If a context genuinely does not need a ring or adapter,
+record that as `none` in this file before omitting the folder.
 
 Complete Level 2 shape for the application:
 
@@ -562,12 +589,14 @@ src/
       error.rs
 ```
 
-Rewards Level 2 pilot excerpt, not the complete Postgres target:
+Level 2 deep example: rewards.
 
-This excerpt is deliberately rewards-focused because rewards is the pilot
-context. It must not be read as "Postgres only has rewards." The complete
-target above keeps all canonical persistence-owning contexts under
-`infra/postgres/<context>` as their slices move.
+This is an example of how one complex context becomes granular after the
+complete Level 2 target is accepted. It must not be read as "Postgres only has
+rewards." Every persistence-owning context in the matrix above gets its own
+`infra/postgres/<context>` folder as its slices move. Rewards is merely the
+deepest current extraction, not the architectural template for which contexts
+exist.
 
 ```text
 src/
@@ -705,8 +734,9 @@ rust_learn_http_actix   -> rust_learn_application + rust_learn_domain
 rust_learn_bootstrap    -> all crates; owns wiring only
 ```
 
-Do not start at Level 3. First prove Level 2 on rewards; move to crates only if
-imports keep crossing boundaries accidentally after the module layout is clean.
+Do not start at Level 3. First complete Level 2 across the active bounded
+contexts; move to crates only if imports keep crossing boundaries accidentally
+after the module layout is clean.
 
 Module boundary enforcement starts with review and `rg` checks, then can become
 compiler-enforced crates later. A useful preflight once the layout exists:
@@ -1928,11 +1958,13 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - [ ] Prefer explicit modules over clever generic abstractions. Granular means
       easy to locate and test, not abstract for its own sake.
 
-## Pilot Context: Rewards
+## Current Deep Extraction: Rewards
 
-Use rewards as the first serious extraction because it currently crosses
-candidate submission, fraud blocks, reward policy, audit events, wallet credits,
-notifications, reporting, and platform review.
+Rewards is the current deep extraction because it crosses candidate submission,
+fraud blocks, reward policy, audit events, wallet credits, notifications,
+reporting, and platform review. This section tracks rewards work only; it does
+not narrow the complete Level 2 target. Apply the same ring, adapter, route, and
+boundary checks from the matrix above to every canonical context.
 
 - [x] Create the rewards context across the top-level rings:
       `domain/rewards`, `application/rewards`, `infra/postgres/rewards`, and
@@ -2029,10 +2061,12 @@ notifications, reporting, and platform review.
    chapters and notification preferences.
 3. Replace `include!` with normal modules in one context at a time.
 4. Introduce `access_control` and route all permission checks through it.
-5. Extract rewards as the pilot bounded context across `domain`,
-   `application`, `infra/postgres`, and `http`.
-6. Extract learning/content after rewards proves the pattern.
-7. Extract wallet infrastructure adapters from wallet application use cases.
+5. Finish the active rewards extraction across `domain`, `application`,
+   `infra/postgres`, `infra/ethereum`, `http`, and `notifications`.
+6. Complete already-started contexts next: identity, learning, content,
+   notifications, operations, access control, reporting, and wallet.
+7. Extract organizations, teacher applications, and KYC with the same Level 2
+   matrix instead of leaving them in legacy services.
 8. Convert reporting to explicit read-model/query modules rather than general
    business services.
 9. Update frontend permission/capability helpers to consume backend capability
