@@ -283,7 +283,7 @@ Level 2 completion matrix:
 | `identity` | users, credentials, sessions, verification states | registration, login, password reset, email verification, current session | users, credentials, tokens, session read models | verification and password-reset mailers | auth, session, and user profile routes |
 | `access_control` | permissions, roles, scopes, hierarchy, delegation rules | authorization decisions, role assignment, delegated permission grants/revokes | role catalogs, permission checks, hierarchy and delegation stores | none unless an external policy engine is introduced | role, permission, delegation, and capability routes |
 | `organizations` | organization, membership, membership audit rules | organization CRUD, member management, dashboards, invitations | organizations, memberships, invites, member audit, dashboard read models | organization notification hooks when needed | organization, member, invite, and dashboard routes |
-| `learning` | courses, enrollment, progress, assessment rules | course discovery, lifecycle, deletion, enrollment decisions, progress writes, assessment reads/submission, course-organization reads | courses, course-organization links, enrollments, progress, assessments, attempts | none by default | course, course-organization, enrollment, progress, and assessment routes |
+| `learning` | courses, enrollment, progress, assessment rules | course discovery, course detail reads, lifecycle, deletion, enrollment decisions, progress writes, assessment reads/submission, course-organization reads | courses, course-organization links, enrollments, progress, assessments, attempts | none by default | course, course-organization, enrollment, progress, and assessment routes |
 | `content` | chapters, content items, upload jobs, media rules | chapter/content item management, upload URL requests, media URL requests, upload job processing | chapters, content items, upload jobs, media metadata | object storage upload/media providers, worker-facing media adapters | chapter, content, media, and upload routes |
 | `teacher_applications` | application lifecycle, decisions, audit vocabulary | submit, nominate, list, review, audit application decisions | applications, review decisions, audit events | teacher application mailers | teacher application and audit routes |
 | `kyc` | submission lifecycle, review decisions, audit vocabulary | submit KYC, review KYC, list KYC audit | KYC submissions, review decisions, audit events | external KYC provider adapter if added later | KYC submission, review, and audit routes |
@@ -430,6 +430,7 @@ src/
       ports.rs
     learning/
       discover_courses/
+      get_course/
       manage_course/
       delete_course/
       request_enrollment/
@@ -522,6 +523,7 @@ src/
         mappers.rs
       learning/
         course_store.rs
+        course_read_store.rs
         course_deletion_store.rs
         enrollment_store.rs
         course_organization_store.rs
@@ -981,29 +983,33 @@ remaining gaps.
 | 86 | Split `http/learning/course_routes` away from `include!` and `imports.rs` into explicit modules for DTOs, support/error mapping, catalog, teaching dashboard, management, lifecycle, organizations, roles, progress, enrollment, assessments, and routes. |
 | 87 | Moved `/courses/{id}/organizations` behind `application/learning/list_course_organizations`, `infra/postgres/learning` adapters, an HTTP-owned response DTO, and bootstrap app-data wiring; route and permission tests now cover the injected use case. |
 | 88 | Moved `DELETE /courses/{id}` behind `application/learning/delete_course`, a Postgres delete adapter/use case, and bootstrap app-data wiring; the HTTP management handler no longer owns Diesel deletion. |
+| 89 | Moved `GET /courses/{id}` behind `application/learning/get_course`, a Postgres read adapter/use case, and an HTTP-owned `CourseResponse`; the catalog handler no longer returns the Diesel `Course` record directly. |
 
 ## Recent Slice Evidence
 
-Slice 88: move course deletion into the learning use-case boundary.
+Slice 89: move course detail reads into the learning use-case boundary.
 
-- [x] Add `application/learning/delete_course` with outcome, error, use-case,
-      store port, and fake-port application test.
-- [x] Add `infra/postgres/learning/course_deletion_store.rs` and
-      `course_deletion_use_case.rs` so Diesel deletion and pool access stay
-      outside HTTP.
-- [x] Inject `CourseDeletionUseCase` through `bootstrap/app_state`,
+- [x] Add `application/learning/get_course` with output, error, use-case,
+      store port, and module-local fake-port application test.
+- [x] Add `infra/postgres/learning/course_read_store.rs` and
+      `course_read_use_case.rs` so Diesel lookup and model mapping stay outside
+      HTTP.
+- [x] Add `http/learning/dto/CourseResponse`; `GET /courses/{id}` now maps
+      application output into an HTTP contract instead of serializing the
+      Diesel `Course` record.
+- [x] Inject `CourseReadUseCase` through `bootstrap/app_state`,
       `bootstrap/startup`, and `bootstrap/app_data`.
-- [x] Keep the existing HTTP contract: deleted courses return `200` with
-      `Course deleted`, missing courses return `404`, and DB failures return
-      `500`.
-- [x] Self-critique: this only removes the direct delete query from course
-      management. Create/update still call legacy course services, and catalog,
-      enrollment, progress, roles, and teaching routes still need deeper
-      Level 2 extraction.
+- [x] Keep the existing HTTP contract: found courses return the same public JSON
+      fields, missing courses return `404`, and DB failures return `500`.
+- [x] Self-critique: this only removes the direct course-detail query. Course
+      discovery/catalog list, learner catalog detail/learning, teaching reads,
+      enrollment, progress, roles, lifecycle, and create/update still need
+      deeper Level 2 extraction.
 - [x] Prove behavior with binary compile, application fake-port test,
-      API route reachability, formatting, line-count checks, and a boundary
-      scan proving Diesel/schema references only appear in the Postgres adapter
-      for this slice.
+      API route reachability, course-read permission test with the real
+      Postgres use case, formatting, line-count checks, and a boundary scan
+      proving Diesel/schema/model references only appear in the Postgres
+      adapter for this slice.
 
 ## Legacy Transition Rules
 
@@ -1167,6 +1173,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] `DELETE /courses/{id}` now has application outcome/error/port contracts,
       a Postgres adapter/use case, bootstrap wiring, and route/application
       tests.
+- [x] `GET /courses/{id}` now has application output/error/port contracts, a
+      Postgres adapter/use case, HTTP DTO mapping, bootstrap wiring, and
+      route/permission/application tests.
 - [ ] Move remaining learning service/DB-heavy handlers into application use
       cases with Postgres adapters.
 

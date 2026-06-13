@@ -4,4 +4,6 @@ pub mod course_deletion_store;
 pub mod course_deletion_use_case;
 pub mod course_organization_store;
 pub mod course_organization_use_case;
+pub mod course_read_store;
+pub mod course_read_use_case;
 mod mappers;

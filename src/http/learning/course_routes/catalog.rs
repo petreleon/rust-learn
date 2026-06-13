@@ -1,10 +1,10 @@
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
-use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use std::sync::Arc;
 
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+
+use crate::application::learning::get_course::{CourseReadError, CourseReadUseCase};
 use crate::db;
-use crate::db::schema::courses;
-use crate::models::course::Course;
+use crate::http::learning::dto::CourseResponse;
 use crate::services::course_service::{
     discover_courses, discover_learner_course_catalog, get_learner_course_detail,
     get_learner_course_learning, CourseDiscoveryQuery, LearnerCourseCatalogQuery,
@@ -118,27 +118,21 @@ pub(super) async fn list_courses(
 
 pub(super) async fn get_course(
     path: web::Path<i32>,
-    pool: web::Data<db::DbPool>,
+    use_case: web::Data<Arc<dyn CourseReadUseCase>>,
 ) -> impl Responder {
     let course_id = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
 
-    let result = courses::table
-        .find(course_id)
-        .first::<Course>(&mut conn)
-        .await;
-
-    match result {
-        Ok(course) => HttpResponse::Ok().json(course),
-        Err(diesel::result::Error::NotFound) => HttpResponse::NotFound().body("Course not found"),
-        Err(e) => {
+    match use_case.get_course(course_id).await {
+        Ok(course) => HttpResponse::Ok().json(CourseResponse::from(course)),
+        Err(CourseReadError::NotFound) => HttpResponse::NotFound().body("Course not found"),
+        Err(CourseReadError::Connection(_)) => {
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
+        }
+        Err(CourseReadError::Database(message)) => {
             log::error!(
                 "event=course_fetch_failed course_id={} error={}",
                 course_id,
-                e
+                message
             );
             HttpResponse::InternalServerError().body("Failed to fetch course")
         }

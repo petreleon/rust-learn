@@ -8,6 +8,7 @@ use crate::application::content::request_media_url::ContentMediaUrlUseCase;
 use crate::application::content::request_upload_url::ContentUploadUrlUseCase;
 use crate::application::identity::current_session::CurrentSessionUseCase;
 use crate::application::learning::delete_course::CourseDeletionUseCase;
+use crate::application::learning::get_course::CourseReadUseCase;
 use crate::application::learning::list_course_organizations::CourseOrganizationsUseCase;
 use crate::application::notifications::notification_inbox::NotificationInboxUseCase;
 use crate::application::notifications::preference_service::NotificationPreferencesUseCase;
@@ -46,6 +47,7 @@ pub struct AppState {
     pub role_catalog_use_case: Arc<dyn RoleCatalogUseCase>,
     pub current_session_use_case: Arc<dyn CurrentSessionUseCase>,
     pub course_deletion_use_case: Arc<dyn CourseDeletionUseCase>,
+    pub course_read_use_case: Arc<dyn CourseReadUseCase>,
     pub course_organizations_use_case: Arc<dyn CourseOrganizationsUseCase>,
     pub notification_inbox_use_case: Arc<dyn NotificationInboxUseCase>,
     pub notification_preferences_use_case: Arc<dyn NotificationPreferencesUseCase>,
