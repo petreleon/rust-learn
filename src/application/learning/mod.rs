@@ -1,4 +1,5 @@
 pub mod assessment;
+pub mod create_course;
 pub mod delete_course;
 pub mod discover_courses;
 pub mod get_course;

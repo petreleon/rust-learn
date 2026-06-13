@@ -40,12 +40,6 @@ pub(super) struct TeacherCourseEnrollmentParams {
 }
 
 #[derive(Deserialize)]
-pub(super) struct CreateCourseRequest {
-    pub(super) title: String,
-    pub(super) organization_ids: Vec<i32>,
-}
-
-#[derive(Deserialize)]
 pub(super) struct SaveProgressRequest {
     pub(super) content_id: i32,
 }

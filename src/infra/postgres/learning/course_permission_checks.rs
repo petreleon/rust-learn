@@ -4,8 +4,8 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::db::schema::{
-    delegated_permissions, role_permission_course, role_permission_platform, user_role_course,
-    user_role_platform,
+    delegated_permissions, role_permission_course, role_permission_organization,
+    role_permission_platform, user_role_course, user_role_organization, user_role_platform,
 };
 
 pub async fn has_course_permission(
@@ -31,6 +31,19 @@ pub async fn has_platform_permission(
     }
 
     has_active_platform_delegation(conn, actor_user_id, permission).await
+}
+
+pub async fn has_organization_permission(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    organization_id: i32,
+    permission: &str,
+) -> diesel::QueryResult<bool> {
+    if has_organization_role_permission(conn, actor_user_id, organization_id, permission).await? {
+        return Ok(true);
+    }
+
+    has_active_organization_delegation(conn, actor_user_id, organization_id, permission).await
 }
 
 async fn has_course_role_permission(
@@ -66,6 +79,27 @@ async fn has_platform_role_permission(
             ))
             .filter(user_role_platform::user_id.eq(actor_user_id))
             .filter(role_permission_platform::permission.eq(permission)),
+    ))
+    .get_result(conn)
+    .await
+}
+
+async fn has_organization_role_permission(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    organization_id: i32,
+    permission: &str,
+) -> diesel::QueryResult<bool> {
+    select(exists(
+        user_role_organization::table
+            .inner_join(
+                role_permission_organization::table
+                    .on(user_role_organization::organization_role_id
+                        .eq(role_permission_organization::organization_role_id)),
+            )
+            .filter(user_role_organization::user_id.eq(actor_user_id))
+            .filter(user_role_organization::organization_id.eq(organization_id))
+            .filter(role_permission_organization::permission.eq(permission)),
     ))
     .get_result(conn)
     .await
@@ -108,6 +142,31 @@ async fn has_active_platform_delegation(
             .filter(delegated_permissions::permission.eq(permission))
             .filter(delegated_permissions::scope_type.eq("platform"))
             .filter(delegated_permissions::organization_id.is_null())
+            .filter(delegated_permissions::course_id.is_null())
+            .filter(delegated_permissions::revoked_at.is_null())
+            .filter(
+                delegated_permissions::expires_at
+                    .is_null()
+                    .or(delegated_permissions::expires_at.gt(now)),
+            ),
+    ))
+    .get_result(conn)
+    .await
+}
+
+async fn has_active_organization_delegation(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    organization_id: i32,
+    permission: &str,
+) -> diesel::QueryResult<bool> {
+    let now = Utc::now();
+    select(exists(
+        delegated_permissions::table
+            .filter(delegated_permissions::grantee_user_id.eq(actor_user_id))
+            .filter(delegated_permissions::permission.eq(permission))
+            .filter(delegated_permissions::scope_type.eq("organization"))
+            .filter(delegated_permissions::organization_id.eq(Some(organization_id)))
             .filter(delegated_permissions::course_id.is_null())
             .filter(delegated_permissions::revoked_at.is_null())
             .filter(

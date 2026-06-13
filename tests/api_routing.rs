@@ -2,6 +2,7 @@ use actix_web::http::{Method, StatusCode};
 use actix_web::{test, web, App, HttpResponse};
 
 mod api_routing_amount_decision_fake;
+mod api_routing_course_creation_fake;
 mod api_routing_course_deletion_fake;
 mod api_routing_course_discovery_fake;
 mod api_routing_course_lifecycle_fake;
@@ -40,6 +41,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_route_fakes::reward_candidate_audit_data())
             .app_data(api_routing_amount_decision_fake::reward_amount_decision_data())
             .app_data(api_routing_submission_fake::reward_candidate_submission_data())
+            .app_data(api_routing_course_creation_fake::course_creation_data())
             .app_data(api_routing_course_deletion_fake::course_deletion_data())
             .app_data(api_routing_course_discovery_fake::course_discovery_data())
             .app_data(api_routing_course_lifecycle_fake::course_lifecycle_data())
@@ -80,6 +82,7 @@ async fn api_scope_and_following_routes_are_reachable() {
 
     for (method, route) in [
         (Method::GET, "/api/courses"),
+        (Method::POST, "/api/courses"),
         (Method::GET, "/api/user"),
         (Method::GET, "/api/user/12"),
         (Method::POST, "/api/user/12/role"),

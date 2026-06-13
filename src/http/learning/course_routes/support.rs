@@ -1,13 +1,12 @@
 use actix_web::HttpResponse;
 
 use crate::application::learning::assessment::AssessmentReadError;
+use crate::application::learning::create_course::CourseCreationError;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionError;
 use crate::application::learning::update_course::CourseUpdateError;
 use crate::application::learning::update_course_lifecycle::CourseLifecycleError;
 use crate::services::course_enrollment_service::CourseEnrollmentError;
-use crate::services::course_service::{
-    CourseCreationError, LearnerCourseCatalogError, TeacherCourseDashboardError,
-};
+use crate::services::course_service::{LearnerCourseCatalogError, TeacherCourseDashboardError};
 
 pub(super) fn lifecycle_error_response(error: CourseLifecycleError) -> HttpResponse {
     match error {
@@ -31,6 +30,10 @@ pub(super) fn course_creation_error_response(error: CourseCreationError) -> Http
     match error {
         CourseCreationError::PermissionDenied(_) => {
             HttpResponse::Forbidden().body("User does not have permission to create course")
+        }
+        CourseCreationError::Connection(message) => {
+            log::error!("event=course_creation_connection_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
         }
         CourseCreationError::Database(message) => {
             log::error!("event=course_creation_failed error={}", message);

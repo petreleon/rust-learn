@@ -12,6 +12,7 @@ use crate::infra::postgres::content::media_url_use_case::PostgresContentMediaUrl
 use crate::infra::postgres::content::processing_use_case::PostgresContentProcessingUseCase;
 use crate::infra::postgres::content::upload_url_use_case::PostgresContentUploadUrlUseCase;
 use crate::infra::postgres::identity::current_session_use_case::PostgresCurrentSessionUseCase;
+use crate::infra::postgres::learning::course_creation_use_case::PostgresCourseCreationUseCase;
 use crate::infra::postgres::learning::course_deletion_use_case::PostgresCourseDeletionUseCase;
 use crate::infra::postgres::learning::course_discovery_use_case::PostgresCourseDiscoveryUseCase;
 use crate::infra::postgres::learning::course_lifecycle_use_case::PostgresCourseLifecycleUseCase;
@@ -61,6 +62,7 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
     Ok(AppState {
         role_catalog_use_case: Arc::new(PostgresRoleCatalogUseCase::new(pool.clone())),
         current_session_use_case: Arc::new(PostgresCurrentSessionUseCase::new(pool.clone())),
+        course_creation_use_case: Arc::new(PostgresCourseCreationUseCase::new(pool.clone())),
         course_deletion_use_case: Arc::new(PostgresCourseDeletionUseCase::new(pool.clone())),
         course_discovery_use_case: Arc::new(PostgresCourseDiscoveryUseCase::new(pool.clone())),
         course_read_use_case: Arc::new(PostgresCourseReadUseCase::new(pool.clone())),

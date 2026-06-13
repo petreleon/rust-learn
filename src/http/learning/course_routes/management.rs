@@ -2,42 +2,30 @@ use std::sync::Arc;
 
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
+use crate::application::learning::create_course::CourseCreationUseCase;
 use crate::application::learning::delete_course::{
     CourseDeletionError, CourseDeletionOutcome, CourseDeletionUseCase,
 };
 use crate::application::learning::update_course::CourseUpdateUseCase;
-use crate::db;
-use crate::http::learning::dto::{CourseResponse, CourseUpdateRequest};
-use crate::services::course_service::create_course_with_invites_for_actor;
+use crate::http::learning::dto::{CourseResponse, CourseUpdateRequest, CreateCourseRequest};
 use crate::utils::request_auth::authenticated_user;
 
-use super::dto::CreateCourseRequest;
 use super::support::{course_creation_error_response, course_update_error_response};
 
 pub(super) async fn create_course(
     req: HttpRequest,
-    pool: web::Data<db::DbPool>,
+    use_case: web::Data<Arc<dyn CourseCreationUseCase>>,
     body: web::Json<CreateCourseRequest>,
 ) -> impl Responder {
     let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
 
-    let result = create_course_with_invites_for_actor(
-        &mut conn,
-        requester.user_id,
-        body.title.clone(),
-        body.organization_ids.clone(),
-    )
-    .await;
+    let command = body.into_inner().into_command(requester.user_id);
 
-    match result {
-        Ok(course) => HttpResponse::Created().json(course),
+    match use_case.create_course(command).await {
+        Ok(course) => HttpResponse::Created().json(CourseResponse::from(course)),
         Err(error) => course_creation_error_response(error),
     }
 }

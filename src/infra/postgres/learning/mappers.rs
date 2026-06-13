@@ -1,7 +1,22 @@
 use crate::application::learning::assessment::{
     AssessmentAttemptOutput, AssessmentOutput, AssessmentQuestionForScoring,
 };
+use crate::application::learning::create_course::CourseCreationOutput;
 use crate::models::assessment::{Assessment, AssessmentAttempt, AssessmentQuestion};
+use crate::models::course::Course;
+
+impl From<Course> for CourseCreationOutput {
+    fn from(course: Course) -> Self {
+        Self {
+            id: course.id,
+            title: course.title,
+            lifecycle_status: course.lifecycle_status,
+            description: course.description,
+            topics: course.topics,
+            prerequisites: course.prerequisites,
+        }
+    }
+}
 
 impl From<Assessment> for AssessmentOutput {
     fn from(assessment: Assessment) -> Self {

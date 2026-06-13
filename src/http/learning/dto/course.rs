@@ -1,5 +1,6 @@
 use serde::Serialize;
 
+use crate::application::learning::create_course::CourseCreationOutput;
 use crate::application::learning::get_course::CourseOutput;
 use crate::application::learning::update_course::CourseUpdateOutput;
 use crate::application::learning::update_course_lifecycle::CourseLifecycleOutput;
@@ -16,6 +17,19 @@ pub struct CourseResponse {
 
 impl From<CourseOutput> for CourseResponse {
     fn from(course: CourseOutput) -> Self {
+        Self {
+            id: course.id,
+            title: course.title,
+            lifecycle_status: course.lifecycle_status,
+            description: course.description,
+            topics: course.topics,
+            prerequisites: course.prerequisites,
+        }
+    }
+}
+
+impl From<CourseCreationOutput> for CourseResponse {
+    fn from(course: CourseCreationOutput) -> Self {
         Self {
             id: course.id,
             title: course.title,
