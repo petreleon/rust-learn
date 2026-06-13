@@ -34,6 +34,11 @@ impl RewardEventType {
             }),
         }
     }
+
+    pub fn normalize(value: &str) -> Result<Self, EventTypeParseError> {
+        let normalized = value.trim().to_ascii_lowercase().replace(['-', ' '], "_");
+        Self::parse(&normalized)
+    }
 }
 
 impl fmt::Display for RewardEventType {
@@ -63,5 +68,17 @@ mod tests {
     #[test]
     fn rejects_unknown_event_type() {
         assert!(RewardEventType::parse("course_started").is_err());
+    }
+
+    #[test]
+    fn normalizes_common_event_type_spellings() {
+        assert_eq!(
+            RewardEventType::normalize(" course-completion ").unwrap(),
+            RewardEventType::CourseCompletion
+        );
+        assert_eq!(
+            RewardEventType::normalize("assessment completion").unwrap(),
+            RewardEventType::AssessmentCompletion
+        );
     }
 }

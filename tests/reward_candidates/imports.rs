@@ -47,9 +47,7 @@ use rust_learn::repositories::reward_candidate_repository::find_candidate;
 use rust_learn::repositories::reward_execution_job_repository::find_job_by_candidate;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::reward_candidate_service::{
-    decide_reward_candidate_by_teacher, submit_course_reward_candidate,
-    submit_organization_reward_candidate, RewardCandidateError,
-    SubmitRewardCandidateRequest, TeacherRewardCandidateDecisionRequest,
+    decide_reward_candidate_by_teacher, RewardCandidateError, TeacherRewardCandidateDecisionRequest,
 };
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::{json, Value};

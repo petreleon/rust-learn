@@ -35,7 +35,7 @@ pub fn course_scope() -> actix_web::Scope {
     web::scope("/courses")
         .configure(crate::api::chapters::config)
         .configure(crate::api::contents::config)
-        .configure(crate::api::reward_candidates::configure_course_reward_candidate_routes)
+        .service(crate::http::rewards::course_scope_reward_candidate_submission_resource())
         .service(crate::http::rewards::course_scope_teacher_reward_candidate_decision_resource())
         .service(web::resource("/catalog").route(web::get().to(list_learner_course_catalog)))
         .service(web::resource("/teaching").route(web::get().to(list_teacher_course_dashboard)))

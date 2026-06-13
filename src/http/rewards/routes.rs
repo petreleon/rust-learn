@@ -2,7 +2,7 @@ use actix_web::web;
 
 use crate::http::rewards::handlers::{
     amount_decision, candidate_audit, course_candidates, fraud_block, platform_candidates,
-    reward_history, reward_policy, teacher_decision,
+    reward_history, reward_policy, submission, teacher_decision,
 };
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
@@ -13,6 +13,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(reward_amount_decision_resource())
         .service(teacher_reward_candidate_decision_resource())
         .service(course_reward_candidates_resource())
+        .service(organization_reward_candidate_submission_resource())
         .service(platform_reward_candidates_resource());
 }
 
@@ -59,6 +60,12 @@ pub fn reward_amount_decision_resource() -> actix_web::Resource {
 pub fn course_reward_candidates_resource() -> actix_web::Resource {
     web::resource("/courses/{course_id}/reward-candidates")
         .route(web::get().to(course_candidates::list_course_reward_candidates))
+        .route(web::post().to(submission::submit_course_reward_candidate))
+}
+
+pub fn organization_reward_candidate_submission_resource() -> actix_web::Resource {
+    web::resource("/organizations/{organization_id}/courses/{course_id}/reward-candidates")
+        .route(web::post().to(submission::submit_organization_reward_candidate))
 }
 
 pub fn platform_reward_candidates_resource() -> actix_web::Resource {
@@ -74,4 +81,14 @@ pub fn teacher_reward_candidate_decision_resource() -> actix_web::Resource {
 pub fn course_scope_teacher_reward_candidate_decision_resource() -> actix_web::Resource {
     web::resource("/{course_id}/reward-candidates/{candidate_id}/teacher-decision")
         .route(web::put().to(teacher_decision::decide_reward_candidate_by_teacher))
+}
+
+pub fn course_scope_reward_candidate_submission_resource() -> actix_web::Resource {
+    web::resource("/{course_id}/reward-candidates")
+        .route(web::post().to(submission::submit_course_reward_candidate))
+}
+
+pub fn organization_scope_reward_candidate_submission_resource() -> actix_web::Resource {
+    web::resource("/{organization_id}/courses/{course_id}/reward-candidates")
+        .route(web::post().to(submission::submit_organization_reward_candidate))
 }

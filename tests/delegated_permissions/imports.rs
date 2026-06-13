@@ -39,9 +39,7 @@ use rust_learn::services::delegated_permission_service::{
     grant_delegated_permission, revoke_delegated_permission,
 };
 use rust_learn::services::reward_candidate_service::{
-    decide_reward_candidate_by_teacher, submit_course_reward_candidate,
-    submit_organization_reward_candidate, RewardCandidateError,
-    SubmitRewardCandidateRequest, TeacherRewardCandidateDecisionRequest,
+    decide_reward_candidate_by_teacher, RewardCandidateError, TeacherRewardCandidateDecisionRequest,
 };
 use serde_json::json;
 

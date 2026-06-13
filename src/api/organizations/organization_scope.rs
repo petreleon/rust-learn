@@ -1,6 +1,6 @@
 pub fn organization_scope() -> actix_web::Scope {
     web::scope("/organizations")
-        .configure(crate::api::reward_candidates::configure_organization_reward_candidate_routes)
+        .service(crate::http::rewards::organization_scope_reward_candidate_submission_resource())
         .service(
             web::resource("")
                 .route(web::get().to(list_organizations).wrap(

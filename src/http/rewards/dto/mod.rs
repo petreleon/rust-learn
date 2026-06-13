@@ -5,6 +5,7 @@ mod fraud_block;
 mod platform_candidates;
 mod reward_history;
 mod reward_policy;
+mod submission;
 mod teacher_decision;
 
 pub use amount_decision::{RewardAmountDecisionRequest, RewardAmountDecisionResponse};
@@ -24,6 +25,7 @@ pub use reward_history::{
 pub use reward_policy::{
     CreateRewardPolicyRequest, ListRewardPoliciesRequest, RewardPolicyResponse,
 };
+pub use submission::{RewardCandidateSubmissionResponse, SubmitRewardCandidateRequest};
 pub use teacher_decision::{
     TeacherRewardCandidateDecisionRequest, TeacherRewardCandidateDecisionResponse,
 };

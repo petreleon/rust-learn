@@ -5,6 +5,7 @@ use actix_web::{
 
 mod api_routing_amount_decision_fake;
 mod api_routing_route_fakes;
+mod api_routing_submission_fake;
 mod api_routing_teacher_decision_fake;
 
 #[actix_web::test]
@@ -33,6 +34,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_route_fakes::reward_fraud_block_data())
             .app_data(api_routing_route_fakes::reward_candidate_audit_data())
             .app_data(api_routing_amount_decision_fake::reward_amount_decision_data())
+            .app_data(api_routing_submission_fake::reward_candidate_submission_data())
             .app_data(api_routing_route_fakes::course_reward_candidates_data())
             .app_data(api_routing_route_fakes::platform_reward_candidates_data())
             .app_data(api_routing_teacher_decision_fake::teacher_reward_candidate_decision_data())
@@ -83,6 +85,7 @@ async fn api_scope_and_following_routes_are_reachable() {
         (Method::GET, "/api/reward-candidates/me/history"),
         (Method::GET, "/api/reward-candidates/review"),
         (Method::GET, "/api/courses/12/reward-candidates"),
+        (Method::POST, "/api/courses/12/reward-candidates"),
         (
             Method::PUT,
             "/api/courses/12/reward-candidates/34/teacher-decision",

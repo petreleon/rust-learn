@@ -1,5 +1,6 @@
 use crate::config::constants::permissions::Permissions;
 pub use crate::application::rewards::decide_amount::RewardAmountDecisionCommand as RewardAmountDecisionRequest;
+pub use crate::application::rewards::submit_candidate::SubmitRewardCandidateCommand as SubmitRewardCandidateRequest;
 use crate::db::schema::{
     courses, courses_organizations, reward_candidates, reward_fraud_blocks, reward_policies, users,
 };
@@ -35,14 +36,6 @@ use diesel::prelude::*;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use serde::Deserialize;
 use serde_json::{json, Value};
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct SubmitRewardCandidateRequest {
-    pub student_user_id: i32,
-    pub event_type: String,
-    pub idempotency_key: Option<String>,
-    pub evidence: Option<Value>,
-}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TeacherRewardCandidateDecisionRequest {

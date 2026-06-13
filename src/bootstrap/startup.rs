@@ -20,6 +20,7 @@ use crate::infra::postgres::rewards::course_reward_candidate_use_case::PostgresC
 use crate::infra::postgres::rewards::platform_reward_candidate_use_case::PostgresPlatformRewardCandidatesUseCase;
 use crate::infra::postgres::rewards::reward_amount_decision_use_case::PostgresRewardAmountDecisionUseCase;
 use crate::infra::postgres::rewards::reward_candidate_audit_use_case::PostgresRewardCandidateAuditUseCase;
+use crate::infra::postgres::rewards::reward_candidate_submission_use_case::PostgresRewardCandidateSubmissionUseCase;
 use crate::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
 use crate::infra::postgres::rewards::reward_history_use_case::PostgresStudentRewardHistoryUseCase;
 use crate::infra::postgres::rewards::reward_policy_use_case::PostgresRewardPolicyUseCase;
@@ -67,6 +68,9 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
         reward_amount_decision_use_case: Arc::new(PostgresRewardAmountDecisionUseCase::new(
             pool.clone(),
         )),
+        reward_candidate_submission_use_case: Arc::new(
+            PostgresRewardCandidateSubmissionUseCase::new(pool.clone()),
+        ),
         course_reward_candidates_use_case: Arc::new(PostgresCourseRewardCandidatesUseCase::new(
             pool.clone(),
         )),

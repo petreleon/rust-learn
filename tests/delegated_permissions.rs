@@ -1,4 +1,5 @@
 include!("delegated_permissions/imports.rs");
+include!("delegated_permissions/submission_helper.rs");
 include!("delegated_permissions/force_assign_course_role.rs");
 include!(
     "delegated_permissions/delegated_course_permission_submits_candidate_without_course_role.rs"

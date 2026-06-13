@@ -1642,15 +1642,64 @@ Slice 33: move reward amount decisions into the rewards HTTP ring.
       delegated-permission amount-decision test helpers now call the
       application-facing Postgres use case instead of the legacy service
       function.
-- [x] Self-critique: candidate submission routes still live in the legacy
-      reward-candidate API/service, and reward execution/payout/compensation
-      flows still need their own Level 2 slices before the include-based
-      reward-candidate service can be deleted.
+- [x] Self-critique: at the end of Slice 33, candidate submission routes still
+      lived in the legacy reward-candidate API/service. Slice 34 resolves that
+      route ownership; reward execution/payout/compensation flows still need
+      their own Level 2 slices before the include-based reward-candidate service
+      can be deleted.
 - [x] Prove application fake-port tests pass, route composition reaches the
       amount-decision URL, the existing teacher-to-amount approval regression
       still enqueues exactly one execution job, application/domain and HTTP
       import scans stay clean, touched non-generated Rust files stay under the
       manual line limit, and the app binary still checks.
+
+Slice 34: move reward candidate submission into the rewards HTTP ring.
+
+- [x] Use `POST /courses/{course_id}/reward-candidates` and
+      `POST /organizations/{organization_id}/courses/{course_id}/reward-candidates`
+      as the next rewards mutation migration because submission still owned
+      candidate creation, idempotency replay, evidence validation, policy
+      eligibility, fraud-block gating, source-scope selection, and audit
+      creation from the legacy API/service layer.
+- [x] Create `application/rewards/submit_candidate` with explicit
+      command/output/error/service/store modules. The application boundary owns
+      course-vs-organization source selection, course existence, attachment
+      validation, and permission ordering, while persistence details stay out of
+      the use-case tests.
+- [x] Move reward candidate event-type normalization into
+      `domain/rewards/candidate/event_type` and evidence threshold validation
+      into `domain/rewards/candidate/evidence`.
+- [x] Preserve legacy submission behavior: course submit accepts
+      `SUBMIT_COURSE_REWARD_EVENT` or `CREATE_REWARDABLE_COURSE_EVENT`,
+      organization submit requires `SUBMIT_ORG_COURSE_REWARD_EVENT`, blank
+      idempotency keys are rejected, same-key/same-target replays return the
+      existing candidate, mismatched key reuse is a bad request, and candidate
+      creation still writes the submitted audit event atomically.
+- [x] Move candidate submission Postgres behavior behind
+      `infra/postgres/rewards`, split into validation, eligibility, mutation,
+      audit insert, mapper, store, and use-case adapter modules so the adapter
+      stays granular and under the manual line limit.
+- [x] Move submission request/response DTOs and handlers into `http/rewards`;
+      the legacy URLs remain stable, including bridge resources composed inside
+      the existing course and organization scopes until those broader scopes
+      move fully to the HTTP ring.
+- [x] Remove legacy `api/reward_candidates` route ownership entirely. Reward
+      candidate history, audit, list, review, teacher decision, amount decision,
+      and submission routes are now composed by `http/rewards`.
+- [x] Wire `RewardCandidateSubmissionUseCase` through `bootstrap::AppState`,
+      production Actix app data, and route smoke-test app data.
+- [x] Move reward-candidate and delegated-permission submission regression
+      helpers onto `PostgresRewardCandidateSubmissionUseCase` so the existing
+      DB-backed behavior tests exercise the new Level 2 path.
+- [x] Self-critique: this completes reward candidate submission route
+      ownership, but reward execution, payout, compensation, reconciliation,
+      and broader permission-source unification still need Level 2 slices before
+      the old reward candidate service and repository helpers can be retired.
+- [x] Prove application fake-port tests pass, domain event/evidence tests pass,
+      route composition reaches both submission URLs, course/org/delegated
+      submission regressions pass through the new use case, application/domain
+      and HTTP import scans stay clean, touched non-generated Rust files stay
+      under the manual line limit, and the app binary still checks.
 
 Progress evidence from 2026-06-12 and 2026-06-13:
 
@@ -1789,6 +1838,24 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   under `infra/postgres/rewards/reward_candidate_fraud_blocks.rs` and
   `reward_candidate_policy_lookup.rs`.
 - `api/reward_candidates` no longer owns the amount-decision route.
+- Reward candidate submission HTTP handlers and request/response DTOs now live
+  under `http/rewards`, while preserving the legacy
+  `/courses/{course_id}/reward-candidates` and
+  `/organizations/{organization_id}/courses/{course_id}/reward-candidates`
+  POST URLs.
+- Reward candidate submission is injected as an application-facing
+  `RewardCandidateSubmissionUseCase`; concrete DbPool/Postgres wiring lives in
+  `infra/postgres/rewards/reward_candidate_submission_use_case.rs` and
+  `bootstrap::AppState`.
+- Reward candidate submission permission probing, idempotency replay,
+  fraud-block checks, target eligibility, evidence validation, candidate insert,
+  and audit insertion now live behind the module-local
+  `RewardCandidateSubmissionStore` plus granular Postgres helpers under
+  `infra/postgres/rewards/reward_candidate_submission_*`.
+- `src/api/reward_candidates.rs` and `src/api/reward_candidates/` have been
+  removed; reward candidate routes are composed by `http/rewards`, with bridge
+  resources in the legacy course and organization scopes until those broader
+  scopes move.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -1922,27 +1989,43 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `rg "reward_history_service|services::reward_history_service|include!\\(\"reward_history_service" src tests`
   returns no matches.
-- `rg "list_reward_candidate_audit|reward-candidates/\\{candidate_id\\}/audit" src/api/reward_candidates src/services/reward_candidate_service`
+- `rg "list_reward_candidate_audit|reward-candidates/\\{candidate_id\\}/audit" src/services/reward_candidate_service`
   returns no matches.
-- `rg "list_course_reward_candidates|ListRewardCandidatesRequest|reward_candidate_service/list_course_reward_candidates" src/api/reward_candidates src/services/reward_candidate_service`
+- `rg "list_course_reward_candidates|ListRewardCandidatesRequest|reward_candidate_service/list_course_reward_candidates" src/services/reward_candidate_service`
   returns no matches.
-- `rg "list_platform_reward_candidates|PlatformRewardCandidatesRequest|PlatformRewardCandidateItem|build_platform_reward_candidate_items|reward-candidates/review" src/api/reward_candidates src/services/reward_candidate_service`
+- `rg "list_platform_reward_candidates|PlatformRewardCandidatesRequest|PlatformRewardCandidateItem|build_platform_reward_candidate_items|reward-candidates/review" src/services/reward_candidate_service`
   returns no matches.
 - `rg "crate::db|DbPool|diesel|diesel_async|RunQueryDsl|schema::|crate::services|crate::repositories" src/api/reward_policies.rs src/http/rewards`
   returns no matches.
 - `rg "crate::db|DbPool|diesel|diesel_async|RunQueryDsl|schema::|crate::services|crate::repositories" src/api/reward_fraud_blocks.rs src/http/rewards`
   returns no matches.
-- `rg "crate::db|DbPool|diesel|diesel_async|RunQueryDsl|schema::|crate::services|crate::repositories" src/http/rewards src/api/reward_candidates.rs`
+- `rg "crate::repositories|crate::db::schema|diesel|diesel_async" src/http/rewards`
   returns no matches.
-- `rg "reward-candidates/me/history" src/api/reward_candidates src/http/rewards/routes.rs`
+- `rg "reward-candidates/me/history" src/http/rewards/routes.rs`
   returns only the `http/rewards/routes.rs` owner.
-- `rg "reward-candidates/\\{candidate_id\\}/audit" src/api/reward_candidates src/http/rewards/routes.rs`
+- `rg "reward-candidates/\\{candidate_id\\}/audit" src/http/rewards/routes.rs`
   returns only the `http/rewards/routes.rs` owner.
-- `rg "courses/\\{course_id\\}/reward-candidates" src/api/reward_candidates src/http/rewards/routes.rs`
-  shows legacy POST ownership in `src/api/reward_candidates` and GET ownership
-  in `src/http/rewards/routes.rs`.
-- `rg "reward-candidates/review" src/api/reward_candidates src/http/rewards/routes.rs`
+- `rg "courses/\\{course_id\\}/reward-candidates" src/http/rewards/routes.rs`
+  returns only the `http/rewards/routes.rs` owner for reward candidate course
+  list/submission and teacher-decision resources.
+- `rg "organizations/\\{organization_id\\}/courses/\\{course_id\\}/reward-candidates" src/http/rewards/routes.rs`
+  returns only the `http/rewards/routes.rs` owner for organization-scoped
+  reward candidate submission.
+- `rg "reward-candidates/review" src/http/rewards/routes.rs`
   returns only the `http/rewards/routes.rs` owner.
+- `rg "reward_candidates" src/api` returns no matches.
+- `./scripts/run-host-tests.sh cargo test --lib application::rewards::submit_candidate`
+  passes.
+- `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate`
+  passes.
+- `./scripts/run-host-tests.sh cargo test api_scope_and_following_routes_are_reachable --test api_routing`
+  passes with route-only submission app data.
+- `./scripts/run-host-tests.sh cargo test teacher_submits_and_approves_then_platform_reviewer_sets_amount --test reward_candidates`
+  passes through `PostgresRewardCandidateSubmissionUseCase`.
+- `./scripts/run-host-tests.sh cargo test organization_submission_requires_linked_course_and_still_waits_for_teacher --test reward_candidates`
+  passes through `PostgresRewardCandidateSubmissionUseCase`.
+- `./scripts/run-host-tests.sh cargo test delegated_course_permission_submits_candidate_without_course_role --test delegated_permissions`
+  passes through `PostgresRewardCandidateSubmissionUseCase`.
 - `rg "reward_policies::reward_policy_scope|api::reward_policies|crate::api::reward_policies" src/api/mod.rs tests/api_routing.rs`
   returns no matches.
 - `rg "reward_fraud_blocks::reward_fraud_block_scope|api::reward_fraud_blocks|crate::api::reward_fraud_blocks" src/api/mod.rs tests/api_routing.rs`
@@ -2141,6 +2224,8 @@ boundary checks from the matrix above to every canonical context.
       service imports and into `http/rewards/dto`.
 - [x] Move reward amount decision request/response structs out of service
       imports and into `http/rewards/dto`.
+- [x] Move reward candidate submission request/response structs out of service
+      imports and into `http/rewards/dto`.
 - [ ] Move remaining reward request/response structs out of service imports and
       into `http/rewards/dto`.
 - [ ] Move candidate transition rules into pure domain functions:
@@ -2157,6 +2242,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Define module-local `TeacherRewardCandidateDecisionStore` for
       `decide_teacher_candidate`.
 - [x] Define module-local `RewardAmountDecisionStore` for `decide_amount`.
+- [x] Define module-local `RewardCandidateSubmissionStore` for
+      `submit_candidate`.
 - [ ] Define remaining repository ports needed by reward use cases before moving Diesel
       code. Examples: `RewardCandidateStore`, `RewardPolicyStore`,
       `RewardAuditStore`, `RewardFraudBlockStore`.
@@ -2174,6 +2261,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move teacher reward-candidate decision Diesel implementation behind
       `infra/postgres/rewards`.
 - [x] Move reward amount decision Diesel implementation behind
+      `infra/postgres/rewards`.
+- [x] Move reward candidate submission Diesel implementation behind
       `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.
