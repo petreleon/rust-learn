@@ -966,20 +966,24 @@ remaining gaps.
 | 75 | Moved access-control role route composition behind `http/access_control::configure_routes`, deleted the legacy `api/roles` wrapper, and kept the raw roles scope internal. |
 | 76 | Deleted the one-line `api/reward_policies` and `api/reward_fraud_blocks` compatibility wrappers; the remaining reward route public surface stays in `http/rewards` until a dedicated reward-route boundary pass. |
 | 77 | Deleted the `api/health` and `api/session` compatibility wrappers; health/readiness tests now import operations routes directly, and identity/notification handlers no longer leak through `api/session`. |
+| 78 | Deleted `api/chapters` and `api/contents`; course routes now compose `http/content::configure_routes` directly, and chapter/content-item route helpers are private to the content HTTP context. |
 
 ## Recent Slice Evidence
 
-Slice 77: remove health and session compatibility wrappers.
+Slice 78: move content route composition behind the content HTTP boundary.
 
-- [x] Remove `pub mod health` and `pub mod session` from `src/api/mod.rs`.
-- [x] Delete `src/api/health.rs`; health/readiness tests now mount
-      `http/operations::health_scope` directly.
-- [x] Delete `src/api/session.rs`, which only re-exported identity and
-      notification HTTP handlers and had no remaining callers.
-- [x] Self-critique: `api/chapters` and `api/contents` are still thin content
-      wrappers used by course route composition; they need a dedicated content
-      route-composition pass.
-- [x] Prove health/readiness behavior, API route reachability, formatting,
+- [x] Make `http/content` expose `configure_routes` as the only public route
+      composition entrypoint.
+- [x] Keep chapter and content-item route helpers private inside
+      `http/content/routes.rs`.
+- [x] Update the legacy course scope to compose `http/content::configure_routes`
+      directly.
+- [x] Delete the thin `src/api/chapters.rs` and `src/api/contents.rs`
+      wrappers and remove them from `src/api/mod.rs`.
+- [x] Self-critique: `api/courses` still owns the broader course scope and
+      includes route files; later learning/content slices should move course
+      route composition into context-owned HTTP modules.
+- [x] Prove content route behavior, API route reachability, formatting,
       line-count, and stale import scans.
 
 ## Legacy Transition Rules
@@ -1095,6 +1099,12 @@ boundary checks from the matrix above to every canonical context.
 
 - [x] `http/operations` owns health/readiness route composition; the legacy
       `api/health` compatibility wrapper has been deleted.
+
+## Content Context
+
+- [x] `http/content` exposes one context-level route configurator for chapter
+      and content-item routes; the legacy `api/chapters` and `api/contents`
+      wrappers have been deleted.
 
 ## Access Control Context
 

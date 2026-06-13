@@ -1,7 +1,5 @@
 // src/api/mod.rs
 pub mod authentication;
-pub mod chapters;
-pub mod contents;
 pub mod courses;
 pub mod delegated_permissions;
 pub mod kyc;

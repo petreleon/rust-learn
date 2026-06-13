@@ -1,3 +1,5 @@
 pub mod dto;
 mod handlers;
-pub mod routes;
+mod routes;
+
+pub use routes::configure_routes;
