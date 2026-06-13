@@ -3,7 +3,7 @@ use crate::db;
 use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 use crate::models::organization::UpdateOrganization;
-use crate::models::param_type::ParamType;
+use crate::http::request_params::ParamType;
 use crate::services::course_service::{
     discover_organization_courses, OrganizationCourseListError, OrganizationCourseListQuery,
 };

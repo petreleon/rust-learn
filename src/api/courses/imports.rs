@@ -17,7 +17,7 @@ use crate::middlewares::course_permission_middleware::CoursePermissionMiddleware
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 use crate::models::course::{Course, UpdateCourse};
 use crate::models::course_join_request::COURSE_JOIN_STATUS_APPROVED;
-use crate::models::param_type::ParamType;
+use crate::http::request_params::ParamType;
 use crate::repositories::course_repository::assign_role_to_user_in_course;
 use crate::services::course_enrollment_service::{
     decide_course_join_request as decide_course_join_request_for_actor,

@@ -7,5 +7,6 @@ pub mod learning;
 pub mod notifications;
 pub mod operations;
 pub mod reporting;
+pub mod request_params;
 pub mod rewards;
 pub mod wallet;

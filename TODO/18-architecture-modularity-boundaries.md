@@ -960,32 +960,24 @@ remaining gaps.
 | 49-55 | Moved wallet and reward authorization decisions through `application/access_control`, including payout, platform, course, organization, fraud-block, and notification-recipient policies. |
 | 56 | Moved production Actix app-data registration out of `main.rs`; `main.rs` is now process orchestration while bootstrap owns concrete state and route wiring. |
 | 57-64 | Typed reward audit, execution job, candidate, fraud-block, policy, payout-method, token, wallet-credit, and compensation transaction vocabulary in the rewards domain while keeping compatibility aliases where legacy callers still need them. |
-| 65-70 | Moved platform summary, platform fraud dashboard, organization summary, organization reward dashboard, platform reward dashboard, and platform wallet reconciliation read/export behavior into `application/reporting`, `infra/postgres/reporting`, and `http/reporting`; legacy report URLs still flow through the existing reports scope while matching old service queries/DTOs/CSV helpers were removed. |
+| 65-71 | Moved platform summary, platform fraud dashboard, organization summary, organization reward dashboard, platform reward dashboard, platform wallet reconciliation, and platform CSV export behavior into `application/reporting`, `infra/postgres/reporting`, and `http/reporting`; legacy report URLs still flow through the existing reports scope while matching old service queries/DTOs/CSV helpers were removed. |
 
 ## Recent Slice Evidence
 
-Slice 71: move remaining platform CSV exports into the reporting application,
-HTTP, and Postgres rings.
+Slice 72: move request-parameter source ownership out of persistence models.
 
-- [x] Create `application/reporting/platform_csv_exports` with typed export
-      row outputs, error, store port, service trait, and handler functions for
-      teacher applications, reward approvals, token payouts, wallet credits,
-      and delegated permissions.
-- [x] Move all five platform CSV export queries behind
-      `infra/postgres/reporting` dataset-specific modules and a single
-      Postgres use-case adapter.
-- [x] Move all five platform CSV formatters and route resources into
-      `http/reporting`, preserving legacy filenames, headers, URLs, and
-      `EXPORT_DATA` permission checks.
-- [x] Delete the include-based `api/reports` export wrappers and the entire
-      legacy `services/reporting_service` module.
-- [x] Self-critique: the token-payout and wallet-credit export adapters still
-      preserve legacy per-record lookup behavior; batch joins can be a later
-      performance slice. Organization route resources still depend on
-      middleware `ParamType` from `models`.
-- [x] Prove application fake-port behavior, CSV formatting contracts,
-      API route reachability, DB-backed export behavior, formatting,
-      whitespace, line-count, binary wiring, and boundary scans.
+- [x] Move the `ParamType` request source enum and `extract_param` helper into
+      `http/request_params`.
+- [x] Update course, organization, content, reporting, and permission/hierarchy
+      middleware to import request parameter parsing from the HTTP boundary
+      instead of `models` or `utils`.
+- [x] Delete `models/param_type.rs` and `utils/request_utils.rs`, leaving
+      `models` closer to persistence records and `utils` less HTTP-shaped.
+- [x] Self-critique: permission middleware still performs direct repository
+      permission checks; later access-control slices should route middleware
+      through `application/access_control`.
+- [x] Prove request parameter behavior, middleware permission behavior,
+      route reachability, formatting, line-count, and stale import scans.
 
 ## Legacy Transition Rules
 

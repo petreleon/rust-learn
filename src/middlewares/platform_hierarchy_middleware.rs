@@ -9,9 +9,10 @@ use futures::FutureExt;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
-use crate::models::{param_type::ParamType, user_jwt::UserJWT};
+use crate::db::DbPool;
+use crate::http::request_params::{extract_param, ParamType};
+use crate::models::user_jwt::UserJWT;
 use crate::repositories::platform_repository::user_hierarchy_compare_platform;
-use crate::{db::DbPool, utils::request_utils::extract_param};
 
 pub struct PlatformHierarchyMiddleware<S> {
     _service: PhantomData<S>,

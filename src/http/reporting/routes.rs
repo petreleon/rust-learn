@@ -6,9 +6,9 @@ use crate::http::reporting::handlers::{
     platform_fraud_dashboard, platform_reward_dashboard, platform_summary,
     platform_wallet_reconciliation,
 };
+use crate::http::request_params::ParamType;
 use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
 use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
-use crate::models::param_type::ParamType;
 
 pub fn platform_summary_resource() -> actix_web::Resource {
     web::resource("/platform/summary").route(

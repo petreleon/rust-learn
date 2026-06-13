@@ -1,7 +1,12 @@
 use actix_web::dev::ServiceRequest;
-
-use crate::models::param_type::ParamType;
 use serde_urlencoded::from_str;
+
+#[derive(Clone, Copy)]
+pub enum ParamType {
+    Header,
+    Query,
+    Path,
+}
 
 pub fn extract_param(
     req: &ServiceRequest,
