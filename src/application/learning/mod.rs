@@ -7,6 +7,7 @@ pub mod discover_courses;
 pub mod get_course;
 pub mod get_learner_course_detail;
 pub mod get_learner_course_learning;
+pub mod get_teacher_course_workspace;
 pub mod learner_course_catalog;
 pub mod learner_progress;
 pub mod list_assessment_attempts;

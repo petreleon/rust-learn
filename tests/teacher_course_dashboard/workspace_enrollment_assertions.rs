@@ -2,6 +2,7 @@ async fn assert_teacher_workspace(fixture: &TeacherDashboardFixture) {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
+            .app_data(teacher_workspace_use_case_data(&fixture.pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )

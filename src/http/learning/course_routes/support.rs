@@ -138,7 +138,7 @@ pub(super) fn teacher_course_dashboard_error_response(
     }
 }
 
-pub(super) fn teacher_course_dashboard_list_error_response(
+pub(super) fn teacher_course_dashboard_read_error_response(
     error: ApplicationTeacherCourseDashboardError,
 ) -> HttpResponse {
     match error {

@@ -13,6 +13,7 @@ mod learner_course_detail;
 mod learner_course_learning;
 mod learner_progress;
 mod teacher_course_dashboard;
+mod teacher_course_workspace;
 
 pub use assessment::{
     AssessmentAttemptResponse, AssessmentResponse, SubmitAssessmentAttemptRequest,
@@ -33,3 +34,4 @@ pub use learner_course_detail::LearnerCourseDetailResponse;
 pub use learner_course_learning::LearnerCourseLearningResponse;
 pub use learner_progress::{LearnerProgressResponse, SaveProgressRequest};
 pub use teacher_course_dashboard::TeacherCourseDashboardResponse;
+pub use teacher_course_workspace::TeacherCourseWorkspaceResponse;
