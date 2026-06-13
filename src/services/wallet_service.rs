@@ -6,5 +6,4 @@ include!("wallet_service/create_user_wallet_token_deposit_intent.rs");
 include!("wallet_service/credit_observed_wallet_deposit.rs");
 include!("wallet_service/validate_positive_amount.rs");
 include!("wallet_service/configured_deposit_platform_address.rs");
-include!("wallet_service/load_matching_pending_deposit_intents.rs");
 include!("wallet_service/apply_wallet_token_ledger_entries.rs");

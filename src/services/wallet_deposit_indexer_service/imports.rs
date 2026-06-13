@@ -1,10 +1,13 @@
+use crate::application::wallet::index_deposit::{
+    index_observed_deposit, ObservedWalletDepositEvent,
+};
 use crate::db::DbPool;
+use crate::domain::wallet::deposit::{
+    WALLET_DEPOSIT_EVENT_IMPORT, WALLET_DEPOSIT_EVENT_TRANSFER,
+};
+use crate::infra::postgres::wallet::wallet_deposit_index_store::PostgresWalletDepositIndexStore;
 use crate::repositories::persistent_state_repository::{
     get_persistent_state, set_persistent_state,
-};
-use crate::services::wallet_service::{
-    credit_observed_wallet_deposit, ObservedWalletDepositEvent, TOKEN_TRANSFER_EVENT_IMPORT,
-    TOKEN_TRANSFER_EVENT_TRANSFER,
 };
 use bigdecimal::BigDecimal;
 use ethers::providers::Middleware;

@@ -100,7 +100,7 @@ fn parse_transfer_log(
     Some(build_observed_event(
         log,
         contract_address,
-        TOKEN_TRANSFER_EVENT_TRANSFER,
+        WALLET_DEPOSIT_EVENT_TRANSFER,
         from_address,
         to_address,
         chain_id,
@@ -127,7 +127,7 @@ fn parse_imported_log(
     Some(build_observed_event(
         log,
         token_address,
-        TOKEN_TRANSFER_EVENT_IMPORT,
+        WALLET_DEPOSIT_EVENT_IMPORT,
         user_address,
         importer_address,
         chain_id,

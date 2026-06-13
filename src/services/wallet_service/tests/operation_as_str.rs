@@ -33,18 +33,6 @@ fn operation_set_tax_permission() {
     );
 }
 
-#[test]
-fn operation_transaction_type() {
-    assert_eq!(
-        WalletTokenOperation::Deposit.transaction_type(),
-        TOKEN_DEPOSIT_TRANSACTION_TYPE
-    );
-    assert_eq!(
-        WalletTokenOperation::Retire.transaction_type(),
-        TOKEN_RETIRE_TRANSACTION_TYPE
-    );
-}
-
 // ── WalletTokenGasPayer enum ──
 
 #[test]

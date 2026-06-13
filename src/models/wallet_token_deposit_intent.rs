@@ -4,8 +4,6 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 
 pub const WALLET_DEPOSIT_STATUS_PENDING: &str = "pending_chain_confirmation";
-pub const WALLET_DEPOSIT_STATUS_CREDITED: &str = "credited";
-pub const WALLET_DEPOSIT_STATUS_AMBIGUOUS: &str = "ambiguous";
 
 #[derive(Queryable, Identifiable, Debug, Clone)]
 #[diesel(table_name = wallet_token_deposit_intents)]

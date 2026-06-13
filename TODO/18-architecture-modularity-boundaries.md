@@ -2347,9 +2347,9 @@ and HTTP rings.
       existing `/api/wallets` scope.
 - [x] Self-critique: wallet retirements, deposit intents, token tax, link,
       read, and audit routes now have Level 2 application/infra/http
-      boundaries. Worker-side observed deposit credit still uses the legacy
-      wallet service until deposit indexing is migrated, and wallet
-      permission-source unification still needs an access-control slice.
+      boundaries. Worker-side observed deposit credit still needs its own
+      Level 2 slice, and wallet permission-source unification still needs an
+      access-control slice.
 - [x] Prove application fake-port tests, legacy wallet-service regression
       tests, app binary check, `wallet_linking`, and `api_routing` pass;
       boundary scans show no Actix/Diesel/service/repository imports in
@@ -2357,6 +2357,44 @@ and HTTP rings.
       Diesel/repository/infra/service imports in `http/wallet`,
       `/api/wallets/me/retirements` is owned only by `http/wallet`, and
       touched non-generated Rust files stay under the manual line limit.
+
+Slice 48: move observed wallet deposit indexing into the wallet application
+and Postgres rings.
+
+- [x] Create `domain/wallet/deposit` for deposit event/status/transaction
+      vocabulary used by observed on-chain deposit indexing.
+- [x] Create `application/wallet/index_deposit` with explicit observed event,
+      output, error, service, store, handler, fake store, and handler tests.
+      The application layer owns validation for positive chain id/log index,
+      required transaction hash/contract/from/to addresses, positive amount,
+      and supported event types (`import` or `transfer`).
+- [x] Move observed-deposit persistence behind `infra/postgres/wallet`, split
+      into deposit-index store, matching, ledger, transaction orchestration,
+      and use-case adapter modules. The adapter preserves legacy behavior for
+      idempotent credited events, mismatched existing events, unmatched events,
+      duplicate pending intents marked `ambiguous`, external transaction rows,
+      guarded wallet ledger updates, and credited intent metadata.
+- [x] Move the wallet deposit indexer worker path to call
+      `application/wallet/index_deposit` through
+      `PostgresWalletDepositIndexStore` after chain events are fetched. The
+      Ethereum provider scan remains in the existing indexer service for a
+      later adapter cleanup.
+- [x] Keep the temporary `wallet_service::credit_observed_wallet_deposit`
+      entry point as a thin delegating compatibility wrapper for existing
+      callers/tests, then remove the old include-based matching helper file and
+      stale observed-deposit validation tests from the legacy service module.
+- [x] Self-critique: wallet deposit indexing now has Level 2
+      application/domain/infra ownership, but wallet deposit indexer provider
+      scanning still lives in the legacy service namespace and wallet
+      permission-source unification still needs an access-control slice.
+- [x] Prove application fake-port tests, legacy wallet-service regression
+      tests, wallet deposit indexer service tests, app binary check,
+      `wallet_linking`, and `api_routing` pass; boundary scans show no
+      Actix/Diesel/service/repository imports in `domain/wallet` or
+      `application/wallet`, no Diesel/repository/infra/service imports in
+      `http/wallet`, observed-deposit matching/ledger behavior lives under
+      `infra/postgres/wallet`, and touched non-generated Rust files stay under
+      the manual line limit.
 
 Progress evidence from 2026-06-12 and 2026-06-13:
 
@@ -2662,6 +2700,20 @@ Progress evidence from 2026-06-12 and 2026-06-13:
 - Wallet retirement request/response mapping now lives in
   `http/wallet/dto/retirement.rs`, and `/api/wallets/me/retirements` is now
   owned by `http/wallet`.
+- Wallet observed-deposit indexing is now an application-facing
+  `WalletDepositIndexUseCase`; concrete connection-backed behavior lives in
+  `infra/postgres/wallet/wallet_deposit_index_use_case.rs`,
+  `infra/postgres/wallet/wallet_deposit_index_store.rs`,
+  `infra/postgres/wallet/wallet_deposit_index_records.rs`,
+  `infra/postgres/wallet/wallet_deposit_index_matching.rs`, and
+  `infra/postgres/wallet/wallet_deposit_index_ledger.rs`.
+- Wallet deposit-index event/status vocabulary now lives in
+  `domain/wallet/deposit`, and application validation lives in
+  `application/wallet/index_deposit`.
+- The wallet deposit indexer worker path now calls the new application handler
+  and Postgres store after Ethereum events are fetched. The old public
+  `wallet_service::credit_observed_wallet_deposit` function is only a
+  compatibility wrapper around the new Level 2 implementation.
 - The legacy `api/wallets` include fragments no longer own GET wallet reads,
   POST wallet links, token-tax routes, deposit-intent creation, or
   retirements. `api/wallets` is now only the `/api/wallets` scope bridge into
@@ -3188,6 +3240,12 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move wallet retirement persistence behind `infra/postgres/wallet`.
 - [x] Move wallet retirement route handler from `api/wallets` into
       `http/wallet` while preserving `/api/wallets/me/retirements`.
+- [x] Create `application/wallet/index_deposit` with explicit observed event,
+      output, error, service, store, and handler modules.
+- [x] Move wallet observed-deposit indexing persistence behind
+      `infra/postgres/wallet`.
+- [x] Move the wallet deposit indexer worker path to call the new
+      `application/wallet/index_deposit` handler after Ethereum event fetches.
 - [ ] Move wallet access checks through `application/access_control` instead of
       direct repository permission probes in wallet handlers.
 

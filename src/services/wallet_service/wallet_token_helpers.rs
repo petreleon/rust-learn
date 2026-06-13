@@ -20,13 +20,6 @@ impl WalletTokenOperation {
         }
     }
 
-    fn transaction_type(self) -> &'static str {
-        match self {
-            WalletTokenOperation::Deposit => TOKEN_DEPOSIT_TRANSACTION_TYPE,
-            WalletTokenOperation::Retire => TOKEN_RETIRE_TRANSACTION_TYPE,
-        }
-    }
-
 }
 
 impl WalletTokenGasPayer {

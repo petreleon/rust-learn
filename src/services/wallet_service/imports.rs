@@ -1,16 +1,13 @@
+pub use crate::application::wallet::index_deposit::{
+    ObservedWalletDepositEvent, WalletDepositIndexOutput as WalletDepositCreditResult,
+};
+use crate::application::wallet::index_deposit::WalletDepositIndexError;
 use crate::config::constants::permissions::Permissions;
-use crate::db::schema::{
-    external_transactions, internal_transactions, transactions, transactions_external_transactions,
-    transactions_internal_transactions, users, wallet_token_deposit_intents, wallets,
-};
-use crate::models::transaction::{
-    NewExternalTransaction, NewInternalTransaction, NewTransaction,
-    NewTransactionExternalTransactionLink, NewTransactionInternalTransactionLink,
-};
+use crate::db::schema::{users, wallet_token_deposit_intents, wallets};
+use crate::infra::postgres::wallet::wallet_deposit_index_store::PostgresWalletDepositIndexStore;
 use crate::models::wallet::{NewWallet, Wallet};
 use crate::models::wallet_token_deposit_intent::{
-    NewWalletTokenDepositIntent, WalletTokenDepositIntent, WALLET_DEPOSIT_STATUS_AMBIGUOUS,
-    WALLET_DEPOSIT_STATUS_CREDITED, WALLET_DEPOSIT_STATUS_PENDING,
+    NewWalletTokenDepositIntent, WalletTokenDepositIntent, WALLET_DEPOSIT_STATUS_PENDING,
 };
 use crate::repositories::persistent_state_repository::{
     get_persistent_state, set_persistent_state,
@@ -27,12 +24,8 @@ pub const TOKEN_TRANSFER_OPERATION_DEPOSIT: &str = "deposit";
 pub const TOKEN_TRANSFER_OPERATION_RETIRE: &str = "retire";
 pub const TOKEN_TRANSFER_GAS_PAYER_USER: &str = "user";
 pub const TOKEN_TRANSFER_GAS_PAYER_PLATFORM: &str = "platform";
-pub const TOKEN_DEPOSIT_TRANSACTION_TYPE: &str = "token_deposit";
-pub const TOKEN_RETIRE_TRANSACTION_TYPE: &str = "token_retire";
 pub const TOKEN_TRANSFER_WALLET_PROVIDER_METAMASK: &str = "metamask";
 pub const TOKEN_TRANSFER_WALLET_PROVIDER_PLATFORM: &str = "platform";
-pub const TOKEN_TRANSFER_EVENT_IMPORT: &str = "import";
-pub const TOKEN_TRANSFER_EVENT_TRANSFER: &str = "transfer";
 
 const TOKEN_DEPOSIT_TAX_KEY: &str = "wallet.deposit_tax_tokens";
 const TOKEN_RETIRE_TAX_KEY: &str = "wallet.retire_tax_tokens";
@@ -97,29 +90,6 @@ pub struct WalletTokenDepositIntentResponse {
     pub wallet_action: String,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct ObservedWalletDepositEvent {
-    pub chain_id: i64,
-    pub contract_address: String,
-    pub transaction_hash: String,
-    pub log_index: i64,
-    pub event_type: String,
-    pub from_address: String,
-    pub to_address: String,
-    pub amount: BigDecimal,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct WalletDepositCreditResult {
-    pub intent_id: Option<i64>,
-    pub wallet_id: Option<i32>,
-    pub transaction_id: Option<i64>,
-    pub external_transaction_id: Option<i64>,
-    pub internal_transaction_ids: Vec<i64>,
-    pub credited: bool,
-    pub status: String,
-}
-
 #[derive(Debug, PartialEq)]
 pub enum WalletTokenTransferError {
     PermissionDenied(String),
@@ -127,6 +97,23 @@ pub enum WalletTokenTransferError {
     InvalidInput(String),
     InsufficientFunds,
     Database(String),
+}
+
+impl From<WalletDepositIndexError> for WalletTokenTransferError {
+    fn from(error: WalletDepositIndexError) -> Self {
+        match error {
+            WalletDepositIndexError::InvalidInput(message) => {
+                WalletTokenTransferError::InvalidInput(message)
+            }
+            WalletDepositIndexError::InsufficientFunds => {
+                WalletTokenTransferError::InsufficientFunds
+            }
+            WalletDepositIndexError::Connection(message)
+            | WalletDepositIndexError::Database(message) => {
+                WalletTokenTransferError::Database(message)
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

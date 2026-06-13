@@ -78,7 +78,8 @@ async fn run_wallet_deposit_indexer_once(
             .get()
             .await
             .map_err(|error| format!("failed to get DB connection: {error}"))?;
-        let result = credit_observed_wallet_deposit(&mut conn, event)
+        let mut store = PostgresWalletDepositIndexStore::new(&mut conn);
+        let result = index_observed_deposit(&mut store, event)
             .await
             .map_err(|error| format!("failed to credit observed wallet deposit: {error:?}"))?;
         if result.credited {
