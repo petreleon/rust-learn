@@ -433,6 +433,7 @@ src/
       get_course/
       manage_course/
       delete_course/
+      update_course_lifecycle/
       request_enrollment/
       decide_enrollment/
       save_progress/
@@ -526,6 +527,8 @@ src/
         course_discovery_store.rs
         course_read_store.rs
         course_deletion_store.rs
+        course_lifecycle_store.rs
+        course_lifecycle_permissions.rs
         enrollment_store.rs
         course_organization_store.rs
         progress_store.rs
@@ -975,34 +978,36 @@ remaining gaps.
 | 88 | Moved `DELETE /courses/{id}` behind `application/learning/delete_course`, a Postgres delete adapter/use case, and bootstrap app-data wiring; the HTTP management handler no longer owns Diesel deletion. |
 | 89 | Moved `GET /courses/{id}` behind `application/learning/get_course`, a Postgres read adapter/use case, and an HTTP-owned `CourseResponse`; the catalog handler no longer returns the Diesel `Course` record directly. |
 | 90 | Moved `GET /courses` behind `application/learning/discover_courses`, a Postgres discovery adapter/use case, and an HTTP-owned `CourseDiscoveryResponse`; literal wildcard search behavior is covered by course discovery tests. |
+| 91 | Moved `PUT /courses/{id}/lifecycle` behind `application/learning/update_course_lifecycle`, a Postgres lifecycle adapter/use case, HTTP request DTO mapping, and bootstrap app-data wiring; lifecycle status normalization and permission selection now live outside the route. |
 
 ## Recent Slice Evidence
 
-Slice 90: move course discovery/list reads into the learning use-case boundary.
+Slice 91: move course lifecycle updates into the learning use-case boundary.
 
-- [x] Add `application/learning/discover_courses` with query normalization,
-      output, error, use-case, store port, and module-local fake-port
-      application test.
-- [x] Add `infra/postgres/learning/course_discovery_store.rs` and
-      `course_discovery_use_case.rs` so search, organization filtering,
-      pagination, Diesel lookup, and model mapping stay outside HTTP.
-- [x] Add `http/learning/dto/CourseDiscoveryResponse`; `GET /courses` now maps
-      application output into an HTTP contract instead of returning the legacy
-      service response and Diesel `Course` records.
-- [x] Inject `CourseDiscoveryUseCase` through `bootstrap/app_state`,
+- [x] Add `application/learning/update_course_lifecycle` with command, output,
+      error, use-case, store port, status normalization, required-permission
+      selection, and module-local fake-port application tests.
+- [x] Add `infra/postgres/learning/course_lifecycle_store.rs`,
+      `course_lifecycle_permissions.rs`, and `course_lifecycle_use_case.rs` so
+      course-role permission checks, delegated-permission checks, Diesel
+      updates, and model mapping stay outside HTTP.
+- [x] Add an HTTP-owned `CourseLifecycleUpdateRequest`; `PUT
+      /courses/{id}/lifecycle` now maps request data into an application
+      command and maps application output into `CourseResponse`.
+- [x] Inject `CourseLifecycleUseCase` through `bootstrap/app_state`,
       `bootstrap/startup`, and `bootstrap/app_data`.
-- [x] Keep the existing HTTP contract: `courses`, `total`, `limit`, `offset`,
-      `search`, and `organization_id` fields remain stable; escaped `%` and
-      `_` search behavior is preserved.
-- [x] Self-critique: this removes the platform course-list query only. Learner
+- [x] Keep the existing HTTP contract: request body still accepts `status`, and
+      the response still exposes course id/title/status plus optional course
+      metadata.
+- [x] Self-critique: this removes lifecycle status transitions only. Learner
       catalog detail/learning, teaching reads, enrollment, progress, roles,
-      lifecycle, and create/update still need deeper Level 2 extraction.
-- [x] Prove behavior with binary compile, application fake-port test,
-      API route reachability, course-read permission test with the real
-      Postgres use case, full course discovery integration tests, wildcard
-      search regression, formatting, line-count checks, and a boundary scan
-      proving Diesel/schema/model references only appear in the Postgres
-      adapter for this slice.
+      create/update, and assessment listing still need deeper Level 2
+      extraction.
+- [x] Prove behavior with binary compile, application fake-port test, API route
+      reachability, full lifecycle integration tests through the real Postgres
+      use case, formatting, line-count checks, `git diff --check`, and boundary
+      scans proving the lifecycle route no longer calls the old service or
+      imports Diesel/schema.
 
 ## Legacy Transition Rules
 
@@ -1172,6 +1177,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] `GET /courses` now has application query/output/error/port contracts, a
       Postgres adapter/use case, HTTP DTO mapping, bootstrap wiring, and
       route/discovery/application tests.
+- [x] `PUT /courses/{id}/lifecycle` now has application command/output/error
+      and store-port contracts, a Postgres adapter/use case, HTTP request DTO
+      mapping, bootstrap wiring, and application/integration/route tests.
 - [ ] Move remaining learning service/DB-heavy handlers into application use
       cases with Postgres adapters.
 

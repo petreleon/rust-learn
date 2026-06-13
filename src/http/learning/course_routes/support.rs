@@ -2,10 +2,10 @@ use actix_web::HttpResponse;
 
 use crate::application::learning::assessment::AssessmentReadError;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionError;
+use crate::application::learning::update_course_lifecycle::CourseLifecycleError;
 use crate::services::course_enrollment_service::CourseEnrollmentError;
 use crate::services::course_service::{
-    CourseCreationError, CourseLifecycleError, CourseUpdateError, LearnerCourseCatalogError,
-    TeacherCourseDashboardError,
+    CourseCreationError, CourseUpdateError, LearnerCourseCatalogError, TeacherCourseDashboardError,
 };
 
 pub(super) fn lifecycle_error_response(error: CourseLifecycleError) -> HttpResponse {
@@ -15,6 +15,10 @@ pub(super) fn lifecycle_error_response(error: CourseLifecycleError) -> HttpRespo
         }
         CourseLifecycleError::InvalidStatus(message) => HttpResponse::BadRequest().body(message),
         CourseLifecycleError::NotFound => HttpResponse::NotFound().body("Course not found"),
+        CourseLifecycleError::Connection(message) => {
+            log::error!("event=course_lifecycle_connection_failed error={}", message);
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
+        }
         CourseLifecycleError::Database(message) => {
             log::error!("event=course_lifecycle_update_failed error={}", message);
             HttpResponse::InternalServerError().body("Failed to update course status")

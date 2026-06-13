@@ -14,6 +14,7 @@ use crate::infra::postgres::content::upload_url_use_case::PostgresContentUploadU
 use crate::infra::postgres::identity::current_session_use_case::PostgresCurrentSessionUseCase;
 use crate::infra::postgres::learning::course_deletion_use_case::PostgresCourseDeletionUseCase;
 use crate::infra::postgres::learning::course_discovery_use_case::PostgresCourseDiscoveryUseCase;
+use crate::infra::postgres::learning::course_lifecycle_use_case::PostgresCourseLifecycleUseCase;
 use crate::infra::postgres::learning::course_organization_use_case::PostgresCourseOrganizationsUseCase;
 use crate::infra::postgres::learning::course_read_use_case::PostgresCourseReadUseCase;
 use crate::infra::postgres::notifications::notification_inbox_use_case::PostgresNotificationInboxUseCase;
@@ -65,6 +66,7 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
         course_organizations_use_case: Arc::new(PostgresCourseOrganizationsUseCase::new(
             pool.clone(),
         )),
+        course_lifecycle_use_case: Arc::new(PostgresCourseLifecycleUseCase::new(pool.clone())),
         notification_inbox_use_case: Arc::new(PostgresNotificationInboxUseCase::new(pool.clone())),
         notification_preferences_use_case: Arc::new(PostgresNotificationPreferencesUseCase::new(
             pool.clone(),

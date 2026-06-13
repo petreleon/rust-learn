@@ -1,11 +1,10 @@
-use actix_web::{
-    http::{Method, StatusCode},
-    test, web, App, HttpResponse,
-};
+use actix_web::http::{Method, StatusCode};
+use actix_web::{test, web, App, HttpResponse};
 
 mod api_routing_amount_decision_fake;
 mod api_routing_course_deletion_fake;
 mod api_routing_course_discovery_fake;
+mod api_routing_course_lifecycle_fake;
 mod api_routing_course_organization_fake;
 mod api_routing_course_read_fake;
 mod api_routing_reporting_fake;
@@ -42,6 +41,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_submission_fake::reward_candidate_submission_data())
             .app_data(api_routing_course_deletion_fake::course_deletion_data())
             .app_data(api_routing_course_discovery_fake::course_discovery_data())
+            .app_data(api_routing_course_lifecycle_fake::course_lifecycle_data())
             .app_data(api_routing_course_organization_fake::course_organizations_data())
             .app_data(api_routing_course_read_fake::course_read_data())
             .app_data(api_routing_route_fakes::course_reward_candidates_data())
@@ -102,6 +102,7 @@ async fn api_scope_and_following_routes_are_reachable() {
         (Method::GET, "/api/courses/teaching/12"),
         (Method::GET, "/api/courses/12"),
         (Method::GET, "/api/courses/12/organizations"),
+        (Method::PUT, "/api/courses/12/lifecycle"),
         (Method::DELETE, "/api/courses/12"),
         (Method::GET, "/api/reward-candidates/me/history"),
         (Method::GET, "/api/reward-candidates/review"),
