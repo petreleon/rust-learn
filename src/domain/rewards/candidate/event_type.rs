@@ -1,5 +1,10 @@
 use std::fmt;
 
+pub const REWARD_EVENT_ASSESSMENT_COMPLETION: &str = "assessment_completion";
+pub const REWARD_EVENT_COURSE_COMPLETION: &str = "course_completion";
+pub const REWARD_EVENT_MANUAL_COMPLETION: &str = "manual_completion";
+pub const REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT: &str = "administrative_adjustment";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RewardEventType {
     AssessmentCompletion,
@@ -16,19 +21,19 @@ pub struct EventTypeParseError {
 impl RewardEventType {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::AssessmentCompletion => "assessment_completion",
-            Self::CourseCompletion => "course_completion",
-            Self::ManualCompletion => "manual_completion",
-            Self::AdministrativeAdjustment => "administrative_adjustment",
+            Self::AssessmentCompletion => REWARD_EVENT_ASSESSMENT_COMPLETION,
+            Self::CourseCompletion => REWARD_EVENT_COURSE_COMPLETION,
+            Self::ManualCompletion => REWARD_EVENT_MANUAL_COMPLETION,
+            Self::AdministrativeAdjustment => REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT,
         }
     }
 
     pub fn parse(value: &str) -> Result<Self, EventTypeParseError> {
         match value {
-            "assessment_completion" => Ok(Self::AssessmentCompletion),
-            "course_completion" => Ok(Self::CourseCompletion),
-            "manual_completion" => Ok(Self::ManualCompletion),
-            "administrative_adjustment" => Ok(Self::AdministrativeAdjustment),
+            REWARD_EVENT_ASSESSMENT_COMPLETION => Ok(Self::AssessmentCompletion),
+            REWARD_EVENT_COURSE_COMPLETION => Ok(Self::CourseCompletion),
+            REWARD_EVENT_MANUAL_COMPLETION => Ok(Self::ManualCompletion),
+            REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT => Ok(Self::AdministrativeAdjustment),
             other => Err(EventTypeParseError {
                 value: other.to_string(),
             }),
@@ -55,7 +60,19 @@ impl fmt::Display for EventTypeParseError {
 
 #[cfg(test)]
 mod tests {
-    use super::RewardEventType;
+    use super::{RewardEventType, REWARD_EVENT_COURSE_COMPLETION};
+
+    #[test]
+    fn exposes_stable_event_keys() {
+        assert_eq!(
+            RewardEventType::CourseCompletion.as_str(),
+            REWARD_EVENT_COURSE_COMPLETION
+        );
+        assert_eq!(
+            RewardEventType::AdministrativeAdjustment.as_str(),
+            "administrative_adjustment"
+        );
+    }
 
     #[test]
     fn parses_known_event_types() {

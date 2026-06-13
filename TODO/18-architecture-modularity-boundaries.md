@@ -2727,6 +2727,38 @@ Slice 58: move reward execution job status vocabulary into the rewards domain.
       binary wiring with `cargo check --features app-bin --bin rust-learn`, and
       prove formatting, whitespace, line-count, and boundary scans.
 
+Slice 59: make reward candidate vocabulary domain-owned.
+
+- [x] Move stable reward candidate status keys into
+      `domain/rewards/candidate/status.rs` so `RewardCandidateStatus` is the
+      source of truth for persisted candidate status strings.
+- [x] Move stable reward candidate event-type keys into
+      `domain/rewards/candidate/event_type.rs` so `RewardEventType` owns the
+      candidate event string vocabulary.
+- [x] Create `domain/rewards/candidate/source.rs` with
+      `RewardCandidateSourceScope`, stable course/organization source keys,
+      parsing, normalization, display formatting, and unit tests.
+- [x] Update `application/rewards/submit_candidate` to use
+      `RewardCandidateSourceScope` instead of local hard-coded source strings.
+- [x] Keep `models/reward_candidate.rs` constants only as temporary aliases to
+      domain constants for legacy services and tests that still import from
+      the Diesel record module.
+- [x] Self-critique: candidate source/status/event keys are now domain-owned,
+      but many legacy services and integration tests still import the
+      compatibility aliases from `models/reward_candidate.rs`. Reporting and
+      course/organization dashboard code also still consume candidate status
+      strings through legacy service modules.
+- [x] Prove the domain vocabulary with `domain::rewards::candidate`, prove the
+      submit use case source mapping with
+      `application::rewards::submit_candidate`, preserve legacy candidate
+      normalization tests with `services::reward_candidate_service`, preserve
+      course and organization candidate submission behavior with
+      `teacher_submits_and_approves_then_platform_reviewer_sets_amount` and
+      `organization_submission_requires_linked_course_and_still_waits_for_teacher`,
+      prove binary wiring with `cargo check --features app-bin --bin
+      rust-learn`, and prove formatting, whitespace, line-count, and boundary
+      scans.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -3095,6 +3127,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `domain/rewards/execution`; enqueueing uses the domain queued status, failed
   reporting filters use the domain failed status, and tests import execution
   status keys from the domain.
+- Reward candidate source, status, and event-type stable keys now live under
+  `domain/rewards/candidate`; `application/rewards/submit_candidate` consumes
+  the domain source scope and `models/reward_candidate.rs` keeps only temporary
+  compatibility aliases.
 - `infra/postgres/rewards/reward_authorization_access` is now a module folder
   split by platform, course, and fraud-block helper shape, keeping the
   rewards-side access bridge granular while preserving the existing caller
@@ -3489,6 +3525,8 @@ boundary checks from the matrix above to every canonical context.
       `domain/rewards/fraud_block`.
 - [x] Move reward candidate status normalization into
       `domain/rewards/candidate/status`.
+- [x] Move reward candidate source/status/event stable keys into
+      `domain/rewards/candidate`.
 - [x] Move reward audit event type vocabulary into `domain/rewards/audit`.
 - [x] Move reward execution job status vocabulary into
       `domain/rewards/execution`.

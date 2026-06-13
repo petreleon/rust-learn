@@ -2,9 +2,7 @@ use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmission, RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
     RewardCandidateSubmissionStore, SubmitRewardCandidateCommand,
 };
-
-const COURSE_SOURCE_SCOPE: &str = "course";
-const ORGANIZATION_SOURCE_SCOPE: &str = "organization";
+use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
 
 pub async fn submit_course_reward_candidate(
     store: &mut impl RewardCandidateSubmissionStore,
@@ -18,7 +16,7 @@ pub async fn submit_course_reward_candidate(
         .submit_reward_candidate(RewardCandidateSubmission {
             actor_user_id,
             course_id,
-            source_scope: COURSE_SOURCE_SCOPE.to_string(),
+            source_scope: RewardCandidateSourceScope::Course.as_str().to_string(),
             source_organization_id: None,
             command,
         })
@@ -39,7 +37,9 @@ pub async fn submit_organization_reward_candidate(
         .submit_reward_candidate(RewardCandidateSubmission {
             actor_user_id,
             course_id,
-            source_scope: ORGANIZATION_SOURCE_SCOPE.to_string(),
+            source_scope: RewardCandidateSourceScope::Organization
+                .as_str()
+                .to_string(),
             source_organization_id: Some(organization_id),
             command,
         })

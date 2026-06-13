@@ -8,6 +8,7 @@ use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmission, RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
     RewardCandidateSubmissionStore, SubmitRewardCandidateCommand,
 };
+use crate::domain::rewards::candidate::source::{REWARD_SOURCE_COURSE, REWARD_SOURCE_ORGANIZATION};
 
 struct FakeStore {
     course_exists: bool,
@@ -83,7 +84,7 @@ fn course_submission_uses_course_source_after_permission() {
     let submission = store.submission.unwrap();
     assert_eq!(submission.actor_user_id, 7);
     assert_eq!(submission.course_id, 11);
-    assert_eq!(submission.source_scope, "course");
+    assert_eq!(submission.source_scope, REWARD_SOURCE_COURSE);
     assert_eq!(submission.source_organization_id, None);
 }
 
@@ -101,7 +102,7 @@ fn organization_submission_uses_organization_source_after_attachment_and_permiss
 
     let submission = store.submission.unwrap();
     assert_eq!(submission.course_id, 11);
-    assert_eq!(submission.source_scope, "organization");
+    assert_eq!(submission.source_scope, REWARD_SOURCE_ORGANIZATION);
     assert_eq!(submission.source_organization_id, Some(13));
 }
 
@@ -160,7 +161,7 @@ fn output() -> RewardCandidateSubmissionOutput {
         course_id: 11,
         student_user_id: 23,
         submitter_user_id: 7,
-        source_scope: "course".to_string(),
+        source_scope: REWARD_SOURCE_COURSE.to_string(),
         source_organization_id: None,
         event_type: "manual_completion".to_string(),
         idempotency_key: "manual:11:23".to_string(),
