@@ -1,9 +1,11 @@
 use actix_web::{http::StatusCode, test, web, App};
 use chrono::NaiveDate;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::organizations::list_organization_teacher_applications::OrganizationTeacherApplicationListUseCase;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::schema::organizations;
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::organizations::organization_teacher_application_use_case::PostgresOrganizationTeacherApplicationUseCase;
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::OrganizationRole;
 use rust_learn::models::user::User;
@@ -16,7 +18,10 @@ use rust_learn::services::teacher_application_service::{
 };
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::Value;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
 
 static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -75,4 +80,12 @@ async fn assign_organization_role(
 
 fn token_for(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to create JWT")
+}
+
+fn organization_teacher_application_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn OrganizationTeacherApplicationListUseCase>> {
+    web::Data::new(Arc::new(PostgresOrganizationTeacherApplicationUseCase::new(
+        pool.clone(),
+    )))
 }

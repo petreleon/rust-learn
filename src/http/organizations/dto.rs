@@ -24,6 +24,14 @@ pub(super) struct OrganizationMemberListParams {
 }
 
 #[derive(Deserialize)]
+pub(super) struct OrganizationTeacherApplicationsParams {
+    pub(super) status: Option<String>,
+    pub(super) search: Option<String>,
+    pub(super) limit: Option<i64>,
+    pub(super) offset: Option<i64>,
+}
+
+#[derive(Deserialize)]
 pub(super) struct CreateOrganizationRequest {
     pub(super) name: String,
     pub(super) website_link: Option<String>,

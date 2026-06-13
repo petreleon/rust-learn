@@ -1,48 +1,63 @@
+use std::sync::Arc;
+
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
-use crate::db;
-use crate::services::teacher_application_service::{
-    OrganizationTeacherApplicationsRequest, TeacherApplicationError,
+use crate::application::organizations::list_organization_teacher_applications::{
+    OrganizationTeacherApplicationListError, OrganizationTeacherApplicationListQuery,
+    OrganizationTeacherApplicationListUseCase,
 };
 use crate::utils::request_auth::authenticated_user;
+
+use super::dto::OrganizationTeacherApplicationsParams;
+use super::teacher_application_dto::OrganizationTeacherApplicationsResponse;
 
 pub(super) async fn get_organization_teacher_applications(
     req: HttpRequest,
     path: web::Path<i32>,
-    pool: web::Data<db::DbPool>,
-    query: web::Query<OrganizationTeacherApplicationsRequest>,
+    use_case: web::Data<Arc<dyn OrganizationTeacherApplicationListUseCase>>,
+    query: web::Query<OrganizationTeacherApplicationsParams>,
 ) -> impl Responder {
     let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
     let organization_id = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
+
+    let list_query = OrganizationTeacherApplicationListQuery {
+        actor_user_id: requester.user_id,
+        organization_id,
+        status: query.status.clone(),
+        search: query.search.clone(),
+        limit: query.limit,
+        offset: query.offset,
     };
 
-    match crate::services::teacher_application_service::list_organization_applications(
-        &mut conn,
-        requester.user_id,
-        organization_id,
-        query.into_inner(),
-    )
-    .await
+    match use_case
+        .list_organization_teacher_applications(list_query)
+        .await
     {
-        Ok(applications) => HttpResponse::Ok().json(applications),
-        Err(TeacherApplicationError::PermissionDenied(_)) => HttpResponse::Forbidden()
-            .body("User does not have permission to view organization teacher applications"),
-        Err(TeacherApplicationError::InvalidInput(message)) => {
+        Ok(applications) => {
+            HttpResponse::Ok().json(OrganizationTeacherApplicationsResponse::from(applications))
+        }
+        Err(OrganizationTeacherApplicationListError::PermissionDenied(_)) => {
+            HttpResponse::Forbidden()
+                .body("User does not have permission to view organization teacher applications")
+        }
+        Err(OrganizationTeacherApplicationListError::InvalidInput(message)) => {
             HttpResponse::BadRequest().body(message)
         }
-        Err(TeacherApplicationError::InvalidTransition(message)) => {
-            HttpResponse::Conflict().body(message)
-        }
-        Err(TeacherApplicationError::NotFound) => {
+        Err(OrganizationTeacherApplicationListError::NotFound) => {
             HttpResponse::NotFound().body("Organization not found")
         }
-        Err(TeacherApplicationError::Database(error)) => {
+        Err(OrganizationTeacherApplicationListError::Connection(error)) => {
+            log::error!(
+                "event=organization_teacher_applications_connection_failed organization_id={} error={}",
+                organization_id,
+                error
+            );
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
+        }
+        Err(OrganizationTeacherApplicationListError::Database(error)) => {
             log::error!(
                 "event=organization_teacher_applications_fetch_failed organization_id={} error={}",
                 organization_id,

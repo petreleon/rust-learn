@@ -6,6 +6,7 @@ use crate::application::organizations::invite_organization_member::OrganizationM
 use crate::application::organizations::list_organization_courses::OrganizationCourseListUseCase;
 use crate::application::organizations::list_organization_member_audit::OrganizationMemberAuditUseCase;
 use crate::application::organizations::list_organization_members::OrganizationMemberListUseCase;
+use crate::application::organizations::list_organization_teacher_applications::OrganizationTeacherApplicationListUseCase;
 use crate::application::organizations::remove_organization_member::OrganizationMemberRemovalUseCase;
 use crate::db::DbPool;
 use crate::infra::postgres::organizations::organization_course_list_use_case::PostgresOrganizationCourseListUseCase;
@@ -15,6 +16,7 @@ use crate::infra::postgres::organizations::organization_member_invite_use_case::
 use crate::infra::postgres::organizations::organization_member_list_use_case::PostgresOrganizationMemberListUseCase;
 use crate::infra::postgres::organizations::organization_member_removal_use_case::PostgresOrganizationMemberRemovalUseCase;
 use crate::infra::postgres::organizations::organization_member_role_assignment_use_case::PostgresOrganizationMemberRoleAssignmentUseCase;
+use crate::infra::postgres::organizations::organization_teacher_application_use_case::PostgresOrganizationTeacherApplicationUseCase;
 
 #[derive(Clone)]
 pub struct OrganizationUseCases {
@@ -25,6 +27,7 @@ pub struct OrganizationUseCases {
     pub member_list: Arc<dyn OrganizationMemberListUseCase>,
     pub member_removal: Arc<dyn OrganizationMemberRemovalUseCase>,
     pub member_role_assignment: Arc<dyn OrganizationMemberRoleAssignmentUseCase>,
+    pub teacher_applications: Arc<dyn OrganizationTeacherApplicationListUseCase>,
 }
 
 pub fn build_organization_use_cases(pool: &DbPool) -> OrganizationUseCases {
@@ -36,6 +39,9 @@ pub fn build_organization_use_cases(pool: &DbPool) -> OrganizationUseCases {
         member_list: Arc::new(PostgresOrganizationMemberListUseCase::new(pool.clone())),
         member_removal: Arc::new(PostgresOrganizationMemberRemovalUseCase::new(pool.clone())),
         member_role_assignment: Arc::new(PostgresOrganizationMemberRoleAssignmentUseCase::new(
+            pool.clone(),
+        )),
+        teacher_applications: Arc::new(PostgresOrganizationTeacherApplicationUseCase::new(
             pool.clone(),
         )),
     }

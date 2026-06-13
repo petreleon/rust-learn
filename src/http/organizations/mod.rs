@@ -15,6 +15,8 @@ mod member_list;
 mod member_removal;
 mod member_roles;
 mod routes;
+mod teacher_application_dto;
+mod teacher_application_nested_dto;
 mod teacher_applications;
 
 pub use routes::{configure_routes, organization_scope};

@@ -12,6 +12,7 @@ mod api_routing_course_update_fake;
 mod api_routing_organization_courses_fake;
 mod api_routing_organization_dashboard_fake;
 mod api_routing_organization_roles_fake;
+mod api_routing_organization_teacher_applications_fake;
 mod api_routing_reporting_fake;
 mod api_routing_route_fakes;
 mod api_routing_route_targets;
@@ -66,6 +67,9 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_organization_courses_fake::organization_member_removal_data())
             .app_data(
                 api_routing_organization_roles_fake::organization_member_role_assignment_data(),
+            )
+            .app_data(
+                api_routing_organization_teacher_applications_fake::organization_teacher_application_data(),
             )
             .app_data(api_routing_route_fakes::course_reward_candidates_data())
             .app_data(api_routing_route_fakes::platform_reward_candidates_data())
