@@ -1,1 +1,1 @@
-// Pure authorization types and policies will move here.
+pub mod permission;

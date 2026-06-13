@@ -2396,6 +2396,48 @@ and Postgres rings.
       `infra/postgres/wallet`, and touched non-generated Rust files stay under
       the manual line limit.
 
+Slice 49: move wallet authorization policy into the access-control application
+ring.
+
+- [x] Create `domain/access_control/permission` as a typed permission
+      vocabulary for the wallet authorization decisions moved in this slice.
+      Application policy now passes `Permission` values instead of raw
+      persistence strings.
+- [x] Create `application/access_control/authorize_wallet` with explicit
+      action, error, service, store, handler, fake-store, and handler-test
+      modules. The access-control application layer owns the wallet permission
+      matrices for user reads, organization reads, user links, organization
+      links, and token-tax updates.
+- [x] Move direct platform and organization permission repository probes behind
+      `infra/postgres/access_control/wallet_authorization_store.rs`. That
+      adapter is the only new module in this slice that knows how a
+      `Permission` is stored as a string.
+- [x] Update `infra/postgres/wallet/wallet_access.rs` so wallet read, audit,
+      and link stores ask the access-control application policy instead of
+      carrying local permission lists.
+- [x] Update `infra/postgres/wallet/wallet_token_tax_store.rs` so deposit and
+      retire tax permission checks ask the access-control application policy
+      instead of calling the platform permission repository directly.
+- [x] Preserve legacy permission behavior: wallet-view permissions still
+      accept `VIEW_WALLET`, `VIEW_TRANSACTIONS`, `RECONCILE_WALLETS`, or
+      `MANAGE_WALLETS`; organization wallet reads still accept the existing
+      organization wallet/report/budget permissions; wallet links still accept
+      platform create/manage or organization wallet management as before; tax
+      updates still require the exact tax permission.
+- [x] Self-critique: this intentionally creates a wallet-specific authorization
+      use case, not the final generic `can(actor, action, scope)` API. Reward,
+      middleware, frontend capabilities, delegated permission checks, and
+      broader permission vocabulary unification still need follow-up
+      access-control slices.
+- [x] Prove wallet authorization policy with application fake-port tests, prove
+      wallet behavior with `wallet_linking`, prove route composition with
+      `api_routing`, prove binary wiring with
+      `cargo check --features app-bin --bin rust-learn`, and prove boundary
+      scans: no Actix/Diesel/repository imports in `domain/access_control`,
+      `application/access_control`, `domain/wallet`, or `application/wallet`;
+      direct permission repository probes now appear only in the Postgres
+      access-control adapter.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -2714,6 +2756,13 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   and Postgres store after Ethereum events are fetched. The old public
   `wallet_service::credit_observed_wallet_deposit` function is only a
   compatibility wrapper around the new Level 2 implementation.
+- Wallet authorization policy for read, audit, link, and token-tax permission
+  checks now lives in `application/access_control/authorize_wallet`, with
+  typed permission vocabulary in `domain/access_control/permission`.
+- Wallet permission repository probes now live behind
+  `infra/postgres/access_control/wallet_authorization_store.rs`; wallet
+  Postgres adapters call the access-control application handler instead of
+  duplicating local permission matrices.
 - The legacy `api/wallets` include fragments no longer own GET wallet reads,
   POST wallet links, token-tax routes, deposit-intent creation, or
   retirements. `api/wallets` is now only the `/api/wallets` scope bridge into
@@ -3246,11 +3295,15 @@ boundary checks from the matrix above to every canonical context.
       `infra/postgres/wallet`.
 - [x] Move the wallet deposit indexer worker path to call the new
       `application/wallet/index_deposit` handler after Ethereum event fetches.
-- [ ] Move wallet access checks through `application/access_control` instead of
+- [x] Move wallet access checks through `application/access_control` instead of
       direct repository permission probes in wallet handlers.
 
 ## Access Control Context
 
+- [x] Move wallet read/link/token-tax authorization decisions into
+      `application/access_control/authorize_wallet` with a typed
+      `domain/access_control::Permission` vocabulary and a Postgres permission
+      adapter.
 - [ ] Create one access-control API for `can(actor, action, scope)` style
       decisions.
 - [ ] Encode scope as types instead of loose strings where practical:

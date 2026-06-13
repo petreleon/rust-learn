@@ -3,14 +3,16 @@ use diesel_async::AsyncPgConnection;
 use futures::future::{BoxFuture, FutureExt};
 use std::str::FromStr;
 
+use crate::application::access_control::authorize_wallet::{
+    authorize_wallet_action, WalletAuthorizationAction,
+};
 use crate::application::wallet::manage_token_tax::{
     WalletTokenTaxError, WalletTokenTaxOperation, WalletTokenTaxStore,
 };
-use crate::config::constants::permissions::Permissions;
+use crate::infra::postgres::access_control::wallet_authorization_store::PostgresWalletAuthorizationStore;
 use crate::repositories::persistent_state_repository::{
     get_persistent_state, set_persistent_state,
 };
-use crate::repositories::platform_repository::user_permission_platform_request;
 
 const TOKEN_DEPOSIT_TAX_KEY: &str = "wallet.deposit_tax_tokens";
 const TOKEN_RETIRE_TAX_KEY: &str = "wallet.retire_tax_tokens";
@@ -32,13 +34,10 @@ impl WalletTokenTaxStore for PostgresWalletTokenTaxStore<'_> {
         operation: WalletTokenTaxOperation,
     ) -> BoxFuture<'_, Result<bool, WalletTokenTaxError>> {
         async move {
-            user_permission_platform_request(
-                self.conn,
-                actor_user_id,
-                &set_tax_permission(operation).to_string(),
-            )
-            .await
-            .map_err(|error| WalletTokenTaxError::PermissionCheck(error.to_string()))
+            let mut store = PostgresWalletAuthorizationStore::new(self.conn);
+            authorize_wallet_action(&mut store, actor_user_id, set_tax_action(operation))
+                .await
+                .map_err(|error| WalletTokenTaxError::PermissionCheck(error.to_string()))
         }
         .boxed()
     }
@@ -87,9 +86,9 @@ fn tax_key(operation: WalletTokenTaxOperation) -> &'static str {
     }
 }
 
-fn set_tax_permission(operation: WalletTokenTaxOperation) -> Permissions {
+fn set_tax_action(operation: WalletTokenTaxOperation) -> WalletAuthorizationAction {
     match operation {
-        WalletTokenTaxOperation::Deposit => Permissions::SET_DEPOSIT_TAX,
-        WalletTokenTaxOperation::Retire => Permissions::SET_RETIRE_TAX,
+        WalletTokenTaxOperation::Deposit => WalletAuthorizationAction::SetDepositTax,
+        WalletTokenTaxOperation::Retire => WalletAuthorizationAction::SetRetireTax,
     }
 }
