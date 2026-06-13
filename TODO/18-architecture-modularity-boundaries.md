@@ -2785,6 +2785,31 @@ Slice 60: make reward fraud-block scope vocabulary fully domain-owned.
       wiring with `cargo check --features app-bin --bin rust-learn`, and prove
       formatting, whitespace, line-count, and boundary scans.
 
+Slice 61: type reward policy vocabulary inside the rewards domain.
+
+- [x] Add `RewardPolicyScope` to `domain/rewards/policy` with stable platform,
+      organization, and course scope keys, parsing, normalization, and display
+      formatting.
+- [x] Add `RewardPaymentStrategy` to `domain/rewards/policy` with stable
+      treasury-transfer, mint, and off-chain strategy keys, parsing,
+      normalization, and display formatting.
+- [x] Re-export policy event keys from
+      `domain/rewards/candidate/event_type` as `RewardPolicyEventType` so the
+      reward event string vocabulary has one domain owner.
+- [x] Keep `normalize_scope_type`, `normalize_event_type`, and
+      `normalize_payment_strategy` stable as enum-backed compatibility helpers
+      for application and infra callers.
+- [x] Self-critique: policy vocabulary is now typed inside the domain, but
+      many application and infra callers still pass persisted strings until the
+      reward policy command/output/store contracts become typed.
+- [x] Prove the policy domain vocabulary with `domain::rewards::policy`,
+      preserve reward-policy validation with
+      `application::rewards::manage_reward_policy`, preserve payout strategy
+      selection with `application::rewards::plan_payout`, preserve repository
+      persistence with `test_policy_create_and_list`, prove binary wiring with
+      `cargo check --features app-bin --bin rust-learn`, and prove formatting,
+      whitespace, line-count, event-literal, and boundary scans.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -3161,6 +3186,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `RewardFraudBlockScope` in `domain/rewards/fraud_block`; reporting and
   legacy reward-candidate checks import scope keys from the domain, and
   `models/reward_fraud_block.rs` no longer exposes scope constants.
+- Reward policy scope and payment strategy vocabulary are now typed as
+  `RewardPolicyScope` and `RewardPaymentStrategy`; policy event constants are
+  re-exported from `domain/rewards/candidate/event_type` so reward event keys
+  have one domain owner.
 - `infra/postgres/rewards/reward_authorization_access` is now a module folder
   split by platform, course, and fraud-block helper shape, keeping the
   rewards-side access bridge granular while preserving the existing caller
@@ -3550,6 +3579,8 @@ boundary checks from the matrix above to every canonical context.
       `notify_wallet_credit`, `reconcile_candidate`, reward history, and
       candidate review read models).
 - [x] Move reward policy scope, event, and payment-strategy normalization into
+      `domain/rewards/policy`.
+- [x] Type reward policy scope and payment-strategy vocabulary in
       `domain/rewards/policy`.
 - [x] Move reward fraud-block scope vocabulary and target matching into
       `domain/rewards/fraud_block`.

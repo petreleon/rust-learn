@@ -1,6 +1,23 @@
 use super::*;
 
 #[test]
+fn exposes_stable_policy_scope_keys() {
+    assert_eq!(
+        RewardPolicyScope::Platform.as_str(),
+        REWARD_POLICY_SCOPE_PLATFORM
+    );
+    assert_eq!(RewardPolicyScope::Course.as_str(), "course");
+}
+
+#[test]
+fn parses_known_policy_scope() {
+    assert_eq!(
+        RewardPolicyScope::parse(REWARD_POLICY_SCOPE_ORGANIZATION).unwrap(),
+        RewardPolicyScope::Organization
+    );
+}
+
+#[test]
 fn normalizes_valid_policy_scopes() {
     assert_eq!(
         normalize_scope_type(REWARD_POLICY_SCOPE_PLATFORM).unwrap(),
@@ -21,6 +38,14 @@ fn normalizes_valid_policy_scopes() {
 fn rejects_invalid_policy_scope() {
     assert!(normalize_scope_type("").is_none());
     assert!(normalize_scope_type("unknown").is_none());
+}
+
+#[test]
+fn exposes_stable_policy_event_keys_from_candidate_events() {
+    assert_eq!(
+        RewardPolicyEventType::CourseCompletion.as_str(),
+        REWARD_EVENT_COURSE_COMPLETION
+    );
 }
 
 #[test]
@@ -59,6 +84,23 @@ fn normalizes_event_type_whitespace_and_dashes() {
 fn rejects_invalid_event_type() {
     assert!(normalize_event_type("").is_none());
     assert!(normalize_event_type("unknown").is_none());
+}
+
+#[test]
+fn exposes_stable_payment_strategy_keys() {
+    assert_eq!(
+        RewardPaymentStrategy::TreasuryTransfer.as_str(),
+        REWARD_PAYMENT_TREASURY_TRANSFER
+    );
+    assert_eq!(RewardPaymentStrategy::OffChain.as_str(), "off_chain");
+}
+
+#[test]
+fn parses_known_payment_strategy() {
+    assert_eq!(
+        RewardPaymentStrategy::parse(REWARD_PAYMENT_MINT).unwrap(),
+        RewardPaymentStrategy::Mint
+    );
 }
 
 #[test]
