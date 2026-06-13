@@ -10,4 +10,5 @@ pub mod operations;
 pub mod reporting;
 pub mod request_params;
 pub mod rewards;
+pub mod teacher_applications;
 pub mod wallet;

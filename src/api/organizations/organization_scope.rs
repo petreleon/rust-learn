@@ -85,7 +85,7 @@ pub fn organization_scope() -> actix_web::Scope {
                 .route(web::get().to(get_organization_teacher_applications))
                 .route(
                     web::post()
-                        .to(crate::api::teacher_applications::nominate_application)
+                        .to(crate::http::teacher_applications::nominate_application)
                         .wrap(OrganizationPermissionMiddleware::require(
                             Permissions::NOMINATE_TEACHER_FOR_PLATFORM_REVIEW.to_string(),
                             ParamType::Path,

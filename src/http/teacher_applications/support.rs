@@ -1,21 +1,16 @@
+use actix_web::{web, HttpRequest, HttpResponse};
+use diesel_async::AsyncPgConnection;
+use std::collections::HashSet;
+
 use crate::config::constants::permissions::Permissions;
-use crate::db;
 use crate::models::teacher_application::TeacherApplication;
 use crate::repositories::teacher_application_repository::{
     list_organization_user_ids_with_permission, list_platform_user_ids_with_permission,
 };
-use crate::services::teacher_application_service::{
-    self, ListTeacherApplicationsRequest, OrganizationTeacherNominationRequest,
-    PlatformTeacherApplicationsRequest, SubmitTeacherApplicationRequest,
-    TeacherApplicationDecisionRequest, TeacherApplicationError,
-};
+use crate::services::teacher_application_service::TeacherApplicationError;
 use crate::utils::notifications::NotificationsState;
-use crate::utils::request_auth::authenticated_user;
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
-use diesel_async::AsyncPgConnection;
-use std::collections::HashSet;
 
-fn service_error_response(error: TeacherApplicationError) -> HttpResponse {
+pub(super) fn service_error_response(error: TeacherApplicationError) -> HttpResponse {
     match error {
         TeacherApplicationError::PermissionDenied(_) => {
             HttpResponse::Forbidden().body("User does not have the required permission")
@@ -37,7 +32,7 @@ fn service_error_response(error: TeacherApplicationError) -> HttpResponse {
     }
 }
 
-async fn notify_teacher_application_event(
+pub(super) async fn notify_teacher_application_event(
     req: &HttpRequest,
     conn: &mut AsyncPgConnection,
     application: &TeacherApplication,
@@ -103,35 +98,5 @@ async fn notify_teacher_application_event(
                 error
             );
         }
-    }
-}
-
-async fn submit_application(
-    req: HttpRequest,
-    pool: web::Data<db::DbPool>,
-    body: web::Json<SubmitTeacherApplicationRequest>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match teacher_application_service::submit_application(
-        &mut conn,
-        requester.user_id,
-        body.into_inner(),
-    )
-    .await
-    {
-        Ok(application) => {
-            notify_teacher_application_event(&req, &mut conn, &application, "submitted", None)
-                .await;
-            HttpResponse::Created().json(application)
-        }
-        Err(error) => service_error_response(error),
     }
 }

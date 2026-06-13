@@ -1,43 +1,46 @@
-pub async fn nominate_application(
+use actix_web::{web, HttpRequest, HttpResponse, Responder};
+
+use crate::db;
+use crate::http::teacher_applications::support::{
+    notify_teacher_application_event, service_error_response,
+};
+use crate::services::teacher_application_service::{
+    self, ListTeacherApplicationsRequest, PlatformTeacherApplicationsRequest,
+    SubmitTeacherApplicationRequest, TeacherApplicationDecisionRequest,
+};
+use crate::utils::request_auth::authenticated_user;
+
+pub(super) async fn submit_application(
     req: HttpRequest,
-    path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
-    body: web::Json<OrganizationTeacherNominationRequest>,
+    body: web::Json<SubmitTeacherApplicationRequest>,
 ) -> impl Responder {
     let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
     };
-    let organization_id = path.into_inner();
     let mut conn = match pool.get().await {
         Ok(conn) => conn,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
     };
 
-    match teacher_application_service::nominate_application(
+    match teacher_application_service::submit_application(
         &mut conn,
         requester.user_id,
-        organization_id,
         body.into_inner(),
     )
     .await
     {
         Ok(application) => {
-            notify_teacher_application_event(
-                &req,
-                &mut conn,
-                &application,
-                "organization_nominated",
-                None,
-            )
-            .await;
+            notify_teacher_application_event(&req, &mut conn, &application, "submitted", None)
+                .await;
             HttpResponse::Created().json(application)
         }
         Err(error) => service_error_response(error),
     }
 }
 
-async fn list_applications(
+pub(super) async fn list_applications(
     req: HttpRequest,
     pool: web::Data<db::DbPool>,
     query: web::Query<ListTeacherApplicationsRequest>,
@@ -63,7 +66,7 @@ async fn list_applications(
     }
 }
 
-async fn list_platform_review_applications(
+pub(super) async fn list_platform_review_applications(
     req: HttpRequest,
     pool: web::Data<db::DbPool>,
     query: web::Query<PlatformTeacherApplicationsRequest>,
@@ -89,7 +92,10 @@ async fn list_platform_review_applications(
     }
 }
 
-async fn get_my_application(req: HttpRequest, pool: web::Data<db::DbPool>) -> impl Responder {
+pub(super) async fn get_my_application(
+    req: HttpRequest,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
     let requester = match authenticated_user(&req) {
         Ok(user) => user,
         Err(response) => return response,
@@ -105,7 +111,7 @@ async fn get_my_application(req: HttpRequest, pool: web::Data<db::DbPool>) -> im
     }
 }
 
-async fn decide_application(
+pub(super) async fn decide_application(
     req: HttpRequest,
     path: web::Path<i64>,
     pool: web::Data<db::DbPool>,

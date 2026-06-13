@@ -970,23 +970,27 @@ remaining gaps.
 | 79 | Moved platform user list/read/role-assignment HTTP handlers and `/user` scope from `api/users` into `http/identity`, then deleted the legacy `api/users` module. |
 | 80 | Moved delegated-permission HTTP handlers and `/delegated-permissions` scope from `api/delegated_permissions` into `http/access_control`, then mounted them from the access-control route configurator. |
 | 81 | Moved KYC HTTP handlers and `/kyc` scope from `api/kyc` into `http/kyc`, then mounted the context from `api_scope()` through `http/kyc::configure_routes`. |
+| 82 | Moved teacher-application HTTP handlers and `/teacher-applications` scope from `api/teacher_applications` into normal `http/teacher_applications` modules, then updated organization nomination routes to call that context. |
 
 ## Recent Slice Evidence
 
-Slice 81: move KYC routes into the KYC HTTP ring.
+Slice 82: move teacher-application routes into the teacher-application HTTP ring.
 
-- [x] Add `http/kyc` with a context-level `configure_routes` entrypoint.
-- [x] Move KYC status, submission, review decision, review queue, and audit
-      handlers into `http/kyc/routes.rs`.
-- [x] Delete `src/api/kyc.rs` and remove `pub mod kyc` plus the direct
-      `kyc::kyc_scope()` registration from `src/api/mod.rs`.
-- [x] Mount KYC routes from `api_scope()` through
-      `http/kyc::configure_routes`, preserving `/api/kyc/...` URLs.
-- [x] Self-critique: KYC request/response types and workflow still live in
-      `services/kyc_service`; later KYC slices should introduce
-      `application/kyc`, `infra/postgres/kyc`, and `http/kyc/dto` ownership.
-- [x] Prove KYC service behavior, API route reachability, formatting,
-      line-count, and stale import scans.
+- [x] Add `http/teacher_applications` with normal modules for support,
+      handlers, organization nomination, audit routes, and route composition.
+- [x] Remove the legacy `include!`-based `src/api/teacher_applications*`
+      module and mount `/teacher-applications` from
+      `http/teacher_applications::configure_routes`.
+- [x] Update organization nomination routing to call
+      `http/teacher_applications::nominate_application`.
+- [x] Preserve teacher-application notification behavior while moving the
+      notification helper into the teacher-application HTTP context.
+- [x] Self-critique: teacher-application request/response contracts and
+      workflow still live in `services/teacher_application_service`; later
+      slices should add `application/teacher_applications`,
+      `infra/postgres/teacher_applications`, and context DTO ownership.
+- [x] Prove teacher-application and organization teacher-application behavior,
+      API route reachability, formatting, line-count, and stale import scans.
 
 ## Legacy Transition Rules
 
@@ -1137,6 +1141,12 @@ boundary checks from the matrix above to every canonical context.
 
 - [x] `http/kyc` owns KYC route composition; the legacy `api/kyc` module has
       been deleted.
+
+## Teacher Applications Context
+
+- [x] `http/teacher_applications` owns teacher-application route composition;
+      the legacy `api/teacher_applications` include-based module has been
+      deleted.
 
 ## Data Boundary Rules
 

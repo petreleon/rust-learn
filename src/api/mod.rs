@@ -2,7 +2,6 @@
 pub mod authentication;
 pub mod courses;
 pub mod organizations;
-pub mod teacher_applications;
 use actix_service::ServiceFactory;
 use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, Scope};
 
@@ -36,6 +35,6 @@ pub fn api_scope() -> Scope<
         .configure(crate::http::kyc::configure_routes)
         .configure(crate::http::rewards::configure_routes)
         .configure(crate::http::access_control::configure_routes)
-        .service(teacher_applications::teacher_application_scope())
+        .configure(crate::http::teacher_applications::configure_routes)
         .configure(crate::http::wallet::configure_routes)
 }
