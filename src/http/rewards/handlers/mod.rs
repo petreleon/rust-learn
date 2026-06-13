@@ -4,3 +4,4 @@ pub mod fraud_block;
 pub mod platform_candidates;
 pub mod reward_history;
 pub mod reward_policy;
+pub mod teacher_decision;

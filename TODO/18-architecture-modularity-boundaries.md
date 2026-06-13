@@ -1556,6 +1556,51 @@ Slice 31: move platform reward-candidate review listing into the rewards HTTP ri
       passes, legacy reward-candidate service tests still pass, and the app
       binary still checks.
 
+Slice 32: move teacher reward-candidate decisions into the rewards HTTP ring.
+
+- [x] Use `PUT /courses/{course_id}/reward-candidates/{candidate_id}/teacher-decision`
+      as the next rewards mutation migration because it has a clear boundary:
+      course approval permission, teacher decision status normalization,
+      candidate transition, fraud-block guard, candidate update, and audit
+      event creation.
+- [x] Create `application/rewards/decide_teacher_candidate` with explicit
+      command/output/error/service modules and a module-local
+      `TeacherRewardCandidateDecisionStore` because the transactional mutation
+      contract is unique to this use case.
+- [x] Preserve legacy teacher decision status inputs exactly: `approved` and
+      `teacher_approved` map to `teacher_approved`; `rejected` and
+      `teacher_rejected` map to `teacher_rejected`; hyphenated values remain
+      invalid.
+- [x] Reuse the pure domain candidate transition rule for teacher
+      approve/reject validation while keeping DB string conversion at the
+      Postgres boundary.
+- [x] Move teacher-decision permission probing, candidate load/update,
+      active fraud-block checks, active reward-policy lookup, and audit-event
+      insertion behind `infra/postgres/rewards`.
+- [x] Keep the candidate read, transition check, fraud-block check, update, and
+      audit insert inside one Postgres transaction. Use an infra-only
+      transaction error wrapper so the application error type remains
+      Diesel-free.
+- [x] Move the teacher-decision request/response DTO and handler into
+      `http/rewards` while preserving the legacy URL, response field names, and
+      legacy HTTP error bodies.
+- [x] Remove teacher-decision route ownership from
+      `api/reward_candidates`. Register the `http/rewards` resource inside the
+      temporary legacy course scope so the existing `/api/courses/...` prefix
+      does not shadow the new route during migration.
+- [x] Wire the teacher-decision use-case trait object through
+      `bootstrap::AppState`, production Actix app data, and route smoke-test
+      app data.
+- [x] Self-critique: the legacy direct service function remains temporarily
+      because existing integration tests still call reward-candidate mutations
+      as service helpers. The next mutation slices should move submit-candidate
+      and amount-decision tests to use application use cases, then delete the
+      include-based reward-candidate service.
+- [x] Prove application fake-port tests pass, route composition reaches the
+      teacher-decision URL, application/domain import scans stay clean, touched
+      non-generated Rust files stay under the manual line limit, and the app
+      binary still checks.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -1660,6 +1705,23 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   user/course summary reads now live behind the module-local
   `PlatformRewardCandidateStore` in
   `infra/postgres/rewards/platform_reward_candidate_store.rs`.
+- Teacher reward-candidate decision HTTP handler and request/response DTO now
+  live under `http/rewards`, while preserving the legacy
+  `/courses/{course_id}/reward-candidates/{candidate_id}/teacher-decision`
+  PUT URL.
+- Teacher reward-candidate decisions are injected as an application-facing
+  `TeacherRewardCandidateDecisionUseCase`; concrete DbPool/Postgres wiring
+  lives in
+  `infra/postgres/rewards/teacher_reward_candidate_decision_use_case.rs` and
+  `bootstrap::AppState`.
+- Teacher reward-candidate permission probing, transactional candidate
+  update/audit insertion, fraud-block checks, and active policy lookups now
+  live behind the module-local `TeacherRewardCandidateDecisionStore` in
+  `infra/postgres/rewards/teacher_reward_candidate_decision_store.rs`.
+- `api/reward_candidates` no longer owns the teacher-decision route; the
+  temporary legacy course scope composes the `http/rewards` resource so the
+  `/api/courses/...` prefix remains reachable until course routing moves fully
+  into the HTTP ring.
 - Notification preference and inbox HTTP handlers plus request/response DTOs
   now live under `http/notifications`.
 - Notification preference reads/writes are injected as an application-facing
@@ -1763,6 +1825,16 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   returns no matches.
 - `rg "mod notifications|api/session/notifications" src/api/session.rs src/api`
   returns no matches.
+- `rg "actix_web|diesel|diesel_async|aws_|ethers|std::env" src/application/rewards/decide_teacher_candidate src/domain/rewards/candidate`
+  returns no matches.
+- `./scripts/run-host-tests.sh cargo test --lib application::rewards::decide_teacher_candidate`
+  passes.
+- `./scripts/run-host-tests.sh cargo test api_scope_and_following_routes_are_reachable --test api_routing`
+  passes.
+- `./scripts/run-host-tests.sh cargo check --features app-bin --bin rust-learn`
+  passes.
+- The manual line-limit scan only reports generated `src/db/schema.rs`; touched
+  non-generated Rust files stay under 180 lines.
 - `rg "api::session::get_notification_preferences|api::session::save_notification_preferences|session::get_notification_preferences|session::save_notification_preferences" src/api/mod.rs tests/current_session_api/current_session_test_app.rs`
   returns no matches.
 - `rg "session::get_current_session|api::session::get_current_session|crate::services::session_service|crate::db::DbPool|diesel|diesel_async|schema::|RunQueryDsl" src/api/session.rs src/http/identity src/api/mod.rs`
@@ -1992,6 +2064,8 @@ boundary checks from the matrix above to every canonical context.
       service imports and into `http/rewards/dto`.
 - [x] Move platform reward-candidate review request/response structs out of
       service imports and into `http/rewards/dto`.
+- [x] Move teacher reward-candidate decision request/response structs out of
+      service imports and into `http/rewards/dto`.
 - [ ] Move remaining reward request/response structs out of service imports and
       into `http/rewards/dto`.
 - [ ] Move candidate transition rules into pure domain functions:
@@ -2005,6 +2079,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Define `CourseRewardCandidateStore` for `list_course_candidates`.
 - [x] Define module-local `PlatformRewardCandidateStore` for
       `list_platform_candidates`.
+- [x] Define module-local `TeacherRewardCandidateDecisionStore` for
+      `decide_teacher_candidate`.
 - [ ] Define remaining repository ports needed by reward use cases before moving Diesel
       code. Examples: `RewardCandidateStore`, `RewardPolicyStore`,
       `RewardAuditStore`, `RewardFraudBlockStore`.
@@ -2018,6 +2094,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move course reward-candidate list Diesel implementation behind
       `infra/postgres/rewards`.
 - [x] Move platform reward-candidate review Diesel implementation behind
+      `infra/postgres/rewards`.
+- [x] Move teacher reward-candidate decision Diesel implementation behind
       `infra/postgres/rewards`.
 - [ ] Move remaining reward Diesel implementations behind
       `infra/postgres/rewards`.

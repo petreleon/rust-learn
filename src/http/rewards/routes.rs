@@ -2,7 +2,7 @@ use actix_web::web;
 
 use crate::http::rewards::handlers::{
     candidate_audit, course_candidates, fraud_block, platform_candidates, reward_history,
-    reward_policy,
+    reward_policy, teacher_decision,
 };
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
@@ -10,6 +10,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(reward_fraud_block_scope())
         .service(student_reward_history_resource())
         .service(reward_candidate_audit_resource())
+        .service(teacher_reward_candidate_decision_resource())
         .service(course_reward_candidates_resource())
         .service(platform_reward_candidates_resource());
 }
@@ -57,4 +58,14 @@ pub fn course_reward_candidates_resource() -> actix_web::Resource {
 pub fn platform_reward_candidates_resource() -> actix_web::Resource {
     web::resource("/reward-candidates/review")
         .route(web::get().to(platform_candidates::list_platform_reward_candidates))
+}
+
+pub fn teacher_reward_candidate_decision_resource() -> actix_web::Resource {
+    web::resource("/courses/{course_id}/reward-candidates/{candidate_id}/teacher-decision")
+        .route(web::put().to(teacher_decision::decide_reward_candidate_by_teacher))
+}
+
+pub fn course_scope_teacher_reward_candidate_decision_resource() -> actix_web::Resource {
+    web::resource("/{course_id}/reward-candidates/{candidate_id}/teacher-decision")
+        .route(web::put().to(teacher_decision::decide_reward_candidate_by_teacher))
 }

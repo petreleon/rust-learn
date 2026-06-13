@@ -4,6 +4,7 @@ use actix_web::{
 };
 
 mod api_routing_route_fakes;
+mod api_routing_teacher_decision_fake;
 
 #[actix_web::test]
 async fn bootstrap_routes_expose_index_and_health() {
@@ -32,6 +33,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_route_fakes::reward_candidate_audit_data())
             .app_data(api_routing_route_fakes::course_reward_candidates_data())
             .app_data(api_routing_route_fakes::platform_reward_candidates_data())
+            .app_data(api_routing_teacher_decision_fake::teacher_reward_candidate_decision_data())
             .app_data(api_routing_route_fakes::student_reward_history_data())
             .route(
                 "/hey",

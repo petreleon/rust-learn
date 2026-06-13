@@ -1,7 +1,6 @@
 use crate::db;
 use crate::services::reward_candidate_service::{
     self, RewardAmountDecisionRequest, RewardCandidateError, SubmitRewardCandidateRequest,
-    TeacherRewardCandidateDecisionRequest,
 };
 use crate::utils::request_auth::authenticated_user;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
@@ -77,36 +76,6 @@ async fn submit_organization_reward_candidate(
     .await
     {
         Ok(candidate) => HttpResponse::Created().json(candidate),
-        Err(error) => reward_candidate_error_response(error),
-    }
-}
-
-async fn decide_reward_candidate_by_teacher(
-    req: HttpRequest,
-    path: web::Path<(i32, i64)>,
-    pool: web::Data<db::DbPool>,
-    body: web::Json<TeacherRewardCandidateDecisionRequest>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-    let (course_id, candidate_id) = path.into_inner();
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match reward_candidate_service::decide_reward_candidate_by_teacher(
-        &mut conn,
-        requester.user_id,
-        course_id,
-        candidate_id,
-        body.into_inner(),
-    )
-    .await
-    {
-        Ok(candidate) => HttpResponse::Ok().json(candidate),
         Err(error) => reward_candidate_error_response(error),
     }
 }

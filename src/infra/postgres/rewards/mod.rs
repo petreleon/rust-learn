@@ -21,3 +21,8 @@ pub mod reward_history_use_case;
 pub mod reward_policy_mappers;
 pub mod reward_policy_store;
 pub mod reward_policy_use_case;
+pub mod teacher_reward_candidate_decision_fraud_blocks;
+pub mod teacher_reward_candidate_decision_mappers;
+pub mod teacher_reward_candidate_decision_policies;
+pub mod teacher_reward_candidate_decision_store;
+pub mod teacher_reward_candidate_decision_use_case;
