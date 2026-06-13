@@ -1,47 +1,12 @@
-use crate::config::constants::permissions::Permissions;
+use actix_web::{web, HttpResponse, Responder};
+
 use crate::db;
-use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
-use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 use crate::models::organization::UpdateOrganization;
-use crate::http::request_params::ParamType;
-use crate::services::course_service::{
-    discover_organization_courses, OrganizationCourseListError, OrganizationCourseListQuery,
-};
-use crate::services::organization_service::{
-    self, OrganizationDashboardError, OrganizationMemberListError, OrganizationMemberListQuery,
-};
-use crate::services::teacher_application_service::{
-    OrganizationTeacherApplicationsRequest, TeacherApplicationError,
-};
-use crate::utils::notifications::NotificationsState;
-use crate::utils::request_auth::{authenticated_user, authenticated_user_id};
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
-use serde::Deserialize;
+use crate::services::organization_service;
 
-#[derive(Deserialize)]
-pub struct AssignRoleRequest {
-    pub role_name: String,
-}
+use super::dto::CreateOrganizationRequest;
 
-#[derive(Deserialize)]
-pub struct OrganizationCourseListParams {
-    pub search: Option<String>,
-    pub lifecycle_status: Option<String>,
-    pub reward_available: Option<bool>,
-    pub limit: Option<i64>,
-    pub offset: Option<i64>,
-}
-
-#[derive(Deserialize)]
-pub struct OrganizationMemberListParams {
-    pub search: Option<String>,
-    pub role: Option<String>,
-    pub permission: Option<String>,
-    pub limit: Option<i64>,
-    pub offset: Option<i64>,
-}
-
-async fn list_organizations(pool: web::Data<db::DbPool>) -> impl Responder {
+pub(super) async fn list_organizations(pool: web::Data<db::DbPool>) -> impl Responder {
     match organization_service::list_organizations(&pool).await {
         Ok(org_list) => HttpResponse::Ok().json(org_list),
         Err(e) => {
@@ -51,7 +16,10 @@ async fn list_organizations(pool: web::Data<db::DbPool>) -> impl Responder {
     }
 }
 
-async fn get_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
+pub(super) async fn get_organization(
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
     let org_id = path.into_inner();
     match organization_service::get_organization(&pool, org_id).await {
         Ok(org) => HttpResponse::Ok().json(org),
@@ -69,15 +37,7 @@ async fn get_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> 
     }
 }
 
-#[derive(Deserialize)]
-pub struct CreateOrganizationRequest {
-    pub name: String,
-    pub website_link: Option<String>,
-    pub profile_url: Option<String>,
-    pub course_ids: Option<Vec<i32>>,
-}
-
-async fn create_organization(
+pub(super) async fn create_organization(
     pool: web::Data<db::DbPool>,
     req: web::Json<CreateOrganizationRequest>,
 ) -> impl Responder {
@@ -97,13 +57,12 @@ async fn create_organization(
     }
 }
 
-async fn update_organization(
+pub(super) async fn update_organization(
     path: web::Path<i32>,
     pool: web::Data<db::DbPool>,
     req: web::Json<UpdateOrganization>,
 ) -> impl Responder {
     let org_id = path.into_inner();
-    // Using into_inner() on Json wrapper to get the inner struct
     let update_data = req.into_inner();
 
     match organization_service::update_organization(&pool, org_id, update_data).await {
@@ -122,7 +81,10 @@ async fn update_organization(
     }
 }
 
-async fn delete_organization(path: web::Path<i32>, pool: web::Data<db::DbPool>) -> impl Responder {
+pub(super) async fn delete_organization(
+    path: web::Path<i32>,
+    pool: web::Data<db::DbPool>,
+) -> impl Responder {
     let org_id = path.into_inner();
     match organization_service::delete_organization(&pool, org_id).await {
         Ok(count) => {

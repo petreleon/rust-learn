@@ -973,38 +973,30 @@ remaining gaps.
 | 82 | Moved teacher-application HTTP handlers and `/teacher-applications` scope from `api/teacher_applications` into normal `http/teacher_applications` modules, then updated organization nomination routes to call that context. |
 | 83 | Moved authentication routes, password policy, email verification, password reset, login, session user-id, and JWKS handling into `http/identity/authentication`; bootstrap, seed validation, and auth-flow tests now import identity instead of `api/authentication`. |
 | 84 | Retired the `src/api` module: `/api` composition now lives in `http/routes.rs`, course route ownership lives in `http/learning`, organization route ownership lives in `http/organizations`, and tests import context HTTP modules directly. |
+| 85 | Split `http/organizations` away from `include!` and `imports.rs` into explicit modules for DTOs, CRUD handlers, course lists, dashboard, member list/invite/audit/role/removal flows, teacher-application tracking, and route composition. |
 
 ## Recent Slice Evidence
 
-Slices 83-84: move auth, course, organization, and `/api` route ownership into
-the HTTP ring.
+Slice 85: split organization HTTP into explicit modules.
 
-- [x] Add `http/identity/authentication` with normal modules for password
-      policy, support helpers, login, registration, email verification,
-      password reset, session user-id, JWKS, and tests.
-- [x] Remove the legacy `api/authentication` include-based module and mount
-      `/api/auth`, `/api/.well-known/jwks.json`, and root
-      `/.well-known/jwks.json` through `http/identity`.
-- [x] Move course route ownership from `api/courses` into
-      `http/learning/course_routes` and expose it through
-      `http/learning::configure_routes`.
-- [x] Move organization route ownership from `api/organizations` into
-      `http/organizations` and expose it through
-      `http/organizations::configure_routes`.
-- [x] Move top-level `/api` composition from `api::api_scope()` into
-      `http::api_scope()` and remove the `src/api` module from the library and
-      binary.
-- [x] Self-critique: route-complete is now true, but learning and organization
-      are still not use-case-complete or adapter-complete. Their HTTP route
-      fragments still carry legacy `include!`/`imports.rs` structure and call
-      `services::*`, `repositories::*`, direct Diesel, and Diesel models. Next
-      slices should split those handlers by real use case, then move business
-      orchestration into `application/learning` and `application/organizations`
-      with Postgres ports/adapters.
-- [x] Prove behavior with binary compile, route reachability, authentication,
-      current-session, course discovery/assessment/content/enrollment, teacher
-      course dashboard, organization dashboard/member/teacher-application, and
-      middleware/permission tests.
+- [x] Replace `http/organizations.rs` plus `include!` fragments with
+      `http/organizations/mod.rs` and named modules for DTOs, CRUD handlers,
+      course lists, dashboard, member list, member invites, member audit,
+      member role assignment, member removal, teacher-application tracking, and
+      routes.
+- [x] Keep `organization_scope()` and `configure_routes()` as the only public
+      HTTP surface for the context; route handlers and DTOs are `pub(super)`.
+- [x] Preserve all existing `/organizations` paths and middleware placement,
+      including reward candidate submission and teacher nomination composition.
+- [x] Self-critique: this slice fixes module granularity only. Organization
+      CRUD, members, dashboard, and teacher-application tracking still call
+      legacy services, direct Diesel-backed model methods, and service-owned
+      DTOs. The next organization-depth slice should move those workflows into
+      `application/organizations` with `infra/postgres/organizations` ports.
+- [x] Prove behavior with binary compile, API route reachability,
+      organization member/dashboard/teacher-application tests, organization
+      course-list tests, middleware access-control tests, formatting, line
+      count, and stale `include!`/`imports.rs` scans.
 
 ## Legacy Transition Rules
 
@@ -1170,9 +1162,10 @@ boundary checks from the matrix above to every canonical context.
       members, dashboard, course lists, reward submissions, and teacher
       application nomination/list routes; the legacy `api/organizations` module
       has been deleted.
-- [ ] Split `http/organizations` away from legacy `include!`/`imports.rs`
-      structure and move organization CRUD/member/dashboard orchestration into
-      application use cases with Postgres adapters.
+- [x] `http/organizations` uses normal modules instead of legacy
+      `include!`/`imports.rs` structure.
+- [ ] Move organization CRUD/member/dashboard orchestration into application
+      use cases with Postgres adapters.
 
 ## KYC Context
 
