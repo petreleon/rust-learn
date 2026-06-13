@@ -2810,6 +2810,29 @@ Slice 61: type reward policy vocabulary inside the rewards domain.
       `cargo check --features app-bin --bin rust-learn`, and prove formatting,
       whitespace, line-count, event-literal, and boundary scans.
 
+Slice 62: type reward payout method selection inside the rewards domain.
+
+- [x] Add `RewardPayoutMethod` to `domain/rewards/payout` with stable
+      presigner-transfer, treasury-transfer, mint, and off-chain method keys,
+      parsing, display formatting, and token-confirmation rules.
+- [x] Move payment-strategy-to-payout-method selection into the payout domain
+      via `RewardPayoutMethod::for_payment_strategy`.
+- [x] Update `application/rewards/plan_payout` to parse
+      `RewardPaymentStrategy`, select a `RewardPayoutMethod`, and convert back
+      to a string only at the existing output boundary.
+- [x] Self-critique: payout method selection is now typed internally, but
+      `RewardPayoutPlan`, `RewardPayoutPolicy`, legacy reward execution
+      re-exports, and persistence-facing records still carry string values
+      until those contracts are migrated.
+- [x] Prove the payout domain vocabulary with `domain::rewards::payout`,
+      preserve plan-payout behavior with `application::rewards::plan_payout`,
+      preserve persisted policy behavior with `test_policy_create_and_list`,
+      preserve execution payout selection with
+      `treasury_policy_uses_presigner_when_contract_is_available`, prove
+      binary wiring with `cargo check --features app-bin --bin rust-learn`,
+      and prove formatting, whitespace, payout-literal, line-count, and
+      boundary scans.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -3190,6 +3213,10 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `RewardPolicyScope` and `RewardPaymentStrategy`; policy event constants are
   re-exported from `domain/rewards/candidate/event_type` so reward event keys
   have one domain owner.
+- Reward payout method vocabulary is now typed as `RewardPayoutMethod`;
+  `application/rewards/plan_payout` selects methods and token-confirmation
+  requirements through the domain enum before mapping back to the existing
+  string output contract.
 - `infra/postgres/rewards/reward_authorization_access` is now a module folder
   split by platform, course, and fraud-block helper shape, keeping the
   rewards-side access bridge granular while preserving the existing caller
@@ -3593,6 +3620,7 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move reward audit event type vocabulary into `domain/rewards/audit`.
 - [x] Move reward execution job status vocabulary into
       `domain/rewards/execution`.
+- [x] Type reward payout method vocabulary in `domain/rewards/payout`.
 - [ ] Move remaining reward statuses and event types into domain enums/newtypes.
       Keep database string conversion at the infra boundary.
 - [x] Move reward policy request/response structs out of service imports and

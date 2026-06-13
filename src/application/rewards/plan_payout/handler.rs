@@ -4,13 +4,8 @@ use crate::application::rewards::plan_payout::validation::{
 use crate::application::rewards::plan_payout::{
     RewardPayoutPlan, RewardPayoutPlanError, RewardPayoutPlanStore, RewardPayoutPolicy,
 };
-use crate::domain::rewards::payout::{
-    REWARD_PAYOUT_METHOD_MINT, REWARD_PAYOUT_METHOD_OFF_CHAIN,
-    REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER, REWARD_PAYOUT_METHOD_TREASURY_TRANSFER,
-};
-use crate::domain::rewards::policy::{
-    REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN, REWARD_PAYMENT_TREASURY_TRANSFER,
-};
+use crate::domain::rewards::payout::RewardPayoutMethod;
+use crate::domain::rewards::policy::RewardPaymentStrategy;
 
 pub async fn plan_reward_payout(
     store: &mut impl RewardPayoutPlanStore,
@@ -24,14 +19,14 @@ pub async fn plan_reward_payout(
         .await?
         .ok_or(RewardPayoutPlanError::NoActivePolicy)?;
     let payout_method = select_payout_method(store, &policy).await?;
-    let requires_token_confirmation = payout_method != REWARD_PAYOUT_METHOD_OFF_CHAIN;
+    let requires_token_confirmation = payout_method.requires_token_confirmation();
 
     let plan = RewardPayoutPlan {
         candidate_id: candidate.id,
         policy_id: policy.id,
         amount,
         payment_strategy: policy.payment_strategy,
-        payout_method,
+        payout_method: payout_method.as_str().to_string(),
         requires_token_confirmation,
     };
 
@@ -73,21 +68,20 @@ async fn ensure_can_execute_reward_payout(
 async fn select_payout_method(
     store: &mut impl RewardPayoutPlanStore,
     policy: &RewardPayoutPolicy,
-) -> Result<String, RewardPayoutPlanError> {
-    match policy.payment_strategy.as_str() {
-        REWARD_PAYMENT_TREASURY_TRANSFER => {
-            if store.has_presigner_contract().await? {
-                Ok(REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER.to_string())
-            } else {
-                Ok(REWARD_PAYOUT_METHOD_TREASURY_TRANSFER.to_string())
-            }
-        }
-        REWARD_PAYMENT_MINT => Ok(REWARD_PAYOUT_METHOD_MINT.to_string()),
-        REWARD_PAYMENT_OFF_CHAIN => Ok(REWARD_PAYOUT_METHOD_OFF_CHAIN.to_string()),
-        _ => Err(RewardPayoutPlanError::InvalidInput(
-            "unsupported reward payment strategy".to_string(),
-        )),
-    }
+) -> Result<RewardPayoutMethod, RewardPayoutPlanError> {
+    let strategy =
+        RewardPaymentStrategy::parse(policy.payment_strategy.as_str()).map_err(|_| {
+            RewardPayoutPlanError::InvalidInput("unsupported reward payment strategy".to_string())
+        })?;
+    let has_presigner_contract = match strategy {
+        RewardPaymentStrategy::TreasuryTransfer => store.has_presigner_contract().await?,
+        RewardPaymentStrategy::Mint | RewardPaymentStrategy::OffChain => false,
+    };
+
+    Ok(RewardPayoutMethod::for_payment_strategy(
+        strategy,
+        has_presigner_contract,
+    ))
 }
 
 #[cfg(test)]
