@@ -8,14 +8,13 @@ use crate::application::rewards::list_reward_history::{
     StudentRewardTokenTransaction, StudentRewardWalletCredit,
 };
 use crate::application::rewards::ports::StudentRewardHistoryStore;
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{courses, reward_candidates};
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_history_financials;
 use crate::infra::postgres::rewards::reward_history_mappers::{
     candidate_record, map_reward_history_error,
 };
 use crate::models::reward_candidate::RewardCandidate;
-use crate::repositories::course_repository::user_permission_course_request;
 
 pub struct PostgresStudentRewardHistoryStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -41,14 +40,13 @@ impl StudentRewardHistoryStore for PostgresStudentRewardHistoryStore<'_> {
         course_id: i32,
     ) -> BoxFuture<'_, Result<bool, StudentRewardHistoryError>> {
         async move {
-            user_permission_course_request(
+            reward_authorization_access::can_view_course_reward_status(
                 self.conn,
                 actor_user_id,
                 course_id,
-                &Permissions::VIEW_COURSE_REWARD_STATUS.to_string(),
             )
             .await
-            .map_err(map_reward_history_error)
+            .map_err(|error| StudentRewardHistoryError::Database(error.to_string()))
         }
         .boxed()
     }

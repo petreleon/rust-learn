@@ -7,11 +7,10 @@ use crate::application::rewards::list_course_candidates::{
     CourseRewardCandidate, CourseRewardCandidatesError, CourseRewardCandidatesFilter,
 };
 use crate::application::rewards::ports::CourseRewardCandidateStore;
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{courses, reward_candidates};
 use crate::infra::postgres::rewards::course_reward_candidate_mappers::map_course_reward_candidate_error;
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::models::reward_candidate::RewardCandidate;
-use crate::repositories::course_repository::user_permission_course_request;
 
 pub struct PostgresCourseRewardCandidateStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -45,11 +44,16 @@ impl CourseRewardCandidateStore for PostgresCourseRewardCandidateStore<'_> {
         actor_user_id: i32,
         course_id: i32,
     ) -> BoxFuture<'_, Result<bool, CourseRewardCandidatesError>> {
-        self.course_permission(
-            actor_user_id,
-            course_id,
-            Permissions::APPROVE_STUDENT_REWARD_CANDIDATE,
-        )
+        async move {
+            reward_authorization_access::can_approve_student_reward_candidate(
+                self.conn,
+                actor_user_id,
+                course_id,
+            )
+            .await
+            .map_err(|error| CourseRewardCandidatesError::Database(error.to_string()))
+        }
+        .boxed()
     }
 
     fn can_manage_course_reward_rules(
@@ -57,11 +61,16 @@ impl CourseRewardCandidateStore for PostgresCourseRewardCandidateStore<'_> {
         actor_user_id: i32,
         course_id: i32,
     ) -> BoxFuture<'_, Result<bool, CourseRewardCandidatesError>> {
-        self.course_permission(
-            actor_user_id,
-            course_id,
-            Permissions::MANAGE_COURSE_REWARD_RULES,
-        )
+        async move {
+            reward_authorization_access::can_manage_course_reward_rules(
+                self.conn,
+                actor_user_id,
+                course_id,
+            )
+            .await
+            .map_err(|error| CourseRewardCandidatesError::Database(error.to_string()))
+        }
+        .boxed()
     }
 
     fn can_view_course_reward_status(
@@ -69,11 +78,16 @@ impl CourseRewardCandidateStore for PostgresCourseRewardCandidateStore<'_> {
         actor_user_id: i32,
         course_id: i32,
     ) -> BoxFuture<'_, Result<bool, CourseRewardCandidatesError>> {
-        self.course_permission(
-            actor_user_id,
-            course_id,
-            Permissions::VIEW_COURSE_REWARD_STATUS,
-        )
+        async move {
+            reward_authorization_access::can_view_course_reward_status(
+                self.conn,
+                actor_user_id,
+                course_id,
+            )
+            .await
+            .map_err(|error| CourseRewardCandidatesError::Database(error.to_string()))
+        }
+        .boxed()
     }
 
     fn list_course_reward_candidates(
@@ -81,27 +95,6 @@ impl CourseRewardCandidateStore for PostgresCourseRewardCandidateStore<'_> {
         filter: CourseRewardCandidatesFilter,
     ) -> BoxFuture<'_, Result<Vec<CourseRewardCandidate>, CourseRewardCandidatesError>> {
         async move { list_candidates(self.conn, filter).await }.boxed()
-    }
-}
-
-impl PostgresCourseRewardCandidateStore<'_> {
-    fn course_permission(
-        &mut self,
-        actor_user_id: i32,
-        course_id: i32,
-        permission: Permissions,
-    ) -> BoxFuture<'_, Result<bool, CourseRewardCandidatesError>> {
-        async move {
-            user_permission_course_request(
-                self.conn,
-                actor_user_id,
-                course_id,
-                &permission.to_string(),
-            )
-            .await
-            .map_err(map_course_reward_candidate_error)
-        }
-        .boxed()
     }
 }
 

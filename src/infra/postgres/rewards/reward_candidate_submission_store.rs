@@ -9,9 +9,9 @@ use crate::application::rewards::submit_candidate::{
 };
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{courses, courses_organizations};
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_submission_mappers::map_reward_candidate_submission_error;
 use crate::infra::postgres::rewards::reward_candidate_submission_mutation::submit_reward_candidate;
-use crate::repositories::course_repository::user_permission_course_request;
 use crate::repositories::organization_repository::user_permission_organization_request;
 
 pub struct PostgresRewardCandidateSubmissionStore<'conn> {
@@ -65,23 +65,13 @@ impl RewardCandidateSubmissionStore for PostgresRewardCandidateSubmissionStore<'
         course_id: i32,
     ) -> BoxFuture<'_, Result<bool, RewardCandidateSubmissionError>> {
         async move {
-            for permission in [
-                Permissions::SUBMIT_COURSE_REWARD_EVENT,
-                Permissions::CREATE_REWARDABLE_COURSE_EVENT,
-            ] {
-                if user_permission_course_request(
-                    self.conn,
-                    actor_user_id,
-                    course_id,
-                    &permission.to_string(),
-                )
-                .await
-                .map_err(map_reward_candidate_submission_error)?
-                {
-                    return Ok(true);
-                }
-            }
-            Ok(false)
+            reward_authorization_access::can_submit_course_reward_event(
+                self.conn,
+                actor_user_id,
+                course_id,
+            )
+            .await
+            .map_err(|error| RewardCandidateSubmissionError::Database(error.to_string()))
         }
         .boxed()
     }

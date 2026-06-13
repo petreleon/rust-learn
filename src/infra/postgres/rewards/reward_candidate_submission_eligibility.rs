@@ -3,12 +3,11 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::rewards::submit_candidate::RewardCandidateSubmissionError;
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{reward_candidates, users};
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_policy_lookup::active_reward_policy_ids_for_course_event;
 use crate::infra::postgres::rewards::reward_candidate_submission_mappers::map_reward_candidate_submission_error;
-use crate::repositories::course_repository::user_permission_course_request;
 
 pub(super) async fn ensure_reward_target_eligible(
     conn: &mut AsyncPgConnection,
@@ -29,14 +28,13 @@ pub(super) async fn ensure_reward_target_eligible(
         ));
     }
 
-    let can_view_reward_status = user_permission_course_request(
+    let can_view_reward_status = reward_authorization_access::can_view_course_reward_status(
         conn,
         student_user_id,
         course_id,
-        &Permissions::VIEW_COURSE_REWARD_STATUS.to_string(),
     )
     .await
-    .map_err(map_reward_candidate_submission_error)?;
+    .map_err(|error| RewardCandidateSubmissionError::Database(error.to_string()))?;
 
     if !can_view_reward_status {
         return Err(RewardCandidateSubmissionError::InvalidInput(

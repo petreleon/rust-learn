@@ -2512,6 +2512,50 @@ application ring.
       prove targeted scans show the direct platform permission probe for these
       moved checks only in the Postgres access-control adapter.
 
+Slice 52: move course-scoped reward authorization policy into the access-control
+application ring.
+
+- [x] Extend `application/access_control/authorize_reward` with course-scoped
+      reward actions for course reward submission, student reward candidate
+      approval, course reward rule management, and course reward-status
+      visibility.
+- [x] Extend `domain/access_control/permission` with typed course reward
+      permission values: `SubmitCourseRewardEvent`,
+      `CreateRewardableCourseEvent`, `ApproveStudentRewardCandidate`,
+      `ManageCourseRewardRules`, and `ViewCourseRewardStatus`.
+- [x] Extend `RewardAuthorizationStore` and
+      `infra/postgres/access_control/reward_authorization_store.rs` with a
+      course permission probe. The Postgres access-control adapter is now the
+      only owner of `user_permission_course_request` for the reward course
+      checks moved in this slice.
+- [x] Update teacher reward-candidate decisions, course reward-candidate
+      listing, student reward history visibility, course reward-candidate
+      submission, and reward-target eligibility to call
+      `infra/postgres/rewards/reward_authorization_access.rs` instead of
+      importing course permission constants or calling
+      `user_permission_course_request` directly.
+- [x] Preserve legacy course permission behavior: teacher decisions require
+      `APPROVE_STUDENT_REWARD_CANDIDATE`; course candidate managers can use
+      `APPROVE_STUDENT_REWARD_CANDIDATE` or `MANAGE_COURSE_REWARD_RULES`;
+      non-manager visibility uses `VIEW_COURSE_REWARD_STATUS`; course
+      submission accepts either `SUBMIT_COURSE_REWARD_EVENT` or
+      `CREATE_REWARDABLE_COURSE_EVENT`; recipient eligibility still requires
+      `VIEW_COURSE_REWARD_STATUS`.
+- [x] Self-critique: organization-scoped reward submission, fraud-block target
+      permissions, fraud-block notification recipient permission lists,
+      delegated middleware/session capabilities, and the final generic
+      `can(actor, action, scope)` API remain open.
+- [x] Prove course-scoped reward authorization with application fake-port
+      tests; prove behavior with `decide_teacher_candidate`,
+      `list_course_candidates`, `submit_candidate`, app binary check,
+      `custom_course_roles_with_reward_permissions_can_submit_and_approve_candidates`,
+      `teacher_named_course_role_without_reward_permissions_cannot_submit_or_approve`,
+      `reward_course_candidates`, `student_reward_history`, and
+      `delegated_course_permission_submits_candidate_without_course_role`;
+      prove boundary scans show direct course permission probes only in the
+      Postgres access-control adapter for the moved checks, and keep touched
+      non-generated Rust files under the manual line limit.
+
 Progress evidence from 2026-06-12 and 2026-06-13:
 
 - `src/api/chapters.rs` is now a thin compatibility wrapper around
@@ -2852,6 +2896,13 @@ Progress evidence from 2026-06-12 and 2026-06-13:
   `application/access_control/authorize_reward`.
 - The direct platform permission repository probe for the moved reward
   platform checks now lives only in
+  `infra/postgres/access_control/reward_authorization_store.rs`.
+- Course-scoped reward authorization for course submission, teacher reward
+  decisions, course reward-candidate listing, student reward history
+  visibility, and reward recipient eligibility now lives in
+  `application/access_control/authorize_reward`.
+- The direct course permission repository probe for the moved reward course
+  checks now lives only in
   `infra/postgres/access_control/reward_authorization_store.rs`.
 - The legacy `api/wallets` include fragments no longer own GET wallet reads,
   POST wallet links, token-tax routes, deposit-intent creation, or
@@ -3330,6 +3381,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move platform reward policy, audit, amount-review, platform-review
       capability, and compensation permission checks through
       `application/access_control`.
+- [x] Move course-scoped reward submission, teacher-decision, course-listing,
+      student-history visibility, and reward-target eligibility permission
+      checks through `application/access_control`.
 - [ ] Move reward permission decisions through `application/access_control`
       instead of calling `user_permission_*_request` directly from reward use
       cases.
@@ -3407,6 +3461,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Move platform reward policy, audit, amount-review, platform-review
       capability, and compensation authorization decisions into
       `application/access_control/authorize_reward`.
+- [x] Move course-scoped reward submission, teacher-decision, course-listing,
+      student-history visibility, and reward-target eligibility authorization
+      decisions into `application/access_control/authorize_reward`.
 - [ ] Create one access-control API for `can(actor, action, scope)` style
       decisions.
 - [ ] Encode scope as types instead of loose strings where practical:

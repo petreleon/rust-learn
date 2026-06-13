@@ -14,9 +14,27 @@ pub async fn authorize_reward_action(
                 .has_platform_permission(actor_user_id, Permission::ApproveRewardAmount)
                 .await
         }
+        RewardAuthorizationAction::ApproveStudentRewardCandidate { course_id } => {
+            store
+                .has_course_permission(
+                    actor_user_id,
+                    course_id,
+                    Permission::ApproveStudentRewardCandidate,
+                )
+                .await
+        }
         RewardAuthorizationAction::ExecuteRewardPayout => {
             store
                 .has_platform_permission(actor_user_id, Permission::ExecuteRewardPayout)
+                .await
+        }
+        RewardAuthorizationAction::ManageCourseRewardRules { course_id } => {
+            store
+                .has_course_permission(
+                    actor_user_id,
+                    course_id,
+                    Permission::ManageCourseRewardRules,
+                )
                 .await
         }
         RewardAuthorizationAction::ManageRewardPolicy => {
@@ -31,6 +49,23 @@ pub async fn authorize_reward_action(
                 &[Permission::ReconcileWallets, Permission::ManageWallets],
             )
             .await
+        }
+        RewardAuthorizationAction::SubmitCourseRewardEvent { course_id } => {
+            has_any_course_permission(
+                store,
+                actor_user_id,
+                course_id,
+                &[
+                    Permission::SubmitCourseRewardEvent,
+                    Permission::CreateRewardableCourseEvent,
+                ],
+            )
+            .await
+        }
+        RewardAuthorizationAction::ViewCourseRewardStatus { course_id } => {
+            store
+                .has_course_permission(actor_user_id, course_id, Permission::ViewCourseRewardStatus)
+                .await
         }
         RewardAuthorizationAction::ViewRewardAudit => {
             store
@@ -48,6 +83,23 @@ async fn has_any_platform_permission(
     for &permission in permissions {
         if store
             .has_platform_permission(actor_user_id, permission)
+            .await?
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+async fn has_any_course_permission(
+    store: &mut impl RewardAuthorizationStore,
+    actor_user_id: i32,
+    course_id: i32,
+    permissions: &[Permission],
+) -> Result<bool, RewardAuthorizationError> {
+    for &permission in permissions {
+        if store
+            .has_course_permission(actor_user_id, course_id, permission)
             .await?
         {
             return Ok(true);

@@ -7,13 +7,12 @@ use crate::application::rewards::decide_teacher_candidate::{
     TeacherRewardCandidateDecision, TeacherRewardCandidateDecisionError,
     TeacherRewardCandidateDecisionOutput, TeacherRewardCandidateDecisionStore,
 };
-use crate::config::constants::permissions::Permissions;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::rewards::candidate::transition;
+use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::ensure_no_active_reward_fraud_block;
 use crate::infra::postgres::rewards::teacher_reward_candidate_decision_mappers::map_teacher_decision_error;
 use crate::models::reward_audit_event::{NewRewardAuditEvent, REWARD_AUDIT_EVENT_TEACHER_DECISION};
-use crate::repositories::course_repository::user_permission_course_request;
 use crate::repositories::{reward_audit_event_repository, reward_candidate_repository};
 
 pub struct PostgresTeacherRewardCandidateDecisionStore<'conn> {
@@ -33,14 +32,13 @@ impl TeacherRewardCandidateDecisionStore for PostgresTeacherRewardCandidateDecis
         course_id: i32,
     ) -> BoxFuture<'_, Result<bool, TeacherRewardCandidateDecisionError>> {
         async move {
-            user_permission_course_request(
+            reward_authorization_access::can_approve_student_reward_candidate(
                 self.conn,
                 actor_user_id,
                 course_id,
-                &Permissions::APPROVE_STUDENT_REWARD_CANDIDATE.to_string(),
             )
             .await
-            .map_err(map_teacher_decision_error)
+            .map_err(|error| TeacherRewardCandidateDecisionError::Database(error.to_string()))
         }
         .boxed()
     }
