@@ -15,6 +15,8 @@ mod organization_member_audit_mappers;
 pub mod organization_member_audit_store;
 pub mod organization_member_audit_use_case;
 mod organization_member_builders;
+pub mod organization_member_invite_store;
+pub mod organization_member_invite_use_case;
 pub mod organization_member_list_store;
 pub mod organization_member_list_use_case;
 mod organization_member_permission_queries;

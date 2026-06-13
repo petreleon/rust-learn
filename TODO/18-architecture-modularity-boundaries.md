@@ -1005,35 +1005,38 @@ remaining gaps.
 | 107 | Moved `GET /organizations/{id}/members/{user_id}/audit` behind `application/organizations/list_organization_member_audit`, a Postgres member-audit adapter/use case, an HTTP-owned audit response DTO, and bootstrap app-data wiring; the route no longer opens the DB pool, imports Diesel/schema/model types, or relies on route middleware to run the audit query. |
 | 108 | Moved `GET /organizations/{id}/dashboard` behind `application/organizations/get_organization_dashboard`, granular Postgres dashboard read adapters, HTTP-owned dashboard DTOs, and bootstrap app-data wiring; the route no longer opens the DB pool or calls `organization_service::get_organization_dashboard`, while dashboard gating, missing-permission sections, health, and alerts now live in application code. |
 | 109 | Moved `DELETE /organizations/{id}/users/{user_id}` behind `application/organizations/remove_organization_member`, a Postgres member-removal adapter/use case, and bootstrap app-data wiring; the route no longer opens the DB pool, calls `organization_service::remove_organization_member`, or relies on route middleware for the manage-members permission check. |
+| 110 | Moved `POST /organizations/{id}/members` behind `application/organizations/invite_organization_member`, a Postgres member-invite adapter/use case, and organization-context bootstrap wiring; the route no longer opens the DB pool, looks up `User` records, calls `organization_service::assign_role`, or relies on route middleware for the invite permission check. |
 
 ## Recent Slice Evidence
 
-Slice 109: move organization member removal into an injected use case.
+Slice 110: move organization member invite-by-email into an injected use case.
 
-- [x] Add `application/organizations/remove_organization_member` with command,
-      error, store port, handler, use-case trait, and fake-store tests proving
-      removal is permission-gated.
-- [x] Add Postgres organizations modules for `MANAGE_ORG_MEMBERS` permission
-      checks, organization-member role deletion, best-effort `member_removed`
-      audit event insertion, Diesel error mapping, and concrete use-case
-      orchestration.
-- [x] Rework `http/organizations/member_removal.rs` into an auth/path/error
+- [x] Add `application/organizations/invite_organization_member` with command,
+      output, error, store port, handler, use-case trait, and fake-store tests
+      proving invite lookup/assignment is permission-gated.
+- [x] Add Postgres organizations modules for `INVITE_USER_TO_ORGANIZATION`
+      permission checks, email lookup, organization-role assignment,
+      best-effort `role_assigned` audit insertion, Diesel error mapping, and
+      concrete use-case orchestration.
+- [x] Rework `http/organizations/member_invites.rs` into an auth/path/body/error
       mapper that calls the injected application use case.
-- [x] Wire the concrete organization member-removal use case through
-      `bootstrap/app_state`, `bootstrap/use_case_wiring`, and
-      `bootstrap/app_data`.
+- [x] Wire the concrete organization member-invite use case through the
+      organization bootstrap bundle, `bootstrap/app_state`,
+      `bootstrap/use_case_wiring`, and `bootstrap/app_data`; `AppState` now holds
+      the organization context use-case bundle instead of flattening every
+      organization use case into top-level state fields.
 - [x] Update organization member and API routing tests to inject the production
-      Postgres organization member-removal use case or a route-only fake as
+      Postgres organization member-invite use case or a route-only fake as
       appropriate.
-- [x] Self-critique: removal audit events intentionally preserve the legacy
-      `actor_user_id = null` behavior even though the use case receives the
-      actor for authorization. A future audit-policy slice can decide whether
-      to enrich historical event attribution.
-- [x] Prove behavior with binary compile, isolated application unit tests,
-      organization member regression tests, API route reachability, formatting,
-      line-count checks, `git diff --check`, and boundary scans proving
-      `http/organizations/member_removal.rs` no longer imports DB pools,
-      services, Diesel, schema, repositories, or Diesel model types.
+- [x] Self-critique: invite-by-email intentionally preserves the legacy
+      successful side effect as a `role_assigned` audit event only. A future
+      audit-policy slice can decide whether a separate `member_invited` event is
+      needed.
+- [x] Prove behavior with isolated application unit tests, organization member
+      regression tests, API route reachability, formatting, line-count checks,
+      `git diff --check`, and boundary scans proving
+      `http/organizations/member_invites.rs` no longer imports DB pools,
+      services, Diesel, repositories, or Diesel model types.
 
 ## Legacy Transition Rules
 
@@ -1269,7 +1272,11 @@ boundary checks from the matrix above to every canonical context.
 - [x] `DELETE /organizations/{id}/users/{user_id}` now has application
       command/error and store-port contracts, a Postgres member-removal adapter
       use case, bootstrap wiring, and organization member/API route tests.
-- [ ] Move remaining organization CRUD, member invite/role assignment, and
+- [x] `POST /organizations/{id}/members` now has application command/output/error
+      and store-port contracts, a Postgres member-invite adapter use case,
+      organization-context bootstrap wiring, and organization member/API route
+      tests.
+- [ ] Move remaining organization CRUD, member role assignment, and
       organization teacher-application orchestration into application use cases
       with Postgres adapters.
 

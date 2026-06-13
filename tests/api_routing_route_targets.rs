@@ -61,6 +61,7 @@ pub fn route_smoke_targets() -> Vec<(Method, &'static str)> {
         (Method::GET, "/api/organizations/56/courses"),
         (Method::GET, "/api/organizations/56/dashboard"),
         (Method::GET, "/api/organizations/56/members"),
+        (Method::POST, "/api/organizations/56/members"),
         (Method::GET, "/api/organizations/56/members/78/audit"),
         (Method::DELETE, "/api/organizations/56/users/78"),
         (Method::GET, "/api/reports/organizations/56/summary"),

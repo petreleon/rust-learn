@@ -36,15 +36,7 @@ pub fn organization_scope() -> actix_web::Scope {
         .service(
             web::resource("/{id}/members")
                 .route(web::get().to(member_list::get_organization_members))
-                .route(
-                    web::post()
-                        .to(member_invites::add_member_by_email_route)
-                        .wrap(OrganizationPermissionMiddleware::require(
-                            "INVITE_USER_TO_ORGANIZATION".to_string(),
-                            ParamType::Path,
-                            "id".to_string(),
-                        )),
-                ),
+                .route(web::post().to(member_invites::add_member_by_email_route)),
         )
         .service(
             web::resource("/{id}/dashboard")

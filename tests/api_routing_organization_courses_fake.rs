@@ -3,6 +3,10 @@ use std::sync::Arc;
 use actix_web::web;
 use chrono::Utc;
 use futures::future::{ready, BoxFuture, FutureExt};
+use rust_learn::application::organizations::invite_organization_member::{
+    OrganizationMemberInviteCommand, OrganizationMemberInviteError, OrganizationMemberInviteOutput,
+    OrganizationMemberInviteUseCase,
+};
 use rust_learn::application::organizations::list_organization_courses::{
     OrganizationCourseListError, OrganizationCourseListOutput, OrganizationCourseListQuery,
     OrganizationCourseListUseCase, OrganizationCourseSummaryOutput,
@@ -23,6 +27,7 @@ use rust_learn::application::organizations::remove_organization_member::{
 
 struct RouteOnlyOrganizationCourseListUseCase;
 struct RouteOnlyOrganizationMemberAuditUseCase;
+struct RouteOnlyOrganizationMemberInviteUseCase;
 struct RouteOnlyOrganizationMemberListUseCase;
 struct RouteOnlyOrganizationMemberRemovalUseCase;
 
@@ -41,6 +46,11 @@ pub fn organization_member_list_data() -> web::Data<Arc<dyn OrganizationMemberLi
 pub fn organization_member_audit_data() -> web::Data<Arc<dyn OrganizationMemberAuditUseCase>> {
     web::Data::new(Arc::new(RouteOnlyOrganizationMemberAuditUseCase)
         as Arc<dyn OrganizationMemberAuditUseCase>)
+}
+
+pub fn organization_member_invite_data() -> web::Data<Arc<dyn OrganizationMemberInviteUseCase>> {
+    web::Data::new(Arc::new(RouteOnlyOrganizationMemberInviteUseCase)
+        as Arc<dyn OrganizationMemberInviteUseCase>)
 }
 
 pub fn organization_member_removal_data() -> web::Data<Arc<dyn OrganizationMemberRemovalUseCase>> {
@@ -96,6 +106,21 @@ impl OrganizationMemberRemovalUseCase for RouteOnlyOrganizationMemberRemovalUseC
         _command: OrganizationMemberRemovalCommand,
     ) -> BoxFuture<'_, Result<(), OrganizationMemberRemovalError>> {
         ready(Ok(())).boxed()
+    }
+}
+
+impl OrganizationMemberInviteUseCase for RouteOnlyOrganizationMemberInviteUseCase {
+    fn invite_organization_member(
+        &self,
+        command: OrganizationMemberInviteCommand,
+    ) -> BoxFuture<'_, Result<OrganizationMemberInviteOutput, OrganizationMemberInviteError>> {
+        ready(Ok(OrganizationMemberInviteOutput {
+            user_id: 78,
+            name: "Route Member".to_string(),
+            email: command.email,
+            role: command.role_name.unwrap_or_else(|| "STUDENT".to_string()),
+        }))
+        .boxed()
     }
 }
 

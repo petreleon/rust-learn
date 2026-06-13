@@ -4,6 +4,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::application::organizations::list_organization_member_audit::OrganizationMemberAuditUseCase;
 use rust_learn::application::organizations::list_organization_members::OrganizationMemberListUseCase;
+use rust_learn::application::organizations::invite_organization_member::OrganizationMemberInviteUseCase;
 use rust_learn::application::organizations::remove_organization_member::OrganizationMemberRemovalUseCase;
 use rust_learn::db::schema::{
     organization_member_audit_events, organizations, user_role_organization,
@@ -18,6 +19,7 @@ use rust_learn::models::organization_member_audit_event::{
 use rust_learn::models::role::OrganizationRole;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
+use rust_learn::infra::postgres::organizations::organization_member_invite_use_case::PostgresOrganizationMemberInviteUseCase;
 use rust_learn::infra::postgres::organizations::organization_member_list_use_case::PostgresOrganizationMemberListUseCase;
 use rust_learn::infra::postgres::organizations::organization_member_removal_use_case::PostgresOrganizationMemberRemovalUseCase;
 use rust_learn::repositories::delegated_permission_repository::create_delegated_permission;
@@ -100,6 +102,14 @@ fn organization_member_audit_use_case_data(
     )))
 }
 
+fn organization_member_invite_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn OrganizationMemberInviteUseCase>> {
+    web::Data::new(Arc::new(PostgresOrganizationMemberInviteUseCase::new(
+        pool.clone(),
+    )))
+}
+
 fn organization_member_removal_use_case_data(
     pool: &DbPool,
 ) -> web::Data<Arc<dyn OrganizationMemberRemovalUseCase>> {
@@ -117,4 +127,18 @@ fn array_contains(value: &Value, expected: &str) -> bool {
         .as_array()
         .map(|items| items.iter().any(|item| item.as_str() == Some(expected)))
         .unwrap_or(false)
+}
+
+async fn member_role_count(
+    conn: &mut AsyncPgConnection,
+    organization_id: i32,
+    user_id: i32,
+) -> i64 {
+    user_role_organization::table
+        .filter(user_role_organization::organization_id.eq(Some(organization_id)))
+        .filter(user_role_organization::user_id.eq(Some(user_id)))
+        .count()
+        .get_result(conn)
+        .await
+        .expect("failed to count organization member roles")
 }

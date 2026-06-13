@@ -106,11 +106,7 @@ pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
         notification_preferences_use_case: Arc::new(PostgresNotificationPreferencesUseCase::new(
             pool.clone(),
         )),
-        organization_course_list_use_case: organization_use_cases.course_list,
-        organization_dashboard_use_case: organization_use_cases.dashboard,
-        organization_member_audit_use_case: organization_use_cases.member_audit,
-        organization_member_list_use_case: organization_use_cases.member_list,
-        organization_member_removal_use_case: organization_use_cases.member_removal,
+        organization_use_cases,
         chapter_use_cases: Arc::new(PostgresChapterUseCases::new(pool.clone())),
         content_item_use_cases: Arc::new(PostgresContentItemUseCases::new(pool.clone())),
         content_upload_url_use_case: Arc::new(PostgresContentUploadUrlUseCase::new(

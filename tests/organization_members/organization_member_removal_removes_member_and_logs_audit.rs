@@ -73,17 +73,3 @@ async fn organization_member_removal_denies_users_without_manage_scope() {
     let mut conn = setup_conn(&pool).await;
     assert_eq!(member_role_count(&mut conn, org.id, target.id()).await, 1);
 }
-
-async fn member_role_count(
-    conn: &mut AsyncPgConnection,
-    organization_id: i32,
-    user_id: i32,
-) -> i64 {
-    user_role_organization::table
-        .filter(user_role_organization::organization_id.eq(Some(organization_id)))
-        .filter(user_role_organization::user_id.eq(Some(user_id)))
-        .count()
-        .get_result(conn)
-        .await
-        .expect("failed to count organization member roles")
-}

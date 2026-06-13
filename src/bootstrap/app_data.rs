@@ -61,19 +61,22 @@ pub fn configure_app_data(cfg: &mut web::ServiceConfig, app_state: &AppState) {
             app_state.notification_preferences_use_case.clone(),
         ))
         .app_data(web::Data::new(
-            app_state.organization_course_list_use_case.clone(),
+            app_state.organization_use_cases.course_list.clone(),
         ))
         .app_data(web::Data::new(
-            app_state.organization_dashboard_use_case.clone(),
+            app_state.organization_use_cases.dashboard.clone(),
         ))
         .app_data(web::Data::new(
-            app_state.organization_member_audit_use_case.clone(),
+            app_state.organization_use_cases.member_audit.clone(),
         ))
         .app_data(web::Data::new(
-            app_state.organization_member_list_use_case.clone(),
+            app_state.organization_use_cases.member_invite.clone(),
         ))
         .app_data(web::Data::new(
-            app_state.organization_member_removal_use_case.clone(),
+            app_state.organization_use_cases.member_list.clone(),
+        ))
+        .app_data(web::Data::new(
+            app_state.organization_use_cases.member_removal.clone(),
         ))
         .app_data(web::Data::new(app_state.chapter_use_cases.clone()))
         .app_data(web::Data::new(app_state.content_item_use_cases.clone()))

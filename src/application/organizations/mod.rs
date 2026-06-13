@@ -1,4 +1,5 @@
 pub mod get_organization_dashboard;
+pub mod invite_organization_member;
 pub mod list_organization_courses;
 pub mod list_organization_member_audit;
 pub mod list_organization_members;
