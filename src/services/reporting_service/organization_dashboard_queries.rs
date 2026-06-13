@@ -11,25 +11,6 @@ impl From<RewardExecutionJob> for RewardExecutionFailureRow {
     }
 }
 
-impl From<RewardFraudBlock> for FraudBlockDashboardRow {
-    fn from(block: RewardFraudBlock) -> Self {
-        FraudBlockDashboardRow {
-            id: block.id,
-            scope_type: block.scope_type,
-            teacher_user_id: block.teacher_user_id,
-            organization_id: block.organization_id,
-            course_id: block.course_id,
-            reward_policy_id: block.reward_policy_id,
-            reason: block.reason,
-            evidence_reference: block.evidence_reference,
-            created_by_user_id: block.created_by_user_id,
-            expires_at: block.expires_at,
-            created_at: block.created_at,
-            updated_at: block.updated_at,
-        }
-    }
-}
-
 pub async fn organization_report_summary(
     conn: &mut AsyncPgConnection,
     organization_id: i32,

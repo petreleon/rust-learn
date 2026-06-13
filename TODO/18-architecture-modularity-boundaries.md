@@ -960,27 +960,32 @@ remaining gaps.
 | 49-55 | Moved wallet and reward authorization decisions through `application/access_control`, including payout, platform, course, organization, fraud-block, and notification-recipient policies. |
 | 56 | Moved production Actix app-data registration out of `main.rs`; `main.rs` is now process orchestration while bootstrap owns concrete state and route wiring. |
 | 57-64 | Typed reward audit, execution job, candidate, fraud-block, policy, payout-method, token, wallet-credit, and compensation transaction vocabulary in the rewards domain while keeping compatibility aliases where legacy callers still need them. |
+| 65 | Moved platform report summary read/export into `application/reporting`, `infra/postgres/reporting`, and `http/reporting` while preserving legacy report URLs through the existing reports scope. |
 
 ## Recent Slice Evidence
 
-Slice 65: move platform report summary into the reporting application and HTTP
+Slice 66: move platform fraud dashboard into the reporting application and HTTP
 rings.
 
-- [x] Create `application/reporting/platform_summary` with explicit output,
-      error, store port, service trait, and handler modules.
-- [x] Move the platform summary count query behind
-      `infra/postgres/reporting` and wire it through bootstrap app data.
-- [x] Create `http/reporting` with platform summary JSON and CSV response
-      contracts plus route resources for `/reports/platform/summary` and
-      `/reports/platform/summary.csv`.
-- [x] Keep the legacy reports scope as a delegating wrapper for these two route
-      resources while the rest of reporting migrates.
-- [x] Self-critique: reward dashboards, fraud dashboards, organization reports,
-      reconciliation, and CSV export datasets still live in the legacy
-      include-based reporting service until their own reporting slices move.
-- [x] Prove the application fake-port behavior, platform-summary CSV contract,
-      DB-backed platform summary read/export regression, API route reachability,
-      binary wiring, formatting, whitespace, line-count, and boundary scans.
+- [x] Create `application/reporting/platform_fraud_dashboard` with explicit
+      output, error, store port, service trait, and handler modules.
+- [x] Move active fraud-block dashboard querying and scope counting behind
+      `infra/postgres/reporting`.
+- [x] Move platform fraud dashboard JSON and CSV response contracts into
+      `http/reporting/dto`.
+- [x] Move `/reports/platform/fraud-dashboard` and
+      `/reports/platform/fraud-dashboard.csv` route resources into
+      `http/reporting` while preserving legacy URLs through the reports scope.
+- [x] Remove the old legacy reporting-service fraud dashboard query, DTOs,
+      mapper, CSV helper, and service-level CSV test.
+- [x] Self-critique: platform reward dashboard, organization reports, wallet
+      reconciliation, and remaining platform CSV exports still live in the
+      legacy include-based reporting service until their own reporting slices
+      move.
+- [x] Prove the application fake-port behavior, fraud-dashboard CSV contract,
+      DB-backed active/expired fraud-block reporting regression, API route
+      reachability, binary wiring, formatting, whitespace, line-count, and
+      boundary scans.
 
 ## Legacy Transition Rules
 
@@ -1178,7 +1183,7 @@ boundary checks from the matrix above to every canonical context.
       reports scope.
 - [ ] Move platform reward dashboard read/export behavior into
       `application/reporting` and `http/reporting`.
-- [ ] Move platform fraud dashboard read/export behavior into
+- [x] Move platform fraud dashboard read/export behavior into
       `application/reporting` and `http/reporting`.
 - [ ] Move platform CSV exports and wallet reconciliation into reporting
       application use cases and Postgres query adapters.

@@ -1,14 +1,10 @@
 use crate::db::schema::{
     courses, courses_organizations, delegated_permissions, external_transactions,
     internal_transactions, organizations, reward_candidates, reward_execution_jobs,
-    reward_fraud_blocks, reward_payout_records, reward_wallet_credit_records, teacher_applications,
-    user_role_course, user_role_organization, wallets,
+    reward_payout_records, reward_wallet_credit_records, teacher_applications, user_role_course,
+    user_role_organization, wallets,
 };
 use crate::domain::rewards::execution::RewardExecutionJobStatus;
-use crate::domain::rewards::fraud_block::{
-    REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
-    REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
-};
 use crate::models::delegated_permission::DelegatedPermission;
 use crate::models::reward_candidate::{
     RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED,
@@ -18,7 +14,6 @@ use crate::models::reward_candidate::{
     REWARD_STATUS_WALLET_CREDITED,
 };
 use crate::models::reward_execution_job::RewardExecutionJob;
-use crate::models::reward_fraud_block::RewardFraudBlock;
 use crate::models::reward_payout_record::RewardPayoutRecord;
 use crate::models::reward_wallet_credit_record::RewardWalletCreditRecord;
 use crate::models::teacher_application::{
@@ -100,37 +95,6 @@ pub struct PlatformRewardDashboard {
     pub payout_failures: Vec<RewardExecutionFailureRow>,
     pub reconciliation_mismatch_count: i64,
     pub reconciliation_mismatches: Vec<RewardReconciliationMismatchRow>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct PlatformFraudDashboard {
-    pub active_total: i64,
-    pub active_by_scope: FraudBlockScopeSummary,
-    pub active_blocks: Vec<FraudBlockDashboardRow>,
-}
-
-#[derive(Debug, Default, Serialize)]
-pub struct FraudBlockScopeSummary {
-    pub teacher: i64,
-    pub organization: i64,
-    pub course: i64,
-    pub reward_policy: i64,
-}
-
-#[derive(Debug, Serialize)]
-pub struct FraudBlockDashboardRow {
-    pub id: i64,
-    pub scope_type: String,
-    pub teacher_user_id: Option<i32>,
-    pub organization_id: Option<i32>,
-    pub course_id: Option<i32>,
-    pub reward_policy_id: Option<i64>,
-    pub reason: String,
-    pub evidence_reference: Option<String>,
-    pub created_by_user_id: i32,
-    pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(Debug, Default, Serialize)]

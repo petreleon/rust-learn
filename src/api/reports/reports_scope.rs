@@ -12,16 +12,8 @@ pub fn reports_scope() -> actix_web::Scope {
                 PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
             ),
         ))
-        .service(web::resource("/platform/fraud-dashboard").route(
-            web::get().to(get_platform_fraud_dashboard).wrap(
-                PlatformPermissionMiddleware::require(Permissions::VIEW_REWARD_AUDIT.to_string()),
-            ),
-        ))
-        .service(web::resource("/platform/fraud-dashboard.csv").route(
-            web::get().to(export_platform_fraud_dashboard).wrap(
-                PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),
-            ),
-        ))
+        .service(crate::http::reporting::platform_fraud_dashboard_resource())
+        .service(crate::http::reporting::platform_fraud_dashboard_csv_resource())
         .service(web::resource("/platform/teacher-applications.csv").route(
             web::get().to(export_platform_teacher_applications).wrap(
                 PlatformPermissionMiddleware::require(Permissions::EXPORT_DATA.to_string()),

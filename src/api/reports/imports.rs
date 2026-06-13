@@ -6,10 +6,9 @@ use crate::models::param_type::ParamType;
 use crate::services::reporting_service::{
     organization_report_csv, organization_report_summary, organization_reward_dashboard,
     organization_reward_dashboard_csv, platform_delegated_permissions_csv,
-    platform_fraud_dashboard, platform_fraud_dashboard_csv, platform_reward_approvals_csv,
-    platform_reward_dashboard,
-    platform_reward_dashboard_csv, platform_teacher_applications_csv, platform_token_payouts_csv,
-    platform_wallet_credits_csv, platform_wallet_reconciliation,
+    platform_reward_approvals_csv, platform_reward_dashboard, platform_reward_dashboard_csv,
+    platform_teacher_applications_csv, platform_token_payouts_csv, platform_wallet_credits_csv,
+    platform_wallet_reconciliation,
 };
 use actix_web::{web, HttpResponse, Responder};
 use std::collections::HashMap;
@@ -65,45 +64,6 @@ async fn export_platform_reward_dashboard(pool: web::Data<db::DbPool>) -> impl R
                 err
             );
             HttpResponse::InternalServerError().body("Failed to export reward dashboard")
-        }
-    }
-}
-
-async fn get_platform_fraud_dashboard(pool: web::Data<db::DbPool>) -> impl Responder {
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match platform_fraud_dashboard(&mut conn).await {
-        Ok(dashboard) => HttpResponse::Ok().json(dashboard),
-        Err(err) => {
-            log::error!(
-                "event=report_load_failed scope=platform report=fraud_dashboard error={:?}",
-                err
-            );
-            HttpResponse::InternalServerError().body("Failed to load fraud dashboard")
-        }
-    }
-}
-
-async fn export_platform_fraud_dashboard(pool: web::Data<db::DbPool>) -> impl Responder {
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    match platform_fraud_dashboard(&mut conn).await {
-        Ok(dashboard) => csv_response(
-            "platform-fraud-dashboard.csv",
-            platform_fraud_dashboard_csv(&dashboard),
-        ),
-        Err(err) => {
-            log::error!(
-                "event=report_export_failed scope=platform report=fraud_dashboard error={:?}",
-                err
-            );
-            HttpResponse::InternalServerError().body("Failed to export fraud dashboard")
         }
     }
 }

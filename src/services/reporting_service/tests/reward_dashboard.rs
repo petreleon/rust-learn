@@ -82,16 +82,3 @@ fn org_reward_dashboard_csv_has_sections() {
     assert!(csv.contains("wallets,wallet_id,"));
     assert!(csv.contains("wallets,1,300"));
 }
-
-// ── platform_fraud_dashboard_csv ──
-
-#[test]
-fn fraud_dashboard_csv_empty() {
-    let dashboard = PlatformFraudDashboard {
-        active_total: 0,
-        active_by_scope: FraudBlockScopeSummary::default(),
-        active_blocks: vec![],
-    };
-    let csv = platform_fraud_dashboard_csv(&dashboard);
-    assert!(csv.contains("active_total,0"));
-}
