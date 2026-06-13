@@ -28,6 +28,11 @@ pub fn configure_app_data(cfg: &mut web::ServiceConfig, app_state: &AppState) {
             app_state.teacher_course_workspace_use_case.clone(),
         ))
         .app_data(web::Data::new(
+            app_state
+                .teacher_course_enrollment_workspace_use_case
+                .clone(),
+        ))
+        .app_data(web::Data::new(
             app_state.course_organizations_use_case.clone(),
         ))
         .app_data(web::Data::new(

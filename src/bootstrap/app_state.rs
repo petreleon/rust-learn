@@ -15,6 +15,7 @@ use crate::application::learning::discover_courses::CourseDiscoveryUseCase;
 use crate::application::learning::get_course::CourseReadUseCase;
 use crate::application::learning::get_learner_course_detail::LearnerCourseDetailUseCase;
 use crate::application::learning::get_learner_course_learning::LearnerCourseLearningUseCase;
+use crate::application::learning::get_teacher_course_enrollment_workspace::TeacherCourseEnrollmentWorkspaceUseCase;
 use crate::application::learning::get_teacher_course_workspace::TeacherCourseWorkspaceUseCase;
 use crate::application::learning::learner_progress::LearnerProgressUseCase;
 use crate::application::learning::list_assessment_attempts::AssessmentAttemptsUseCase;
@@ -70,6 +71,8 @@ pub struct AppState {
     pub learner_course_learning_use_case: Arc<dyn LearnerCourseLearningUseCase>,
     pub teacher_course_dashboard_use_case: Arc<dyn TeacherCourseDashboardListUseCase>,
     pub teacher_course_workspace_use_case: Arc<dyn TeacherCourseWorkspaceUseCase>,
+    pub teacher_course_enrollment_workspace_use_case:
+        Arc<dyn TeacherCourseEnrollmentWorkspaceUseCase>,
     pub course_organizations_use_case: Arc<dyn CourseOrganizationsUseCase>,
     pub course_role_assignment_use_case: Arc<dyn CourseRoleAssignmentUseCase>,
     pub course_enrollment_use_case: Arc<dyn CourseEnrollmentUseCase>,

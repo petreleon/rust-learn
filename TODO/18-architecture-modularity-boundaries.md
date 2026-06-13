@@ -998,35 +998,38 @@ remaining gaps.
 | 100 | Moved `GET /courses/catalog` behind `application/learning/list_learner_course_catalog`, a Postgres catalog list adapter/use case, an HTTP-owned catalog list response DTO, and bootstrap app-data wiring; the learner catalog HTTP module no longer imports `DbPool` or `course_service`. |
 | 101 | Moved `GET /courses/teaching` behind `application/learning/list_teacher_course_dashboard`, teacher dashboard application vocabulary, Postgres scope/permission/summary adapters, an HTTP-owned dashboard list response DTO, and bootstrap app-data wiring; the list route no longer opens the DB pool or calls `course_service::discover_teacher_course_dashboard`. |
 | 102 | Moved `GET /courses/teaching/{id}` behind `application/learning/get_teacher_course_workspace`, Postgres teacher workspace adapters, shared learning content-processing display helpers, an HTTP-owned workspace response DTO, and bootstrap app-data wiring; the workspace route no longer opens the DB pool or calls `course_service::get_teacher_course_workspace`. |
+| 103 | Moved `GET /courses/teaching/{id}/enrollments` behind `application/learning/get_teacher_course_enrollment_workspace`, shared teacher enrollment vocabulary, Postgres join-request/roster/reward-eligibility adapters, an HTTP-owned enrollment workspace response DTO, and bootstrap app-data wiring; the enrollments route no longer opens the DB pool or calls `course_service::get_teacher_course_enrollment_workspace`. |
 
 ## Recent Slice Evidence
 
-Slice 102: move teacher course workspace into an injected use case.
+Slice 103: move teacher course enrollment workspace into an injected use case.
 
-- [x] Add `application/learning/get_teacher_course_workspace` with query,
-      output, store port, handler, and use-case trait contracts for the
-      workspace read.
-- [x] Add Postgres workspace adapters for course lookup, teacher permission
-      validation, actor course-role reads, publication summary, workspace
-      chapters/contents, dashboard item reuse, and use-case pool ownership.
-- [x] Extract shared `infra/postgres/learning/content_processing_queries` so
-      learner learning and teacher workspace reads use the same upload
-      processing/display-state rules instead of duplicating media-state logic.
-- [x] Add `TeacherCourseWorkspaceResponse` under HTTP DTO ownership and keep the
-      existing JSON shape for `course`, `teacher_roles`, `publication`,
-      `chapters`, and content processing/display fields.
-- [x] Wire the concrete workspace use case through `bootstrap/app_state`,
-      `bootstrap/use_case_wiring`, and `bootstrap/app_data`.
+- [x] Add `application/learning/get_teacher_course_enrollment_workspace` with
+      normalized query, output, store port, handler, use-case trait, and unit
+      coverage for status/default/limit/offset behavior.
+- [x] Add shared `application/learning/teacher_course_enrollment` vocabulary for
+      join request pages, roster pages, enrollment user summaries, course reward
+      eligibility, and per-student reward eligibility.
+- [x] Add focused Postgres adapters for join-request pagination/status filters,
+      roster learners, enrollment user summaries, latest join-request status,
+      reward eligibility, and enrollment workspace orchestration.
+- [x] Add HTTP-owned enrollment/roster DTOs plus
+      `TeacherCourseEnrollmentWorkspaceResponse` while preserving the existing
+      JSON shape for `join_requests`, `roster`, `reward_eligibility`,
+      `progress_supported`, and teacher roles.
+- [x] Wire the concrete enrollment workspace use case through
+      `bootstrap/app_state`, `bootstrap/use_case_wiring`, and
+      `bootstrap/app_data`.
 - [x] Update teacher dashboard and API routing tests to inject the production
-      Postgres workspace use case or route-only fake use case as appropriate.
-- [x] Self-critique: `/courses/teaching` and `/courses/teaching/{id}` are now
-      clean, but `/courses/teaching/{id}/enrollments` and
-      `/courses/teaching/{id}/students` still open the DB pool and call legacy
-      `course_service` from `http/learning`.
+      Postgres enrollment workspace use case or route-only fake use case as
+      appropriate.
+- [x] Self-critique: `/courses/teaching`, `/courses/teaching/{id}`, and
+      `/courses/teaching/{id}/enrollments` are now clean, but
+      `/courses/teaching/{id}/students` still opens the DB pool and calls
+      legacy `course_service` from `http/learning`.
 - [x] Prove behavior with binary compile, full teacher dashboard integration
-      test, full course discovery integration target for the shared content
-      helper, API route reachability, formatting, line-count checks,
-      `git diff --check`, and boundary scans proving the new
+      test, API route reachability, query normalization unit test, formatting,
+      line-count checks, `git diff --check`, and boundary scans proving the new
       application/HTTP DTO path does not import DB/Diesel, Postgres internals,
       or legacy services.
 
@@ -1223,6 +1226,10 @@ boundary checks from the matrix above to every canonical context.
       mapping, bootstrap wiring, and teacher dashboard/API route tests.
 - [x] `GET /courses/teaching/{id}` now has application query/output/error and
       store-port contracts, Postgres workspace adapters, HTTP DTO mapping,
+      bootstrap wiring, and teacher dashboard/API route tests.
+- [x] `GET /courses/teaching/{id}/enrollments` now has application
+      query/output/error and store-port contracts, Postgres
+      join-request/roster/reward-eligibility adapters, HTTP DTO mapping,
       bootstrap wiring, and teacher dashboard/API route tests.
 - [x] Assessment listing, attempt listing, and attempt submission routes now
       receive injected application use cases with Postgres adapters/use cases,

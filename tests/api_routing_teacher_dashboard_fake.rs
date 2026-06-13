@@ -2,6 +2,10 @@ use std::sync::Arc;
 
 use actix_web::web;
 use futures::future::{ready, BoxFuture, FutureExt};
+use rust_learn::application::learning::get_teacher_course_enrollment_workspace::{
+    TeacherCourseEnrollmentWorkspaceOutput, TeacherCourseEnrollmentWorkspaceQuery,
+    TeacherCourseEnrollmentWorkspaceUseCase,
+};
 use rust_learn::application::learning::get_teacher_course_workspace::{
     TeacherCoursePublicationSummaryOutput, TeacherCourseWorkspaceOutput,
     TeacherCourseWorkspaceQuery, TeacherCourseWorkspaceUseCase,
@@ -16,8 +20,13 @@ use rust_learn::application::learning::teacher_course_dashboard::{
     TeacherCourseRewardQueueSummaryOutput, TeacherCourseRewardSummaryOutput,
     TeacherCourseRosterSummaryOutput,
 };
+use rust_learn::application::learning::teacher_course_enrollment::{
+    TeacherCourseJoinRequestPageOutput, TeacherCourseRewardEligibilitySummaryOutput,
+    TeacherCourseRosterPageOutput,
+};
 
 struct RouteOnlyTeacherDashboardUseCase;
+struct RouteOnlyTeacherEnrollmentUseCase;
 struct RouteOnlyTeacherWorkspaceUseCase;
 
 pub fn teacher_dashboard_data() -> web::Data<Arc<dyn TeacherCourseDashboardListUseCase>> {
@@ -30,6 +39,11 @@ pub fn teacher_workspace_data() -> web::Data<Arc<dyn TeacherCourseWorkspaceUseCa
     web::Data::new(
         Arc::new(RouteOnlyTeacherWorkspaceUseCase) as Arc<dyn TeacherCourseWorkspaceUseCase>
     )
+}
+
+pub fn teacher_enrollment_data() -> web::Data<Arc<dyn TeacherCourseEnrollmentWorkspaceUseCase>> {
+    web::Data::new(Arc::new(RouteOnlyTeacherEnrollmentUseCase)
+        as Arc<dyn TeacherCourseEnrollmentWorkspaceUseCase>)
 }
 
 impl TeacherCourseDashboardListUseCase for RouteOnlyTeacherDashboardUseCase {
@@ -62,6 +76,38 @@ impl TeacherCourseWorkspaceUseCase for RouteOnlyTeacherWorkspaceUseCase {
                 content_publication_status_supported: false,
             },
             chapters: Vec::new(),
+        }))
+        .boxed()
+    }
+}
+
+impl TeacherCourseEnrollmentWorkspaceUseCase for RouteOnlyTeacherEnrollmentUseCase {
+    fn get_teacher_course_enrollment_workspace(
+        &self,
+        query: TeacherCourseEnrollmentWorkspaceQuery,
+    ) -> BoxFuture<'_, Result<TeacherCourseEnrollmentWorkspaceOutput, TeacherCourseDashboardError>>
+    {
+        ready(Ok(TeacherCourseEnrollmentWorkspaceOutput {
+            course: route_course(),
+            teacher_roles: Vec::new(),
+            join_requests: TeacherCourseJoinRequestPageOutput {
+                requests: Vec::new(),
+                total: 0,
+                limit: query.limit,
+                offset: query.offset,
+                status: query.status,
+            },
+            roster: TeacherCourseRosterPageOutput {
+                learners: Vec::new(),
+                total: 0,
+            },
+            progress_supported: true,
+            reward_eligibility_supported: true,
+            reward_eligibility: TeacherCourseRewardEligibilitySummaryOutput {
+                supported: true,
+                active_policy_count: 0,
+                event_types: Vec::new(),
+            },
         }))
         .boxed()
     }
