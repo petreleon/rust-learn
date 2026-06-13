@@ -17,6 +17,7 @@ use crate::infra::postgres::identity::current_session_use_case::PostgresCurrentS
 use crate::infra::postgres::notifications::notification_inbox_use_case::PostgresNotificationInboxUseCase;
 use crate::infra::postgres::notifications::notification_preferences_use_case::PostgresNotificationPreferencesUseCase;
 use crate::infra::postgres::rewards::course_reward_candidate_use_case::PostgresCourseRewardCandidatesUseCase;
+use crate::infra::postgres::rewards::platform_reward_candidate_use_case::PostgresPlatformRewardCandidatesUseCase;
 use crate::infra::postgres::rewards::reward_candidate_audit_use_case::PostgresRewardCandidateAuditUseCase;
 use crate::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
 use crate::infra::postgres::rewards::reward_history_use_case::PostgresStudentRewardHistoryUseCase;
@@ -64,6 +65,9 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
         course_reward_candidates_use_case: Arc::new(PostgresCourseRewardCandidatesUseCase::new(
             pool.clone(),
         )),
+        platform_reward_candidates_use_case: Arc::new(
+            PostgresPlatformRewardCandidatesUseCase::new(pool.clone()),
+        ),
         student_reward_history_use_case: Arc::new(PostgresStudentRewardHistoryUseCase::new(
             pool.clone(),
         )),

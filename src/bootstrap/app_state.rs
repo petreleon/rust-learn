@@ -12,6 +12,7 @@ use crate::application::notifications::preference_service::NotificationPreferenc
 use crate::application::operations::readiness_check::ReadinessUseCase;
 use crate::application::rewards::list_candidate_audit::RewardCandidateAuditUseCase;
 use crate::application::rewards::list_course_candidates::CourseRewardCandidatesUseCase;
+use crate::application::rewards::list_platform_candidates::PlatformRewardCandidatesUseCase;
 use crate::application::rewards::list_reward_history::StudentRewardHistoryUseCase;
 use crate::application::rewards::manage_fraud_block::RewardFraudBlockUseCase;
 use crate::application::rewards::manage_reward_policy::RewardPolicyUseCase;
@@ -36,6 +37,7 @@ pub struct AppState {
     pub reward_fraud_block_use_case: Arc<dyn RewardFraudBlockUseCase>,
     pub reward_candidate_audit_use_case: Arc<dyn RewardCandidateAuditUseCase>,
     pub course_reward_candidates_use_case: Arc<dyn CourseRewardCandidatesUseCase>,
+    pub platform_reward_candidates_use_case: Arc<dyn PlatformRewardCandidatesUseCase>,
     pub student_reward_history_use_case: Arc<dyn StudentRewardHistoryUseCase>,
     pub reward_policy_use_case: Arc<dyn RewardPolicyUseCase>,
     pub readiness_use_case: Arc<dyn ReadinessUseCase>,

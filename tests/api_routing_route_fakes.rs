@@ -9,6 +9,10 @@ use rust_learn::application::rewards::list_course_candidates::{
     CourseRewardCandidate, CourseRewardCandidatesError, CourseRewardCandidatesQuery,
     CourseRewardCandidatesUseCase,
 };
+use rust_learn::application::rewards::list_platform_candidates::{
+    PlatformRewardCandidatesError, PlatformRewardCandidatesQuery, PlatformRewardCandidatesResponse,
+    PlatformRewardCandidatesUseCase,
+};
 use rust_learn::application::rewards::list_reward_history::{
     StudentRewardHistoryEntry, StudentRewardHistoryError, StudentRewardHistoryQuery,
     StudentRewardHistoryUseCase,
@@ -22,6 +26,7 @@ use rust_learn::application::rewards::manage_fraud_block::{
 struct RouteOnlyRewardFraudBlockUseCase;
 struct RouteOnlyRewardCandidateAuditUseCase;
 struct RouteOnlyCourseRewardCandidatesUseCase;
+struct RouteOnlyPlatformRewardCandidatesUseCase;
 struct RouteOnlyStudentRewardHistoryUseCase;
 
 pub fn reward_fraud_block_data() -> web::Data<Arc<dyn RewardFraudBlockUseCase>> {
@@ -44,6 +49,11 @@ pub fn course_reward_candidates_data() -> web::Data<Arc<dyn CourseRewardCandidat
     web::Data::new(
         Arc::new(RouteOnlyCourseRewardCandidatesUseCase) as Arc<dyn CourseRewardCandidatesUseCase>
     )
+}
+
+pub fn platform_reward_candidates_data() -> web::Data<Arc<dyn PlatformRewardCandidatesUseCase>> {
+    web::Data::new(Arc::new(RouteOnlyPlatformRewardCandidatesUseCase)
+        as Arc<dyn PlatformRewardCandidatesUseCase>)
 }
 
 impl RewardFraudBlockUseCase for RouteOnlyRewardFraudBlockUseCase {
@@ -114,6 +124,20 @@ impl CourseRewardCandidatesUseCase for RouteOnlyCourseRewardCandidatesUseCase {
         _query: CourseRewardCandidatesQuery,
     ) -> BoxFuture<'_, Result<Vec<CourseRewardCandidate>, CourseRewardCandidatesError>> {
         ready(Err(CourseRewardCandidatesError::Database(
+            "route-only use case".to_string(),
+        )))
+        .boxed()
+    }
+}
+
+impl PlatformRewardCandidatesUseCase for RouteOnlyPlatformRewardCandidatesUseCase {
+    fn list_platform_reward_candidates(
+        &self,
+        _actor_user_id: i32,
+        _query: PlatformRewardCandidatesQuery,
+    ) -> BoxFuture<'_, Result<PlatformRewardCandidatesResponse, PlatformRewardCandidatesError>>
+    {
+        ready(Err(PlatformRewardCandidatesError::Database(
             "route-only use case".to_string(),
         )))
         .boxed()

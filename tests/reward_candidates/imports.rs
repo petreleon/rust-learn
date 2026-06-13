@@ -1,3 +1,4 @@
+use actix_web::{body::to_bytes, http::StatusCode, test, web, App};
 use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use diesel::prelude::*;
@@ -6,8 +7,9 @@ use rust_learn::application::rewards::manage_fraud_block::{
     CreateRewardFraudBlockCommand, RewardFraudBlockError, RewardFraudBlockOutput,
     RewardFraudBlockUseCase,
 };
+use rust_learn::application::rewards::list_platform_candidates::PlatformRewardCandidatesUseCase;
 use rust_learn::config::constants::permissions::Permissions;
-use rust_learn::db::establish_connection;
+use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::db::schema::{
     course_roles, courses, courses_organizations, organizations, platform_roles,
     reward_execution_jobs, reward_policies, role_permission_course, role_permission_platform,
@@ -31,6 +33,7 @@ use rust_learn::domain::rewards::fraud_block::{
     REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
 };
 use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
+use rust_learn::infra::postgres::rewards::platform_reward_candidate_use_case::PostgresPlatformRewardCandidatesUseCase;
 use rust_learn::models::reward_policy::{
     NewRewardPolicy, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
@@ -44,12 +47,13 @@ use rust_learn::repositories::reward_candidate_repository::find_candidate;
 use rust_learn::repositories::reward_execution_job_repository::find_job_by_candidate;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::services::reward_candidate_service::{
-    decide_reward_amount, decide_reward_candidate_by_teacher, list_platform_reward_candidates,
-    submit_course_reward_candidate, submit_organization_reward_candidate,
-    PlatformRewardCandidatesRequest, RewardAmountDecisionRequest, RewardCandidateError,
+    decide_reward_amount, decide_reward_candidate_by_teacher, submit_course_reward_candidate,
+    submit_organization_reward_candidate, RewardAmountDecisionRequest, RewardCandidateError,
     SubmitRewardCandidateRequest, TeacherRewardCandidateDecisionRequest,
 };
-use serde_json::json;
+use rust_learn::utils::jwt_utils::create_jwt;
+use serde_json::{json, Value};
+use std::sync::Arc;
 use std::str::FromStr;
 
 type RewardFraudBlockRequest = CreateRewardFraudBlockCommand;
@@ -57,6 +61,16 @@ type RewardFraudBlockRequest = CreateRewardFraudBlockCommand;
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
+}
+
+fn token_for(user_id: i32) -> String {
+    create_jwt(user_id).expect("failed to create JWT")
+}
+
+fn platform_reward_candidates_use_case(
+    pool: &DbPool,
+) -> Arc<dyn PlatformRewardCandidatesUseCase> {
+    Arc::new(PostgresPlatformRewardCandidatesUseCase::new(pool.clone()))
 }
 
 async fn setup_conn(

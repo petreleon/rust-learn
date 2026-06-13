@@ -43,53 +43,79 @@ async fn platform_reward_candidate_review_returns_enriched_items() {
     .await
     .expect("teacher should approve candidate");
 
-    let review = list_platform_reward_candidates(
-        &mut conn,
-        reviewer.id(),
-        PlatformRewardCandidatesRequest {
-            status: Some(REWARD_STATUS_TEACHER_APPROVED.to_string()),
-            search: None,
-            limit: Some(10),
-            offset: Some(0),
-        },
-    )
-    .await
-    .expect("platform reviewer should see enriched candidate list");
+    drop(conn);
 
-    assert!(review.candidates.iter().any(|c| c.id == candidate.id));
-    let found = review
-        .candidates
+    let pool = establish_connection();
+    let app = test::init_service(
+        App::new()
+            .app_data(web::Data::new(platform_reward_candidates_use_case(&pool)))
+            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .service(rust_learn::http::rewards::platform_reward_candidates_resource()),
+    )
+    .await;
+
+    let review_req = test::TestRequest::get()
+        .uri(&format!(
+            "/reward-candidates/review?status={}&limit=10&offset=0",
+            REWARD_STATUS_TEACHER_APPROVED
+        ))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(reviewer.id())),
+        ))
+        .to_request();
+    let review_resp = test::call_service(&app, review_req).await;
+    assert_eq!(review_resp.status(), StatusCode::OK);
+    let review: Value = test::read_body_json(review_resp).await;
+    let candidates = review["candidates"]
+        .as_array()
+        .expect("platform review candidates");
+    assert!(candidates
         .iter()
-        .find(|c| c.id == candidate.id)
+        .any(|candidate_json| candidate_json["id"].as_i64() == Some(candidate.id)));
+    let found = review
+        ["candidates"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|candidate_json| candidate_json["id"].as_i64() == Some(candidate.id))
         .unwrap();
-    assert_eq!(found.student.id, student.id());
-    assert!(!found.student.name.is_empty());
-    assert!(!found.student.email.is_empty());
-    assert_eq!(found.course.id, course.id);
-    assert!(!found.course.title.is_empty());
-    assert_eq!(found.status, REWARD_STATUS_TEACHER_APPROVED);
     assert_eq!(
-        found.teacher_approver.as_ref().map(|u| u.id),
-        Some(teacher.id())
+        found["student"]["id"].as_i64(),
+        Some(i64::from(student.id()))
+    );
+    assert!(!found["student"]["name"].as_str().unwrap().is_empty());
+    assert!(!found["student"]["email"].as_str().unwrap().is_empty());
+    assert_eq!(found["course"]["id"].as_i64(), Some(i64::from(course.id)));
+    assert!(!found["course"]["title"].as_str().unwrap().is_empty());
+    assert_eq!(found["status"], REWARD_STATUS_TEACHER_APPROVED);
+    assert_eq!(
+        found["teacher_approver"]["id"].as_i64(),
+        Some(i64::from(teacher.id()))
     );
     assert_eq!(
-        found.teacher_decision_reason.as_deref(),
+        found["teacher_decision_reason"].as_str(),
         Some("teacher approved for platform review")
     );
-    assert_eq!(found.submitter.id, teacher.id());
-    assert!(review.operator_permissions.can_view_candidates);
-    assert!(review.operator_permissions.can_approve_amount);
+    assert_eq!(
+        found["submitter"]["id"].as_i64(),
+        Some(i64::from(teacher.id()))
+    );
+    assert_eq!(
+        review["operator_permissions"]["can_view_candidates"].as_bool(),
+        Some(true)
+    );
+    assert_eq!(
+        review["operator_permissions"]["can_approve_amount"].as_bool(),
+        Some(true)
+    );
 
-    let no_permission = list_platform_reward_candidates(
-        &mut conn,
-        student.id(),
-        PlatformRewardCandidatesRequest::default(),
-    )
-    .await
-    .expect_err("student must not view platform review queue");
-    assert!(matches!(
-        no_permission,
-        RewardCandidateError::PermissionDenied(permission)
-            if permission == Permissions::VIEW_REWARD_AUDIT.to_string()
-    ));
+    let denied_req = test::TestRequest::get()
+        .uri("/reward-candidates/review")
+        .insert_header(("Authorization", format!("Bearer {}", token_for(student.id()))))
+        .to_request();
+    let denied_resp = test::call_service(&app, denied_req).await;
+    assert_eq!(denied_resp.status(), StatusCode::FORBIDDEN);
+    let body = to_bytes(denied_resp.into_body()).await.unwrap();
+    assert_eq!(body.as_ref(), b"User does not have reward candidate permission");
 }

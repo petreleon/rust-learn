@@ -54,6 +54,9 @@ async fn main() -> std::io::Result<()> {
                 app_state.course_reward_candidates_use_case.clone(),
             ))
             .app_data(web::Data::new(
+                app_state.platform_reward_candidates_use_case.clone(),
+            ))
+            .app_data(web::Data::new(
                 app_state.student_reward_history_use_case.clone(),
             ))
             .app_data(web::Data::new(app_state.reward_policy_use_case.clone()))

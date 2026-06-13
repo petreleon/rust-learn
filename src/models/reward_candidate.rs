@@ -18,6 +18,7 @@ pub const REWARD_STATUS_TEACHER_APPROVED: &str = "teacher_approved";
 pub const REWARD_STATUS_TEACHER_REJECTED: &str = "teacher_rejected";
 pub const REWARD_STATUS_AMOUNT_APPROVED: &str = "amount_approved";
 pub const REWARD_STATUS_AMOUNT_REJECTED: &str = "amount_rejected";
+#[allow(dead_code)]
 pub const REWARD_STATUS_ADJUSTED: &str = "adjusted";
 pub const REWARD_STATUS_TOKEN_PENDING: &str = "token_pending";
 pub const REWARD_STATUS_TOKEN_CONFIRMED: &str = "token_confirmed";

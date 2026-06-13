@@ -6,5 +6,6 @@ include!("reward_candidate_service/ensure_no_active_reward_fraud_block.rs");
 include!("reward_candidate_service/has_active_reward_policy_fraud_block.rs");
 include!("reward_candidate_service/ensure_active_reward_policy.rs");
 include!("reward_candidate_service/ensure_exact_course_permission.rs");
-include!("reward_candidate_service/list_platform_reward_candidates.rs");
-include!("reward_candidate_service/build_platform_reward_candidate_items.rs");
+
+#[cfg(test)]
+mod tests;

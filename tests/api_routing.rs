@@ -31,6 +31,7 @@ async fn api_scope_and_following_routes_are_reachable() {
             .app_data(api_routing_route_fakes::reward_fraud_block_data())
             .app_data(api_routing_route_fakes::reward_candidate_audit_data())
             .app_data(api_routing_route_fakes::course_reward_candidates_data())
+            .app_data(api_routing_route_fakes::platform_reward_candidates_data())
             .app_data(api_routing_route_fakes::student_reward_history_data())
             .route(
                 "/hey",
@@ -76,6 +77,7 @@ async fn api_scope_and_following_routes_are_reachable() {
         (Method::GET, "/api/courses/teaching"),
         (Method::GET, "/api/courses/teaching/12"),
         (Method::GET, "/api/reward-candidates/me/history"),
+        (Method::GET, "/api/reward-candidates/review"),
         (Method::GET, "/api/courses/12/reward-candidates"),
         (
             Method::PUT,

@@ -1,0 +1,65 @@
+use chrono::{DateTime, Utc};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlatformRewardCandidateUserSummary {
+    pub id: i32,
+    pub name: String,
+    pub email: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlatformRewardCandidateCourseSummary {
+    pub id: i32,
+    pub title: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlatformRewardCandidateRecord {
+    pub id: i64,
+    pub course_id: i32,
+    pub student_user_id: i32,
+    pub submitter_user_id: i32,
+    pub source_scope: String,
+    pub source_organization_id: Option<i32>,
+    pub event_type: String,
+    pub status: String,
+    pub teacher_approver_user_id: Option<i32>,
+    pub teacher_decision_reason: Option<String>,
+    pub approved_amount: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlatformRewardCandidateItem {
+    pub id: i64,
+    pub student: PlatformRewardCandidateUserSummary,
+    pub course: PlatformRewardCandidateCourseSummary,
+    pub event_type: String,
+    pub status: String,
+    pub teacher_approver: Option<PlatformRewardCandidateUserSummary>,
+    pub teacher_decision_reason: Option<String>,
+    pub approved_amount: Option<String>,
+    pub submitter: PlatformRewardCandidateUserSummary,
+    pub source_organization_id: Option<i32>,
+    pub source_scope: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlatformRewardCandidatePermissions {
+    pub can_view_candidates: bool,
+    pub can_approve_amount: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlatformRewardCandidatesResponse {
+    pub candidates: Vec<PlatformRewardCandidateItem>,
+    pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
+    pub status: Option<String>,
+    pub search: Option<String>,
+    pub operator_permissions: PlatformRewardCandidatePermissions,
+}

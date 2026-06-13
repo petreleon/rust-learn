@@ -83,28 +83,6 @@ fn normalize_amount_decision_status(status: &str) -> Result<String, RewardCandid
     }
 }
 
-fn normalize_reward_status(status: &str) -> Result<String, RewardCandidateError> {
-    let normalized = status.trim().to_ascii_lowercase();
-    match normalized.as_str() {
-        REWARD_STATUS_PENDING_TEACHER_APPROVAL
-        | REWARD_STATUS_TEACHER_APPROVED
-        | REWARD_STATUS_TEACHER_REJECTED
-        | REWARD_STATUS_AMOUNT_APPROVED
-        | REWARD_STATUS_AMOUNT_REJECTED
-        | REWARD_STATUS_ADJUSTED
-        | REWARD_STATUS_TOKEN_PENDING
-        | REWARD_STATUS_TOKEN_CONFIRMED
-        | REWARD_STATUS_WALLET_CREDITED
-        | REWARD_STATUS_NOTIFIED
-        | REWARD_STATUS_COMPLETED
-        | REWARD_STATUS_NEEDS_RECONCILIATION
-        | REWARD_STATUS_FAILED => Ok(normalized),
-        _ => Err(RewardCandidateError::InvalidStatus(
-            "unsupported reward candidate status".to_string(),
-        )),
-    }
-}
-
 fn normalize_idempotency_key(
     idempotency_key: Option<String>,
     course_id: i32,

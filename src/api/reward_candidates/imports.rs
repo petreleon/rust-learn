@@ -1,7 +1,7 @@
 use crate::db;
 use crate::services::reward_candidate_service::{
-    self, PlatformRewardCandidatesRequest, RewardAmountDecisionRequest, RewardCandidateError,
-    SubmitRewardCandidateRequest, TeacherRewardCandidateDecisionRequest,
+    self, RewardAmountDecisionRequest, RewardCandidateError, SubmitRewardCandidateRequest,
+    TeacherRewardCandidateDecisionRequest,
 };
 use crate::utils::request_auth::authenticated_user;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
