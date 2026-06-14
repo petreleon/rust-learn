@@ -8,6 +8,7 @@ use rust_learn::db::schema::{
     reward_policies, upload_jobs,
 };
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
 use rust_learn::domain::rewards::policy::{
     REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
@@ -25,7 +26,7 @@ use rust_learn::infra::postgres::learning::learner_progress_use_case::PostgresLe
 use rust_learn::infra::postgres::organizations::organization_course_list_use_case::PostgresOrganizationCourseListUseCase;
 use rust_learn::models::chapter::NewChapter;
 use rust_learn::models::content::NewContent;
-use rust_learn::models::course::{Course, NewCourse, COURSE_STATUS_PUBLISHED};
+use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::course_join_request::{NewCourseJoinRequest, COURSE_JOIN_STATUS_PENDING};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};

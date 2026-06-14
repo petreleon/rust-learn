@@ -6,10 +6,11 @@ use rust_learn::application::learning::update_course_lifecycle::{
 };
 use rust_learn::db::schema::courses;
 use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::infra::postgres::learning::course_lifecycle_use_case::PostgresCourseLifecycleUseCase;
-use rust_learn::models::course::{
-    Course, NewCourse, COURSE_STATUS_DRAFT, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
+use rust_learn::domain::learning::course::status::{
+    COURSE_STATUS_DRAFT, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
 };
+use rust_learn::infra::postgres::learning::course_lifecycle_use_case::PostgresCourseLifecycleUseCase;
+use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::role::CourseRole;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;

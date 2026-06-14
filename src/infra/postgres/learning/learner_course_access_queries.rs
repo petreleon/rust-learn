@@ -6,8 +6,9 @@ use crate::application::learning::learner_course_catalog::{
 };
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::courses_organizations;
+use crate::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
 use crate::infra::postgres::learning::course_permission_checks;
-use crate::models::course::{Course, COURSE_STATUS_PUBLISHED};
+use crate::models::course::Course;
 
 pub async fn course_visible_to_learner(
     conn: &mut AsyncPgConnection,

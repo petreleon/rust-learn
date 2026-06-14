@@ -8,15 +8,16 @@ use rust_learn::db::schema::{
     courses, courses_organizations, organizations, reward_candidates, teacher_applications, wallets,
 };
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::domain::learning::course::status::{
+    COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED,
+};
 use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
 use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
 use rust_learn::domain::rewards::candidate::status::{
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_FAILED,
 };
 use rust_learn::infra::postgres::organizations::organization_dashboard_use_case::PostgresOrganizationDashboardUseCase;
-use rust_learn::models::course::{
-    Course, NewCourse, COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED,
-};
+use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_candidate::NewRewardCandidate;

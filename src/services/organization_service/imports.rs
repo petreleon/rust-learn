@@ -11,12 +11,13 @@ use crate::db::DbPool;
 use crate::domain::rewards::candidate::status::{
     REWARD_STATUS_FAILED, REWARD_STATUS_NEEDS_RECONCILIATION,
 };
-use crate::infra::postgres::reporting::organization_reward_dashboard_store::PostgresOrganizationRewardDashboardStore;
-use crate::models::course::{
-    Course, COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED, COURSE_STATUS_DRAFT,
+use crate::domain::learning::course::status::{
+    COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED, COURSE_STATUS_DRAFT,
     COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
     COURSE_STATUS_SUSPENDED,
 };
+use crate::infra::postgres::reporting::organization_reward_dashboard_store::PostgresOrganizationRewardDashboardStore;
+use crate::models::course::Course;
 use crate::models::courses_organizations::NewCourseOrganization;
 use crate::models::organization::{NewOrganization, Organization, UpdateOrganization};
 use crate::models::teacher_application::{

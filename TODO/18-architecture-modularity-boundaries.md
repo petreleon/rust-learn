@@ -1061,26 +1061,30 @@ remaining gaps.
 | 163 | Moved production service entrypoint imports for reward candidate event/source/status vocabulary off reward-candidate model aliases; course reads, candidate submission/decision helpers, and execution test support now import reward vocabulary from `domain/rewards/candidate`. |
 | 164 | Removed reward candidate event/source/status compatibility aliases from the Diesel model; tests and fixtures now import reward candidate vocabulary directly from `domain/rewards/candidate`, leaving `models::reward_candidate` as record/insert structs only. |
 | 165 | Removed reward audit-event compatibility aliases from the Diesel model; legacy reward service/test fixtures now import audit event vocabulary from `domain/rewards/audit`, leaving `models::reward_audit_event` as record/insert structs only. |
+| 166 | Moved course lifecycle vocabulary into `domain/learning/course/status`; migrated lifecycle/progress use cases, Postgres read adapters, legacy service hubs, and fixtures now import course statuses from domain, leaving `models::course` as record/change-set structs only. |
 
 ## Recent Slice Evidence
 
-Slice 165: remove reward audit-event vocabulary aliases from the model.
+Slice 166: move course lifecycle vocabulary into the learning domain.
 
-- [x] Delete reward audit-event constants from `models::reward_audit_event`;
-      the file now owns only Diesel record and insert shapes.
-- [x] Update legacy reward candidate service imports and reward-facing fixtures
-      to import audit event types from `domain/rewards/audit`.
-- [x] Keep `models::reward_audit_event` imports for `RewardAuditEvent` and
-      `NewRewardAuditEvent` only where persistence records are still needed.
-- [x] Self-critique: the old `reward_audit_event_repository` and include-based
-      reward candidate service still exist as compatibility paths; move or
-      delete them once remaining legacy reward commands no longer call them.
+- [x] Add `domain/learning/course/status` with stable course lifecycle status
+      constants, a `CourseLifecycleStatus` enum, parsing, and normalization.
+- [x] Delete lifecycle status constants from `models::course`; the file now owns
+      only Diesel record, insert, and change-set shapes.
+- [x] Update migrated lifecycle/progress application handlers, learning and
+      organization Postgres read adapters, legacy service import hubs, and
+      route/integration fixtures to import lifecycle vocabulary from domain.
+- [x] Self-critique: course join statuses and several other learning/identity
+      literals still live in model files, and the legacy include-based
+      `course_service` still has its own string normalizer even though it now
+      uses domain constants.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib reward_candidate_service`,
+      `./scripts/run-host-tests.sh cargo test --lib update_course_lifecycle`,
+      `./scripts/run-host-tests.sh cargo test --lib course_service`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving
-      `src/models/reward_audit_event.rs` has no audit vocabulary constants and
-      no code imports audit event constants through `models::reward_audit_event`.
+      `src/models/course.rs` has no lifecycle vocabulary constants and no code
+      imports course lifecycle constants through `models::course`.
 
 ## Legacy Transition Rules
 

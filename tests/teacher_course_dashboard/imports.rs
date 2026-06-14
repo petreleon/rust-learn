@@ -8,6 +8,7 @@ use rust_learn::db::schema::{
     organizations, reward_candidates, reward_policies,
 };
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
 use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
 use rust_learn::domain::rewards::candidate::status::{
     REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
@@ -18,7 +19,7 @@ use rust_learn::domain::rewards::policy::{
 };
 use rust_learn::models::chapter::NewChapter;
 use rust_learn::models::content::NewContent;
-use rust_learn::models::course::{Course, NewCourse, COURSE_STATUS_PUBLISHED};
+use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::course_join_request::{
     NewCourseJoinRequest, COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING,
     COURSE_JOIN_STATUS_WAITLISTED,

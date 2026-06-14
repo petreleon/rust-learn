@@ -5,12 +5,12 @@ use crate::application::organizations::get_organization_dashboard::{
     OrganizationDashboardCourseSummaryOutput, OrganizationDashboardError,
 };
 use crate::db::schema::{courses, courses_organizations};
-use crate::infra::postgres::organizations::organization_dashboard_mappers::map_dashboard_error;
-use crate::models::course::{
+use crate::domain::learning::course::status::{
     COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED, COURSE_STATUS_DRAFT,
     COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
     COURSE_STATUS_SUSPENDED,
 };
+use crate::infra::postgres::organizations::organization_dashboard_mappers::map_dashboard_error;
 
 pub async fn load_course_summary(
     conn: &mut AsyncPgConnection,

@@ -1,6 +1,7 @@
 use crate::application::learning::update_course_lifecycle::{
     CourseLifecycleCommand, CourseLifecycleError, CourseLifecycleOutput, CourseLifecycleStore,
 };
+use crate::domain::learning::course::status::CourseLifecycleStatus;
 
 const MANAGE_COURSE_SETTINGS: &str = "MANAGE_COURSE_SETTINGS";
 const APPROVE_COURSE_CONTENT: &str = "APPROVE_COURSE_CONTENT";
@@ -11,8 +12,9 @@ pub async fn update_course_lifecycle(
     store: &mut impl CourseLifecycleStore,
     command: CourseLifecycleCommand,
 ) -> Result<CourseLifecycleOutput, CourseLifecycleError> {
-    let target_status = normalize_course_status(&command.status)?;
-    let course_permission = required_course_permission(&target_status)?;
+    let target_status =
+        CourseLifecycleStatus::normalize(&command.status).map_err(|_| invalid_status_error())?;
+    let course_permission = required_course_permission(target_status);
 
     if !store
         .has_course_permission(command.actor_user_id, command.course_id, course_permission)
@@ -26,24 +28,21 @@ pub async fn update_course_lifecycle(
         ));
     }
 
-    store.update_status(command.course_id, target_status).await
+    store
+        .update_status(command.course_id, target_status.as_str().to_string())
+        .await
 }
 
-fn required_course_permission(status: &str) -> Result<&'static str, CourseLifecycleError> {
+fn required_course_permission(status: CourseLifecycleStatus) -> &'static str {
     match status {
-        "draft" | "submitted" | "archived" | "suspended" => Ok(MANAGE_COURSE_SETTINGS),
-        "needs_changes" | "approved" => Ok(APPROVE_COURSE_CONTENT),
-        "published" => Ok(PUBLISH_CONTENT),
-        _ => Err(invalid_status_error()),
-    }
-}
-
-fn normalize_course_status(status: &str) -> Result<String, CourseLifecycleError> {
-    let normalized = status.trim().to_ascii_lowercase();
-    match normalized.as_str() {
-        "draft" | "submitted" | "needs_changes" | "approved" | "published" | "archived"
-        | "suspended" => Ok(normalized),
-        _ => Err(invalid_status_error()),
+        CourseLifecycleStatus::Draft
+        | CourseLifecycleStatus::Submitted
+        | CourseLifecycleStatus::Archived
+        | CourseLifecycleStatus::Suspended => MANAGE_COURSE_SETTINGS,
+        CourseLifecycleStatus::NeedsChanges | CourseLifecycleStatus::Approved => {
+            APPROVE_COURSE_CONTENT
+        }
+        CourseLifecycleStatus::Published => PUBLISH_CONTENT,
     }
 }
 

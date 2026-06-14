@@ -2,8 +2,8 @@ use crate::application::learning::learner_progress::{
     LearnerProgressError, LearnerProgressOutput, LearnerProgressStore, ProgressCourse,
     SaveLearnerProgressCommand,
 };
+use crate::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
 
-const COURSE_STATUS_PUBLISHED: &str = "published";
 const COURSE_ROLE_STUDENT: &str = "STUDENT";
 const COURSE_JOIN_STATUS_APPROVED: &str = "approved";
 const VIEW_CONTENT: &str = "VIEW_CONTENT";
