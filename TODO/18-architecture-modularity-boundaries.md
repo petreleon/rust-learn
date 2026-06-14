@@ -1043,32 +1043,30 @@ remaining gaps.
 | 145 | Moved KYC review platform permission checks from `repositories::platform_repository::user_permission_platform_request` into `infra/postgres/kyc/kyc_permissions`, preserving direct platform-role checks, active platform delegation checks, and delegation logging. |
 | 146 | Moved migrated access-control reward, wallet, and delegated-permission grant checks from legacy `user_permission_*_request` repository helpers into `infra/postgres/access_control` permission-check/delegation helpers, preserving direct role checks, active scoped delegation checks, and delegated-permission logging. |
 | 147 | Moved organization course-list, member-list, dashboard, teacher-application tracking, member-audit, invite, removal, and role-assignment permission gates off legacy `user_permission_*_request` repository helpers and into an organization-owned Postgres permission adapter that asks the reusable access-control Postgres helper. |
+| 148 | Moved teacher-application list, platform-review, submission, decision, audit, and nomination permission gates off legacy platform/organization repository permission helpers and into `infra/postgres/teacher_applications/teacher_application_permissions`, backed by the reusable access-control Postgres permission adapter. |
 
 ## Recent Slice Evidence
 
-Slice 147: move organization permission gates into an organization-owned
-Postgres adapter.
+Slice 148: move teacher-application permission gates into teacher-application
+infra.
 
-- [x] Make the access-control Postgres permission helper reusable inside infra
-      and add `infra/postgres/organizations/organization_permission_checks` for
-      organization-local permission questions.
-- [x] Update organization course-list, member-list, dashboard,
-      teacher-application tracking, member-audit, invite, removal, and
-      role-assignment permission gates to stop calling legacy
+- [x] Add `infra/postgres/teacher_applications/teacher_application_permissions`
+      as the local adapter for platform and organization permission checks,
+      backed by `infra/postgres/access_control/permission_checks`.
+- [x] Update teacher-application list, platform-review, submission, decision,
+      audit, and nomination stores to stop calling
       `user_permission_platform_request` and
       `user_permission_organization_request`.
-- [x] Preserve the dashboard fallback where an actor with any organization role
-      or any active organization-scoped delegation may see the limited dashboard
-      even without the explicit `VIEW_ORGANIZATION` permission.
-- [x] Self-critique: `organization_member_invite_store` still imports the
-      legacy organization repository for hierarchy-aware role assignment; keep
-      that as a separate slice because it needs assignment/hierarchy coverage,
-      not just permission-gate coverage.
-- [x] Prove behavior with `organization_members`, filtered
-      `course_discovery organization_course_list`, `organization_dashboard`,
-      `organization_teacher_applications`, and `organization_permissions`
-      integration tests, formatting, line-count checks, `git diff --check`, and
-      boundary scans proving `infra/postgres/organizations` no longer calls
+- [x] Preserve direct role permissions, active delegated permissions, and
+      delegated-permission logging through the shared access-control helper.
+- [x] Self-critique: teacher-application submit, nomination, decision, and
+      notification stores still call `teacher_application_repository` for
+      persistence and audit writes; move those data operations into
+      teacher-application-owned Postgres query modules in a later slice.
+- [x] Prove behavior with the `teacher_applications` integration suite,
+      `organization_teacher_applications` tracking suite, formatting,
+      line-count checks, `git diff --check`, and boundary scans proving
+      `infra/postgres/teacher_applications` no longer calls
       `user_permission_*_request`.
 
 ## Legacy Transition Rules

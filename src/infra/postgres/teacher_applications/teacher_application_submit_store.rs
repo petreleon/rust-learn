@@ -8,8 +8,8 @@ use crate::application::teacher_applications::{
     TeacherApplicationOutput,
 };
 use crate::config::constants::permissions::Permissions;
+use crate::infra::postgres::teacher_applications::teacher_application_permissions::has_platform_permission;
 use crate::models::teacher_application::{NewTeacherApplication, NewTeacherApplicationAuditEvent};
-use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::repositories::teacher_application_repository;
 
 pub struct PostgresTeacherApplicationSubmitStore<'conn> {
@@ -28,10 +28,10 @@ impl TeacherApplicationSubmitStore for PostgresTeacherApplicationSubmitStore<'_>
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationSubmitError>> {
         async move {
-            user_permission_platform_request(
+            has_platform_permission(
                 self.conn,
                 actor_user_id,
-                &Permissions::SUBMIT_TEACHER_APPLICATION.to_string(),
+                Permissions::SUBMIT_TEACHER_APPLICATION,
             )
             .await
             .map_err(map_error)

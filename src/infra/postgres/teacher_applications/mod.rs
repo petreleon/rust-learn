@@ -9,6 +9,7 @@ pub mod teacher_application_nomination_store;
 pub mod teacher_application_nomination_use_case;
 pub mod teacher_application_notification_store;
 pub mod teacher_application_notification_use_case;
+mod teacher_application_permissions;
 mod teacher_application_platform_review_audit;
 mod teacher_application_platform_review_context;
 mod teacher_application_platform_review_mappers;

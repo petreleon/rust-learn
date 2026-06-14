@@ -6,8 +6,8 @@ use crate::application::teacher_applications::{
     submit_application::TeacherApplicationSubmission,
     TeacherApplicationOutput,
 };
+use crate::infra::postgres::teacher_applications::teacher_application_permissions::has_organization_permission_name;
 use crate::models::teacher_application::{NewTeacherApplication, NewTeacherApplicationAuditEvent};
-use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::teacher_application_repository;
 
 pub struct PostgresTeacherApplicationNominationStore<'conn> {
@@ -28,14 +28,9 @@ impl TeacherApplicationNominationStore for PostgresTeacherApplicationNominationS
         permission: String,
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationNominationError>> {
         async move {
-            user_permission_organization_request(
-                self.conn,
-                actor_user_id,
-                organization_id,
-                &permission,
-            )
-            .await
-            .map_err(map_error)
+            has_organization_permission_name(self.conn, actor_user_id, organization_id, &permission)
+                .await
+                .map_err(map_error)
         }
         .boxed()
     }

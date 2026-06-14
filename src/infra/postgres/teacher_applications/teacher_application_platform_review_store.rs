@@ -8,11 +8,11 @@ use crate::application::teacher_applications::list_platform_review::{
 };
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::teacher_applications;
+use crate::infra::postgres::teacher_applications::teacher_application_permissions::has_platform_permission;
 use crate::infra::postgres::teacher_applications::teacher_application_platform_review_audit::application_summary;
 use crate::infra::postgres::teacher_applications::teacher_application_platform_review_context::build_context;
 use crate::infra::postgres::teacher_applications::teacher_application_platform_review_mappers::platform_review_item;
 use crate::models::teacher_application::TeacherApplication;
-use crate::repositories::platform_repository::user_permission_platform_request;
 
 pub struct PostgresTeacherApplicationPlatformReviewStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -63,7 +63,7 @@ impl PostgresTeacherApplicationPlatformReviewStore<'_> {
         permission: Permissions,
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationPlatformReviewError>> {
         async move {
-            user_permission_platform_request(self.conn, actor_user_id, &permission.to_string())
+            has_platform_permission(self.conn, actor_user_id, permission)
                 .await
                 .map_err(map_error)
         }
