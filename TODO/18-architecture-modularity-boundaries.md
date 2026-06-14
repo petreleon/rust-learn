@@ -1150,31 +1150,32 @@ remaining gaps.
 | 252 | Moved organization reward-dashboard sponsored teacher-application status bucketing into the reporting application layer, leaving Postgres to load status rows only. |
 | 253 | Moved organization reward-dashboard course, approved reward, approved amount, and wallet balance total aggregation into the reporting application layer behind dashboard fact structs. |
 | 254 | Moved organization reward-dashboard course and wallet row/fact construction into application-owned fact constructors, leaving Postgres to pass loaded values and decimals. |
+| 255 | Moved organization reward-dashboard date-window expansion into the reporting application layer, leaving Postgres to consume prepared inclusive timestamp bounds. |
 
 ## Recent Slice Evidence
 
-Slice 254: move organization reward-dashboard row/fact construction to application.
+Slice 255: move organization reward-dashboard date-window expansion to application.
 
-- [x] Add application-owned constructors on
-      `OrganizationCourseRewardDashboardFact` and `OrganizationWalletBalanceFact`
-      for row DTO shaping and decimal stringification, with inner fact fields
-      kept private to the application module.
-- [x] Repoint `organization_reward_dashboard_queries` to pass loaded course IDs,
-      titles, counts, approved amount totals, wallet IDs, and balances into
-      those constructors instead of constructing row DTOs in Postgres.
-- [x] Preserve existing report behavior: course and wallet rows keep the same
-      IDs, titles, counts, and stringified decimal fields while aggregation
-      totals remain application-owned.
-- [x] Extend pure aggregation tests to cover both cross-row totals and per-row
-      decimal stringification from the constructors.
-- [x] Reduce `organization_reward_dashboard_queries` from 140 to 124 lines while
-      keeping `organization_reward_dashboard/aggregation` under the manual
-      ceiling at 174 lines.
-- [x] Self-critique: `aggregation.rs` is now close to the 180-line ceiling; the
-      next organization reward-dashboard slice should split facts/tests or move
-      remaining query date-window helpers before adding more logic there.
+- [x] Add `application/reporting/organization_reward_dashboard/date_window`
+      as the application owner for expanding optional report dates into
+      inclusive start/end timestamp bounds.
+- [x] Repoint `organization_reward_dashboard_queries` to build a
+      `OrganizationRewardDashboardDateWindow` once and consume its prepared
+      timestamp bounds when filtering reward candidates.
+- [x] Remove Postgres-local `start_of_day` and `end_of_day` helpers plus direct
+      `NaiveDateTime`/`NaiveTime` imports from the query module.
+- [x] Preserve existing filter behavior: `from` maps to `00:00:00`, `to` maps
+      to `23:59:59`, and missing bounds remain open-ended.
+- [x] Cover the date-window helper with pure application tests for inclusive
+      bounds and open-ended requests.
+- [x] Reduce `organization_reward_dashboard_queries` from 124 to 117 lines and
+      keep the new application date-window helper at 67 lines.
+- [x] Self-critique: the query module still computes per-course approved amount
+      counts and totals from loaded `Option<BigDecimal>` rows; a later slice
+      should move that amount summarization behind an application helper without
+      growing `aggregation.rs` past the line ceiling.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib organization_reward_dashboard::aggregation`,
+      `./scripts/run-host-tests.sh cargo test --lib organization_reward_dashboard::date_window`,
       `./scripts/run-host-tests.sh cargo test --test organization_dashboard`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,

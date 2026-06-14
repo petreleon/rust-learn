@@ -1,10 +1,11 @@
 use bigdecimal::BigDecimal;
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::organization_reward_dashboard::{
-    teacher_application_summary_from_statuses, OrganizationCourseRewardDashboardFact,
+    organization_reward_dashboard_date_window, teacher_application_summary_from_statuses,
+    OrganizationCourseRewardDashboardFact, OrganizationRewardDashboardDateWindow,
     OrganizationRewardDashboardError, OrganizationWalletBalanceFact,
     TeacherApplicationDashboardSummaryOutput,
 };
@@ -36,6 +37,7 @@ pub(super) async fn course_reward_rows(
     from: Option<NaiveDate>,
     to: Option<NaiveDate>,
 ) -> Result<Vec<OrganizationCourseRewardDashboardFact>, OrganizationRewardDashboardError> {
+    let window = organization_reward_dashboard_date_window(from, to);
     let courses = courses_organizations::table
         .inner_join(courses::table.on(courses_organizations::course_id.eq(courses::id)))
         .filter(courses_organizations::organization_id.eq(organization_id))
@@ -47,7 +49,7 @@ pub(super) async fn course_reward_rows(
 
     let mut rows = Vec::new();
     for (course_id, course_title) in courses {
-        rows.push(course_reward_row(conn, course_id, course_title, from, to).await?);
+        rows.push(course_reward_row(conn, course_id, course_title, window).await?);
     }
     Ok(rows)
 }
@@ -56,17 +58,16 @@ async fn course_reward_row(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     course_title: String,
-    from: Option<NaiveDate>,
-    to: Option<NaiveDate>,
+    window: OrganizationRewardDashboardDateWindow,
 ) -> Result<OrganizationCourseRewardDashboardFact, OrganizationRewardDashboardError> {
     let mut query = reward_candidates::table
         .filter(reward_candidates::course_id.eq(course_id))
         .into_boxed();
-    if let Some(from_date) = from {
-        query = query.filter(reward_candidates::created_at.ge(start_of_day(from_date)));
+    if let Some(from_date) = window.starts_at() {
+        query = query.filter(reward_candidates::created_at.ge(from_date));
     }
-    if let Some(to_date) = to {
-        query = query.filter(reward_candidates::created_at.le(end_of_day(to_date)));
+    if let Some(to_date) = window.ends_at() {
+        query = query.filter(reward_candidates::created_at.le(to_date));
     }
 
     let amounts = query
@@ -106,14 +107,6 @@ pub(super) async fn wallet_balance_rows(
                 .collect()
         })
         .map_err(map_diesel_error)
-}
-
-fn start_of_day(date: NaiveDate) -> NaiveDateTime {
-    NaiveDateTime::new(date, NaiveTime::from_hms_opt(0, 0, 0).unwrap())
-}
-
-fn end_of_day(date: NaiveDate) -> NaiveDateTime {
-    NaiveDateTime::new(date, NaiveTime::from_hms_opt(23, 59, 59).unwrap())
 }
 
 pub(super) fn map_diesel_error(error: diesel::result::Error) -> OrganizationRewardDashboardError {
