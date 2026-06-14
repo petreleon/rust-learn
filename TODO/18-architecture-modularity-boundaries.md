@@ -1155,26 +1155,29 @@ remaining gaps.
 | 257 | Split the organization reward-dashboard Postgres adapter into focused course, teacher-application, wallet, and mapper modules instead of one mixed query bucket. |
 | 258 | Moved organization reward-dashboard organization-name lookup into a focused Postgres helper, leaving the store as dashboard fact orchestration only. |
 | 259 | Moved platform fraud-dashboard scope summary and output assembly into the reporting application layer, leaving Postgres to load active fraud-block facts. |
+| 260 | Split platform fraud-dashboard active-block loading and Diesel error mapping into focused Postgres helpers, leaving the store as orchestration only. |
 
 ## Recent Slice Evidence
 
-Slice 259: move platform fraud-dashboard output assembly to application.
+Slice 260: split platform fraud-dashboard Postgres query concerns.
 
-- [x] Add `application/reporting/platform_fraud_dashboard/aggregation` with a
-      `FraudBlockDashboardFact` boundary and
-      `platform_fraud_dashboard_from_facts` assembler.
-- [x] Move active fraud-block total, scope summary, and output-row construction
-      out of `PostgresPlatformFraudDashboardStore`.
-- [x] Preserve existing behavior: Postgres still loads non-revoked, non-expired
-      fraud blocks ordered newest-first and capped at 100, while unknown legacy
-      scope values remain present in rows but excluded from known scope counts.
-- [x] Keep the Postgres store focused on the active-block query plus model to
-      fact conversion; it no longer imports fraud-block domain scope rules.
-- [x] Keep changed Rust files under the manual ceiling: application aggregation
-      124 lines, module export 14 lines, and Postgres store 69 lines.
-- [x] Self-critique: fraud-dashboard query ownership is still inside one store;
-      a later slice can split the active-block query and Diesel error mapper
-      into focused Postgres helpers if this adapter gains more reporting paths.
+- [x] Add `platform_fraud_dashboard_blocks` as the focused Postgres owner for
+      active fraud-block loading and DB model to application fact conversion.
+- [x] Add `platform_fraud_dashboard_mappers` for Diesel to
+      `PlatformFraudDashboardError` translation.
+- [x] Repoint `PostgresPlatformFraudDashboardStore` to call
+      `active_fraud_block_facts` and then the application dashboard assembler.
+- [x] Preserve existing behavior: active blocks are still filtered by revoked
+      and expiry state, ordered newest-first, capped at 100, and mapped to the
+      same `FraudBlockDashboardFact` fields.
+- [x] Keep Diesel schema/query imports, `RewardFraudBlock`, `chrono::Utc`, and
+      Diesel error mapping out of the store.
+- [x] Keep changed Rust files small: store 31 lines, active-block helper 46
+      lines, mapper 5 lines, and reporting module map 34 lines.
+- [x] Self-critique: the platform fraud-dashboard adapter is now granular
+      enough for its current single read path; the next reporting slice should
+      inspect organization summary or CSV export stores for mixed SQL and
+      application output decisions.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --lib platform_fraud_dashboard`,
       `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_fraud_dashboard_reports_active_blocks_by_scope`,

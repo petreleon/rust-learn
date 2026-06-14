@@ -14,6 +14,8 @@ pub mod platform_csv_export_teacher_applications;
 pub mod platform_csv_export_token_payouts;
 pub mod platform_csv_export_use_case;
 pub mod platform_csv_export_wallet_credits;
+pub mod platform_fraud_dashboard_blocks;
+pub mod platform_fraud_dashboard_mappers;
 pub mod platform_fraud_dashboard_store;
 pub mod platform_fraud_dashboard_use_case;
 pub mod platform_reward_dashboard_reconciliation;
