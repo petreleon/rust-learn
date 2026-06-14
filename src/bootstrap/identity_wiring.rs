@@ -44,7 +44,7 @@ pub fn build_identity_use_cases(pool: &DbPool) -> IdentityUseCases {
         login: Arc::new(PostgresLoginUseCase::new(pool.clone())),
         platform_role_assignment: Arc::new(PostgresPlatformRoleAssignmentUseCase::new(
             pool.clone(),
-            crate::utils::notifications::NotificationsState::new(pool.clone()),
+            crate::infra::notifications::NotificationsState::new(pool.clone()),
         )),
         register: Arc::new(PostgresRegisterUseCase::new(pool.clone())),
         request_password_reset: Arc::new(PostgresRequestPasswordResetUseCase::new(pool.clone())),

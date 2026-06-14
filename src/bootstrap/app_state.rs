@@ -56,7 +56,7 @@ use crate::bootstrap::kyc_wiring::KycUseCases;
 use crate::bootstrap::organization_wiring::OrganizationUseCases;
 use crate::bootstrap::teacher_application_wiring::TeacherApplicationUseCases;
 use crate::db::DbPool;
-use crate::utils::notifications::NotificationsState;
+use crate::infra::notifications::NotificationsState;
 use crate::utils::s3_utils::S3State;
 
 #[derive(Clone)]

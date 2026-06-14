@@ -1,3 +1,5 @@
+use super::messages::{compact_text, NotificationMessage};
+
 pub fn teacher_application_notification(
     application_id: i64,
     event_type: impl AsRef<str>,

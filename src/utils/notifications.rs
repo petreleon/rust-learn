@@ -1,4 +1,6 @@
-include!("notifications/imports.rs");
-include!("notifications/teacher_application_notification.rs");
-include!("notifications/notification_senders.rs");
-include!("notifications/notification_mutations.rs");
+pub use crate::infra::notifications::{
+    content_published_notification, create_notification, create_notifications_bulk,
+    enrollment_notification, reward_event_notification, reward_wallet_credit_notification,
+    role_assignment_notification, teacher_application_notification, worker_failure_notification,
+    NotificationMessage, NotificationsState,
+};

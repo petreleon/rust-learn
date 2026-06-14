@@ -3,9 +3,9 @@ use diesel_async::AsyncPgConnection;
 use crate::application::rewards::manage_fraud_block::{
     RewardFraudBlockError, RewardFraudBlockOutput,
 };
+use crate::infra::notifications::create_notifications_bulk;
 use crate::infra::postgres::rewards::reward_fraud_block_notification_recipients::reward_fraud_block_notification_recipients;
 use crate::models::notification::NewNotification;
-use crate::utils::notifications::create_notifications_bulk;
 
 pub(super) async fn notify_reward_fraud_block_transition(
     conn: &mut AsyncPgConnection,

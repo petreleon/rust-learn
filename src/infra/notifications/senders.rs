@@ -1,9 +1,20 @@
-impl NotificationsState {
-    /// Create a new NotificationsState from an existing DB pool.
-    pub fn new(pool: DbPool) -> Self {
-        NotificationsState { pool }
-    }
+use anyhow::Result;
 
+use crate::application::notifications::notification_inbox::NOTIFICATION_LIST_LIMIT;
+use crate::infra::postgres::notifications::notification_records::{
+    insert_notification, list_user_notifications,
+};
+use crate::models::notification::{NewNotification, Notification};
+
+use super::messages::{
+    content_published_notification, enrollment_notification, reward_event_notification,
+    reward_wallet_credit_notification, role_assignment_notification, worker_failure_notification,
+    NotificationMessage,
+};
+use super::state::NotificationsState;
+use super::teacher_application::teacher_application_notification;
+
+impl NotificationsState {
     /// Send (add) a notification for a user.
     pub async fn send_notification(
         &self,

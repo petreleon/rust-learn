@@ -3,8 +3,8 @@ use diesel_async::AsyncPgConnection;
 
 use super::jobs::FailureContext;
 use rust_learn::bootstrap::worker_runtime as worker_utils;
+use rust_learn::infra::notifications::NotificationsState;
 use rust_learn::models::upload_job::UploadJob;
-use rust_learn::utils::notifications::NotificationsState;
 
 pub async fn mark_terminal_failure(
     notifications: &NotificationsState,

@@ -42,7 +42,7 @@ pub fn build_teacher_application_use_cases(pool: &DbPool) -> TeacherApplicationU
         )),
         notification: Arc::new(PostgresTeacherApplicationNotificationUseCase::new(
             pool.clone(),
-            crate::utils::notifications::NotificationsState::new(pool.clone()),
+            crate::infra::notifications::NotificationsState::new(pool.clone()),
         )),
         platform_review: Arc::new(PostgresTeacherApplicationPlatformReviewUseCase::new(
             pool.clone(),

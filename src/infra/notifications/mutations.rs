@@ -1,3 +1,14 @@
+use anyhow::Result;
+use diesel_async::AsyncPgConnection;
+
+use crate::infra::postgres::notifications::notification_records::{
+    delete_user_notifications, insert_notification, insert_notifications,
+    mark_user_notification_read,
+};
+use crate::models::notification::NewNotification;
+
+use super::state::NotificationsState;
+
 impl NotificationsState {
     /// Mark a notification read by its id.
     pub async fn mark_read(&self, user_id: i32, notification_id: i64) -> Result<()> {
@@ -19,11 +30,6 @@ impl NotificationsState {
             .map_err(|e| anyhow::anyhow!("DB Connection error: {}", e))?;
         delete_user_notifications(&mut conn, user_id).await?;
         Ok(())
-    }
-}
-impl From<DbPool> for NotificationsState {
-    fn from(pool: DbPool) -> Self {
-        NotificationsState::new(pool)
     }
 }
 
@@ -49,6 +55,3 @@ pub async fn create_notifications_bulk(
 ) -> Result<usize> {
     Ok(insert_notifications(conn, notifications).await?)
 }
-
-#[cfg(test)]
-mod tests;

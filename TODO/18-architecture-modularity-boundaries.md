@@ -1109,33 +1109,36 @@ remaining gaps.
 | 211 | Moved worker runtime configuration, retry-backoff helpers, and heartbeat writing out of `utils::worker` and into `bootstrap/worker_runtime`; the worker binary now imports process-runtime helpers from bootstrap and the old utility module was removed. |
 | 212 | Moved Ethereum contract compilation, startup deployment, deployment wallet loading, and contract-address persistence out of `utils::eth` and into `infra/ethereum/operations`; production startup now calls the infra deployer directly while `utils::eth_utils` remains only as a compatibility re-export for existing Ethereum tests and callers. |
 | 213 | Moved JWT signing, verification, JWKS generation, env-backed key loading, and token tests out of `utils::jwt_utils` and into `infra/tokens/jwt`; the identity login issuer now calls the infra token adapter directly while `utils::jwt_utils` remains a compatibility re-export for HTTP middleware, extractors, and existing tests. |
+| 214 | Moved notification message construction, DB-backed notification state, senders, mutations, and tests out of include-based `utils::notifications` and into explicit `infra/notifications` modules; bootstrap, worker, infra adapters, and S3 processing now call the infra owner directly while `utils::notifications` remains a compatibility re-export for route handlers and existing tests. |
 
 ## Recent Slice Evidence
 
-Slice 213: move JWT implementation to token infra.
+Slice 214: move notification adapter ownership to infra.
 
-- [x] Move `src/utils/jwt_utils.rs` and its tests to
-      `src/infra/tokens/jwt.rs` and `src/infra/tokens/jwt/tests.rs`.
-- [x] Add `infra::tokens::jwt` as the owner of JWT signing, verification,
-      JWKS generation, expiration/key-id parsing, and env-backed key loading.
-- [x] Update the identity login token issuer in
-      `infra/postgres/identity/login_security.rs` to call
-      `infra::tokens::jwt::create_jwt` directly.
-- [x] Keep `utils::jwt_utils` as a compatibility re-export for
-      `create_jwt`, `decode_jwt`, `public_jwks_from_env`,
-      `public_jwks_from_pem`, `JsonWebKey`, and `JwksResponse` while HTTP
-      middleware/extractors and integration tests still import the old surface.
-- [x] Self-critique: HTTP auth extraction and middleware still call the
-      compatibility re-export. A later auth-boundary slice should move token
-      verification behind an injected session/authentication boundary instead
-      of letting HTTP parse env-backed token keys directly.
+- [x] Move notification message builders, `NotificationsState`, sender methods,
+      mutation helpers, teacher-application notification formatting, and tests
+      from `src/utils/notifications/*` into normal `src/infra/notifications/*`
+      modules.
+- [x] Replace the old include-based utility shell with explicit modules:
+      `messages`, `state`, `senders`, `mutations`, and `teacher_application`.
+- [x] Update bootstrap, worker, infra Postgres adapters, reward fraud-block
+      bulk notifications, and S3 video processing to import
+      `infra::notifications` directly.
+- [x] Keep `utils::notifications` as a compatibility re-export for HTTP route
+      handlers and integration tests that still fetch notification app data
+      through the legacy utility path.
+- [x] Self-critique: HTTP content/learning/organization handlers still accept
+      concrete `NotificationsState` app data through the compatibility path.
+      Later route-boundary slices should move those best-effort notification
+      sends behind application ports or bootstrap-wired context services.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib jwt`,
+      `./scripts/run-host-tests.sh cargo test --lib notifications`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing `utils::jwt_utils` is a re-export shell
-      and the identity login issuer calls `infra::tokens::jwt`, and backend ring
-      scans showing no `include!`/`imports.rs`.
+      `git diff --check`, scans showing `infra/notifications` has no
+      `include!`/`imports.rs` and non-HTTP production callers use
+      `infra::notifications`, and backend ring scans showing no
+      `include!`/`imports.rs`.
 
 ## Legacy Transition Rules
 

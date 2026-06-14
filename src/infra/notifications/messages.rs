@@ -1,25 +1,10 @@
-use crate::application::notifications::notification_inbox::NOTIFICATION_LIST_LIMIT;
-use crate::db::DbPool;
-use crate::infra::postgres::notifications::notification_records::{
-    delete_user_notifications, insert_notification, insert_notifications, list_user_notifications,
-    mark_user_notification_read,
-};
-use crate::models::notification::{NewNotification, Notification};
-use anyhow::Result;
-use diesel_async::AsyncPgConnection;
-
-#[derive(Clone)]
-pub struct NotificationsState {
-    pool: DbPool,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NotificationMessage {
     pub title: &'static str,
     pub body: String,
 }
 
-fn compact_text(input: impl AsRef<str>, max_chars: usize) -> String {
+pub(super) fn compact_text(input: impl AsRef<str>, max_chars: usize) -> String {
     let input = input.as_ref().trim();
     if input.chars().count() <= max_chars {
         return input.to_string();

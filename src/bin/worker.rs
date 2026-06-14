@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
     runtime::init_environment();
     let pool = runtime::init_pool()?;
     let s3 = runtime::init_s3().await?;
-    let notifications = rust_learn::utils::notifications::NotificationsState::new(pool.clone());
+    let notifications = rust_learn::infra::notifications::NotificationsState::new(pool.clone());
     let shutdown = runtime::spawn_shutdown_listener();
 
     let concurrency = runtime::worker_concurrency();

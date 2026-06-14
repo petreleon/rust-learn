@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::utils::notifications::NotificationsState;
+use crate::infra::notifications::NotificationsState;
 use chrono::Utc;
 use reqwest::Client as ReqwestClient;
 use std::process::Stdio;

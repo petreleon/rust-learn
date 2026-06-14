@@ -172,7 +172,7 @@ pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
         ),
         teacher_application_use_cases: build_teacher_application_use_cases(&pool),
         readiness_use_case: Arc::new(RuntimeReadinessUseCase::new(pool.clone(), s3.clone())),
-        notifications: crate::utils::notifications::NotificationsState::new(pool.clone()),
+        notifications: crate::infra::notifications::NotificationsState::new(pool.clone()),
         pool,
         s3,
     }
