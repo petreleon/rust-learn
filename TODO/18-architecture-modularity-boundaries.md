@@ -1070,26 +1070,31 @@ remaining gaps.
 | 172 | Moved the notification inbox list limit out of the Diesel model and into the notification inbox application boundary; migrated inbox stores, legacy notification state, and tests now pass the caller-owned limit into the model helper, leaving `src/models` with no public constants. |
 | 173 | Moved notification create/list/mark-read/delete Diesel operations out of `models::notification` and into `infra/postgres/notifications/notification_records`; migrated inbox stores and legacy notification utilities now use the notification-owned Postgres record helper, leaving `models::notification` as persistence shapes only. |
 | 174 | Moved persistent-state get/set calls off the Diesel model; the legacy persistent-state repository now delegates to operations-owned Postgres helpers, leaving `models::persistent_state` as a persistence shape only. |
+| 175 | Moved DB version-control get/update queries off the Diesel model and into `infra/postgres/operations/db_version_control`; startup DB setup and the regression test now use operations-owned Postgres records, leaving `models::db_version_control` as a persistence shape only. |
 
 ## Recent Slice Evidence
 
-Slice 174: move persistent-state Active Record helpers into operations Postgres
+Slice 175: move DB version-control Active Record helpers into operations Postgres
 records.
 
-- [x] Retarget `repositories::persistent_state_repository` to call
-      `infra/postgres/operations/persistent_state` for get/set.
-- [x] Delete `PersistentState::get` and `PersistentState::set` from
-      `models::persistent_state`; the model now owns only the Diesel row shape.
-- [x] Self-critique: the repository wrapper remains as a legacy bridge for
-      wallet/indexer/Ethereum startup callers; later slices should move those
-      callers directly to operation/wallet/ethereum adapters and delete the
-      wrapper.
+- [x] Add `infra/postgres/operations/db_version_control` for current-version
+      reads and control-row upserts.
+- [x] Retarget startup DB setup and the `db_version_control` integration test
+      to the operations-owned Postgres functions.
+- [x] Delete `DbVersionControl::get_current_version` and
+      `DbVersionControl::update_version` from `models::db_version_control`; the
+      model now owns only the Diesel row shape.
+- [x] Self-critique: the operations record module is public so the existing
+      integration test can exercise the adapter directly; later slices should
+      prefer a narrower startup/version application port or a crate-private
+      adapter test once legacy public module exports are tightened.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib wallet`,
+      `./scripts/run-host-tests.sh cargo test --test db_version_control`,
+      `./scripts/run-host-tests.sh cargo test --lib db_setup`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      calls `PersistentState::get`/`set` and `models::persistent_state` has no
-      DB helper implementation.
+      calls `DbVersionControl::*` and `models::db_version_control` has no DB
+      helper implementation.
 
 ## Legacy Transition Rules
 
