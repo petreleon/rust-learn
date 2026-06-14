@@ -1171,46 +1171,48 @@ remaining gaps.
 | 273 | Split bootstrap app-state construction and app-data registration into context-owned wiring bundles for learning, content, notifications, rewards, wallet, and reporting. |
 | 274 | Moved the remaining wallet and transaction Active Record methods out of `models::*` and into wallet Postgres ledger records, leaving model files as Diesel row shapes only. |
 | 275 | Moved JWT request claims from `models` into pure `domain/identity`, repointed HTTP extractors, middleware, and token infra, and proved the HTTP ring no longer imports models, DB, schema, repositories, services, or Diesel. |
+| 276 | Routed platform, course, and organization permission middlewares through an application access-control permission-check use case instead of direct Postgres authorization helper calls. |
 
 ## Recent Slice Evidence
 
-Batch 275: move JWT request claims into the identity domain and seal HTTP model
-leaks.
+Batch 276: move route permission middleware checks behind the application
+access-control boundary.
 
-- [x] Added `domain/identity/auth_claims.rs` and exposed `UserJWT` from
-      `domain/identity`, making token claims a pure identity value type instead
-      of a `models` module entry.
-- [x] Repointed JWT token creation/decoding, JWT middleware, permission and
-      hierarchy middleware, HTTP auth extractors, and auth tests to
-      `domain::identity::UserJWT`.
-- [x] Deleted `models/user_jwt.rs` and removed it from `models/mod.rs`, leaving
-      `models` for Diesel row/insertable shapes instead of request-auth
-      vocabulary.
-- [x] Boundary scans prove `src/http` no longer imports `crate::models`,
-      `crate::db`, `schema::`, `crate::repositories`, `crate::services`,
-      `DbPool`, or Diesel. This completes the current direct-Diesel-in-handler
-      and DB-record-as-HTTP-contract cleanup items.
-- [x] Keep touched Rust files under the manual 180-line ceiling: new
-      `auth_claims.rs` 17 lines, `domain/identity/mod.rs` 3,
-      `request_auth.rs` 119, `auth_user.rs` 98, `jwt.rs` 102, and the touched
-      middleware files remain at or below 160 lines.
-- [x] Remaining estimate after this batch: roughly 6-10 focused backend batches
-      for authorization centralization, reward leftovers, utility ownership,
-      route/wrapper audit cleanup, and stronger final requirement-by-requirement
-      evidence; frontend capability synchronization is a separate frontend
-      slice.
-- [x] Self-critique: keeping the historical `UserJWT` name avoids churn, but a
-      later identity cleanup could rename it to a clearer `AuthClaims` or
-      `UserClaims` once downstream imports have stabilized.
+- [x] Added `application/access_control/check_permission.rs` with a
+      middleware-facing `PermissionCheckUseCase`, `PermissionScope`, and
+      permission-check error contract.
+- [x] Added `infra/postgres/access_control/permission_check_use_case.rs`,
+      implementing that application trait for the existing `DbPool` and routing
+      platform, course, and organization checks to the Postgres permission
+      adapter.
+- [x] Repointed `PlatformPermissionMiddleware`, `CoursePermissionMiddleware`,
+      and `OrganizationPermissionMiddleware` away from direct
+      `authorization_checks::user_permission_*_request` calls. They now depend
+      on the application permission-check contract while preserving the
+      existing pool-based route setup.
+- [x] Tightened stale middleware tests to exercise minimal protected routes
+      instead of falling through to unrelated route handlers without their use
+      cases registered.
+- [x] Boundary scans prove the three permission middlewares no longer import or
+      call direct Postgres authorization helpers. Hierarchy middlewares still
+      call hierarchy comparison helpers directly and remain the next
+      authorization-centralization follow-up.
+- [x] Keep changed Rust files under the manual 180-line ceiling:
+      `check_permission.rs` 23 lines, `permission_check_use_case.rs` 54,
+      platform middleware 93, course middleware 141, organization middleware
+      135, and touched middleware test files at or below 158.
+- [x] Self-critique: implementing the application trait for `DbPool` preserves
+      existing test/app setup, but the next cleanup should either move
+      hierarchy middleware through a similar application contract or introduce
+      explicit bootstrap app data for all access-control middleware dependencies
+      once route tests have shared app builders.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
-      `./scripts/run-host-tests.sh cargo test --lib request_auth`,
-      `./scripts/run-host-tests.sh cargo test --lib auth_user`,
-      `./scripts/run-host-tests.sh cargo test --lib jwt_middleware`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, HTTP boundary scans, stale `models::user_jwt` scans,
-      and file-size checks.
+      `git diff --check`, direct middleware authorization-helper scans, and
+      file-size checks.
 
 ## Legacy Transition Rules
 

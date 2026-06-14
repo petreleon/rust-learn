@@ -1,10 +1,12 @@
 use actix_web::{dev::ServiceRequest, web, HttpMessage};
 use futures::FutureExt;
 
+use crate::application::access_control::check_permission::{
+    PermissionCheckError, PermissionCheckUseCase, PermissionScope,
+};
 use crate::domain::identity::UserJWT;
 use crate::http::request_params::extract_param;
 use crate::http::request_params::ParamType;
-use crate::infra::postgres::access_control::authorization_checks::user_permission_course_request;
 use crate::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
 
 pub struct CoursePermissionMiddleware;
@@ -83,25 +85,13 @@ impl CoursePermissionMiddleware {
                 };
 
                 async move {
-                    let mut conn = db_pool.get().await.map_err(|_| {
-                        log::error!(
-                            "event=permission_check_failed scope=course reason=db_connection permission={} user_id={} course_id={}",
-                            permission_name,
+                    match db_pool
+                        .has_permission(
                             user_jwt.user_id,
-                            course_id
-                        );
-                        actix_web::error::ErrorInternalServerError(
-                            "Failed to get database connection",
+                            PermissionScope::Course { course_id },
+                            permission_name.clone(),
                         )
-                    })?;
-
-                    match user_permission_course_request(
-                        &mut conn,
-                        user_jwt.user_id,
-                        course_id,
-                        &permission_name,
-                    )
-                    .await
+                        .await
                     {
                         Ok(true) => Ok(true),
                         Ok(false) => {
@@ -113,7 +103,19 @@ impl CoursePermissionMiddleware {
                             );
                             Ok(false)
                         }
-                        Err(err) => {
+                        Err(PermissionCheckError::Connection(err)) => {
+                            log::error!(
+                                "event=permission_check_failed scope=course reason=db_connection permission={} user_id={} course_id={} error={}",
+                                permission_name,
+                                user_jwt.user_id,
+                                course_id,
+                                err
+                            );
+                            Err(actix_web::error::ErrorInternalServerError(
+                                "Failed to get database connection",
+                            ))
+                        }
+                        Err(PermissionCheckError::Query(err)) => {
                             log::error!(
                                 "event=permission_check_failed scope=course reason=query permission={} user_id={} course_id={} error={}",
                                 permission_name,

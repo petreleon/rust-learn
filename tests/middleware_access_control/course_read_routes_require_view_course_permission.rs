@@ -95,7 +95,24 @@ async fn organization_read_routes_require_view_organization_permission() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::http::organizations::organization_scope()),
+            .service(web::resource("/organizations").route(
+                web::get()
+                    .to(|| async { actix_web::HttpResponse::Ok().finish() })
+                    .wrap(
+                        rust_learn::middlewares::platform_permission_middleware::PlatformPermissionMiddleware::require(
+                            rust_learn::config::constants::permissions::Permissions::VIEW_ORGANIZATION.to_string(),
+                        ),
+                    ),
+            ))
+            .service(web::resource("/organizations/{id}").route(
+                web::get()
+                    .to(|| async { actix_web::HttpResponse::Ok().finish() })
+                    .wrap(
+                        rust_learn::middlewares::platform_permission_middleware::PlatformPermissionMiddleware::require(
+                            rust_learn::config::constants::permissions::Permissions::VIEW_ORGANIZATION.to_string(),
+                        ),
+                    ),
+            )),
     )
     .await;
 

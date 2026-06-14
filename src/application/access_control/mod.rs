@@ -1,5 +1,6 @@
 pub mod authorize_reward;
 pub mod authorize_wallet;
+pub mod check_permission;
 pub mod list_roles;
 pub mod manage_delegated_permissions;
 pub mod ports;

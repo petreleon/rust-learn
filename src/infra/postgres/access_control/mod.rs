@@ -4,6 +4,7 @@ pub mod delegated_permissions;
 pub mod hierarchy_records;
 pub mod organization_role_records;
 pub mod permission_assignment_records;
+pub mod permission_check_use_case;
 pub(crate) mod permission_checks;
 pub(crate) mod permission_delegations;
 pub mod permission_recipient_records;

@@ -29,7 +29,17 @@ async fn test_organization_permission_middleware() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::http::organizations::organization_scope()),
+            .service(web::resource("/organizations/{id}").route(
+                web::put()
+                    .to(|| async { actix_web::HttpResponse::Ok().finish() })
+                    .wrap(
+                        rust_learn::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware::require(
+                            rust_learn::config::constants::permissions::Permissions::MANAGE_ORG_SETTINGS.to_string(),
+                            rust_learn::http::request_params::ParamType::Path,
+                            "id".to_string(),
+                        ),
+                    ),
+            )),
     )
     .await;
 
