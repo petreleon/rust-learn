@@ -1119,32 +1119,34 @@ remaining gaps.
 | 221 | Deleted the unused `utils::centralized_wallets` compatibility bridge after scans proved source and tests call the `infra/postgres/wallet/centralized_wallets` owner directly or do not use the helper. |
 | 222 | Deleted the final unused `src/utils` module after scans proved no `crate::utils` or `rust_learn::utils` callers remain; stale course invite helpers were superseded by `infra/postgres/learning/course_creation_store`. |
 | 223 | Moved platform, organization, and course permission/hierarchy middleware checks off legacy repository imports and onto an `infra/postgres/access_control/authorization_checks` adapter facade, leaving middleware dependent on the access-control Postgres boundary instead of `src/repositories`. |
+| 224 | Moved the version-2 bootstrap admin creation/update path off legacy user/platform repositories and onto `infra/postgres/identity/bootstrap_accounts` plus access-control role catalog/assignment adapters, making production `src` free of `crate::repositories` imports. |
 
 ## Recent Slice Evidence
 
-Slice 223: move middleware authorization checks to access-control infra.
+Slice 224: move bootstrap admin setup to identity/access-control infra.
 
-- [x] Add `infra/postgres/access_control/authorization_checks` as the
-      middleware-facing facade for platform, organization, and course
-      permission checks plus platform/organization hierarchy comparisons.
-- [x] Repoint platform, organization, and course permission middlewares from
-      `crate::repositories::*` imports to the access-control Postgres facade
-      while preserving the same async signatures and error mapping.
-- [x] Repoint platform and organization hierarchy middlewares from repository
-      hierarchy helpers to the access-control Postgres facade while preserving
-      the existing `Ordering` semantics.
-- [x] Self-critique: middleware still depends directly on concrete Postgres
-      infra. A deeper Level 2 slice should introduce application authorization
-      ports/use cases for request gates, and `config/db_setup` still has seed
-      setup imports from legacy repositories until a separate bootstrap/data
-      initialization migration.
+- [x] Add `infra/postgres/identity/bootstrap_accounts` for creating the
+      email-verified bootstrap password account and password authentication row
+      in one transaction.
+- [x] Repoint `config/db_setup/updates/update_v2` from legacy
+      `user_repository::create_user` and `platform_repository::assign_role_to_user`
+      to identity bootstrap-account infra plus access-control role catalog and
+      platform role assignment records.
+- [x] Preserve existing version-2 behavior: environment-driven admin name,
+      email, password/date-of-birth parsing, password policy validation,
+      email-verified account creation, password authentication insertion, and
+      `SUPER_ADMIN` platform role assignment.
+- [x] Self-critique: production `src` no longer imports `crate::repositories`,
+      but the legacy repository modules still exist for tests/compatibility and
+      contain duplicated account/role helper logic until those callers are moved
+      to Level 2 infra/application owners.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, a scoped scan showing migrated rings and middleware
-      no longer import `crate::repositories`, and file-size checks keeping
-      changed Rust files under the manual 180-line ceiling.
+      `git diff --check`, a full production-source scan showing no
+      `crate::repositories` imports remain under `src`, and file-size checks
+      keeping changed Rust files under the manual 180-line ceiling.
 
 ## Legacy Transition Rules
 
