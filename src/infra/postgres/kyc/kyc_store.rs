@@ -9,10 +9,10 @@ use crate::domain::kyc::submission::{
     NormalizedKycDecision, NormalizedKycSubmission, KYC_STATUS_SUBMITTED, KYC_STATUS_UNDER_REVIEW,
 };
 use crate::infra::postgres::kyc::kyc_mappers::map_error;
+use crate::infra::postgres::kyc::kyc_permissions::user_has_platform_permission;
 use crate::infra::postgres::kyc::kyc_transactions::{create_submission, decide_submission};
 use crate::models::kyc_audit_event::KycAuditEvent;
 use crate::models::kyc_submission::KycSubmission;
-use crate::repositories::platform_repository::user_permission_platform_request;
 
 pub struct PostgresKycStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -64,7 +64,7 @@ impl KycStore for PostgresKycStore<'_> {
 
     fn can_review_kyc(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, KycError>> {
         async move {
-            user_permission_platform_request(
+            user_has_platform_permission(
                 self.conn,
                 user_id,
                 &Permissions::REVIEW_KYC_SUBMISSIONS.to_string(),

@@ -4,14 +4,17 @@ use rust_learn::application::kyc::{
     KycAuditQuery, KycAuditUseCase, KycDecisionCommand, KycError, KycReviewUseCase,
     KycSubmissionUseCase, SubmitKycCommand,
 };
+use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::domain::kyc::submission::{KYC_STATUS_REJECTED, KYC_STATUS_SUBMITTED};
 use rust_learn::infra::postgres::kyc::kyc_use_case::PostgresKycUseCase;
+use rust_learn::models::delegated_permission::{NewDelegatedPermission, DELEGATED_SCOPE_PLATFORM};
 use rust_learn::models::kyc_audit_event::{
     KYC_AUDIT_EVENT_REVIEW_DECISION, KYC_AUDIT_EVENT_SUBMITTED,
 };
 use rust_learn::models::user::User;
+use rust_learn::repositories::delegated_permission_repository::create_delegated_permission;
 use rust_learn::repositories::platform_repository::assign_role_to_user;
 use rust_learn::repositories::user_repository::create_user;
 
@@ -61,9 +64,25 @@ async fn kyc_submission_and_review_write_permission_scoped_audit_events() {
     let mut conn = setup_conn(&pool).await;
     let learner = create_user_helper(&mut conn, "kyc_audit_learner").await;
     let admin = create_user_helper(&mut conn, "kyc_audit_admin").await;
+    let delegated_reviewer = create_user_helper(&mut conn, "kyc_audit_delegate").await;
     assign_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
         .await
         .expect("failed to assign ADMIN role");
+    create_delegated_permission(
+        &mut conn,
+        NewDelegatedPermission {
+            grantor_user_id: admin.id(),
+            grantee_user_id: delegated_reviewer.id(),
+            permission: Permissions::REVIEW_KYC_SUBMISSIONS.to_string(),
+            scope_type: DELEGATED_SCOPE_PLATFORM.to_string(),
+            organization_id: None,
+            course_id: None,
+            reason: Some("KYC review delegation".to_string()),
+            expires_at: None,
+        },
+    )
+    .await
+    .expect("failed to delegate KYC review permission");
     drop(conn);
 
     let use_case = PostgresKycUseCase::new(pool.clone());
@@ -95,6 +114,16 @@ async fn kyc_submission_and_review_write_permission_scoped_audit_events() {
     assert_eq!(audit[0].event_type, KYC_AUDIT_EVENT_SUBMITTED);
     assert_eq!(audit[0].from_status, None);
     assert_eq!(audit[0].to_status, KYC_STATUS_SUBMITTED);
+
+    let delegated_audit = use_case
+        .list_submission_audit(KycAuditQuery {
+            reviewer_user_id: delegated_reviewer.id(),
+            submission_id: submitted.id,
+        })
+        .await
+        .expect("delegated reviewer can read audit");
+    assert_eq!(delegated_audit.len(), 1);
+    assert_eq!(delegated_audit[0].to_status, KYC_STATUS_SUBMITTED);
 
     let rejected = use_case
         .decide_submission(KycDecisionCommand {
