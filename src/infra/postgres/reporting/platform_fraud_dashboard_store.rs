@@ -4,11 +4,10 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::reporting::platform_fraud_dashboard::store::PlatformFraudDashboardStore;
 use crate::application::reporting::platform_fraud_dashboard::{
-    FraudBlockDashboardRowOutput, FraudBlockScopeSummaryOutput, PlatformFraudDashboardError,
+    platform_fraud_dashboard_from_facts, FraudBlockDashboardFact, PlatformFraudDashboardError,
     PlatformFraudDashboardOutput,
 };
 use crate::db::schema::reward_fraud_blocks;
-use crate::domain::rewards::fraud_block::RewardFraudBlockScope;
 use crate::models::reward_fraud_block::RewardFraudBlock;
 
 pub struct PostgresPlatformFraudDashboardStore<'a> {
@@ -40,33 +39,16 @@ impl PlatformFraudDashboardStore for PostgresPlatformFraudDashboardStore<'_> {
                 .await
                 .map_err(map_diesel_error)?;
 
-            let active_by_scope = scope_summary(&active_blocks);
-            Ok(PlatformFraudDashboardOutput {
-                active_total: active_blocks.len() as i64,
-                active_by_scope,
-                active_blocks: active_blocks.into_iter().map(map_fraud_block).collect(),
-            })
+            Ok(platform_fraud_dashboard_from_facts(
+                active_blocks.into_iter().map(fraud_block_fact).collect(),
+            ))
         }
         .boxed()
     }
 }
 
-fn scope_summary(blocks: &[RewardFraudBlock]) -> FraudBlockScopeSummaryOutput {
-    let mut summary = FraudBlockScopeSummaryOutput::default();
-    for block in blocks {
-        match RewardFraudBlockScope::parse(&block.scope_type) {
-            Ok(RewardFraudBlockScope::Teacher) => summary.teacher += 1,
-            Ok(RewardFraudBlockScope::Organization) => summary.organization += 1,
-            Ok(RewardFraudBlockScope::Course) => summary.course += 1,
-            Ok(RewardFraudBlockScope::RewardPolicy) => summary.reward_policy += 1,
-            Err(_) => {}
-        }
-    }
-    summary
-}
-
-fn map_fraud_block(block: RewardFraudBlock) -> FraudBlockDashboardRowOutput {
-    FraudBlockDashboardRowOutput {
+fn fraud_block_fact(block: RewardFraudBlock) -> FraudBlockDashboardFact {
+    FraudBlockDashboardFact {
         id: block.id,
         scope_type: block.scope_type,
         teacher_user_id: block.teacher_user_id,
