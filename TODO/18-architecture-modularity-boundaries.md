@@ -1144,36 +1144,37 @@ remaining gaps.
 | 246 | Moved organization-dashboard reward attention status bucketing into the organization dashboard application layer, leaving Postgres to parse candidate DB status strings into the reward domain enum. |
 | 247 | Moved organization course-list reward queue status bucketing into the organization course-list application layer, leaving Postgres to group candidate status rows and pass typed reward statuses. |
 | 248 | Moved teacher course-dashboard reward queue status bucketing into the teacher dashboard application layer, leaving Postgres to group candidate status rows and pass typed reward statuses. |
+| 249 | Moved per-student teacher reward progress status bucketing into the teacher-students application layer, leaving Postgres to group candidate status rows and pass typed reward statuses. |
 
 ## Recent Slice Evidence
 
-Slice 248: move teacher course-dashboard reward queue bucketing to application.
+Slice 249: move per-student teacher reward progress bucketing to application.
 
-- [x] Add `record_teacher_course_reward_queue_status` under
-      `application/learning/teacher_course_dashboard` so the teacher dashboard
-      application layer owns pending-teacher, teacher-approved, and failed
-      reward queue buckets.
-- [x] Repoint the Postgres teacher course metric adapter to load grouped
-      candidate status counts, parse stored status strings into
-      `RewardCandidateStatus`, and pass typed statuses to the application
-      helper.
-- [x] Preserve existing behavior for unknown stored statuses: they still do not
-      increment any teacher course reward queue bucket.
-- [x] Cover pending-teacher, teacher-approved, failed, and ignored statuses with
-      pure application tests.
-- [x] Self-critique: this removes the duplicate raw reward status counting from
-      the teacher dashboard course-level queue. The per-student teacher reward
-      progress query still counts raw reward statuses and should move next,
-      likely with a separate helper because its output has an additional
-      completed bucket.
+- [x] Add `record_teacher_student_reward_progress_status` under
+      `application/learning/get_teacher_course_students` so the teacher-student
+      application layer owns pending-teacher, teacher-approved,
+      teacher-rejected, completed, and failed reward progress buckets.
+- [x] Repoint the Postgres teacher student reward-progress adapter to load
+      grouped candidate status counts, derive the total candidate count from
+      those groups, parse stored status strings into `RewardCandidateStatus`,
+      and pass typed statuses to the application helper.
+- [x] Preserve existing behavior for unknown stored statuses: they still count
+      toward total candidates but do not increment a named progress bucket.
+- [x] Cover all named progress buckets and ignored statuses with pure
+      application tests.
+- [x] Self-critique: this removes the raw reward status counting from the
+      per-student teacher progress query. The next reward-status cleanup should
+      scan for the remaining raw constants in reporting wallet reconciliation
+      and learning dashboard summary helpers rather than assuming this pattern
+      is exhausted.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib teacher_course_dashboard::reward_queue`,
+      `./scripts/run-host-tests.sh cargo test --lib get_teacher_course_students::reward_progress`,
       `./scripts/run-host-tests.sh cargo test --test teacher_course_dashboard teacher_course_dashboard_returns_scoped_course_health_and_queues`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, and file-size checks keeping changed Rust files under
-      the manual 180-line ceiling.
+      `git diff --check`, scans, and file-size checks keeping changed Rust files
+      under the manual 180-line ceiling.
 
 ## Legacy Transition Rules
 

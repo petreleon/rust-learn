@@ -4,65 +4,35 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use serde_json::Value;
 
 use crate::application::learning::get_teacher_course_students::{
-    TeacherStudentRewardCandidateSummaryOutput, TeacherStudentRewardProgressSummaryOutput,
+    record_teacher_student_reward_progress_status, TeacherStudentRewardCandidateSummaryOutput,
+    TeacherStudentRewardProgressSummaryOutput,
 };
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError;
 use crate::db::schema::reward_candidates;
-use crate::domain::rewards::candidate::status::{
-    REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
-    REWARD_STATUS_TEACHER_APPROVED, REWARD_STATUS_TEACHER_REJECTED,
-};
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 pub async fn load_teacher_student_reward_progress(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     student_user_id: i32,
 ) -> Result<TeacherStudentRewardProgressSummaryOutput, TeacherCourseDashboardError> {
-    Ok(TeacherStudentRewardProgressSummaryOutput {
-        reward_candidate_count: count_student_reward_candidates(
-            conn,
-            course_id,
-            student_user_id,
-            None,
-        )
-        .await?,
-        pending_teacher_count: count_student_reward_candidates(
-            conn,
-            course_id,
-            student_user_id,
-            Some(REWARD_STATUS_PENDING_TEACHER_APPROVAL),
-        )
-        .await?,
-        teacher_approved_count: count_student_reward_candidates(
-            conn,
-            course_id,
-            student_user_id,
-            Some(REWARD_STATUS_TEACHER_APPROVED),
-        )
-        .await?,
-        teacher_rejected_count: count_student_reward_candidates(
-            conn,
-            course_id,
-            student_user_id,
-            Some(REWARD_STATUS_TEACHER_REJECTED),
-        )
-        .await?,
-        completed_count: count_student_reward_candidates(
-            conn,
-            course_id,
-            student_user_id,
-            Some(REWARD_STATUS_COMPLETED),
-        )
-        .await?,
-        failed_count: count_student_reward_candidates(
-            conn,
-            course_id,
-            student_user_id,
-            Some(REWARD_STATUS_FAILED),
-        )
-        .await?,
+    let status_counts =
+        load_student_reward_candidate_status_counts(conn, course_id, student_user_id).await?;
+    let mut summary = TeacherStudentRewardProgressSummaryOutput {
+        reward_candidate_count: status_counts.iter().map(|(_, count)| *count).sum::<i64>(),
+        pending_teacher_count: 0,
+        teacher_approved_count: 0,
+        teacher_rejected_count: 0,
+        completed_count: 0,
+        failed_count: 0,
         latest_candidate: load_latest_reward_candidate(conn, course_id, student_user_id).await?,
-    })
+    };
+    for (status, count) in status_counts {
+        if let Ok(status) = RewardCandidateStatus::parse(&status) {
+            record_teacher_student_reward_progress_status(&mut summary, status, count);
+        }
+    }
+    Ok(summary)
 }
 
 async fn load_latest_reward_candidate(
@@ -119,23 +89,17 @@ async fn load_latest_reward_candidate(
         .map_err(map_dashboard_error)
 }
 
-async fn count_student_reward_candidates(
+async fn load_student_reward_candidate_status_counts(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     student_user_id: i32,
-    status: Option<&str>,
-) -> Result<i64, TeacherCourseDashboardError> {
-    let mut query = reward_candidates::table.into_boxed();
-    query = query
+) -> Result<Vec<(String, i64)>, TeacherCourseDashboardError> {
+    reward_candidates::table
         .filter(reward_candidates::course_id.eq(course_id))
-        .filter(reward_candidates::student_user_id.eq(student_user_id));
-    if let Some(status) = status {
-        query = query.filter(reward_candidates::status.eq(status));
-    }
-
-    query
-        .count()
-        .get_result::<i64>(conn)
+        .filter(reward_candidates::student_user_id.eq(student_user_id))
+        .group_by(reward_candidates::status)
+        .select((reward_candidates::status, diesel::dsl::count_star()))
+        .load::<(String, i64)>(conn)
         .await
         .map_err(map_dashboard_error)
 }
