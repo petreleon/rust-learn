@@ -6,8 +6,16 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use std::sync::Arc;
 use rust_learn::application::wallet::audit_wallet::WalletAuditUseCase;
-use rust_learn::application::wallet::create_deposit_intent::WalletDepositIntentUseCase;
-use rust_learn::application::wallet::link_wallet::WalletLinkUseCase;
+use rust_learn::application::wallet::create_deposit_intent::{
+    create_deposit_intent, WalletDepositIntentRequest as WalletTokenTransferRequest,
+    WalletDepositIntentUseCase, WalletDepositIntentView,
+};
+use rust_learn::application::wallet::index_deposit::{
+    index_observed_deposit, ObservedWalletDepositEvent, WalletDepositIndexOutput,
+};
+use rust_learn::application::wallet::link_wallet::{
+    link_wallet, LinkedWalletView, WalletLinkSubject, WalletLinkUseCase,
+};
 use rust_learn::application::wallet::manage_token_tax::WalletTokenTaxUseCase;
 use rust_learn::application::wallet::read_wallet::WalletReadUseCase;
 use rust_learn::application::wallet::retire_tokens::WalletRetirementUseCase;
@@ -35,14 +43,14 @@ use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::persistent_state_repository::set_persistent_state;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::infra::postgres::wallet::wallet_audit_use_case::PostgresWalletAuditUseCase;
+use rust_learn::infra::postgres::wallet::wallet_deposit_index_store::PostgresWalletDepositIndexStore;
+use rust_learn::infra::postgres::wallet::wallet_deposit_intent_store::PostgresWalletDepositIntentStore;
 use rust_learn::infra::postgres::wallet::wallet_deposit_intent_use_case::PostgresWalletDepositIntentUseCase;
+use rust_learn::infra::postgres::wallet::wallet_link_store::PostgresWalletLinkStore;
 use rust_learn::infra::postgres::wallet::wallet_link_use_case::PostgresWalletLinkUseCase;
 use rust_learn::infra::postgres::wallet::wallet_read_use_case::PostgresWalletReadUseCase;
 use rust_learn::infra::postgres::wallet::wallet_retirement_use_case::PostgresWalletRetirementUseCase;
 use rust_learn::infra::postgres::wallet::wallet_token_tax_use_case::PostgresWalletTokenTaxUseCase;
-use rust_learn::services::wallet_service::{
-    self, credit_observed_wallet_deposit, ObservedWalletDepositEvent, WalletTokenTransferRequest,
-};
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::json;
 use serde_json::Value;
@@ -79,6 +87,51 @@ async fn mark_user_kyc_verified(conn: &mut AsyncPgConnection, user_id: i32) {
         .execute(conn)
         .await
         .expect("failed to mark user KYC verified");
+}
+
+async fn link_user_wallet(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+) -> Result<LinkedWalletView, rust_learn::application::wallet::link_wallet::WalletLinkError> {
+    let mut store = PostgresWalletLinkStore::new(conn);
+    link_wallet(&mut store, user_id, WalletLinkSubject::OwnUser).await
+}
+
+async fn link_organization_wallet(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    organization_id: i32,
+) -> Result<LinkedWalletView, rust_learn::application::wallet::link_wallet::WalletLinkError> {
+    let mut store = PostgresWalletLinkStore::new(conn);
+    link_wallet(
+        &mut store,
+        actor_user_id,
+        WalletLinkSubject::Organization(organization_id),
+    )
+    .await
+}
+
+async fn deposit_tokens_to_user_wallet(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    request: WalletTokenTransferRequest,
+) -> Result<
+    WalletDepositIntentView,
+    rust_learn::application::wallet::create_deposit_intent::WalletDepositIntentError,
+> {
+    let mut store = PostgresWalletDepositIntentStore::new(conn);
+    create_deposit_intent(&mut store, user_id, request).await
+}
+
+async fn credit_observed_wallet_deposit(
+    conn: &mut AsyncPgConnection,
+    event: ObservedWalletDepositEvent,
+) -> Result<
+    WalletDepositIndexOutput,
+    rust_learn::application::wallet::index_deposit::WalletDepositIndexError,
+> {
+    let mut store = PostgresWalletDepositIndexStore::new(conn);
+    index_observed_deposit(&mut store, event).await
 }
 
 async fn create_test_organization(conn: &mut AsyncPgConnection) -> Organization {

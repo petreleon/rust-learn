@@ -3,6 +3,9 @@ use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::wallet::link_wallet::{
+    link_wallet, LinkedWalletView, WalletLinkSubject,
+};
 use rust_learn::application::rewards::list_reward_history::StudentRewardHistoryUseCase;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{
@@ -20,10 +23,9 @@ use rust_learn::models::reward_candidate::NewRewardCandidate;
 use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::course_role_records;
-use rust_learn::models::wallet::Wallet;
 use rust_learn::infra::postgres::rewards::reward_history_use_case::PostgresStudentRewardHistoryUseCase;
+use rust_learn::infra::postgres::wallet::wallet_link_store::PostgresWalletLinkStore;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::services::wallet_service;
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -64,12 +66,20 @@ async fn create_verified_user(conn: &mut AsyncPgConnection, prefix: &str) -> Use
     .expect("failed to create user");
 
     diesel::update(users::table.find(user.id()))
-        .set(users::email_verified.eq(true))
+        .set((users::email_verified.eq(true), users::kyc_verified.eq(true)))
         .execute(conn)
         .await
-        .expect("failed to verify user email");
+        .expect("failed to verify user");
 
     user
+}
+
+async fn link_user_wallet(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+) -> Result<LinkedWalletView, rust_learn::application::wallet::link_wallet::WalletLinkError> {
+    let mut store = PostgresWalletLinkStore::new(conn);
+    link_wallet(&mut store, user_id, WalletLinkSubject::OwnUser).await
 }
 
 async fn create_course(conn: &mut AsyncPgConnection, title_prefix: &str) -> Course {

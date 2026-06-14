@@ -1099,34 +1099,36 @@ remaining gaps.
 | 201 | Deleted the now-unused legacy `reward_execution_service` compatibility module after reward execution tests were switched to application reward use-case helpers and domain payout constants, proving payout planning, token confirmation, wallet credit, notification, and reconciliation run through Level 2 rewards modules. |
 | 202 | Moved token reconciliation recording out of the legacy services layer and into `infra/postgres/wallet/token_reconciliation_records`; the integration test now imports the wallet Postgres record adapter directly and the legacy `token_reconciliation` service module was deleted. |
 | 203 | Moved the wallet deposit indexer out of the legacy services layer and into `infra/ethereum/wallet/deposit_indexer`; the worker now spawns the Ethereum wallet infra adapter directly, leaving `services` focused on the remaining compatibility surfaces only. |
+| 204 | Deleted the now-unused legacy `wallet_service` compatibility module after wallet and reward-history integration fixtures were switched to Level 2 wallet application handlers backed by Postgres wallet stores, leaving `src/services` with only the reward-candidate compatibility surface. |
 
 ## Recent Slice Evidence
 
-Slice 203: move wallet deposit indexer into Ethereum wallet infra.
+Slice 204: delete the migrated wallet legacy service.
 
-- [x] Move `wallet_deposit_indexer_service` and its child modules to
-      `src/infra/ethereum/wallet/deposit_indexer`, with a new
-      `infra::ethereum::wallet` module gate.
-- [x] Point `src/bin/worker.rs` at
-      `rust_learn::infra::ethereum::wallet::deposit_indexer` so background
-      startup no longer depends on the legacy `services` bucket for deposit
-      indexing.
-- [x] Keep the existing granular indexer internals: config parsing, Ethereum log
-      helpers, event construction, block-range selection, poll logging, and the
-      once-per-batch runner remain separate child modules.
-- [x] Self-critique: the indexer is correctly out of `services`, but it still
-      reads persistent state through the legacy repository and provider setup
-      through `utils::eth`. That is acceptable for this move because the
-      boundary now sits in the infra ring; a later slice should move those
-      remaining operational adapters behind `infra/postgres/operations` and
-      `infra/ethereum/operations` APIs.
+- [x] Replace wallet integration fixture calls to `wallet_service` with
+      test-local helpers that call `application/wallet/{link_wallet,
+      create_deposit_intent,index_deposit}` handlers through the matching
+      `infra/postgres/wallet` stores.
+- [x] Update organization wallet setup to use the real Level 2 actor-aware
+      organization wallet link boundary and update user wallet fixtures to
+      satisfy the KYC precondition enforced by the migrated link/deposit use
+      cases.
+- [x] Switch student reward-history financial fixtures to use the Level 2
+      linked wallet view's wallet id instead of a Diesel wallet model returned
+      by the deleted service helper.
+- [x] Delete `src/services/wallet_service.rs` and all `wallet_service/*`
+      children after reference scans showed no production or test callers.
+- [x] Self-critique: the test roots still use `include!` to assemble large
+      integration fixtures, but those are outside the backend source rings.
+      The important architectural movement here is that wallet behavior now
+      runs through application handlers and Postgres adapters rather than a
+      public service compatibility module.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib deposit_indexer`,
+      `./scripts/run-host-tests.sh cargo test --test wallet_linking`,
+      `./scripts/run-host-tests.sh cargo test --test student_reward_history`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `./scripts/run-host-tests.sh cargo check --bin worker --features worker-bin`,
-      `git diff --check`, reference scans showing no
-      `wallet_deposit_indexer_service`, and backend ring scans showing no
-      `include!`/`imports.rs`.
+      `git diff --check`, reference scans showing no `wallet_service`, and
+      backend ring scans showing no `include!`/`imports.rs`.
 
 ## Legacy Transition Rules
 

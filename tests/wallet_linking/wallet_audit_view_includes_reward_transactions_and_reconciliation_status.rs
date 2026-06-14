@@ -6,7 +6,8 @@ async fn wallet_audit_view_includes_reward_transactions_and_reconciliation_statu
     let student = create_test_user(&mut conn, "wallet_audit_student").await;
     let submitter = create_test_user(&mut conn, "wallet_audit_submitter").await;
     let course_id = create_test_course(&mut conn).await;
-    let wallet = wallet_service::link_user_wallet(&mut conn, student.id())
+    mark_user_kyc_verified(&mut conn, student.id()).await;
+    let wallet = link_user_wallet(&mut conn, student.id())
         .await
         .expect("student wallet should link")
         .wallet;

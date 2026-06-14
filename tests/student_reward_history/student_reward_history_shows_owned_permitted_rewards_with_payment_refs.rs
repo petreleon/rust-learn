@@ -10,7 +10,7 @@ async fn student_reward_history_shows_owned_permitted_rewards_with_payment_refs(
     let hidden_course = create_course(&mut conn, "StudentRewardHistoryHiddenCourse").await;
     assign_course_role(&mut conn, student.id(), course.id, "STUDENT").await;
     assign_course_role(&mut conn, other_student.id(), course.id, "STUDENT").await;
-    let wallet = wallet_service::link_user_wallet(&mut conn, student.id())
+    let wallet = link_user_wallet(&mut conn, student.id())
         .await
         .expect("student wallet should link")
         .wallet;
@@ -26,7 +26,7 @@ async fn student_reward_history_shows_owned_permitted_rewards_with_payment_refs(
     )
     .await;
     let financials =
-        create_reward_financial_records(&mut conn, visible_candidate_id, &wallet, amount.clone())
+        create_reward_financial_records(&mut conn, visible_candidate_id, wallet.id, amount.clone())
             .await;
     let other_student_candidate_id = create_reward_candidate(
         &mut conn,

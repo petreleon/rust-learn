@@ -18,7 +18,7 @@ async fn organization_wallet_audit_includes_source_org_reward_rows_and_gates_acc
         Permissions::VIEW_ORG_REWARD_REPORTS,
     )
     .await;
-    let wallet = wallet_service::link_organization_wallet(&mut conn, org.id)
+    let wallet = link_organization_wallet(&mut conn, org_admin.id(), org.id)
         .await
         .expect("organization wallet should link")
         .wallet;
