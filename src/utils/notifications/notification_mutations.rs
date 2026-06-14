@@ -6,7 +6,7 @@ impl NotificationsState {
             .get()
             .await
             .map_err(|e| anyhow::anyhow!("DB Connection error: {}", e))?;
-        Notification::mark_as_read(user_id, notification_id, &mut conn).await?;
+        mark_user_notification_read(&mut conn, user_id, notification_id).await?;
         Ok(())
     }
 
@@ -17,7 +17,7 @@ impl NotificationsState {
             .get()
             .await
             .map_err(|e| anyhow::anyhow!("DB Connection error: {}", e))?;
-        Notification::delete_by_user_id(user_id, &mut conn).await?;
+        delete_user_notifications(&mut conn, user_id).await?;
         Ok(())
     }
 }
@@ -39,7 +39,7 @@ pub async fn create_notification(
         title: title.as_ref(),
         body: body.as_ref(),
     };
-    Ok(Notification::create(new, conn).await?)
+    Ok(insert_notification(conn, new).await?)
 }
 
 /// Bulk-create notifications inside an existing transaction.
@@ -47,7 +47,7 @@ pub async fn create_notifications_bulk(
     conn: &mut AsyncPgConnection,
     notifications: &[NewNotification<'_>],
 ) -> Result<usize> {
-    Ok(Notification::create_many(notifications, conn).await?)
+    Ok(insert_notifications(conn, notifications).await?)
 }
 
 #[cfg(test)]

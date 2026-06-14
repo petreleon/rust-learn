@@ -21,7 +21,7 @@ impl NotificationsState {
             title: title.as_ref(),
             body: body.as_ref(),
         };
-        let inserted_id = Notification::create(new, &mut conn).await?;
+        let inserted_id = insert_notification(&mut conn, new).await?;
         Ok(inserted_id)
     }
 
@@ -152,7 +152,7 @@ impl NotificationsState {
             .get()
             .await
             .map_err(|e| anyhow::anyhow!("DB Connection error: {}", e))?;
-        let rows = Notification::find_by_user_id(user_id, NOTIFICATION_LIST_LIMIT, &mut conn).await?;
+        let rows = list_user_notifications(&mut conn, user_id, NOTIFICATION_LIST_LIMIT).await?;
         Ok(rows)
     }
 }

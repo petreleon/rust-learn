@@ -4,6 +4,9 @@ use crate::application::notifications::notification_inbox::{
     NotificationInboxError, NotificationOutput, NOTIFICATION_LIST_LIMIT,
 };
 use crate::application::notifications::ports::NotificationInboxStore;
+use crate::infra::postgres::notifications::notification_records::{
+    delete_user_notifications, list_user_notifications, mark_user_notification_read,
+};
 use crate::models::notification::Notification;
 
 pub struct PostgresNotificationInboxStore<'conn> {
@@ -22,7 +25,7 @@ impl NotificationInboxStore for PostgresNotificationInboxStore<'_> {
         user_id: i32,
     ) -> BoxFuture<'_, Result<Vec<NotificationOutput>, NotificationInboxError>> {
         async move {
-            Notification::find_by_user_id(user_id, NOTIFICATION_LIST_LIMIT, self.conn)
+            list_user_notifications(self.conn, user_id, NOTIFICATION_LIST_LIMIT)
                 .await
                 .map(|rows| rows.into_iter().map(NotificationOutput::from).collect())
                 .map_err(map_notification_inbox_error)
@@ -36,7 +39,7 @@ impl NotificationInboxStore for PostgresNotificationInboxStore<'_> {
         notification_id: i64,
     ) -> BoxFuture<'_, Result<(), NotificationInboxError>> {
         async move {
-            Notification::mark_as_read(user_id, notification_id, self.conn)
+            mark_user_notification_read(self.conn, user_id, notification_id)
                 .await
                 .map(|_| ())
                 .map_err(map_notification_inbox_error)
@@ -46,7 +49,7 @@ impl NotificationInboxStore for PostgresNotificationInboxStore<'_> {
 
     fn clear(&mut self, user_id: i32) -> BoxFuture<'_, Result<(), NotificationInboxError>> {
         async move {
-            Notification::delete_by_user_id(user_id, self.conn)
+            delete_user_notifications(self.conn, user_id)
                 .await
                 .map(|_| ())
                 .map_err(map_notification_inbox_error)

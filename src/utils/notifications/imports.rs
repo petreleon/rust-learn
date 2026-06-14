@@ -1,5 +1,9 @@
 use crate::application::notifications::notification_inbox::NOTIFICATION_LIST_LIMIT;
 use crate::db::DbPool;
+use crate::infra::postgres::notifications::notification_records::{
+    delete_user_notifications, insert_notification, insert_notifications, list_user_notifications,
+    mark_user_notification_read,
+};
 use crate::models::notification::{NewNotification, Notification};
 use anyhow::Result;
 use diesel_async::AsyncPgConnection;

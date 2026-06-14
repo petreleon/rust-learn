@@ -1068,29 +1068,30 @@ remaining gaps.
 | 170 | Removed delegated-permission scope compatibility aliases from the Diesel model; course-service legacy helpers, access-control/learning/organization/reward Postgres adapters, and fixtures now import delegation scopes from `domain/access_control/delegation`, leaving `models::delegated_permission` as persistence shapes only. |
 | 171 | Removed the wallet deposit pending-status compatibility alias from the Diesel model; legacy wallet deposit-intent creation and the migrated Postgres wallet deposit-intent adapter now import status vocabulary from `domain/wallet/deposit`, leaving `models::wallet_token_deposit_intent` as persistence shapes only. |
 | 172 | Moved the notification inbox list limit out of the Diesel model and into the notification inbox application boundary; migrated inbox stores, legacy notification state, and tests now pass the caller-owned limit into the model helper, leaving `src/models` with no public constants. |
+| 173 | Moved notification create/list/mark-read/delete Diesel operations out of `models::notification` and into `infra/postgres/notifications/notification_records`; migrated inbox stores and legacy notification utilities now use the notification-owned Postgres record helper, leaving `models::notification` as persistence shapes only. |
 
 ## Recent Slice Evidence
 
-Slice 172: move notification inbox query limit out of the Diesel model.
+Slice 173: move notification Active Record helpers into notification Postgres
+records.
 
-- [x] Add `NOTIFICATION_LIST_LIMIT` to
-      `application/notifications/notification_inbox` as inbox contract/query
-      configuration instead of model vocabulary.
-- [x] Change `Notification::find_by_user_id` to accept an explicit limit, and
-      update migrated Postgres inbox reads plus legacy `NotificationsState`
-      reads to pass the application-owned limit.
-- [x] Update notification integration coverage to import the limit from the
-      notification inbox application boundary.
-- [x] Self-critique: `models::notification` still has legacy Active Record
-      helper methods for create/list/mark-read/delete; move those queries into
-      notification-owned Postgres modules in a later deeper slice.
+- [x] Add `infra/postgres/notifications/notification_records` for notification
+      insert, bulk insert, user inbox list, mark-read, and delete queries.
+- [x] Remove the `Notification` impl from `models::notification`; the model now
+      owns only Diesel record and insert shapes.
+- [x] Retarget migrated notification inbox stores and legacy
+      `utils::notifications` send/list/mark-read/clear/bulk helpers to the
+      notification-owned Postgres record functions.
+- [x] Self-critique: `utils::notifications` is still a legacy bridge used by
+      several contexts; later slices should replace it with notification
+      application ports/adapters instead of importing infra from utils.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --lib notification`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving
-      `src/models` has no public constants, no code imports
-      `NOTIFICATION_LIST_LIMIT` through `models::notification`, and no stale
-      `Notification::find_by_user_id` calls omit the explicit limit.
+      `models::notification` has no impl/DB helper methods, no code calls the
+      removed `Notification::*` Active Record helpers, and notification queries
+      are called through `infra/postgres/notifications/notification_records`.
 
 ## Legacy Transition Rules
 
