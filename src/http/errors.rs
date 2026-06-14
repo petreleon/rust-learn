@@ -1,7 +1,6 @@
 use actix_web::{http::StatusCode, HttpResponse, ResponseError};
+use serde::Serialize;
 use std::fmt;
-
-use crate::utils::api_error::{ApiError as ApiErrorEnvelope, ApiErrorBody};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ApiError {
@@ -40,6 +39,18 @@ impl fmt::Display for ApiError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(&self.message)
     }
+}
+
+#[derive(Serialize)]
+struct ApiErrorEnvelope {
+    error: ApiErrorBody,
+}
+
+#[derive(Serialize)]
+struct ApiErrorBody {
+    code: String,
+    message: String,
+    status: u16,
 }
 
 impl ResponseError for ApiError {
