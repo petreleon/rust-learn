@@ -30,7 +30,7 @@ use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
 use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::persistent_state_repository::set_persistent_state;
 use rust_learn::repositories::reward_audit_event_repository::list_reward_audit_events;
 use rust_learn::repositories::user_repository::create_user;
@@ -113,7 +113,7 @@ async fn create_custom_platform_role(
 }
 
 async fn assign_platform_role_id(conn: &mut AsyncPgConnection, user_id: i32, role_id: i32) {
-    UserRolePlatform::assign(conn, user_id, role_id)
+    platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
         .await
         .expect("failed to assign custom platform role");
 }

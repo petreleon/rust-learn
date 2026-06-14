@@ -9,7 +9,7 @@ use rust_learn::infra::postgres::access_control::delegated_permissions::use_case
 use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
 use rust_learn::models::role::PlatformRole;
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::{json, Value};
@@ -45,7 +45,7 @@ async fn assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_n
     let role_id = PlatformRole::find_by_name(role_name, conn)
         .await
         .expect("platform role should exist");
-    UserRolePlatform::assign(conn, user_id, role_id)
+    platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
         .await
         .expect("failed to assign platform role");
 }

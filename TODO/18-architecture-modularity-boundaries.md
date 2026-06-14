@@ -1073,31 +1073,35 @@ remaining gaps.
 | 175 | Moved DB version-control get/update queries off the Diesel model and into `infra/postgres/operations/db_version_control`; startup DB setup and the regression test now use operations-owned Postgres records, leaving `models::db_version_control` as a persistence shape only. |
 | 176 | Moved platform, organization, and course role-hierarchy reads off the Diesel models and into `infra/postgres/access_control/hierarchy_records`; legacy repository bridges and hierarchy tests now use access-control Postgres records, leaving the hierarchy models as persistence shapes only. |
 | 177 | Moved platform role-permission assignment off the Diesel model and into `infra/postgres/access_control/permission_assignment_records`; the legacy platform-permission repository now delegates to access-control Postgres records, leaving `models::role_permission_platform` as a persistence shape only. |
+| 178 | Moved platform user-role assignment and platform role-permission checks off the Diesel model and into `infra/postgres/access_control/platform_role_records`; legacy platform repositories, teacher-application role assignment, and fixtures now use access-control Postgres records, leaving `models::user_role_platform` as a persistence shape only. |
 
 ## Recent Slice Evidence
 
-Slice 177: move platform role-permission assignment into access-control
+Slice 178: move platform user-role Active Record helpers into access-control
 Postgres records.
 
-- [x] Add `infra/postgres/access_control/permission_assignment_records` for
-      idempotent platform role-permission writes.
-- [x] Retarget `repositories::platform_permission_repository` to call the
-      access-control-owned Postgres assignment function.
-- [x] Delete `RolePermissionPlatform::assign` from
-      `models::role_permission_platform`; the model now owns only the Diesel
-      row shape.
-- [x] Self-critique: the repository still combines role-name lookup,
-      permission enum conversion, and assignment orchestration; a later
-      access-control application use case should own the command and expose the
-      repository only as a temporary compatibility shim.
+- [x] Add `infra/postgres/access_control/platform_role_records` for platform
+      user-role assignment and direct platform role-permission checks.
+- [x] Retarget legacy platform repositories, the teacher-application platform
+      role assignment path, and direct fixtures to the access-control-owned
+      Postgres functions.
+- [x] Delete `UserRolePlatform::assign` and `UserRolePlatform::has_permission`
+      from `models::user_role_platform`; the model now owns only the Diesel row
+      shape.
+- [x] Self-critique: `teacher_application_decision_roles` still has local
+      exists-before-assign guards for platform, organization, and course role
+      grants; later slices should extract those guards into access-control
+      assignment adapters or an application port instead of keeping Diesel
+      orchestration in teacher-applications infra.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test platform_permissions assign_permission_to_admin_and_verify_user_gets_it`,
       `./scripts/run-host-tests.sh cargo test --test platform_permissions_unit`,
+      `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
+      `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
+      `./scripts/run-host-tests.sh cargo test --test teacher_applications`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      calls `RolePermissionPlatform::assign` and the idempotent insert/query
-      logic lives only in
-      `infra/postgres/access_control/permission_assignment_records`.
+      calls `UserRolePlatform::assign`/`has_permission` and
+      `models::user_role_platform` has no DB helper implementation.
 
 ## Legacy Transition Rules
 

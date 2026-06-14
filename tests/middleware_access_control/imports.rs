@@ -27,7 +27,7 @@ use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
 use rust_learn::models::user_role_course::UserRoleCourse;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
-use rust_learn::models::user_role_platform::UserRolePlatform; // Import Service trait for .call()
+use rust_learn::infra::postgres::access_control::platform_role_records;
 use std::sync::Arc;
 
 fn unique_string(prefix: &str) -> String {
@@ -112,7 +112,7 @@ async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, 
     let role_id = PlatformRole::find_by_name(role_name, conn)
         .await
         .expect("role not found");
-    UserRolePlatform::assign(conn, user_id, role_id)
+    platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
         .await
         .expect("assign failed");
 }

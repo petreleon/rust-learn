@@ -67,7 +67,7 @@ async fn test_platform_permission_check_super_admin_has_perms() {
     let role_id = PlatformRole::find_by_name("SUPER_ADMIN", &mut conn)
         .await
         .expect("super admin role not found");
-    UserRolePlatform::assign(&mut conn, user.id(), role_id)
+    platform_role_records::assign_platform_role_to_user(&mut conn, user.id(), role_id)
         .await
         .expect("failed to assign platform role");
 

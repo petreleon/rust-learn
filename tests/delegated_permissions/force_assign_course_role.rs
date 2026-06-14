@@ -16,7 +16,7 @@ async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, 
     let role_id = PlatformRole::find_by_name(role_name, conn)
         .await
         .expect("platform role not found");
-    UserRolePlatform::assign(conn, user_id, role_id)
+    platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
         .await
         .expect("failed to assign platform role");
 }

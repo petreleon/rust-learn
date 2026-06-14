@@ -4,8 +4,8 @@ use std::cmp::Ordering;
 
 use crate::config::constants::roles::Roles;
 use crate::infra::postgres::access_control::hierarchy_records;
+use crate::infra::postgres::access_control::platform_role_records;
 use crate::models::role::PlatformRole;
-use crate::models::user_role_platform::UserRolePlatform;
 use crate::repositories::delegated_permission_repository;
 
 // Checks if a user has a specific permission on the platform
@@ -14,7 +14,7 @@ pub async fn user_permission_platform_request(
     p_user_id: i32,
     permission: &str,
 ) -> QueryResult<bool> {
-    if UserRolePlatform::has_permission(conn, p_user_id, permission).await? {
+    if platform_role_records::platform_user_has_permission(conn, p_user_id, permission).await? {
         return Ok(true);
     }
 
@@ -60,7 +60,8 @@ pub async fn assign_role_to_user(
     let platform_role_id_value = PlatformRole::find_by_name(&role.to_string(), conn).await?;
 
     // Insert the user-role assignment into the user_role_platform table
-    UserRolePlatform::assign(conn, p_user_id, platform_role_id_value).await
+    platform_role_records::assign_platform_role_to_user(conn, p_user_id, platform_role_id_value)
+        .await
 }
 
 pub async fn assign_role_to_user_with_hierarchy(
@@ -89,5 +90,5 @@ pub async fn assign_role_to_user_with_hierarchy(
         }
     }
 
-    UserRolePlatform::assign(conn, target_user_id, role_id).await
+    platform_role_records::assign_platform_role_to_user(conn, target_user_id, role_id).await
 }

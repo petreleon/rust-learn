@@ -9,7 +9,7 @@ use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
-use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::user_repository::create_user;
 
 fn unique_string(prefix: &str) -> String {
@@ -53,11 +53,11 @@ async fn super_admin_has_all_permissions() {
     let role_id = PlatformRole::find_by_name("SUPER_ADMIN", &mut conn)
         .await
         .unwrap();
-    UserRolePlatform::assign(&mut conn, u.id(), role_id)
+    platform_role_records::assign_platform_role_to_user(&mut conn, u.id(), role_id)
         .await
         .unwrap();
 
-    assert!(UserRolePlatform::has_permission(
+    assert!(platform_role_records::platform_user_has_permission(
         &mut conn,
         u.id(),
         &Permissions::VIEW_REWARD_AUDIT.to_string(),
@@ -65,7 +65,7 @@ async fn super_admin_has_all_permissions() {
     .await
     .unwrap());
 
-    assert!(UserRolePlatform::has_permission(
+    assert!(platform_role_records::platform_user_has_permission(
         &mut conn,
         u.id(),
         &Permissions::EXECUTE_REWARD_PAYOUT.to_string(),
@@ -79,7 +79,7 @@ async fn regular_user_has_no_platform_permission() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "perm_nobody").await;
 
-    assert!(!UserRolePlatform::has_permission(
+    assert!(!platform_role_records::platform_user_has_permission(
         &mut conn,
         u.id(),
         &Permissions::VIEW_REWARD_AUDIT.to_string(),
@@ -95,7 +95,7 @@ async fn platform_hierarchy_super_admin_is_level_0() {
     let role_id = PlatformRole::find_by_name("SUPER_ADMIN", &mut conn)
         .await
         .unwrap();
-    UserRolePlatform::assign(&mut conn, u.id(), role_id)
+    platform_role_records::assign_platform_role_to_user(&mut conn, u.id(), role_id)
         .await
         .unwrap();
 

@@ -2,7 +2,7 @@ use chrono::NaiveDate;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::establish_connection;
-use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::platform_repository::assign_role_to_user;
 use rust_learn::repositories::user_repository::create_user;
 
@@ -39,8 +39,8 @@ async fn test_platform_direct_has_permission_call() {
         .await
         .expect("failed to assign SUPER_ADMIN role");
 
-    // Test calling UserRolePlatform::has_permission directly as requested
-    let has_perm = UserRolePlatform::has_permission(
+    // Test the platform role permission record lookup directly.
+    let has_perm = platform_role_records::platform_user_has_permission(
         &mut conn,
         user.id(),
         &Permissions::MANAGE_PLATFORM_SETTINGS.to_string(),
