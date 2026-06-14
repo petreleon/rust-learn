@@ -1126,37 +1126,35 @@ remaining gaps.
 | 228 | Made `infra/postgres/operations/persistent_state` the public Postgres owner for persistent key/value state, repointed wallet/reward integration fixtures to it, and deleted the legacy persistent-state repository shell. |
 | 229 | Moved teacher-application audit fixture reads to the Postgres teacher-application audit store helper, repointed tests to that infra owner, and deleted the legacy teacher-application repository shell. |
 | 230 | Promoted reward fixture record helpers to `infra/postgres/rewards`, repointed reward tests to those Postgres owners, removed `repositories` from the binary/library module trees, deleted the entire legacy `src/repositories` module, and refreshed public architecture maps. |
+| 231 | Moved upload-job queue claim/metrics/done/failure/retry persistence out of `models::upload_job` and into `infra/postgres/content/upload_job_queue`, leaving `UploadJob` as a row shape plus pure id helper while the worker and upload tests call the infra owner. |
 
 ## Recent Slice Evidence
 
-Slice 230: delete the legacy repositories module.
+Slice 231: move upload-job queue persistence to content infra.
 
-- [x] Promote the reward record helpers needed by fixtures from `pub(super)` to
-      public infra APIs in `infra/postgres/rewards` for audit events,
-      candidates, execution jobs, fraud blocks, and policies.
-- [x] Add missing infra-owned reward audit listing and execution-job lookup
-      helpers so tests no longer need legacy repository shells for readback.
-- [x] Repoint reward candidate, reward execution, reward compensation, and
-      repository reward tests from `rust_learn::repositories::*` to
-      `rust_learn::infra::postgres::rewards::*`.
-- [x] Remove `pub mod repositories` from `src/lib.rs` and `src/main.rs`, then
-      delete all remaining files under `src/repositories`.
-- [x] Update `AGENTS.md` and `README.md` so contributor guidance and the
-      repository layout describe Level 2 application/infra boundaries instead
-      of the deleted repository/service/utility layers.
-- [x] Confirm scans show no `crate::repositories`, `rust_learn::repositories`,
-      `repositories::`, or `pub mod repositories` references remain in `src` or
-      `tests`, and that no `src/repositories` directory remains on disk.
-- [x] Self-critique: integration fixtures now call concrete reward Postgres
-      record helpers directly. That is a firmer Level 2 boundary than a generic
-      repository layer, but a later dedicated test-support module could make
-      fixture setup less storage-aware.
+- [x] Add `infra/postgres/content/upload_job_queue` for upload job claiming,
+      queue metrics, terminal success, terminal failure, and retry scheduling.
+- [x] Remove `src/models/upload_job/queue.rs` and the model submodule, leaving
+      `UploadJob` with only a pure `id()` convenience method.
+- [x] Repoint the worker claim/metrics/done/failure/retry paths to the content
+      Postgres queue adapter.
+- [x] Repoint worker-upload and video-upload integration fixtures to the same
+      infra queue adapter for setup/cleanup assertions.
+- [x] Confirm scans show no `UploadJob::claim_job`, `UploadJob::queue_metrics`,
+      `UploadJob::mark_done`, `UploadJob::mark_failed`, or
+      `UploadJob::schedule_retry` calls remain, and no `src/models/upload_job`
+      subdirectory remains on disk.
+- [x] Self-critique: this still exposes concrete queue helpers to worker tests,
+      but the storage behavior now has a content infra owner and the model no
+      longer owns async Diesel behavior. Remaining model async DB methods are
+      isolated to identity user persistence for a later slice.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin worker --features worker-bin`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, repository-boundary scans, `test ! -e
-      src/repositories`, and file-size checks keeping changed Rust files
+      `git diff --check`, upload-job model persistence scans, `test ! -e
+      src/models/upload_job`, and file-size checks keeping changed Rust files
       under the manual 180-line ceiling.
 
 ## Legacy Transition Rules

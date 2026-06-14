@@ -14,6 +14,7 @@ use rust_learn::infra::postgres::content::chapter_use_cases::PostgresChapterUseC
 use rust_learn::infra::postgres::content::content_item_use_cases::PostgresContentItemUseCases;
 use rust_learn::infra::postgres::content::media_url_use_case::PostgresContentMediaUrlUseCase;
 use rust_learn::infra::postgres::content::processing_use_case::PostgresContentProcessingUseCase;
+use rust_learn::infra::postgres::content::upload_job_queue;
 use rust_learn::infra::postgres::content::upload_url_use_case::PostgresContentUploadUrlUseCase;
 use rust_learn::models::chapter::Chapter;
 use rust_learn::models::content::Content;

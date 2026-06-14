@@ -6,6 +6,7 @@ mod mappers;
 pub mod media_object_store;
 pub mod media_url_use_case;
 pub mod processing_use_case;
+pub mod upload_job_queue;
 pub mod upload_job_store;
 pub mod upload_scope_store;
 pub mod upload_url_use_case;

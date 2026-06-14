@@ -81,7 +81,11 @@ async fn main() -> Result<()> {
             last_queue_metrics_log = Some(Instant::now());
         }
 
-        let job_opt = match rust_learn::models::upload_job::UploadJob::claim_job(&mut conn).await {
+        let job_opt = match rust_learn::infra::postgres::content::upload_job_queue::claim_job(
+            &mut conn,
+        )
+        .await
+        {
             Ok(job) => job,
             Err(e) => {
                 log::error!("event=worker_job_claim_failed error={:?}", e);

@@ -1,7 +1,7 @@
 use std::time::Duration;
 use tokio::sync::Semaphore;
 
-use rust_learn::models::upload_job::UploadJob;
+use rust_learn::infra::postgres::content::upload_job_queue;
 
 pub async fn log_queue_metrics(
     conn: &mut diesel_async::AsyncPgConnection,
@@ -9,7 +9,7 @@ pub async fn log_queue_metrics(
     concurrency: usize,
     interval: Duration,
 ) {
-    match UploadJob::queue_metrics(conn).await {
+    match upload_job_queue::queue_metrics(conn).await {
         Ok(metrics) => {
             let in_flight = concurrency
                 .saturating_sub(sem.available_permits())

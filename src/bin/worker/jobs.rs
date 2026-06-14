@@ -5,6 +5,7 @@ use rust_learn::bootstrap::worker_runtime as worker_utils;
 use rust_learn::db::DbPool;
 use rust_learn::infra::notifications::NotificationsState;
 use rust_learn::infra::object_storage::S3State;
+use rust_learn::infra::postgres::content::upload_job_queue;
 use rust_learn::models::upload_job::UploadJob;
 
 use super::failure::{mark_terminal_failure, schedule_retry};
@@ -84,7 +85,7 @@ pub async fn spawn_processing_task(
 
         match result {
             Ok(()) => {
-                if let Err(error) = UploadJob::mark_done(job_id, &mut conn_for_task).await {
+                if let Err(error) = upload_job_queue::mark_done(job_id, &mut conn_for_task).await {
                     log::error!(
                         "event=worker_job_mark_done_failed job_id={} error={:?}",
                         job_id,

@@ -145,7 +145,7 @@ async fn course_video_upload_can_be_queued_and_processed() {
         )
         .await
         .expect("worker video processing should succeed");
-        UploadJob::mark_done(job.id(), &mut conn)
+        upload_job_queue::mark_done(job.id(), &mut conn)
             .await
             .expect("processed job should be marked done");
 
