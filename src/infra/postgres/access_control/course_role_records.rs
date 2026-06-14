@@ -46,3 +46,25 @@ pub async fn assign_course_role_to_user(
         .execute(conn)
         .await
 }
+
+pub async fn assign_course_role_to_user_if_missing(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    course_id: i32,
+    course_role_id: i32,
+) -> QueryResult<()> {
+    let already_assigned = select(exists(
+        user_role_course::table
+            .filter(user_role_course::user_id.eq(user_id))
+            .filter(user_role_course::course_id.eq(course_id))
+            .filter(user_role_course::course_role_id.eq(course_role_id)),
+    ))
+    .get_result::<bool>(conn)
+    .await?;
+
+    if !already_assigned {
+        assign_course_role_to_user(conn, user_id, course_id, course_role_id).await?;
+    }
+
+    Ok(())
+}

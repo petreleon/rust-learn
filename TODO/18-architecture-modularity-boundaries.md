@@ -1078,38 +1078,38 @@ remaining gaps.
 | 180 | Moved organization user-role assignment and organization permission checks off the Diesel model and into `infra/postgres/access_control/organization_role_records`; legacy organization repositories, teacher-application role assignment, and fixtures now use access-control Postgres records, leaving `models::user_role_organization` as a persistence shape only. |
 | 181 | Moved course user-role assignment and course permission checks off the Diesel model and into `infra/postgres/access_control/course_role_records`; legacy course repositories, teacher-application role assignment, and fixtures now use access-control Postgres records, leaving `models::user_role_course` as a persistence shape only. |
 | 182 | Moved platform, organization, and course role-name lookups off `models::role` and into `infra/postgres/access_control/role_catalog_store`; repositories, teacher-application assignment, and fixtures now resolve role IDs through access-control infra, leaving `models::role` as Diesel row shapes only. |
+| 183 | Moved teacher-application approved-bundle exists-before-assign guards into `infra/postgres/access_control/*_role_records`; teacher-application role decisions now only resolve the teacher role and delegate idempotent assignment to access-control record adapters. |
 
 ## Recent Slice Evidence
 
-Slice 182: move role-name lookup Active Record helpers into the access-control
-role catalog store.
+Slice 183: move teacher-application idempotent role assignment guards into
+access-control role records.
 
-- [x] Add `platform_role_id_by_name`, `organization_role_id_by_name`, and
-      `course_role_id_by_name` to
-      `infra/postgres/access_control/role_catalog_store`.
-- [x] Retarget platform, organization, and teacher-application role assignment
-      paths plus direct fixtures to the access-control role catalog lookup
-      functions.
-- [x] Delete `PlatformRole::find_by_name`, `OrganizationRole::find_by_name`,
-      and `CourseRole::find_by_name`; `models::role` now owns only the Diesel
-      row shapes used for catalog listing and associations.
-- [x] Self-critique: role lookup now belongs to access-control infra, but the
-      teacher-application approved-bundle path still repeats exists-before-
-      assign checks per scope; the next access-control slice should collapse
-      those guards into unified assignment helpers near the role record
-      adapters.
+- [x] Add `assign_platform_role_to_user_if_missing`,
+      `assign_organization_role_to_user_if_missing`, and
+      `assign_course_role_to_user_if_missing` next to their direct assignment
+      functions in access-control role records.
+- [x] Retarget `teacher_application_decision_roles` to resolve the teacher role
+      through the role catalog and delegate idempotent role assignment to the
+      access-control adapters.
+- [x] Delete local `assign_*_role_if_missing` helpers and direct
+      `user_role_*` table imports from teacher-application infra; that module
+      now orchestrates the approval bundle without owning assignment SQL.
+- [x] Self-critique: teacher-application approval role assignment is now behind
+      access-control records, but the larger teacher-application context still
+      contains recipient and permission-read queries that should be reviewed
+      next for either access-control ownership or explicit read-model naming.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
       `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
       `./scripts/run-host-tests.sh cargo test --test platform_permissions`,
       `./scripts/run-host-tests.sh cargo test --test course_permissions`,
       `./scripts/run-host-tests.sh cargo test --test organization_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test authentication_flow`,
       `./scripts/run-host-tests.sh cargo test --test teacher_applications`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      calls role `find_by_name` helpers and `models::role` has no DB helper
-      implementation.
+      in `teacher_application_decision_roles` imports `user_role_*` tables or
+      performs `exists` checks directly.
 
 ## Legacy Transition Rules
 

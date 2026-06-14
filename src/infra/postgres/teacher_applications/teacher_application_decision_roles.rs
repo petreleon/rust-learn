@@ -1,9 +1,7 @@
-use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::AsyncPgConnection;
 
 use crate::application::teacher_applications::TeacherApplicationOutput;
 use crate::config::constants::roles::Roles;
-use crate::db::schema::{user_role_course, user_role_organization, user_role_platform};
 use crate::domain::teacher_applications::scope::{
     TEACHER_APPLICATION_SCOPE_COURSE, TEACHER_APPLICATION_SCOPE_ORGANIZATION,
     TEACHER_APPLICATION_SCOPE_PLATFORM,
@@ -22,7 +20,12 @@ pub async fn assign_approved_teaching_bundle(
             let role_id =
                 role_catalog_store::platform_role_id_by_name(conn, &Roles::TEACHER.to_string())
                     .await?;
-            assign_platform_role_if_missing(conn, application.applicant_user_id, role_id).await
+            platform_role_records::assign_platform_role_to_user_if_missing(
+                conn,
+                application.applicant_user_id,
+                role_id,
+            )
+            .await
         }
         TEACHER_APPLICATION_SCOPE_ORGANIZATION => {
             let organization_id = application
@@ -32,7 +35,7 @@ pub async fn assign_approved_teaching_bundle(
             let role_id =
                 role_catalog_store::organization_role_id_by_name(conn, &Roles::TEACHER.to_string())
                     .await?;
-            assign_organization_role_if_missing(
+            organization_role_records::assign_organization_role_to_user_if_missing(
                 conn,
                 application.applicant_user_id,
                 organization_id,
@@ -47,83 +50,14 @@ pub async fn assign_approved_teaching_bundle(
             let role_id =
                 role_catalog_store::course_role_id_by_name(conn, &Roles::TEACHER.to_string())
                     .await?;
-            assign_course_role_if_missing(conn, application.applicant_user_id, course_id, role_id)
-                .await
+            course_role_records::assign_course_role_to_user_if_missing(
+                conn,
+                application.applicant_user_id,
+                course_id,
+                role_id,
+            )
+            .await
         }
         _ => Err(diesel::result::Error::NotFound),
     }
-}
-
-async fn assign_platform_role_if_missing(
-    conn: &mut AsyncPgConnection,
-    target_user_id: i32,
-    platform_role_id: i32,
-) -> diesel::QueryResult<()> {
-    let already_assigned = diesel::select(diesel::dsl::exists(
-        user_role_platform::table
-            .filter(user_role_platform::user_id.eq(target_user_id))
-            .filter(user_role_platform::platform_role_id.eq(platform_role_id)),
-    ))
-    .get_result::<bool>(conn)
-    .await?;
-
-    if !already_assigned {
-        platform_role_records::assign_platform_role_to_user(conn, target_user_id, platform_role_id)
-            .await?;
-    }
-    Ok(())
-}
-
-async fn assign_organization_role_if_missing(
-    conn: &mut AsyncPgConnection,
-    target_user_id: i32,
-    organization_id: i32,
-    organization_role_id: i32,
-) -> diesel::QueryResult<()> {
-    let already_assigned = diesel::select(diesel::dsl::exists(
-        user_role_organization::table
-            .filter(user_role_organization::user_id.eq(Some(target_user_id)))
-            .filter(user_role_organization::organization_id.eq(Some(organization_id)))
-            .filter(user_role_organization::organization_role_id.eq(Some(organization_role_id))),
-    ))
-    .get_result::<bool>(conn)
-    .await?;
-
-    if !already_assigned {
-        organization_role_records::assign_organization_role_to_user(
-            conn,
-            target_user_id,
-            organization_id,
-            organization_role_id,
-        )
-        .await?;
-    }
-    Ok(())
-}
-
-async fn assign_course_role_if_missing(
-    conn: &mut AsyncPgConnection,
-    target_user_id: i32,
-    course_id: i32,
-    course_role_id: i32,
-) -> diesel::QueryResult<()> {
-    let already_assigned = diesel::select(diesel::dsl::exists(
-        user_role_course::table
-            .filter(user_role_course::user_id.eq(Some(target_user_id)))
-            .filter(user_role_course::course_id.eq(Some(course_id)))
-            .filter(user_role_course::course_role_id.eq(Some(course_role_id))),
-    ))
-    .get_result::<bool>(conn)
-    .await?;
-
-    if !already_assigned {
-        course_role_records::assign_course_role_to_user(
-            conn,
-            target_user_id,
-            course_id,
-            course_role_id,
-        )
-        .await?;
-    }
-    Ok(())
 }

@@ -45,3 +45,26 @@ pub async fn assign_organization_role_to_user(
         .execute(conn)
         .await
 }
+
+pub async fn assign_organization_role_to_user_if_missing(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    organization_id: i32,
+    organization_role_id: i32,
+) -> QueryResult<()> {
+    let already_assigned = select(exists(
+        user_role_organization::table
+            .filter(user_role_organization::user_id.eq(user_id))
+            .filter(user_role_organization::organization_id.eq(organization_id))
+            .filter(user_role_organization::organization_role_id.eq(organization_role_id)),
+    ))
+    .get_result::<bool>(conn)
+    .await?;
+
+    if !already_assigned {
+        assign_organization_role_to_user(conn, user_id, organization_id, organization_role_id)
+            .await?;
+    }
+
+    Ok(())
+}

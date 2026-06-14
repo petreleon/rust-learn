@@ -36,3 +36,23 @@ pub async fn assign_platform_role_to_user(
         .execute(conn)
         .await
 }
+
+pub async fn assign_platform_role_to_user_if_missing(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    platform_role_id: i32,
+) -> QueryResult<()> {
+    let already_assigned = select(exists(
+        user_role_platform::table
+            .filter(user_role_platform::user_id.eq(user_id))
+            .filter(user_role_platform::platform_role_id.eq(platform_role_id)),
+    ))
+    .get_result::<bool>(conn)
+    .await?;
+
+    if !already_assigned {
+        assign_platform_role_to_user(conn, user_id, platform_role_id).await?;
+    }
+
+    Ok(())
+}
