@@ -9,7 +9,7 @@ use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
 use rust_learn::domain::rewards::candidate::status::REWARD_STATUS_COMPLETED;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::reward_candidate::NewRewardCandidate;
-use rust_learn::models::role::PlatformRole;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::reward_candidate_repository::find_candidate;
@@ -73,7 +73,7 @@ async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
 }
 
 async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
-    let role_id = PlatformRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(conn, role_name)
         .await
         .expect("platform role not found");
     platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)

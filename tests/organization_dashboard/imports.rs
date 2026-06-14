@@ -23,7 +23,7 @@ use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_candidate::NewRewardCandidate;
-use rust_learn::models::role::OrganizationRole;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::teacher_application::NewTeacherApplication;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::organization_role_records;

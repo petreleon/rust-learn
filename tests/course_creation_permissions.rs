@@ -10,9 +10,9 @@ use rust_learn::db::schema::{
 };
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::infra::postgres::access_control::organization_role_records;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::infra::postgres::learning::course_creation_use_case::PostgresCourseCreationUseCase;
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::role::OrganizationRole;
 use rust_learn::models::user::User;
 use rust_learn::repositories::user_repository::create_user;
 
@@ -66,7 +66,7 @@ async fn force_assign_organization_role(
     organization_id: i32,
     role_name: &str,
 ) {
-    let role_id = OrganizationRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
         .await
         .expect("organization role not found");
     organization_role_records::assign_organization_role_to_user(

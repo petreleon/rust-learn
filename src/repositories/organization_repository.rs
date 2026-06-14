@@ -1,5 +1,6 @@
 use crate::infra::postgres::access_control::hierarchy_records;
 use crate::infra::postgres::access_control::organization_role_records;
+use crate::infra::postgres::access_control::role_catalog_store;
 use crate::repositories::delegated_permission_repository;
 use diesel::prelude::*;
 use diesel_async::AsyncPgConnection;
@@ -81,7 +82,7 @@ pub async fn assign_role_to_user_in_organization(
             .await?;
 
     // 3. Get Role ID
-    let role_id = crate::models::role::OrganizationRole::find_by_name(role_name, conn).await?;
+    let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name).await?;
 
     // 4. Get Target Role's Hierarchy Level
     let target_role_level = hierarchy_records::organization_role_level(conn, role_id).await?;

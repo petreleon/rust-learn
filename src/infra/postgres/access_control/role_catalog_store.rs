@@ -1,3 +1,4 @@
+use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
@@ -16,6 +17,39 @@ impl<'conn> PostgresRoleCatalogStore<'conn> {
     pub fn new(conn: &'conn mut AsyncPgConnection) -> Self {
         Self { conn }
     }
+}
+
+pub async fn platform_role_id_by_name(
+    conn: &mut AsyncPgConnection,
+    role_name: &str,
+) -> QueryResult<i32> {
+    platform_roles::table
+        .filter(platform_roles::name.eq(role_name))
+        .select(platform_roles::id)
+        .first::<i32>(conn)
+        .await
+}
+
+pub async fn organization_role_id_by_name(
+    conn: &mut AsyncPgConnection,
+    role_name: &str,
+) -> QueryResult<i32> {
+    organization_roles::table
+        .filter(organization_roles::name.eq(role_name))
+        .select(organization_roles::id)
+        .first::<i32>(conn)
+        .await
+}
+
+pub async fn course_role_id_by_name(
+    conn: &mut AsyncPgConnection,
+    role_name: &str,
+) -> QueryResult<i32> {
+    course_roles::table
+        .filter(course_roles::name.eq(role_name))
+        .select(course_roles::id)
+        .first::<i32>(conn)
+        .await
 }
 
 impl RoleCatalogStore for PostgresRoleCatalogStore<'_> {

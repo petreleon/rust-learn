@@ -7,7 +7,7 @@ use rust_learn::db::schema::{
     authentications, email_verification_tokens, password_reset_tokens, user_role_platform, users,
 };
 use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::models::role::PlatformRole;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
 use rust_learn::application::identity::login::LoginUseCase;
 use rust_learn::application::identity::register::RegisterUseCase;
@@ -143,7 +143,7 @@ async fn register_creates_unverified_user_auth_role_and_verification_token() {
     let password_hash = password_hash.expect("password hash should be stored");
     assert!(verify(password, &password_hash).expect("password hash should be valid bcrypt"));
 
-    let student_role_id = PlatformRole::find_by_name("STUDENT", &mut conn)
+    let student_role_id = role_catalog_store::platform_role_id_by_name(&mut conn, "STUDENT")
         .await
         .expect("STUDENT role should be seeded");
     let role_assignments: i64 = user_role_platform::table

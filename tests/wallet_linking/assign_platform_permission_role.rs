@@ -33,7 +33,7 @@ async fn assign_organization_role(
     organization_id: i32,
     role_name: &str,
 ) {
-    let role_id = OrganizationRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
         .await
         .expect("organization role should exist");
     organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)

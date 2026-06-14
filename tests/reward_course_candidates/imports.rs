@@ -11,7 +11,7 @@ use rust_learn::domain::rewards::candidate::status::REWARD_STATUS_PENDING_TEACHE
 use rust_learn::infra::postgres::rewards::course_reward_candidate_use_case::PostgresCourseRewardCandidatesUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::reward_candidate::NewRewardCandidate;
-use rust_learn::models::role::CourseRole;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::repositories::user_repository::create_user;
@@ -80,7 +80,7 @@ async fn assign_course_role(
     course_id: i32,
     role_name: &str,
 ) {
-    let role_id = CourseRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::course_role_id_by_name(conn, role_name)
         .await
         .expect("course role should exist");
     course_role_records::assign_course_role_to_user(conn, user_id, course_id, role_id)

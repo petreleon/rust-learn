@@ -18,7 +18,7 @@ use rust_learn::infra::postgres::content::upload_url_use_case::PostgresContentUp
 use rust_learn::models::chapter::Chapter;
 use rust_learn::models::content::Content;
 use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::role::CourseRole;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::upload_job::UploadJob;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::course_role_records;
@@ -109,7 +109,7 @@ async fn force_assign_course_role(
     course_id: i32,
     role_name: &str,
 ) {
-    let role_id = CourseRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::course_role_id_by_name(conn, role_name)
         .await
         .expect("role not found");
     course_role_records::assign_course_role_to_user(conn, user_id, course_id, role_id)

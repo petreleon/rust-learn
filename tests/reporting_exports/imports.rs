@@ -42,7 +42,7 @@ use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_candidate::NewRewardCandidate;
 use rust_learn::models::reward_fraud_block::NewRewardFraudBlock;
 use rust_learn::models::reward_policy::NewRewardPolicy;
-use rust_learn::models::role::{OrganizationRole, PlatformRole};
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::teacher_application::NewTeacherApplication;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::organization_role_records;
@@ -127,7 +127,7 @@ async fn create_test_user(conn: &mut AsyncPgConnection, name: &str) -> User {
 }
 
 async fn assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
-    let role_id = PlatformRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(conn, role_name)
         .await
         .expect("platform role should exist");
     platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
@@ -141,7 +141,7 @@ async fn assign_organization_role(
     organization_id: i32,
     role_name: &str,
 ) {
-    let role_id = OrganizationRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
         .await
         .expect("organization role should exist");
     organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)

@@ -12,7 +12,7 @@ use rust_learn::domain::learning::enrollment::status::COURSE_JOIN_STATUS_APPROVE
 use rust_learn::infra::postgres::learning::course_enrollment_use_case::PostgresCourseEnrollmentUseCase;
 use rust_learn::infra::postgres::learning::course_role_assignment_use_case::PostgresCourseRoleAssignmentUseCase;
 use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::role::{CourseRole, PlatformRole};
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
@@ -60,7 +60,7 @@ async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
 }
 
 async fn assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
-    let role_id = PlatformRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(conn, role_name)
         .await
         .expect("platform role should exist");
     platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
@@ -74,7 +74,7 @@ async fn assign_course_role(
     course_id: i32,
     role_name: &str,
 ) {
-    let role_id = CourseRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::course_role_id_by_name(conn, role_name)
         .await
         .expect("course role should exist");
     course_role_records::assign_course_role_to_user(conn, user_id, course_id, role_id)

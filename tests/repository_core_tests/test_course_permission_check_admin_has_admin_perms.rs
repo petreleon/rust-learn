@@ -64,7 +64,7 @@ async fn test_course_role_assignment_admin_can_assign_student() {
 async fn test_platform_permission_check_super_admin_has_perms() {
     let mut conn = setup_conn().await;
     let user = create_user_helper(&mut conn, "plat_perm_admin", true).await;
-    let role_id = PlatformRole::find_by_name("SUPER_ADMIN", &mut conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(&mut conn, "SUPER_ADMIN")
         .await
         .expect("super admin role not found");
     platform_role_records::assign_platform_role_to_user(&mut conn, user.id(), role_id)

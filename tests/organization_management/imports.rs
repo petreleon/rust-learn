@@ -11,7 +11,7 @@ use rust_learn::infra::postgres::organizations::organization_management_use_case
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::delegated_permission::NewDelegatedPermission;
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::role::OrganizationRole;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::repositories::platform_repository::assign_role_to_user;
@@ -83,7 +83,7 @@ async fn assign_organization_role(
     organization_id: i32,
     role_name: &str,
 ) {
-    let role_id = OrganizationRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
         .await
         .expect("organization role should exist");
     organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)

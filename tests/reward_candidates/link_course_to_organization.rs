@@ -20,7 +20,7 @@ async fn force_assign_course_role(
     course_id: i32,
     role_name: &str,
 ) {
-    let role_id = CourseRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::course_role_id_by_name(conn, role_name)
         .await
         .expect("course role not found");
     course_role_records::assign_course_role_to_user(conn, user_id, course_id, role_id)
@@ -70,7 +70,7 @@ async fn assign_course_role_id(
 }
 
 async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
-    let role_id = PlatformRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(conn, role_name)
         .await
         .expect("platform role not found");
     platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)

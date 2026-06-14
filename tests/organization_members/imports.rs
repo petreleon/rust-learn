@@ -17,7 +17,7 @@ use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::organization_member_audit_event::{
     NewOrganizationMemberAuditEvent, OrganizationMemberAuditEvent,
 };
-use rust_learn::models::role::OrganizationRole;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::infra::postgres::organizations::organization_member_invite_use_case::PostgresOrganizationMemberInviteUseCase;
@@ -80,7 +80,7 @@ async fn assign_organization_role(
     organization_id: i32,
     role_name: &str,
 ) {
-    let role_id = OrganizationRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
         .await
         .expect("organization role should exist");
     organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)

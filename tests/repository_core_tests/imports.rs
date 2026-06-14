@@ -11,7 +11,7 @@ use rust_learn::db::schema::{courses, organizations, users};
 use rust_learn::infra::postgres::learning::course_role_assignment_store::PostgresCourseRoleAssignmentStore;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::organization_role_records;
@@ -85,25 +85,25 @@ async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
 }
 
 async fn get_org_admin_role_id(conn: &mut AsyncPgConnection) -> i32 {
-    OrganizationRole::find_by_name("ADMIN", conn)
+    role_catalog_store::organization_role_id_by_name(conn, "ADMIN")
         .await
         .expect("organization admin role not found")
 }
 
 async fn get_org_member_role_id(conn: &mut AsyncPgConnection) -> i32 {
-    OrganizationRole::find_by_name("STUDENT", conn)
+    role_catalog_store::organization_role_id_by_name(conn, "STUDENT")
         .await
         .expect("organization student role not found")
 }
 
 async fn get_course_admin_role_id(conn: &mut AsyncPgConnection) -> i32 {
-    CourseRole::find_by_name("TEACHER", conn)
+    role_catalog_store::course_role_id_by_name(conn, "TEACHER")
         .await
         .expect("course teacher role not found")
 }
 
 async fn get_course_student_role_id(conn: &mut AsyncPgConnection) -> i32 {
-    CourseRole::find_by_name("STUDENT", conn)
+    role_catalog_store::course_role_id_by_name(conn, "STUDENT")
         .await
         .expect("course student role not found")
 }

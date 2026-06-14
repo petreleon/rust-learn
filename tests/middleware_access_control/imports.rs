@@ -24,7 +24,7 @@ use rust_learn::infra::postgres::learning::course_read_use_case::PostgresCourseR
 use rust_learn::infra::postgres::learning::course_organization_use_case::PostgresCourseOrganizationsUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
@@ -109,7 +109,7 @@ fn response_status<B>(
 }
 
 async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
-    let role_id = PlatformRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(conn, role_name)
         .await
         .expect("role not found");
     platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
@@ -123,7 +123,7 @@ async fn force_assign_org_role(
     org_id: i32,
     role_name: &str,
 ) {
-    let role_id = OrganizationRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
         .await
         .expect("role not found");
     organization_role_records::assign_organization_role_to_user(conn, user_id, org_id, role_id)
@@ -137,7 +137,7 @@ async fn force_assign_course_role(
     course_id: i32,
     role_name: &str,
 ) {
-    let role_id = CourseRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::course_role_id_by_name(conn, role_name)
         .await
         .expect("role not found");
     course_role_records::assign_course_role_to_user(conn, user_id, course_id, role_id)

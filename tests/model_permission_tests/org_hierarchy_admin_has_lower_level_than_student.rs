@@ -3,10 +3,10 @@ async fn org_hierarchy_admin_has_lower_level_than_student() {
     let mut conn = setup_conn().await;
     let admin = user(&mut conn, "org_h_adm").await;
     let student = user(&mut conn, "org_h_stu").await;
-    let admin_role_id = OrganizationRole::find_by_name("ADMIN", &mut conn)
+    let admin_role_id = role_catalog_store::organization_role_id_by_name(&mut conn, "ADMIN")
         .await
         .unwrap();
-    let student_role_id = OrganizationRole::find_by_name("STUDENT", &mut conn)
+    let student_role_id = role_catalog_store::organization_role_id_by_name(&mut conn, "STUDENT")
         .await
         .unwrap();
 
@@ -38,7 +38,7 @@ async fn org_hierarchy_admin_has_lower_level_than_student() {
 async fn course_teacher_has_course_permission() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "course_t").await;
-    let role_id = CourseRole::find_by_name("TEACHER", &mut conn)
+    let role_id = role_catalog_store::course_role_id_by_name(&mut conn, "TEACHER")
         .await
         .unwrap();
 
@@ -76,10 +76,10 @@ async fn course_hierarchy_teacher_above_student() {
     let mut conn = setup_conn().await;
     let teacher = user(&mut conn, "ch_t").await;
     let student = user(&mut conn, "ch_s").await;
-    let teacher_role_id = CourseRole::find_by_name("TEACHER", &mut conn)
+    let teacher_role_id = role_catalog_store::course_role_id_by_name(&mut conn, "TEACHER")
         .await
         .unwrap();
-    let student_role_id = CourseRole::find_by_name("STUDENT", &mut conn)
+    let student_role_id = role_catalog_store::course_role_id_by_name(&mut conn, "STUDENT")
         .await
         .unwrap();
 

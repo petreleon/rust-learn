@@ -5,7 +5,7 @@ use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::users;
 use rust_learn::infra::postgres::access_control::hierarchy_records;
-use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::organization_role_records;
@@ -50,7 +50,7 @@ async fn user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
 async fn super_admin_has_all_permissions() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "perm_super").await;
-    let role_id = PlatformRole::find_by_name("SUPER_ADMIN", &mut conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(&mut conn, "SUPER_ADMIN")
         .await
         .unwrap();
     platform_role_records::assign_platform_role_to_user(&mut conn, u.id(), role_id)
@@ -92,7 +92,7 @@ async fn regular_user_has_no_platform_permission() {
 async fn platform_hierarchy_super_admin_is_level_0() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "hier_super").await;
-    let role_id = PlatformRole::find_by_name("SUPER_ADMIN", &mut conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(&mut conn, "SUPER_ADMIN")
         .await
         .unwrap();
     platform_role_records::assign_platform_role_to_user(&mut conn, u.id(), role_id)
@@ -122,7 +122,7 @@ async fn unassigned_user_has_no_platform_level() {
 async fn org_admin_has_org_permission() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "org_admin_p").await;
-    let org_role_id = OrganizationRole::find_by_name("ADMIN", &mut conn)
+    let org_role_id = role_catalog_store::organization_role_id_by_name(&mut conn, "ADMIN")
         .await
         .unwrap();
 

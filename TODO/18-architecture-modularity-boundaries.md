@@ -1077,35 +1077,39 @@ remaining gaps.
 | 179 | Moved password authentication row creation off the Diesel model and into `infra/postgres/identity/authentication_records`; legacy user creation now delegates to identity Postgres records, leaving `models::authentication` as a persistence shape only. |
 | 180 | Moved organization user-role assignment and organization permission checks off the Diesel model and into `infra/postgres/access_control/organization_role_records`; legacy organization repositories, teacher-application role assignment, and fixtures now use access-control Postgres records, leaving `models::user_role_organization` as a persistence shape only. |
 | 181 | Moved course user-role assignment and course permission checks off the Diesel model and into `infra/postgres/access_control/course_role_records`; legacy course repositories, teacher-application role assignment, and fixtures now use access-control Postgres records, leaving `models::user_role_course` as a persistence shape only. |
+| 182 | Moved platform, organization, and course role-name lookups off `models::role` and into `infra/postgres/access_control/role_catalog_store`; repositories, teacher-application assignment, and fixtures now resolve role IDs through access-control infra, leaving `models::role` as Diesel row shapes only. |
 
 ## Recent Slice Evidence
 
-Slice 181: move course user-role Active Record helpers into
-access-control Postgres records.
+Slice 182: move role-name lookup Active Record helpers into the access-control
+role catalog store.
 
-- [x] Add `infra/postgres/access_control/course_role_records` for course
-      user-role assignment and direct course permission checks.
-- [x] Retarget legacy course repositories, the teacher-application course role
-      assignment path, and direct fixtures to the
-      access-control-owned Postgres functions.
-- [x] Delete `UserRoleCourse::assign` and
-      `UserRoleCourse::has_permission` from
-      `models::user_role_course`; the model now owns only the Diesel row
-      shape.
-- [x] Self-critique: platform, organization, and course user-role helpers now
-      live in access-control infra, but role-name lookup still lives on
-      `models::role`; later slices should extract role lookup/catalog records
-      and collapse teacher-application exists-before-assign guards into a
-      unified assignment adapter.
+- [x] Add `platform_role_id_by_name`, `organization_role_id_by_name`, and
+      `course_role_id_by_name` to
+      `infra/postgres/access_control/role_catalog_store`.
+- [x] Retarget platform, organization, and teacher-application role assignment
+      paths plus direct fixtures to the access-control role catalog lookup
+      functions.
+- [x] Delete `PlatformRole::find_by_name`, `OrganizationRole::find_by_name`,
+      and `CourseRole::find_by_name`; `models::role` now owns only the Diesel
+      row shapes used for catalog listing and associations.
+- [x] Self-critique: role lookup now belongs to access-control infra, but the
+      teacher-application approved-bundle path still repeats exists-before-
+      assign checks per scope; the next access-control slice should collapse
+      those guards into unified assignment helpers near the role record
+      adapters.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
       `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
+      `./scripts/run-host-tests.sh cargo test --test platform_permissions`,
       `./scripts/run-host-tests.sh cargo test --test course_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test organization_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test authentication_flow`,
       `./scripts/run-host-tests.sh cargo test --test teacher_applications`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      calls `UserRoleCourse::assign`/`has_permission` and
-      `models::user_role_course` has no DB helper implementation.
+      calls role `find_by_name` helpers and `models::role` has no DB helper
+      implementation.
 
 ## Legacy Transition Rules
 
