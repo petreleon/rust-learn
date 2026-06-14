@@ -5,8 +5,8 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::rewards::list_course_candidates::{
     CourseRewardCandidate, CourseRewardCandidatesError, CourseRewardCandidatesUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::rewards::dto::{CourseRewardCandidateResponse, ListCourseRewardCandidatesRequest};
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn list_course_reward_candidates(
     req: HttpRequest,

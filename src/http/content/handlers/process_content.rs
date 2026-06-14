@@ -5,7 +5,7 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::content::process_upload_job::{
     ContentProcessingUseCase, ProcessUploadJobCommand, ProcessUploadJobError,
 };
-use crate::utils::request_auth::authenticated_user_id;
+use crate::http::extractors::request_auth::authenticated_user_id;
 
 pub(in crate::http::content) async fn process_content(
     req: HttpRequest,

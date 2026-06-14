@@ -15,11 +15,11 @@ use crate::application::learning::get_learner_course_learning::{
 use crate::application::learning::list_learner_course_catalog::{
     LearnerCourseCatalogListUseCase, LearnerCourseCatalogQuery,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::learning::dto::{
     CourseDiscoveryResponse, CourseResponse, LearnerCourseCatalogResponse,
     LearnerCourseDetailResponse, LearnerCourseLearningResponse,
 };
-use crate::utils::request_auth::authenticated_user;
 
 use super::dto::{CourseDiscoveryParams, LearnerCourseCatalogParams};
 use super::support::learner_course_read_error_response;

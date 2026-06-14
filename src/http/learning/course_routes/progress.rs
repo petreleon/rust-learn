@@ -3,8 +3,8 @@ use std::sync::Arc;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
 use crate::application::learning::learner_progress::LearnerProgressUseCase;
+use crate::http::extractors::request_auth::authenticated_user_id;
 use crate::http::learning::dto::{LearnerProgressResponse, SaveProgressRequest};
-use crate::utils::request_auth::authenticated_user_id;
 
 use super::support::learner_progress_error_response;
 

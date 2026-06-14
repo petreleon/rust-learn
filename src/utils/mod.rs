@@ -6,7 +6,6 @@ pub mod logging;
 // pub mod db_utils;
 pub mod course_utils;
 pub mod eth;
-pub mod request_auth;
 pub use eth as eth_utils;
 pub mod centralized_wallets;
 pub mod notifications;

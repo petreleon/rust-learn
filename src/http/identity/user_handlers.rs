@@ -6,8 +6,8 @@ use crate::application::identity::get_user_profile::{
     GetUserProfileCommand, UserProfileReadUseCase,
 };
 use crate::application::identity::user_profile::UserProfileError;
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::identity::dto::UserProfileResponse;
-use crate::utils::request_auth::authenticated_user;
 
 pub(super) async fn get_user(
     req: HttpRequest,

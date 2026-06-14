@@ -5,9 +5,9 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::learning::assign_course_role::{
     CourseRoleAssignmentError, CourseRoleAssignmentUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user_id;
 use crate::http::learning::dto::AssignCourseRoleRequest;
 use crate::utils::notifications::NotificationsState;
-use crate::utils::request_auth::authenticated_user_id;
 
 pub(super) async fn assign_role(
     req: HttpRequest,

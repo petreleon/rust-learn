@@ -6,8 +6,8 @@ use crate::application::organizations::assign_organization_member_role::{
     OrganizationMemberRoleAssignmentCommand, OrganizationMemberRoleAssignmentError,
     OrganizationMemberRoleAssignmentUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user_id;
 use crate::utils::notifications::NotificationsState;
-use crate::utils::request_auth::authenticated_user_id;
 
 use super::dto::AssignRoleRequest;
 

@@ -6,7 +6,7 @@ use crate::application::organizations::list_organization_teacher_applications::{
     OrganizationTeacherApplicationListError, OrganizationTeacherApplicationListQuery,
     OrganizationTeacherApplicationListUseCase,
 };
-use crate::utils::request_auth::authenticated_user;
+use crate::http::extractors::request_auth::authenticated_user;
 
 use super::dto::OrganizationTeacherApplicationsParams;
 use super::teacher_application_dto::OrganizationTeacherApplicationsResponse;

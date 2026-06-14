@@ -14,11 +14,11 @@ use crate::application::learning::get_teacher_course_workspace::{
 use crate::application::learning::list_teacher_course_dashboard::{
     TeacherCourseDashboardListQuery, TeacherCourseDashboardListUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::learning::dto::{
     TeacherCourseDashboardResponse, TeacherCourseEnrollmentWorkspaceResponse,
     TeacherCourseStudentsResponse, TeacherCourseWorkspaceResponse,
 };
-use crate::utils::request_auth::authenticated_user;
 
 use super::dto::{TeacherCourseDashboardParams, TeacherCourseEnrollmentParams};
 use super::support::teacher_course_dashboard_read_error_response;

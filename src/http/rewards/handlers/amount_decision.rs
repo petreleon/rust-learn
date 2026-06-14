@@ -5,8 +5,8 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::rewards::decide_amount::{
     RewardAmountDecisionError, RewardAmountDecisionUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::rewards::dto::{RewardAmountDecisionRequest, RewardAmountDecisionResponse};
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn decide_reward_amount(
     req: HttpRequest,

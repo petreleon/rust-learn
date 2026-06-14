@@ -5,8 +5,8 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::wallet::read_wallet::{
     WalletReadError, WalletReadSubject, WalletReadUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::wallet::dto::WalletResponse;
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn get_my_wallet(
     req: HttpRequest,

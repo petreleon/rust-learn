@@ -5,8 +5,8 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::rewards::list_candidate_audit::{
     RewardCandidateAuditError, RewardCandidateAuditEvent, RewardCandidateAuditUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::rewards::dto::RewardCandidateAuditEventResponse;
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn list_reward_candidate_audit(
     req: HttpRequest,

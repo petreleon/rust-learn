@@ -5,10 +5,10 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::rewards::decide_teacher_candidate::{
     TeacherRewardCandidateDecisionError, TeacherRewardCandidateDecisionUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::rewards::dto::{
     TeacherRewardCandidateDecisionRequest, TeacherRewardCandidateDecisionResponse,
 };
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn decide_reward_candidate_by_teacher(
     req: HttpRequest,

@@ -1,6 +1,6 @@
 use actix_web::{get, HttpRequest, HttpResponse, Responder};
 
-use crate::utils::request_auth::authenticated_user_id;
+use crate::http::extractors::request_auth::authenticated_user_id;
 
 #[get("/user_id")]
 pub(super) async fn user_id(req: HttpRequest) -> impl Responder {

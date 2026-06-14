@@ -5,10 +5,10 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::rewards::manage_reward_policy::{
     RewardPolicyError, RewardPolicyOutput, RewardPolicyUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::rewards::dto::{
     CreateRewardPolicyRequest, ListRewardPoliciesRequest, RewardPolicyResponse,
 };
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn create_reward_policy(
     req: HttpRequest,

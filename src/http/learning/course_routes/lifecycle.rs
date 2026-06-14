@@ -5,8 +5,8 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::learning::update_course_lifecycle::{
     CourseLifecycleCommand, CourseLifecycleUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::learning::dto::{CourseLifecycleUpdateRequest, CourseResponse};
-use crate::utils::request_auth::authenticated_user;
 
 use super::support::lifecycle_error_response;
 

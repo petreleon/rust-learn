@@ -5,10 +5,10 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::wallet::manage_token_tax::{
     WalletTokenTaxError, WalletTokenTaxOperation, WalletTokenTaxUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::wallet::dto::{
     SetWalletTokenTaxRequest, WalletTokenTaxResponse, WalletTokenTaxSettingsResponse,
 };
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn list_wallet_token_taxes(
     req: HttpRequest,

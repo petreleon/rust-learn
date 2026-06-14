@@ -5,7 +5,7 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::organizations::list_organization_members::{
     OrganizationMemberListError, OrganizationMemberListQuery, OrganizationMemberListUseCase,
 };
-use crate::utils::request_auth::authenticated_user;
+use crate::http::extractors::request_auth::authenticated_user;
 
 use super::dto::OrganizationMemberListParams;
 use super::member_dto::OrganizationMemberListResponse;

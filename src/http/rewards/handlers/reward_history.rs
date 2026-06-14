@@ -5,8 +5,8 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::rewards::list_reward_history::{
     StudentRewardHistoryEntry, StudentRewardHistoryError, StudentRewardHistoryUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::rewards::dto::{StudentRewardHistoryEntryResponse, StudentRewardHistoryRequest};
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn list_my_reward_history(
     req: HttpRequest,

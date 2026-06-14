@@ -1103,31 +1103,30 @@ remaining gaps.
 | 205 | Deleted the final legacy `reward_candidate_service` compatibility module and removed the `services` crate module entirely after reward-candidate and delegated-permission fixtures were switched to Level 2 reward submission, teacher-decision, and amount-decision use cases. |
 | 206 | Moved the Ethereum wallet deposit indexer's persistent-state reads/writes off the legacy repository bridge and onto `infra/postgres/operations/persistent_state`, making backend source rings free of `repositories::*` imports. |
 | 207 | Moved Ethereum provider URL normalization and provider construction out of `utils::eth::provider` and into `infra/ethereum/operations/provider`; readiness checks, the wallet deposit indexer, and deployment helpers now call the infra owner while `utils::eth_utils::try_get_provider` remains a compatibility re-export for tests and callers. |
+| 208 | Moved Actix request-auth helper functions out of `utils::request_auth` and into `http/extractors/request_auth`; HTTP handlers now import authentication helpers from the HTTP boundary and the old `utils::request_auth` module was deleted instead of kept as a compatibility owner. |
 
 ## Recent Slice Evidence
 
-Slice 207: move Ethereum provider helper to operations infra.
+Slice 208: move request-auth helpers to the HTTP boundary.
 
-- [x] Move `src/utils/eth/provider.rs` and its tests to
-      `src/infra/ethereum/operations/provider.rs` and
-      `src/infra/ethereum/operations/provider/tests.rs`.
-- [x] Update Ethereum readiness, the wallet deposit indexer, and deployment
-      helpers to call `infra::ethereum::operations::provider::try_get_provider`
-      directly.
-- [x] Preserve the old `utils::eth_utils::try_get_provider` public surface as a
-      re-export so existing Ethereum integration tests and external callers do
-      not need a behavior-changing import migration in this slice.
-- [x] Self-critique: Ethereum deployment and wallet loading still live under
-      `utils::eth`, so utility ownership is not complete. This slice pulls the
-      provider runtime adapter into the infra ring; later slices should move
-      deployment startup and wallet loading behind explicit
-      `infra/ethereum/operations` modules.
+- [x] Move `src/utils/request_auth.rs` to
+      `src/http/extractors/request_auth.rs` and expose it through
+      `http::extractors`.
+- [x] Update content, identity, learning, notifications, organizations,
+      rewards, and wallet handlers to import `authenticated_user` and
+      `authenticated_user_id` from `crate::http::extractors::request_auth`.
+- [x] Delete the `utils::request_auth` module declaration instead of preserving
+      a compatibility wrapper, because all call sites are HTTP handlers or
+      HTTP-owned tests.
+- [x] Self-critique: JWT creation/decoding still lives in `utils::jwt_utils`;
+      this slice only moves Actix request authentication into the HTTP boundary.
+      A later identity/tokens slice should move token creation and validation
+      behind explicit identity or token infra modules.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib provider`,
-      `./scripts/run-host-tests.sh cargo test --lib deposit_indexer`,
-      `./scripts/run-host-tests.sh cargo check --bin worker --features worker-bin`,
+      `./scripts/run-host-tests.sh cargo test --lib request_auth`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing no stale `utils::eth::provider` callers,
+      `git diff --check`, scans showing no stale `utils::request_auth` callers,
       and backend ring scans showing no `include!`/`imports.rs`.
 
 ## Legacy Transition Rules

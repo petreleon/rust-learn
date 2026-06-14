@@ -5,8 +5,8 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::wallet::create_deposit_intent::{
     WalletDepositIntentError, WalletDepositIntentUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::wallet::dto::{WalletDepositIntentRequestDto, WalletDepositIntentResponse};
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn deposit_my_tokens(
     req: HttpRequest,

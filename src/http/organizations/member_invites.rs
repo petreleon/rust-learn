@@ -5,7 +5,7 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::organizations::invite_organization_member::{
     OrganizationMemberInviteCommand, OrganizationMemberInviteError, OrganizationMemberInviteUseCase,
 };
-use crate::utils::request_auth::authenticated_user_id;
+use crate::http::extractors::request_auth::authenticated_user_id;
 
 use super::dto::AddMemberRequest;
 

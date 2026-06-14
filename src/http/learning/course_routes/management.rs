@@ -7,8 +7,8 @@ use crate::application::learning::delete_course::{
     CourseDeletionError, CourseDeletionOutcome, CourseDeletionUseCase,
 };
 use crate::application::learning::update_course::CourseUpdateUseCase;
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::learning::dto::{CourseResponse, CourseUpdateRequest, CreateCourseRequest};
-use crate::utils::request_auth::authenticated_user;
 
 use super::support::{course_creation_error_response, course_update_error_response};
 

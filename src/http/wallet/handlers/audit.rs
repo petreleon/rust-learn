@@ -5,8 +5,8 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::wallet::audit_wallet::{
     WalletAuditError, WalletAuditSubject, WalletAuditUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::wallet::dto::WalletAuditResponse;
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn get_my_wallet_audit(
     req: HttpRequest,

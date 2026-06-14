@@ -7,10 +7,10 @@ use crate::application::notifications::notification_inbox::{
 };
 use crate::application::notifications::preference_service::NotificationPreferencesUseCase;
 use crate::application::notifications::preferences::NotificationPreferencesError;
+use crate::http::extractors::request_auth::authenticated_user_id;
 use crate::http::notifications::dto::{
     NotificationPreferencesRequest, NotificationPreferencesResponse, NotificationResponse,
 };
-use crate::utils::request_auth::authenticated_user_id;
 
 pub async fn get_notification_preferences(
     preferences: web::Data<Arc<dyn NotificationPreferencesUseCase>>,

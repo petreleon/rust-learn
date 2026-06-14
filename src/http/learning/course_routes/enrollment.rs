@@ -5,11 +5,11 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::learning::course_enrollment::{
     CourseEnrollmentUseCase, RemoveCourseEnrollmentCommand, RequestCourseJoinCommand,
 };
+use crate::http::extractors::request_auth::authenticated_user_id;
 use crate::http::learning::dto::{
     CourseEnrollmentRemovalResponse, CourseJoinDecisionRequest, CourseJoinRequestResponse,
 };
 use crate::utils::notifications::NotificationsState;
-use crate::utils::request_auth::authenticated_user_id;
 
 use super::support::course_enrollment_error_response;
 

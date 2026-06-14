@@ -5,8 +5,8 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmissionError, RewardCandidateSubmissionUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::rewards::dto::{RewardCandidateSubmissionResponse, SubmitRewardCandidateRequest};
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn submit_course_reward_candidate(
     req: HttpRequest,

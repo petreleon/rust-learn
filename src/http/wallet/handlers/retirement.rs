@@ -3,8 +3,8 @@ use std::sync::Arc;
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
 use crate::application::wallet::retire_tokens::{WalletRetirementError, WalletRetirementUseCase};
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::wallet::dto::{WalletRetirementRequestDto, WalletRetirementResponse};
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn retire_my_tokens(
     req: HttpRequest,

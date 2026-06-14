@@ -5,10 +5,10 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::rewards::list_platform_candidates::{
     PlatformRewardCandidatesError, PlatformRewardCandidatesUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::rewards::dto::{
     PlatformRewardCandidatesRequest, PlatformRewardCandidatesResponseBody,
 };
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn list_platform_reward_candidates(
     req: HttpRequest,

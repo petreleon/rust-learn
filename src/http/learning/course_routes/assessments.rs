@@ -8,11 +8,11 @@ use crate::application::learning::list_course_assessments::CourseAssessmentsUseC
 use crate::application::learning::submit_assessment_attempt::{
     AssessmentSubmissionError, AssessmentSubmissionUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user_id;
 use crate::http::learning::dto::{
     AssessmentAttemptResponse, AssessmentResponse, SubmitAssessmentAttemptRequest,
     SubmitAssessmentAttemptResponse,
 };
-use crate::utils::request_auth::authenticated_user_id;
 
 use super::support::{assessment_read_error_log, assessment_submission_error_log};
 

@@ -6,7 +6,7 @@ use crate::application::organizations::remove_organization_member::{
     OrganizationMemberRemovalCommand, OrganizationMemberRemovalError,
     OrganizationMemberRemovalUseCase,
 };
-use crate::utils::request_auth::authenticated_user_id;
+use crate::http::extractors::request_auth::authenticated_user_id;
 
 pub(super) async fn remove_organization_member_route(
     req: HttpRequest,

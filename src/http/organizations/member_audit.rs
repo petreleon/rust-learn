@@ -6,7 +6,7 @@ use crate::application::organizations::list_organization_member_audit::{
     OrganizationMemberAuditError, OrganizationMemberAuditEventOutput, OrganizationMemberAuditQuery,
     OrganizationMemberAuditUseCase,
 };
-use crate::utils::request_auth::authenticated_user;
+use crate::http::extractors::request_auth::authenticated_user;
 
 use super::member_audit_dto::OrganizationMemberAuditEventResponse;
 

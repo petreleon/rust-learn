@@ -6,7 +6,7 @@ use serde::Deserialize;
 use crate::application::identity::assign_platform_role::{
     AssignPlatformRoleCommand, AssignPlatformRoleError, PlatformRoleAssignmentUseCase,
 };
-use crate::utils::request_auth::authenticated_user_id;
+use crate::http::extractors::request_auth::authenticated_user_id;
 
 #[derive(Deserialize)]
 pub(super) struct AssignRoleRequest {

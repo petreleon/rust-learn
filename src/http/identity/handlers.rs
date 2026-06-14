@@ -4,8 +4,8 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use serde::Serialize;
 
 use crate::application::identity::current_session::{CurrentSessionError, CurrentSessionUseCase};
+use crate::http::extractors::request_auth::authenticated_user_id;
 use crate::http::identity::dto::CurrentSessionResponse;
-use crate::utils::request_auth::authenticated_user_id;
 
 #[derive(Serialize)]
 struct SessionErrorEnvelope {

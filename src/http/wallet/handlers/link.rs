@@ -5,8 +5,8 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::wallet::link_wallet::{
     WalletLinkError, WalletLinkSubject, WalletLinkUseCase,
 };
+use crate::http::extractors::request_auth::authenticated_user;
 use crate::http::wallet::dto::WalletLinkResponse;
-use crate::utils::request_auth::authenticated_user;
 
 pub async fn link_my_wallet(
     req: HttpRequest,
