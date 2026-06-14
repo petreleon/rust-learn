@@ -15,6 +15,8 @@ pub use crate::domain::rewards::payout::{
     REWARD_PAYOUT_METHOD_MINT, REWARD_PAYOUT_METHOD_OFF_CHAIN,
     REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER, REWARD_PAYOUT_METHOD_TREASURY_TRANSFER,
 };
+#[cfg(test)]
+use crate::domain::rewards::candidate::status::REWARD_STATUS_AMOUNT_APPROVED;
 pub use crate::domain::rewards::wallet_credit::REWARD_TRANSACTION_TYPE_WALLET_CREDIT;
 use crate::infra::postgres::rewards::reward_payout_plan_store::PostgresRewardPayoutPlanStore;
 use crate::infra::postgres::rewards::reward_reconciliation_store::PostgresRewardReconciliationStore;
@@ -22,7 +24,7 @@ use crate::infra::postgres::rewards::reward_token_confirmation_store::PostgresRe
 use crate::infra::postgres::rewards::reward_wallet_credit_notification_store::PostgresRewardWalletCreditNotificationStore;
 use crate::infra::postgres::rewards::reward_wallet_credit_store::PostgresRewardWalletCreditStore;
 #[cfg(test)]
-use crate::models::reward_candidate::{RewardCandidate, REWARD_STATUS_AMOUNT_APPROVED};
+use crate::models::reward_candidate::RewardCandidate;
 use diesel_async::AsyncPgConnection;
 
 #[derive(Debug, PartialEq)]

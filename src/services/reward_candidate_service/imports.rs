@@ -4,6 +4,18 @@ pub use crate::application::rewards::submit_candidate::SubmitRewardCandidateComm
 use crate::db::schema::{
     courses, courses_organizations, reward_candidates, reward_fraud_blocks, reward_policies, users,
 };
+use crate::domain::rewards::candidate::event_type::{
+    REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT, REWARD_EVENT_ASSESSMENT_COMPLETION,
+    REWARD_EVENT_COURSE_COMPLETION, REWARD_EVENT_MANUAL_COMPLETION,
+};
+use crate::domain::rewards::candidate::source::{
+    REWARD_SOURCE_COURSE, REWARD_SOURCE_ORGANIZATION,
+};
+use crate::domain::rewards::candidate::status::{
+    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED, REWARD_STATUS_FAILED,
+    REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
+    REWARD_STATUS_TEACHER_REJECTED,
+};
 use crate::domain::rewards::policy::{
     REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
 };
@@ -15,14 +27,7 @@ use crate::models::reward_audit_event::{
     NewRewardAuditEvent, REWARD_AUDIT_EVENT_AMOUNT_DECISION,
     REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED, REWARD_AUDIT_EVENT_TEACHER_DECISION,
 };
-use crate::models::reward_candidate::{
-    NewRewardCandidate, RewardCandidate, REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT,
-    REWARD_EVENT_ASSESSMENT_COMPLETION, REWARD_EVENT_COURSE_COMPLETION,
-    REWARD_EVENT_MANUAL_COMPLETION, REWARD_SOURCE_COURSE, REWARD_SOURCE_ORGANIZATION,
-    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED, REWARD_STATUS_FAILED,
-    REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
-    REWARD_STATUS_TEACHER_REJECTED,
-};
+use crate::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
 use crate::repositories::course_repository::user_permission_course_request;
 use crate::repositories::organization_repository::user_permission_organization_request;
 use crate::repositories::platform_repository::user_permission_platform_request;

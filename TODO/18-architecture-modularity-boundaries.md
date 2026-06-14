@@ -1058,28 +1058,30 @@ remaining gaps.
 | 160 | Moved wallet-credit notification candidate lookup/status update, wallet-credit record lookup/notification marking, and audit-event insert calls off legacy repositories; `reward_wallet_credit_notification_transaction` now uses rewards-owned candidate, wallet-credit record, and audit helpers. |
 | 161 | Moved reconciliation candidate refreshes, payout-record lookup, and wallet-credit record lookup off legacy repositories; `src/infra/postgres/rewards` no longer imports `crate::repositories`. |
 | 162 | Moved migrated learning and organization reward queue/status read models off reward-candidate model status aliases; teacher dashboard, teacher-student reward progress, and organization course metric queries now import reward status vocabulary from `domain/rewards/candidate/status`. |
+| 163 | Moved production service entrypoint imports for reward candidate event/source/status vocabulary off reward-candidate model aliases; course reads, candidate submission/decision helpers, and execution test support now import reward vocabulary from `domain/rewards/candidate`. |
 
 ## Recent Slice Evidence
 
-Slice 162: move migrated reward status read models to domain vocabulary.
+Slice 163: move production reward service vocabulary imports to domain.
 
-- [x] Update migrated learning/organization Postgres read models for teacher
-      reward queues, teacher-student reward progress, and organization course
-      reward queues to import reward status constants from
-      `domain/rewards/candidate/status`.
-- [x] Keep `models::reward_candidate` as the Diesel record/legacy compatibility
-      surface while avoiding status alias imports in these migrated adapters.
-- [x] Preserve teacher dashboard queue counts, teacher-student reward progress
-      counts, and organization course reward queue counts.
-- [x] Self-critique: old services and repository tests still use model aliases;
-      those are compatibility paths until the surrounding legacy modules are
-      retired or converted.
+- [x] Update `course_service`, `reward_candidate_service`, and
+      `reward_execution_service` entrypoint imports so production reward
+      status/event/source vocabulary comes from `domain/rewards/candidate`
+      instead of `models::reward_candidate`.
+- [x] Keep `models::reward_candidate` available only where these legacy modules
+      still need Diesel record/insert structs or test compatibility aliases.
+- [x] Preserve course reward progress reads, reward candidate status/event
+      normalization, and reward execution compile behavior.
+- [x] Self-critique: service tests and broader integration tests still import
+      reward model aliases; those should move once the remaining legacy
+      compatibility surface is retired or converted to domain vocabulary.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test teacher_course_dashboard`,
-      `./scripts/run-host-tests.sh cargo test --test course_discovery`,
-      `git diff --check`, line-count checks, and boundary scans proving the
-      touched migrated read models no longer import reward status aliases from
-      `models::reward_candidate`.
+      `./scripts/run-host-tests.sh cargo test --lib reward_candidate_service`,
+      `./scripts/run-host-tests.sh cargo test --lib reward_execution_service`,
+      `./scripts/run-host-tests.sh cargo test --lib course_service`,
+      `git diff --check`, line-count checks, and boundary scans proving
+      production code no longer imports reward candidate vocabulary constants
+      from `models::reward_candidate`.
 
 ## Legacy Transition Rules
 

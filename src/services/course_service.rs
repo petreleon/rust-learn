@@ -6,6 +6,10 @@ use crate::db::schema::{
     role_permission_course, role_permission_organization, role_permission_platform, upload_jobs,
     user_role_course, user_role_organization, user_role_platform, users,
 };
+use crate::domain::rewards::candidate::status::{
+    REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+    REWARD_STATUS_TEACHER_APPROVED, REWARD_STATUS_TEACHER_REJECTED,
+};
 use crate::domain::rewards::policy::{
     REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
 };
@@ -25,10 +29,6 @@ use crate::models::delegated_permission::{
 };
 use crate::models::pending_course_organization_invites::{
     NewPendingCourseOrganizationInvite, PendingCourseOrganizationInvite,
-};
-use crate::models::reward_candidate::{
-    REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
-    REWARD_STATUS_TEACHER_APPROVED, REWARD_STATUS_TEACHER_REJECTED,
 };
 use crate::repositories::course_repository::user_permission_course_request;
 use crate::repositories::organization_repository::user_permission_organization_request;
