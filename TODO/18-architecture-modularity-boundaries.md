@@ -1117,31 +1117,31 @@ remaining gaps.
 | 219 | Deleted the `utils::s3_utils` compatibility bridge after moving S3, readiness, and video-upload integration fixtures to the `infra/object_storage` owner directly. |
 | 220 | Deleted the `utils::eth_utils` compatibility bridge after moving Ethereum compiler, deployer, provider, and wallet integration tests to the `infra/ethereum/operations` owners directly. |
 | 221 | Deleted the unused `utils::centralized_wallets` compatibility bridge after scans proved source and tests call the `infra/postgres/wallet/centralized_wallets` owner directly or do not use the helper. |
+| 222 | Deleted the final unused `src/utils` module after scans proved no `crate::utils` or `rust_learn::utils` callers remain; stale course invite helpers were superseded by `infra/postgres/learning/course_creation_store`. |
 
 ## Recent Slice Evidence
 
-Slice 221: delete centralized-wallet utility compatibility bridge.
+Slice 222: delete final unused `src/utils` module.
 
-- [x] Delete `src/utils/centralized_wallets.rs` and remove the export from
-      `src/utils/mod.rs` after scans proved no source or test references use
-      the utility path.
-- [x] Preserve the wallet infra implementation and tests under
-      `src/infra/postgres/wallet/centralized_wallets/*`.
-- [x] Confirm the only remaining `centralized_wallets` source reference is the
-      intended `infra/postgres/wallet` module declaration.
-- [x] Self-critique: the centralized-wallet helper is still a low-level
-      Postgres workflow over Diesel records, and current production code does
-      not call it. A later wallet cleanup should either route a real
-      centralized-transfer feature through `application/wallet` or delete the
-      infra helper entirely if the feature is dead.
+- [x] Delete `src/utils/course_utils.rs` and `src/utils/mod.rs`, and remove
+      `pub mod utils` from both `src/lib.rs` and the API binary module tree in
+      `src/main.rs`.
+- [x] Confirm scans show no `crate::utils` or `rust_learn::utils` callers remain
+      in source or tests; remaining `utils::` hits are external-crate paths such
+      as `ethers::utils` or local aliases such as `worker_utils`.
+- [x] Preserve active course-creation/invite behavior through
+      `infra/postgres/learning/course_creation_store`, which already owns the
+      course organization invite insertion used by migrated course creation.
+- [x] Self-critique: deleting dead utility code closes the namespace but does
+      not finish all architecture work. Direct repository usage in tests and
+      remaining DB/model leakage still need separate Level 2 slices.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib centralized_wallets`,
       `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing no `utils::centralized_wallets`
-      references remain, scans showing `utils/mod.rs` no longer exports
-      centralized-wallet utilities, and file-size checks keeping changed Rust
-      files under the manual 180-line ceiling.
+      `git diff --check`, scans showing no project-owned `utils` module
+      references remain, and file-size checks keeping changed Rust files under
+      the manual 180-line ceiling.
 
 ## Legacy Transition Rules
 
