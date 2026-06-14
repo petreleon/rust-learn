@@ -1,6 +1,9 @@
-pub mod organization_reward_dashboard_queries;
+pub mod organization_reward_dashboard_courses;
+pub mod organization_reward_dashboard_mappers;
 pub mod organization_reward_dashboard_store;
+pub mod organization_reward_dashboard_teacher_applications;
 pub mod organization_reward_dashboard_use_case;
+pub mod organization_reward_dashboard_wallets;
 pub mod organization_summary_store;
 pub mod organization_summary_use_case;
 pub mod platform_csv_export_delegated_permissions;

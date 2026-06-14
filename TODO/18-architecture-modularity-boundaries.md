@@ -1152,33 +1152,32 @@ remaining gaps.
 | 254 | Moved organization reward-dashboard course and wallet row/fact construction into application-owned fact constructors, leaving Postgres to pass loaded values and decimals. |
 | 255 | Moved organization reward-dashboard date-window expansion into the reporting application layer, leaving Postgres to consume prepared inclusive timestamp bounds. |
 | 256 | Moved organization reward-dashboard per-course approved amount summarization into the reporting application layer, leaving Postgres to load nullable amount values only. |
+| 257 | Split the organization reward-dashboard Postgres adapter into focused course, teacher-application, wallet, and mapper modules instead of one mixed query bucket. |
 
 ## Recent Slice Evidence
 
-Slice 256: move organization reward-dashboard course amount summarization to application.
+Slice 257: split organization reward-dashboard Postgres query concerns.
 
-- [x] Add `application/reporting/organization_reward_dashboard/course_amounts`
-      as the application owner for converting loaded nullable approved amounts
-      into a course reward dashboard fact.
-- [x] Repoint `organization_reward_dashboard_queries` to load
-      `Option<BigDecimal>` amount rows and pass them directly to
-      `organization_course_reward_fact_from_amounts`.
-- [x] Move per-course candidate count, approved reward count, and approved
-      amount total calculation out of the Postgres query module.
-- [x] Preserve existing report behavior: `None` amounts still count as reward
-      candidates but not approved rewards, and approved `BigDecimal` values are
-      summed and stringified through the application fact constructor.
-- [x] Cover normal and empty amount sets with pure application tests.
-- [x] Reduce `organization_reward_dashboard_queries` from 117 to 110 lines,
-      keep `aggregation.rs` unchanged at 174 lines, and keep the new
-      `course_amounts` helper at 89 lines.
-- [x] Self-critique: organization reward-dashboard query orchestration is now
-      mostly SQL plus application helpers, but the file still mixes teacher
-      application, course reward, wallet balance, and Diesel error mapping; a
-      later slice should split those query concerns before this adapter grows
-      again.
+- [x] Replace the mixed
+      `infra/postgres/reporting/organization_reward_dashboard_queries` module
+      with focused `organization_reward_dashboard_courses`,
+      `organization_reward_dashboard_teacher_applications`,
+      `organization_reward_dashboard_wallets`, and
+      `organization_reward_dashboard_mappers` modules.
+- [x] Repoint `PostgresOrganizationRewardDashboardStore` to import the focused
+      course, teacher-application, wallet, and mapper helpers directly.
+- [x] Preserve existing SQL behavior: sponsored teacher-application status
+      reads, course reward amount reads with application date windows, wallet
+      balance reads, and organization-name `NotFound` mapping are unchanged.
+- [x] Delete the old mixed query module so future changes land beside the
+      specific Postgres concern they affect.
+- [x] Keep the new adapter files small: courses 64 lines, teacher applications
+      27 lines, wallets 28 lines, mappers 8 lines, and store 60 lines.
+- [x] Self-critique: the store still owns organization-name lookup and final
+      dashboard fact orchestration; a later slice could extract organization
+      identity lookup into its own Postgres helper before adding more reporting
+      behavior there.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib organization_reward_dashboard::course_amounts`,
       `./scripts/run-host-tests.sh cargo test --test organization_dashboard`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,

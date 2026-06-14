@@ -9,10 +9,10 @@ use crate::application::reporting::organization_reward_dashboard::{
     OrganizationRewardDashboardFacts, OrganizationRewardDashboardOutput,
 };
 use crate::db::schema::organizations;
-use crate::infra::postgres::reporting::organization_reward_dashboard_queries::{
-    course_reward_rows, map_diesel_error, sponsored_teacher_application_summary,
-    wallet_balance_rows,
-};
+use crate::infra::postgres::reporting::organization_reward_dashboard_courses::course_reward_rows;
+use crate::infra::postgres::reporting::organization_reward_dashboard_mappers::map_diesel_error;
+use crate::infra::postgres::reporting::organization_reward_dashboard_teacher_applications::sponsored_teacher_application_summary;
+use crate::infra::postgres::reporting::organization_reward_dashboard_wallets::wallet_balance_rows;
 
 pub struct PostgresOrganizationRewardDashboardStore<'a> {
     conn: &'a mut AsyncPgConnection,
