@@ -1,4 +1,4 @@
-// ── course_repository ──
+// ── access-control course helpers ──
 
 #[actix_web::test]
 async fn test_course_permission_check_admin_has_admin_perms() {
@@ -58,7 +58,7 @@ async fn test_course_role_assignment_admin_can_assign_student() {
     assert!(result.is_ok());
 }
 
-// ── platform_repository ──
+// ── access-control platform helpers ──
 
 #[actix_web::test]
 async fn test_platform_permission_check_super_admin_has_perms() {

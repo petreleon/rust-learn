@@ -3,7 +3,7 @@ use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::organizations;
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::repositories::organization_repository::{
+use rust_learn::infra::postgres::access_control::authorization_checks::{
     assign_role_to_user_in_organization, user_permission_organization_request,
 };
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;

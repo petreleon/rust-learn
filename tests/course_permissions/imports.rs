@@ -11,7 +11,7 @@ use rust_learn::infra::postgres::learning::course_role_assignment_store::Postgre
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::infra::postgres::access_control::course_role_records;
-use rust_learn::repositories::course_repository::user_permission_course_request;
+use rust_learn::infra::postgres::access_control::authorization_checks::user_permission_course_request;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 
 fn unique_string(prefix: &str) -> String {

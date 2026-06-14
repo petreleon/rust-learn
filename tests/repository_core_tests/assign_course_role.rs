@@ -25,7 +25,7 @@ async fn test_create_user_with_unverified_email() {
     assert_eq!(user.name, format!("repo_user_unver Test"));
 }
 
-// ── organization_repository ──
+// ── access-control organization helpers ──
 
 #[actix_web::test]
 async fn test_org_permission_check_admin_has_admin_perms() {

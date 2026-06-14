@@ -1,9 +1,5 @@
-pub mod course_repository;
 pub mod delegated_permission_repository;
-pub mod organization_repository;
 pub mod persistent_state_repository;
-pub mod platform_permission_repository;
-pub mod platform_repository;
 pub mod reward_audit_event_repository;
 pub mod reward_candidate_repository;
 pub mod reward_compensation_record_repository;

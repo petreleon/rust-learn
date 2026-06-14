@@ -2,8 +2,8 @@ use chrono::NaiveDate;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::establish_connection;
-use rust_learn::repositories::platform_permission_repository::assign_permission_to_role_platform;
-use rust_learn::repositories::platform_repository::{
+use rust_learn::infra::postgres::access_control::authorization_checks::assign_permission_to_role_platform;
+use rust_learn::infra::postgres::access_control::authorization_checks::{
     assign_role_to_user, user_permission_platform_request,
 };
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;

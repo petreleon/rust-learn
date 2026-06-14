@@ -1121,38 +1121,40 @@ remaining gaps.
 | 223 | Moved platform, organization, and course permission/hierarchy middleware checks off legacy repository imports and onto an `infra/postgres/access_control/authorization_checks` adapter facade, leaving middleware dependent on the access-control Postgres boundary instead of `src/repositories`. |
 | 224 | Moved the version-2 bootstrap admin creation/update path off legacy user/platform repositories and onto `infra/postgres/identity/bootstrap_accounts` plus access-control role catalog/assignment adapters, making production `src` free of `crate::repositories` imports. |
 | 225 | Added an infra-owned verified password user helper, repointed all integration-test `user_repository::create_user` fixtures to it, and deleted the unused legacy `user_repository` module/export. |
+| 226 | Promoted access-control permission, hierarchy, platform-role, organization-role, and platform-permission fixture helpers to `infra/postgres/access_control/authorization_checks`, repointed tests to that facade, and deleted the unused legacy course/organization/platform/platform-permission repository modules. |
 
 ## Recent Slice Evidence
 
-Slice 225: move test user fixtures off the legacy user repository.
+Slice 226: delete legacy access-control repository shells.
 
-- [x] Add `create_verified_password_user` to
-      `infra/postgres/identity/bootstrap_accounts`, preserving the old fixture
-      signature and `User` return type while routing creation through the
-      infra-owned bootstrap account transaction.
-- [x] Mechanically repoint every integration-test import of
-      `rust_learn::repositories::user_repository::create_user` to the
-      identity/Postgres helper alias, plus the fully qualified authentication
-      flow call sites.
-- [x] Confirm scans show no `user_repository::create_user`,
-      `repositories::user_repository`, or `crate::repositories` references
-      remain in `src` or `tests`; remaining `rust_learn::repositories` test
-      hits are non-user legacy permission, delegation, reward, persistent-state,
-      and teacher-application fixtures.
-- [x] Delete `src/repositories/user_repository.rs` and remove the module export
-      after scans prove the helper migration leaves no user-repository callers.
-- [x] Self-critique: this is still a fixture-level bridge over concrete
-      Postgres infra, not an application port. It removes the user repository,
-      but remaining test fixtures still keep non-user legacy repository modules
-      alive for permission, delegation, reward, persistent-state, and
-      teacher-application assertions.
+- [x] Promote the access-control authorization facade to a public infra module
+      for integration fixtures that need permission checks, hierarchy
+      comparisons, direct platform role assignment, platform permission
+      assignment, and hierarchy-aware organization role assignment.
+- [x] Repoint tests from legacy course, organization, platform, and
+      platform-permission repository imports to
+      `infra/postgres/access_control/authorization_checks`.
+- [x] Delete `src/repositories/course_repository.rs`,
+      `src/repositories/organization_repository.rs`,
+      `src/repositories/platform_repository.rs`, and
+      `src/repositories/platform_permission_repository.rs`, then remove their
+      module exports.
+- [x] Confirm scans show no course/organization/platform access-control
+      repository names remain in `src` or `tests`; remaining
+      `rust_learn::repositories` test hits are delegated-permission,
+      persistent-state, reward, and teacher-application fixtures.
+- [x] Self-critique: the public infra facade is still test/support oriented and
+      not a pure application authorization port. It is a direct improvement
+      because the compatibility repository shells are gone, but request-time
+      authorization still deserves an application-level boundary in a later
+      slice.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans for removed user-repository references, and
-      file-size checks keeping changed Rust files under the manual 180-line
-      ceiling.
+      `git diff --check`, scans for removed access-control repository
+      references, and file-size checks keeping changed Rust files under the
+      manual 180-line ceiling.
 
 ## Legacy Transition Rules
 
