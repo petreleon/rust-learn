@@ -1094,49 +1094,41 @@ remaining gaps.
 | 196 | Replaced the include-based `reward_candidate_service` shell and unit-test shell with normal child modules, a named support module, a separate course-submission entrypoint, and explicit `pub(super)` helper boundaries across submission, amount decision, fraud-block, policy, and normalization workflows. |
 | 197 | Replaced the include-based `organization_service` shell and unit-test shell with normal child modules, explicit public re-exports, and `pub(super)` helper boundaries across organization CRUD, member listing, dashboard summaries, alerts, permissions, and audit logging. |
 | 198 | Replaced the include-based `course_service` shell with normal child modules, explicit compatibility re-exports, per-module imports, and `pub(super)` helper boundaries across discovery, learner catalog/detail/learning/progress, teacher dashboards, enrollment workspaces, organization course lists, lifecycle, invites, and mutations. |
+| 199 | Deleted the now-unused legacy `course_service` compatibility module after code search proved all course discovery, learner catalog/detail/learning/progress, teacher dashboard, enrollment, lifecycle, creation, update, and organization-course routes compile and run through Level 2 application/infra/http modules instead. |
 
 ## Recent Slice Evidence
 
-Slice 198: normalize the course legacy service module.
+Slice 199: delete the migrated course legacy service.
 
-- [x] Replace `src/services/course_service.rs` `include!` statements with
-      normal `mod` declarations and explicit root re-exports for the existing
-      discovery, learner catalog/detail/learning/progress, teacher dashboard,
-      organization course list, lifecycle, invite, and mutation compatibility
-      API.
-- [x] Give every `course_service/*` child module explicit imports for its
-      schema, models, domain vocabulary, Diesel traits, DTOs, errors, and
-      sibling helpers instead of inheriting the old shared root prelude.
-- [x] Convert cross-file helper calls to `pub(super)` boundaries across
-      catalog builders, learner metadata/enrollment/permission helpers, teacher
-      scope/delegation helpers, roster pages, reward summaries, content display
-      state, and lifecycle normalization.
-- [x] Move `TeacherCourseCandidateScope` into the teacher scope module and move
-      `TeacherCoursePermissionSummary::has_teacher_access` onto the teacher
-      enrollment type module, reducing mixed helper ownership while keeping
-      external behavior stable.
-- [x] Replace course service unit-test `super::*` imports with explicit imports
-      from the modules under test, so query/default, permission/status, and
-      content-helper tests no longer depend on the legacy flat namespace.
-- [x] Self-critique: this removes the last `include!` shell under the scanned
-      backend rings, but `course_service` remains a legacy compatibility module
-      that still performs Diesel orchestration directly. The next Level 2 work
-      should convert the remaining compatibility surfaces into
-      `application/learning` and `infra/postgres/learning` ports/adapters
-      rather than treating normal `mod` files as the final architecture.
+- [x] Delete `src/services/course_service.rs` and its child module tree after
+      code search showed no production or test references outside TODO history;
+      `src/services/mod.rs` no longer exports a course compatibility service.
+- [x] Keep behavior owned by existing Level 2 surfaces:
+      `application/learning`, `infra/postgres/learning`, `http/learning`, and
+      `application/organizations`/`infra/postgres/organizations` for
+      organization course lists.
+- [x] Preserve route compatibility by verifying course discovery, learner
+      catalog/detail/learning/progress, teacher dashboard/workspace/student
+      reads, course lifecycle, course creation/update, join requests, and
+      enrollment API flows through their migrated use cases.
+- [x] Self-critique: deleting `course_service` removes a large Diesel-heavy
+      legacy service from the compiled backend, but learning is not fully
+      finished at Level 2 while `utils/course_utils.rs`, old repository
+      compatibility functions, and some test include/import fixtures still
+      exist. The next slices should continue deleting unused compatibility
+      paths only after code search and behavior tests prove their routes now
+      live behind application/infra/http ownership.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib course_service`,
       `./scripts/run-host-tests.sh cargo test --test course_discovery`,
       `./scripts/run-host-tests.sh cargo test --test teacher_course_dashboard`,
       `./scripts/run-host-tests.sh cargo test --test course_lifecycle`,
       `./scripts/run-host-tests.sh cargo test --test course_creation_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test course_editing_permissions`,
       `./scripts/run-host-tests.sh cargo test --test course_join_requests`,
       `./scripts/run-host-tests.sh cargo test --test course_enrollment_api`,
-      `./scripts/run-host-tests.sh cargo test --test course_editing_permissions`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      line-count checks, and boundary scans proving no `include!` or
-      `imports.rs` remains under `src/services`, `src/http`, `src/application`,
-      `src/infra`, or `src/domain`.
+      and code-reference scans showing `course_service` exists only in TODO
+      history after the deletion.
 
 ## Legacy Transition Rules
 
