@@ -4,6 +4,7 @@ use ethers::prelude::*;
 use ethers::signers::coins_bip39::English;
 use ethers::signers::MnemonicBuilder;
 use getrandom::getrandom;
-use rust_learn::utils::eth_utils::{
-    try_compile_contract, try_deploy_contract, try_get_provider, try_load_wallet_from_env,
-};
+use rust_learn::infra::ethereum::operations::compiler::try_compile_contract;
+use rust_learn::infra::ethereum::operations::deployer::try_deploy_contract;
+use rust_learn::infra::ethereum::operations::provider::try_get_provider;
+use rust_learn::infra::ethereum::operations::wallet::try_load_wallet_from_env;

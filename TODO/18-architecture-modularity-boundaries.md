@@ -1115,30 +1115,32 @@ remaining gaps.
 | 217 | Deleted the `utils::jwt_utils` compatibility bridge after moving HTTP extractors, authentication JWKS/tests, JWT middleware, and integration fixtures to the `infra/tokens/jwt` owner directly. |
 | 218 | Deleted the `utils::notifications` compatibility bridge after moving HTTP best-effort notification senders and integration fixtures to the `infra/notifications` owner directly. |
 | 219 | Deleted the `utils::s3_utils` compatibility bridge after moving S3, readiness, and video-upload integration fixtures to the `infra/object_storage` owner directly. |
+| 220 | Deleted the `utils::eth_utils` compatibility bridge after moving Ethereum compiler, deployer, provider, and wallet integration tests to the `infra/ethereum/operations` owners directly. |
 
 ## Recent Slice Evidence
 
-Slice 219: delete S3 utility compatibility bridge.
+Slice 220: delete Ethereum utility compatibility bridge.
 
-- [x] Move S3, readiness, and video-upload integration fixtures off
-      `utils::s3_utils` and onto the explicit `infra::object_storage` owner.
-- [x] Delete `src/utils/s3_utils.rs` and remove it from `src/utils/mod.rs`
-      after scans proved no source or test references remain.
-- [x] Preserve object-storage behavior through the existing infra API,
-      especially `S3State` construction, readiness health checks, and video
-      upload fixture wiring.
-- [x] Self-critique: `infra/object_storage::S3State` still includes video
-      processing methods that depend directly on concrete notification infra.
-      A later content/worker slice should split media-processing orchestration
-      behind an application port rather than keeping notification fan-out inside
-      the object-storage adapter.
+- [x] Move Ethereum utility and blockchain integration fixtures off
+      `utils::eth_utils` and onto the explicit `infra::ethereum::operations`
+      compiler, deployer, provider, and wallet owners.
+- [x] Delete `src/utils/eth/mod.rs` plus the `eth_utils` alias from
+      `src/utils/mod.rs` after scans proved no source or test references remain.
+- [x] Preserve Ethereum behavior through the existing infra operations API:
+      `try_compile_contract`, `try_deploy_contract`, `try_get_provider`, and
+      `try_load_wallet_from_env`.
+- [x] Self-critique: these tests still exercise concrete Ethereum infra
+      operations directly. That is correct for integration coverage, but
+      application-facing reward/wallet flows should continue to depend on
+      application ports and use-case wiring rather than concrete deployment
+      helpers.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib object_storage`,
+      `./scripts/run-host-tests.sh cargo test --test eth_utils_tests`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing no source/test `s3_utils` references
-      remain, scans showing `utils/mod.rs` no longer exports S3 utilities, and
-      file-size checks keeping changed Rust files under the manual 180-line
+      `git diff --check`, scans showing no source/test `eth_utils` references
+      remain, scans showing `utils/mod.rs` no longer exports Ethereum utilities,
+      and file-size checks keeping changed Rust files under the manual 180-line
       ceiling.
 
 ## Legacy Transition Rules
