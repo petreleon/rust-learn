@@ -3,6 +3,7 @@ mod handler;
 mod output;
 mod service;
 pub mod store;
+mod teacher_applications;
 
 pub use error::PlatformCsvExportError;
 pub use handler::{
@@ -12,3 +13,6 @@ pub use handler::{
 };
 pub use output::*;
 pub use service::PlatformCsvExportsUseCase;
+pub(crate) use teacher_applications::{
+    platform_teacher_application_export_row, PlatformTeacherApplicationExportFact,
+};

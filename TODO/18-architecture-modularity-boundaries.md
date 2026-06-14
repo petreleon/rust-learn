@@ -1159,25 +1159,27 @@ remaining gaps.
 | 261 | Moved organization-summary count and output assembly into the reporting application layer, leaving Postgres to load summary facts. |
 | 262 | Split organization-summary identity, course, member, wallet, course-role, and Diesel mapper reads into focused Postgres helpers. |
 | 263 | Moved platform CSV export Diesel error mapping into a focused Postgres mapper module, leaving the CSV store as orchestration only. |
+| 264 | Moved platform teacher-application CSV row assembly into the reporting application layer behind a teacher-application export fact. |
 
 ## Recent Slice Evidence
 
-Slice 263: split platform CSV export Diesel error mapping.
+Slice 264: move platform teacher-application CSV row assembly to application.
 
-- [x] Add `platform_csv_export_mappers` as the focused Postgres owner for
-      Diesel to `PlatformCsvExportError` translation.
-- [x] Repoint teacher-application, reward-approval, token-payout,
-      wallet-credit, and delegated-permission CSV query helpers to import the
-      mapper module directly.
-- [x] Remove `map_diesel_error` from `PostgresPlatformCsvExportStore`, leaving
-      the store as export-kind to query-helper orchestration only.
-- [x] Preserve existing behavior: Diesel errors still become
-      `PlatformCsvExportError::Database(error.to_string())`.
-- [x] Keep changed Rust files small: CSV store 78 lines, mapper 5 lines, and
-      reporting module map 41 lines.
-- [x] Self-critique: platform CSV exports still do row shaping inside several
-      Postgres query helpers; the next slices should move one export dataset at
-      a time behind application-owned fact/row assembly.
+- [x] Add `application/reporting/platform_csv_exports/teacher_applications`
+      with `PlatformTeacherApplicationExportFact` and
+      `platform_teacher_application_export_row`.
+- [x] Move teacher-application CSV `decision_reason` defaulting and
+      `portfolio_links` stringification out of the Postgres query helper.
+- [x] Repoint `platform_csv_export_teacher_applications` to load
+      `TeacherApplication` rows, convert DB models to application facts, and
+      call the application row assembler.
+- [x] Preserve existing behavior: rows remain ordered by `created_at desc`,
+      capped at 1000, and emitted with the same CSV-visible field values.
+- [x] Keep changed Rust files small: application teacher-application CSV module
+      99 lines, module export 18 lines, and Postgres helper 47 lines.
+- [x] Self-critique: the other platform CSV export datasets still perform row
+      assembly in Postgres helpers; future slices should move reward approvals,
+      delegated permissions, wallet credits, and token payouts one at a time.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --lib platform_csv_exports`,
       `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_csv_exports_cover_business_reward_datasets`,
