@@ -10,9 +10,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 const DEFAULT_APPLICATION_LIMIT: i64 = 25;
 const MAX_APPLICATION_LIMIT: i64 = 100;
 
-mod permissions;
-
-pub use permissions::{
+pub use crate::infra::postgres::access_control::permission_recipient_records::{
     list_organization_user_ids_with_permission, list_platform_user_ids_with_permission,
 };
 

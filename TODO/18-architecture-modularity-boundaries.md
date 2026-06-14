@@ -1079,37 +1079,36 @@ remaining gaps.
 | 181 | Moved course user-role assignment and course permission checks off the Diesel model and into `infra/postgres/access_control/course_role_records`; legacy course repositories, teacher-application role assignment, and fixtures now use access-control Postgres records, leaving `models::user_role_course` as a persistence shape only. |
 | 182 | Moved platform, organization, and course role-name lookups off `models::role` and into `infra/postgres/access_control/role_catalog_store`; repositories, teacher-application assignment, and fixtures now resolve role IDs through access-control infra, leaving `models::role` as Diesel row shapes only. |
 | 183 | Moved teacher-application approved-bundle exists-before-assign guards into `infra/postgres/access_control/*_role_records`; teacher-application role decisions now only resolve the teacher role and delegate idempotent assignment to access-control record adapters. |
+| 184 | Moved teacher-application reviewer-recipient permission queries into `infra/postgres/access_control/permission_recipient_records`; teacher-application notification storage and the legacy teacher-application repository export now share the same access-control read adapter, removing duplicate recipient SQL. |
 
 ## Recent Slice Evidence
 
-Slice 183: move teacher-application idempotent role assignment guards into
-access-control role records.
+Slice 184: move teacher-application permission-recipient reads into
+access-control records.
 
-- [x] Add `assign_platform_role_to_user_if_missing`,
-      `assign_organization_role_to_user_if_missing`, and
-      `assign_course_role_to_user_if_missing` next to their direct assignment
-      functions in access-control role records.
-- [x] Retarget `teacher_application_decision_roles` to resolve the teacher role
-      through the role catalog and delegate idempotent role assignment to the
-      access-control adapters.
-- [x] Delete local `assign_*_role_if_missing` helpers and direct
-      `user_role_*` table imports from teacher-application infra; that module
-      now orchestrates the approval bundle without owning assignment SQL.
-- [x] Self-critique: teacher-application approval role assignment is now behind
-      access-control records, but the larger teacher-application context still
-      contains recipient and permission-read queries that should be reviewed
-      next for either access-control ownership or explicit read-model naming.
+- [x] Add `infra/postgres/access_control/permission_recipient_records` for
+      platform and organization user IDs that hold a named role permission.
+- [x] Retarget teacher-application notification storage to the access-control
+      recipient adapter and keep the legacy `teacher_application_repository`
+      public functions as re-exports only.
+- [x] Delete duplicate recipient SQL from
+      `infra/postgres/teacher_applications/teacher_application_recipients` and
+      `repositories/teacher_application_repository/permissions`.
+- [x] Self-critique: teacher-application reviewer-recipient queries now have an
+      access-control owner, but there are still several context-specific
+      permission read models across learning, identity, KYC, reporting, and
+      organizations that should be reviewed one context at a time instead of
+      flattened prematurely.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
       `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
-      `./scripts/run-host-tests.sh cargo test --test platform_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test course_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test organization_permissions`,
       `./scripts/run-host-tests.sh cargo test --test teacher_applications`,
+      `./scripts/run-host-tests.sh cargo test --test organization_teacher_applications`,
+      `./scripts/run-host-tests.sh cargo test --test notification_events`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      in `teacher_application_decision_roles` imports `user_role_*` tables or
-      performs `exists` checks directly.
+      in teacher-application infra or the legacy teacher-application repository
+      owns recipient role-permission SQL.
 
 ## Legacy Transition Rules
 

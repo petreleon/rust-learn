@@ -1,9 +1,10 @@
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
 use crate::db::schema::{
     role_permission_organization, role_permission_platform, user_role_organization,
     user_role_platform,
 };
-use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 pub async fn list_platform_user_ids_with_permission(
     conn: &mut AsyncPgConnection,
@@ -32,7 +33,7 @@ pub async fn list_organization_user_ids_with_permission(
             role_permission_organization::table.on(user_role_organization::organization_role_id
                 .eq(role_permission_organization::organization_role_id)),
         )
-        .filter(user_role_organization::organization_id.eq(Some(organization_id)))
+        .filter(user_role_organization::organization_id.eq(organization_id))
         .filter(role_permission_organization::permission.eq(permission))
         .select(user_role_organization::user_id.assume_not_null())
         .distinct()

@@ -15,7 +15,6 @@ mod teacher_application_platform_review_context;
 mod teacher_application_platform_review_mappers;
 pub mod teacher_application_platform_review_store;
 pub mod teacher_application_platform_review_use_case;
-mod teacher_application_recipients;
 mod teacher_application_records;
 mod teacher_application_self_mappers;
 pub mod teacher_application_self_store;
