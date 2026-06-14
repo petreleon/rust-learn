@@ -8,7 +8,6 @@ pub mod infra;
 pub mod middlewares;
 mod models;
 pub mod repositories;
-pub mod services;
 pub mod shared;
 pub mod utils;
 

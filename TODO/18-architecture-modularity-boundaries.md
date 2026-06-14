@@ -1100,42 +1100,46 @@ remaining gaps.
 | 202 | Moved token reconciliation recording out of the legacy services layer and into `infra/postgres/wallet/token_reconciliation_records`; the integration test now imports the wallet Postgres record adapter directly and the legacy `token_reconciliation` service module was deleted. |
 | 203 | Moved the wallet deposit indexer out of the legacy services layer and into `infra/ethereum/wallet/deposit_indexer`; the worker now spawns the Ethereum wallet infra adapter directly, leaving `services` focused on the remaining compatibility surfaces only. |
 | 204 | Deleted the now-unused legacy `wallet_service` compatibility module after wallet and reward-history integration fixtures were switched to Level 2 wallet application handlers backed by Postgres wallet stores, leaving `src/services` with only the reward-candidate compatibility surface. |
+| 205 | Deleted the final legacy `reward_candidate_service` compatibility module and removed the `services` crate module entirely after reward-candidate and delegated-permission fixtures were switched to Level 2 reward submission, teacher-decision, and amount-decision use cases. |
 
 ## Recent Slice Evidence
 
-Slice 204: delete the migrated wallet legacy service.
+Slice 205: delete the final legacy services module.
 
-- [x] Replace wallet integration fixture calls to `wallet_service` with
-      test-local helpers that call `application/wallet/{link_wallet,
-      create_deposit_intent,index_deposit}` handlers through the matching
-      `infra/postgres/wallet` stores.
-- [x] Update organization wallet setup to use the real Level 2 actor-aware
-      organization wallet link boundary and update user wallet fixtures to
-      satisfy the KYC precondition enforced by the migrated link/deposit use
-      cases.
-- [x] Switch student reward-history financial fixtures to use the Level 2
-      linked wallet view's wallet id instead of a Diesel wallet model returned
-      by the deleted service helper.
-- [x] Delete `src/services/wallet_service.rs` and all `wallet_service/*`
-      children after reference scans showed no production or test callers.
-- [x] Self-critique: the test roots still use `include!` to assemble large
-      integration fixtures, but those are outside the backend source rings.
-      The important architectural movement here is that wallet behavior now
-      runs through application handlers and Postgres adapters rather than a
-      public service compatibility module.
+- [x] Replace the remaining reward-candidate integration fixture dependency on
+      `reward_candidate_service` with a test-local `RewardCandidateError` and a
+      teacher-decision helper backed by
+      `PostgresTeacherRewardCandidateDecisionUseCase`.
+- [x] Keep existing Level 2 fixture paths for reward submission and amount
+      decision, so reward candidate tests now exercise
+      `application/rewards/{submit_candidate,decide_teacher_candidate,
+      decide_amount}` through Postgres reward adapters.
+- [x] Apply the same teacher-decision and fixture-error replacement in delegated
+      permission tests, preserving the shared permission/delegation assertions
+      without importing `rust_learn::services`.
+- [x] Delete `src/services/reward_candidate_service.rs`, all
+      `reward_candidate_service/*` children, the empty `src/services/mod.rs`,
+      and the `services` declarations from `src/lib.rs` and `src/main.rs`.
+- [x] Self-critique: the integration test roots still use `include!` fixture
+      assembly, but backend source rings no longer have include/import shims or
+      a public service compatibility layer. Remaining architectural work should
+      focus on direct Diesel-in-handler pockets, repository compatibility
+      bridges, and utility/infra ownership rather than the old service bucket.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test wallet_linking`,
-      `./scripts/run-host-tests.sh cargo test --test student_reward_history`,
+      `./scripts/run-host-tests.sh cargo test --test reward_candidates`,
+      `./scripts/run-host-tests.sh cargo test --test delegated_permissions`,
+      `./scripts/run-host-tests.sh cargo test --lib`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, reference scans showing no `wallet_service`, and
-      backend ring scans showing no `include!`/`imports.rs`.
+      `git diff --check`, source/test scans showing no `services` module or
+      `rust_learn::services` references, and backend ring scans showing no
+      `include!`/`imports.rs`.
 
 ## Legacy Transition Rules
 
 - [x] Legacy `api` wrappers are gone; new ring-based modules may still be
       called from existing `services` and `repositories` while deeper
       extraction is in progress.
-- [ ] New ring-based modules must not call old `services::*` modules.
+- [x] New ring-based modules must not call old `services::*` modules.
 - [ ] New domain and application modules must not call old `models::*` async DB
       methods. Use a temporary infra adapter if a legacy query still lives
       there.

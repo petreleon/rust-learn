@@ -41,9 +41,6 @@ use rust_learn::repositories::delegated_permission_repository::find_delegated_pe
 use rust_learn::repositories::organization_repository::user_permission_organization_request;
 use rust_learn::repositories::platform_repository::user_permission_platform_request;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::services::reward_candidate_service::{
-    decide_reward_candidate_by_teacher, RewardCandidateError, TeacherRewardCandidateDecisionRequest,
-};
 use serde_json::json;
 
 fn unique_string(prefix: &str) -> String {
