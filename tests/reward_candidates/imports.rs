@@ -15,6 +15,10 @@ use rust_learn::db::schema::{
     reward_execution_jobs, reward_policies, role_permission_course, role_permission_platform,
     users,
 };
+use rust_learn::domain::rewards::audit::{
+    REWARD_AUDIT_EVENT_AMOUNT_DECISION, REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED,
+    REWARD_AUDIT_EVENT_TEACHER_DECISION,
+};
 use rust_learn::domain::rewards::fraud_block::{
     REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
     REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
@@ -36,10 +40,6 @@ use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresR
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::reward_audit_event::{
-    REWARD_AUDIT_EVENT_AMOUNT_DECISION, REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED,
-    REWARD_AUDIT_EVENT_TEACHER_DECISION,
-};
 use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;

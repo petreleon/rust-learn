@@ -4,13 +4,6 @@ use diesel::prelude::*;
 use serde::Serialize;
 use serde_json::Value;
 
-pub const REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED: &str =
-    crate::domain::rewards::audit::REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED;
-pub const REWARD_AUDIT_EVENT_TEACHER_DECISION: &str =
-    crate::domain::rewards::audit::REWARD_AUDIT_EVENT_TEACHER_DECISION;
-pub const REWARD_AUDIT_EVENT_AMOUNT_DECISION: &str =
-    crate::domain::rewards::audit::REWARD_AUDIT_EVENT_AMOUNT_DECISION;
-
 #[derive(Queryable, Identifiable, Selectable, Debug, Clone, Serialize)]
 #[diesel(table_name = reward_audit_events)]
 pub struct RewardAuditEvent {

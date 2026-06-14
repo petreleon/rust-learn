@@ -4,14 +4,13 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::application::rewards::list_candidate_audit::RewardCandidateAuditUseCase;
 use rust_learn::db::schema::{courses, reward_audit_events, reward_candidates};
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::domain::rewards::audit::REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED;
 use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
 use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
 use rust_learn::domain::rewards::candidate::status::REWARD_STATUS_PENDING_TEACHER_APPROVAL;
 use rust_learn::infra::postgres::rewards::reward_candidate_audit_use_case::PostgresRewardCandidateAuditUseCase;
 use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::reward_audit_event::{
-    NewRewardAuditEvent, REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED,
-};
+use rust_learn::models::reward_audit_event::NewRewardAuditEvent;
 use rust_learn::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
 use rust_learn::models::role::PlatformRole;
 use rust_learn::models::user::User;

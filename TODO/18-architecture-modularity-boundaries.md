@@ -1060,29 +1060,27 @@ remaining gaps.
 | 162 | Moved migrated learning and organization reward queue/status read models off reward-candidate model status aliases; teacher dashboard, teacher-student reward progress, and organization course metric queries now import reward status vocabulary from `domain/rewards/candidate/status`. |
 | 163 | Moved production service entrypoint imports for reward candidate event/source/status vocabulary off reward-candidate model aliases; course reads, candidate submission/decision helpers, and execution test support now import reward vocabulary from `domain/rewards/candidate`. |
 | 164 | Removed reward candidate event/source/status compatibility aliases from the Diesel model; tests and fixtures now import reward candidate vocabulary directly from `domain/rewards/candidate`, leaving `models::reward_candidate` as record/insert structs only. |
+| 165 | Removed reward audit-event compatibility aliases from the Diesel model; legacy reward service/test fixtures now import audit event vocabulary from `domain/rewards/audit`, leaving `models::reward_audit_event` as record/insert structs only. |
 
 ## Recent Slice Evidence
 
-Slice 164: remove reward candidate vocabulary aliases from the model.
+Slice 165: remove reward audit-event vocabulary aliases from the model.
 
-- [x] Delete reward candidate event/source/status constants from
-      `models::reward_candidate`; the file now owns only Diesel record and
-      insert shapes.
-- [x] Update service unit tests and reward-facing integration fixtures to import
-      event types, source scopes, and statuses from
-      `domain/rewards/candidate/{event_type,source,status}`.
-- [x] Keep `models::reward_candidate` imports for `RewardCandidate` and
-      `NewRewardCandidate` only where persistence records are still needed.
-- [x] Self-critique: reward audit-event constants still live in
-      `models::reward_audit_event`; move that vocabulary into domain in a later
-      slice so audit records follow the same persistence-only rule.
+- [x] Delete reward audit-event constants from `models::reward_audit_event`;
+      the file now owns only Diesel record and insert shapes.
+- [x] Update legacy reward candidate service imports and reward-facing fixtures
+      to import audit event types from `domain/rewards/audit`.
+- [x] Keep `models::reward_audit_event` imports for `RewardAuditEvent` and
+      `NewRewardAuditEvent` only where persistence records are still needed.
+- [x] Self-critique: the old `reward_audit_event_repository` and include-based
+      reward candidate service still exist as compatibility paths; move or
+      delete them once remaining legacy reward commands no longer call them.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --lib reward_candidate_service`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving
-      `src/models/reward_candidate.rs` has no reward vocabulary constants and
-      no code imports reward candidate constants through
-      `models::reward_candidate`.
+      `src/models/reward_audit_event.rs` has no audit vocabulary constants and
+      no code imports audit event constants through `models::reward_audit_event`.
 
 ## Legacy Transition Rules
 

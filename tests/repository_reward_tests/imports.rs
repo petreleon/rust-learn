@@ -4,6 +4,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{courses, users};
+use rust_learn::domain::rewards::audit::REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED;
 use rust_learn::domain::rewards::execution::REWARD_EXECUTION_STATUS_QUEUED;
 use rust_learn::domain::rewards::fraud_block::{
     REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
@@ -17,9 +18,7 @@ use rust_learn::domain::rewards::policy::{
     REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
 use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::reward_audit_event::{
-    NewRewardAuditEvent, REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED,
-};
+use rust_learn::models::reward_audit_event::NewRewardAuditEvent;
 use rust_learn::models::reward_candidate::NewRewardCandidate;
 use rust_learn::models::reward_fraud_block::NewRewardFraudBlock;
 use rust_learn::models::reward_policy::NewRewardPolicy;
