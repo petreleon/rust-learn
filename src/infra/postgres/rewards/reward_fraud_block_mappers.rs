@@ -2,8 +2,8 @@ use crate::application::rewards::manage_fraud_block::{
     RewardFraudBlockDraft, RewardFraudBlockError, RewardFraudBlockListFilter,
     RewardFraudBlockOutput,
 };
+use crate::infra::postgres::rewards::reward_fraud_block_records::RewardFraudBlockFilter;
 use crate::models::reward_fraud_block::{NewRewardFraudBlock, RewardFraudBlock};
-use crate::repositories::reward_fraud_block_repository::RewardFraudBlockFilter;
 
 pub(super) fn new_reward_fraud_block(draft: RewardFraudBlockDraft) -> NewRewardFraudBlock {
     NewRewardFraudBlock {

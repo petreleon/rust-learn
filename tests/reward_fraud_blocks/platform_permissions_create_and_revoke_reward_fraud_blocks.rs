@@ -64,6 +64,8 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
     assert_eq!(teacher_block.reason, "suspicious reward approvals");
     assert_eq!(teacher_block.evidence_reference.as_deref(), Some("case://teacher-block"));
     assert!(teacher_block.revoked_at.is_none());
+    assert_active_teacher_block_listed(&fraud_blocks, admin.id(), teacher.id(), teacher_block.id)
+        .await;
     let mut conn = setup_conn(&pool).await;
     assert_eq!(
         count_fraud_block_notifications(&mut conn, teacher.id(), "reward_fraud_block:created")

@@ -6,7 +6,8 @@ use rust_learn::application::access_control::manage_delegated_permissions::{
     GrantDelegatedPermissionCommand,
 };
 use rust_learn::application::rewards::manage_fraud_block::{
-    CreateRewardFraudBlockCommand, RewardFraudBlockError, RewardFraudBlockUseCase,
+    CreateRewardFraudBlockCommand, ListRewardFraudBlocksQuery, RewardFraudBlockError,
+    RewardFraudBlockUseCase,
 };
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::schema::{courses, notifications, organizations, reward_fraud_blocks};

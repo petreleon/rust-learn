@@ -1051,26 +1051,29 @@ remaining gaps.
 | 153 | Moved reward candidate creation/idempotency lookup, teacher decision updates, amount decision updates, audit-event insertion, and execution-job enqueueing off legacy repositories into rewards-owned Postgres record helpers; candidate submission, teacher decision, amount decision, and reconciliation audit stores now use context-owned persistence helpers. |
 | 154 | Moved platform reward candidate listing/counting off the legacy reward-candidate repository; `platform_reward_candidate_store` now uses rewards-owned candidate filtering and list/count helpers. |
 | 155 | Moved reward policy create/list/version/deactivation persistence off the legacy reward-policy repository; `reward_policy_store` and mappers now use rewards-owned policy record and activation helpers. |
+| 156 | Moved reward fraud-block create/find/list/revoke persistence off the legacy fraud-block repository; `reward_fraud_block_store` and mappers now use rewards-owned fraud-block record helpers, with production list coverage in the integration test. |
 
 ## Recent Slice Evidence
 
-Slice 155: move reward policy persistence into rewards infra.
+Slice 156: move reward fraud-block persistence into rewards infra.
 
-- [x] Add rewards-owned `RewardPolicyFilter`, create/list/version helpers, and
-      active-policy deactivation helpers under `infra/postgres/rewards`.
-- [x] Update `reward_policy_store` and `reward_policy_mappers` to call those
-      helpers instead of `repositories::reward_policy_repository`.
-- [x] Preserve platform policy permission gating, version increments, active
-      policy replacement, course-scope validation, and list filtering.
+- [x] Add rewards-owned `RewardFraudBlockFilter` plus create/find/list/revoke
+      helpers under `infra/postgres/rewards/reward_fraud_block_records`.
+- [x] Update `reward_fraud_block_store` and `reward_fraud_block_mappers` to
+      call those helpers instead of `repositories::reward_fraud_block_repository`.
+- [x] Add production use-case list coverage to the fraud-block integration
+      suite while keeping split test files at or below the 180-line rule.
+- [x] Preserve fraud-block permission gating, create/revoke notifications,
+      active teacher block listing, and candidate reward pause/resume behavior.
 - [x] Self-critique: remaining reward repository imports are now concentrated
       in wallet-credit transactions/notifications, token confirmation,
-      reconciliation transactions, compensation, and fraud-block
-      management/mappers. Move those by transaction cluster rather than broad
-      rewrites.
+      reconciliation transactions, and compensation. Move those by transaction
+      cluster rather than broad rewrites.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test reward_policies`,
+      `./scripts/run-host-tests.sh cargo test --test reward_fraud_blocks`,
+      `./scripts/run-host-tests.sh cargo test --test reward_candidates`,
       `git diff --check`, line-count checks, and boundary scans proving the
-      reward policy store/mappers no longer import legacy repositories.
+      reward fraud-block store/mappers no longer import legacy repositories.
 
 ## Legacy Transition Rules
 

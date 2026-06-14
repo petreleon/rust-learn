@@ -13,7 +13,10 @@ use crate::infra::postgres::rewards::reward_fraud_block_notifications::notify_re
 use crate::infra::postgres::rewards::reward_fraud_block_permissions::{
     can_manage_fraud_block_scope, can_view_fraud_blocks,
 };
-use crate::repositories::reward_fraud_block_repository::{self, RewardFraudBlockFilter};
+use crate::infra::postgres::rewards::reward_fraud_block_records::{
+    create_reward_fraud_block, find_reward_fraud_block, list_reward_fraud_blocks,
+    revoke_reward_fraud_block, RewardFraudBlockFilter,
+};
 
 pub struct PostgresRewardFraudBlockStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -47,13 +50,10 @@ impl RewardFraudBlockStore for PostgresRewardFraudBlockStore<'_> {
         draft: RewardFraudBlockDraft,
     ) -> BoxFuture<'_, Result<RewardFraudBlockOutput, RewardFraudBlockError>> {
         async move {
-            reward_fraud_block_repository::create_reward_fraud_block(
-                self.conn,
-                new_reward_fraud_block(draft),
-            )
-            .await
-            .map(RewardFraudBlockOutput::from)
-            .map_err(map_reward_fraud_block_error)
+            create_reward_fraud_block(self.conn, new_reward_fraud_block(draft))
+                .await
+                .map(RewardFraudBlockOutput::from)
+                .map_err(map_reward_fraud_block_error)
         }
         .boxed()
     }
@@ -63,7 +63,7 @@ impl RewardFraudBlockStore for PostgresRewardFraudBlockStore<'_> {
         block_id: i64,
     ) -> BoxFuture<'_, Result<RewardFraudBlockOutput, RewardFraudBlockError>> {
         async move {
-            reward_fraud_block_repository::find_reward_fraud_block(self.conn, block_id)
+            find_reward_fraud_block(self.conn, block_id)
                 .await
                 .map(RewardFraudBlockOutput::from)
                 .map_err(map_reward_fraud_block_error)
@@ -76,21 +76,18 @@ impl RewardFraudBlockStore for PostgresRewardFraudBlockStore<'_> {
         filter: RewardFraudBlockListFilter,
     ) -> BoxFuture<'_, Result<(Vec<RewardFraudBlockOutput>, i64), RewardFraudBlockError>> {
         async move {
-            reward_fraud_block_repository::list_reward_fraud_blocks(
-                self.conn,
-                RewardFraudBlockFilter::from(filter),
-            )
-            .await
-            .map(|(blocks, total)| {
-                (
-                    blocks
-                        .into_iter()
-                        .map(RewardFraudBlockOutput::from)
-                        .collect(),
-                    total,
-                )
-            })
-            .map_err(map_reward_fraud_block_error)
+            list_reward_fraud_blocks(self.conn, RewardFraudBlockFilter::from(filter))
+                .await
+                .map(|(blocks, total)| {
+                    (
+                        blocks
+                            .into_iter()
+                            .map(RewardFraudBlockOutput::from)
+                            .collect(),
+                        total,
+                    )
+                })
+                .map_err(map_reward_fraud_block_error)
         }
         .boxed()
     }
@@ -101,15 +98,10 @@ impl RewardFraudBlockStore for PostgresRewardFraudBlockStore<'_> {
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<RewardFraudBlockOutput, RewardFraudBlockError>> {
         async move {
-            reward_fraud_block_repository::revoke_reward_fraud_block(
-                self.conn,
-                block_id,
-                actor_user_id,
-                chrono::Utc::now(),
-            )
-            .await
-            .map(RewardFraudBlockOutput::from)
-            .map_err(map_reward_fraud_block_error)
+            revoke_reward_fraud_block(self.conn, block_id, actor_user_id, chrono::Utc::now())
+                .await
+                .map(RewardFraudBlockOutput::from)
+                .map_err(map_reward_fraud_block_error)
         }
         .boxed()
     }

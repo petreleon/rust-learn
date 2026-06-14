@@ -34,6 +34,7 @@ pub mod reward_fraud_block_mappers;
 pub mod reward_fraud_block_notification_recipients;
 pub mod reward_fraud_block_notifications;
 pub mod reward_fraud_block_permissions;
+pub mod reward_fraud_block_records;
 pub mod reward_fraud_block_store;
 pub mod reward_fraud_block_use_case;
 pub mod reward_history_financials;
