@@ -8,7 +8,7 @@ async fn test_course_permission_check_admin_has_admin_perms() {
     let admin_role_id = get_course_admin_role_id(&mut conn).await;
     assign_course_role(&mut conn, user.id(), course.id, admin_role_id).await;
 
-    let has_permission = user_permission_course_request(
+    let has_permission = has_course_permission(
         &mut conn,
         user.id(),
         course.id,
@@ -27,7 +27,7 @@ async fn test_course_permission_check_student_has_no_admin_perms() {
     let student_role_id = get_course_student_role_id(&mut conn).await;
     assign_course_role(&mut conn, user.id(), course.id, student_role_id).await;
 
-    let has_permission = user_permission_course_request(
+    let has_permission = has_course_permission(
         &mut conn,
         user.id(),
         course.id,
@@ -71,7 +71,7 @@ async fn test_platform_permission_check_super_admin_has_perms() {
         .await
         .expect("failed to assign platform role");
 
-    let has_permission = user_permission_platform_request(
+    let has_permission = has_platform_permission(
         &mut conn,
         user.id(),
         &Permissions::VIEW_REWARD_AUDIT.to_string(),
@@ -86,7 +86,7 @@ async fn test_platform_permission_check_regular_user_has_no_perm() {
     let mut conn = setup_conn().await;
     let user = create_user_helper(&mut conn, "plat_perm_regular", true).await;
 
-    let has_permission = user_permission_platform_request(
+    let has_permission = has_platform_permission(
         &mut conn,
         user.id(),
         &Permissions::VIEW_REWARD_AUDIT.to_string(),

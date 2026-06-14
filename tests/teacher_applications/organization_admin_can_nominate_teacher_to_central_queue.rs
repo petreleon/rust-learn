@@ -6,7 +6,7 @@ async fn organization_admin_can_nominate_teacher_to_central_queue() {
     let applicant = create_user_helper(&mut conn, "teacher_nominee").await;
     let platform_admin = create_user_helper(&mut conn, "teacher_nomination_reviewer").await;
     force_assign_organization_role(&mut conn, nominator.id(), organization.id, "ADMIN").await;
-    assign_role_to_user(&mut conn, platform_admin.id(), Roles::ADMIN)
+    assign_platform_role_to_user(&mut conn, platform_admin.id(), Roles::ADMIN)
         .await
         .expect("failed to assign ADMIN role");
 
@@ -48,7 +48,7 @@ async fn organization_admin_can_nominate_teacher_to_central_queue() {
     .await
     .expect("platform admin should approve organization nomination");
 
-    let applicant_has_org_teacher_permission = user_permission_organization_request(
+    let applicant_has_org_teacher_permission = has_organization_permission(
         &mut conn,
         applicant.id(),
         organization.id,

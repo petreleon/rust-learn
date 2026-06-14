@@ -2,7 +2,7 @@
 async fn teacher_application_submission_is_idempotent_by_key() {
     let mut conn = setup_conn().await;
     let applicant = create_user_helper(&mut conn, "teacher_apply_idempotent").await;
-    assign_role_to_user(&mut conn, applicant.id(), Roles::USER)
+    assign_platform_role_to_user(&mut conn, applicant.id(), Roles::USER)
         .await
         .expect("failed to assign USER role");
 
@@ -45,7 +45,7 @@ async fn teacher_application_submission_is_idempotent_by_key() {
     ));
 
     let http_applicant = create_user_helper(&mut conn, "teacher_apply_http").await;
-    assign_role_to_user(&mut conn, http_applicant.id(), Roles::USER)
+    assign_platform_role_to_user(&mut conn, http_applicant.id(), Roles::USER)
         .await
         .expect("failed to assign USER role");
     let app = test::init_service(
@@ -80,7 +80,7 @@ async fn applicant_can_read_latest_application_snapshot_without_review_permissio
     let mut conn = setup_conn().await;
     let applicant = create_user_helper(&mut conn, "teacher_apply_snapshot").await;
     let stranger = create_user_helper(&mut conn, "teacher_apply_snapshot_empty").await;
-    assign_role_to_user(&mut conn, applicant.id(), Roles::USER)
+    assign_platform_role_to_user(&mut conn, applicant.id(), Roles::USER)
         .await
         .expect("failed to assign USER role");
 

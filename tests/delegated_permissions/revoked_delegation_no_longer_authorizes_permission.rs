@@ -22,7 +22,7 @@ async fn revoked_delegation_no_longer_authorizes_permission() {
     .await
     .expect("admin should delegate course approval");
 
-    assert!(user_permission_course_request(
+    assert!(has_course_permission(
         &mut conn,
         operator.id(),
         course.id,
@@ -40,7 +40,7 @@ async fn revoked_delegation_no_longer_authorizes_permission() {
     .await
     .expect("admin should revoke delegated permission");
 
-    assert!(!user_permission_course_request(
+    assert!(!has_course_permission(
         &mut conn,
         operator.id(),
         course.id,

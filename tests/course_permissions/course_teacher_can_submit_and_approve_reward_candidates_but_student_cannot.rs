@@ -14,7 +14,7 @@ async fn course_teacher_can_submit_and_approve_reward_candidates_but_student_can
         Permissions::APPROVE_STUDENT_REWARD_CANDIDATE,
         Permissions::GRADE_REWARDABLE_ASSESSMENT,
     ] {
-        let teacher_has = user_permission_course_request(
+        let teacher_has = has_course_permission(
             &mut conn,
             teacher.id(),
             course.id,
@@ -24,7 +24,7 @@ async fn course_teacher_can_submit_and_approve_reward_candidates_but_student_can
         .expect("permission query failed");
         assert!(teacher_has, "TEACHER should have {:?}", permission);
 
-        let student_has = user_permission_course_request(
+        let student_has = has_course_permission(
             &mut conn,
             student.id(),
             course.id,
@@ -35,7 +35,7 @@ async fn course_teacher_can_submit_and_approve_reward_candidates_but_student_can
         assert!(!student_has, "STUDENT should not have {:?}", permission);
     }
 
-    let student_can_view_reward_status = user_permission_course_request(
+    let student_can_view_reward_status = has_course_permission(
         &mut conn,
         student.id(),
         course.id,
@@ -73,7 +73,7 @@ async fn student_has_limited_permissions() {
 
     for p in denied_permissions {
         let has_perm =
-            user_permission_course_request(&mut conn, user.id(), course.id, &p.to_string())
+            has_course_permission(&mut conn, user.id(), course.id, &p.to_string())
                 .await
                 .expect("permission query failed");
         assert!(!has_perm, "STUDENT should NOT have permission: {:?}", p);

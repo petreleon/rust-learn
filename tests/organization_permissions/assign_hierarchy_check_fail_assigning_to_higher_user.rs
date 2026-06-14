@@ -14,7 +14,7 @@ async fn assign_hierarchy_check_fail_assigning_to_higher_user() {
 
     // 3. Member tries to assign STUDENT role to ADMIN
     // Expect Fail: Student (4) is NOT higher than Admin User (1)
-    let result = assign_role_to_user_in_organization(
+    let result = assign_organization_role_with_hierarchy(
         &mut conn,
         member_user_assigner.id(),
         admin_target.id(),

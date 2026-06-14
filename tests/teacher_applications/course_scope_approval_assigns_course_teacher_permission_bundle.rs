@@ -5,10 +5,10 @@ async fn course_scope_approval_assigns_course_teacher_permission_bundle() {
     let applicant = create_user_helper(&mut conn, "teacher_course_applicant").await;
     let admin = create_user_helper(&mut conn, "teacher_course_admin").await;
 
-    assign_role_to_user(&mut conn, applicant.id(), Roles::USER)
+    assign_platform_role_to_user(&mut conn, applicant.id(), Roles::USER)
         .await
         .expect("failed to assign USER role");
-    assign_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
+    assign_platform_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
         .await
         .expect("failed to assign ADMIN role");
 
@@ -40,7 +40,7 @@ async fn course_scope_approval_assigns_course_teacher_permission_bundle() {
     .await
     .expect("admin should approve course-scope teacher application");
 
-    let applicant_can_manage_course_settings = user_permission_course_request(
+    let applicant_can_manage_course_settings = has_course_permission(
         &mut conn,
         applicant.id(),
         course.id,

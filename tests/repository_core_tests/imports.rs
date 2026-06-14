@@ -16,12 +16,11 @@ use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
-use rust_learn::infra::postgres::access_control::authorization_checks::user_permission_course_request;
-use rust_learn::infra::postgres::access_control::authorization_checks::{
-    assign_role_to_user_in_organization, user_hierarchy_compare_organization,
-    user_permission_organization_request,
-};
-use rust_learn::infra::postgres::access_control::authorization_checks::user_permission_platform_request;
+use rust_learn::infra::postgres::access_control::hierarchy_queries::compare_organization_users;
+use rust_learn::infra::postgres::access_control::permission_queries::has_course_permission;
+use rust_learn::infra::postgres::access_control::permission_queries::has_organization_permission;
+use rust_learn::infra::postgres::access_control::permission_queries::has_platform_permission;
+use rust_learn::infra::postgres::access_control::role_assignments::assign_organization_role_with_hierarchy;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use std::cmp::Ordering;
 

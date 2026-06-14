@@ -5,7 +5,7 @@ async fn organization_crud_routes_use_management_use_case() {
     let mut conn = setup_conn(&pool).await;
 
     let admin = create_test_user(&mut conn, "org_crud_admin").await;
-    assign_role_to_user(&mut conn, admin.id(), Roles::SUPER_ADMIN)
+    assign_platform_role_to_user(&mut conn, admin.id(), Roles::SUPER_ADMIN)
         .await
         .expect("failed to assign platform super admin");
     let course = create_course(&mut conn, "Organization CRUD course").await;

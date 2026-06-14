@@ -49,7 +49,7 @@ async fn organization_student_can_request_and_course_teacher_can_approve_join() 
     assert_eq!(approved.status, COURSE_JOIN_STATUS_APPROVED);
     assert_eq!(approved.reviewer_user_id, Some(teacher.id()));
 
-    let enrolled = user_permission_course_request(
+    let enrolled = has_course_permission(
         &mut conn,
         student.id(),
         course.id,

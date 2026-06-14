@@ -3,9 +3,8 @@ use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::organizations;
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::infra::postgres::access_control::authorization_checks::{
-    assign_role_to_user_in_organization, user_permission_organization_request,
-};
+use rust_learn::infra::postgres::access_control::permission_queries::has_organization_permission;
+use rust_learn::infra::postgres::access_control::role_assignments::assign_organization_role_with_hierarchy;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 // We need to bypass the helper to setup the initial super-user/assigner
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
@@ -61,7 +60,7 @@ async fn create_user_helper(
 }
 
 // Low-level helper to setup the "God Mode" user for the tests
-// We can't use assign_role_to_user_in_organization because it requires an assigner!
+// We can't use assign_organization_role_with_hierarchy because it requires an assigner!
 async fn force_assign_role(
     conn: &mut AsyncPgConnection,
     user_id: i32,
@@ -93,7 +92,7 @@ async fn org_admin_has_permissions() {
     ];
 
     for p in allowed_permissions {
-        let has_perm = user_permission_organization_request(
+        let has_perm = has_organization_permission(
             &mut conn,
             subject_user.id(),
             org.id,

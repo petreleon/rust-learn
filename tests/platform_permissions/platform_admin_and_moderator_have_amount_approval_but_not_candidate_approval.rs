@@ -21,15 +21,15 @@ async fn platform_admin_and_moderator_have_amount_approval_but_not_candidate_app
     .await
     .expect("failed to create moderator user");
 
-    assign_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
+    assign_platform_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
         .await
         .expect("failed to assign ADMIN role");
-    assign_role_to_user(&mut conn, moderator.id(), Roles::MODERATOR)
+    assign_platform_role_to_user(&mut conn, moderator.id(), Roles::MODERATOR)
         .await
         .expect("failed to assign MODERATOR role");
 
     for user_id in [admin.id(), moderator.id()] {
-        let can_approve_amount = user_permission_platform_request(
+        let can_approve_amount = has_platform_permission(
             &mut conn,
             user_id,
             &Permissions::APPROVE_REWARD_AMOUNT.to_string(),
@@ -41,7 +41,7 @@ async fn platform_admin_and_moderator_have_amount_approval_but_not_candidate_app
             "platform reviewer should approve amount"
         );
 
-        let can_approve_candidate = user_permission_platform_request(
+        let can_approve_candidate = has_platform_permission(
             &mut conn,
             user_id,
             &Permissions::APPROVE_STUDENT_REWARD_CANDIDATE.to_string(),
@@ -54,7 +54,7 @@ async fn platform_admin_and_moderator_have_amount_approval_but_not_candidate_app
         );
     }
 
-    let admin_can_block_teacher = user_permission_platform_request(
+    let admin_can_block_teacher = has_platform_permission(
         &mut conn,
         admin.id(),
         &Permissions::BLOCK_REWARD_TEACHER.to_string(),
@@ -66,7 +66,7 @@ async fn platform_admin_and_moderator_have_amount_approval_but_not_candidate_app
         "ADMIN should be able to block reward fraud"
     );
 
-    let moderator_can_block_teacher = user_permission_platform_request(
+    let moderator_can_block_teacher = has_platform_permission(
         &mut conn,
         moderator.id(),
         &Permissions::BLOCK_REWARD_TEACHER.to_string(),

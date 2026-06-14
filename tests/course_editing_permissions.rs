@@ -7,8 +7,8 @@ use rust_learn::application::learning::update_course::{
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::schema::courses;
 use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::infra::postgres::access_control::authorization_checks::assign_role_to_user;
 use rust_learn::infra::postgres::access_control::course_role_records;
+use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
 use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::learning::course_update_use_case::PostgresCourseUpdateUseCase;
@@ -103,7 +103,7 @@ async fn platform_modify_course_permission_can_edit_without_course_role() {
     let mut conn = setup_conn(&pool).await;
     let platform_admin = create_user_helper(&mut conn, "course_edit_platform").await;
     let course = create_course(&mut conn, &unique_string("PlatformEditableCourse")).await;
-    assign_role_to_user(&mut conn, platform_admin.id(), Roles::SUPER_ADMIN)
+    assign_platform_role_to_user(&mut conn, platform_admin.id(), Roles::SUPER_ADMIN)
         .await
         .expect("failed to assign SUPER_ADMIN role");
     drop(conn);

@@ -35,7 +35,7 @@ async fn test_org_permission_check_admin_has_admin_perms() {
     let admin_role_id = get_org_admin_role_id(&mut conn).await;
     assign_org_role(&mut conn, user.id(), org.id, admin_role_id).await;
 
-    let has_permission = user_permission_organization_request(
+    let has_permission = has_organization_permission(
         &mut conn,
         user.id(),
         org.id,
@@ -52,7 +52,7 @@ async fn test_org_permission_check_stranger_has_no_perms() {
     let user = create_user_helper(&mut conn, "org_perm_stranger", true).await;
     let org = create_organization(&mut conn, &unique_string("org_perm_stranger")).await;
 
-    let has_permission = user_permission_organization_request(
+    let has_permission = has_organization_permission(
         &mut conn,
         user.id(),
         org.id,
@@ -74,7 +74,7 @@ async fn test_org_hierarchy_admin_above_member() {
     assign_org_role(&mut conn, admin.id(), org.id, admin_role_id).await;
     assign_org_role(&mut conn, member.id(), org.id, member_role_id).await;
 
-    let cmp = user_hierarchy_compare_organization(&mut conn, org.id, admin.id(), member.id())
+    let cmp = compare_organization_users(&mut conn, org.id, admin.id(), member.id())
         .await
         .unwrap();
     assert_eq!(cmp, Ordering::Greater);
@@ -90,7 +90,7 @@ async fn test_org_hierarchy_equal_users() {
     assign_org_role(&mut conn, user1.id(), org.id, admin_role_id).await;
     assign_org_role(&mut conn, user2.id(), org.id, admin_role_id).await;
 
-    let cmp = user_hierarchy_compare_organization(&mut conn, org.id, user1.id(), user2.id())
+    let cmp = compare_organization_users(&mut conn, org.id, user1.id(), user2.id())
         .await
         .unwrap();
     assert_eq!(cmp, Ordering::Equal);
@@ -106,7 +106,7 @@ async fn test_org_role_assignment_admin_can_assign_member() {
     assign_org_role(&mut conn, admin.id(), org.id, admin_role_id).await;
 
     let result =
-        assign_role_to_user_in_organization(&mut conn, admin.id(), member.id(), org.id, "STUDENT")
+        assign_organization_role_with_hierarchy(&mut conn, admin.id(), member.id(), org.id, "STUDENT")
             .await;
     assert!(result.is_ok());
 }

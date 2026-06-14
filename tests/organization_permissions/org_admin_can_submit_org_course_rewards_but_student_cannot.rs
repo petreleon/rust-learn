@@ -9,7 +9,7 @@ async fn org_admin_can_submit_org_course_rewards_but_student_cannot() {
     force_assign_role(&mut conn, admin.id(), org.id, "ADMIN").await;
     force_assign_role(&mut conn, student.id(), org.id, "STUDENT").await;
 
-    let admin_can_submit = user_permission_organization_request(
+    let admin_can_submit = has_organization_permission(
         &mut conn,
         admin.id(),
         org.id,
@@ -22,7 +22,7 @@ async fn org_admin_can_submit_org_course_rewards_but_student_cannot() {
         "organization ADMIN should submit org reward events"
     );
 
-    let student_can_submit = user_permission_organization_request(
+    let student_can_submit = has_organization_permission(
         &mut conn,
         student.id(),
         org.id,
@@ -49,7 +49,7 @@ async fn org_member_has_limited_permissions() {
     let denied_permissions = [Permissions::MANAGE_ORG_SETTINGS];
 
     for p in denied_permissions {
-        let has_perm = user_permission_organization_request(
+        let has_perm = has_organization_permission(
             &mut conn,
             subject_user.id(),
             org.id,
@@ -76,7 +76,7 @@ async fn assign_hierarchy_check_success() {
 
     // 3. Admin assigns STUDENT role to fresh user
     // Expect Success: Admin (1) is higher than Student role (4), and Admin (1) is higher than user (no role)
-    let result = assign_role_to_user_in_organization(
+    let result = assign_organization_role_with_hierarchy(
         &mut conn,
         admin_user.id(),
         member_user.id(),
@@ -102,7 +102,7 @@ async fn assign_hierarchy_check_fail_assigning_higher_role() {
 
     // 3. Member tries to assign ADMIN
     // Expect Fail: Student (4) is NOT higher than Admin role (1)
-    let result = assign_role_to_user_in_organization(
+    let result = assign_organization_role_with_hierarchy(
         &mut conn,
         member_user_assigner.id(),
         new_user.id(),

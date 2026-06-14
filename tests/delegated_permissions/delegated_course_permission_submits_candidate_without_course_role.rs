@@ -67,7 +67,7 @@ async fn delegated_course_permission_submits_candidate_without_course_role() {
         .expect("delegated permissions should be countable");
     assert_eq!(active_delegation_count, 1);
 
-    assert!(user_permission_course_request(
+    assert!(has_course_permission(
         &mut conn,
         operator.id(),
         course.id,
@@ -75,7 +75,7 @@ async fn delegated_course_permission_submits_candidate_without_course_role() {
     )
     .await
     .expect("course permission lookup should succeed"));
-    assert!(!user_permission_course_request(
+    assert!(!has_course_permission(
         &mut conn,
         operator.id(),
         other_course.id,

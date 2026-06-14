@@ -10,8 +10,8 @@ use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_PLATFORM;
 use rust_learn::domain::kyc::audit::{KYC_AUDIT_EVENT_REVIEW_DECISION, KYC_AUDIT_EVENT_SUBMITTED};
 use rust_learn::domain::kyc::submission::{KYC_STATUS_REJECTED, KYC_STATUS_SUBMITTED};
-use rust_learn::infra::postgres::access_control::authorization_checks::assign_role_to_user;
 use rust_learn::infra::postgres::access_control::delegated_permissions::create_delegated_permission;
+use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::kyc::kyc_use_case::PostgresKycUseCase;
 use rust_learn::models::delegated_permission::NewDelegatedPermission;
@@ -64,7 +64,7 @@ async fn kyc_submission_and_review_write_permission_scoped_audit_events() {
     let learner = create_user_helper(&mut conn, "kyc_audit_learner").await;
     let admin = create_user_helper(&mut conn, "kyc_audit_admin").await;
     let delegated_reviewer = create_user_helper(&mut conn, "kyc_audit_delegate").await;
-    assign_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
+    assign_platform_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
         .await
         .expect("failed to assign ADMIN role");
     create_delegated_permission(

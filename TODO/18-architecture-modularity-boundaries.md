@@ -1173,56 +1173,56 @@ remaining gaps.
 | 275 | Moved JWT request claims from `models` into pure `domain/identity`, repointed HTTP extractors, middleware, and token infra, and proved the HTTP ring no longer imports models, DB, schema, repositories, services, or Diesel. |
 | 276 | Routed platform, course, and organization permission middlewares through an application access-control permission-check use case instead of direct Postgres authorization helper calls. |
 | 277 | Routed platform and organization hierarchy middlewares through an application access-control hierarchy-check use case, moved hierarchy-level ordering semantics into pure domain, and made organization hierarchy middleware mountable with normal Actix route wrapping. |
+| 278 | Deleted the mixed `infra/postgres/access_control/authorization_checks` facade after splitting it into focused permission-query, hierarchy-query, and role-assignment modules and repointing integration fixtures to those owners. |
 
 ## Recent Slice Evidence
 
-Batch 277: move route hierarchy middleware checks behind the application
-access-control boundary.
+Batch 278: split the mixed access-control Postgres helper facade.
 
-- [x] Added `domain/access_control/hierarchy.rs` as the pure owner of
-      hierarchy-level ordering semantics: lower numeric hierarchy levels outrank
-      higher numbers, assigned roles outrank missing roles, and two missing
-      roles compare equal.
-- [x] Added `application/access_control/compare_hierarchy.rs` with a
-      middleware-facing `HierarchyCheckUseCase`, `HierarchyScope`, and
-      hierarchy-check error contract.
-- [x] Added `infra/postgres/access_control/hierarchy_check_use_case.rs`,
-      implementing that application trait for the existing `DbPool` and routing
-      platform, organization, and course level reads to Postgres hierarchy
-      records before applying the domain comparison rule.
-- [x] Repointed `PlatformHierarchyMiddleware` and
-      `OrganizationHierarchyMiddleware` away from direct
-      `authorization_checks::user_hierarchy_compare_*` calls. They now depend on
-      the application hierarchy-check contract while preserving the existing
-      pool-based route setup.
-- [x] Fixed `OrganizationHierarchyMiddleware` so it no longer requires a
-      cloneable inner Actix service, making it mountable with normal
-      `Route::wrap` usage like the other route middleware.
-- [x] Added direct middleware behavior tests for platform and organization
-      hierarchy allow/deny paths using minimal protected routes and real test DB
-      role records.
-- [x] Boundary scans prove middlewares no longer import or call direct Postgres
-      authorization helpers. The only remaining
-      `user_hierarchy_compare_*` matches are legacy helper definitions inside
-      `infra/postgres/access_control/authorization_checks.rs`.
+- [x] Deleted `infra/postgres/access_control/authorization_checks.rs`, which
+      had mixed permission reads, hierarchy comparisons, platform role
+      assignment helpers, platform permission assignment helpers, and
+      organization hierarchy-aware assignment helpers in one vague module.
+- [x] Added `infra/postgres/access_control/permission_queries.rs` as the public
+      Postgres fixture/query owner for platform, course, and organization
+      permission checks over the internal `permission_checks` implementation.
+- [x] Added `infra/postgres/access_control/hierarchy_queries.rs` as the public
+      hierarchy comparison query owner for platform, organization, and course
+      user comparisons using the domain hierarchy comparison rule.
+- [x] Added `infra/postgres/access_control/role_assignments.rs` as the public
+      role/permission assignment helper owner for integration fixtures and
+      hierarchy-aware organization role assignment.
+- [x] Repointed integration fixtures from old
+      `authorization_checks::{user_permission_*_request,
+      user_hierarchy_compare_*, assign_role_to_user,
+      assign_permission_to_role_platform, assign_role_to_user_in_organization}`
+      names to focused `permission_queries`, `hierarchy_queries`, and
+      `role_assignments` modules.
+- [x] Boundary scans prove no `authorization_checks`, old
+      `user_permission_*_request`, old `user_hierarchy_compare*`, or old mixed
+      assignment-helper names remain in `src` or `tests`; the file is removed
+      from disk.
 - [x] Keep changed Rust files under the manual 180-line ceiling:
-      domain hierarchy 31 lines, hierarchy contract 24, Postgres hierarchy
-      use case 62, platform hierarchy middleware 148, organization hierarchy
-      middleware 161, and the new middleware test file 109.
-- [x] Self-critique: permission and hierarchy middleware now use application
-      access-control contracts, but the broader authorization item remains open
-      until legacy helper surfaces and frontend capability duplication are
-      retired or backed by one backend-derived capability contract.
+      permission queries 30 lines, hierarchy queries 47, role assignments 61,
+      access-control Postgres `mod.rs` 18, and touched fixture import buckets at
+      or below 177 lines.
+- [x] Self-critique: this removes one legacy helper surface and makes the
+      access-control Postgres layer more granular, but the broader
+      authorization item remains open until frontend capabilities come from the
+      backend and direct infra authorization composition is either accepted as
+      adapter-local or routed through a single policy API.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib domain::access_control::hierarchy`,
-      `./scripts/run-host-tests.sh cargo test --test middleware_access_control hierarchy_middleware_blocks_lower_actor`,
-      `./scripts/run-host-tests.sh cargo test --test middleware_access_control`,
-      `./scripts/run-host-tests.sh cargo test --test repository_core_tests test_org_hierarchy`,
       `./scripts/run-host-tests.sh cargo check --lib`,
+      focused affected suites:
+      `platform_permissions`, `platform_permissions_unit`,
+      `course_permissions`, `organization_permissions`,
+      `repository_core_tests`, `delegated_permissions`, `course_join_requests`,
+      `reward_policies`, `teacher_applications`, `kyc_review`,
+      `course_editing_permissions`, `organization_management`, and
+      `organization_teacher_applications`, plus
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, direct middleware authorization-helper scans, and
-      file-size checks.
+      `git diff --check`, old-helper scans, and file-size checks.
 
 ## Legacy Transition Rules
 

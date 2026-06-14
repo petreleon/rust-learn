@@ -3,7 +3,7 @@ async fn platform_admin_creates_versioned_active_reward_policies() {
     let pool = setup_pool();
     let mut conn = setup_conn(&pool).await;
     let admin = create_user_helper(&mut conn, "reward_policy_admin").await;
-    assign_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
+    assign_platform_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
         .await
         .expect("failed to assign ADMIN role");
     drop(conn);
@@ -58,7 +58,7 @@ async fn platform_moderator_cannot_set_reward_policy() {
     let pool = setup_pool();
     let mut conn = setup_conn(&pool).await;
     let moderator = create_user_helper(&mut conn, "reward_policy_moderator").await;
-    assign_role_to_user(&mut conn, moderator.id(), Roles::MODERATOR)
+    assign_platform_role_to_user(&mut conn, moderator.id(), Roles::MODERATOR)
         .await
         .expect("failed to assign MODERATOR role");
     drop(conn);
@@ -77,7 +77,7 @@ async fn course_policy_requires_course_scope_and_can_explicitly_allow_mint() {
     let admin = create_user_helper(&mut conn, "reward_policy_course_admin").await;
     let course = create_course(&mut conn, &unique_string("RewardPolicyCourse")).await;
     let organization = create_organization(&mut conn, &unique_string("RewardPolicyOrg")).await;
-    assign_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
+    assign_platform_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
         .await
         .expect("failed to assign ADMIN role");
     drop(conn);

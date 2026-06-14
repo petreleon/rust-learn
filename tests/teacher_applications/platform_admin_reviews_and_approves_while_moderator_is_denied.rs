@@ -5,13 +5,13 @@ async fn platform_admin_reviews_and_approves_while_moderator_is_denied() {
     let admin = create_user_helper(&mut conn, "teacher_review_admin").await;
     let moderator = create_user_helper(&mut conn, "teacher_review_moderator").await;
 
-    assign_role_to_user(&mut conn, applicant.id(), Roles::USER)
+    assign_platform_role_to_user(&mut conn, applicant.id(), Roles::USER)
         .await
         .expect("failed to assign USER role");
-    assign_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
+    assign_platform_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
         .await
         .expect("failed to assign ADMIN role");
-    assign_role_to_user(&mut conn, moderator.id(), Roles::MODERATOR)
+    assign_platform_role_to_user(&mut conn, moderator.id(), Roles::MODERATOR)
         .await
         .expect("failed to assign MODERATOR role");
 
@@ -103,7 +103,7 @@ async fn platform_admin_reviews_and_approves_while_moderator_is_denied() {
         Some(i64::from(admin.id()))
     );
 
-    let applicant_has_teacher_bundle_permission = user_permission_platform_request(
+    let applicant_has_teacher_bundle_permission = has_platform_permission(
         &mut conn,
         applicant.id(),
         &Permissions::GENERATE_REPORT.to_string(),
