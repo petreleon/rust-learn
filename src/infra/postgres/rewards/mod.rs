@@ -46,6 +46,7 @@ pub mod reward_payout_plan_mappers;
 pub mod reward_payout_plan_policy_lookup;
 pub mod reward_payout_plan_store;
 pub mod reward_payout_plan_use_case;
+pub mod reward_payout_records;
 pub mod reward_policy_activation;
 pub mod reward_policy_mappers;
 pub mod reward_policy_records;

@@ -151,3 +151,18 @@ pub(super) async fn update_amount_decision(
         .get_result(conn)
         .await
 }
+
+pub(super) async fn update_candidate_status(
+    conn: &mut AsyncPgConnection,
+    candidate_id: i64,
+    status: &str,
+    updated_at: DateTime<Utc>,
+) -> QueryResult<RewardCandidate> {
+    diesel::update(reward_candidates::table.find(candidate_id))
+        .set((
+            reward_candidates::status.eq(status),
+            reward_candidates::updated_at.eq(updated_at),
+        ))
+        .get_result(conn)
+        .await
+}
