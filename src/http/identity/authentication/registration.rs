@@ -1,20 +1,13 @@
+use std::sync::Arc;
+
 use actix_web::{post, web, HttpResponse, Responder};
-use bcrypt::{non_truncating_hash, DEFAULT_COST};
 use chrono::NaiveDate;
-use diesel::result::Error as DieselError;
-use diesel_async::AsyncConnection;
 use serde::Deserialize;
 
-use super::password_policy::validate_password_strength;
-use super::support::{normalize_email, registration_db_error_response};
-use crate::db;
-use crate::models::authentication::Authentication;
-use crate::models::email_verification_token::EmailVerificationToken;
-use crate::models::role::PlatformRole;
-use crate::models::user::{NewUser, User};
-use crate::models::user_role_platform::UserRolePlatform;
-use crate::utils::email::{
-    generate_verification_token, print_mock_verification_email, verification_token_hash,
+use super::support::{email_log_hash, normalize_email};
+use crate::application::identity::password_policy::validate_password_strength;
+use crate::application::identity::register::{
+    RegisterCommand, RegisterError, RegisterOutcome, RegisterUseCase,
 };
 
 #[derive(Deserialize)]
@@ -27,7 +20,7 @@ pub(super) struct RegisterRequest {
 
 #[post("/register")]
 pub(super) async fn register(
-    pool: web::Data<db::DbPool>,
+    use_case: web::Data<Arc<dyn RegisterUseCase>>,
     req: web::Json<RegisterRequest>,
 ) -> impl Responder {
     let email = normalize_email(&req.email);
@@ -39,71 +32,48 @@ pub(super) async fn register(
         return HttpResponse::BadRequest().body(message);
     }
 
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    let hashed_password = match non_truncating_hash(&req.password, DEFAULT_COST) {
-        Ok(password_hash) => password_hash,
-        Err(err) => {
-            log::error!("event=auth_password_hash_failed error={}", err);
-            return HttpResponse::InternalServerError().body("Failed to register user");
-        }
-    };
-
-    let verification_token = match generate_verification_token() {
-        Ok(token) => token,
-        Err(err) => {
-            log::error!(
-                "event=email_verification_token_generate_failed error={}",
-                err
-            );
-            return HttpResponse::InternalServerError()
-                .body("Failed to create email verification token");
-        }
-    };
-    let token_hash = verification_token_hash(&verification_token);
-
-    let new_user_data = NewUser {
-        name: req.name.to_string(),
-        email,
-        date_of_birth: req.date_of_birth,
-        created_at: chrono::Utc::now().naive_utc(),
-        kyc_verified: false,
-        email_verified: false,
-    };
-
-    let inserted_user = match conn
-        .transaction::<_, DieselError, _>(|conn| {
-            Box::pin(async move {
-                let inserted_user = User::create(new_user_data, conn).await?;
-                let role_id = PlatformRole::find_by_name("STUDENT", conn).await?;
-                UserRolePlatform::assign(conn, inserted_user.id(), role_id).await?;
-
-                let new_auth = Authentication {
-                    user_id: inserted_user.id(),
-                    type_authentication: "password".to_string(),
-                    info_auth: hashed_password,
-                };
-                Authentication::create(new_auth, conn).await?;
-                EmailVerificationToken::create_for_user(conn, inserted_user.id(), token_hash)
-                    .await?;
-
-                Ok(inserted_user)
-            })
+    match use_case
+        .register(RegisterCommand {
+            email: email.clone(),
+            password: req.password.to_string(),
+            name: req.name.to_string(),
+            date_of_birth: req.date_of_birth,
         })
         .await
     {
-        Ok(user) => user,
-        Err(err) => return registration_db_error_response(err, &req.email),
-    };
+        Ok(RegisterOutcome::Registered) => HttpResponse::Ok().body("Registration successful"),
+        Err(error) => register_error_response(error, &email),
+    }
+}
 
-    print_mock_verification_email(
-        &inserted_user.email,
-        &inserted_user.name,
-        &verification_token,
-    );
-
-    HttpResponse::Ok().body("Registration successful")
+fn register_error_response(error: RegisterError, email: &str) -> HttpResponse {
+    match error {
+        RegisterError::InvalidPassword(message) => HttpResponse::BadRequest().body(message),
+        RegisterError::Connection(_) => {
+            HttpResponse::InternalServerError().body("Failed to get DB connection")
+        }
+        RegisterError::PasswordHash(error) => {
+            log::error!("event=auth_password_hash_failed error={error}");
+            HttpResponse::InternalServerError().body("Failed to register user")
+        }
+        RegisterError::TokenGeneration(error) => {
+            log::error!("event=email_verification_token_generate_failed error={error}");
+            HttpResponse::InternalServerError().body("Failed to create email verification token")
+        }
+        RegisterError::EmailAlreadyRegistered => {
+            log::warn!(
+                "event=auth_register_failed reason=email_already_registered email_hash={}",
+                email_log_hash(email)
+            );
+            HttpResponse::Conflict().body("Email already registered")
+        }
+        RegisterError::DefaultStudentRoleMissing => {
+            log::error!("event=auth_register_failed reason=default_student_role_missing");
+            HttpResponse::InternalServerError().body("Failed to register user")
+        }
+        RegisterError::Store(error) => {
+            log::error!("event=auth_register_failed reason=database_error error={error}");
+            HttpResponse::InternalServerError().body("Failed to register user")
+        }
+    }
 }

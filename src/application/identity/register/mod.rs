@@ -1,0 +1,21 @@
+mod command;
+mod error;
+mod handler;
+mod mailer;
+mod outcome;
+mod password;
+mod record;
+mod service;
+mod store;
+mod token;
+
+pub use command::RegisterCommand;
+pub use error::RegisterError;
+pub use handler::register;
+pub use mailer::RegistrationEmailSender;
+pub use outcome::RegisterOutcome;
+pub use password::RegistrationPasswordHasher;
+pub use record::{RegisteredUser, RegistrationAccount};
+pub use service::RegisterUseCase;
+pub use store::RegisterStore;
+pub use token::RegistrationTokenGenerator;

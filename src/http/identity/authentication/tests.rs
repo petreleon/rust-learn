@@ -1,7 +1,9 @@
 use super::{
     auth_scope,
-    password_policy::{validate_password_strength, PASSWORD_TOO_LONG_MESSAGE},
     support::{email_log_hash, normalize_email},
+};
+use crate::application::identity::password_policy::{
+    validate_password_strength, PASSWORD_TOO_LONG_MESSAGE,
 };
 use crate::models::user_jwt::UserJWT;
 use crate::utils::jwt_utils::create_jwt;

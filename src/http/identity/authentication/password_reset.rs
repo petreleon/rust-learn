@@ -5,8 +5,8 @@ use diesel::result::Error as DieselError;
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde::Deserialize;
 
-use super::password_policy::validate_password_strength;
 use super::support::{email_log_hash, normalize_email};
+use crate::application::identity::password_policy::validate_password_strength;
 use crate::db;
 use crate::models::password_reset_token::{PasswordResetResult, PasswordResetToken};
 use crate::models::user::User;

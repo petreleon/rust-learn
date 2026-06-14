@@ -1,6 +1,6 @@
 const MIN_PASSWORD_LENGTH: usize = 12;
 const MAX_BCRYPT_PASSWORD_BYTES: usize = 71;
-pub(super) const PASSWORD_TOO_LONG_MESSAGE: &str =
+pub const PASSWORD_TOO_LONG_MESSAGE: &str =
     "Password must be at most 71 UTF-8 bytes for bcrypt hashing";
 
 pub fn validate_password_strength(password: &str) -> Result<(), &'static str> {

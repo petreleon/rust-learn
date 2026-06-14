@@ -1,7 +1,6 @@
 mod email_verification;
 mod jwks;
 mod login;
-mod password_policy;
 mod password_reset;
 mod registration;
 mod session;
@@ -14,7 +13,6 @@ mod tests;
 use actix_web::web;
 
 pub use jwks::jwks;
-pub use password_policy::validate_password_strength;
 
 pub fn auth_scope() -> actix_web::Scope {
     web::scope("/auth")
