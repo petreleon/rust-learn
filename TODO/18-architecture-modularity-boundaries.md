@@ -1022,36 +1022,38 @@ remaining gaps.
 | 124 | Moved `GET /user` behind an injected `application/identity/list_users::UserListUseCase`, a Postgres user-list use-case wrapper, `bootstrap/identity_wiring`, and a DB-free `http/identity/user_list` handler; central app-data registration now delegates identity and teacher-application use-case bundles to context wiring helpers. |
 | 125 | Moved `GET /user/{id}` behind `application/identity/get_user_profile` command/service/authorization behavior, a Postgres profile-read use-case wrapper, `UserProfileAccessStore` permission port, identity app-data wiring, and a DB-free HTTP profile handler; `http/identity/user_handlers.rs` no longer imports `DbPool`, repositories, infra, or Diesel. |
 | 126 | Moved `POST /user/{id}/role` behind `application/identity/assign_platform_role`, a Postgres hierarchy-aware role-assignment store/use-case, best-effort platform role notification delivery inside infra, identity app-data wiring, and a DB-free HTTP assignment handler; `http/identity/platform_role_assignment.rs` no longer imports `DbPool`, repositories, Diesel, or `NotificationsState`. |
+| 127 | Moved `POST /auth/login` behind `application/identity/login`, Postgres credential lookup, bcrypt password verification, JWT token issuance adapters, identity app-data wiring, and a DB-free HTTP login handler; login keeps existing response semantics for invalid credentials, unverified email, connection failure, and JWT creation failure. |
 
 ## Recent Slice Evidence
 
-Slice 126: move platform role assignment behind an injected use case.
+Slice 127: move login behind an injected use case.
 
-- [x] Add `application/identity/assign_platform_role` with command, error,
-      outcome, store, service, and fake-tested handler behavior for assignment
-      delegation and store-error propagation.
-- [x] Add a Postgres platform role-assignment store that maps the existing
-      hierarchy-aware repository errors into application errors:
-      hierarchy violation, role not found, and database failure.
-- [x] Add a Postgres platform role-assignment use case that owns DB connection
-      access, delegates to the application handler, and sends the existing
-      platform role-assignment notification best-effort after success.
-- [x] Register the use case through `bootstrap/identity_wiring` and adapt
-      direct identity route test harnesses to provide the same app-data as
-      production.
-- [x] Rework `POST /user/{id}/role` so HTTP authenticates the actor, builds the
-      command, maps application errors to the existing response bodies, and no
-      longer imports `DbPool`, repositories, Diesel, or `NotificationsState`.
-- [x] Self-critique: identity authentication routes still open DB pools and use
-      Diesel directly for login, registration, email verification, and password
-      reset; migrate those as separate auth slices because they touch password,
-      token, and transaction semantics.
-- [x] Prove behavior with platform role-assignment application unit tests,
-      focused platform permission and hierarchy route contracts, API route
-      reachability, formatting, line-count checks, `git diff --check`, and
-      boundary scans proving identity `/user` HTTP handlers are DB-free while
-      the new application assignment module does not import Actix, Diesel, DB
-      pools, repositories, infra, models, services, utils, or config.
+- [x] Add `application/identity/login` with command, output, error, credential
+      record, store, password-verifier, token-issuer, and service contracts.
+- [x] Move login decision behavior into a fake-tested application handler:
+      missing user, bad password, missing password authentication, unverified
+      email, and successful JWT output.
+- [x] Add Postgres login store for `User::find_with_password_auth`, preserving
+      existing invalid-credentials behavior for lookup misses or query errors.
+- [x] Add bcrypt password-verifier and JWT token-issuer adapters under
+      `infra/postgres/identity`, keeping bcrypt and `utils::jwt_utils` outside
+      application and HTTP.
+- [x] Add a Postgres login use case that owns pool access and delegates to the
+      application login handler with the concrete security adapters.
+- [x] Register login through `bootstrap/identity_wiring`, update auth-flow test
+      app-data wiring, and rework `POST /auth/login` so HTTP normalizes email,
+      builds the command, maps application errors, and no longer imports
+      `DbPool`, Diesel, `User`, bcrypt, or JWT utilities.
+- [x] Self-critique: registration, email verification, forgot-password, and
+      reset-password still own DB/token/transaction behavior in HTTP; migrate
+      them as separate auth slices to avoid mixing account creation and token
+      consumption semantics.
+- [x] Prove behavior with login application unit tests, focused auth-flow login
+      contracts, the full `authentication_flow` suite, API route reachability,
+      formatting, line-count checks, `git diff --check`, and boundary scans
+      proving the login HTTP handler is DB-free while the login application
+      module does not import Actix, Diesel, DB pools, repositories, infra,
+      models, services, utils, config, bcrypt, or JWT crates.
 
 ## Legacy Transition Rules
 
@@ -1210,6 +1212,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] `POST /user/{id}/role` now uses an injected identity platform
       role-assignment use case, a Postgres hierarchy-aware adapter, and
       DB-free HTTP error mapping.
+- [x] `POST /auth/login` now uses an injected identity login use case with
+      Postgres credential lookup, bcrypt verification, and JWT issuance behind
+      infra adapters.
 - [x] `http/identity/authentication` owns `/auth`, JWKS, login, registration,
       email verification, password reset, and auth session helper routes; the
       legacy `api/authentication` module has been deleted.
