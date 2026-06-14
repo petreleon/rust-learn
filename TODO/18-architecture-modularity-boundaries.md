@@ -1140,31 +1140,28 @@ remaining gaps.
 | 242 | Split reward candidate lifecycle tests by concern into reconciliation, wallet-credit, and submission modules so the domain lifecycle boundary can keep growing under the manual file-size ceiling. |
 | 243 | Moved platform reward-dashboard candidate-status bucket assignment into the reporting application layer, leaving Postgres to parse DB status strings into the domain enum before applying report shape. |
 | 244 | Moved platform reward-dashboard reconciliation mismatch classification and scan-status ownership into the reporting application layer, leaving Postgres to load records and pass typed facts. |
+| 245 | Moved wallet-audit reward reconciliation classification from `domain/wallet/audit` into `domain/rewards/candidate/reconciliation`, leaving wallet infra as a consumer of reward-domain facts. |
 
 ## Recent Slice Evidence
 
-Slice 244: move platform reward-dashboard reconciliation mismatch classification to reporting application.
+Slice 245: move wallet-audit reward reconciliation classification to reward domain.
 
-- [x] Add `RewardReconciliationMismatchFacts`, a typed mismatch enum, and
-      `classify_reward_reconciliation_mismatch` under
-      `application/reporting/platform_reward_dashboard`.
-- [x] Move the dashboard reconciliation scan-status set into the reporting
-      application layer so infra no longer spells raw reward status constants.
-- [x] Repoint the Postgres reconciliation adapter to parse candidate DB status
-      strings into `RewardCandidateStatus`, load payout/wallet-credit facts,
-      and call the pure application classifier.
-- [x] Preserve dashboard behavior for wallet-credited candidates with a
-      notification record: they no longer produce a mismatch row.
-- [x] Cover token-confirmation, wallet-credit, notification,
-      needs-reconciliation, and ignored non-mismatch states with pure tests.
-- [x] Self-critique: the new reconciliation helper is 167 lines, still under
-      the manual ceiling but close; split its tests before adding more cases.
-      A related wallet-audit reconciliation classifier still lives under
-      `domain/wallet/audit` and should move toward reward-domain ownership in a
-      later slice.
+- [x] Add `domain/rewards/candidate/reconciliation` for the wallet-audit
+      reward candidate reconciliation facts and status classifier.
+- [x] Move the existing pure classifier tests with the rule so missing payout,
+      missing wallet credit, notification gaps, pending, closed, reconciled,
+      and unknown statuses remain covered.
+- [x] Repoint the wallet-audit Postgres adapter to consume reward-domain
+      reconciliation facts instead of importing from `domain/wallet/audit`.
+- [x] Delete the now-empty `domain/wallet/audit` module so wallet no longer
+      owns reward candidate reconciliation vocabulary.
+- [x] Self-critique: this fixes the cross-context ownership problem for wallet
+      audit, but the platform reward-dashboard mismatch classifier still has a
+      report-specific subset in application; that is acceptable while its
+      output semantics differ from the full audit reconciliation status.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib platform_reward_dashboard::reconciliation`,
-      `./scripts/run-host-tests.sh cargo test --test reporting_exports`,
+      `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate::reconciliation`,
+      `./scripts/run-host-tests.sh cargo test --test wallet_linking`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,

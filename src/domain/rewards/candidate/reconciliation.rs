@@ -1,4 +1,4 @@
-use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use super::status::RewardCandidateStatus;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RewardReconciliationFacts<'a> {
