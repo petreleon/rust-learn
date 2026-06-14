@@ -1,6 +1,7 @@
 mod error;
 mod handler;
 mod output;
+mod reward_approvals;
 mod service;
 pub mod store;
 mod teacher_applications;
@@ -12,6 +13,9 @@ pub use handler::{
     load_platform_wallet_credit_exports,
 };
 pub use output::*;
+pub(crate) use reward_approvals::{
+    platform_reward_approval_export_row, PlatformRewardApprovalExportFact,
+};
 pub use service::PlatformCsvExportsUseCase;
 pub(crate) use teacher_applications::{
     platform_teacher_application_export_row, PlatformTeacherApplicationExportFact,

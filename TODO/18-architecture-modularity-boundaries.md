@@ -1160,26 +1160,28 @@ remaining gaps.
 | 262 | Split organization-summary identity, course, member, wallet, course-role, and Diesel mapper reads into focused Postgres helpers. |
 | 263 | Moved platform CSV export Diesel error mapping into a focused Postgres mapper module, leaving the CSV store as orchestration only. |
 | 264 | Moved platform teacher-application CSV row assembly into the reporting application layer behind a teacher-application export fact. |
+| 265 | Moved platform reward-approval CSV row assembly into the reporting application layer behind a reward-approval export fact. |
 
 ## Recent Slice Evidence
 
-Slice 264: move platform teacher-application CSV row assembly to application.
+Slice 265: move platform reward-approval CSV row assembly to application.
 
-- [x] Add `application/reporting/platform_csv_exports/teacher_applications`
-      with `PlatformTeacherApplicationExportFact` and
-      `platform_teacher_application_export_row`.
-- [x] Move teacher-application CSV `decision_reason` defaulting and
-      `portfolio_links` stringification out of the Postgres query helper.
-- [x] Repoint `platform_csv_export_teacher_applications` to load
-      `TeacherApplication` rows, convert DB models to application facts, and
-      call the application row assembler.
-- [x] Preserve existing behavior: rows remain ordered by `created_at desc`,
-      capped at 1000, and emitted with the same CSV-visible field values.
-- [x] Keep changed Rust files small: application teacher-application CSV module
-      99 lines, module export 18 lines, and Postgres helper 47 lines.
-- [x] Self-critique: the other platform CSV export datasets still perform row
-      assembly in Postgres helpers; future slices should move reward approvals,
-      delegated permissions, wallet credits, and token payouts one at a time.
+- [x] Add `application/reporting/platform_csv_exports/reward_approvals` with
+      `PlatformRewardApprovalExportFact` and
+      `platform_reward_approval_export_row`.
+- [x] Move reward-approval CSV teacher/amount decision reason defaulting and
+      approved amount string formatting out of the Postgres query helper.
+- [x] Repoint `platform_csv_export_reward_approvals` to load reward candidates,
+      convert DB models to application facts, and call the application row
+      assembler.
+- [x] Preserve existing behavior: rows still require either teacher or amount
+      decision timestamps, remain ordered by `updated_at desc`, capped at 1000,
+      and emit the same CSV-visible field values.
+- [x] Keep changed Rust files small: application reward-approval CSV module 118
+      lines, module export 22 lines, and Postgres helper 54 lines.
+- [x] Self-critique: delegated-permission, wallet-credit, and token-payout CSV
+      exports still perform row assembly in Postgres helpers; future slices
+      should move them behind application-owned fact/row assembly one at a time.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --lib platform_csv_exports`,
       `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_csv_exports_cover_business_reward_datasets`,
