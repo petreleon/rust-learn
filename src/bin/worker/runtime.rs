@@ -9,9 +9,9 @@ use tokio::signal::unix::{signal, SignalKind};
 use tokio::sync::Semaphore;
 use tokio::task::JoinHandle;
 
+use rust_learn::bootstrap::worker_runtime as worker_utils;
 use rust_learn::db::DbPool;
 use rust_learn::utils::s3_utils::S3State;
-use rust_learn::utils::worker as worker_utils;
 
 pub fn init_environment() {
     dotenv().ok();

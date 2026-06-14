@@ -8,4 +8,3 @@ pub use eth as eth_utils;
 pub mod centralized_wallets;
 pub mod notifications;
 pub mod s3_utils;
-pub mod worker;

@@ -11,3 +11,4 @@ pub mod routes;
 pub mod startup;
 mod teacher_application_wiring;
 mod use_case_wiring;
+pub mod worker_runtime;

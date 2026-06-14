@@ -1106,28 +1106,29 @@ remaining gaps.
 | 208 | Moved Actix request-auth helper functions out of `utils::request_auth` and into `http/extractors/request_auth`; HTTP handlers now import authentication helpers from the HTTP boundary and the old `utils::request_auth` module was deleted instead of kept as a compatibility owner. |
 | 209 | Folded the legacy `utils::api_error` response-envelope structs into `http/errors`; the HTTP ring now owns its JSON error contract directly and the unused utility helper module was deleted. |
 | 210 | Moved structured process logging initialization out of `utils::logging` and into `bootstrap/logging`; the API and worker entrypoints now call bootstrap-owned logging setup and the old utility module was removed. |
+| 211 | Moved worker runtime configuration, retry-backoff helpers, and heartbeat writing out of `utils::worker` and into `bootstrap/worker_runtime`; the worker binary now imports process-runtime helpers from bootstrap and the old utility module was removed. |
 
 ## Recent Slice Evidence
 
-Slice 210: move process logging setup to bootstrap.
+Slice 211: move worker runtime helpers to bootstrap.
 
-- [x] Move `src/utils/logging.rs` to `src/bootstrap/logging.rs`, because
-      structured logger initialization is process startup wiring rather than a
-      cross-context utility.
-- [x] Update `src/main.rs` and `src/bin/worker/runtime.rs` to call
-      `bootstrap::logging::init_logging` for the `api` and `worker` service
-      labels.
-- [x] Remove `pub mod logging` from `src/utils/mod.rs`, leaving no
-      `utils::logging` compatibility surface because only binary entrypoints
-      used it.
-- [x] Self-critique: worker retry/env parsing still lives in `utils::worker`;
-      future operations/worker slices should move runtime configuration and
-      heartbeat helpers to an explicit worker or operations module.
+- [x] Move `src/utils/worker.rs` to `src/bootstrap/worker_runtime.rs`, because
+      worker env parsing, retry availability, and heartbeat writing are process
+      runtime helpers rather than cross-context utilities.
+- [x] Update `src/bin/worker/runtime.rs`, `src/bin/worker/jobs.rs`, and
+      `src/bin/worker/failure.rs` to import `bootstrap::worker_runtime`.
+- [x] Remove `pub mod worker` from `src/utils/mod.rs`, leaving no
+      `utils::worker` compatibility surface because all callers are worker
+      binary modules.
+- [x] Self-critique: the worker still depends on `utils::s3_utils` and
+      `utils::notifications`; later content/object-storage and notification
+      slices should move those concrete adapter states behind explicit infra or
+      bootstrap owners.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh cargo test --lib worker_runtime`,
       `./scripts/run-host-tests.sh cargo check --bin worker --features worker-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing no stale `utils::logging` callers,
+      `git diff --check`, scans showing no stale `utils::worker` callers,
       and backend ring scans showing no `include!`/`imports.rs`.
 
 ## Legacy Transition Rules
