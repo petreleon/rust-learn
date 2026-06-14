@@ -36,11 +36,11 @@ pub(super) fn reject_already_credited_without_record(
     }
 }
 
-pub(super) async fn ensure_wallet_credit_allowed(
+pub(super) async fn wallet_credit_target_status(
     conn: &mut AsyncPgConnection,
     candidate: &RewardCandidate,
     allow_reconciliation_credit: bool,
-) -> Result<(), RewardWalletCreditError> {
+) -> Result<RewardCandidateStatus, RewardWalletCreditError> {
     let status = RewardCandidateStatus::parse(&candidate.status).map_err(|_| {
         RewardWalletCreditError::InvalidStatus(
             "wallet credit requires token confirmation unless the reward policy is off-chain"
@@ -48,15 +48,11 @@ pub(super) async fn ensure_wallet_credit_allowed(
         )
     })?;
 
-    if status == RewardCandidateStatus::NeedsReconciliation {
-        return if allow_reconciliation_credit {
-            Ok(())
-        } else {
-            Err(RewardWalletCreditError::InvalidStatus(
+    if status == RewardCandidateStatus::NeedsReconciliation && !allow_reconciliation_credit {
+        return Err(RewardWalletCreditError::InvalidStatus(
                 "needs reconciliation candidate requires confirmed payout evidence before wallet credit"
                     .to_string(),
-            ))
-        };
+        ));
     }
 
     if status == RewardCandidateStatus::AmountApproved
@@ -65,9 +61,7 @@ pub(super) async fn ensure_wallet_credit_allowed(
         return Err(token_confirmation_required_error());
     }
 
-    transition::credit_wallet(status)
-        .map(|_| ())
-        .map_err(|_| token_confirmation_required_error())
+    transition::credit_wallet(status).map_err(|_| token_confirmation_required_error())
 }
 
 fn token_confirmation_required_error() -> RewardWalletCreditError {
