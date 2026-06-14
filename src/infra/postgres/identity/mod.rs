@@ -12,7 +12,6 @@ pub mod login_security;
 pub mod login_store;
 pub mod login_use_case;
 pub mod password_reset_tokens;
-pub mod platform_permissions;
 pub mod platform_role_assignment_store;
 pub mod platform_role_assignment_use_case;
 pub mod platform_role_assignments;
