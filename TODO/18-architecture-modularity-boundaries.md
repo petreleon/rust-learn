@@ -1145,31 +1145,29 @@ remaining gaps.
 | 247 | Moved organization course-list reward queue status bucketing into the organization course-list application layer, leaving Postgres to group candidate status rows and pass typed reward statuses. |
 | 248 | Moved teacher course-dashboard reward queue status bucketing into the teacher dashboard application layer, leaving Postgres to group candidate status rows and pass typed reward statuses. |
 | 249 | Moved per-student teacher reward progress status bucketing into the teacher-students application layer, leaving Postgres to group candidate status rows and pass typed reward statuses. |
+| 250 | Moved platform wallet-reconciliation reward status sets into the reporting application layer, leaving Postgres to translate typed statuses into SQL filters for missing-record counts. |
 
 ## Recent Slice Evidence
 
-Slice 249: move per-student teacher reward progress bucketing to application.
+Slice 250: move platform wallet-reconciliation status sets to application.
 
-- [x] Add `record_teacher_student_reward_progress_status` under
-      `application/learning/get_teacher_course_students` so the teacher-student
-      application layer owns pending-teacher, teacher-approved,
-      teacher-rejected, completed, and failed reward progress buckets.
-- [x] Repoint the Postgres teacher student reward-progress adapter to load
-      grouped candidate status counts, derive the total candidate count from
-      those groups, parse stored status strings into `RewardCandidateStatus`,
-      and pass typed statuses to the application helper.
-- [x] Preserve existing behavior for unknown stored statuses: they still count
-      toward total candidates but do not increment a named progress bucket.
-- [x] Cover all named progress buckets and ignored statuses with pure
-      application tests.
-- [x] Self-critique: this removes the raw reward status counting from the
-      per-student teacher progress query. The next reward-status cleanup should
-      scan for the remaining raw constants in reporting wallet reconciliation
-      and learning dashboard summary helpers rather than assuming this pattern
-      is exhausted.
+- [x] Add wallet reconciliation status-set helpers under
+      `application/reporting/platform_wallet_reconciliation` for
+      needs-reconciliation, missing credit records, missing notification
+      records, and missing payout records.
+- [x] Repoint the Postgres wallet reconciliation count/missing-record adapters
+      to convert those typed `RewardCandidateStatus` sets into SQL status
+      filters instead of importing raw reward status constants.
+- [x] Preserve query behavior by keeping the same candidate status sets:
+      `NeedsReconciliation`, `WalletCredited/Notified/Completed`,
+      `Notified/Completed`, and `TokenConfirmed`.
+- [x] Cover the status-set helpers with pure application tests.
+- [x] Self-critique: this removes raw reward status constants from the wallet
+      reconciliation count filters, but `platform_wallet_reconciliation_counts`
+      is now 170 lines and should be split before it grows again.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib get_teacher_course_students::reward_progress`,
-      `./scripts/run-host-tests.sh cargo test --test teacher_course_dashboard teacher_course_dashboard_returns_scoped_course_health_and_queues`,
+      `./scripts/run-host-tests.sh cargo test --lib platform_wallet_reconciliation::status_sets`,
+      `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_csv_exports_cover_business_reward_datasets`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,

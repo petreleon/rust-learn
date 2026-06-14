@@ -1,12 +1,13 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::application::reporting::platform_wallet_reconciliation::PlatformWalletReconciliationError;
-use crate::db::schema::{reward_candidates, reward_payout_records, reward_wallet_credit_records};
-use crate::domain::rewards::candidate::status::{
-    REWARD_STATUS_COMPLETED, REWARD_STATUS_NOTIFIED, REWARD_STATUS_TOKEN_CONFIRMED,
+use crate::application::reporting::platform_wallet_reconciliation::{
+    missing_notification_record_candidate_statuses, missing_payout_record_candidate_statuses,
+    PlatformWalletReconciliationError,
 };
+use crate::db::schema::{reward_candidates, reward_payout_records, reward_wallet_credit_records};
 use crate::infra::postgres::reporting::platform_wallet_reconciliation_counts::map_diesel_error;
+use crate::infra::postgres::reporting::platform_wallet_reconciliation_counts::status_keys;
 
 pub(super) async fn count_missing_notifications(
     conn: &mut AsyncPgConnection,
@@ -19,8 +20,7 @@ pub(super) async fn count_missing_notifications(
         .filter(reward_candidates::id.eq_any(candidate_ids))
         .filter(
             reward_candidates::status
-                .eq(REWARD_STATUS_NOTIFIED)
-                .or(reward_candidates::status.eq(REWARD_STATUS_COMPLETED)),
+                .eq_any(status_keys(missing_notification_record_candidate_statuses())),
         )
         .left_join(
             reward_wallet_credit_records::table
@@ -42,7 +42,10 @@ pub(super) async fn count_missing_payouts(
     }
     reward_candidates::table
         .filter(reward_candidates::id.eq_any(candidate_ids))
-        .filter(reward_candidates::status.eq(REWARD_STATUS_TOKEN_CONFIRMED))
+        .filter(
+            reward_candidates::status
+                .eq_any(status_keys(missing_payout_record_candidate_statuses())),
+        )
         .left_join(
             reward_payout_records::table
                 .on(reward_candidates::id.eq(reward_payout_records::reward_candidate_id)),
