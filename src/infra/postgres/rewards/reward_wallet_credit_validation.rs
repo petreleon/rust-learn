@@ -49,7 +49,7 @@ pub(super) async fn wallet_credit_target_status(
         )
     })?;
 
-    if status == RewardCandidateStatus::NeedsReconciliation && !allow_reconciliation_credit {
+    if lifecycle::requires_wallet_credit_payout_evidence(status) && !allow_reconciliation_credit {
         return Err(RewardWalletCreditError::InvalidStatus(
             "needs reconciliation candidate requires confirmed payout evidence before wallet credit"
                 .to_string(),

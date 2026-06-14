@@ -1,7 +1,7 @@
 use super::lifecycle::{
     can_create_missing_wallet_credit_notification, can_inspect_wallet_credit_notification,
-    can_reconcile, requires_wallet_credit_record, should_create_reconciliation_wallet_credit,
-    wallet_credit_notification_target_status,
+    can_reconcile, requires_wallet_credit_payout_evidence, requires_wallet_credit_record,
+    should_create_reconciliation_wallet_credit, wallet_credit_notification_target_status,
 };
 use super::status::RewardCandidateStatus as Status;
 
@@ -128,4 +128,20 @@ fn wallet_credit_record_is_required_after_crediting() {
     assert!(requires_wallet_credit_record(Status::Completed));
     assert!(!requires_wallet_credit_record(Status::TokenConfirmed));
     assert!(!requires_wallet_credit_record(Status::NeedsReconciliation));
+}
+
+#[test]
+fn wallet_credit_payout_evidence_is_required_for_reconciliation_state() {
+    assert!(requires_wallet_credit_payout_evidence(
+        Status::NeedsReconciliation
+    ));
+    assert!(!requires_wallet_credit_payout_evidence(
+        Status::AmountApproved
+    ));
+    assert!(!requires_wallet_credit_payout_evidence(
+        Status::TokenConfirmed
+    ));
+    assert!(!requires_wallet_credit_payout_evidence(
+        Status::WalletCredited
+    ));
 }

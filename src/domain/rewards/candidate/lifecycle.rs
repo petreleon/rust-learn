@@ -62,3 +62,7 @@ pub fn requires_wallet_credit_record(status: RewardCandidateStatus) -> bool {
         Status::WalletCredited | Status::Notified | Status::Completed
     )
 }
+
+pub fn requires_wallet_credit_payout_evidence(status: RewardCandidateStatus) -> bool {
+    status == RewardCandidateStatus::NeedsReconciliation
+}
