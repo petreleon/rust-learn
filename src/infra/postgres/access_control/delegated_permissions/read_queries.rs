@@ -1,4 +1,3 @@
-use chrono::Utc;
 use diesel::dsl::{exists, select};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
@@ -7,10 +6,12 @@ use crate::application::access_control::manage_delegated_permissions::{
     DelegatedPermissionError, DelegatedPermissionFilter, DelegatedPermissionOutput,
 };
 use crate::config::constants::permissions::Permissions;
-use crate::db::schema::{courses, delegated_permissions, organizations};
+use crate::db::schema::{courses, organizations};
 use crate::infra::postgres::access_control::delegated_permissions::mappers::map_error;
+use crate::infra::postgres::access_control::delegated_permissions::records::{
+    self, DelegatedPermissionRecordFilter,
+};
 use crate::infra::postgres::access_control::permission_checks::has_platform_permission;
-use crate::models::delegated_permission::DelegatedPermission;
 
 pub(super) async fn can_delegate_reward_permissions(
     conn: &mut AsyncPgConnection,
@@ -55,84 +56,41 @@ pub(super) async fn find_active_delegated_permission(
     organization_id: Option<i32>,
     course_id: Option<i32>,
 ) -> Result<Option<DelegatedPermissionOutput>, DelegatedPermissionError> {
-    let now = Utc::now();
-    let mut query = delegated_permissions::table
-        .filter(delegated_permissions::grantee_user_id.eq(grantee_user_id))
-        .filter(delegated_permissions::permission.eq(permission))
-        .filter(delegated_permissions::scope_type.eq(scope_type))
-        .filter(delegated_permissions::revoked_at.is_null())
-        .filter(
-            delegated_permissions::expires_at
-                .is_null()
-                .or(delegated_permissions::expires_at.gt(now)),
-        )
-        .into_boxed();
-
-    query = match organization_id {
-        Some(id) => query.filter(delegated_permissions::organization_id.eq(Some(id))),
-        None => query.filter(delegated_permissions::organization_id.is_null()),
-    };
-    query = match course_id {
-        Some(id) => query.filter(delegated_permissions::course_id.eq(Some(id))),
-        None => query.filter(delegated_permissions::course_id.is_null()),
-    };
-
-    query
-        .order(delegated_permissions::created_at.desc())
-        .first::<DelegatedPermission>(conn)
-        .await
-        .optional()
-        .map(|item| item.map(Into::into))
-        .map_err(map_error)
+    records::find_active_delegated_permission(
+        conn,
+        grantee_user_id,
+        permission,
+        scope_type,
+        organization_id,
+        course_id,
+    )
+    .await
+    .map(|item| item.map(Into::into))
+    .map_err(map_error)
 }
 
 pub(super) async fn list_delegated_permissions(
     conn: &mut AsyncPgConnection,
     filter: DelegatedPermissionFilter,
 ) -> Result<Vec<DelegatedPermissionOutput>, DelegatedPermissionError> {
-    let now = Utc::now();
-    let mut query = delegated_permissions::table.into_boxed();
-    if let Some(id) = filter.grantor_user_id {
-        query = query.filter(delegated_permissions::grantor_user_id.eq(id));
-    }
-    if let Some(id) = filter.grantee_user_id {
-        query = query.filter(delegated_permissions::grantee_user_id.eq(id));
-    }
-    if let Some(permission) = filter.permission {
-        query = query.filter(delegated_permissions::permission.eq(permission));
-    }
-    if let Some(scope_type) = filter.scope_type {
-        query = query.filter(delegated_permissions::scope_type.eq(scope_type));
-    }
-    if let Some(id) = filter.organization_id {
-        query = query.filter(delegated_permissions::organization_id.eq(Some(id)));
-    }
-    if let Some(id) = filter.course_id {
-        query = query.filter(delegated_permissions::course_id.eq(Some(id)));
-    }
-    if let Some(active) = filter.active {
-        query = if active {
-            query
-                .filter(delegated_permissions::revoked_at.is_null())
-                .filter(
-                    delegated_permissions::expires_at
-                        .is_null()
-                        .or(delegated_permissions::expires_at.gt(now)),
-                )
-        } else {
-            query.filter(
-                delegated_permissions::revoked_at
-                    .is_not_null()
-                    .or(delegated_permissions::expires_at.le(now)),
-            )
-        };
-    }
-    query
-        .order(delegated_permissions::created_at.desc())
-        .limit(filter.limit.unwrap_or(100).clamp(1, 500))
-        .offset(filter.offset.unwrap_or(0).max(0))
-        .load::<DelegatedPermission>(conn)
+    records::list_delegated_permissions(conn, DelegatedPermissionRecordFilter::from(filter))
         .await
         .map(|items| items.into_iter().map(Into::into).collect())
         .map_err(map_error)
+}
+
+impl From<DelegatedPermissionFilter> for DelegatedPermissionRecordFilter {
+    fn from(filter: DelegatedPermissionFilter) -> Self {
+        Self {
+            active: filter.active,
+            course_id: filter.course_id,
+            grantee_user_id: filter.grantee_user_id,
+            grantor_user_id: filter.grantor_user_id,
+            limit: filter.limit,
+            offset: filter.offset,
+            organization_id: filter.organization_id,
+            permission: filter.permission,
+            scope_type: filter.scope_type,
+        }
+    }
 }

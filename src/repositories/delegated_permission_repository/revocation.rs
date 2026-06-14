@@ -1,8 +1,8 @@
-use crate::db::schema::delegated_permissions;
+use crate::infra::postgres::access_control::delegated_permissions::records as delegated_permission_records;
+use crate::infra::postgres::access_control::permission_delegations;
 use crate::models::delegated_permission::DelegatedPermission;
-use chrono::Utc;
-use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel::QueryResult;
+use diesel_async::AsyncPgConnection;
 
 pub async fn revoke_delegated_permission(
     conn: &mut AsyncPgConnection,
@@ -10,19 +10,12 @@ pub async fn revoke_delegated_permission(
     revoked_by_user_id: i32,
     revoke_reason: Option<String>,
 ) -> QueryResult<DelegatedPermission> {
-    let now = Utc::now();
-    diesel::update(
-        delegated_permissions::table
-            .find(delegation_id)
-            .filter(delegated_permissions::revoked_at.is_null()),
+    delegated_permission_records::revoke_delegated_permission(
+        conn,
+        delegation_id,
+        revoked_by_user_id,
+        revoke_reason,
     )
-    .set((
-        delegated_permissions::revoked_at.eq(now),
-        delegated_permissions::revoked_by_user_id.eq(Some(revoked_by_user_id)),
-        delegated_permissions::revoke_reason.eq(revoke_reason),
-        delegated_permissions::updated_at.eq(now),
-    ))
-    .get_result(conn)
     .await
 }
 
@@ -31,12 +24,7 @@ pub async fn has_active_platform_delegation(
     grantee_user_id: i32,
     permission: &str,
 ) -> QueryResult<bool> {
-    crate::infra::postgres::access_control::permission_delegations::has_active_platform_delegation(
-        conn,
-        grantee_user_id,
-        permission,
-    )
-    .await
+    permission_delegations::has_active_platform_delegation(conn, grantee_user_id, permission).await
 }
 
 pub async fn has_active_organization_delegation(
@@ -45,7 +33,7 @@ pub async fn has_active_organization_delegation(
     organization_id: i32,
     permission: &str,
 ) -> QueryResult<bool> {
-    crate::infra::postgres::access_control::permission_delegations::has_active_organization_delegation(
+    permission_delegations::has_active_organization_delegation(
         conn,
         grantee_user_id,
         organization_id,
@@ -60,7 +48,7 @@ pub async fn has_active_course_delegation(
     course_id: i32,
     permission: &str,
 ) -> QueryResult<bool> {
-    crate::infra::postgres::access_control::permission_delegations::has_active_course_delegation(
+    permission_delegations::has_active_course_delegation(
         conn,
         grantee_user_id,
         course_id,

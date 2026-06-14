@@ -1087,36 +1087,39 @@ remaining gaps.
 | 189 | Turned legacy platform/course/organization repository permission request functions into thin compatibility bridges over `infra/postgres/access_control/permission_checks`, removing their local role-plus-delegation composition. |
 | 190 | Turned legacy delegated-permission active platform/organization/course checks into thin compatibility bridges over `infra/postgres/access_control/permission_delegations`, removing hard-coded scoped delegation SQL from the repository active-check helpers. |
 | 191 | Replaced the include-based legacy delegated-permission repository shell with normal `records` and `revocation` child modules plus explicit public re-exports; the repository no longer has an `imports.rs` file. |
+| 192 | Moved delegated-permission create/find/list/revoke SQL into `infra/postgres/access_control/delegated_permissions/records`; the Level 2 Postgres adapter and legacy repository now share the same access-control record adapter. |
 
 ## Recent Slice Evidence
 
-Slice 191: remove the delegated-permission repository `include!` shell.
+Slice 192: move delegated-permission record SQL into access-control.
 
-- [x] Replace `src/repositories/delegated_permission_repository.rs` `include!`
-      statements with normal `mod records`, `mod revocation`, and explicit
-      public re-exports.
-- [x] Rename `delegated_permission_repository/imports.rs` to
-      `delegated_permission_repository/records.rs`; the legacy repository no
-      longer has an `imports.rs` file.
-- [x] Rename `delegated_permission_repository/revoke_delegated_permission.rs`
-      to `delegated_permission_repository/revocation.rs` and give that module
-      its own imports instead of relying on include-shared scope.
-- [x] Keep the public repository API stable for unmigrated tests and callers:
-      create/find/list/revoke functions, active delegation checks, and
-      `DelegatedPermissionFilter` are still re-exported from
-      `repositories::delegated_permission_repository`.
-- [x] Self-critique: this removes one legacy module-system smell without
-      changing behavior, but create/find/list/revoke SQL still belongs in an
-      access-control record adapter rather than a repository. That is the next
-      deeper delegated-permission persistence slice.
+- [x] Add `infra/postgres/access_control/delegated_permissions/records.rs` as
+      the shared Postgres record adapter for delegated-permission create, find,
+      find-active, list, and revoke operations.
+- [x] Retarget the Level 2 delegated-permission `read_queries` and
+      `write_queries` modules to call the shared record adapter while keeping
+      application output/error mapping at the application adapter boundary.
+- [x] Retarget the legacy `repositories::delegated_permission_repository`
+      `records` and `revocation` modules to call the same access-control record
+      adapter while preserving their public `QueryResult<DelegatedPermission>`
+      API for tests and unmigrated callers.
+- [x] Keep active platform/organization/course delegation checks delegated to
+      `infra/postgres/access_control/permission_delegations`; this slice moves
+      record CRUD/query SQL, not authorization decision composition.
+- [x] Self-critique: the legacy repository still exists as a compatibility
+      wrapper because tests and fixtures import it directly. It is now thin
+      enough to delete once those callers move to access-control test helpers
+      or application use cases.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --test repository_delegation_tests`,
       `./scripts/run-host-tests.sh cargo test --test delegated_permissions`,
       `./scripts/run-host-tests.sh cargo test --test current_session_api`,
+      `./scripts/run-host-tests.sh cargo test --test organization_members`,
+      `./scripts/run-host-tests.sh cargo test --test kyc_review`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no
-      `include!`, `imports.rs`, or old revoke module file remains under the
-      delegated-permission repository.
+      delegated-permission record insert/update/list/find SQL remains under
+      `repositories/delegated_permission_repository`.
 
 ## Legacy Transition Rules
 
