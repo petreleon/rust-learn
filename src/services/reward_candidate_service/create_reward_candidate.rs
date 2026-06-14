@@ -1,4 +1,22 @@
-async fn create_reward_candidate(
+use crate::domain::rewards::audit::REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED;
+use crate::domain::rewards::candidate::status::REWARD_STATUS_PENDING_TEACHER_APPROVAL;
+use crate::models::reward_audit_event::NewRewardAuditEvent;
+use crate::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
+use crate::repositories::{reward_audit_event_repository, reward_candidate_repository};
+use diesel_async::{AsyncConnection, AsyncPgConnection};
+use serde_json::json;
+
+use super::ensure_active_reward_policy::{
+    ensure_no_prior_active_reward_candidate, ensure_reward_evidence_is_eligible,
+};
+use super::ensure_exact_course_permission::{
+    normalize_idempotency_key, normalize_reward_event_type,
+};
+use super::ensure_no_active_reward_fraud_block::ensure_no_active_reward_fraud_block;
+use super::has_active_reward_policy_fraud_block::ensure_reward_target_eligible;
+use super::support::{RewardCandidateError, SubmitRewardCandidateRequest};
+
+pub(super) async fn create_reward_candidate(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,
@@ -117,7 +135,7 @@ async fn create_reward_candidate(
     Ok(created)
 }
 
-fn candidate_teacher_user_ids(candidate: &RewardCandidate) -> Vec<i32> {
+pub(super) fn candidate_teacher_user_ids(candidate: &RewardCandidate) -> Vec<i32> {
     let mut user_ids = vec![candidate.submitter_user_id];
     if let Some(teacher_approver_user_id) = candidate.teacher_approver_user_id {
         if !user_ids.contains(&teacher_approver_user_id) {

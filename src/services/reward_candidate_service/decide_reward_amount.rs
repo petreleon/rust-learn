@@ -1,3 +1,25 @@
+use crate::config::constants::permissions::Permissions;
+use crate::domain::rewards::audit::REWARD_AUDIT_EVENT_AMOUNT_DECISION;
+use crate::domain::rewards::candidate::status::{
+    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED, REWARD_STATUS_TEACHER_APPROVED,
+};
+use crate::models::reward_audit_event::NewRewardAuditEvent;
+use crate::models::reward_candidate::RewardCandidate;
+use crate::repositories::{
+    reward_audit_event_repository, reward_candidate_repository, reward_execution_job_repository,
+};
+use bigdecimal::BigDecimal;
+use chrono::Utc;
+use diesel_async::{AsyncConnection, AsyncPgConnection};
+use serde_json::json;
+
+use super::create_reward_candidate::candidate_teacher_user_ids;
+use super::ensure_exact_course_permission::{
+    ensure_platform_permission, normalize_amount_decision_status,
+};
+use super::ensure_no_active_reward_fraud_block::ensure_no_active_reward_fraud_block;
+use super::support::{RewardAmountDecisionRequest, RewardCandidateError};
+
 pub async fn decide_reward_amount(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,

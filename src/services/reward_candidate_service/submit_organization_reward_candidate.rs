@@ -1,3 +1,27 @@
+use crate::config::constants::permissions::Permissions;
+use crate::domain::rewards::audit::REWARD_AUDIT_EVENT_TEACHER_DECISION;
+use crate::domain::rewards::candidate::source::REWARD_SOURCE_ORGANIZATION;
+use crate::domain::rewards::candidate::status::REWARD_STATUS_PENDING_TEACHER_APPROVAL;
+use crate::models::reward_audit_event::NewRewardAuditEvent;
+use crate::models::reward_candidate::RewardCandidate;
+use crate::repositories::{reward_audit_event_repository, reward_candidate_repository};
+use chrono::Utc;
+use diesel_async::{AsyncConnection, AsyncPgConnection};
+use serde_json::json;
+
+use super::create_reward_candidate::create_reward_candidate;
+use super::ensure_active_reward_policy::ensure_course_teacher_approval_permission;
+use super::ensure_exact_course_permission::{
+    ensure_organization_permission, normalize_teacher_decision_status,
+};
+use super::ensure_no_active_reward_fraud_block::{
+    ensure_course_attached_to_organization, ensure_course_exists,
+    ensure_no_active_reward_fraud_block,
+};
+use super::support::{
+    RewardCandidateError, SubmitRewardCandidateRequest, TeacherRewardCandidateDecisionRequest,
+};
+
 pub async fn submit_organization_reward_candidate(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,

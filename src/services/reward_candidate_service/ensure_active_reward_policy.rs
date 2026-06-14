@@ -1,4 +1,25 @@
-async fn ensure_active_reward_policy(
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::{courses_organizations, reward_candidates, reward_policies};
+use crate::domain::rewards::candidate::event_type::{
+    REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT, REWARD_EVENT_ASSESSMENT_COMPLETION,
+    REWARD_EVENT_COURSE_COMPLETION, REWARD_EVENT_MANUAL_COMPLETION,
+};
+use crate::domain::rewards::candidate::status::{
+    REWARD_STATUS_AMOUNT_REJECTED, REWARD_STATUS_FAILED, REWARD_STATUS_TEACHER_REJECTED,
+};
+use crate::domain::rewards::policy::{
+    REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
+};
+use crate::repositories::course_repository::user_permission_course_request;
+use diesel::dsl::exists;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use serde_json::Value;
+
+use super::ensure_exact_course_permission::ensure_exact_course_permission;
+use super::support::RewardCandidateError;
+
+pub(super) async fn ensure_active_reward_policy(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     event_type: &str,
@@ -57,7 +78,7 @@ async fn ensure_active_reward_policy(
     }
 }
 
-async fn ensure_no_prior_active_reward_candidate(
+pub(super) async fn ensure_no_prior_active_reward_candidate(
     conn: &mut AsyncPgConnection,
     student_user_id: i32,
     course_id: i32,
@@ -84,7 +105,7 @@ async fn ensure_no_prior_active_reward_candidate(
     }
 }
 
-fn ensure_reward_evidence_is_eligible(
+pub(super) fn ensure_reward_evidence_is_eligible(
     event_type: &str,
     evidence: &Value,
 ) -> Result<(), RewardCandidateError> {
@@ -100,7 +121,7 @@ fn ensure_reward_evidence_is_eligible(
     }
 }
 
-fn ensure_evidence_number_at_least(
+pub(super) fn ensure_evidence_number_at_least(
     evidence: &Value,
     key: &str,
     minimum: f64,
@@ -119,7 +140,7 @@ fn ensure_evidence_number_at_least(
     }
 }
 
-async fn ensure_course_submission_permission(
+pub(super) async fn ensure_course_submission_permission(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     course_id: i32,
@@ -139,7 +160,7 @@ async fn ensure_course_submission_permission(
     ))
 }
 
-async fn ensure_course_teacher_approval_permission(
+pub(super) async fn ensure_course_teacher_approval_permission(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     course_id: i32,

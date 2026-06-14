@@ -1,3 +1,7 @@
+use super::super::create_reward_candidate::candidate_teacher_user_ids;
+use super::super::support::RewardCandidateError;
+use super::normalization::test_candidate;
+
 #[test]
 fn returns_both_when_approver_matches_submitter() {
     let candidate = test_candidate(5, Some(5));

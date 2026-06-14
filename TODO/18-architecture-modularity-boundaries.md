@@ -1091,39 +1091,41 @@ remaining gaps.
 | 193 | Replaced the include-based `reward_execution_service` shell with normal child modules, explicit per-module imports, and root re-exports that preserve the legacy reward execution API over migrated reward application use cases. |
 | 194 | Replaced the include-based `wallet_deposit_indexer_service` shell with normal child modules, explicit worker-facing re-exports, and dedicated poll-logging plus Ethereum-log helper modules for indexer retry/idle throttling and event parsing support. |
 | 195 | Replaced the include-based `wallet_service` shell and wallet service unit-test shell with normal child modules, explicit public re-exports, and `pub(super)` internal helper sharing for wallet token validation, tax, deposit-intent, and wallet-linking workflows. |
+| 196 | Replaced the include-based `reward_candidate_service` shell and unit-test shell with normal child modules, a named support module, a separate course-submission entrypoint, and explicit `pub(super)` helper boundaries across submission, amount decision, fraud-block, policy, and normalization workflows. |
 
 ## Recent Slice Evidence
 
-Slice 195: normalize the wallet legacy service module and wallet unit tests.
+Slice 196: normalize the reward candidate legacy service module and unit tests.
 
-- [x] Replace `src/services/wallet_service.rs` `include!` statements with
-      normal `mod` declarations and explicit root re-exports for the existing
-      wallet-linking, token-tax, deposit-intent, and observed-deposit credit
-      API.
-- [x] Rename `wallet_service/imports.rs` to `wallet_service/support.rs`;
-      shared DTOs, constants, and wallet transfer errors now live behind a
-      named support module instead of a textual prelude.
-- [x] Give wallet-link helpers, organization wallet/tax orchestration,
-      deposit-intent creation, KYC validation, platform receiver lookup,
-      validation helpers, wallet interaction helpers, and observed-deposit
-      crediting explicit imports and `pub(super)` helper boundaries.
-- [x] Replace `wallet_service/tests.rs` `include!` statements with normal test
-      modules and rename `tests/imports.rs` to
-      `tests/amount_validation.rs`; each test module imports the helper surface
-      it exercises.
-- [x] Self-critique: this removes the wallet service include shells, but the
-      legacy organization, reward candidate, and course service shells still
-      need the same treatment. This slice preserves the compatibility service
-      API; deeper follow-up should continue moving token-tax/deposit
-      orchestration behind `application/wallet` ports instead of extending the
-      legacy service.
+- [x] Replace `src/services/reward_candidate_service.rs` `include!`
+      statements with normal `mod` declarations and explicit root re-exports
+      for the existing reward candidate compatibility API.
+- [x] Rename `reward_candidate_service/imports.rs` to
+      `reward_candidate_service/support.rs`; shared command aliases,
+      teacher-decision DTOs, and legacy error mapping now live behind a named
+      support module.
+- [x] Extract `submit_course_reward_candidate` into its own child module
+      instead of leaving a public entrypoint inside the former textual prelude.
+- [x] Give submission, teacher decision, amount decision, candidate creation,
+      fraud-block checks, policy/evidence eligibility, permission gates, and
+      normalization helpers explicit imports and `pub(super)` boundaries.
+- [x] Replace `reward_candidate_service/tests.rs` `include!` statements with
+      normal test modules and rename `tests/imports.rs` to
+      `tests/normalization.rs`; sibling tests now import only their fixture and
+      helper surfaces.
+- [x] Self-critique: this removes the reward candidate service include shells,
+      but `organization_service` and the large `course_service` legacy shells
+      remain. This slice preserves the compatibility service API; deeper
+      follow-up should continue moving submission/decision behavior behind
+      `application/rewards` ports rather than extending this legacy service.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib wallet_service`,
-      `./scripts/run-host-tests.sh cargo test --test wallet_linking`,
+      `./scripts/run-host-tests.sh cargo test --lib reward_candidate_service`,
+      `./scripts/run-host-tests.sh cargo test --test reward_candidates`,
+      `./scripts/run-host-tests.sh cargo test --test reward_course_candidates`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no
       `include!`, `imports.rs`, or stale include target remains under
-      `services/wallet_service`.
+      `services/reward_candidate_service`.
 
 ## Legacy Transition Rules
 

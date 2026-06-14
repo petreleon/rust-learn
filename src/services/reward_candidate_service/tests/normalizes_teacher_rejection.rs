@@ -1,3 +1,11 @@
+use crate::domain::rewards::candidate::status::{
+    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED, REWARD_STATUS_TEACHER_REJECTED,
+};
+
+use super::super::ensure_exact_course_permission::{
+    normalize_amount_decision_status, normalize_idempotency_key, normalize_teacher_decision_status,
+};
+
 #[test]
 fn normalizes_teacher_rejection() {
     assert_eq!(

@@ -1,4 +1,19 @@
-async fn ensure_no_active_reward_fraud_block(
+use crate::db::schema::{courses, courses_organizations, reward_fraud_blocks};
+use crate::domain::rewards::fraud_block::{
+    REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
+    REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
+};
+use chrono::Utc;
+use diesel::dsl::exists;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::has_active_reward_policy_fraud_block::{
+    active_reward_policy_ids_for_course_event, has_active_reward_policy_fraud_block,
+};
+use super::support::RewardCandidateError;
+
+pub(super) async fn ensure_no_active_reward_fraud_block(
     conn: &mut AsyncPgConnection,
     teacher_user_ids: &[i32],
     course_id: i32,
@@ -43,7 +58,7 @@ async fn ensure_no_active_reward_fraud_block(
     Ok(())
 }
 
-async fn ensure_course_exists(
+pub(super) async fn ensure_course_exists(
     conn: &mut AsyncPgConnection,
     course_id: i32,
 ) -> Result<(), RewardCandidateError> {
@@ -55,7 +70,7 @@ async fn ensure_course_exists(
     Ok(())
 }
 
-async fn ensure_course_attached_to_organization(
+pub(super) async fn ensure_course_attached_to_organization(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     organization_id: i32,

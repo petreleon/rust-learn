@@ -1,17 +1,19 @@
-use super::*;
 use crate::domain::rewards::candidate::event_type::{
     REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT, REWARD_EVENT_ASSESSMENT_COMPLETION,
     REWARD_EVENT_COURSE_COMPLETION, REWARD_EVENT_MANUAL_COMPLETION,
 };
 use crate::domain::rewards::candidate::status::{
-    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED,
     REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
-    REWARD_STATUS_TEACHER_REJECTED,
 };
+use crate::models::reward_candidate::RewardCandidate;
 use chrono::Utc;
 use serde_json::json;
 
-fn test_candidate(
+use super::super::ensure_exact_course_permission::{
+    normalize_reward_event_type, normalize_teacher_decision_status,
+};
+
+pub(super) fn test_candidate(
     submitter_user_id: i32,
     teacher_approver_user_id: Option<i32>,
 ) -> RewardCandidate {

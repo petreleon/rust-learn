@@ -1,3 +1,16 @@
+use crate::domain::rewards::candidate::event_type::{
+    REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT, REWARD_EVENT_ASSESSMENT_COMPLETION,
+    REWARD_EVENT_COURSE_COMPLETION, REWARD_EVENT_MANUAL_COMPLETION,
+};
+use serde_json::json;
+
+use super::super::create_reward_candidate::candidate_teacher_user_ids;
+use super::super::ensure_active_reward_policy::{
+    ensure_evidence_number_at_least, ensure_reward_evidence_is_eligible,
+};
+use super::super::ensure_exact_course_permission::normalize_idempotency_key;
+use super::normalization::test_candidate;
+
 #[test]
 fn trims_provided_key() {
     assert_eq!(

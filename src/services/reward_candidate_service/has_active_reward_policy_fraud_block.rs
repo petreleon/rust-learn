@@ -1,4 +1,19 @@
-async fn has_active_reward_policy_fraud_block(
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::{courses_organizations, reward_fraud_blocks, reward_policies, users};
+use crate::domain::rewards::fraud_block::REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY;
+use crate::domain::rewards::policy::{
+    REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
+};
+use crate::repositories::course_repository::user_permission_course_request;
+use chrono::Utc;
+use diesel::dsl::exists;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::ensure_active_reward_policy::ensure_active_reward_policy;
+use super::support::RewardCandidateError;
+
+pub(super) async fn has_active_reward_policy_fraud_block(
     conn: &mut AsyncPgConnection,
     reward_policy_ids: &[i64],
 ) -> Result<bool, RewardCandidateError> {
@@ -18,7 +33,7 @@ async fn has_active_reward_policy_fraud_block(
     .map_err(RewardCandidateError::from)
 }
 
-async fn ensure_reward_target_eligible(
+pub(super) async fn ensure_reward_target_eligible(
     conn: &mut AsyncPgConnection,
     student_user_id: i32,
     course_id: i32,
@@ -55,7 +70,7 @@ async fn ensure_reward_target_eligible(
     ensure_active_reward_policy(conn, course_id, event_type).await
 }
 
-async fn active_reward_policy_ids_for_course_event(
+pub(super) async fn active_reward_policy_ids_for_course_event(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     event_type: &str,
