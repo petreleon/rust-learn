@@ -10,10 +10,6 @@ use rust_learn::db::schema::{
     role_permission_platform, transactions, transactions_external_transactions,
     transactions_internal_transactions, wallets,
 };
-use rust_learn::domain::rewards::policy::{
-    REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN, REWARD_PAYMENT_TREASURY_TRANSFER,
-    REWARD_POLICY_SCOPE_COURSE,
-};
 use rust_learn::domain::rewards::audit::{
     REWARD_AUDIT_EVENT_TOKEN_CONFIRMED, REWARD_AUDIT_EVENT_WALLET_CREDITED,
     REWARD_AUDIT_EVENT_WALLET_CREDIT_NOTIFIED,
@@ -25,23 +21,36 @@ use rust_learn::domain::rewards::candidate::status::{
     REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TOKEN_CONFIRMED,
     REWARD_STATUS_TOKEN_PENDING, REWARD_STATUS_WALLET_CREDITED,
 };
+use rust_learn::domain::rewards::payout::{
+    REWARD_PAYOUT_METHOD_MINT, REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER,
+};
+use rust_learn::domain::rewards::policy::{
+    REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN, REWARD_PAYMENT_TREASURY_TRANSFER,
+    REWARD_POLICY_SCOPE_COURSE,
+};
 use rust_learn::domain::rewards::wallet_credit::REWARD_TRANSACTION_TYPE_WALLET_CREDIT;
+use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
 use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::user::User;
-use rust_learn::infra::postgres::access_control::platform_role_records;
+use rust_learn::application::rewards::record_token_confirmation::RewardTokenConfirmationCommand as RewardTokenConfirmationRequest;
 use rust_learn::repositories::persistent_state_repository::set_persistent_state;
 use rust_learn::repositories::reward_audit_event_repository::list_reward_audit_events;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::application::rewards::record_token_confirmation::RewardTokenConfirmationCommand as RewardTokenConfirmationRequest;
-use rust_learn::services::reward_execution_service::{
-    RewardExecutionError, REWARD_PAYOUT_METHOD_MINT, REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER,
-};
 use serde_json::json;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+#[derive(Debug, PartialEq)]
+enum RewardExecutionError {
+    PermissionDenied(String),
+    InvalidStatus(String),
+    InvalidInput(String),
+    NoActivePolicy,
+    Database(String),
+}
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);

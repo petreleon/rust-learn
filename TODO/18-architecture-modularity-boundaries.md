@@ -1096,36 +1096,32 @@ remaining gaps.
 | 198 | Replaced the include-based `course_service` shell with normal child modules, explicit compatibility re-exports, per-module imports, and `pub(super)` helper boundaries across discovery, learner catalog/detail/learning/progress, teacher dashboards, enrollment workspaces, organization course lists, lifecycle, invites, and mutations. |
 | 199 | Deleted the now-unused legacy `course_service` compatibility module after code search proved all course discovery, learner catalog/detail/learning/progress, teacher dashboard, enrollment, lifecycle, creation, update, and organization-course routes compile and run through Level 2 application/infra/http modules instead. |
 | 200 | Deleted the now-unused legacy `organization_service` compatibility module after code search proved organization CRUD, member list/invite/role/removal/audit, dashboard, course list, and teacher-application tracking flows compile and run through Level 2 application/infra/http modules instead. |
+| 201 | Deleted the now-unused legacy `reward_execution_service` compatibility module after reward execution tests were switched to application reward use-case helpers and domain payout constants, proving payout planning, token confirmation, wallet credit, notification, and reconciliation run through Level 2 rewards modules. |
 
 ## Recent Slice Evidence
 
-Slice 200: delete the migrated organization legacy service.
+Slice 201: delete the migrated reward execution legacy service.
 
-- [x] Delete `src/services/organization_service.rs` and its child module tree
-      after code search showed no production or test references outside TODO
-      history; `src/services/mod.rs` no longer exports an organization
-      compatibility service.
-- [x] Keep behavior owned by existing Level 2 surfaces:
-      `application/organizations`, `infra/postgres/organizations`, and
-      `http/organizations`, with organization course-list behavior already
-      bridged through the organization application context.
-- [x] Preserve route compatibility by verifying organization dashboard,
-      member list/invite/role/removal/audit, organization CRUD, organization
-      permission, and organization teacher-application tracking flows through
-      their migrated use cases.
-- [x] Self-critique: deleting `organization_service` removes another
-      Diesel-heavy legacy service from the compiled backend, but organization
-      role/permission repository compatibility remains for tests and adjacent
-      contexts. The next deletion slices should keep using code-reference scans
-      plus focused behavior suites before removing compatibility paths.
+- [x] Delete `src/services/reward_execution_service.rs` and its child modules
+      after code search showed no production references and tests were already
+      exercising Level 2 reward execution use-case adapters.
+- [x] Replace the remaining test import of `reward_execution_service` with
+      direct application/domain names: `RewardTokenConfirmationCommand` from
+      `application/rewards/record_token_confirmation` and payout method
+      constants from `domain/rewards/payout`.
+- [x] Keep reward execution behavior owned by existing Level 2 surfaces:
+      `application/rewards/{plan_payout,record_token_confirmation,credit_wallet,
+      notify_wallet_credit,reconcile_candidate}` and matching
+      `infra/postgres/rewards/*_use_case` adapters.
+- [x] Self-critique: this removes a thin compatibility wrapper over migrated
+      reward execution use cases, but reward candidate submission still has a
+      legacy service used by integration tests. The next rewards slice should
+      either switch those tests to `application/rewards/submit_candidate` or
+      prove which compatibility behavior still lacks a Level 2 owner.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test organization_dashboard`,
-      `./scripts/run-host-tests.sh cargo test --test organization_members`,
-      `./scripts/run-host-tests.sh cargo test --test organization_management`,
-      `./scripts/run-host-tests.sh cargo test --test organization_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test organization_teacher_applications`,
+      `./scripts/run-host-tests.sh cargo test --test reward_execution`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      and code-reference scans showing `organization_service` exists only in
+      and code-reference scans showing `reward_execution_service` exists only in
       TODO history after the deletion.
 
 ## Legacy Transition Rules
