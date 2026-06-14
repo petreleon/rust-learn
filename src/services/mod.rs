@@ -1,4 +1,3 @@
-pub mod organization_service;
 pub mod reward_candidate_service;
 pub mod reward_execution_service;
 pub mod token_reconciliation;

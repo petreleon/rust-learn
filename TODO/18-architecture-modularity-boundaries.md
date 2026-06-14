@@ -1095,40 +1095,38 @@ remaining gaps.
 | 197 | Replaced the include-based `organization_service` shell and unit-test shell with normal child modules, explicit public re-exports, and `pub(super)` helper boundaries across organization CRUD, member listing, dashboard summaries, alerts, permissions, and audit logging. |
 | 198 | Replaced the include-based `course_service` shell with normal child modules, explicit compatibility re-exports, per-module imports, and `pub(super)` helper boundaries across discovery, learner catalog/detail/learning/progress, teacher dashboards, enrollment workspaces, organization course lists, lifecycle, invites, and mutations. |
 | 199 | Deleted the now-unused legacy `course_service` compatibility module after code search proved all course discovery, learner catalog/detail/learning/progress, teacher dashboard, enrollment, lifecycle, creation, update, and organization-course routes compile and run through Level 2 application/infra/http modules instead. |
+| 200 | Deleted the now-unused legacy `organization_service` compatibility module after code search proved organization CRUD, member list/invite/role/removal/audit, dashboard, course list, and teacher-application tracking flows compile and run through Level 2 application/infra/http modules instead. |
 
 ## Recent Slice Evidence
 
-Slice 199: delete the migrated course legacy service.
+Slice 200: delete the migrated organization legacy service.
 
-- [x] Delete `src/services/course_service.rs` and its child module tree after
-      code search showed no production or test references outside TODO history;
-      `src/services/mod.rs` no longer exports a course compatibility service.
+- [x] Delete `src/services/organization_service.rs` and its child module tree
+      after code search showed no production or test references outside TODO
+      history; `src/services/mod.rs` no longer exports an organization
+      compatibility service.
 - [x] Keep behavior owned by existing Level 2 surfaces:
-      `application/learning`, `infra/postgres/learning`, `http/learning`, and
-      `application/organizations`/`infra/postgres/organizations` for
-      organization course lists.
-- [x] Preserve route compatibility by verifying course discovery, learner
-      catalog/detail/learning/progress, teacher dashboard/workspace/student
-      reads, course lifecycle, course creation/update, join requests, and
-      enrollment API flows through their migrated use cases.
-- [x] Self-critique: deleting `course_service` removes a large Diesel-heavy
-      legacy service from the compiled backend, but learning is not fully
-      finished at Level 2 while `utils/course_utils.rs`, old repository
-      compatibility functions, and some test include/import fixtures still
-      exist. The next slices should continue deleting unused compatibility
-      paths only after code search and behavior tests prove their routes now
-      live behind application/infra/http ownership.
+      `application/organizations`, `infra/postgres/organizations`, and
+      `http/organizations`, with organization course-list behavior already
+      bridged through the organization application context.
+- [x] Preserve route compatibility by verifying organization dashboard,
+      member list/invite/role/removal/audit, organization CRUD, organization
+      permission, and organization teacher-application tracking flows through
+      their migrated use cases.
+- [x] Self-critique: deleting `organization_service` removes another
+      Diesel-heavy legacy service from the compiled backend, but organization
+      role/permission repository compatibility remains for tests and adjacent
+      contexts. The next deletion slices should keep using code-reference scans
+      plus focused behavior suites before removing compatibility paths.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test course_discovery`,
-      `./scripts/run-host-tests.sh cargo test --test teacher_course_dashboard`,
-      `./scripts/run-host-tests.sh cargo test --test course_lifecycle`,
-      `./scripts/run-host-tests.sh cargo test --test course_creation_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test course_editing_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test course_join_requests`,
-      `./scripts/run-host-tests.sh cargo test --test course_enrollment_api`,
+      `./scripts/run-host-tests.sh cargo test --test organization_dashboard`,
+      `./scripts/run-host-tests.sh cargo test --test organization_members`,
+      `./scripts/run-host-tests.sh cargo test --test organization_management`,
+      `./scripts/run-host-tests.sh cargo test --test organization_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test organization_teacher_applications`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      and code-reference scans showing `course_service` exists only in TODO
-      history after the deletion.
+      and code-reference scans showing `organization_service` exists only in
+      TODO history after the deletion.
 
 ## Legacy Transition Rules
 
