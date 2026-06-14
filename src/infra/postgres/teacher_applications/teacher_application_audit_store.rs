@@ -21,6 +21,17 @@ impl<'conn> PostgresTeacherApplicationAuditStore<'conn> {
     }
 }
 
+pub async fn list_teacher_application_audit_events(
+    conn: &mut AsyncPgConnection,
+    application_id: i64,
+) -> QueryResult<Vec<TeacherApplicationAuditEvent>> {
+    teacher_application_audit_events::table
+        .filter(teacher_application_audit_events::application_id.eq(application_id))
+        .order(teacher_application_audit_events::created_at.asc())
+        .load::<TeacherApplicationAuditEvent>(conn)
+        .await
+}
+
 impl TeacherApplicationAuditStore for PostgresTeacherApplicationAuditStore<'_> {
     fn can_review_teacher_applications(
         &mut self,
@@ -41,10 +52,7 @@ impl TeacherApplicationAuditStore for PostgresTeacherApplicationAuditStore<'_> {
     ) -> BoxFuture<'_, Result<Vec<TeacherApplicationAuditEventOutput>, TeacherApplicationAuditError>>
     {
         async move {
-            teacher_application_audit_events::table
-                .filter(teacher_application_audit_events::application_id.eq(application_id))
-                .order(teacher_application_audit_events::created_at.asc())
-                .load::<TeacherApplicationAuditEvent>(self.conn)
+            list_teacher_application_audit_events(self.conn, application_id)
                 .await
                 .map(|events| events.into_iter().map(Into::into).collect())
                 .map_err(map_error)

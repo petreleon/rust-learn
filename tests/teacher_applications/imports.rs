@@ -28,9 +28,9 @@ use rust_learn::infra::postgres::access_control::authorization_checks::user_perm
 use rust_learn::infra::postgres::access_control::authorization_checks::assign_role_to_user;
 use rust_learn::infra::postgres::access_control::authorization_checks::user_permission_platform_request;
 use rust_learn::infra::postgres::teacher_applications::teacher_application_audit_use_case::PostgresTeacherApplicationAuditUseCase;
+use rust_learn::infra::postgres::teacher_applications::teacher_application_audit_store::list_teacher_application_audit_events as list_audit_events;
 use rust_learn::infra::postgres::teacher_applications::teacher_application_list_use_case::PostgresTeacherApplicationListUseCase;
 use rust_learn::infra::postgres::teacher_applications::teacher_application_self_use_case::PostgresTeacherApplicationSelfUseCase;
-use rust_learn::repositories::teacher_application_repository::list_audit_events;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::tokens::jwt::create_jwt;
 use std::sync::Arc;

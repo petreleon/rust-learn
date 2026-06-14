@@ -7,4 +7,3 @@ pub mod reward_payout_record_repository;
 pub mod reward_policy_repository;
 pub mod reward_wallet_credit_record_repository;
 pub mod session_repository;
-pub mod teacher_application_repository;

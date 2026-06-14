@@ -1124,30 +1124,30 @@ remaining gaps.
 | 226 | Promoted access-control permission, hierarchy, platform-role, organization-role, and platform-permission fixture helpers to `infra/postgres/access_control/authorization_checks`, repointed tests to that facade, and deleted the unused legacy course/organization/platform/platform-permission repository modules. |
 | 227 | Promoted delegated-permission fixture/read helpers to `infra/postgres/access_control/delegated_permissions`, repointed tests to that infra module, and deleted the legacy delegated-permission repository shell plus child bridge modules. |
 | 228 | Made `infra/postgres/operations/persistent_state` the public Postgres owner for persistent key/value state, repointed wallet/reward integration fixtures to it, and deleted the legacy persistent-state repository shell. |
+| 229 | Moved teacher-application audit fixture reads to the Postgres teacher-application audit store helper, repointed tests to that infra owner, and deleted the legacy teacher-application repository shell. |
 
 ## Recent Slice Evidence
 
-Slice 228: delete legacy persistent-state repository shell.
+Slice 229: delete legacy teacher-application repository shell.
 
-- [x] Make `infra/postgres/operations/persistent_state` public and expose its
-      `set_persistent_state`/`get_persistent_state` helpers as the single
-      Postgres owner for persistent key/value process state.
-- [x] Repoint reward-execution and wallet-linking integration fixtures from
-      `rust_learn::repositories::persistent_state_repository` to the operations
-      infra module.
-- [x] Delete `src/repositories/persistent_state_repository.rs` and remove its
+- [x] Add `list_teacher_application_audit_events` to
+      `infra/postgres/teacher_applications/teacher_application_audit_store` and
+      reuse it inside the audit-store trait implementation.
+- [x] Repoint teacher-application integration fixtures from
+      `rust_learn::repositories::teacher_application_repository::list_audit_events`
+      to the teacher-application Postgres audit helper.
+- [x] Delete `src/repositories/teacher_application_repository.rs` and remove its
       export from `src/repositories/mod.rs`.
-- [x] Confirm scans show no persistent-state repository references remain;
-      remaining `rust_learn::repositories` test hits are reward and
-      teacher-application fixtures.
-- [x] Self-critique: this deliberately exposes a concrete operations/Postgres
-      helper for integration fixtures. It is appropriate for process-state
-      setup, but a future test-support module could hide raw storage details.
+- [x] Confirm scans show no teacher-application repository references remain;
+      remaining `rust_learn::repositories` test hits are reward fixtures only.
+- [x] Self-critique: this exposes a concrete Postgres audit read for test
+      fixtures. A later test-support layer could hide raw storage details, but
+      the legacy repository shell is gone and audit read SQL has one owner.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans for removed persistent-state repository
+      `git diff --check`, scans for removed teacher-application repository
       references, and file-size checks keeping changed Rust files under the
       manual 180-line ceiling.
 
