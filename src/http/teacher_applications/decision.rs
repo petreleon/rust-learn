@@ -1,22 +1,21 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::teacher_applications::decide_application::{
     TeacherApplicationDecisionError, TeacherApplicationDecisionUseCase,
 };
+use crate::application::teacher_applications::notify_application_event::TeacherApplicationNotificationUseCase;
 use crate::http::extractors::auth_user::AuthUser;
 use crate::http::teacher_applications::decision_dto::TeacherApplicationDecisionRequest;
 use crate::http::teacher_applications::dto::TeacherApplicationResponse;
-use crate::http::teacher_applications::support::{
-    notify_teacher_application_event, TeacherApplicationNotification,
-};
+use crate::http::teacher_applications::support::notify_teacher_application_event;
 
 pub(super) async fn decide_application(
-    req: HttpRequest,
     requester: AuthUser,
     path: web::Path<i64>,
     use_case: web::Data<Arc<dyn TeacherApplicationDecisionUseCase>>,
+    notifications: Option<web::Data<Arc<dyn TeacherApplicationNotificationUseCase>>>,
     body: web::Json<TeacherApplicationDecisionRequest>,
 ) -> impl Responder {
     let decision = body.into_inner();
@@ -28,8 +27,8 @@ pub(super) async fn decide_application(
         Ok(application) => {
             let event_type = application.status.clone();
             notify_teacher_application_event(
-                &req,
-                &TeacherApplicationNotification::from(&application),
+                notifications.as_ref(),
+                &application,
                 &event_type,
                 decision_reason.as_deref(),
             )

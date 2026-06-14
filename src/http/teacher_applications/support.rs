@@ -1,115 +1,41 @@
-use actix_web::{web, HttpRequest};
-use std::collections::HashSet;
+use std::sync::Arc;
 
-use crate::application::teacher_applications::TeacherApplicationOutput;
-use crate::config::constants::permissions::Permissions;
-use crate::db;
-use crate::repositories::teacher_application_repository::{
-    list_organization_user_ids_with_permission, list_platform_user_ids_with_permission,
+use actix_web::web;
+
+use crate::application::teacher_applications::{
+    notify_application_event::{
+        TeacherApplicationNotificationCommand, TeacherApplicationNotificationUseCase,
+    },
+    TeacherApplicationOutput,
 };
-use crate::utils::notifications::NotificationsState;
+
+type TeacherApplicationNotificationData = web::Data<Arc<dyn TeacherApplicationNotificationUseCase>>;
 
 pub(super) async fn notify_teacher_application_event(
-    req: &HttpRequest,
-    application: &TeacherApplicationNotification,
+    notifications: Option<&TeacherApplicationNotificationData>,
+    application: &TeacherApplicationOutput,
     event_type: &str,
     reason: Option<&str>,
 ) {
-    let notifications = match req.app_data::<web::Data<NotificationsState>>() {
-        Some(notifications) => notifications,
-        None => return,
+    let Some(notifications) = notifications else {
+        return;
     };
-    let pool = match req.app_data::<web::Data<db::DbPool>>() {
-        Some(pool) => pool,
-        None => return,
-    };
-    let mut conn = match pool.get().await {
-        Ok(conn) => conn,
-        Err(error) => {
-            log::warn!(
-                "event=teacher_application_notification_connection_failed application_id={} error={}",
-                application.id,
-                error
-            );
-            return;
-        }
+    let command = TeacherApplicationNotificationCommand {
+        applicant_user_id: application.applicant_user_id,
+        application_id: application.id,
+        event_type: event_type.to_string(),
+        organization_sponsor_id: application.organization_sponsor_id,
+        reason: reason.map(ToOwned::to_owned),
+        requested_organization_id: application.requested_organization_id,
+        requested_scope: application.requested_scope.clone(),
+        status: application.status.clone(),
     };
 
-    let mut recipient_ids = HashSet::new();
-    recipient_ids.insert(application.applicant_user_id);
-
-    let platform_permission = Permissions::REVIEW_TEACHER_APPLICATIONS.to_string();
-    match list_platform_user_ids_with_permission(&mut conn, &platform_permission).await {
-        Ok(ids) => recipient_ids.extend(ids),
-        Err(error) => log::warn!(
-            "event=teacher_application_notification_recipient_lookup_failed scope=platform application_id={} error={}",
+    if let Err(error) = notifications.notify_application_event(command).await {
+        log::warn!(
+            "event=teacher_application_notification_failed application_id={} error={:?}",
             application.id,
             error
-        ),
-    }
-
-    if let Some(organization_id) = application
-        .organization_sponsor_id
-        .or(application.requested_organization_id)
-    {
-        let organization_permission = Permissions::VIEW_ORG_TEACHER_APPLICATIONS.to_string();
-        match list_organization_user_ids_with_permission(
-            &mut conn,
-            organization_id,
-            &organization_permission,
-        )
-        .await
-        {
-            Ok(ids) => recipient_ids.extend(ids),
-            Err(error) => log::warn!(
-                "event=teacher_application_notification_recipient_lookup_failed scope=organization application_id={} organization_id={} error={}",
-                application.id,
-                organization_id,
-                error
-            ),
-        }
-    }
-
-    for recipient_id in recipient_ids {
-        if let Err(error) = notifications
-            .send_teacher_application_notification(
-                recipient_id,
-                application.id,
-                event_type,
-                application.status.as_str(),
-                application.requested_scope.as_str(),
-                reason,
-            )
-            .await
-        {
-            log::warn!(
-                "event=teacher_application_notification_send_failed application_id={} recipient_id={} error={:?}",
-                application.id,
-                recipient_id,
-                error
-            );
-        }
-    }
-}
-
-pub(super) struct TeacherApplicationNotification {
-    id: i64,
-    applicant_user_id: i32,
-    requested_organization_id: Option<i32>,
-    organization_sponsor_id: Option<i32>,
-    status: String,
-    requested_scope: String,
-}
-
-impl From<&TeacherApplicationOutput> for TeacherApplicationNotification {
-    fn from(application: &TeacherApplicationOutput) -> Self {
-        Self {
-            applicant_user_id: application.applicant_user_id,
-            id: application.id,
-            organization_sponsor_id: application.organization_sponsor_id,
-            requested_organization_id: application.requested_organization_id,
-            requested_scope: application.requested_scope.clone(),
-            status: application.status.clone(),
-        }
+        );
     }
 }

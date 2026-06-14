@@ -6,6 +6,7 @@ pub mod list_application_audit;
 pub mod list_applications;
 pub mod list_platform_review;
 pub mod nominate_application;
+pub mod notify_application_event;
 pub mod submit_application;
 
 pub use application::TeacherApplicationOutput;

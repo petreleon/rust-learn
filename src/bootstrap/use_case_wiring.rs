@@ -56,8 +56,7 @@ use crate::infra::postgres::wallet::wallet_link_use_case::PostgresWalletLinkUseC
 use crate::infra::postgres::wallet::wallet_read_use_case::PostgresWalletReadUseCase;
 use crate::infra::postgres::wallet::wallet_retirement_use_case::PostgresWalletRetirementUseCase;
 use crate::infra::postgres::wallet::wallet_token_tax_use_case::PostgresWalletTokenTaxUseCase;
-use crate::utils::{notifications::NotificationsState, s3_utils::S3State};
-
+use crate::utils::s3_utils::S3State;
 pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
     let kyc_use_cases = build_kyc_use_cases(&pool);
     let organization_use_cases = build_organization_use_cases(&pool);
@@ -173,7 +172,7 @@ pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
         ),
         teacher_application_use_cases: build_teacher_application_use_cases(&pool),
         readiness_use_case: Arc::new(RuntimeReadinessUseCase::new(pool.clone(), s3.clone())),
-        notifications: NotificationsState::new(pool.clone()),
+        notifications: crate::utils::notifications::NotificationsState::new(pool.clone()),
         pool,
         s3,
     }

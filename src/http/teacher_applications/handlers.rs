@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::teacher_applications::get_my_application::{
     TeacherApplicationSelfError, TeacherApplicationSelfUseCase,
@@ -8,6 +8,7 @@ use crate::application::teacher_applications::get_my_application::{
 use crate::application::teacher_applications::list_applications::{
     TeacherApplicationListError, TeacherApplicationListUseCase,
 };
+use crate::application::teacher_applications::notify_application_event::TeacherApplicationNotificationUseCase;
 use crate::application::teacher_applications::submit_application::{
     TeacherApplicationSubmitError, TeacherApplicationSubmitUseCase,
 };
@@ -16,22 +17,20 @@ use crate::http::teacher_applications::dto::{
     teacher_application_responses, ListTeacherApplicationsParams, SubmitTeacherApplicationRequest,
     TeacherApplicationResponse, TeacherApplicationSelfResponse,
 };
-use crate::http::teacher_applications::support::{
-    notify_teacher_application_event, TeacherApplicationNotification,
-};
+use crate::http::teacher_applications::support::notify_teacher_application_event;
 
 pub(super) async fn submit_application(
-    req: HttpRequest,
     requester: AuthUser,
     use_case: web::Data<Arc<dyn TeacherApplicationSubmitUseCase>>,
+    notifications: Option<web::Data<Arc<dyn TeacherApplicationNotificationUseCase>>>,
     body: web::Json<SubmitTeacherApplicationRequest>,
 ) -> impl Responder {
     let command = body.into_inner().into_command(requester.user_id());
     match use_case.submit_application(command).await {
         Ok(application) => {
             notify_teacher_application_event(
-                &req,
-                &TeacherApplicationNotification::from(&application),
+                notifications.as_ref(),
+                &application,
                 "submitted",
                 None,
             )

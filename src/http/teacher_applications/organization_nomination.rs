@@ -1,22 +1,21 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::teacher_applications::nominate_application::{
     TeacherApplicationNominationError, TeacherApplicationNominationUseCase,
 };
+use crate::application::teacher_applications::notify_application_event::TeacherApplicationNotificationUseCase;
 use crate::http::extractors::auth_user::AuthUser;
 use crate::http::teacher_applications::dto::TeacherApplicationResponse;
 use crate::http::teacher_applications::organization_nomination_dto::OrganizationTeacherNominationRequest;
-use crate::http::teacher_applications::support::{
-    notify_teacher_application_event, TeacherApplicationNotification,
-};
+use crate::http::teacher_applications::support::notify_teacher_application_event;
 
 pub(crate) async fn nominate_application(
-    req: HttpRequest,
     requester: AuthUser,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn TeacherApplicationNominationUseCase>>,
+    notifications: Option<web::Data<Arc<dyn TeacherApplicationNotificationUseCase>>>,
     body: web::Json<OrganizationTeacherNominationRequest>,
 ) -> impl Responder {
     let organization_id = path.into_inner();
@@ -27,8 +26,8 @@ pub(crate) async fn nominate_application(
     match use_case.nominate_application(command).await {
         Ok(application) => {
             notify_teacher_application_event(
-                &req,
-                &TeacherApplicationNotification::from(&application),
+                notifications.as_ref(),
+                &application,
                 "organization_nominated",
                 None,
             )

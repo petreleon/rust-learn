@@ -1018,46 +1018,41 @@ remaining gaps.
 | 120 | Moved `POST /teacher-applications` behind `domain/teacher_applications` scope validation, `application/teacher_applications/submit_application`, a Postgres submit adapter/use case, HTTP-owned submit request mapping, and teacher-application bootstrap wiring; the route no longer opens the DB pool for creation or calls `teacher_application_service::submit_application`. |
 | 121 | Moved `PUT /teacher-applications/{id}/decision` behind `domain/teacher_applications` decision-status normalization, `application/teacher_applications/decide_application`, a Postgres decision adapter/use case with role-assignment helpers, HTTP-owned decision request mapping, and teacher-application bootstrap wiring; the route no longer opens the DB pool or calls `teacher_application_service::decide_application`. |
 | 122 | Moved `POST /organizations/{id}/teacher-applications` behind `application/teacher_applications/nominate_application`, a Postgres nomination adapter/use case, HTTP-owned nomination request mapping, and teacher-application bootstrap wiring; the route no longer opens the DB pool or calls `teacher_application_service::nominate_application`, and the include-based `teacher_application_service` module was deleted. |
+| 123 | Moved teacher-application notification fan-out behind `application/teacher_applications/notify_application_event`, a Postgres recipient lookup and notification sender adapter/use case, optional HTTP app-data wiring, and teacher-application bootstrap construction; `http/teacher_applications` no longer imports `DbPool`, repositories, or `NotificationsState` for notification recipient lookup. |
 
 ## Recent Slice Evidence
 
-Slice 122: move organization-sponsored teacher nomination into Level 2 rings.
+Slice 123: move teacher-application notification fan-out out of HTTP.
 
-- [x] Add `application/teacher_applications/nominate_application` with
-      command/error/store/service contracts and fake-tested handler behavior for
-      organization permission, default organization scope, active-application
-      conflicts, and idempotency mismatch rejection.
-- [x] Reuse the teacher-application submission value for nomination
-      persistence while keeping actor and applicant separate; organization
-      nomination forces `requested_organization_id` and
-      `organization_sponsor_id` to the sponsoring organization.
-- [x] Add Postgres nomination store/use-case modules under
-      `infra/postgres/teacher_applications`, keeping organization permission
-      lookup, idempotency/latest-application queries, insert transaction,
-      `organization_nominated` audit write, and persistence mapping outside
-      HTTP and application code.
-- [x] Rework `POST /organizations/{id}/teacher-applications` to use `AuthUser`,
-      an HTTP-owned nomination request DTO, an injected nomination use case,
-      HTTP response/error mapping, and the existing notification snapshot helper
-      instead of opening `DbPool` or serializing Diesel records directly.
-- [x] Register the nomination use case through
-      `bootstrap/teacher_application_wiring`, add bootstrap app-data wiring, and
-      add an API routing fake plus smoke target for the organization nomination
-      route.
-- [x] Delete the obsolete include-based `services/teacher_application_service`
-      module after moving submit, list, review, audit, decision, and nomination
-      tests onto application/Postgres paths.
-- [x] Self-critique: teacher-application route behavior is now Level 2-owned,
-      but notification fan-out recipient lookup remains a temporary HTTP
-      support concern until notification boundaries move behind an application
-      port.
-- [x] Prove behavior with nomination application unit tests, focused
-      organization-nomination integration, the full `teacher_applications`
-      suite, `organization_teacher_applications`, API route reachability,
-      formatting, line-count checks, `git diff --check`, stale legacy service
-      scans, and boundary scans proving the nomination application module does
-      not import Actix, Diesel, DB pools, services, repositories, or persistence
-      models.
+- [x] Add `application/teacher_applications/notify_application_event` with
+      command/error/outcome/store/service contracts and fake-tested behavior for
+      recipient deduplication, platform and organization recipient inclusion,
+      lookup failures, and send failures.
+- [x] Add Postgres notification store/use-case modules under
+      `infra/postgres/teacher_applications`, keeping platform reviewer lookup,
+      organization viewer lookup, and delivery through the existing
+      notification sender outside HTTP.
+- [x] Rework submit, decision, and organization nomination handlers to call an
+      optional injected notification use case after successful business action;
+      missing notification app data and delivery failures remain best-effort and
+      do not change API responses.
+- [x] Register the teacher-application notification use case through
+      `bootstrap/teacher_application_wiring` with the existing
+      `NotificationsState`, and expose it through `bootstrap/app_data`.
+- [x] Delete HTTP-owned `TeacherApplicationNotification` snapshots and direct
+      recipient lookup from `http/teacher_applications/support.rs`; the HTTP
+      teacher-application context no longer imports `DbPool`, repositories, or
+      `NotificationsState`.
+- [x] Self-critique: this still relies on the legacy `utils::notifications`
+      sender as the concrete delivery adapter; a later notification-context
+      slice should move provider/message creation fully behind
+      `application/notifications`.
+- [x] Prove behavior with notification application unit tests, the full
+      `teacher_applications` suite, `organization_teacher_applications`, API
+      route reachability, formatting, line-count checks, `git diff --check`,
+      HTTP dependency scans, and boundary scans proving the notification
+      application module does not import Actix, Diesel, DB pools, services,
+      repositories, persistence models, or utility senders.
 
 ## Legacy Transition Rules
 
@@ -1358,6 +1353,11 @@ boundary checks from the matrix above to every canonical context.
 - [x] The include-based `services/teacher_application_service` module has been
       deleted after all teacher-application routes moved behind Level 2
       application/Postgres/HTTP ownership.
+- [x] Teacher-application notification fan-out now has application
+      command/outcome/error/store contracts, a Postgres recipient/sender
+      adapter use case, HTTP best-effort app-data wiring, and unit/integration
+      coverage; `http/teacher_applications` no longer owns DB-backed recipient
+      lookup.
 
 ## Data Boundary Rules
 
