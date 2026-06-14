@@ -6,6 +6,7 @@ mod reward_approvals;
 mod service;
 pub mod store;
 mod teacher_applications;
+mod wallet_credits;
 
 pub(crate) use delegated_permissions::{
     platform_delegated_permission_export_row, PlatformDelegatedPermissionExportFact,
@@ -23,4 +24,7 @@ pub(crate) use reward_approvals::{
 pub use service::PlatformCsvExportsUseCase;
 pub(crate) use teacher_applications::{
     platform_teacher_application_export_row, PlatformTeacherApplicationExportFact,
+};
+pub(crate) use wallet_credits::{
+    platform_wallet_credit_export_row, PlatformWalletCreditExportFact,
 };

@@ -1162,28 +1162,31 @@ remaining gaps.
 | 264 | Moved platform teacher-application CSV row assembly into the reporting application layer behind a teacher-application export fact. |
 | 265 | Moved platform reward-approval CSV row assembly into the reporting application layer behind a reward-approval export fact. |
 | 266 | Moved platform delegated-permission CSV row assembly and state classification into the reporting application layer behind a delegated-permission export fact. |
+| 267 | Moved platform wallet-credit CSV row assembly into the reporting application layer behind a wallet-credit export fact. |
 
 ## Recent Slice Evidence
 
-Slice 266: move platform delegated-permission CSV row assembly to application.
+Slice 267: move platform wallet-credit CSV row assembly to application.
 
-- [x] Add `application/reporting/platform_csv_exports/delegated_permissions`
-      with `PlatformDelegatedPermissionExportFact` and
-      `platform_delegated_permission_export_row`.
-- [x] Move delegated-permission CSV state classification plus grant/revoke
-      reason defaulting out of the Postgres query helper.
-- [x] Repoint `platform_csv_export_delegated_permissions` to load
-      `DelegatedPermission` rows, convert DB models to application facts, and
-      call the application row assembler.
-- [x] Preserve existing behavior: rows remain ordered by `created_at desc`,
-      capped at 1000, revoked rows win over expiry, expired rows compare
-      `expires_at <= now`, and missing reason fields still export as empty
-      strings.
-- [x] Keep changed Rust files small: application delegated-permission CSV
-      module 140 lines, module export 26 lines, and Postgres helper 48 lines.
-- [x] Self-critique: wallet-credit and token-payout CSV exports still perform
-      row assembly in Postgres helpers; future slices should move them behind
-      application-owned fact/row assembly one at a time.
+- [x] Add `application/reporting/platform_csv_exports/wallet_credits`
+      with `PlatformWalletCreditExportFact` and
+      `platform_wallet_credit_export_row`.
+- [x] Move wallet-credit CSV row assembly and reward amount string formatting
+      out of the Postgres query helper.
+- [x] Repoint `platform_csv_export_wallet_credits` to load
+      `RewardWalletCreditRecord`, `RewardCandidate`, and internal transaction
+      amount rows, convert them to an application fact, and call the
+      application row assembler.
+- [x] Preserve existing behavior: rows remain ordered by wallet-credit record
+      `created_at desc`, capped at 1000, candidate course/student identity is
+      still loaded from the reward candidate, amount is still rendered with
+      `BigDecimal::to_string`, and notification fields pass through unchanged.
+- [x] Keep changed Rust files small: application wallet-credit CSV module 67
+      lines, module export 30 lines, and Postgres helper 68 lines.
+- [x] Self-critique: token-payout CSV export still performs row assembly and
+      optional external-transaction field defaulting in its Postgres helper; a
+      future slice should move it behind an application-owned fact/row
+      assembler.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --lib platform_csv_exports`,
       `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_csv_exports_cover_business_reward_datasets`,
