@@ -3,7 +3,8 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::platform_csv_exports::{
-    PlatformCsvExportError, PlatformTokenPayoutExportRowOutput,
+    platform_token_payout_export_row, PlatformCsvExportError, PlatformTokenPayoutExportFact,
+    PlatformTokenPayoutExportRowOutput,
 };
 use crate::db::schema::{external_transactions, reward_candidates, reward_payout_records};
 use crate::infra::postgres::reporting::platform_csv_export_mappers::map_diesel_error;
@@ -63,30 +64,32 @@ async fn token_payout_row(
         .first::<ExternalTransactionRow>(conn)
         .await
         .map_err(map_diesel_error)?;
-    Ok(map_token_payout(record, candidate, external))
+    Ok(platform_token_payout_export_row(token_payout_fact(
+        record, candidate, external,
+    )))
 }
 
-fn map_token_payout(
+fn token_payout_fact(
     record: RewardPayoutRecord,
     candidate: RewardCandidate,
     external: ExternalTransactionRow,
-) -> PlatformTokenPayoutExportRowOutput {
-    PlatformTokenPayoutExportRowOutput {
+) -> PlatformTokenPayoutExportFact {
+    PlatformTokenPayoutExportFact {
         reward_payout_record_id: record.id,
         reward_candidate_id: record.reward_candidate_id,
         course_id: candidate.course_id,
         student_user_id: candidate.student_user_id,
         payout_transaction_id: record.transaction_id,
         external_transaction_id: record.external_transaction_id,
-        amount: external.0.to_string(),
+        amount: external.0,
         blockchain_address: external.1,
         chain_id: external.2,
-        contract_address: external.3.unwrap_or_default(),
-        transaction_hash: external.4.unwrap_or_default(),
+        contract_address: external.3,
+        transaction_hash: external.4,
         log_index: external.5,
-        event_type: external.6.unwrap_or_default(),
-        from_address: external.7.unwrap_or_default(),
-        to_address: external.8.unwrap_or_default(),
+        event_type: external.6,
+        from_address: external.7,
+        to_address: external.8,
         created_at: record.created_at,
     }
 }

@@ -1163,30 +1163,38 @@ remaining gaps.
 | 265 | Moved platform reward-approval CSV row assembly into the reporting application layer behind a reward-approval export fact. |
 | 266 | Moved platform delegated-permission CSV row assembly and state classification into the reporting application layer behind a delegated-permission export fact. |
 | 267 | Moved platform wallet-credit CSV row assembly into the reporting application layer behind a wallet-credit export fact. |
+| 268 | Moved the final platform token-payout CSV row assembly and optional external-transaction defaulting into the reporting application layer, closing the platform CSV export row-assembly migration batch. |
 
 ## Recent Slice Evidence
 
-Slice 267: move platform wallet-credit CSV row assembly to application.
+Batch 268: complete platform CSV export row assembly in application.
 
-- [x] Add `application/reporting/platform_csv_exports/wallet_credits`
-      with `PlatformWalletCreditExportFact` and
-      `platform_wallet_credit_export_row`.
-- [x] Move wallet-credit CSV row assembly and reward amount string formatting
-      out of the Postgres query helper.
-- [x] Repoint `platform_csv_export_wallet_credits` to load
-      `RewardWalletCreditRecord`, `RewardCandidate`, and internal transaction
-      amount rows, convert them to an application fact, and call the
-      application row assembler.
-- [x] Preserve existing behavior: rows remain ordered by wallet-credit record
+- [x] Add `application/reporting/platform_csv_exports/token_payouts`
+      with `PlatformTokenPayoutExportFact` and
+      `platform_token_payout_export_row`.
+- [x] Move token-payout CSV row assembly, reward amount string formatting, and
+      optional external-transaction text defaulting out of the Postgres query
+      helper.
+- [x] Repoint `platform_csv_export_token_payouts` to load
+      `RewardPayoutRecord`, `RewardCandidate`, and external transaction rows,
+      convert them to an application fact, and call the application row
+      assembler.
+- [x] Preserve existing behavior: rows remain ordered by payout record
       `created_at desc`, capped at 1000, candidate course/student identity is
       still loaded from the reward candidate, amount is still rendered with
-      `BigDecimal::to_string`, and notification fields pass through unchanged.
-- [x] Keep changed Rust files small: application wallet-credit CSV module 67
-      lines, module export 30 lines, and Postgres helper 68 lines.
-- [x] Self-critique: token-payout CSV export still performs row assembly and
-      optional external-transaction field defaulting in its Postgres helper; a
-      future slice should move it behind an application-owned fact/row
-      assembler.
+      `BigDecimal::to_string`, and missing contract/hash/event/address fields
+      still export as empty strings.
+- [x] Close the selected CSV row-assembly pattern: scans now show platform CSV
+      output row construction and CSV-visible string/defaulting behavior in
+      `application/reporting/platform_csv_exports`, with Postgres CSV helpers
+      responsible for loading rows and building application facts.
+- [x] Keep changed Rust files small: application token-payout CSV module 115
+      lines, module export 32 lines, and Postgres helper 95 lines.
+- [x] Self-critique: reporting still has non-CSV dashboard/read-model string
+      shaping in Postgres helpers, such as platform reward-dashboard approved
+      amount display mapping; a future higher-throughput batch should scan and
+      move those related reporting display-shaping cases by dashboard/read
+      model area.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --lib platform_csv_exports`,
       `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_csv_exports_cover_business_reward_datasets`,
