@@ -4,10 +4,10 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::organization_reward_dashboard::{
-    organization_reward_dashboard_date_window, teacher_application_summary_from_statuses,
-    OrganizationCourseRewardDashboardFact, OrganizationRewardDashboardDateWindow,
-    OrganizationRewardDashboardError, OrganizationWalletBalanceFact,
-    TeacherApplicationDashboardSummaryOutput,
+    organization_course_reward_fact_from_amounts, organization_reward_dashboard_date_window,
+    teacher_application_summary_from_statuses, OrganizationCourseRewardDashboardFact,
+    OrganizationRewardDashboardDateWindow, OrganizationRewardDashboardError,
+    OrganizationWalletBalanceFact, TeacherApplicationDashboardSummaryOutput,
 };
 use crate::db::schema::{
     courses, courses_organizations, reward_candidates, teacher_applications, wallets,
@@ -75,18 +75,11 @@ async fn course_reward_row(
         .load::<Option<BigDecimal>>(conn)
         .await
         .map_err(map_diesel_error)?;
-    let approved_amounts = amounts.iter().flatten().cloned().collect::<Vec<_>>();
-    let approved_amount_total = approved_amounts
-        .iter()
-        .cloned()
-        .fold(BigDecimal::from(0), |sum, amount| sum + amount);
 
-    Ok(OrganizationCourseRewardDashboardFact::new(
+    Ok(organization_course_reward_fact_from_amounts(
         course_id,
         course_title,
-        amounts.len() as i64,
-        approved_amounts.len() as i64,
-        approved_amount_total,
+        amounts,
     ))
 }
 

@@ -1,4 +1,5 @@
 mod aggregation;
+mod course_amounts;
 mod date_window;
 mod error;
 mod handler;
@@ -11,6 +12,7 @@ pub(crate) use aggregation::{
     organization_reward_dashboard_from_facts, OrganizationCourseRewardDashboardFact,
     OrganizationRewardDashboardFacts, OrganizationWalletBalanceFact,
 };
+pub(crate) use course_amounts::organization_course_reward_fact_from_amounts;
 pub(crate) use date_window::{
     organization_reward_dashboard_date_window, OrganizationRewardDashboardDateWindow,
 };

@@ -1151,31 +1151,34 @@ remaining gaps.
 | 253 | Moved organization reward-dashboard course, approved reward, approved amount, and wallet balance total aggregation into the reporting application layer behind dashboard fact structs. |
 | 254 | Moved organization reward-dashboard course and wallet row/fact construction into application-owned fact constructors, leaving Postgres to pass loaded values and decimals. |
 | 255 | Moved organization reward-dashboard date-window expansion into the reporting application layer, leaving Postgres to consume prepared inclusive timestamp bounds. |
+| 256 | Moved organization reward-dashboard per-course approved amount summarization into the reporting application layer, leaving Postgres to load nullable amount values only. |
 
 ## Recent Slice Evidence
 
-Slice 255: move organization reward-dashboard date-window expansion to application.
+Slice 256: move organization reward-dashboard course amount summarization to application.
 
-- [x] Add `application/reporting/organization_reward_dashboard/date_window`
-      as the application owner for expanding optional report dates into
-      inclusive start/end timestamp bounds.
-- [x] Repoint `organization_reward_dashboard_queries` to build a
-      `OrganizationRewardDashboardDateWindow` once and consume its prepared
-      timestamp bounds when filtering reward candidates.
-- [x] Remove Postgres-local `start_of_day` and `end_of_day` helpers plus direct
-      `NaiveDateTime`/`NaiveTime` imports from the query module.
-- [x] Preserve existing filter behavior: `from` maps to `00:00:00`, `to` maps
-      to `23:59:59`, and missing bounds remain open-ended.
-- [x] Cover the date-window helper with pure application tests for inclusive
-      bounds and open-ended requests.
-- [x] Reduce `organization_reward_dashboard_queries` from 124 to 117 lines and
-      keep the new application date-window helper at 67 lines.
-- [x] Self-critique: the query module still computes per-course approved amount
-      counts and totals from loaded `Option<BigDecimal>` rows; a later slice
-      should move that amount summarization behind an application helper without
-      growing `aggregation.rs` past the line ceiling.
+- [x] Add `application/reporting/organization_reward_dashboard/course_amounts`
+      as the application owner for converting loaded nullable approved amounts
+      into a course reward dashboard fact.
+- [x] Repoint `organization_reward_dashboard_queries` to load
+      `Option<BigDecimal>` amount rows and pass them directly to
+      `organization_course_reward_fact_from_amounts`.
+- [x] Move per-course candidate count, approved reward count, and approved
+      amount total calculation out of the Postgres query module.
+- [x] Preserve existing report behavior: `None` amounts still count as reward
+      candidates but not approved rewards, and approved `BigDecimal` values are
+      summed and stringified through the application fact constructor.
+- [x] Cover normal and empty amount sets with pure application tests.
+- [x] Reduce `organization_reward_dashboard_queries` from 117 to 110 lines,
+      keep `aggregation.rs` unchanged at 174 lines, and keep the new
+      `course_amounts` helper at 89 lines.
+- [x] Self-critique: organization reward-dashboard query orchestration is now
+      mostly SQL plus application helpers, but the file still mixes teacher
+      application, course reward, wallet balance, and Diesel error mapping; a
+      later slice should split those query concerns before this adapter grows
+      again.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib organization_reward_dashboard::date_window`,
+      `./scripts/run-host-tests.sh cargo test --lib organization_reward_dashboard::course_amounts`,
       `./scripts/run-host-tests.sh cargo test --test organization_dashboard`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
