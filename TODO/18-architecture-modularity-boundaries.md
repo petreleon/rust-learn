@@ -1128,37 +1128,36 @@ remaining gaps.
 | 230 | Promoted reward fixture record helpers to `infra/postgres/rewards`, repointed reward tests to those Postgres owners, removed `repositories` from the binary/library module trees, deleted the entire legacy `src/repositories` module, and refreshed public architecture maps. |
 | 231 | Moved upload-job queue claim/metrics/done/failure/retry persistence out of `models::upload_job` and into `infra/postgres/content/upload_job_queue`, leaving `UploadJob` as a row shape plus pure id helper while the worker and upload tests call the infra owner. |
 | 232 | Moved user read persistence out of `models::user` and into `infra/postgres/identity/accounts`, repointed bootstrap, organization invite, and authentication-flow fixtures to identity infra helpers, leaving `src/models` free of async DB methods. |
+| 233 | Moved teacher and amount reward-decision target-status alias parsing into pure `domain/rewards/candidate/transition` helpers, leaving application validation as thin error translation. |
 
 ## Recent Slice Evidence
 
-Slice 232: move user model persistence to identity infra.
+Slice 233: move reward decision target-status parsing into domain.
 
-- [x] Add `find_user_by_id` and `find_user_by_email` to
-      `infra/postgres/identity/accounts` as the identity-owned full-user record
-      read helpers needed by bootstrap, organization invite, and fixtures.
-- [x] Remove `find_all`, `find_by_id`, `find_by_email`, `create`, and
-      `find_with_password_auth` from `models::user`, leaving `User` as a row
-      shape plus pure `id()` helper.
-- [x] Repoint bootstrap verified-user creation and organization member invite
-      lookup from `User::find_*` to the identity account helpers.
-- [x] Repoint authentication-flow integration fixtures from `User::find_*` to
-      the identity account helpers.
-- [x] Confirm scans show no `User::find_all`, `User::find_by_id`,
-      `User::find_by_email`, `User::create`, or
-      `User::find_with_password_auth` calls remain.
-- [x] Confirm `rg -n "pub async fn|async fn" src/models` returns no matches, so
-      Diesel row-shape models no longer own async DB behavior.
-- [x] Self-critique: identity fixtures now call concrete Postgres account
-      helpers directly. That is acceptable for fixture readback and removes the
-      model-layer persistence leak, but a later test-support module could hide
-      storage details from integration tests.
+- [x] Add `teacher_decision_target_status` and
+      `amount_decision_target_status` to
+      `domain/rewards/candidate/transition`.
+- [x] Cover the domain helpers with pure unit tests for legacy aliases and
+      unsupported status inputs.
+- [x] Repoint teacher-decision and amount-decision application validation to
+      call the domain helpers and only translate `None` into use-case-specific
+      invalid-status errors.
+- [x] Keep approved-amount validation in the amount-decision application
+      validation module, since this slice only moves decision status
+      vocabulary and transition target parsing.
+- [x] Confirm changed Rust files remain under the manual 180-line ceiling.
+- [x] Self-critique: this is a partial candidate-transition extraction, not the
+      whole TODO item. The next transition slice should move more status-change
+      validity checks out of Postgres stores and into pure domain helpers.
 - [x] Prove behavior with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate::transition`,
+      `./scripts/run-host-tests.sh cargo test --lib decide_teacher_candidate::validation`,
+      `./scripts/run-host-tests.sh cargo test --lib decide_amount::validation`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, model-user persistence scans, full `src/models`
-      async scans, and file-size checks keeping changed Rust files under the
-      manual 180-line ceiling.
+      `git diff --check`, scans for the decision-target helpers, and file-size
+      checks keeping changed Rust files under the manual 180-line ceiling.
 
 ## Legacy Transition Rules
 

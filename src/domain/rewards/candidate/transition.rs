@@ -74,9 +74,32 @@ pub fn amount_decision(
     apply_transition(from, action)
 }
 
+pub fn teacher_decision_target_status(status: &str) -> Option<RewardCandidateStatus> {
+    match normalize_decision_status(status).as_str() {
+        "approved" | "teacher_approved" => Some(RewardCandidateStatus::TeacherApproved),
+        "rejected" | "teacher_rejected" => Some(RewardCandidateStatus::TeacherRejected),
+        _ => None,
+    }
+}
+
+pub fn amount_decision_target_status(status: &str) -> Option<RewardCandidateStatus> {
+    match normalize_decision_status(status).as_str() {
+        "approved" | "amount_approved" => Some(RewardCandidateStatus::AmountApproved),
+        "rejected" | "amount_rejected" => Some(RewardCandidateStatus::AmountRejected),
+        _ => None,
+    }
+}
+
+fn normalize_decision_status(status: &str) -> String {
+    status.trim().to_ascii_lowercase()
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{amount_decision, apply_transition, teacher_decision, TransitionAction};
+    use super::{
+        amount_decision, amount_decision_target_status, apply_transition, teacher_decision,
+        teacher_decision_target_status, TransitionAction,
+    };
     use crate::domain::rewards::candidate::status::RewardCandidateStatus as Status;
 
     #[test]
@@ -95,6 +118,32 @@ mod tests {
             Status::AmountApproved
         );
         assert!(amount_decision(Status::PendingTeacherApproval, true).is_err());
+    }
+
+    #[test]
+    fn normalizes_teacher_decision_target_status_aliases() {
+        assert_eq!(
+            teacher_decision_target_status(" approved "),
+            Some(Status::TeacherApproved)
+        );
+        assert_eq!(
+            teacher_decision_target_status("teacher_rejected"),
+            Some(Status::TeacherRejected)
+        );
+        assert_eq!(teacher_decision_target_status("teacher-approved"), None);
+    }
+
+    #[test]
+    fn normalizes_amount_decision_target_status_aliases() {
+        assert_eq!(
+            amount_decision_target_status(" APPROVED "),
+            Some(Status::AmountApproved)
+        );
+        assert_eq!(
+            amount_decision_target_status("amount_rejected"),
+            Some(Status::AmountRejected)
+        );
+        assert_eq!(amount_decision_target_status("pending"), None);
     }
 
     #[test]
