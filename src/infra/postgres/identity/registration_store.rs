@@ -6,9 +6,9 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::register::{
     RegisterError, RegisterStore, RegisteredUser, RegistrationAccount,
 };
+use crate::infra::postgres::identity::email_verification_tokens::create_email_verification_token;
 use crate::infra::tokens::identity::identity_token_hash;
 use crate::models::authentication::Authentication;
-use crate::models::email_verification_token::EmailVerificationToken;
 use crate::models::role::PlatformRole;
 use crate::models::user::{NewUser, User};
 use crate::models::user_role_platform::UserRolePlatform;
@@ -62,12 +62,8 @@ impl RegisterStore for PostgresRegistrationStore<'_> {
                         )
                         .await?;
 
-                        EmailVerificationToken::create_for_user(
-                            conn,
-                            inserted_user.id(),
-                            token_hash,
-                        )
-                        .await?;
+                        create_email_verification_token(conn, inserted_user.id(), token_hash)
+                            .await?;
 
                         Ok(RegisteredUser {
                             email: inserted_user.email,

@@ -4,8 +4,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::resend_verification::{
     ResendVerificationError, ResendVerificationStore, VerificationEmailTarget,
 };
+use crate::infra::postgres::identity::email_verification_tokens::create_email_verification_token;
 use crate::infra::tokens::identity::identity_token_hash;
-use crate::models::email_verification_token::EmailVerificationToken;
 use crate::models::user::User;
 
 pub struct PostgresResendVerificationStore<'conn> {
@@ -39,7 +39,7 @@ impl ResendVerificationStore for PostgresResendVerificationStore<'_> {
         token: String,
     ) -> BoxFuture<'_, Result<(), ResendVerificationError>> {
         async move {
-            EmailVerificationToken::create_for_user(self.conn, user_id, identity_token_hash(&token))
+            create_email_verification_token(self.conn, user_id, identity_token_hash(&token))
                 .await
                 .map(|_| ())
                 .map_err(|error| ResendVerificationError::Store(error.to_string()))

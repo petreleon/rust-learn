@@ -2,6 +2,7 @@ pub mod current_session_delegations;
 pub mod current_session_scope_builder;
 pub mod current_session_store;
 pub mod current_session_use_case;
+pub mod email_verification_tokens;
 pub mod login_security;
 pub mod login_store;
 pub mod login_use_case;

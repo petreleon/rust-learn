@@ -1031,34 +1031,34 @@ remaining gaps.
 | 133 | Moved auth email normalization and privacy log hashing from `http/identity/authentication/support.rs` into `application/identity/email`, deleted the HTTP support module, and updated migrated auth routes to import identity email vocabulary without reaching into `utils::email`. |
 | 134 | Moved identity mock email URL building, rendering, and printing from `utils::email` into `infra/email/identity`, wired registration/resend-verification/password-reset request delivery adapters to the email infra module, and updated the `mock_email` helper binary; `utils::email` now contains only token generation/hash helpers. |
 | 135 | Moved identity token generation and hashing from `utils::email` into `infra/tokens/identity`, updated identity Postgres adapters and auth-flow token seeding to use the token infra module, removed `utils::email` from the utility module tree, and deleted the old utility file. |
+| 136 | Moved email-verification token creation and verification behavior from `models::email_verification_token` into `infra/postgres/identity/email_verification_tokens`, updated registration/resend/verify adapters and auth-flow token seeding to call the Postgres identity token adapter, and left the model as a Diesel record/insert shape only. |
 
 ## Recent Slice Evidence
 
-Slice 135: move identity token helpers into infra/tokens.
+Slice 136: move email-verification token persistence out of models.
 
-- [x] Add `infra/tokens/identity` with URL-safe random identity token
-      generation and SHA-256 URL-safe token hashing, plus focused unit tests for
-      token shape and hash stability.
-- [x] Update registration, resend-verification, password-reset request,
-      verify-email, and reset-password Postgres adapters to use
-      `infra::tokens::identity` instead of `utils::email`.
-- [x] Update auth-flow token seeding tests to use the token infra module.
-- [x] Remove `utils::email` from `utils::mod` and delete the old utility file,
-      leaving identity email/token responsibilities out of the generic utility
-      bucket.
-- [x] Self-critique: migrated identity auth now has route logic in HTTP,
-      use-case behavior in application, DB/token hashing in Postgres infra,
-      mock email rendering in email infra, and token generation in token infra;
-      remaining cleanup should move legacy token persistence behavior off
-      Active Record-style `models::*` methods into repository/adapters owned by
-      `infra/postgres/identity`.
-- [x] Prove behavior with token infra unit tests, focused verify-email and
-      password-reset integration coverage, the full `authentication_flow`
-      suite, API route reachability, `mock_email` binary check, formatting,
+- [x] Add `infra/postgres/identity/email_verification_tokens` with
+      `create_email_verification_token`, `verify_email_verification_token`,
+      token TTL handling, active-token invalidation, user verification update,
+      and infra-owned verification outcome vocabulary.
+- [x] Reduce `models::email_verification_token` to Diesel record and insert
+      structs only; remove async `create_for_user`, async `verify`, and the
+      model-owned verification result enum.
+- [x] Update registration, resend-verification, and verify-email Postgres
+      adapters to call the Postgres identity token adapter instead of
+      `EmailVerificationToken::*` Active Record methods.
+- [x] Update auth-flow token seeding tests to call the Postgres identity token
+      adapter.
+- [x] Self-critique: `models::password_reset_token` still owns async
+      create/consume behavior and is still called by password reset adapters
+      and tests; move password-reset token persistence into
+      `infra/postgres/identity` next.
+- [x] Prove behavior with focused registration, resend-verification,
+      successful/replay verify-email, expired/invalid verify-email tests, the
+      full `authentication_flow` suite, API route reachability, formatting,
       line-count checks, `git diff --check`, and boundary scans proving no
-      `utils::email`, `generate_verification_token`, or
-      `verification_token_hash` references remain outside historical TODO
-      notes.
+      `EmailVerificationToken::` or model-owned verification result references
+      remain.
 
 ## Legacy Transition Rules
 

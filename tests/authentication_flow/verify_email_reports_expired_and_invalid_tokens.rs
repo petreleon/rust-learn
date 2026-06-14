@@ -22,7 +22,7 @@ async fn verify_email_reports_expired_and_invalid_tokens() {
 
     let token = unique_token("verify-email-expired-token");
     let token_hash = identity_token_hash(&token);
-    EmailVerificationToken::create_for_user(&mut conn, user.id(), token_hash.clone())
+    create_email_verification_token(&mut conn, user.id(), token_hash.clone())
         .await
         .expect("failed to create verification token");
     diesel::update(
