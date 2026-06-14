@@ -1,37 +1,13 @@
 use actix_web::{web, HttpRequest, HttpResponse, Responder};
 
 use crate::application::identity::get_user_profile;
-use crate::application::identity::list_users as list_users_use_case;
 use crate::application::identity::user_profile::UserProfileError;
 use crate::config::constants::permissions::Permissions;
 use crate::db;
-use crate::http::identity::dto::{ListUsersRequest, UserProfileResponse, UsersResponse};
+use crate::http::identity::dto::UserProfileResponse;
 use crate::infra::postgres::identity::user_profile_store::PostgresUserProfileStore;
 use crate::repositories::platform_repository::user_permission_platform_request;
 use crate::utils::request_auth::authenticated_user;
-
-pub(super) async fn list_users(
-    pool: web::Data<db::DbPool>,
-    query: web::Query<ListUsersRequest>,
-) -> impl Responder {
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-    let mut store = PostgresUserProfileStore::new(&mut conn);
-    let query = query.into_inner().into();
-
-    match list_users_use_case::list_users(&mut store, query).await {
-        Ok(users) => HttpResponse::Ok().json(UsersResponse::from(users)),
-        Err(e) => {
-            log::error!(
-                "event=user_list_failed error={}",
-                user_profile_error_log(&e)
-            );
-            HttpResponse::InternalServerError().body("Failed to load users")
-        }
-    }
-}
 
 pub(super) async fn get_user(
     req: HttpRequest,

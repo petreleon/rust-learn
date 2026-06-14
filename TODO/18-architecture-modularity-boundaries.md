@@ -1019,40 +1019,35 @@ remaining gaps.
 | 121 | Moved `PUT /teacher-applications/{id}/decision` behind `domain/teacher_applications` decision-status normalization, `application/teacher_applications/decide_application`, a Postgres decision adapter/use case with role-assignment helpers, HTTP-owned decision request mapping, and teacher-application bootstrap wiring; the route no longer opens the DB pool or calls `teacher_application_service::decide_application`. |
 | 122 | Moved `POST /organizations/{id}/teacher-applications` behind `application/teacher_applications/nominate_application`, a Postgres nomination adapter/use case, HTTP-owned nomination request mapping, and teacher-application bootstrap wiring; the route no longer opens the DB pool or calls `teacher_application_service::nominate_application`, and the include-based `teacher_application_service` module was deleted. |
 | 123 | Moved teacher-application notification fan-out behind `application/teacher_applications/notify_application_event`, a Postgres recipient lookup and notification sender adapter/use case, optional HTTP app-data wiring, and teacher-application bootstrap construction; `http/teacher_applications` no longer imports `DbPool`, repositories, or `NotificationsState` for notification recipient lookup. |
+| 124 | Moved `GET /user` behind an injected `application/identity/list_users::UserListUseCase`, a Postgres user-list use-case wrapper, `bootstrap/identity_wiring`, and a DB-free `http/identity/user_list` handler; central app-data registration now delegates identity and teacher-application use-case bundles to context wiring helpers. |
 
 ## Recent Slice Evidence
 
-Slice 123: move teacher-application notification fan-out out of HTTP.
+Slice 124: move identity user listing behind an injected use case.
 
-- [x] Add `application/teacher_applications/notify_application_event` with
-      command/error/outcome/store/service contracts and fake-tested behavior for
-      recipient deduplication, platform and organization recipient inclusion,
-      lookup failures, and send failures.
-- [x] Add Postgres notification store/use-case modules under
-      `infra/postgres/teacher_applications`, keeping platform reviewer lookup,
-      organization viewer lookup, and delivery through the existing
-      notification sender outside HTTP.
-- [x] Rework submit, decision, and organization nomination handlers to call an
-      optional injected notification use case after successful business action;
-      missing notification app data and delivery failures remain best-effort and
-      do not change API responses.
-- [x] Register the teacher-application notification use case through
-      `bootstrap/teacher_application_wiring` with the existing
-      `NotificationsState`, and expose it through `bootstrap/app_data`.
-- [x] Delete HTTP-owned `TeacherApplicationNotification` snapshots and direct
-      recipient lookup from `http/teacher_applications/support.rs`; the HTTP
-      teacher-application context no longer imports `DbPool`, repositories, or
-      `NotificationsState`.
-- [x] Self-critique: this still relies on the legacy `utils::notifications`
-      sender as the concrete delivery adapter; a later notification-context
-      slice should move provider/message creation fully behind
-      `application/notifications`.
-- [x] Prove behavior with notification application unit tests, the full
-      `teacher_applications` suite, `organization_teacher_applications`, API
-      route reachability, formatting, line-count checks, `git diff --check`,
-      HTTP dependency scans, and boundary scans proving the notification
-      application module does not import Actix, Diesel, DB pools, services,
-      repositories, persistence models, or utility senders.
+- [x] Add `application/identity/list_users::UserListUseCase` so HTTP can
+      depend on an application contract instead of constructing Postgres stores.
+- [x] Add `infra/postgres/identity/user_list_use_case` to own pool access,
+      `PostgresUserProfileStore` construction, and delegation to the existing
+      list-users application handler.
+- [x] Add `bootstrap/identity_wiring` to bundle current-session and user-list
+      identity use cases, and expose that bundle through `AppState` and
+      app-data registration.
+- [x] Move `GET /user` into a DB-free `http/identity/user_list` handler that
+      maps `ListUsersRequest` into the application query and returns the
+      existing `UsersResponse`.
+- [x] Extract teacher-application app-data registration into
+      `bootstrap/teacher_application_wiring` so `bootstrap/app_data.rs` stays
+      under the 180-line cap while central app-data wiring becomes more
+      context-owned.
+- [x] Self-critique: `GET /user/{id}` and `POST /user/{id}/role` still open
+      `DbPool` in HTTP and mix authorization/notification concerns; migrate
+      them as separate identity/access-control slices.
+- [x] Prove behavior with identity list-users library tests, API route
+      reachability, current-session API tests, focused `/user` middleware
+      contract coverage, formatting, line-count checks, `git diff --check`, and
+      import scans proving `http/identity/user_list` does not import DB,
+      repositories, infra, Diesel, or services.
 
 ## Legacy Transition Rules
 
@@ -1204,6 +1199,8 @@ boundary checks from the matrix above to every canonical context.
 
 - [x] `http/identity` owns current-session and platform `/user` route
       composition; the legacy `api/users` module has been deleted.
+- [x] `GET /user` now uses an injected identity user-list application use case,
+      a Postgres use-case wrapper, and a DB-free HTTP handler.
 - [x] `http/identity/authentication` owns `/auth`, JWKS, login, registration,
       email verification, password reset, and auth session helper routes; the
       legacy `api/authentication` module has been deleted.

@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use actix_web::web;
+
 use crate::application::teacher_applications::decide_application::TeacherApplicationDecisionUseCase;
 use crate::application::teacher_applications::get_my_application::TeacherApplicationSelfUseCase;
 use crate::application::teacher_applications::list_application_audit::TeacherApplicationAuditUseCase;
@@ -48,4 +50,18 @@ pub fn build_teacher_application_use_cases(pool: &DbPool) -> TeacherApplicationU
         self_status: Arc::new(PostgresTeacherApplicationSelfUseCase::new(pool.clone())),
         submit: Arc::new(PostgresTeacherApplicationSubmitUseCase::new(pool.clone())),
     }
+}
+
+pub fn configure_teacher_application_app_data(
+    cfg: &mut web::ServiceConfig,
+    use_cases: &TeacherApplicationUseCases,
+) {
+    cfg.app_data(web::Data::new(use_cases.audit.clone()))
+        .app_data(web::Data::new(use_cases.decision.clone()))
+        .app_data(web::Data::new(use_cases.list.clone()))
+        .app_data(web::Data::new(use_cases.nomination.clone()))
+        .app_data(web::Data::new(use_cases.notification.clone()))
+        .app_data(web::Data::new(use_cases.platform_review.clone()))
+        .app_data(web::Data::new(use_cases.self_status.clone()))
+        .app_data(web::Data::new(use_cases.submit.clone()));
 }

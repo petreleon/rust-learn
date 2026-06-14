@@ -5,7 +5,6 @@ use crate::application::content::manage_content_item::ContentItemUseCases;
 use crate::application::content::process_upload_job::ContentProcessingUseCase;
 use crate::application::content::request_media_url::ContentMediaUrlUseCase;
 use crate::application::content::request_upload_url::ContentUploadUrlUseCase;
-use crate::application::identity::current_session::CurrentSessionUseCase;
 use crate::application::learning::assign_course_role::CourseRoleAssignmentUseCase;
 use crate::application::learning::course_enrollment::CourseEnrollmentUseCase;
 use crate::application::learning::create_course::CourseCreationUseCase;
@@ -52,6 +51,7 @@ use crate::application::wallet::manage_token_tax::WalletTokenTaxUseCase;
 use crate::application::wallet::read_wallet::WalletReadUseCase;
 use crate::application::wallet::retire_tokens::WalletRetirementUseCase;
 use crate::bootstrap::access_control_wiring::AccessControlUseCases;
+use crate::bootstrap::identity_wiring::IdentityUseCases;
 use crate::bootstrap::kyc_wiring::KycUseCases;
 use crate::bootstrap::organization_wiring::OrganizationUseCases;
 use crate::bootstrap::teacher_application_wiring::TeacherApplicationUseCases;
@@ -65,7 +65,7 @@ pub struct AppState {
     pub s3: S3State,
     pub notifications: NotificationsState,
     pub(crate) access_control_use_cases: AccessControlUseCases,
-    pub current_session_use_case: Arc<dyn CurrentSessionUseCase>,
+    pub(crate) identity_use_cases: IdentityUseCases,
     pub(crate) kyc_use_cases: KycUseCases,
     pub course_creation_use_case: Arc<dyn CourseCreationUseCase>,
     pub course_deletion_use_case: Arc<dyn CourseDeletionUseCase>,

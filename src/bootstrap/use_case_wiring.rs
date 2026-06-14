@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::bootstrap::access_control_wiring::build_access_control_use_cases;
 use crate::bootstrap::app_state::AppState;
+use crate::bootstrap::identity_wiring::build_identity_use_cases;
 use crate::bootstrap::kyc_wiring::build_kyc_use_cases;
 use crate::bootstrap::organization_wiring::build_organization_use_cases;
 use crate::bootstrap::readiness::RuntimeReadinessUseCase;
@@ -12,7 +13,6 @@ use crate::infra::postgres::content::content_item_use_cases::PostgresContentItem
 use crate::infra::postgres::content::media_url_use_case::PostgresContentMediaUrlUseCase;
 use crate::infra::postgres::content::processing_use_case::PostgresContentProcessingUseCase;
 use crate::infra::postgres::content::upload_url_use_case::PostgresContentUploadUrlUseCase;
-use crate::infra::postgres::identity::current_session_use_case::PostgresCurrentSessionUseCase;
 use crate::infra::postgres::learning::assessment_read_use_case::PostgresAssessmentReadUseCase;
 use crate::infra::postgres::learning::assessment_submission_use_case::PostgresAssessmentSubmissionUseCase;
 use crate::infra::postgres::learning::course_creation_use_case::PostgresCourseCreationUseCase;
@@ -62,7 +62,7 @@ pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
     let organization_use_cases = build_organization_use_cases(&pool);
     AppState {
         access_control_use_cases: build_access_control_use_cases(&pool),
-        current_session_use_case: Arc::new(PostgresCurrentSessionUseCase::new(pool.clone())),
+        identity_use_cases: build_identity_use_cases(&pool),
         kyc_use_cases,
         course_creation_use_case: Arc::new(PostgresCourseCreationUseCase::new(pool.clone())),
         course_deletion_use_case: Arc::new(PostgresCourseDeletionUseCase::new(pool.clone())),

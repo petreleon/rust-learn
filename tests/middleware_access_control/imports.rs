@@ -8,11 +8,13 @@ use rust_learn::utils::jwt_utils::create_jwt;
 use actix_service::Service;
 use chrono::NaiveDate;
 use rust_learn::application::access_control::list_roles::RoleCatalogUseCase;
+use rust_learn::application::identity::list_users::UserListUseCase;
 use rust_learn::application::learning::discover_courses::CourseDiscoveryUseCase;
 use rust_learn::application::learning::get_course::CourseReadUseCase;
 use rust_learn::application::learning::list_course_organizations::CourseOrganizationsUseCase;
 use rust_learn::db::schema::{courses, organizations};
 use rust_learn::infra::postgres::access_control::role_catalog_use_case::PostgresRoleCatalogUseCase;
+use rust_learn::infra::postgres::identity::user_list_use_case::PostgresUserListUseCase;
 use rust_learn::infra::postgres::learning::course_discovery_use_case::PostgresCourseDiscoveryUseCase;
 use rust_learn::infra::postgres::learning::course_read_use_case::PostgresCourseReadUseCase;
 use rust_learn::infra::postgres::learning::course_organization_use_case::PostgresCourseOrganizationsUseCase;
@@ -56,6 +58,10 @@ fn generate_token(user_id: i32) -> String {
 
 fn role_catalog_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn RoleCatalogUseCase>> {
     web::Data::new(Arc::new(PostgresRoleCatalogUseCase::new(pool.clone())))
+}
+
+fn user_list_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn UserListUseCase>> {
+    web::Data::new(Arc::new(PostgresUserListUseCase::new(pool.clone())))
 }
 
 fn course_discovery_use_case_data(
