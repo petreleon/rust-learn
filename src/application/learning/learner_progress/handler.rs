@@ -3,9 +3,9 @@ use crate::application::learning::learner_progress::{
     SaveLearnerProgressCommand,
 };
 use crate::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
+use crate::domain::learning::enrollment::status::COURSE_JOIN_STATUS_APPROVED;
 
 const COURSE_ROLE_STUDENT: &str = "STUDENT";
-const COURSE_JOIN_STATUS_APPROVED: &str = "approved";
 const VIEW_CONTENT: &str = "VIEW_CONTENT";
 const VIEW_COURSE: &str = "VIEW_COURSE";
 

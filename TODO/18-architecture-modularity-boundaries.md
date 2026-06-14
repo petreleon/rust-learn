@@ -1062,29 +1062,31 @@ remaining gaps.
 | 164 | Removed reward candidate event/source/status compatibility aliases from the Diesel model; tests and fixtures now import reward candidate vocabulary directly from `domain/rewards/candidate`, leaving `models::reward_candidate` as record/insert structs only. |
 | 165 | Removed reward audit-event compatibility aliases from the Diesel model; legacy reward service/test fixtures now import audit event vocabulary from `domain/rewards/audit`, leaving `models::reward_audit_event` as record/insert structs only. |
 | 166 | Moved course lifecycle vocabulary into `domain/learning/course/status`; migrated lifecycle/progress use cases, Postgres read adapters, legacy service hubs, and fixtures now import course statuses from domain, leaving `models::course` as record/change-set structs only. |
+| 167 | Moved course enrollment join-request vocabulary into `domain/learning/enrollment/status`; migrated enrollment/progress use cases, Postgres read/write adapters, legacy service hubs, and fixtures now import join statuses from domain, leaving `models::course_join_request` as record/insert structs only. |
 
 ## Recent Slice Evidence
 
-Slice 166: move course lifecycle vocabulary into the learning domain.
+Slice 167: move course join-request vocabulary into the learning domain.
 
-- [x] Add `domain/learning/course/status` with stable course lifecycle status
-      constants, a `CourseLifecycleStatus` enum, parsing, and normalization.
-- [x] Delete lifecycle status constants from `models::course`; the file now owns
-      only Diesel record, insert, and change-set shapes.
-- [x] Update migrated lifecycle/progress application handlers, learning and
-      organization Postgres read adapters, legacy service import hubs, and
-      route/integration fixtures to import lifecycle vocabulary from domain.
-- [x] Self-critique: course join statuses and several other learning/identity
-      literals still live in model files, and the legacy include-based
-      `course_service` still has its own string normalizer even though it now
-      uses domain constants.
+- [x] Add `domain/learning/enrollment/status` with stable join request status
+      constants, a `CourseJoinRequestStatus` enum, general normalization, and
+      decision-target normalization that rejects `pending`.
+- [x] Delete join request status constants from `models::course_join_request`;
+      the file now owns only Diesel record and insert shapes.
+- [x] Update migrated course-enrollment/progress application handlers, learning
+      and organization Postgres adapters, legacy course service imports, and
+      route/integration fixtures to import join statuses from domain.
+- [x] Self-critique: KYC statuses, teacher-application statuses/scopes,
+      delegated-permission scopes, and wallet deposit statuses still live in
+      model files; move each into its owning domain context in later slices.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib update_course_lifecycle`,
+      `./scripts/run-host-tests.sh cargo test --lib course_enrollment`,
       `./scripts/run-host-tests.sh cargo test --lib course_service`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving
-      `src/models/course.rs` has no lifecycle vocabulary constants and no code
-      imports course lifecycle constants through `models::course`.
+      `src/models/course_join_request.rs` has no join vocabulary constants and
+      no code imports course join constants through
+      `models::course_join_request`.
 
 ## Legacy Transition Rules
 

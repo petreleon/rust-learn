@@ -11,6 +11,10 @@ use crate::domain::learning::course::status::{
     COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
     COURSE_STATUS_SUSPENDED,
 };
+use crate::domain::learning::enrollment::status::{
+    COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_REJECTED,
+    COURSE_JOIN_STATUS_WAITLISTED,
+};
 use crate::domain::rewards::candidate::status::{
     REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
     REWARD_STATUS_TEACHER_APPROVED, REWARD_STATUS_TEACHER_REJECTED,
@@ -19,10 +23,7 @@ use crate::domain::rewards::policy::{
     REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
 };
 use crate::models::course::{Course, NewCourse, UpdateCourse};
-use crate::models::course_join_request::{
-    CourseJoinRequest, COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING,
-    COURSE_JOIN_STATUS_REJECTED, COURSE_JOIN_STATUS_WAITLISTED,
-};
+use crate::models::course_join_request::CourseJoinRequest;
 use crate::models::course_progress::{CourseProgress, NewCourseProgress};
 use crate::models::courses_organizations::NewCourseOrganization;
 use crate::models::delegated_permission::{

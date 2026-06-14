@@ -10,11 +10,11 @@ use rust_learn::application::learning::course_enrollment::{
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{courses, courses_organizations, organizations};
-use rust_learn::infra::postgres::learning::course_enrollment_store::PostgresCourseEnrollmentStore;
-use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::course_join_request::{
+use rust_learn::domain::learning::enrollment::status::{
     COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
 };
+use rust_learn::infra::postgres::learning::course_enrollment_store::PostgresCourseEnrollmentStore;
+use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};

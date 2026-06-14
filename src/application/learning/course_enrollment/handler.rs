@@ -2,13 +2,15 @@ use chrono::Utc;
 
 use crate::application::learning::course_enrollment::validation::{
     ensure_course_exists, ensure_permission_any, normalize_join_decision,
-    APPROVE_COURSE_JOIN_REQUESTS, COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING,
-    COURSE_JOIN_STATUS_WAITLISTED, JOIN_COURSE, MANAGE_COURSE_ENROLLMENTS, REQUEST_JOIN_COURSE,
+    APPROVE_COURSE_JOIN_REQUESTS, JOIN_COURSE, MANAGE_COURSE_ENROLLMENTS, REQUEST_JOIN_COURSE,
 };
 use crate::application::learning::course_enrollment::{
     CourseEnrollmentError, CourseEnrollmentRemovalOutput, CourseEnrollmentStore,
     CourseJoinDecisionOutput, CourseJoinRequestOutput, DecideCourseJoinCommand,
     EnrollmentNotification, RemoveCourseEnrollmentCommand, RequestCourseJoinCommand,
+};
+use crate::domain::learning::enrollment::status::{
+    COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
 };
 
 pub async fn request_course_join(

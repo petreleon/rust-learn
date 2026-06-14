@@ -8,10 +8,10 @@ use rust_learn::application::learning::assign_course_role::CourseRoleAssignmentU
 use rust_learn::application::learning::course_enrollment::CourseEnrollmentUseCase;
 use rust_learn::db::schema::{courses, notifications};
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::domain::learning::enrollment::status::COURSE_JOIN_STATUS_APPROVED;
 use rust_learn::infra::postgres::learning::course_enrollment_use_case::PostgresCourseEnrollmentUseCase;
 use rust_learn::infra::postgres::learning::course_role_assignment_use_case::PostgresCourseRoleAssignmentUseCase;
 use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::course_join_request::COURSE_JOIN_STATUS_APPROVED;
 use rust_learn::models::role::{CourseRole, PlatformRole};
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
