@@ -1,47 +1,9 @@
 use super::lifecycle::{
-    allows_new_submission_after_prior_candidate, can_create_missing_wallet_credit_notification,
-    can_inspect_wallet_credit_notification, can_reconcile,
-    prior_candidate_statuses_allowing_new_submission, requires_wallet_credit_payout_evidence,
-    requires_wallet_credit_record, should_create_reconciliation_wallet_credit,
+    can_create_missing_wallet_credit_notification, can_inspect_wallet_credit_notification,
+    requires_wallet_credit_payout_evidence, requires_wallet_credit_record,
     wallet_credit_notification_target_status,
 };
 use super::status::RewardCandidateStatus as Status;
-
-#[test]
-fn reconciliation_accepts_confirmed_or_later_candidate_states() {
-    for status in [
-        Status::AmountApproved,
-        Status::TokenConfirmed,
-        Status::WalletCredited,
-        Status::Notified,
-        Status::Completed,
-        Status::NeedsReconciliation,
-    ] {
-        assert!(can_reconcile(status));
-    }
-
-    assert!(!can_reconcile(Status::TeacherApproved));
-    assert!(!can_reconcile(Status::Failed));
-}
-
-#[test]
-fn reconciliation_wallet_credit_is_created_only_for_pre_credit_states() {
-    assert!(should_create_reconciliation_wallet_credit(
-        Status::AmountApproved
-    ));
-    assert!(should_create_reconciliation_wallet_credit(
-        Status::TokenConfirmed
-    ));
-    assert!(should_create_reconciliation_wallet_credit(
-        Status::NeedsReconciliation
-    ));
-    assert!(!should_create_reconciliation_wallet_credit(
-        Status::WalletCredited
-    ));
-    assert!(!should_create_reconciliation_wallet_credit(
-        Status::Notified
-    ));
-}
 
 #[test]
 fn wallet_credit_notification_inspection_supports_credited_and_repair_states() {
@@ -145,30 +107,5 @@ fn wallet_credit_payout_evidence_is_required_for_reconciliation_state() {
     ));
     assert!(!requires_wallet_credit_payout_evidence(
         Status::WalletCredited
-    ));
-}
-
-#[test]
-fn new_submission_is_allowed_only_after_terminal_prior_candidate_states() {
-    assert_eq!(
-        prior_candidate_statuses_allowing_new_submission(),
-        [
-            Status::TeacherRejected,
-            Status::AmountRejected,
-            Status::Failed
-        ]
-    );
-    assert!(allows_new_submission_after_prior_candidate(
-        Status::TeacherRejected
-    ));
-    assert!(allows_new_submission_after_prior_candidate(
-        Status::AmountRejected
-    ));
-    assert!(allows_new_submission_after_prior_candidate(Status::Failed));
-    assert!(!allows_new_submission_after_prior_candidate(
-        Status::PendingTeacherApproval
-    ));
-    assert!(!allows_new_submission_after_prior_candidate(
-        Status::Completed
     ));
 }

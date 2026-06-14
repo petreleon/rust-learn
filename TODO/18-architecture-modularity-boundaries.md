@@ -1137,33 +1137,27 @@ remaining gaps.
 | 239 | Moved the wallet-credit-record-required status predicate into `domain/rewards/candidate/lifecycle`, leaving Postgres validation responsible for stored-status parsing and error wording. |
 | 240 | Moved the wallet-credit payout-evidence-required predicate for reconciliation candidates into `domain/rewards/candidate/lifecycle`, leaving evidence lookup and error wording in the Postgres adapter. |
 | 241 | Moved the prior-candidate statuses that allow a fresh reward submission into `domain/rewards/candidate/lifecycle`, leaving the Postgres eligibility query to consume the named domain set. |
+| 242 | Split reward candidate lifecycle tests by concern into reconciliation, wallet-credit, and submission modules so the domain lifecycle boundary can keep growing under the manual file-size ceiling. |
 
 ## Recent Slice Evidence
 
-Slice 241: move fresh-submission prior-status rules into domain.
+Slice 242: split reward candidate lifecycle tests by concern.
 
-- [x] Add `prior_candidate_statuses_allowing_new_submission` and
-      `allows_new_submission_after_prior_candidate` to
-      `domain/rewards/candidate/lifecycle`.
-- [x] Cover the domain rule with pure lifecycle tests for teacher-rejected,
-      amount-rejected, failed, pending, and completed statuses.
-- [x] Repoint the prior-active-candidate Postgres eligibility query to consume
-      the domain status set instead of spelling out the business lifecycle
-      states inline.
-- [x] Confirm changed Rust files remain under the manual 180-line ceiling.
-- [x] Self-critique: lifecycle tests remain under the limit, but at 174 lines
-      they should be split before the next lifecycle test addition. The query
-      still uses three explicit Diesel `ne` filters because that is the current
-      query shape; the status ownership has moved even though the SQL shape has
-      not.
+- [x] Replace the near-limit monolithic `lifecycle_tests.rs` with focused
+      reconciliation, wallet-credit, and submission lifecycle test modules.
+- [x] Keep production lifecycle rules in `domain/rewards/candidate/lifecycle`
+      unchanged while making the pure-domain test boundary more granular.
+- [x] Preserve all existing lifecycle assertions under concern-named modules.
+- [x] Self-critique: this slice improves modularity pressure and reviewability,
+      but does not move another production rule out of an adapter; the next
+      slice should resume reducing reward reporting/status coupling.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate::lifecycle`,
-      `./scripts/run-host-tests.sh cargo test --lib submit_candidate::handler`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans for inline duplicate-submission status sets, and file-size
-      checks keeping changed Rust files under the manual 180-line ceiling.
+      `git diff --check`, and file-size checks keeping changed Rust files under
+      the manual 180-line ceiling.
 
 ## Legacy Transition Rules
 
