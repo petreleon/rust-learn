@@ -4,9 +4,9 @@ use std::cmp::Ordering;
 
 use crate::config::constants::roles::Roles;
 use crate::infra::postgres::access_control::hierarchy_records;
+use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::access_control::platform_role_records;
 use crate::infra::postgres::access_control::role_catalog_store;
-use crate::repositories::delegated_permission_repository;
 
 // Checks if a user has a specific permission on the platform
 pub async fn user_permission_platform_request(
@@ -14,23 +14,7 @@ pub async fn user_permission_platform_request(
     p_user_id: i32,
     permission: &str,
 ) -> QueryResult<bool> {
-    if platform_role_records::platform_user_has_permission(conn, p_user_id, permission).await? {
-        return Ok(true);
-    }
-
-    let has_delegation = delegated_permission_repository::has_active_platform_delegation(
-        conn, p_user_id, permission,
-    )
-    .await?;
-    if has_delegation {
-        log::info!(
-            "event=delegated_permission_used scope=platform user_id={} permission={}",
-            p_user_id,
-            permission
-        );
-    }
-
-    Ok(has_delegation)
+    permission_checks::has_platform_permission(conn, p_user_id, permission).await
 }
 
 // Compares the hierarchy level of two users on the platform

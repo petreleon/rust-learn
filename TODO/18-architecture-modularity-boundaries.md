@@ -1084,41 +1084,38 @@ remaining gaps.
 | 186 | Removed duplicate KYC platform permission/delegation SQL; `infra/postgres/kyc/kyc_store` now calls `infra/postgres/access_control/permission_checks` directly for KYC review authorization. |
 | 187 | Removed duplicate identity user-profile platform permission/delegation SQL; `infra/postgres/identity/user_profile_store` now calls `infra/postgres/access_control/permission_checks` directly for `VIEW_USER` authorization. |
 | 188 | Removed duplicate learning course/platform/organization permission-delegation SQL; learning Postgres stores and query helpers now call `infra/postgres/access_control/permission_checks` directly for course-context authorization. |
+| 189 | Turned legacy platform/course/organization repository permission request functions into thin compatibility bridges over `infra/postgres/access_control/permission_checks`, removing their local role-plus-delegation composition. |
 
 ## Recent Slice Evidence
 
-Slice 188: route learning course-context permission checks through
-access-control.
+Slice 189: make legacy permission repositories delegate to access-control.
 
-- [x] Retarget learning Postgres course creation, course update, lifecycle,
-      learner catalog access, learner progress, enrollment, and teacher
-      dashboard permission calls to
-      `infra/postgres/access_control/permission_checks`.
-- [x] Delete `infra/postgres/learning/course_permission_checks`; learning no
-      longer owns duplicate course/platform/organization role-permission SQL or
-      delegated-permission SQL.
-- [x] Keep learning-specific permission composition local to the learning
-      adapters, such as course-plus-platform-plus-owner-organization checks for
-      catalog visibility and enrollment decisions.
-- [x] Self-critique: this is a better boundary because access-control owns how
-      grants are evaluated, while learning still owns when a course workflow
-      needs course, platform, or organization authorization. Organization
-      dashboard/list helpers still contain context-specific role/delegation
-      summary queries and should be reviewed separately instead of flattened
-      blindly.
+- [x] Retarget `repositories::platform_repository::user_permission_platform_request`
+      to `infra/postgres/access_control/permission_checks::has_platform_permission`.
+- [x] Retarget `repositories::course_repository::user_permission_course_request`
+      to `infra/postgres/access_control/permission_checks::has_course_permission`.
+- [x] Retarget
+      `repositories::organization_repository::user_permission_organization_request`
+      to `infra/postgres/access_control/permission_checks::has_organization_permission`.
+- [x] Keep legacy repository function names as compatibility bridges for
+      unmigrated services and middleware while removing their duplicated
+      role/delegation orchestration.
+- [x] Self-critique: this improves the single-source permission boundary, but
+      the repositories still own hierarchy comparison and role-assignment
+      compatibility functions. Those are adjacent access-control concerns and
+      should move only with focused hierarchy/assignment tests, not as part of
+      this permission-read slice.
 - [x] Prove behavior with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --test platform_permissions`,
       `./scripts/run-host-tests.sh cargo test --test course_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test course_creation_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test course_editing_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test course_lifecycle`,
-      `./scripts/run-host-tests.sh cargo test --test course_enrollment_api`,
-      `./scripts/run-host-tests.sh cargo test --test course_discovery`,
-      `./scripts/run-host-tests.sh cargo test --test teacher_course_dashboard`,
+      `./scripts/run-host-tests.sh cargo test --test organization_permissions`,
       `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
       `./scripts/run-host-tests.sh cargo test --test delegated_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      references the removed learning-local permission helper.
+      in the three legacy permission request functions calls
+      `delegated_permission_repository` or direct role-permission record checks.
 
 ## Legacy Transition Rules
 
