@@ -1,3 +1,13 @@
+#[cfg(test)]
+use crate::domain::rewards::candidate::status::REWARD_STATUS_AMOUNT_APPROVED;
+use diesel_async::AsyncPgConnection;
+
+use crate::infra::postgres::rewards::reward_token_confirmation_store::PostgresRewardTokenConfirmationStore;
+#[cfg(test)]
+use crate::models::reward_candidate::RewardCandidate;
+
+use super::{RewardExecutionError, RewardTokenConfirmationRequest, RewardTokenConfirmationResult};
+
 pub async fn record_reward_token_confirmation(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,

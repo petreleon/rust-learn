@@ -1088,38 +1088,33 @@ remaining gaps.
 | 190 | Turned legacy delegated-permission active platform/organization/course checks into thin compatibility bridges over `infra/postgres/access_control/permission_delegations`, removing hard-coded scoped delegation SQL from the repository active-check helpers. |
 | 191 | Replaced the include-based legacy delegated-permission repository shell with normal `records` and `revocation` child modules plus explicit public re-exports; the repository no longer has an `imports.rs` file. |
 | 192 | Moved delegated-permission create/find/list/revoke SQL into `infra/postgres/access_control/delegated_permissions/records`; the Level 2 Postgres adapter and legacy repository now share the same access-control record adapter. |
+| 193 | Replaced the include-based `reward_execution_service` shell with normal child modules, explicit per-module imports, and root re-exports that preserve the legacy reward execution API over migrated reward application use cases. |
 
 ## Recent Slice Evidence
 
-Slice 192: move delegated-permission record SQL into access-control.
+Slice 193: normalize the reward execution legacy service module.
 
-- [x] Add `infra/postgres/access_control/delegated_permissions/records.rs` as
-      the shared Postgres record adapter for delegated-permission create, find,
-      find-active, list, and revoke operations.
-- [x] Retarget the Level 2 delegated-permission `read_queries` and
-      `write_queries` modules to call the shared record adapter while keeping
-      application output/error mapping at the application adapter boundary.
-- [x] Retarget the legacy `repositories::delegated_permission_repository`
-      `records` and `revocation` modules to call the same access-control record
-      adapter while preserving their public `QueryResult<DelegatedPermission>`
-      API for tests and unmigrated callers.
-- [x] Keep active platform/organization/course delegation checks delegated to
-      `infra/postgres/access_control/permission_delegations`; this slice moves
-      record CRUD/query SQL, not authorization decision composition.
-- [x] Self-critique: the legacy repository still exists as a compatibility
-      wrapper because tests and fixtures import it directly. It is now thin
-      enough to delete once those callers move to access-control test helpers
-      or application use cases.
+- [x] Replace `src/services/reward_execution_service.rs` `include!`
+      statements with normal `mod` declarations and explicit root re-exports.
+- [x] Rename `reward_execution_service/imports.rs` to
+      `reward_execution_service/support.rs`; shared error conversions, legacy
+      type aliases, and reward constants now live in a named support module.
+- [x] Give payout/wallet-credit, wallet-credit notification/reconciliation, and
+      token-confirmation child modules explicit imports instead of relying on
+      include-shared scope.
+- [x] Preserve the legacy service API used by reward execution integration
+      tests while the implementation continues delegating to migrated
+      `application/rewards` use cases and Postgres stores.
+- [x] Self-critique: this removes one more `include!`/`imports.rs` service
+      shell, but the broader legacy reward candidate, wallet, organization,
+      course, and indexer services still have include-based shells. Normalize
+      them one at a time only where focused tests can prove the public surface.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test repository_delegation_tests`,
-      `./scripts/run-host-tests.sh cargo test --test delegated_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test current_session_api`,
-      `./scripts/run-host-tests.sh cargo test --test organization_members`,
-      `./scripts/run-host-tests.sh cargo test --test kyc_review`,
+      `./scripts/run-host-tests.sh cargo test --test reward_execution`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no
-      delegated-permission record insert/update/list/find SQL remains under
-      `repositories/delegated_permission_repository`.
+      `include!`, `imports.rs`, or stale include target remains under
+      `services/reward_execution_service`.
 
 ## Legacy Transition Rules
 

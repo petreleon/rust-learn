@@ -1,31 +1,21 @@
-pub use crate::application::rewards::credit_wallet::RewardWalletCreditOutput as RewardWalletCreditResult;
 use crate::application::rewards::credit_wallet::RewardWalletCreditError;
-pub use crate::application::rewards::notify_wallet_credit::RewardWalletCreditNotificationOutput as RewardWalletCreditNotificationResult;
+pub use crate::application::rewards::credit_wallet::RewardWalletCreditOutput as RewardWalletCreditResult;
 use crate::application::rewards::notify_wallet_credit::RewardWalletCreditNotificationError;
+pub use crate::application::rewards::notify_wallet_credit::RewardWalletCreditNotificationOutput as RewardWalletCreditNotificationResult;
 pub use crate::application::rewards::plan_payout::RewardPayoutPlan;
 use crate::application::rewards::plan_payout::RewardPayoutPlanError;
-pub use crate::application::rewards::reconcile_candidate::RewardReconciliationOutput as RewardReconciliationResult;
 use crate::application::rewards::reconcile_candidate::RewardReconciliationError;
+pub use crate::application::rewards::reconcile_candidate::RewardReconciliationOutput as RewardReconciliationResult;
+use crate::application::rewards::record_token_confirmation::RewardTokenConfirmationError;
 pub use crate::application::rewards::record_token_confirmation::{
     RewardTokenConfirmationCommand as RewardTokenConfirmationRequest,
     RewardTokenConfirmationOutput as RewardTokenConfirmationResult,
 };
-use crate::application::rewards::record_token_confirmation::RewardTokenConfirmationError;
 pub use crate::domain::rewards::payout::{
     REWARD_PAYOUT_METHOD_MINT, REWARD_PAYOUT_METHOD_OFF_CHAIN,
     REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER, REWARD_PAYOUT_METHOD_TREASURY_TRANSFER,
 };
-#[cfg(test)]
-use crate::domain::rewards::candidate::status::REWARD_STATUS_AMOUNT_APPROVED;
 pub use crate::domain::rewards::wallet_credit::REWARD_TRANSACTION_TYPE_WALLET_CREDIT;
-use crate::infra::postgres::rewards::reward_payout_plan_store::PostgresRewardPayoutPlanStore;
-use crate::infra::postgres::rewards::reward_reconciliation_store::PostgresRewardReconciliationStore;
-use crate::infra::postgres::rewards::reward_token_confirmation_store::PostgresRewardTokenConfirmationStore;
-use crate::infra::postgres::rewards::reward_wallet_credit_notification_store::PostgresRewardWalletCreditNotificationStore;
-use crate::infra::postgres::rewards::reward_wallet_credit_store::PostgresRewardWalletCreditStore;
-#[cfg(test)]
-use crate::models::reward_candidate::RewardCandidate;
-use diesel_async::AsyncPgConnection;
 
 #[derive(Debug, PartialEq)]
 pub enum RewardExecutionError {
@@ -59,9 +49,7 @@ impl From<RewardPayoutPlanError> for RewardExecutionError {
             }
             RewardPayoutPlanError::NoActivePolicy => RewardExecutionError::NoActivePolicy,
             RewardPayoutPlanError::Connection(message)
-            | RewardPayoutPlanError::Database(message) => {
-                RewardExecutionError::Database(message)
-            }
+            | RewardPayoutPlanError::Database(message) => RewardExecutionError::Database(message),
         }
     }
 }
@@ -102,9 +90,8 @@ impl From<RewardWalletCreditError> for RewardExecutionError {
             RewardWalletCreditError::NoActivePolicy | RewardWalletCreditError::NotFound => {
                 RewardExecutionError::NoActivePolicy
             }
-            RewardWalletCreditError::Connection(message) | RewardWalletCreditError::Database(message) => {
-                RewardExecutionError::Database(message)
-            }
+            RewardWalletCreditError::Connection(message)
+            | RewardWalletCreditError::Database(message) => RewardExecutionError::Database(message),
         }
     }
 }

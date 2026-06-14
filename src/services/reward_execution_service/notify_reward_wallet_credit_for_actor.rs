@@ -1,3 +1,12 @@
+use diesel_async::AsyncPgConnection;
+
+use crate::infra::postgres::rewards::reward_reconciliation_store::PostgresRewardReconciliationStore;
+use crate::infra::postgres::rewards::reward_wallet_credit_notification_store::PostgresRewardWalletCreditNotificationStore;
+
+use super::{
+    RewardExecutionError, RewardReconciliationResult, RewardWalletCreditNotificationResult,
+};
+
 pub async fn notify_reward_wallet_credit_for_actor(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
