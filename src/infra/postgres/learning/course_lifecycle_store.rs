@@ -6,7 +6,7 @@ use crate::application::learning::update_course_lifecycle::{
     CourseLifecycleError, CourseLifecycleOutput, CourseLifecycleStore,
 };
 use crate::db::schema::courses;
-use crate::infra::postgres::learning::course_permission_checks;
+use crate::infra::postgres::access_control::permission_checks;
 use crate::models::course::Course;
 
 pub struct PostgresCourseLifecycleStore<'conn> {
@@ -28,7 +28,7 @@ impl CourseLifecycleStore for PostgresCourseLifecycleStore<'_> {
     ) -> BoxFuture<'_, Result<bool, CourseLifecycleError>> {
         let permission = permission.to_string();
         async move {
-            course_permission_checks::has_course_permission(
+            permission_checks::has_course_permission(
                 self.conn,
                 actor_user_id,
                 course_id,
@@ -47,7 +47,7 @@ impl CourseLifecycleStore for PostgresCourseLifecycleStore<'_> {
     ) -> BoxFuture<'_, Result<bool, CourseLifecycleError>> {
         let permission = permission.to_string();
         async move {
-            course_permission_checks::has_platform_permission(self.conn, actor_user_id, &permission)
+            permission_checks::has_platform_permission(self.conn, actor_user_id, &permission)
                 .await
                 .map_err(map_lifecycle_error)
         }

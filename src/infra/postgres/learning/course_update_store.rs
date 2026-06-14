@@ -6,7 +6,7 @@ use crate::application::learning::update_course::{
     CourseUpdateError, CourseUpdateOutput, CourseUpdatePatch, CourseUpdateStore,
 };
 use crate::db::schema::courses;
-use crate::infra::postgres::learning::course_permission_checks;
+use crate::infra::postgres::access_control::permission_checks;
 use crate::models::course::Course;
 
 pub struct PostgresCourseUpdateStore<'conn> {
@@ -28,7 +28,7 @@ impl CourseUpdateStore for PostgresCourseUpdateStore<'_> {
     ) -> BoxFuture<'_, Result<bool, CourseUpdateError>> {
         let permission = permission.to_string();
         async move {
-            course_permission_checks::has_course_permission(
+            permission_checks::has_course_permission(
                 self.conn,
                 actor_user_id,
                 course_id,
@@ -47,7 +47,7 @@ impl CourseUpdateStore for PostgresCourseUpdateStore<'_> {
     ) -> BoxFuture<'_, Result<bool, CourseUpdateError>> {
         let permission = permission.to_string();
         async move {
-            course_permission_checks::has_platform_permission(self.conn, actor_user_id, &permission)
+            permission_checks::has_platform_permission(self.conn, actor_user_id, &permission)
                 .await
                 .map_err(map_course_update_error)
         }

@@ -4,7 +4,7 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::learning::learner_progress::{
     LearnerProgressError, LearnerProgressOutput, LearnerProgressStore, ProgressCourse,
 };
-use crate::infra::postgres::learning::course_permission_checks;
+use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::learning::learner_progress_queries;
 
 pub struct PostgresLearnerProgressStore<'conn> {
@@ -50,7 +50,7 @@ impl LearnerProgressStore for PostgresLearnerProgressStore<'_> {
     ) -> BoxFuture<'_, Result<bool, LearnerProgressError>> {
         let permission = permission.to_string();
         async move {
-            course_permission_checks::has_course_permission(
+            permission_checks::has_course_permission(
                 self.conn,
                 actor_user_id,
                 course_id,
@@ -70,7 +70,7 @@ impl LearnerProgressStore for PostgresLearnerProgressStore<'_> {
     ) -> BoxFuture<'_, Result<bool, LearnerProgressError>> {
         let permission = permission.to_string();
         async move {
-            course_permission_checks::has_organization_permission(
+            permission_checks::has_organization_permission(
                 self.conn,
                 actor_user_id,
                 organization_id,

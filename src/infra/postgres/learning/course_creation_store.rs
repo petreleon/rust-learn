@@ -6,7 +6,7 @@ use crate::application::learning::create_course::{
     CourseCreationError, CourseCreationOutput, CourseCreationStore,
 };
 use crate::db::schema::{courses, courses_organizations, pending_course_organization_invites};
-use crate::infra::postgres::learning::course_permission_checks;
+use crate::infra::postgres::access_control::permission_checks;
 use crate::models::course::{Course, NewCourse};
 use crate::models::courses_organizations::NewCourseOrganization;
 use crate::models::pending_course_organization_invites::NewPendingCourseOrganizationInvite;
@@ -29,7 +29,7 @@ impl CourseCreationStore for PostgresCourseCreationStore<'_> {
     ) -> BoxFuture<'_, Result<bool, CourseCreationError>> {
         let permission = permission.to_string();
         async move {
-            course_permission_checks::has_platform_permission(self.conn, actor_user_id, &permission)
+            permission_checks::has_platform_permission(self.conn, actor_user_id, &permission)
                 .await
                 .map_err(map_course_creation_error)
         }
@@ -44,7 +44,7 @@ impl CourseCreationStore for PostgresCourseCreationStore<'_> {
     ) -> BoxFuture<'_, Result<bool, CourseCreationError>> {
         let permission = permission.to_string();
         async move {
-            course_permission_checks::has_organization_permission(
+            permission_checks::has_organization_permission(
                 self.conn,
                 actor_user_id,
                 organization_id,

@@ -6,7 +6,7 @@ use crate::application::learning::course_enrollment::{
     CourseEnrollmentError, CourseJoinRequestOutput,
 };
 use crate::db::schema::{course_roles, courses_organizations, user_role_course};
-use crate::infra::postgres::learning::course_permission_checks;
+use crate::infra::postgres::access_control::permission_checks;
 use crate::models::course_join_request::CourseJoinRequest;
 
 const COURSE_ROLE_STUDENT: &str = "STUDENT";
@@ -39,14 +39,14 @@ pub async fn has_course_context_permission(
     course_id: i32,
     permission: &str,
 ) -> Result<bool, CourseEnrollmentError> {
-    if course_permission_checks::has_course_permission(conn, user_id, course_id, permission).await?
-        || course_permission_checks::has_platform_permission(conn, user_id, permission).await?
+    if permission_checks::has_course_permission(conn, user_id, course_id, permission).await?
+        || permission_checks::has_platform_permission(conn, user_id, permission).await?
     {
         return Ok(true);
     }
 
     for organization_id in course_organization_ids(conn, course_id).await? {
-        if course_permission_checks::has_organization_permission(
+        if permission_checks::has_organization_permission(
             conn,
             user_id,
             organization_id,

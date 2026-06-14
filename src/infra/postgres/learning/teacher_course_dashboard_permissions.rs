@@ -4,7 +4,7 @@ use crate::application::learning::teacher_course_dashboard::{
     TeacherCourseDashboardError, TeacherCoursePermissionSummaryOutput,
 };
 use crate::config::constants::permissions::Permissions;
-use crate::infra::postgres::learning::course_permission_checks;
+use crate::infra::postgres::access_control::permission_checks;
 
 pub fn teacher_course_dashboard_permission_names() -> Vec<String> {
     [
@@ -95,7 +95,7 @@ async fn teacher_has_course_permission(
     course_id: i32,
     permission: Permissions,
 ) -> Result<bool, TeacherCourseDashboardError> {
-    course_permission_checks::has_course_permission(
+    permission_checks::has_course_permission(
         conn,
         actor_user_id,
         course_id,

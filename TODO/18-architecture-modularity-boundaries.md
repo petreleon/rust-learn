@@ -535,7 +535,7 @@ src/
         course_role_assignment_store.rs
         course_enrollment_store.rs
         course_enrollment_*_queries.rs
-        course_permission_checks.rs
+        permission checks via infra/postgres/access_control/
         course_organization_store.rs
         learner_progress_store.rs
         assessment_read_store.rs
@@ -1083,34 +1083,42 @@ remaining gaps.
 | 185 | Removed the thin `infra/postgres/teacher_applications/teacher_application_permissions` shim; teacher-application stores now call `infra/postgres/access_control/permission_checks` directly for platform and organization authorization. |
 | 186 | Removed duplicate KYC platform permission/delegation SQL; `infra/postgres/kyc/kyc_store` now calls `infra/postgres/access_control/permission_checks` directly for KYC review authorization. |
 | 187 | Removed duplicate identity user-profile platform permission/delegation SQL; `infra/postgres/identity/user_profile_store` now calls `infra/postgres/access_control/permission_checks` directly for `VIEW_USER` authorization. |
+| 188 | Removed duplicate learning course/platform/organization permission-delegation SQL; learning Postgres stores and query helpers now call `infra/postgres/access_control/permission_checks` directly for course-context authorization. |
 
 ## Recent Slice Evidence
 
-Slice 187: remove duplicate identity user-profile platform permission checks.
+Slice 188: route learning course-context permission checks through
+access-control.
 
-- [x] Retarget `PostgresUserProfileStore::can_view_any_user` to
-      `infra/postgres/access_control/permission_checks::has_platform_permission`.
-- [x] Delete `infra/postgres/identity/platform_permissions`; identity
-      user-profile access no longer owns duplicate platform role-permission or
-      delegated-permission authorization SQL.
-- [x] Keep `VIEW_USER` permission selection local to the identity user-profile
-      store while access-control owns how role and delegation grants are
-      evaluated.
-- [x] Self-critique: identity profile and KYC now share the access-control
-      checker, but learning and organization contexts still have richer
-      context-specific permission helpers; review those by use-case semantics
-      before extracting anything further.
+- [x] Retarget learning Postgres course creation, course update, lifecycle,
+      learner catalog access, learner progress, enrollment, and teacher
+      dashboard permission calls to
+      `infra/postgres/access_control/permission_checks`.
+- [x] Delete `infra/postgres/learning/course_permission_checks`; learning no
+      longer owns duplicate course/platform/organization role-permission SQL or
+      delegated-permission SQL.
+- [x] Keep learning-specific permission composition local to the learning
+      adapters, such as course-plus-platform-plus-owner-organization checks for
+      catalog visibility and enrollment decisions.
+- [x] Self-critique: this is a better boundary because access-control owns how
+      grants are evaluated, while learning still owns when a course workflow
+      needs course, platform, or organization authorization. Organization
+      dashboard/list helpers still contain context-specific role/delegation
+      summary queries and should be reviewed separately instead of flattened
+      blindly.
 - [x] Prove behavior with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --test course_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test course_creation_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test course_editing_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test course_lifecycle`,
+      `./scripts/run-host-tests.sh cargo test --test course_enrollment_api`,
+      `./scripts/run-host-tests.sh cargo test --test course_discovery`,
+      `./scripts/run-host-tests.sh cargo test --test teacher_course_dashboard`,
       `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
-      `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
-      `./scripts/run-host-tests.sh cargo test --test middleware_access_control read_user_routes_require_view_user_or_self`,
-      `./scripts/run-host-tests.sh cargo test --test authentication_flow`,
-      `./scripts/run-host-tests.sh cargo test --test current_session_api`,
-      `./scripts/run-host-tests.sh cargo test --test platform_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test delegated_permissions`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      under `infra/postgres/identity` references the removed
-      `platform_permissions` authorization helper.
+      references the removed learning-local permission helper.
 
 ## Legacy Transition Rules
 
