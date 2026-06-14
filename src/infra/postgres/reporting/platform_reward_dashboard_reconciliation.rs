@@ -4,8 +4,8 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::platform_reward_dashboard::{
-    classify_reward_reconciliation_mismatch, reconciliation_mismatch_candidate_statuses,
-    PlatformRewardDashboardError, RewardReconciliationMismatchFacts,
+    reconciliation_mismatch_candidate_statuses, reward_reconciliation_mismatch_row,
+    PlatformRewardDashboardError, RewardReconciliationMismatchRowFact,
     RewardReconciliationMismatchRowOutput,
 };
 use crate::db::schema::{reward_candidates, reward_payout_records, reward_wallet_credit_records};
@@ -85,20 +85,15 @@ fn mismatch_row(
     let status = RewardCandidateStatus::parse(&candidate.status).ok()?;
     let has_payout_record = payout_records.contains_key(&candidate.id);
     let credit_notification_id = credit_records.get(&candidate.id).copied();
-    let mismatch_type =
-        classify_reward_reconciliation_mismatch(RewardReconciliationMismatchFacts {
-            status,
-            has_payout_record,
-            has_wallet_credit_record: credit_notification_id.is_some(),
-            has_notification_record: credit_notification_id.flatten().is_some(),
-        })?;
-    Some(RewardReconciliationMismatchRowOutput {
+    reward_reconciliation_mismatch_row(RewardReconciliationMismatchRowFact {
         reward_candidate_id: candidate.id,
         course_id: candidate.course_id,
         student_user_id: candidate.student_user_id,
-        status: candidate.status,
-        mismatch_type: mismatch_type.as_str().to_string(),
-        approved_amount: candidate.approved_amount.as_ref().map(ToString::to_string),
+        status,
+        approved_amount: candidate.approved_amount,
         updated_at: candidate.updated_at,
+        has_payout_record,
+        has_wallet_credit_record: credit_notification_id.is_some(),
+        has_notification_record: credit_notification_id.flatten().is_some(),
     })
 }

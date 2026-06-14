@@ -2,8 +2,9 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::platform_reward_dashboard::{
-    PlatformRewardDashboardError, RewardCandidateDashboardRowOutput,
-    RewardExecutionFailureRowOutput,
+    reward_candidate_dashboard_row, reward_execution_failure_row, PlatformRewardDashboardError,
+    RewardCandidateDashboardRowFact, RewardCandidateDashboardRowOutput,
+    RewardExecutionFailureRowFact, RewardExecutionFailureRowOutput,
 };
 use crate::db::schema::{reward_candidates, reward_execution_jobs};
 use crate::domain::rewards::candidate::status::REWARD_STATUS_TEACHER_APPROVED;
@@ -23,7 +24,8 @@ pub(super) async fn pending_amount_approvals(
         .await
         .map_err(map_diesel_error)?
         .into_iter()
-        .map(map_candidate)
+        .map(reward_candidate_fact)
+        .map(reward_candidate_dashboard_row)
         .collect::<Vec<_>>();
     let count = reward_candidates::table
         .filter(reward_candidates::status.eq(REWARD_STATUS_TEACHER_APPROVED))
@@ -46,7 +48,8 @@ pub(super) async fn payout_failures(
         .await
         .map_err(map_diesel_error)?
         .into_iter()
-        .map(map_execution_failure)
+        .map(reward_execution_failure_fact)
+        .map(reward_execution_failure_row)
         .collect::<Vec<_>>();
     let count = reward_execution_jobs::table
         .filter(reward_execution_jobs::status.eq(failed))
@@ -57,8 +60,8 @@ pub(super) async fn payout_failures(
     Ok((rows, count))
 }
 
-fn map_candidate(candidate: RewardCandidate) -> RewardCandidateDashboardRowOutput {
-    RewardCandidateDashboardRowOutput {
+fn reward_candidate_fact(candidate: RewardCandidate) -> RewardCandidateDashboardRowFact {
+    RewardCandidateDashboardRowFact {
         reward_candidate_id: candidate.id,
         course_id: candidate.course_id,
         student_user_id: candidate.student_user_id,
@@ -66,13 +69,13 @@ fn map_candidate(candidate: RewardCandidate) -> RewardCandidateDashboardRowOutpu
         source_organization_id: candidate.source_organization_id,
         event_type: candidate.event_type,
         status: candidate.status,
-        approved_amount: candidate.approved_amount.as_ref().map(ToString::to_string),
+        approved_amount: candidate.approved_amount,
         updated_at: candidate.updated_at,
     }
 }
 
-fn map_execution_failure(job: RewardExecutionJob) -> RewardExecutionFailureRowOutput {
-    RewardExecutionFailureRowOutput {
+fn reward_execution_failure_fact(job: RewardExecutionJob) -> RewardExecutionFailureRowFact {
+    RewardExecutionFailureRowFact {
         reward_execution_job_id: job.id,
         reward_candidate_id: job.reward_candidate_id,
         status: job.status,

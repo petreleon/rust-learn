@@ -2,7 +2,8 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::platform_wallet_reconciliation::{
-    PlatformWalletReconciliationError, PlatformWalletReconciliationOutput,
+    platform_wallet_reconciliation_row, PlatformWalletReconciliationError,
+    PlatformWalletReconciliationOutput, PlatformWalletReconciliationRowFact,
     PlatformWalletReconciliationRowOutput,
 };
 use crate::db::schema::wallets;
@@ -50,16 +51,11 @@ fn wallet_reconciliation_row(
     wallet: Wallet,
     counts: WalletReconciliationCounts,
 ) -> PlatformWalletReconciliationRowOutput {
-    PlatformWalletReconciliationRowOutput {
+    platform_wallet_reconciliation_row(PlatformWalletReconciliationRowFact {
         wallet_id: wallet.id,
-        owner_type: if wallet.user_id.is_some() {
-            "user".to_string()
-        } else {
-            "organization".to_string()
-        },
         user_id: wallet.user_id,
         organization_id: wallet.organization_id,
-        balance: wallet.value.to_string(),
+        balance: wallet.value,
         internal_transaction_count: counts.internal_transaction_count,
         external_transaction_count: counts.external_transaction_count,
         reward_record_count: counts.reward_record_count,
@@ -67,5 +63,5 @@ fn wallet_reconciliation_row(
         missing_credit_count: counts.missing_credit_count,
         missing_notification_count: counts.missing_notification_count,
         missing_payout_count: counts.missing_payout_count,
-    }
+    })
 }

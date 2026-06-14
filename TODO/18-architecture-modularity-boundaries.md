@@ -1164,39 +1164,43 @@ remaining gaps.
 | 266 | Moved platform delegated-permission CSV row assembly and state classification into the reporting application layer behind a delegated-permission export fact. |
 | 267 | Moved platform wallet-credit CSV row assembly into the reporting application layer behind a wallet-credit export fact. |
 | 268 | Moved the final platform token-payout CSV row assembly and optional external-transaction defaulting into the reporting application layer, closing the platform CSV export row-assembly migration batch. |
+| 269 | Moved platform reward-dashboard and wallet-reconciliation row display shaping into application-owned row fact assemblers, leaving Postgres helpers to load records and pass typed facts. |
 
 ## Recent Slice Evidence
 
-Batch 268: complete platform CSV export row assembly in application.
+Batch 269: move reporting dashboard/read-model display shaping to application.
 
-- [x] Add `application/reporting/platform_csv_exports/token_payouts`
-      with `PlatformTokenPayoutExportFact` and
-      `platform_token_payout_export_row`.
-- [x] Move token-payout CSV row assembly, reward amount string formatting, and
-      optional external-transaction text defaulting out of the Postgres query
-      helper.
-- [x] Repoint `platform_csv_export_token_payouts` to load
-      `RewardPayoutRecord`, `RewardCandidate`, and external transaction rows,
-      convert them to an application fact, and call the application row
-      assembler.
-- [x] Preserve existing behavior: rows remain ordered by payout record
-      `created_at desc`, capped at 1000, candidate course/student identity is
-      still loaded from the reward candidate, amount is still rendered with
-      `BigDecimal::to_string`, and missing contract/hash/event/address fields
-      still export as empty strings.
-- [x] Close the selected CSV row-assembly pattern: scans now show platform CSV
-      output row construction and CSV-visible string/defaulting behavior in
-      `application/reporting/platform_csv_exports`, with Postgres CSV helpers
-      responsible for loading rows and building application facts.
-- [x] Keep changed Rust files small: application token-payout CSV module 115
-      lines, module export 32 lines, and Postgres helper 95 lines.
-- [x] Self-critique: reporting still has non-CSV dashboard/read-model string
-      shaping in Postgres helpers, such as platform reward-dashboard approved
-      amount display mapping; a future higher-throughput batch should scan and
-      move those related reporting display-shaping cases by dashboard/read
-      model area.
+- [x] Add `application/reporting/platform_reward_dashboard/rows` with
+      dashboard row facts and builders for pending amount approvals, payout
+      failures, and reconciliation mismatches.
+- [x] Move platform reward-dashboard approved amount formatting, mismatch type
+      string selection, and row output construction out of
+      `infra/postgres/reporting/platform_reward_dashboard_rows` and
+      `platform_reward_dashboard_reconciliation`.
+- [x] Add `application/reporting/platform_wallet_reconciliation/rows` with a
+      wallet reconciliation row fact and builder.
+- [x] Move wallet reconciliation owner-type selection and wallet balance string
+      formatting out of
+      `infra/postgres/reporting/platform_wallet_reconciliation_queries`.
+- [x] Preserve existing behavior: reward-dashboard rows keep the same ordering,
+      limits, counts, failure fields, reconciliation mismatch labels, and
+      approved amount display strings; wallet reconciliation rows keep the same
+      wallet ordering, aggregate totals, owner labels, balances, and missing
+      record counts.
+- [x] Keep changed Rust files small: platform reward-dashboard row module 160
+      lines, wallet-reconciliation row module 84 lines, module exports 27 and
+      17 lines, and touched Postgres helpers 86, 99, and 67 lines.
+- [x] Boundary scans prove the old display-shaping expressions are gone from
+      the touched Postgres helpers; remaining reporting infra `to_string`
+      occurrences are Diesel/connection error mapping or fact pass-through.
+- [x] Self-critique: reporting Postgres stores still assemble some top-level
+      output wrappers while loading data; a future batch should audit whether
+      those wrappers can be consistently represented as application report
+      facts without disrupting store-port contracts.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib platform_csv_exports`,
+      `./scripts/run-host-tests.sh cargo test --lib platform_reward_dashboard`,
+      `./scripts/run-host-tests.sh cargo test --lib platform_wallet_reconciliation`,
+      `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_reward_dashboard_reports_actionable_reward_audit_work`,
       `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_csv_exports_cover_business_reward_datasets`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
