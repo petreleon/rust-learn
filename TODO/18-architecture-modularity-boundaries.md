@@ -1132,34 +1132,32 @@ remaining gaps.
 | 234 | Moved teacher and amount reward-decision target-transition validation into pure `domain/rewards/candidate/transition` helpers, leaving Postgres adapters responsible only for stored-status parsing and error translation. |
 | 235 | Moved wallet-credit notification and reward reconciliation lifecycle predicates into `domain/rewards/candidate/lifecycle`, leaving Postgres validation modules responsible for stored-status parsing and use-case error wording. |
 | 236 | Added named reward candidate domain transitions for token confirmation and wallet credit, and repointed Postgres adapters away from raw `TransitionAction` selection. |
+| 237 | Added a domain-owned wallet-credit notification target-status helper, split lifecycle tests out of the production module, and repointed the notification transaction away from hard-coded `Notified` status writes. |
 
 ## Recent Slice Evidence
 
-Slice 236: name token confirmation and wallet credit transitions in domain.
+Slice 237: move wallet-credit notification target status into domain.
 
-- [x] Add `confirm_token` and `credit_wallet` named helpers to
-      `domain/rewards/candidate/transition`.
-- [x] Repoint token-confirmation persistence to parse the stored candidate
-      status locally, then ask the domain for the token-confirmation
-      transition.
-- [x] Repoint wallet-credit validation to keep policy and reconciliation
-      allowance checks in the adapter, then ask the domain for the wallet-credit
-      transition.
-- [x] Update pure transition tests to exercise the named helpers rather than
-      raw action dispatch for those workflows.
+- [x] Add `wallet_credit_notification_target_status` to
+      `domain/rewards/candidate/lifecycle`.
+- [x] Split lifecycle tests into `lifecycle_tests` so production lifecycle
+      predicates stay small and focused.
+- [x] Repoint wallet-credit notification validation to translate database
+      status strings into the domain target-status helper.
+- [x] Repoint the wallet-credit notification transaction to persist the target
+      status returned by validation/domain instead of hard-coding
+      `RewardCandidateStatus::Notified`.
 - [x] Confirm changed Rust files remain under the manual 180-line ceiling.
-- [x] Self-critique: production adapters no longer select token/wallet actions
-      directly, but lower-frequency lifecycle transitions such as notified,
-      completed, failed, and reconciliation-needed still need the same named
-      domain surface before the candidate-transition TODO is fully done.
+- [x] Self-critique: this names the notification target but does not yet move
+      completion, failure, or reconciliation-needed target status selection into
+      named domain helpers. Those remain the next lifecycle cleanup candidates.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate::transition`,
-      `./scripts/run-host-tests.sh cargo test --lib record_token_confirmation::handler`,
-      `./scripts/run-host-tests.sh cargo test --lib credit_wallet::handler`,
+      `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate::lifecycle`,
+      `./scripts/run-host-tests.sh cargo test --lib notify_wallet_credit::handler`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans for raw production transition actions, and file-size
+      `git diff --check`, scans for hard-coded notification status writes, and file-size
       checks keeping changed Rust files under the manual 180-line ceiling.
 
 ## Legacy Transition Rules

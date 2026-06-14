@@ -6,4 +6,6 @@ pub mod status;
 pub mod transition;
 
 #[cfg(test)]
+mod lifecycle_tests;
+#[cfg(test)]
 mod transition_tests;

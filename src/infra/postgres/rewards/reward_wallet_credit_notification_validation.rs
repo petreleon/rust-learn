@@ -34,17 +34,21 @@ pub(super) fn ensure_notification_can_be_inspected(
     }
 }
 
-pub(super) fn ensure_missing_notification_can_be_created(
+pub(super) fn missing_notification_target_status(
     candidate: &RewardCandidate,
     allow_reconciliation_repair: bool,
-) -> Result<(), RewardWalletCreditNotificationError> {
-    if can_create_missing_notification(candidate, allow_reconciliation_repair) {
-        Ok(())
-    } else {
-        Err(RewardWalletCreditNotificationError::InvalidStatus(
+) -> Result<RewardCandidateStatus, RewardWalletCreditNotificationError> {
+    let status = RewardCandidateStatus::parse(&candidate.status).map_err(|_| {
+        RewardWalletCreditNotificationError::InvalidStatus(
             "notified candidate is missing its notification reference".to_string(),
-        ))
-    }
+        )
+    })?;
+    lifecycle::wallet_credit_notification_target_status(status, allow_reconciliation_repair)
+        .ok_or_else(|| {
+            RewardWalletCreditNotificationError::InvalidStatus(
+                "notified candidate is missing its notification reference".to_string(),
+            )
+        })
 }
 
 fn can_inspect_notification(
@@ -54,20 +58,6 @@ fn can_inspect_notification(
     RewardCandidateStatus::parse(&candidate.status)
         .map(|status| {
             lifecycle::can_inspect_wallet_credit_notification(status, allow_reconciliation_repair)
-        })
-        .unwrap_or(false)
-}
-
-fn can_create_missing_notification(
-    candidate: &RewardCandidate,
-    allow_reconciliation_repair: bool,
-) -> bool {
-    RewardCandidateStatus::parse(&candidate.status)
-        .map(|status| {
-            lifecycle::can_create_missing_wallet_credit_notification(
-                status,
-                allow_reconciliation_repair,
-            )
         })
         .unwrap_or(false)
 }
