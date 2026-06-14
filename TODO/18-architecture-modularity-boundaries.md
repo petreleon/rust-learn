@@ -1055,27 +1055,29 @@ remaining gaps.
 | 157 | Moved reward compensation idempotency lookup, candidate lookup, and compensation-record creation off legacy repositories; `reward_compensation_transaction` now uses rewards-owned candidate and compensation record helpers. |
 | 158 | Moved token-confirmation candidate lookup/status update, payout-record lookup/create, and audit-event insert calls off legacy repositories; `reward_token_confirmation_transaction` now uses rewards-owned candidate, payout, and audit helpers. |
 | 159 | Moved core wallet-credit candidate lookup/status update, wallet-credit record lookup/create, and audit-event insert calls off legacy repositories; `reward_wallet_credit_transaction` now uses rewards-owned candidate, wallet-credit record, and audit helpers. |
+| 160 | Moved wallet-credit notification candidate lookup/status update, wallet-credit record lookup/notification marking, and audit-event insert calls off legacy repositories; `reward_wallet_credit_notification_transaction` now uses rewards-owned candidate, wallet-credit record, and audit helpers. |
 
 ## Recent Slice Evidence
 
-Slice 159: move core reward wallet-credit transaction persistence into rewards
+Slice 160: move reward wallet-credit notification persistence into rewards
 infra.
 
-- [x] Add rewards-owned wallet-credit record lookup/create helpers under
-      `infra/postgres/rewards/reward_wallet_credit_records`.
-- [x] Update `reward_wallet_credit_transaction` to use rewards-owned
-      candidate, wallet-credit record, and audit helpers instead of legacy
-      repositories.
-- [x] Preserve wallet-credit idempotency, wallet linking/balance update,
-      internal/wallet-credit transaction creation, wallet-credited candidate
-      transition, and audit metadata.
-- [x] Self-critique: remaining reward repository imports are now concentrated
-      in wallet-credit notification and reconciliation transactions. Move those
-      by transaction cluster rather than broad rewrites.
+- [x] Add wallet-credit record notification marking to the rewards-owned
+      `reward_wallet_credit_records` helper.
+- [x] Update `reward_wallet_credit_notification_transaction` to use
+      rewards-owned candidate, wallet-credit record, and audit helpers instead
+      of legacy repositories.
+- [x] Preserve notification idempotency, missing-notification repair,
+      notification creation, wallet-credit record notification references,
+      notified candidate transition, and audit metadata.
+- [x] Self-critique: reconciliation is now the only remaining reward infra
+      module importing legacy repositories; finish it as the final transaction
+      cluster instead of mixing it into notification work.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --test reward_execution`,
       `git diff --check`, line-count checks, and boundary scans proving the
-      core wallet-credit transaction no longer imports legacy repositories.
+      wallet-credit notification transaction no longer imports legacy
+      repositories.
 
 ## Legacy Transition Rules
 
