@@ -1045,28 +1045,28 @@ remaining gaps.
 | 147 | Moved organization course-list, member-list, dashboard, teacher-application tracking, member-audit, invite, removal, and role-assignment permission gates off legacy `user_permission_*_request` repository helpers and into an organization-owned Postgres permission adapter that asks the reusable access-control Postgres helper. |
 | 148 | Moved teacher-application list, platform-review, submission, decision, audit, and nomination permission gates off legacy platform/organization repository permission helpers and into `infra/postgres/teacher_applications/teacher_application_permissions`, backed by the reusable access-control Postgres permission adapter. |
 | 149 | Moved hierarchy-aware organization role assignment from `repositories::organization_repository::assign_role_to_user_in_organization` into `infra/postgres/organizations/organization_role_assignments`; invite and explicit role-assignment stores now share organization-owned hierarchy, role lookup, and assignment queries. |
+| 150 | Moved wallet-facing persistent key/value state reads and writes from `repositories::persistent_state_repository` and `models::PersistentState` into `infra/postgres/operations/persistent_state`; wallet deposit-intent, retirement, and token-tax stores now use the operations-owned adapter directly. |
 
 ## Recent Slice Evidence
 
-Slice 149: move organization role-assignment hierarchy queries into
-organization infra.
+Slice 150: move wallet-facing persistent state into operations infra.
 
-- [x] Add `infra/postgres/organizations/organization_role_assignments` for
-      assigner hierarchy lookup, target hierarchy lookup, organization role
-      lookup, role hierarchy lookup, and role assignment insertion.
-- [x] Update organization member invite to use the organization-owned
-      hierarchy-aware assignment helper instead of
-      `repositories::organization_repository::assign_role_to_user_in_organization`.
-- [x] Update explicit organization member role assignment to use the same
-      organization-owned query module, removing duplicate query logic from the
-      store.
-- [x] Self-critique: `infra/postgres/organizations` now has no legacy
-      repository imports; remaining repository-backed adapters live in
-      teacher-application persistence, rewards, and wallet operations.
-- [x] Prove behavior with `organization_members` and `organization_permissions`
-      integration tests, formatting, line-count checks, `git diff --check`, and
-      boundary scans proving `infra/postgres/organizations` no longer imports
-      legacy repositories or calls legacy permission/assignment helpers.
+- [x] Add `infra/postgres/operations/persistent_state` with direct Diesel
+      read/upsert helpers for `persistent_states`.
+- [x] Update wallet deposit-intent, retirement, and token-tax stores to use the
+      operations-owned persistent-state adapter instead of
+      `repositories::persistent_state_repository`.
+- [x] Preserve missing-key defaults, invalid decimal error behavior, importer
+      address fallback order, and token-tax upsert behavior.
+- [x] Self-critique: legacy services, Ethereum startup helpers, and rewards
+      payout planning still call `persistent_state_repository`; move each as
+      part of its owning context/worker/startup slice instead of broad-churning
+      all callers at once.
+- [x] Prove behavior with the operations adapter compile smoke,
+      `wallet_linking` integration suite, focused reward treasury presigner
+      smoke, formatting, line-count checks, `git diff --check`, and boundary
+      scans proving `infra/postgres/wallet` and `infra/postgres/operations` no
+      longer import legacy repositories.
 
 ## Legacy Transition Rules
 

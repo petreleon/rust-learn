@@ -10,7 +10,7 @@ use crate::application::wallet::manage_token_tax::{
     WalletTokenTaxError, WalletTokenTaxOperation, WalletTokenTaxStore,
 };
 use crate::infra::postgres::access_control::wallet_authorization_store::PostgresWalletAuthorizationStore;
-use crate::repositories::persistent_state_repository::{
+use crate::infra::postgres::operations::persistent_state::{
     get_persistent_state, set_persistent_state,
 };
 

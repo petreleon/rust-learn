@@ -9,8 +9,8 @@ use crate::application::wallet::create_deposit_intent::{
     WalletDepositIntentStore, WalletDepositIntentView,
 };
 use crate::db::schema::users;
+use crate::infra::postgres::operations::persistent_state::get_persistent_state;
 use crate::infra::postgres::wallet::wallet_deposit_intent_records::insert_deposit_intent;
-use crate::repositories::persistent_state_repository::get_persistent_state;
 
 const TOKEN_DEPOSIT_TAX_KEY: &str = "wallet.deposit_tax_tokens";
 const PLATFORM_IMPORTER_ADDRESS_KEY: &str = "platform_importer_address";
