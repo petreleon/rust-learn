@@ -11,8 +11,8 @@ use std::marker::PhantomData;
 
 use crate::db::DbPool;
 use crate::http::request_params::{extract_param, ParamType};
+use crate::infra::postgres::access_control::authorization_checks::user_hierarchy_compare_platform;
 use crate::models::user_jwt::UserJWT;
-use crate::repositories::platform_repository::user_hierarchy_compare_platform;
 
 pub struct PlatformHierarchyMiddleware<S> {
     _service: PhantomData<S>,

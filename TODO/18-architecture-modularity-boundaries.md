@@ -1118,30 +1118,33 @@ remaining gaps.
 | 220 | Deleted the `utils::eth_utils` compatibility bridge after moving Ethereum compiler, deployer, provider, and wallet integration tests to the `infra/ethereum/operations` owners directly. |
 | 221 | Deleted the unused `utils::centralized_wallets` compatibility bridge after scans proved source and tests call the `infra/postgres/wallet/centralized_wallets` owner directly or do not use the helper. |
 | 222 | Deleted the final unused `src/utils` module after scans proved no `crate::utils` or `rust_learn::utils` callers remain; stale course invite helpers were superseded by `infra/postgres/learning/course_creation_store`. |
+| 223 | Moved platform, organization, and course permission/hierarchy middleware checks off legacy repository imports and onto an `infra/postgres/access_control/authorization_checks` adapter facade, leaving middleware dependent on the access-control Postgres boundary instead of `src/repositories`. |
 
 ## Recent Slice Evidence
 
-Slice 222: delete final unused `src/utils` module.
+Slice 223: move middleware authorization checks to access-control infra.
 
-- [x] Delete `src/utils/course_utils.rs` and `src/utils/mod.rs`, and remove
-      `pub mod utils` from both `src/lib.rs` and the API binary module tree in
-      `src/main.rs`.
-- [x] Confirm scans show no `crate::utils` or `rust_learn::utils` callers remain
-      in source or tests; remaining `utils::` hits are external-crate paths such
-      as `ethers::utils` or local aliases such as `worker_utils`.
-- [x] Preserve active course-creation/invite behavior through
-      `infra/postgres/learning/course_creation_store`, which already owns the
-      course organization invite insertion used by migrated course creation.
-- [x] Self-critique: deleting dead utility code closes the namespace but does
-      not finish all architecture work. Direct repository usage in tests and
-      remaining DB/model leakage still need separate Level 2 slices.
+- [x] Add `infra/postgres/access_control/authorization_checks` as the
+      middleware-facing facade for platform, organization, and course
+      permission checks plus platform/organization hierarchy comparisons.
+- [x] Repoint platform, organization, and course permission middlewares from
+      `crate::repositories::*` imports to the access-control Postgres facade
+      while preserving the same async signatures and error mapping.
+- [x] Repoint platform and organization hierarchy middlewares from repository
+      hierarchy helpers to the access-control Postgres facade while preserving
+      the existing `Ordering` semantics.
+- [x] Self-critique: middleware still depends directly on concrete Postgres
+      infra. A deeper Level 2 slice should introduce application authorization
+      ports/use cases for request gates, and `config/db_setup` still has seed
+      setup imports from legacy repositories until a separate bootstrap/data
+      initialization migration.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing no project-owned `utils` module
-      references remain, and file-size checks keeping changed Rust files under
-      the manual 180-line ceiling.
+      `git diff --check`, a scoped scan showing migrated rings and middleware
+      no longer import `crate::repositories`, and file-size checks keeping
+      changed Rust files under the manual 180-line ceiling.
 
 ## Legacy Transition Rules
 

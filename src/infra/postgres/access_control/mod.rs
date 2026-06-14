@@ -1,3 +1,4 @@
+pub(crate) mod authorization_checks;
 pub mod course_role_records;
 pub mod delegated_permissions;
 pub mod hierarchy_records;

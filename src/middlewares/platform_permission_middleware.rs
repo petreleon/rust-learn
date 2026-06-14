@@ -1,9 +1,9 @@
 use actix_web::{dev::ServiceRequest, web, HttpMessage};
 use futures::FutureExt;
 
+use crate::infra::postgres::access_control::authorization_checks::user_permission_platform_request;
 use crate::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
 use crate::models::user_jwt::UserJWT;
-use crate::repositories::platform_repository::user_permission_platform_request;
 
 pub struct PlatformPermissionMiddleware;
 

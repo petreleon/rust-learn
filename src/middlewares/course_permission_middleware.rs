@@ -3,9 +3,9 @@ use futures::FutureExt;
 
 use crate::http::request_params::extract_param;
 use crate::http::request_params::ParamType;
+use crate::infra::postgres::access_control::authorization_checks::user_permission_course_request;
 use crate::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
 use crate::models::user_jwt::UserJWT;
-use crate::repositories::course_repository::user_permission_course_request;
 
 pub struct CoursePermissionMiddleware;
 
