@@ -24,6 +24,7 @@ pub mod reward_candidate_submission_store;
 pub mod reward_candidate_submission_use_case;
 pub mod reward_candidate_submission_validation;
 pub mod reward_compensation_mappers;
+pub mod reward_compensation_records;
 pub mod reward_compensation_store;
 pub mod reward_compensation_transaction;
 pub mod reward_compensation_transactions;

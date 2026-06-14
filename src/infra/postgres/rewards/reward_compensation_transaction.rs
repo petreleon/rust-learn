@@ -5,7 +5,11 @@ use crate::application::rewards::record_compensation::{
     RewardCompensation, RewardCompensationError, RewardCompensationOutput,
 };
 use crate::db::schema::wallets;
+use crate::infra::postgres::rewards::reward_candidate_records::find_candidate;
 use crate::infra::postgres::rewards::reward_compensation_mappers::map_reward_compensation_error;
+use crate::infra::postgres::rewards::reward_compensation_records::{
+    create_reward_compensation_record, find_reward_compensation_record_by_idempotency_key,
+};
 use crate::infra::postgres::rewards::reward_compensation_transactions::{
     create_compensation_transaction, create_internal_transaction,
 };
@@ -14,7 +18,6 @@ use crate::infra::postgres::rewards::reward_compensation_wallets::{
 };
 use crate::models::reward_compensation_record::NewRewardCompensationRecord;
 use crate::models::wallet::Wallet;
-use crate::repositories::{reward_candidate_repository, reward_compensation_record_repository};
 
 pub(super) async fn record_reward_compensation(
     conn: &mut AsyncPgConnection,
@@ -22,12 +25,9 @@ pub(super) async fn record_reward_compensation(
 ) -> Result<RewardCompensationOutput, RewardCompensationError> {
     let command = compensation.command;
     if let Some(existing) =
-        reward_compensation_record_repository::find_reward_compensation_record_by_idempotency_key(
-            conn,
-            &command.idempotency_key,
-        )
-        .await
-        .map_err(map_reward_compensation_error)?
+        find_reward_compensation_record_by_idempotency_key(conn, &command.idempotency_key)
+            .await
+            .map_err(map_reward_compensation_error)?
     {
         let wallet = wallets::table
             .find(existing.wallet_id)
@@ -41,7 +41,7 @@ pub(super) async fn record_reward_compensation(
         });
     }
 
-    let candidate = reward_candidate_repository::find_candidate(conn, command.reward_candidate_id)
+    let candidate = find_candidate(conn, command.reward_candidate_id)
         .await
         .map_err(map_reward_compensation_error)?;
     let linked_wallet = link_user_wallet(conn, candidate.student_user_id).await?;
@@ -49,7 +49,7 @@ pub(super) async fn record_reward_compensation(
     let internal_transaction_id =
         create_internal_transaction(conn, wallet.id, command.amount.clone()).await?;
     let transaction_id = create_compensation_transaction(conn, internal_transaction_id).await?;
-    let record = reward_compensation_record_repository::create_reward_compensation_record(
+    let record = create_reward_compensation_record(
         conn,
         NewRewardCompensationRecord {
             reward_candidate_id: candidate.id,
