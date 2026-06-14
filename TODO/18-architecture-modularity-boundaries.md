@@ -1098,33 +1098,34 @@ remaining gaps.
 | 200 | Deleted the now-unused legacy `organization_service` compatibility module after code search proved organization CRUD, member list/invite/role/removal/audit, dashboard, course list, and teacher-application tracking flows compile and run through Level 2 application/infra/http modules instead. |
 | 201 | Deleted the now-unused legacy `reward_execution_service` compatibility module after reward execution tests were switched to application reward use-case helpers and domain payout constants, proving payout planning, token confirmation, wallet credit, notification, and reconciliation run through Level 2 rewards modules. |
 | 202 | Moved token reconciliation recording out of the legacy services layer and into `infra/postgres/wallet/token_reconciliation_records`; the integration test now imports the wallet Postgres record adapter directly and the legacy `token_reconciliation` service module was deleted. |
+| 203 | Moved the wallet deposit indexer out of the legacy services layer and into `infra/ethereum/wallet/deposit_indexer`; the worker now spawns the Ethereum wallet infra adapter directly, leaving `services` focused on the remaining compatibility surfaces only. |
 
 ## Recent Slice Evidence
 
-Slice 202: move token reconciliation records into wallet infra.
+Slice 203: move wallet deposit indexer into Ethereum wallet infra.
 
-- [x] Move the sync Diesel token event reconciliation helper from
-      `src/services/token_reconciliation.rs` to
-      `src/infra/postgres/wallet/token_reconciliation_records.rs`.
-- [x] Keep `ObservedTokenEvent`, `TokenEventKind`,
-      `TokenReconciliationRecord`, validation, and idempotent
-      transaction/external-transaction linking behavior intact while placing
-      the persistence code in the Postgres wallet adapter ring.
-- [x] Move the helper unit tests into `token_reconciliation_records_tests.rs`
-      so the production adapter file stays under the 180-line limit.
-- [x] Update `tests/token_reconciliation.rs` to import the wallet infra adapter
-      directly and delete the legacy `services::token_reconciliation` export.
-- [x] Self-critique: this is still a low-level record adapter rather than a full
-      application use case; it is acceptable as a narrow infra cleanup because
-      no HTTP/application caller depended on it. If token reconciliation becomes
-      product-facing, add an `application/wallet` or `application/operations`
-      use case before exposing it.
+- [x] Move `wallet_deposit_indexer_service` and its child modules to
+      `src/infra/ethereum/wallet/deposit_indexer`, with a new
+      `infra::ethereum::wallet` module gate.
+- [x] Point `src/bin/worker.rs` at
+      `rust_learn::infra::ethereum::wallet::deposit_indexer` so background
+      startup no longer depends on the legacy `services` bucket for deposit
+      indexing.
+- [x] Keep the existing granular indexer internals: config parsing, Ethereum log
+      helpers, event construction, block-range selection, poll logging, and the
+      once-per-batch runner remain separate child modules.
+- [x] Self-critique: the indexer is correctly out of `services`, but it still
+      reads persistent state through the legacy repository and provider setup
+      through `utils::eth`. That is acceptable for this move because the
+      boundary now sits in the infra ring; a later slice should move those
+      remaining operational adapters behind `infra/postgres/operations` and
+      `infra/ethereum/operations` APIs.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib token_reconciliation_records`,
-      `./scripts/run-host-tests.sh cargo test --test token_reconciliation`,
+      `./scripts/run-host-tests.sh cargo test --lib deposit_indexer`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      `./scripts/run-host-tests.sh cargo check --bin worker --features worker-bin`,
       `git diff --check`, reference scans showing no
-      `services::token_reconciliation`, and backend ring scans showing no
+      `wallet_deposit_indexer_service`, and backend ring scans showing no
       `include!`/`imports.rs`.
 
 ## Legacy Transition Rules

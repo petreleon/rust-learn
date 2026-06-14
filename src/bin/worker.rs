@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
     let retry_config = RetryConfig::from_env();
 
     let deposit_indexer_handle =
-        rust_learn::services::wallet_deposit_indexer_service::spawn_wallet_deposit_indexer(
+        rust_learn::infra::ethereum::wallet::deposit_indexer::spawn_wallet_deposit_indexer(
             pool.clone(),
             shutdown.clone(),
         );

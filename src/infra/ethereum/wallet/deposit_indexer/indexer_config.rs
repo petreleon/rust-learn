@@ -1,4 +1,4 @@
-use crate::services::wallet_deposit_indexer_service::support::{
+use super::support::{
     WalletDepositIndexerConfig, DEFAULT_BATCH_BLOCKS, DEFAULT_CONFIRMATIONS,
     DEFAULT_IDLE_LOG_SECONDS, DEFAULT_LOOKBACK_BLOCKS, DEFAULT_POLL_SECONDS,
 };
