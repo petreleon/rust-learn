@@ -1,12 +1,13 @@
-use diesel::prelude::*;
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::identity::request_password_reset::{
     PasswordResetRecipient, RequestPasswordResetError, RequestPasswordResetStore,
 };
+use crate::infra::postgres::identity::accounts::{
+    find_identity_user_by_email, IdentityUserAccount,
+};
 use crate::infra::postgres::identity::password_reset_tokens::create_password_reset_token;
 use crate::infra::tokens::identity::identity_token_hash;
-use crate::models::user::User;
 
 pub struct PostgresRequestPasswordResetStore<'conn> {
     conn: &'conn mut diesel_async::AsyncPgConnection,
@@ -24,9 +25,8 @@ impl RequestPasswordResetStore for PostgresRequestPasswordResetStore<'_> {
         email: String,
     ) -> BoxFuture<'_, Result<Option<PasswordResetRecipient>, RequestPasswordResetError>> {
         async move {
-            User::find_by_email(&email, self.conn)
+            find_identity_user_by_email(self.conn, &email)
                 .await
-                .optional()
                 .map(|user| user.map(map_recipient))
                 .map_err(|error| RequestPasswordResetError::Lookup(error.to_string()))
         }
@@ -48,9 +48,9 @@ impl RequestPasswordResetStore for PostgresRequestPasswordResetStore<'_> {
     }
 }
 
-fn map_recipient(user: User) -> PasswordResetRecipient {
+fn map_recipient(user: IdentityUserAccount) -> PasswordResetRecipient {
     PasswordResetRecipient {
-        user_id: user.id(),
+        user_id: user.user_id,
         email: user.email,
         name: user.name,
     }

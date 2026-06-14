@@ -1,12 +1,13 @@
-use diesel::prelude::*;
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::identity::resend_verification::{
     ResendVerificationError, ResendVerificationStore, VerificationEmailTarget,
 };
+use crate::infra::postgres::identity::accounts::{
+    find_identity_user_by_email, IdentityUserAccount,
+};
 use crate::infra::postgres::identity::email_verification_tokens::create_email_verification_token;
 use crate::infra::tokens::identity::identity_token_hash;
-use crate::models::user::User;
 
 pub struct PostgresResendVerificationStore<'conn> {
     conn: &'conn mut diesel_async::AsyncPgConnection,
@@ -24,9 +25,8 @@ impl ResendVerificationStore for PostgresResendVerificationStore<'_> {
         email: String,
     ) -> BoxFuture<'_, Result<Option<VerificationEmailTarget>, ResendVerificationError>> {
         async move {
-            User::find_by_email(&email, self.conn)
+            find_identity_user_by_email(self.conn, &email)
                 .await
-                .optional()
                 .map(|user| user.map(map_target))
                 .map_err(|error| ResendVerificationError::Lookup(error.to_string()))
         }
@@ -48,9 +48,9 @@ impl ResendVerificationStore for PostgresResendVerificationStore<'_> {
     }
 }
 
-fn map_target(user: User) -> VerificationEmailTarget {
+fn map_target(user: IdentityUserAccount) -> VerificationEmailTarget {
     VerificationEmailTarget {
-        user_id: user.id(),
+        user_id: user.user_id,
         email: user.email,
         name: user.name,
         email_verified: user.email_verified,

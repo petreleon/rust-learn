@@ -1033,33 +1033,30 @@ remaining gaps.
 | 135 | Moved identity token generation and hashing from `utils::email` into `infra/tokens/identity`, updated identity Postgres adapters and auth-flow token seeding to use the token infra module, removed `utils::email` from the utility module tree, and deleted the old utility file. |
 | 136 | Moved email-verification token creation and verification behavior from `models::email_verification_token` into `infra/postgres/identity/email_verification_tokens`, updated registration/resend/verify adapters and auth-flow token seeding to call the Postgres identity token adapter, and left the model as a Diesel record/insert shape only. |
 | 137 | Moved password-reset token creation and consumption behavior from `models::password_reset_token` into `infra/postgres/identity/password_reset_tokens`, updated request/reset adapters and auth-flow token seeding to call the Postgres identity token adapter, and left the model as a Diesel record/insert shape only. |
+| 138 | Moved migrated identity account lookup and password-auth reads from `models::user` Active Record methods into `infra/postgres/identity/accounts`, and updated login, resend-verification, and password-reset request stores to call the context-owned Postgres account adapter. |
 
 ## Recent Slice Evidence
 
-Slice 137: move password-reset token persistence out of models.
+Slice 138: move migrated identity account lookup out of models.
 
-- [x] Add `infra/postgres/identity/password_reset_tokens` with
-      `create_password_reset_token`, `consume_password_reset_token`, token TTL
-      handling, active-token invalidation, consume/replay/expiry decisions, and
-      infra-owned reset-token outcome vocabulary.
-- [x] Reduce `models::password_reset_token` to Diesel record and insert structs
-      only; remove async `create_for_user`, async `consume`, and the model-owned
-      reset result enum.
-- [x] Update request-password-reset and reset-password Postgres
-      adapters to call the Postgres identity token adapter instead of
-      `PasswordResetToken::*` Active Record methods.
-- [x] Update auth-flow token seeding tests to call the Postgres identity token
-      adapter.
-- [x] Self-critique: identity auth token persistence is now out of models, but
-      `User`, `Authentication`, `PlatformRole`, and `UserRolePlatform` still
-      expose async DB methods that identity infra adapters call; continue
-      reducing Active Record-style model behavior behind context-owned Postgres
-      adapters.
-- [x] Prove behavior with focused one-time reset and
-      missing/invalid/expired reset-token tests, the full `authentication_flow`
-      suite, API route reachability, formatting, line-count checks,
-      `git diff --check`, and boundary scans proving no `PasswordResetToken::`
-      or model-owned reset result references remain.
+- [x] Add `infra/postgres/identity/accounts` with query helpers for identity
+      user lookup by email and password-auth account lookup by email.
+- [x] Return infra-owned account records from those helpers instead of forcing
+      migrated stores to call `User::find_by_email` or
+      `User::find_with_password_auth`.
+- [x] Update login, resend-verification, and password-reset request Postgres
+      stores to call the context-owned account adapter and keep use-case record
+      mapping local to the store.
+- [x] Self-critique: registration still calls `User::create`,
+      `PlatformRole::find_by_name`, `UserRolePlatform::assign`, and
+      `Authentication::create` inside its transaction; move account creation and
+      default role/password-auth setup behind identity-owned Postgres helpers
+      next.
+- [x] Prove behavior with focused login, resend-verification, and password-reset
+      request tests, the full `authentication_flow` suite, API route
+      reachability, formatting, line-count checks, `git diff --check`, and
+      boundary scans proving migrated identity stores no longer call
+      `User::find_by_email` or `User::find_with_password_auth`.
 
 ## Legacy Transition Rules
 

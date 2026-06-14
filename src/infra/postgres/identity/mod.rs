@@ -1,3 +1,4 @@
+pub mod accounts;
 pub mod current_session_delegations;
 pub mod current_session_scope_builder;
 pub mod current_session_store;
