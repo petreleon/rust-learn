@@ -1081,32 +1081,31 @@ remaining gaps.
 | 183 | Moved teacher-application approved-bundle exists-before-assign guards into `infra/postgres/access_control/*_role_records`; teacher-application role decisions now only resolve the teacher role and delegate idempotent assignment to access-control record adapters. |
 | 184 | Moved teacher-application reviewer-recipient permission queries into `infra/postgres/access_control/permission_recipient_records`; teacher-application notification storage and the legacy teacher-application repository export now share the same access-control read adapter, removing duplicate recipient SQL. |
 | 185 | Removed the thin `infra/postgres/teacher_applications/teacher_application_permissions` shim; teacher-application stores now call `infra/postgres/access_control/permission_checks` directly for platform and organization authorization. |
+| 186 | Removed duplicate KYC platform permission/delegation SQL; `infra/postgres/kyc/kyc_store` now calls `infra/postgres/access_control/permission_checks` directly for KYC review authorization. |
 
 ## Recent Slice Evidence
 
-Slice 185: remove teacher-application permission-check shim.
+Slice 186: remove duplicate KYC platform permission checks.
 
-- [x] Retarget teacher-application list, submit, platform review, decision,
-      audit, and nomination stores to
-      `infra/postgres/access_control/permission_checks`.
-- [x] Delete `teacher_application_permissions`; the teacher-application
-      context no longer owns a permission-check wrapper over access-control.
-- [x] Keep permission-string mapping local to each store where application port
-      contracts pass `Permissions` or dynamic permission strings.
-- [x] Self-critique: teacher-application permission checking now points at
-      access-control directly, but direct imports of `permission_checks` are
-      still a crate-internal convention; later slices should decide whether
-      these checks remain a shared infra helper or become explicit access-
-      control ports for broader cross-context reuse.
+- [x] Retarget `PostgresKycStore::can_review_kyc` to
+      `infra/postgres/access_control/permission_checks::has_platform_permission`.
+- [x] Delete `infra/postgres/kyc/kyc_permissions`; KYC no longer owns duplicate
+      platform role-permission or delegated-permission SQL.
+- [x] Keep KYC-specific permission selection local to the KYC store while
+      access-control owns how role and delegation grants are evaluated.
+- [x] Self-critique: KYC review authorization now shares the access-control
+      checker, but identity still has its own `platform_permissions` helper
+      with the same platform role/delegation pattern and should be reviewed as
+      another separate slice.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
       `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
-      `./scripts/run-host-tests.sh cargo test --test teacher_applications`,
-      `./scripts/run-host-tests.sh cargo test --test organization_teacher_applications`,
-      `./scripts/run-host-tests.sh cargo test --test notification_events`,
+      `./scripts/run-host-tests.sh cargo test --test kyc_review`,
+      `./scripts/run-host-tests.sh cargo test --test platform_permissions`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      references `teacher_application_permissions` or its wrapper helpers.
+      under `infra/postgres/kyc` owns role-permission or delegated-permission
+      authorization SQL.
 
 ## Legacy Transition Rules
 
