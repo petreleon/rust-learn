@@ -11,11 +11,13 @@ use futures::FutureExt;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
+use crate::application::access_control::compare_hierarchy::{
+    HierarchyCheckError, HierarchyCheckUseCase, HierarchyScope,
+};
 use crate::db::DbPool;
 use crate::domain::identity::UserJWT;
 use crate::http::request_params::extract_param;
 use crate::http::request_params::ParamType;
-use crate::infra::postgres::access_control::authorization_checks::user_hierarchy_compare_organization;
 
 pub struct OrganizationHierarchyMiddleware<S> {
     _service: PhantomData<S>,
@@ -44,9 +46,7 @@ impl<S> OrganizationHierarchyMiddleware<S> {
 
 impl<S, B> Transform<S, ServiceRequest> for OrganizationHierarchyMiddleware<S>
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>
-        + 'static
-        + std::clone::Clone,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     S::Future: 'static,
     B: 'static,
 {
@@ -67,7 +67,7 @@ where
     }
 }
 
-pub struct OrganizationHierarchyMiddlewareService<S: Clone> {
+pub struct OrganizationHierarchyMiddlewareService<S> {
     service: S,
     type_param_of_id_user: ParamType,
     name_param_of_id_user: String,
@@ -75,9 +75,10 @@ pub struct OrganizationHierarchyMiddlewareService<S: Clone> {
     name_param_of_organization: String,
 }
 
-impl<S: Clone, B> Service<ServiceRequest> for OrganizationHierarchyMiddlewareService<S>
+impl<S, B> Service<ServiceRequest> for OrganizationHierarchyMiddlewareService<S>
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + Clone + 'static,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S::Future: 'static,
     B: 'static,
 {
     type Response = ServiceResponse<B>;
@@ -88,7 +89,7 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let db_pool = match req.app_data::<web::Data<DbPool>>() {
-            Some(pool) => pool.clone(),
+            Some(pool) => pool.get_ref().clone(),
             None => {
                 return future::ready(Err(actix_web::error::ErrorInternalServerError(
                     "Failed to access database pool",
@@ -112,7 +113,7 @@ where
                 .map(|s| s.to_owned());
         let user_jwt_opt = req.extensions().get::<UserJWT>().cloned();
 
-        let service = self.service.clone();
+        let fut = self.service.call(req);
         async move {
             let organization_id = organization_id_str_opt
                 .and_then(|id_str| id_str.parse::<i32>().ok())
@@ -129,20 +130,21 @@ where
             let user_jwt = user_jwt_opt
                 .ok_or_else(|| actix_web::error::ErrorUnauthorized("Unauthorized access"))?;
 
-            let mut conn = db_pool.get().await.map_err(|_| {
-                actix_web::error::ErrorInternalServerError("Failed to get database connection")
-            })?;
-
-            let can_proceed = match user_hierarchy_compare_organization(
-                &mut conn,
-                organization_id,
-                user_jwt.user_id,
-                second_user_id,
-            )
-            .await
+            let can_proceed = match db_pool
+                .compare_users(
+                    HierarchyScope::Organization { organization_id },
+                    user_jwt.user_id,
+                    second_user_id,
+                )
+                .await
             {
                 Ok(ordering) => ordering != Ordering::Less,
-                Err(_) => {
+                Err(HierarchyCheckError::Connection(_)) => {
+                    return Err(actix_web::error::ErrorInternalServerError(
+                        "Failed to get database connection",
+                    ))
+                }
+                Err(HierarchyCheckError::Query(_)) => {
                     return Err(actix_web::error::ErrorInternalServerError(
                         "Failed to compare user hierarchy with organization",
                     ))
@@ -152,7 +154,6 @@ where
                 return Err(actix_web::error::ErrorForbidden("Forbidden"));
             }
 
-            let fut = service.call(req);
             fut.await
         }
         .boxed_local()

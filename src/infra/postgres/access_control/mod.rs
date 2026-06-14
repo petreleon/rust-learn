@@ -1,6 +1,7 @@
 pub mod authorization_checks;
 pub mod course_role_records;
 pub mod delegated_permissions;
+pub mod hierarchy_check_use_case;
 pub mod hierarchy_records;
 pub mod organization_role_records;
 pub mod permission_assignment_records;

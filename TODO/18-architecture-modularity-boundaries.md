@@ -1172,43 +1172,53 @@ remaining gaps.
 | 274 | Moved the remaining wallet and transaction Active Record methods out of `models::*` and into wallet Postgres ledger records, leaving model files as Diesel row shapes only. |
 | 275 | Moved JWT request claims from `models` into pure `domain/identity`, repointed HTTP extractors, middleware, and token infra, and proved the HTTP ring no longer imports models, DB, schema, repositories, services, or Diesel. |
 | 276 | Routed platform, course, and organization permission middlewares through an application access-control permission-check use case instead of direct Postgres authorization helper calls. |
+| 277 | Routed platform and organization hierarchy middlewares through an application access-control hierarchy-check use case, moved hierarchy-level ordering semantics into pure domain, and made organization hierarchy middleware mountable with normal Actix route wrapping. |
 
 ## Recent Slice Evidence
 
-Batch 276: move route permission middleware checks behind the application
+Batch 277: move route hierarchy middleware checks behind the application
 access-control boundary.
 
-- [x] Added `application/access_control/check_permission.rs` with a
-      middleware-facing `PermissionCheckUseCase`, `PermissionScope`, and
-      permission-check error contract.
-- [x] Added `infra/postgres/access_control/permission_check_use_case.rs`,
+- [x] Added `domain/access_control/hierarchy.rs` as the pure owner of
+      hierarchy-level ordering semantics: lower numeric hierarchy levels outrank
+      higher numbers, assigned roles outrank missing roles, and two missing
+      roles compare equal.
+- [x] Added `application/access_control/compare_hierarchy.rs` with a
+      middleware-facing `HierarchyCheckUseCase`, `HierarchyScope`, and
+      hierarchy-check error contract.
+- [x] Added `infra/postgres/access_control/hierarchy_check_use_case.rs`,
       implementing that application trait for the existing `DbPool` and routing
-      platform, course, and organization checks to the Postgres permission
-      adapter.
-- [x] Repointed `PlatformPermissionMiddleware`, `CoursePermissionMiddleware`,
-      and `OrganizationPermissionMiddleware` away from direct
-      `authorization_checks::user_permission_*_request` calls. They now depend
-      on the application permission-check contract while preserving the
-      existing pool-based route setup.
-- [x] Tightened stale middleware tests to exercise minimal protected routes
-      instead of falling through to unrelated route handlers without their use
-      cases registered.
-- [x] Boundary scans prove the three permission middlewares no longer import or
-      call direct Postgres authorization helpers. Hierarchy middlewares still
-      call hierarchy comparison helpers directly and remain the next
-      authorization-centralization follow-up.
+      platform, organization, and course level reads to Postgres hierarchy
+      records before applying the domain comparison rule.
+- [x] Repointed `PlatformHierarchyMiddleware` and
+      `OrganizationHierarchyMiddleware` away from direct
+      `authorization_checks::user_hierarchy_compare_*` calls. They now depend on
+      the application hierarchy-check contract while preserving the existing
+      pool-based route setup.
+- [x] Fixed `OrganizationHierarchyMiddleware` so it no longer requires a
+      cloneable inner Actix service, making it mountable with normal
+      `Route::wrap` usage like the other route middleware.
+- [x] Added direct middleware behavior tests for platform and organization
+      hierarchy allow/deny paths using minimal protected routes and real test DB
+      role records.
+- [x] Boundary scans prove middlewares no longer import or call direct Postgres
+      authorization helpers. The only remaining
+      `user_hierarchy_compare_*` matches are legacy helper definitions inside
+      `infra/postgres/access_control/authorization_checks.rs`.
 - [x] Keep changed Rust files under the manual 180-line ceiling:
-      `check_permission.rs` 23 lines, `permission_check_use_case.rs` 54,
-      platform middleware 93, course middleware 141, organization middleware
-      135, and touched middleware test files at or below 158.
-- [x] Self-critique: implementing the application trait for `DbPool` preserves
-      existing test/app setup, but the next cleanup should either move
-      hierarchy middleware through a similar application contract or introduce
-      explicit bootstrap app data for all access-control middleware dependencies
-      once route tests have shared app builders.
+      domain hierarchy 31 lines, hierarchy contract 24, Postgres hierarchy
+      use case 62, platform hierarchy middleware 148, organization hierarchy
+      middleware 161, and the new middleware test file 109.
+- [x] Self-critique: permission and hierarchy middleware now use application
+      access-control contracts, but the broader authorization item remains open
+      until legacy helper surfaces and frontend capability duplication are
+      retired or backed by one backend-derived capability contract.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo test --lib domain::access_control::hierarchy`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control hierarchy_middleware_blocks_lower_actor`,
       `./scripts/run-host-tests.sh cargo test --test middleware_access_control`,
+      `./scripts/run-host-tests.sh cargo test --test repository_core_tests test_org_hierarchy`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, direct middleware authorization-helper scans, and

@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 
 use crate::config::constants::permissions::Permissions;
 use crate::config::constants::roles::Roles;
+use crate::domain::access_control::hierarchy::compare_hierarchy_levels;
 use crate::infra::postgres::access_control::{
     hierarchy_records, organization_role_records, permission_assignment_records, permission_checks,
     platform_role_records, role_catalog_store,
@@ -130,10 +131,5 @@ fn compare_top_levels(
     user1_top_level: Option<i32>,
     user2_top_level: Option<i32>,
 ) -> QueryResult<Ordering> {
-    match (user1_top_level, user2_top_level) {
-        (Some(level1), Some(level2)) => Ok(level2.cmp(&level1)),
-        (None, None) => Ok(Ordering::Equal),
-        (Some(_), None) => Ok(Ordering::Greater),
-        (None, Some(_)) => Ok(Ordering::Less),
-    }
+    Ok(compare_hierarchy_levels(user1_top_level, user2_top_level))
 }
