@@ -2,6 +2,7 @@ use bigdecimal::BigDecimal;
 use diesel_async::AsyncPgConnection;
 
 use crate::application::rewards::credit_wallet::RewardWalletCreditError;
+use crate::domain::rewards::candidate::lifecycle;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::rewards::candidate::transition;
 use crate::infra::postgres::rewards::reward_wallet_credit_policy::reward_policy_is_off_chain;
@@ -27,11 +28,11 @@ pub(super) fn reject_already_credited_without_record(
     candidate: &RewardCandidate,
 ) -> Result<(), RewardWalletCreditError> {
     match RewardCandidateStatus::parse(&candidate.status) {
-        Ok(RewardCandidateStatus::WalletCredited)
-        | Ok(RewardCandidateStatus::Notified)
-        | Ok(RewardCandidateStatus::Completed) => Err(RewardWalletCreditError::InvalidStatus(
-            "wallet credited candidate is missing a reward wallet credit record".to_string(),
-        )),
+        Ok(status) if lifecycle::requires_wallet_credit_record(status) => {
+            Err(RewardWalletCreditError::InvalidStatus(
+                "wallet credited candidate is missing a reward wallet credit record".to_string(),
+            ))
+        }
         _ => Ok(()),
     }
 }
@@ -50,8 +51,8 @@ pub(super) async fn wallet_credit_target_status(
 
     if status == RewardCandidateStatus::NeedsReconciliation && !allow_reconciliation_credit {
         return Err(RewardWalletCreditError::InvalidStatus(
-                "needs reconciliation candidate requires confirmed payout evidence before wallet credit"
-                    .to_string(),
+            "needs reconciliation candidate requires confirmed payout evidence before wallet credit"
+                .to_string(),
         ));
     }
 

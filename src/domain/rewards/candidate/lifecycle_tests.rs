@@ -1,6 +1,6 @@
 use super::lifecycle::{
     can_create_missing_wallet_credit_notification, can_inspect_wallet_credit_notification,
-    can_reconcile, should_create_reconciliation_wallet_credit,
+    can_reconcile, requires_wallet_credit_record, should_create_reconciliation_wallet_credit,
     wallet_credit_notification_target_status,
 };
 use super::status::RewardCandidateStatus as Status;
@@ -119,4 +119,13 @@ fn wallet_credit_notification_target_status_is_named_in_domain() {
         wallet_credit_notification_target_status(Status::NeedsReconciliation, true),
         Some(Status::Notified)
     );
+}
+
+#[test]
+fn wallet_credit_record_is_required_after_crediting() {
+    assert!(requires_wallet_credit_record(Status::WalletCredited));
+    assert!(requires_wallet_credit_record(Status::Notified));
+    assert!(requires_wallet_credit_record(Status::Completed));
+    assert!(!requires_wallet_credit_record(Status::TokenConfirmed));
+    assert!(!requires_wallet_credit_record(Status::NeedsReconciliation));
 }

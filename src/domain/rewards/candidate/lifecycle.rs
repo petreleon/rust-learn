@@ -53,3 +53,12 @@ pub fn wallet_credit_notification_target_status(
         None
     }
 }
+
+pub fn requires_wallet_credit_record(status: RewardCandidateStatus) -> bool {
+    use RewardCandidateStatus as Status;
+
+    matches!(
+        status,
+        Status::WalletCredited | Status::Notified | Status::Completed
+    )
+}

@@ -1134,29 +1134,31 @@ remaining gaps.
 | 236 | Added named reward candidate domain transitions for token confirmation and wallet credit, and repointed Postgres adapters away from raw `TransitionAction` selection. |
 | 237 | Added a domain-owned wallet-credit notification target-status helper, split lifecycle tests out of the production module, and repointed the notification transaction away from hard-coded `Notified` status writes. |
 | 238 | Repointed wallet-credit persistence to use the domain-resolved target status from validation instead of hard-coding `WalletCredited` in the transaction. |
+| 239 | Moved the wallet-credit-record-required status predicate into `domain/rewards/candidate/lifecycle`, leaving Postgres validation responsible for stored-status parsing and error wording. |
 
 ## Recent Slice Evidence
 
-Slice 238: move wallet-credit target status out of the transaction.
+Slice 239: move wallet-credit record-required predicate into domain.
 
-- [x] Rename wallet-credit validation from an allow/deny check into
-      `wallet_credit_target_status`, returning the domain transition target.
-- [x] Keep off-chain policy lookup and reconciliation-credit allowance in the
-      Postgres validation boundary.
-- [x] Repoint the wallet-credit transaction to persist the returned target
-      status instead of hard-coding `RewardCandidateStatus::WalletCredited`.
+- [x] Add `requires_wallet_credit_record` to
+      `domain/rewards/candidate/lifecycle` for statuses that imply a wallet
+      credit record should already exist.
+- [x] Cover the predicate with pure lifecycle tests for credited, notified,
+      completed, token-confirmed, and reconciliation states.
+- [x] Repoint wallet-credit validation to parse the stored database status and
+      call the domain predicate before translating it into the existing
+      missing-record error.
 - [x] Confirm changed Rust files remain under the manual 180-line ceiling.
-- [x] Self-critique: wallet credit now follows the same target-status pattern
-      as notification, but terminal states such as completed, failed, and
-      reconciliation-needed still need named domain helpers before the broader
-      candidate-transition TODO is complete.
+- [x] Self-critique: this removes another local status set from the wallet
+      credit adapter, but reconciliation-needed allowance and terminal
+      completion/failure targets still need more named domain surface.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate::transition`,
+      `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate::lifecycle`,
       `./scripts/run-host-tests.sh cargo test --lib credit_wallet::handler`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans for hard-coded wallet-credit status writes, and file-size
+      `git diff --check`, scans for local wallet-credit record status sets, and file-size
       checks keeping changed Rust files under the manual 180-line ceiling.
 
 ## Legacy Transition Rules
