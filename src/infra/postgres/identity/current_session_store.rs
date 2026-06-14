@@ -7,12 +7,11 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::current_session::{CurrentSessionError, CurrentSessionOutput};
 use crate::application::identity::ports::CurrentSessionStore;
 use crate::infra::postgres::identity::current_session_delegations::{
-    apply_delegations, course_labels, organization_labels,
+    active_delegations_for_user, apply_delegations, course_labels, organization_labels,
 };
 use crate::infra::postgres::identity::current_session_scope_builder::{
     course_builder, delegated_permission_session, organization_builder, PlatformScopeBuilder,
 };
-use crate::repositories::delegated_permission_repository::{self, DelegatedPermissionFilter};
 use crate::repositories::session_repository;
 
 pub struct PostgresCurrentSessionStore<'conn> {
@@ -115,17 +114,7 @@ async fn load_current_session(
         .insert(row.permission);
     }
 
-    let delegations = delegated_permission_repository::list_delegated_permissions(
-        conn,
-        DelegatedPermissionFilter {
-            grantee_user_id: Some(user_id),
-            active: Some(true),
-            limit: Some(500),
-            ..DelegatedPermissionFilter::default()
-        },
-    )
-    .await
-    .map_err(map_current_session_error)?;
+    let delegations = active_delegations_for_user(conn, user_id).await?;
 
     let organization_labels = organization_labels(conn, &delegations).await?;
     let course_labels = course_labels(conn, &delegations).await?;

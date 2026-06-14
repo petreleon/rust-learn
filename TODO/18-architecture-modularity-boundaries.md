@@ -1038,30 +1038,30 @@ remaining gaps.
 | 140 | Moved the migrated user-profile access check off `repositories::platform_repository::user_permission_platform_request` and into `infra/postgres/identity/platform_permissions`, preserving direct platform-role permission checks, active platform delegation checks, and delegation logging. |
 | 141 | Moved hierarchy-aware platform role assignment from `repositories::platform_repository::assign_role_to_user_with_hierarchy` into `infra/postgres/identity/platform_role_assignments`; the migrated platform-role assignment store now calls identity-owned Diesel queries for assigner hierarchy, target hierarchy, target role lookup, and assignment insertion. |
 | 142 | Moved current-session delegated organization/course label lookups from `repositories::session_repository` into `infra/postgres/identity/current_session_delegations`, and expanded current-session API coverage to prove organization and course delegated permissions keep their labels in both scoped and top-level session output. |
+| 143 | Moved current-session active delegated-permission loading from `repositories::delegated_permission_repository` into `infra/postgres/identity/current_session_delegations`; `current_session_store` now asks identity infra for active delegations and no longer builds a legacy `DelegatedPermissionFilter`. |
 
 ## Recent Slice Evidence
 
-Slice 142: move current-session delegated labels into identity infra.
+Slice 143: move current-session active delegated-permission loading into identity infra.
 
-- [x] Replace `current_session_delegations` calls to
-      `session_repository::organization_labels` and
-      `session_repository::course_labels` with identity-owned Diesel queries
-      against `organizations` and `courses`.
-- [x] Preserve empty-label behavior by returning empty maps when no delegated
-      organization/course ids are present.
-- [x] Expand the current-session API test to create organization-scoped and
-      course-scoped delegated permissions, then assert scoped
-      delegated/effective permissions and top-level delegated permission labels.
-- [x] Self-critique: `current_session_delegations` is now free of legacy
-      repositories, but `current_session_store` still imports
-      `session_repository` and `delegated_permission_repository`; move the
-      remaining session assembly queries behind identity-owned Postgres modules
-      next.
-- [x] Prove behavior with focused current-session delegated scope/label API
-      coverage, the full `current_session_api` suite, API route reachability,
-      formatting, line-count checks, `git diff --check`, and boundary scans
-      proving `current_session_delegations` no longer imports or calls
-      `session_repository`.
+- [x] Add `active_delegations_for_user` to
+      `infra/postgres/identity/current_session_delegations`, querying
+      `delegated_permissions` directly with the same active semantics:
+      matching grantee, not revoked, and no expiry or future expiry.
+- [x] Preserve the legacy current-session result cap and ordering by keeping
+      `created_at DESC` and `LIMIT 500`.
+- [x] Update `current_session_store` to call the identity-owned delegation
+      loader instead of `delegated_permission_repository::list_delegated_permissions`
+      and `DelegatedPermissionFilter`.
+- [x] Self-critique: current-session delegation loading and labels are now
+      identity-owned, but `current_session_store` still imports
+      `session_repository` for user, platform, organization, and course scope
+      reads; move those reads behind identity-owned Postgres modules next.
+- [x] Prove behavior with focused current-session delegated scope API coverage,
+      unverified-email coverage, the full `current_session_api` suite, API route
+      reachability, formatting, line-count checks, `git diff --check`, and
+      boundary scans proving `current_session_store` no longer imports or calls
+      `delegated_permission_repository` or `DelegatedPermissionFilter`.
 
 ## Legacy Transition Rules
 

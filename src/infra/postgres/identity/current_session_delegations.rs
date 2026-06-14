@@ -1,16 +1,37 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use chrono::Utc;
 use diesel::prelude::*;
 use diesel::result::Error as DieselError;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::identity::current_session::CurrentSessionError;
-use crate::db::schema::{courses, organizations};
+use crate::db::schema::{courses, delegated_permissions, organizations};
 use crate::infra::postgres::identity::current_session_scope_builder::{
     course_builder, organization_builder, CourseScopeBuilder, OrganizationScopeBuilder,
     PlatformScopeBuilder,
 };
 use crate::models::delegated_permission::DelegatedPermission;
+
+pub(super) async fn active_delegations_for_user(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+) -> Result<Vec<DelegatedPermission>, CurrentSessionError> {
+    let now = Utc::now();
+    delegated_permissions::table
+        .filter(delegated_permissions::grantee_user_id.eq(user_id))
+        .filter(delegated_permissions::revoked_at.is_null())
+        .filter(
+            delegated_permissions::expires_at
+                .is_null()
+                .or(delegated_permissions::expires_at.gt(now)),
+        )
+        .order(delegated_permissions::created_at.desc())
+        .limit(500)
+        .load(conn)
+        .await
+        .map_err(map_current_session_error)
+}
 
 pub(super) async fn organization_labels(
     conn: &mut AsyncPgConnection,
