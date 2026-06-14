@@ -2,7 +2,8 @@ use super::{
     deploy_learn_token_and_save, deploy_learn_token_presigner_and_save,
     deploy_platform_importer_and_save, deployment_error,
 };
-use crate::repositories::persistent_state_repository::get_persistent_state;
+use crate::infra::ethereum::operations::wallet::try_load_wallet_from_env;
+use crate::infra::postgres::operations::persistent_state::get_persistent_state;
 use diesel::QueryResult;
 use diesel_async::AsyncPgConnection;
 use ethers::prelude::*;
@@ -89,7 +90,7 @@ fn treasury_address() -> QueryResult<Address> {
         return parse_address(&treasury);
     }
 
-    super::try_load_wallet_from_env()
+    try_load_wallet_from_env()
         .map(|wallet| wallet.address())
         .map_err(deployment_error)
 }

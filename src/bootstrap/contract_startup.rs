@@ -7,7 +7,12 @@ const ETH_STARTUP_DEPLOY_TIMEOUT: Duration = Duration::from_secs(30);
 pub(crate) async fn deploy_startup_contracts(conn: &mut diesel_async::AsyncPgConnection) {
     match timeout(
         ETH_STARTUP_DEPLOY_TIMEOUT,
-        crate::utils::eth_utils::deploy_all_startup(conn, "LearnToken", "LRN", 18),
+        crate::infra::ethereum::operations::deployer::deploy_all_startup(
+            conn,
+            "LearnToken",
+            "LRN",
+            18,
+        ),
     )
     .await
     {

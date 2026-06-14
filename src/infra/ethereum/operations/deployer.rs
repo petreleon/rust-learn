@@ -4,10 +4,10 @@ use ethers::abi::Abi;
 use ethers::core::types::Bytes;
 use ethers::prelude::*;
 
-use super::compiler::try_compile_contract;
-use super::wallet::try_load_wallet_from_env;
+use crate::infra::ethereum::operations::compiler::try_compile_contract;
 use crate::infra::ethereum::operations::provider::try_get_provider;
-use crate::repositories::persistent_state_repository::set_persistent_state;
+use crate::infra::ethereum::operations::wallet::try_load_wallet_from_env;
+use crate::infra::postgres::operations::persistent_state::set_persistent_state;
 
 mod startup;
 

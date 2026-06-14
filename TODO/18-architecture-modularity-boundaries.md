@@ -1107,29 +1107,34 @@ remaining gaps.
 | 209 | Folded the legacy `utils::api_error` response-envelope structs into `http/errors`; the HTTP ring now owns its JSON error contract directly and the unused utility helper module was deleted. |
 | 210 | Moved structured process logging initialization out of `utils::logging` and into `bootstrap/logging`; the API and worker entrypoints now call bootstrap-owned logging setup and the old utility module was removed. |
 | 211 | Moved worker runtime configuration, retry-backoff helpers, and heartbeat writing out of `utils::worker` and into `bootstrap/worker_runtime`; the worker binary now imports process-runtime helpers from bootstrap and the old utility module was removed. |
+| 212 | Moved Ethereum contract compilation, startup deployment, deployment wallet loading, and contract-address persistence out of `utils::eth` and into `infra/ethereum/operations`; production startup now calls the infra deployer directly while `utils::eth_utils` remains only as a compatibility re-export for existing Ethereum tests and callers. |
 
 ## Recent Slice Evidence
 
-Slice 211: move worker runtime helpers to bootstrap.
+Slice 212: move Ethereum compiler, wallet, and deployer to operations infra.
 
-- [x] Move `src/utils/worker.rs` to `src/bootstrap/worker_runtime.rs`, because
-      worker env parsing, retry availability, and heartbeat writing are process
-      runtime helpers rather than cross-context utilities.
-- [x] Update `src/bin/worker/runtime.rs`, `src/bin/worker/jobs.rs`, and
-      `src/bin/worker/failure.rs` to import `bootstrap::worker_runtime`.
-- [x] Remove `pub mod worker` from `src/utils/mod.rs`, leaving no
-      `utils::worker` compatibility surface because all callers are worker
-      binary modules.
-- [x] Self-critique: the worker still depends on `utils::s3_utils` and
-      `utils::notifications`; later content/object-storage and notification
-      slices should move those concrete adapter states behind explicit infra or
-      bootstrap owners.
+- [x] Move `utils/eth/compiler.rs`, `utils/eth/compiler/*`,
+      `utils/eth/deployer.rs`, `utils/eth/deployer/*`, and `utils/eth/wallet.rs`
+      into `infra/ethereum/operations`.
+- [x] Update `bootstrap/contract_startup.rs` to call
+      `infra::ethereum::operations::deployer::deploy_all_startup` directly.
+- [x] Update Ethereum deployment persistence to call
+      `infra/postgres/operations/persistent_state` instead of the legacy
+      persistent-state repository bridge.
+- [x] Keep `utils::eth_utils` as a four-item compatibility re-export for
+      `try_get_provider`, `try_compile_contract`, `try_deploy_contract`, and
+      `try_load_wallet_from_env` while tests still import that public surface.
+- [x] Self-critique: `utils::eth_utils` is now only a re-export shell, but it is
+      still visible. Later cleanup can migrate Ethereum tests and any external
+      callers to `infra::ethereum::operations` and delete the shell entirely.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib worker_runtime`,
-      `./scripts/run-host-tests.sh cargo check --bin worker --features worker-bin`,
+      `./scripts/run-host-tests.sh cargo test --test eth_utils_tests test_compile_learn_token_loads_artifact`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing no stale `utils::worker` callers,
-      and backend ring scans showing no `include!`/`imports.rs`.
+      `git diff --check`, scans showing no production `utils::eth_utils`
+      callers and no Ethereum deployment calls to the legacy persistent-state
+      repository, and backend ring scans showing no `include!`/`imports.rs`.
 
 ## Legacy Transition Rules
 
