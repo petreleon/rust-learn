@@ -1069,29 +1069,27 @@ remaining gaps.
 | 171 | Removed the wallet deposit pending-status compatibility alias from the Diesel model; legacy wallet deposit-intent creation and the migrated Postgres wallet deposit-intent adapter now import status vocabulary from `domain/wallet/deposit`, leaving `models::wallet_token_deposit_intent` as persistence shapes only. |
 | 172 | Moved the notification inbox list limit out of the Diesel model and into the notification inbox application boundary; migrated inbox stores, legacy notification state, and tests now pass the caller-owned limit into the model helper, leaving `src/models` with no public constants. |
 | 173 | Moved notification create/list/mark-read/delete Diesel operations out of `models::notification` and into `infra/postgres/notifications/notification_records`; migrated inbox stores and legacy notification utilities now use the notification-owned Postgres record helper, leaving `models::notification` as persistence shapes only. |
+| 174 | Moved persistent-state get/set calls off the Diesel model; the legacy persistent-state repository now delegates to operations-owned Postgres helpers, leaving `models::persistent_state` as a persistence shape only. |
 
 ## Recent Slice Evidence
 
-Slice 173: move notification Active Record helpers into notification Postgres
+Slice 174: move persistent-state Active Record helpers into operations Postgres
 records.
 
-- [x] Add `infra/postgres/notifications/notification_records` for notification
-      insert, bulk insert, user inbox list, mark-read, and delete queries.
-- [x] Remove the `Notification` impl from `models::notification`; the model now
-      owns only Diesel record and insert shapes.
-- [x] Retarget migrated notification inbox stores and legacy
-      `utils::notifications` send/list/mark-read/clear/bulk helpers to the
-      notification-owned Postgres record functions.
-- [x] Self-critique: `utils::notifications` is still a legacy bridge used by
-      several contexts; later slices should replace it with notification
-      application ports/adapters instead of importing infra from utils.
+- [x] Retarget `repositories::persistent_state_repository` to call
+      `infra/postgres/operations/persistent_state` for get/set.
+- [x] Delete `PersistentState::get` and `PersistentState::set` from
+      `models::persistent_state`; the model now owns only the Diesel row shape.
+- [x] Self-critique: the repository wrapper remains as a legacy bridge for
+      wallet/indexer/Ethereum startup callers; later slices should move those
+      callers directly to operation/wallet/ethereum adapters and delete the
+      wrapper.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib notification`,
+      `./scripts/run-host-tests.sh cargo test --lib wallet`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, line-count checks, and boundary scans proving
-      `models::notification` has no impl/DB helper methods, no code calls the
-      removed `Notification::*` Active Record helpers, and notification queries
-      are called through `infra/postgres/notifications/notification_records`.
+      `git diff --check`, line-count checks, and boundary scans proving no code
+      calls `PersistentState::get`/`set` and `models::persistent_state` has no
+      DB helper implementation.
 
 ## Legacy Transition Rules
 
