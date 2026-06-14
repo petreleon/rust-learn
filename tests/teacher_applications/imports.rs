@@ -32,7 +32,7 @@ use rust_learn::infra::postgres::teacher_applications::teacher_application_list_
 use rust_learn::infra::postgres::teacher_applications::teacher_application_self_use_case::PostgresTeacherApplicationSelfUseCase;
 use rust_learn::repositories::teacher_application_repository::list_audit_events;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use std::sync::Arc;
 
 #[derive(Debug, PartialEq, Eq)]

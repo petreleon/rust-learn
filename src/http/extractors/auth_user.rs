@@ -3,8 +3,8 @@ use actix_web::{Error, FromRequest, HttpMessage, HttpRequest};
 use futures::future::{ready, Ready};
 
 use crate::http::errors::ApiError;
+use crate::infra::tokens::jwt::decode_jwt;
 use crate::models::user_jwt::UserJWT;
-use crate::utils::jwt_utils::decode_jwt;
 
 #[derive(Clone)]
 pub struct AuthUser(pub UserJWT);

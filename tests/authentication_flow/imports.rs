@@ -24,7 +24,7 @@ use rust_learn::infra::postgres::identity::verify_email_use_case::PostgresVerify
 use rust_learn::infra::postgres::identity::email_verification_tokens::create_email_verification_token;
 use rust_learn::infra::tokens::identity::identity_token_hash;
 use rust_learn::infra::postgres::identity::password_reset_tokens::create_password_reset_token;
-use rust_learn::utils::jwt_utils::decode_jwt;
+use rust_learn::infra::tokens::jwt::decode_jwt;
 use std::sync::Arc;
 
 fn unique_email(prefix: &str) -> String {

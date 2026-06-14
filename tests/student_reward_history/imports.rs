@@ -26,7 +26,7 @@ use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::rewards::reward_history_use_case::PostgresStudentRewardHistoryUseCase;
 use rust_learn::infra::postgres::wallet::wallet_link_store::PostgresWalletLinkStore;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::{json, Value};
 use std::sync::Arc;
 

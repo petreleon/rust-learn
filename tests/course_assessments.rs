@@ -9,10 +9,10 @@ use rust_learn::application::learning::list_course_assessments::CourseAssessment
 use rust_learn::db::schema::{assessment_attempts, assessments, courses};
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::infra::postgres::learning::assessment_read_use_case::PostgresAssessmentReadUseCase;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::user::User;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::utils::jwt_utils::create_jwt;
 use serde_json::Value;
 
 fn unique_string(prefix: &str) -> String {

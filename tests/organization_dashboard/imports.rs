@@ -29,7 +29,7 @@ use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::models::wallet::NewWallet;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::{json, Value};
 use std::sync::{
     atomic::{AtomicU64, Ordering},

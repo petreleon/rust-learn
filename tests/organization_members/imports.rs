@@ -26,7 +26,7 @@ use rust_learn::infra::postgres::organizations::organization_member_removal_use_
 use rust_learn::infra::postgres::organizations::organization_member_role_assignment_use_case::PostgresOrganizationMemberRoleAssignmentUseCase;
 use rust_learn::repositories::delegated_permission_repository::create_delegated_permission;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::Value;
 use std::sync::{
     atomic::{AtomicU64, Ordering},

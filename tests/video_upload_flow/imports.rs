@@ -23,7 +23,7 @@ use rust_learn::models::upload_job::UploadJob;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use rust_learn::utils::notifications::NotificationsState;
 use rust_learn::utils::s3_utils::S3State;
 use serde::Deserialize;

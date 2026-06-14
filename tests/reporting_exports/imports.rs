@@ -54,7 +54,7 @@ use rust_learn::infra::postgres::reporting::organization_summary_use_case::Postg
 use rust_learn::infra::postgres::reporting::platform_fraud_dashboard_use_case::PostgresPlatformFraudDashboardUseCase;
 use rust_learn::infra::postgres::reporting::platform_reward_dashboard_use_case::PostgresPlatformRewardDashboardUseCase;
 use rust_learn::infra::postgres::reporting::platform_summary_use_case::PostgresPlatformSummaryUseCase;
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::json;
 use serde_json::Value;
 use std::sync::Arc;

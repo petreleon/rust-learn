@@ -51,7 +51,7 @@ use rust_learn::infra::postgres::wallet::wallet_link_use_case::PostgresWalletLin
 use rust_learn::infra::postgres::wallet::wallet_read_use_case::PostgresWalletReadUseCase;
 use rust_learn::infra::postgres::wallet::wallet_retirement_use_case::PostgresWalletRetirementUseCase;
 use rust_learn::infra::postgres::wallet::wallet_token_tax_use_case::PostgresWalletTokenTaxUseCase;
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::json;
 use serde_json::Value;
 

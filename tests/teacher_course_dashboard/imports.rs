@@ -41,7 +41,7 @@ use rust_learn::infra::postgres::learning::teacher_course_dashboard_list_use_cas
 use rust_learn::infra::postgres::learning::teacher_course_enrollment_workspace_use_case::PostgresTeacherCourseEnrollmentWorkspaceUseCase;
 use rust_learn::infra::postgres::learning::teacher_course_students_use_case::PostgresTeacherCourseStudentsUseCase;
 use rust_learn::infra::postgres::learning::teacher_course_workspace_use_case::PostgresTeacherCourseWorkspaceUseCase;
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::{json, Value};
 use std::sync::{
     atomic::{AtomicU64, Ordering},

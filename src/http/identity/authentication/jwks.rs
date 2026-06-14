@@ -1,6 +1,6 @@
 use actix_web::{HttpResponse, Responder};
 
-use crate::utils::jwt_utils::public_jwks_from_env;
+use crate::infra::tokens::jwt::public_jwks_from_env;
 
 pub async fn jwks() -> impl Responder {
     match public_jwks_from_env() {

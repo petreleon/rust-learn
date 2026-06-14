@@ -1,7 +1,7 @@
 use actix_web::{HttpMessage, HttpRequest, HttpResponse};
 
+use crate::infra::tokens::jwt::decode_jwt;
 use crate::models::user_jwt::UserJWT;
-use crate::utils::jwt_utils::decode_jwt;
 
 pub(crate) fn authenticated_user(req: &HttpRequest) -> Result<UserJWT, HttpResponse> {
     if let Some(user_jwt) = req.extensions().get::<UserJWT>() {

@@ -50,7 +50,7 @@ use rust_learn::repositories::reward_audit_event_repository::list_reward_audit_e
 use rust_learn::repositories::reward_candidate_repository::find_candidate;
 use rust_learn::repositories::reward_execution_job_repository::find_job_by_candidate;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use std::str::FromStr;

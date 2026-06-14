@@ -18,7 +18,7 @@ use rust_learn::application::content::process_upload_job::ContentProcessingUseCa
 use rust_learn::infra::postgres::content::chapter_use_cases::PostgresChapterUseCases;
 use rust_learn::infra::postgres::content::content_item_use_cases::PostgresContentItemUseCases;
 use rust_learn::infra::postgres::content::processing_use_case::PostgresContentProcessingUseCase;
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use std::sync::Arc;
 
 fn unique_string(prefix: &str) -> String {
