@@ -1028,35 +1028,34 @@ remaining gaps.
 | 130 | Moved `POST /auth/register` behind `application/identity/register`, a reusable application password policy, Postgres registration transaction adapter/use case, bcrypt hashing/token generation/mock verification-email adapters, identity app-data wiring, and a DB-free HTTP registration handler with unchanged response semantics. |
 | 131 | Moved `POST /auth/forgot-password` behind `application/identity/request_password_reset`, Postgres account lookup/reset-token adapters, token generation and mock password-reset email adapters, identity app-data wiring, and a DB-free `http/identity/authentication/forgot_password.rs` route; private known/unknown-account response semantics remain unchanged. |
 | 132 | Moved `POST /auth/reset-password` behind `application/identity/reset_password`, a Postgres reset-token consumption/password-update transaction adapter/use case, bcrypt reset-password hashing adapter, identity app-data wiring, and a DB-free HTTP completion handler; missing/invalid/expired token and successful password-update responses remain unchanged. |
+| 133 | Moved auth email normalization and privacy log hashing from `http/identity/authentication/support.rs` into `application/identity/email`, deleted the HTTP support module, and updated migrated auth routes to import identity email vocabulary without reaching into `utils::email`. |
 
 ## Recent Slice Evidence
 
-Slice 132: move reset-password completion behind an injected use case.
+Slice 133: move auth email helper vocabulary out of HTTP.
 
-- [x] Add `application/identity/reset_password` with command, outcome, error,
-      store, password-hasher, service, and fake-tested handler behavior for
-      missing-token, weak-password, and successful hash/store paths.
-- [x] Add Postgres reset-password adapters for token hashing, token
-      consumption, authentication password update, and transaction handling,
-      plus an infra-owned bcrypt reset-password hasher.
-- [x] Register reset-password through `bootstrap/identity_wiring` and update
-      the auth-flow test app-data wiring to match production.
-- [x] Rework `POST /auth/reset-password` so HTTP keeps the existing early
-      missing-token and weak-password response order, calls the application use
-      case, and maps application outcomes/errors to the existing response
-      bodies and log events.
-- [x] Self-critique: identity auth endpoints are now mostly moved behind
-      application/infra boundaries, but `http/identity/authentication/support.rs`
-      still owns email normalization/log-hash helpers backed by `utils::email`;
-      consider moving pure identity text/hash helpers into shared/application
-      vocabulary before continuing wider identity cleanup.
-- [x] Prove behavior with reset-password application unit tests, focused
-      one-time reset and missing/invalid/expired token integration coverage,
+- [x] Add `application/identity/email` with pure `normalize_email` and
+      privacy-preserving `email_log_hash` helpers plus focused unit tests for
+      normalization, redaction, and distinct-address hashing.
+- [x] Update login, registration, resend-verification, and forgot-password
+      routes to import identity email helpers from the application ring.
+- [x] Delete `http/identity/authentication/support.rs` so migrated auth HTTP
+      routes no longer reach into `utils::email` for privacy log hashing.
+- [x] Remove duplicate HTTP helper tests now that application email vocabulary
+      owns that coverage.
+- [x] Self-critique: identity auth route internals are now DB-free and utility
+      free, but `utils::email` still bundles token generation, token hashing,
+      URL building, and mock email printing for both identity and password
+      reset; split those adapter-oriented responsibilities by infra/email and
+      token hashing boundaries during the next identity cleanup pass.
+- [x] Prove behavior with application email unit tests, auth HTTP unit tests,
       the full `authentication_flow` suite, API route reachability,
       formatting, line-count checks, `git diff --check`, and boundary scans
-      proving migrated auth HTTP routes are DB-free while the application
-      modules do not import Actix, Diesel, DB pools, repositories, infra,
-      models, services, utils, config, or bcrypt adapters.
+      proving migrated auth HTTP routes no longer import DB/Diesel, legacy
+      services, model token types, bcrypt, `utils::email`, or the deleted
+      support module while application identity modules stay free of Actix,
+      Diesel, DB pools, repositories, infra, models, services, utils, config,
+      and bcrypt adapters.
 
 ## Legacy Transition Rules
 

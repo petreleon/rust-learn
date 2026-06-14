@@ -3,7 +3,7 @@ use std::sync::Arc;
 use actix_web::{post, web, HttpResponse, Responder};
 use serde::Deserialize;
 
-use super::support::{email_log_hash, normalize_email};
+use crate::application::identity::email::{email_log_hash, normalize_email};
 use crate::application::identity::resend_verification::{
     ResendVerificationCommand, ResendVerificationError, ResendVerificationOutcome,
     ResendVerificationUseCase,

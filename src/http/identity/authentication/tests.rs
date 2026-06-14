@@ -1,7 +1,4 @@
-use super::{
-    auth_scope,
-    support::{email_log_hash, normalize_email},
-};
+use super::auth_scope;
 use crate::application::identity::password_policy::{
     validate_password_strength, PASSWORD_TOO_LONG_MESSAGE,
 };
@@ -60,33 +57,6 @@ fn accepts_password_at_bcrypt_byte_limit() {
 
     assert_eq!(password.len(), 71);
     assert!(validate_password_strength(&password).is_ok());
-}
-
-#[test]
-fn email_log_hash_normalizes_case_and_redacts_raw_email() {
-    let first = email_log_hash(" Learner@Example.COM ");
-    let second = email_log_hash("learner@example.com");
-
-    assert_eq!(first, second);
-    assert_eq!(first.len(), 16);
-    assert!(!first.contains("learner"));
-    assert!(!first.contains('@'));
-}
-
-#[test]
-fn normalize_email_trims_and_lowercases_input() {
-    assert_eq!(
-        normalize_email(" Learner+Demo@Example.COM "),
-        "learner+demo@example.com"
-    );
-}
-
-#[test]
-fn email_log_hash_distinguishes_different_addresses() {
-    assert_ne!(
-        email_log_hash("learner@example.com"),
-        email_log_hash("teacher@example.com")
-    );
 }
 
 #[actix_web::test]

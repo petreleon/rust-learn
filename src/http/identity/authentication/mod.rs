@@ -5,7 +5,6 @@ mod login;
 mod password_reset;
 mod registration;
 mod session;
-mod support;
 mod verify_email;
 
 #[cfg(test)]

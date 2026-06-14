@@ -4,7 +4,7 @@ use actix_web::{post, web, HttpResponse, Responder};
 use chrono::NaiveDate;
 use serde::Deserialize;
 
-use super::support::{email_log_hash, normalize_email};
+use crate::application::identity::email::{email_log_hash, normalize_email};
 use crate::application::identity::password_policy::validate_password_strength;
 use crate::application::identity::register::{
     RegisterCommand, RegisterError, RegisterOutcome, RegisterUseCase,
