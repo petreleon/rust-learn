@@ -1041,28 +1041,31 @@ remaining gaps.
 | 143 | Moved current-session active delegated-permission loading from `repositories::delegated_permission_repository` into `infra/postgres/identity/current_session_delegations`; `current_session_store` now asks identity infra for active delegations and no longer builds a legacy `DelegatedPermissionFilter`. |
 | 144 | Moved current-session user, platform role/permission, organization scope, and course scope reads from `repositories::session_repository` into granular identity-owned Postgres query modules; the migrated current-session store no longer imports legacy repositories. |
 | 145 | Moved KYC review platform permission checks from `repositories::platform_repository::user_permission_platform_request` into `infra/postgres/kyc/kyc_permissions`, preserving direct platform-role checks, active platform delegation checks, and delegation logging. |
+| 146 | Moved migrated access-control reward, wallet, and delegated-permission grant checks from legacy `user_permission_*_request` repository helpers into `infra/postgres/access_control` permission-check/delegation helpers, preserving direct role checks, active scoped delegation checks, and delegated-permission logging. |
 
 ## Recent Slice Evidence
 
-Slice 145: move KYC review permission checks into KYC infra.
+Slice 146: move migrated access-control authorization stores onto
+access-control-owned Postgres permission helpers.
 
-- [x] Add `infra/postgres/kyc/kyc_permissions` with
-      `user_has_platform_permission`, direct platform-role permission lookup,
-      active platform delegation lookup, and the existing
-      `delegated_permission_used scope=platform` log event.
-- [x] Update `PostgresKycStore::can_review_kyc` to call the KYC-owned
-      permission helper instead of the legacy platform repository helper.
-- [x] Expand KYC review coverage so an ADMIN reviewer and a user with delegated
-      `REVIEW_KYC_SUBMISSIONS` permission can read review audit while an
-      ordinary learner is still denied.
-- [x] Self-critique: KYC no longer imports legacy repositories, but other
-      migrated authorization stores in access-control and organizations still
-      call `user_permission_*_request`; continue moving those permission checks
-      into context-owned Postgres helpers.
-- [x] Prove behavior with the focused `kyc_review` integration test, API route
-      reachability, formatting, line-count checks, `git diff --check`, and
-      boundary scans proving `infra/postgres/kyc` no longer imports or calls
-      `user_permission_platform_request`.
+- [x] Add `infra/postgres/access_control/permission_checks` for platform,
+      course, and organization role permission checks, plus
+      `permission_delegations` for active platform, course, and organization
+      delegation lookups.
+- [x] Update reward authorization, wallet authorization, and
+      delegated-permission grant checks to call the access-control-owned
+      helpers instead of `repositories::{platform,course,organization}_repository`.
+- [x] Preserve delegated-permission audit logging for platform, course, and
+      organization scopes when authorization succeeds through delegation.
+- [x] Self-critique: the first delegated-permission test run failed because a
+      generic nullable filter used `eq(None)` where the legacy behavior used
+      `IS NULL`; fixed by using explicit scope-specific delegation queries and
+      shared persisted scope constants.
+- [x] Prove behavior with `delegated_permissions`, `wallet_linking`, and
+      `reward_fraud_blocks` integration tests, formatting, line-count checks,
+      `git diff --check`, and boundary scans proving
+      `infra/postgres/access_control` no longer imports legacy repositories or
+      calls `user_permission_*_request`.
 
 ## Legacy Transition Rules
 

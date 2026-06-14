@@ -5,8 +5,9 @@ use crate::application::access_control::authorize_wallet::{
     WalletAuthorizationError, WalletAuthorizationStore,
 };
 use crate::domain::access_control::permission::Permission;
-use crate::repositories::organization_repository::user_permission_organization_request;
-use crate::repositories::platform_repository::user_permission_platform_request;
+use crate::infra::postgres::access_control::permission_checks::{
+    has_organization_permission, has_platform_permission,
+};
 
 pub struct PostgresWalletAuthorizationStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -25,7 +26,7 @@ impl WalletAuthorizationStore for PostgresWalletAuthorizationStore<'_> {
         permission: Permission,
     ) -> BoxFuture<'_, Result<bool, WalletAuthorizationError>> {
         async move {
-            user_permission_platform_request(self.conn, actor_user_id, permission.as_str())
+            has_platform_permission(self.conn, actor_user_id, permission.as_str())
                 .await
                 .map_err(|error| WalletAuthorizationError::PermissionCheck(error.to_string()))
         }
@@ -39,7 +40,7 @@ impl WalletAuthorizationStore for PostgresWalletAuthorizationStore<'_> {
         permission: Permission,
     ) -> BoxFuture<'_, Result<bool, WalletAuthorizationError>> {
         async move {
-            user_permission_organization_request(
+            has_organization_permission(
                 self.conn,
                 actor_user_id,
                 organization_id,
