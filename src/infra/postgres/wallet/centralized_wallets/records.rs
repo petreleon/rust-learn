@@ -1,8 +1,12 @@
-use crate::models::transaction::InternalTransaction;
-use crate::models::wallet::{NewWallet, Wallet};
 use anyhow::{anyhow, Result};
 use bigdecimal::BigDecimal;
 use diesel::pg::PgConnection;
+
+use crate::infra::postgres::wallet::wallet_ledger_records::{
+    create_internal_transaction, create_wallet, find_organization_wallet_id, find_user_wallet_id,
+    update_wallet_balance_guarded,
+};
+use crate::models::wallet::NewWallet;
 
 /// Owner type for locating a wallet
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,7 +36,7 @@ pub fn wallet_locator(conn: &mut PgConnection, owner_type: &str, owner_id: i32) 
 
     match owner {
         OwnerType::User => {
-            if let Some(existing_id) = Wallet::find_by_user_id(owner_id, conn)? {
+            if let Some(existing_id) = find_user_wallet_id(owner_id, conn)? {
                 return Ok(existing_id);
             }
             let zero = BigDecimal::from(0);
@@ -41,11 +45,11 @@ pub fn wallet_locator(conn: &mut PgConnection, owner_type: &str, owner_id: i32) 
                 organization_id: None,
                 value: zero,
             };
-            let new_id = Wallet::create(new_wallet, conn)?;
+            let new_id = create_wallet(new_wallet, conn)?;
             Ok(new_id)
         }
         OwnerType::Organization => {
-            if let Some(existing_id) = Wallet::find_by_organization_id(owner_id, conn)? {
+            if let Some(existing_id) = find_organization_wallet_id(owner_id, conn)? {
                 return Ok(existing_id);
             }
             let zero = BigDecimal::from(0);
@@ -54,7 +58,7 @@ pub fn wallet_locator(conn: &mut PgConnection, owner_type: &str, owner_id: i32) 
                 organization_id: Some(owner_id),
                 value: zero,
             };
-            let new_id = Wallet::create(new_wallet, conn)?;
+            let new_id = create_wallet(new_wallet, conn)?;
             Ok(new_id)
         }
     }
@@ -68,14 +72,14 @@ pub fn transact(conn: &mut PgConnection, wallet_id: i32, amount: BigDecimal) -> 
     // Perform the guarded atomic update first: ensure balance doesn't go negative.
     // Use RETURNING id to check that the row was updated. If no rows were affected,
     // the guard failed (would go negative) and we return an error.
-    let updated_rows = Wallet::update_balance_guarded(wallet_id, amount.clone(), conn)?;
+    let updated_rows = update_wallet_balance_guarded(wallet_id, amount.clone(), conn)?;
 
     if updated_rows == 0 {
         return Err(anyhow!("insufficient funds or wallet not found"));
     }
 
     // Now insert the internal transaction row (we already adjusted the balance)
-    let internal_id = InternalTransaction::create(wallet_id, amount, conn)?;
+    let internal_id = create_internal_transaction(wallet_id, amount, conn)?;
 
     Ok(internal_id)
 }

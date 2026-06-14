@@ -36,7 +36,7 @@ handler, Diesel query, permission rule, and domain workflow to change together.
       content mutations.
 - [ ] Separate DB records from API DTOs. Avoid returning Diesel models directly
       from handlers for user-facing contracts.
-- [ ] Stop mixing Active Record and Repository patterns. DB methods currently
+- [x] Stop mixing Active Record and Repository patterns. DB methods currently
       live both on `models::*` and in `repositories::*`; converge on repository
       or infra modules.
 - [ ] Centralize authorization policy. Permission checks currently live in
@@ -1169,38 +1169,44 @@ remaining gaps.
 | 271 | Moved simple notification, delegated-permission, content, KYC, and wallet output assembly into application-owned fact builders, leaving Postgres adapters to translate Diesel records into facts and call the application boundary. |
 | 272 | Split content item and KYC Postgres stores into thin orchestration modules backed by focused record, scope, read-query, and permission-query helpers. |
 | 273 | Split bootstrap app-state construction and app-data registration into context-owned wiring bundles for learning, content, notifications, rewards, wallet, and reporting. |
+| 274 | Moved the remaining wallet and transaction Active Record methods out of `models::*` and into wallet Postgres ledger records, leaving model files as Diesel row shapes only. |
 
 ## Recent Slice Evidence
 
-Batch 273: split bootstrap wiring into context-owned bundles.
+Batch 274: remove the remaining Active Record persistence methods from models.
 
-- [x] Added bootstrap wiring modules for learning, content, notifications,
-      rewards, wallet, and reporting. Each module owns its context bundle,
-      concrete use-case construction, and Actix app-data registration.
-- [x] Added matching app-data registration helpers to access-control, KYC, and
-      organization wiring, bringing them in line with the existing identity and
-      teacher-application bootstrap pattern.
-- [x] Reduced `AppState` to shared process state plus context bundles; reduced
-      `use_case_wiring.rs` to context builder composition plus readiness and
-      notification runtime setup; reduced `app_data.rs` to shared data and
-      context registration delegation.
-- [x] Keep bootstrap files under the manual 180-line ceiling: `app_state.rs` 36
-      lines, `use_case_wiring.rs` 37, `app_data.rs` 43, and the largest new
-      context wiring module, `learning_wiring.rs`, 126.
-- [x] Boundary scans show the former fat bootstrap files no longer own direct
-      Postgres construction for each context, and only shared pool/S3/
-      notifications/readiness data remain in top-level `app_data.rs`.
-- [x] Self-critique: this gives bootstrap firmer context boundaries without
-      changing runtime behavior, but `AppState` still stores broad context
-      bundles. A future bootstrap batch can move readiness and notification
-      runtime state into operations/notifications-owned bundles if that would
-      make route-scope registration even more explicit.
+- [x] Added `infra/postgres/wallet/wallet_ledger_records.rs` as the wallet
+      Postgres owner for wallet lookup/creation, guarded balance updates,
+      internal/external transaction inserts, and transaction-link queries.
+- [x] Repointed centralized wallet records/transfers and token reconciliation
+      to the wallet ledger records helper instead of calling
+      `Wallet::*`, `Transaction::*`, `InternalTransaction::*`,
+      `ExternalTransaction::*`, or `TransactionLink::*` model methods.
+- [x] Trimmed `models/wallet.rs` and `models/transaction.rs` back to Diesel
+      row and insertable structs only. The repository module had already been
+      removed, and the current scan confirms `src/repositories` is absent.
+- [x] Boundary scans confirm there are no remaining calls to the removed model
+      DB methods and no model files with DB execution helpers such as
+      `diesel::insert_into`, `diesel::update`, `.execute(conn)`,
+      `.get_result(conn)`, `.first(conn)`, or `.load(conn)`.
+- [x] Keep changed Rust files under the manual 180-line ceiling:
+      `wallet_ledger_records.rs` 165 lines, `token_reconciliation_records.rs`
+      136, centralized wallet transfers 111, centralized wallet records 101,
+      `models/transaction.rs` 81, and `models/wallet.rs` 20.
+- [x] Self-critique: this closes the model Active Record pattern without
+      redesigning every wallet ledger adapter. There is still useful follow-up
+      work to reduce duplicated transaction insert helpers in reward/wallet
+      adapters and to keep records owned by the smallest context-specific
+      helper that can express the behavior.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo test --lib centralized_wallets`,
+      `./scripts/run-host-tests.sh cargo test --lib token_reconciliation_records`,
+      `./scripts/run-host-tests.sh cargo test --test token_reconciliation`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
-      `./scripts/run-host-tests.sh cargo test --test api_routing`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, bootstrap module scans, and file-size checks.
+      `git diff --check`, Active Record boundary scans, repository absence
+      scan, and file-size checks.
 
 ## Legacy Transition Rules
 
