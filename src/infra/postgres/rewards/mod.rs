@@ -14,6 +14,7 @@ pub mod reward_candidate_audit_store;
 pub mod reward_candidate_audit_use_case;
 pub mod reward_candidate_fraud_blocks;
 pub mod reward_candidate_policy_lookup;
+pub mod reward_candidate_records;
 pub mod reward_candidate_submission_audit_insert;
 pub mod reward_candidate_submission_eligibility;
 pub mod reward_candidate_submission_mappers;

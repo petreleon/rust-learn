@@ -4,10 +4,11 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::rewards::plan_payout::{
     RewardPayoutCandidate, RewardPayoutPlanError, RewardPayoutPlanStore, RewardPayoutPolicy,
 };
+use crate::infra::postgres::operations::persistent_state::get_persistent_state;
 use crate::infra::postgres::rewards::reward_authorization_access;
+use crate::infra::postgres::rewards::reward_candidate_records::find_candidate;
 use crate::infra::postgres::rewards::reward_payout_plan_mappers::map_reward_payout_plan_error;
 use crate::infra::postgres::rewards::reward_payout_plan_policy_lookup::active_reward_payout_policy;
-use crate::repositories::{persistent_state_repository, reward_candidate_repository};
 
 pub struct PostgresRewardPayoutPlanStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -37,7 +38,7 @@ impl RewardPayoutPlanStore for PostgresRewardPayoutPlanStore<'_> {
         candidate_id: i64,
     ) -> BoxFuture<'_, Result<RewardPayoutCandidate, RewardPayoutPlanError>> {
         async move {
-            reward_candidate_repository::find_candidate(self.conn, candidate_id)
+            find_candidate(self.conn, candidate_id)
                 .await
                 .map(RewardPayoutCandidate::from)
                 .map_err(map_reward_payout_plan_error)
@@ -55,17 +56,14 @@ impl RewardPayoutPlanStore for PostgresRewardPayoutPlanStore<'_> {
 
     fn has_presigner_contract(&mut self) -> BoxFuture<'_, Result<bool, RewardPayoutPlanError>> {
         async move {
-            persistent_state_repository::get_persistent_state(
-                self.conn,
-                "learn_token_presigner_address",
-            )
-            .await
-            .map(|address| {
-                address
-                    .map(|value| !value.trim().is_empty())
-                    .unwrap_or(false)
-            })
-            .map_err(map_reward_payout_plan_error)
+            get_persistent_state(self.conn, "learn_token_presigner_address")
+                .await
+                .map(|address| {
+                    address
+                        .map(|value| !value.trim().is_empty())
+                        .unwrap_or(false)
+                })
+                .map_err(map_reward_payout_plan_error)
         }
         .boxed()
     }

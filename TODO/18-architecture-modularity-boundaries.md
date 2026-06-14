@@ -1047,28 +1047,28 @@ remaining gaps.
 | 149 | Moved hierarchy-aware organization role assignment from `repositories::organization_repository::assign_role_to_user_in_organization` into `infra/postgres/organizations/organization_role_assignments`; invite and explicit role-assignment stores now share organization-owned hierarchy, role lookup, and assignment queries. |
 | 150 | Moved wallet-facing persistent key/value state reads and writes from `repositories::persistent_state_repository` and `models::PersistentState` into `infra/postgres/operations/persistent_state`; wallet deposit-intent, retirement, and token-tax stores now use the operations-owned adapter directly. |
 | 151 | Moved teacher-application persistence and reviewer-recipient queries from `repositories::teacher_application_repository` into `infra/postgres/teacher_applications` records/recipients modules; submit, nomination, decision, and notification stores no longer import legacy repositories. |
+| 152 | Moved reward payout planning off legacy reward-candidate and persistent-state repositories; `reward_payout_plan_store` now uses `infra/postgres/rewards/reward_candidate_records` and `infra/postgres/operations/persistent_state` for candidate loading and presigner detection. |
 
 ## Recent Slice Evidence
 
-Slice 151: move teacher-application persistence into teacher-application infra.
+Slice 152: move reward payout planning repository calls into rewards/operations
+infra.
 
-- [x] Add `infra/postgres/teacher_applications/teacher_application_records`
-      for application create/find/latest lookup/decision update/audit insert
-      queries.
-- [x] Add `infra/postgres/teacher_applications/teacher_application_recipients`
-      for platform and organization reviewer recipient lookups.
-- [x] Update submit, nomination, decision, and notification stores to call
-      teacher-application-owned query modules instead of
-      `repositories::teacher_application_repository`.
-- [x] Self-critique: the legacy `teacher_application_repository` still exists
-      for tests and any unmigrated callers, but migrated teacher-application
-      infra no longer depends on it.
-- [x] Prove behavior with the records module compile smoke,
-      `teacher_applications` integration suite,
-      `organization_teacher_applications` tracking suite, formatting,
-      line-count checks, `git diff --check`, and boundary scans proving
-      `infra/postgres/teacher_applications` no longer imports legacy
-      repositories.
+- [x] Add `infra/postgres/rewards/reward_candidate_records::find_candidate`
+      as the rewards-owned candidate lookup used by payout planning.
+- [x] Update `reward_payout_plan_store` to call the rewards candidate lookup
+      and `infra/postgres/operations/persistent_state` for
+      `learn_token_presigner_address`.
+- [x] Preserve payout candidate loading, missing-presigner behavior, and
+      non-empty presigner detection.
+- [x] Self-critique: most remaining repository imports are still in rewards
+      candidate decisions, audit/event writes, policy/fraud-block management,
+      token confirmation, compensation, wallet credit, and reconciliation; move
+      those by use-case cluster rather than one broad risky rewrite.
+- [x] Prove behavior with the reward candidate records compile smoke, the full
+      `reward_execution` integration suite, formatting, line-count checks,
+      `git diff --check`, and boundary scans proving payout planning no longer
+      imports legacy repositories.
 
 ## Legacy Transition Rules
 
