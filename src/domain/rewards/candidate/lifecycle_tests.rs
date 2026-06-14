@@ -1,7 +1,9 @@
 use super::lifecycle::{
-    can_create_missing_wallet_credit_notification, can_inspect_wallet_credit_notification,
-    can_reconcile, requires_wallet_credit_payout_evidence, requires_wallet_credit_record,
-    should_create_reconciliation_wallet_credit, wallet_credit_notification_target_status,
+    allows_new_submission_after_prior_candidate, can_create_missing_wallet_credit_notification,
+    can_inspect_wallet_credit_notification, can_reconcile,
+    prior_candidate_statuses_allowing_new_submission, requires_wallet_credit_payout_evidence,
+    requires_wallet_credit_record, should_create_reconciliation_wallet_credit,
+    wallet_credit_notification_target_status,
 };
 use super::status::RewardCandidateStatus as Status;
 
@@ -143,5 +145,30 @@ fn wallet_credit_payout_evidence_is_required_for_reconciliation_state() {
     ));
     assert!(!requires_wallet_credit_payout_evidence(
         Status::WalletCredited
+    ));
+}
+
+#[test]
+fn new_submission_is_allowed_only_after_terminal_prior_candidate_states() {
+    assert_eq!(
+        prior_candidate_statuses_allowing_new_submission(),
+        [
+            Status::TeacherRejected,
+            Status::AmountRejected,
+            Status::Failed
+        ]
+    );
+    assert!(allows_new_submission_after_prior_candidate(
+        Status::TeacherRejected
+    ));
+    assert!(allows_new_submission_after_prior_candidate(
+        Status::AmountRejected
+    ));
+    assert!(allows_new_submission_after_prior_candidate(Status::Failed));
+    assert!(!allows_new_submission_after_prior_candidate(
+        Status::PendingTeacherApproval
+    ));
+    assert!(!allows_new_submission_after_prior_candidate(
+        Status::Completed
     ));
 }

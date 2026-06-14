@@ -4,7 +4,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::rewards::submit_candidate::RewardCandidateSubmissionError;
 use crate::db::schema::{reward_candidates, users};
-use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::domain::rewards::candidate::lifecycle;
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_policy_lookup::active_reward_policy_ids_for_course_event;
 use crate::infra::postgres::rewards::reward_candidate_submission_mappers::map_reward_candidate_submission_error;
@@ -51,14 +51,15 @@ pub(super) async fn ensure_no_prior_active_reward_candidate(
     course_id: i32,
     event_type: &str,
 ) -> Result<(), RewardCandidateSubmissionError> {
+    let reusable_statuses = lifecycle::prior_candidate_statuses_allowing_new_submission();
     let already_exists = diesel::select(exists(
         reward_candidates::table
             .filter(reward_candidates::student_user_id.eq(student_user_id))
             .filter(reward_candidates::course_id.eq(course_id))
             .filter(reward_candidates::event_type.eq(event_type))
-            .filter(reward_candidates::status.ne(RewardCandidateStatus::TeacherRejected.as_str()))
-            .filter(reward_candidates::status.ne(RewardCandidateStatus::AmountRejected.as_str()))
-            .filter(reward_candidates::status.ne(RewardCandidateStatus::Failed.as_str())),
+            .filter(reward_candidates::status.ne(reusable_statuses[0].as_str()))
+            .filter(reward_candidates::status.ne(reusable_statuses[1].as_str()))
+            .filter(reward_candidates::status.ne(reusable_statuses[2].as_str())),
     ))
     .get_result(conn)
     .await

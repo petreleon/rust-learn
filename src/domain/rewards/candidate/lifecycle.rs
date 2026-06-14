@@ -66,3 +66,17 @@ pub fn requires_wallet_credit_record(status: RewardCandidateStatus) -> bool {
 pub fn requires_wallet_credit_payout_evidence(status: RewardCandidateStatus) -> bool {
     status == RewardCandidateStatus::NeedsReconciliation
 }
+
+pub fn prior_candidate_statuses_allowing_new_submission() -> [RewardCandidateStatus; 3] {
+    use RewardCandidateStatus as Status;
+
+    [
+        Status::TeacherRejected,
+        Status::AmountRejected,
+        Status::Failed,
+    ]
+}
+
+pub fn allows_new_submission_after_prior_candidate(status: RewardCandidateStatus) -> bool {
+    prior_candidate_statuses_allowing_new_submission().contains(&status)
+}

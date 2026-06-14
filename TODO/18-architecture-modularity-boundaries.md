@@ -1136,30 +1136,33 @@ remaining gaps.
 | 238 | Repointed wallet-credit persistence to use the domain-resolved target status from validation instead of hard-coding `WalletCredited` in the transaction. |
 | 239 | Moved the wallet-credit-record-required status predicate into `domain/rewards/candidate/lifecycle`, leaving Postgres validation responsible for stored-status parsing and error wording. |
 | 240 | Moved the wallet-credit payout-evidence-required predicate for reconciliation candidates into `domain/rewards/candidate/lifecycle`, leaving evidence lookup and error wording in the Postgres adapter. |
+| 241 | Moved the prior-candidate statuses that allow a fresh reward submission into `domain/rewards/candidate/lifecycle`, leaving the Postgres eligibility query to consume the named domain set. |
 
 ## Recent Slice Evidence
 
-Slice 240: move wallet-credit payout-evidence predicate into domain.
+Slice 241: move fresh-submission prior-status rules into domain.
 
-- [x] Add `requires_wallet_credit_payout_evidence` to
-      `domain/rewards/candidate/lifecycle` for candidate statuses that require
-      payout evidence before wallet credit.
-- [x] Cover the predicate with pure lifecycle tests for reconciliation,
-      amount-approved, token-confirmed, and wallet-credited states.
-- [x] Repoint wallet-credit validation to use the domain predicate while
-      keeping the `allow_reconciliation_credit` evidence flag and error wording
-      in the Postgres adapter.
+- [x] Add `prior_candidate_statuses_allowing_new_submission` and
+      `allows_new_submission_after_prior_candidate` to
+      `domain/rewards/candidate/lifecycle`.
+- [x] Cover the domain rule with pure lifecycle tests for teacher-rejected,
+      amount-rejected, failed, pending, and completed statuses.
+- [x] Repoint the prior-active-candidate Postgres eligibility query to consume
+      the domain status set instead of spelling out the business lifecycle
+      states inline.
 - [x] Confirm changed Rust files remain under the manual 180-line ceiling.
-- [x] Self-critique: wallet-credit reconciliation allowance is now named in
-      domain, but terminal completion/failure target status selection still
-      needs named helpers before the candidate-transition TODO is complete.
+- [x] Self-critique: lifecycle tests remain under the limit, but at 174 lines
+      they should be split before the next lifecycle test addition. The query
+      still uses three explicit Diesel `ne` filters because that is the current
+      query shape; the status ownership has moved even though the SQL shape has
+      not.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate::lifecycle`,
-      `./scripts/run-host-tests.sh cargo test --lib credit_wallet::handler`,
+      `./scripts/run-host-tests.sh cargo test --lib submit_candidate::handler`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans for local wallet-credit payout-evidence status checks, and file-size
+      `git diff --check`, scans for inline duplicate-submission status sets, and file-size
       checks keeping changed Rust files under the manual 180-line ceiling.
 
 ## Legacy Transition Rules
