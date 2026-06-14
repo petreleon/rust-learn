@@ -1116,32 +1116,32 @@ remaining gaps.
 | 218 | Deleted the `utils::notifications` compatibility bridge after moving HTTP best-effort notification senders and integration fixtures to the `infra/notifications` owner directly. |
 | 219 | Deleted the `utils::s3_utils` compatibility bridge after moving S3, readiness, and video-upload integration fixtures to the `infra/object_storage` owner directly. |
 | 220 | Deleted the `utils::eth_utils` compatibility bridge after moving Ethereum compiler, deployer, provider, and wallet integration tests to the `infra/ethereum/operations` owners directly. |
+| 221 | Deleted the unused `utils::centralized_wallets` compatibility bridge after scans proved source and tests call the `infra/postgres/wallet/centralized_wallets` owner directly or do not use the helper. |
 
 ## Recent Slice Evidence
 
-Slice 220: delete Ethereum utility compatibility bridge.
+Slice 221: delete centralized-wallet utility compatibility bridge.
 
-- [x] Move Ethereum utility and blockchain integration fixtures off
-      `utils::eth_utils` and onto the explicit `infra::ethereum::operations`
-      compiler, deployer, provider, and wallet owners.
-- [x] Delete `src/utils/eth/mod.rs` plus the `eth_utils` alias from
-      `src/utils/mod.rs` after scans proved no source or test references remain.
-- [x] Preserve Ethereum behavior through the existing infra operations API:
-      `try_compile_contract`, `try_deploy_contract`, `try_get_provider`, and
-      `try_load_wallet_from_env`.
-- [x] Self-critique: these tests still exercise concrete Ethereum infra
-      operations directly. That is correct for integration coverage, but
-      application-facing reward/wallet flows should continue to depend on
-      application ports and use-case wiring rather than concrete deployment
-      helpers.
+- [x] Delete `src/utils/centralized_wallets.rs` and remove the export from
+      `src/utils/mod.rs` after scans proved no source or test references use
+      the utility path.
+- [x] Preserve the wallet infra implementation and tests under
+      `src/infra/postgres/wallet/centralized_wallets/*`.
+- [x] Confirm the only remaining `centralized_wallets` source reference is the
+      intended `infra/postgres/wallet` module declaration.
+- [x] Self-critique: the centralized-wallet helper is still a low-level
+      Postgres workflow over Diesel records, and current production code does
+      not call it. A later wallet cleanup should either route a real
+      centralized-transfer feature through `application/wallet` or delete the
+      infra helper entirely if the feature is dead.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test eth_utils_tests`,
+      `./scripts/run-host-tests.sh cargo test --lib centralized_wallets`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing no source/test `eth_utils` references
-      remain, scans showing `utils/mod.rs` no longer exports Ethereum utilities,
-      and file-size checks keeping changed Rust files under the manual 180-line
-      ceiling.
+      `git diff --check`, scans showing no `utils::centralized_wallets`
+      references remain, scans showing `utils/mod.rs` no longer exports
+      centralized-wallet utilities, and file-size checks keeping changed Rust
+      files under the manual 180-line ceiling.
 
 ## Legacy Transition Rules
 
