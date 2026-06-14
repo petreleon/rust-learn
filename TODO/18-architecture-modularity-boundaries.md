@@ -1139,27 +1139,31 @@ remaining gaps.
 | 241 | Moved the prior-candidate statuses that allow a fresh reward submission into `domain/rewards/candidate/lifecycle`, leaving the Postgres eligibility query to consume the named domain set. |
 | 242 | Split reward candidate lifecycle tests by concern into reconciliation, wallet-credit, and submission modules so the domain lifecycle boundary can keep growing under the manual file-size ceiling. |
 | 243 | Moved platform reward-dashboard candidate-status bucket assignment into the reporting application layer, leaving Postgres to parse DB status strings into the domain enum before applying report shape. |
+| 244 | Moved platform reward-dashboard reconciliation mismatch classification and scan-status ownership into the reporting application layer, leaving Postgres to load records and pass typed facts. |
 
 ## Recent Slice Evidence
 
-Slice 243: move platform reward-dashboard status bucketing to reporting application.
+Slice 244: move platform reward-dashboard reconciliation mismatch classification to reporting application.
 
-- [x] Add `record_reward_candidate_status_count` under
-      `application/reporting/platform_reward_dashboard` so report output shape
-      owns candidate-status bucket assignment.
-- [x] Repoint the Postgres platform reward-dashboard summary adapter to parse
-      stored status strings with `RewardCandidateStatus::parse` and then call
-      the application helper.
-- [x] Preserve existing behavior for unknown stored statuses: they still
-      increase the total summary count without filling a known bucket.
-- [x] Cover the application helper with pure tests for every known dashboard
-      bucket and the currently unbucketed `Adjusted` status.
-- [x] Self-critique: this removes one reporting/status coupling from a Diesel
-      adapter, but `platform_reward_dashboard_reconciliation` still owns a raw
-      status-to-mismatch classifier that should become a domain/application
-      rule in a later slice.
+- [x] Add `RewardReconciliationMismatchFacts`, a typed mismatch enum, and
+      `classify_reward_reconciliation_mismatch` under
+      `application/reporting/platform_reward_dashboard`.
+- [x] Move the dashboard reconciliation scan-status set into the reporting
+      application layer so infra no longer spells raw reward status constants.
+- [x] Repoint the Postgres reconciliation adapter to parse candidate DB status
+      strings into `RewardCandidateStatus`, load payout/wallet-credit facts,
+      and call the pure application classifier.
+- [x] Preserve dashboard behavior for wallet-credited candidates with a
+      notification record: they no longer produce a mismatch row.
+- [x] Cover token-confirmation, wallet-credit, notification,
+      needs-reconciliation, and ignored non-mismatch states with pure tests.
+- [x] Self-critique: the new reconciliation helper is 167 lines, still under
+      the manual ceiling but close; split its tests before adding more cases.
+      A related wallet-audit reconciliation classifier still lives under
+      `domain/wallet/audit` and should move toward reward-domain ownership in a
+      later slice.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib platform_reward_dashboard::summary`,
+      `./scripts/run-host-tests.sh cargo test --lib platform_reward_dashboard::reconciliation`,
       `./scripts/run-host-tests.sh cargo test --test reporting_exports`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
