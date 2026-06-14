@@ -6,6 +6,9 @@ use crate::db::schema::{
     role_permission_course, role_permission_organization, role_permission_platform, upload_jobs,
     user_role_course, user_role_organization, user_role_platform, users,
 };
+use crate::domain::access_control::delegation::{
+    DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
+};
 use crate::domain::learning::course::status::{
     COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED, COURSE_STATUS_DRAFT,
     COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
@@ -26,9 +29,6 @@ use crate::models::course::{Course, NewCourse, UpdateCourse};
 use crate::models::course_join_request::CourseJoinRequest;
 use crate::models::course_progress::{CourseProgress, NewCourseProgress};
 use crate::models::courses_organizations::NewCourseOrganization;
-use crate::models::delegated_permission::{
-    DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
-};
 use crate::models::pending_course_organization_invites::{
     NewPendingCourseOrganizationInvite, PendingCourseOrganizationInvite,
 };

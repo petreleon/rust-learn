@@ -5,11 +5,11 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{delegated_permissions, user_role_organization};
+use crate::domain::access_control::delegation::DELEGATED_SCOPE_ORGANIZATION;
 use crate::infra::postgres::access_control::permission_checks::{
     has_organization_permission as access_control_has_organization_permission,
     has_platform_permission,
 };
-use crate::models::delegated_permission::DELEGATED_SCOPE_ORGANIZATION;
 
 pub(super) async fn has_organization_permission(
     conn: &mut AsyncPgConnection,

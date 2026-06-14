@@ -4,7 +4,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::db::schema::delegated_permissions;
-use crate::models::delegated_permission::{
+use crate::domain::access_control::delegation::{
     DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
 };
 

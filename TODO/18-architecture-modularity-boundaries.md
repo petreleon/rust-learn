@@ -1065,30 +1065,29 @@ remaining gaps.
 | 167 | Moved course enrollment join-request vocabulary into `domain/learning/enrollment/status`; migrated enrollment/progress use cases, Postgres read/write adapters, legacy service hubs, and fixtures now import join statuses from domain, leaving `models::course_join_request` as record/insert structs only. |
 | 168 | Removed teacher-application status/scope vocabulary from the Diesel model; organization/dashboard/reporting adapters, legacy service hubs, and fixtures now import lifecycle/scope vocabulary from `domain/teacher_applications`, leaving `models::teacher_application` as persistence record/insert structs only. |
 | 169 | Removed KYC status/audit-event vocabulary and unused Active Record query helpers from the Diesel models; KYC Postgres adapters and tests now import submission statuses from `domain/kyc/submission` and audit events from `domain/kyc/audit`, leaving KYC models as persistence shapes only. |
+| 170 | Removed delegated-permission scope compatibility aliases from the Diesel model; course-service legacy helpers, access-control/learning/organization/reward Postgres adapters, and fixtures now import delegation scopes from `domain/access_control/delegation`, leaving `models::delegated_permission` as persistence shapes only. |
 
 ## Recent Slice Evidence
 
-Slice 169: remove KYC vocabulary and dead query helpers from Diesel models.
+Slice 170: remove delegated-permission scope vocabulary from the Diesel model.
 
-- [x] Add `domain/kyc/audit` as the owner of KYC audit event names while
-      keeping KYC status vocabulary in `domain/kyc/submission`.
-- [x] Delete duplicated KYC status/audit constants from
-      `models::kyc_submission` and `models::kyc_audit_event`.
-- [x] Remove unused Active Record query helpers from KYC models; migrated KYC
-      Postgres stores already own submission lookup, review queue, decision,
-      audit insert, and audit listing queries.
-- [x] Update KYC Postgres audit writes and KYC review tests to import audit
-      vocabulary from `domain/kyc/audit`.
-- [x] Self-critique: delegated-permission scopes and wallet deposit statuses
-      still live in model files; move each into its owning domain context in
-      later slices.
+- [x] Delete delegated scope constants from `models::delegated_permission`;
+      the file now owns only Diesel record and insert shapes.
+- [x] Retarget course-service legacy helpers, access-control permission
+      delegation queries, learning dashboard delegation queries, organization
+      permission checks, reward fraud-block notification recipients, and
+      fixtures to import scope vocabulary from
+      `domain/access_control/delegation`.
+- [x] Self-critique: wallet deposit status still lives in a model file, and
+      `NOTIFICATION_LIST_LIMIT` remains model-owned even though it is a query
+      limit rather than domain vocabulary; move or classify them in later
+      slices.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib kyc`,
+      `./scripts/run-host-tests.sh cargo test --lib delegation`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving
-      KYC models have no status/audit vocabulary constants, no code imports KYC
-      vocabulary through KYC model modules, and no code calls the removed
-      Active Record KYC model query helpers.
+      `src/models/delegated_permission.rs` has no scope constants and no code
+      imports delegated scope constants through `models::delegated_permission`.
 
 ## Legacy Transition Rules
 

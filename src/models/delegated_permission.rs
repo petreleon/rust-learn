@@ -3,10 +3,6 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;
 
-pub const DELEGATED_SCOPE_PLATFORM: &str = "platform";
-pub const DELEGATED_SCOPE_ORGANIZATION: &str = "organization";
-pub const DELEGATED_SCOPE_COURSE: &str = "course";
-
 #[derive(Queryable, Identifiable, Selectable, Debug, Clone, Serialize)]
 #[diesel(table_name = delegated_permissions)]
 pub struct DelegatedPermission {

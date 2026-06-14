@@ -6,11 +6,10 @@ use rust_learn::application::organizations::manage_organizations::OrganizationMa
 use rust_learn::config::constants::{permissions::Permissions, roles::Roles};
 use rust_learn::db::schema::{courses, courses_organizations, delegated_permissions, organizations};
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_ORGANIZATION;
 use rust_learn::infra::postgres::organizations::organization_management_use_case::PostgresOrganizationManagementUseCase;
 use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::delegated_permission::{
-    NewDelegatedPermission, DELEGATED_SCOPE_ORGANIZATION,
-};
+use rust_learn::models::delegated_permission::NewDelegatedPermission;
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::OrganizationRole;
 use rust_learn::models::user::User;

@@ -7,10 +7,11 @@ use rust_learn::application::kyc::{
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_PLATFORM;
 use rust_learn::domain::kyc::audit::{KYC_AUDIT_EVENT_REVIEW_DECISION, KYC_AUDIT_EVENT_SUBMITTED};
 use rust_learn::domain::kyc::submission::{KYC_STATUS_REJECTED, KYC_STATUS_SUBMITTED};
 use rust_learn::infra::postgres::kyc::kyc_use_case::PostgresKycUseCase;
-use rust_learn::models::delegated_permission::{NewDelegatedPermission, DELEGATED_SCOPE_PLATFORM};
+use rust_learn::models::delegated_permission::NewDelegatedPermission;
 use rust_learn::models::user::User;
 use rust_learn::repositories::delegated_permission_repository::create_delegated_permission;
 use rust_learn::repositories::platform_repository::assign_role_to_user;

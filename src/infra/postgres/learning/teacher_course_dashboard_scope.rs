@@ -12,10 +12,10 @@ use crate::db::schema::{
     role_permission_organization, role_permission_platform, user_role_course,
     user_role_organization, user_role_platform,
 };
+use crate::domain::access_control::delegation::DELEGATED_SCOPE_PLATFORM;
 use crate::infra::postgres::learning::{
     teacher_course_dashboard_delegated_scope, teacher_course_dashboard_permissions,
 };
-use crate::models::delegated_permission::DELEGATED_SCOPE_PLATFORM;
 
 pub enum TeacherCourseCandidateScope {
     All,
