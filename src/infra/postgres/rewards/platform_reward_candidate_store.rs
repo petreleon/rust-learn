@@ -10,7 +10,7 @@ use crate::application::rewards::list_platform_candidates::{
 use crate::db::schema::{courses, users};
 use crate::infra::postgres::rewards::platform_reward_candidate_mappers::map_platform_reward_candidate_error;
 use crate::infra::postgres::rewards::reward_authorization_access;
-use crate::repositories::reward_candidate_repository::{self, RewardCandidateFilter};
+use crate::infra::postgres::rewards::reward_candidate_records::{self, RewardCandidateFilter};
 
 pub struct PostgresPlatformRewardCandidateStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -53,7 +53,7 @@ impl PlatformRewardCandidateStore for PostgresPlatformRewardCandidateStore<'_> {
     ) -> BoxFuture<'_, Result<Vec<PlatformRewardCandidateRecord>, PlatformRewardCandidatesError>>
     {
         async move {
-            reward_candidate_repository::list_candidates(
+            reward_candidate_records::list_candidates(
                 self.conn,
                 RewardCandidateFilter {
                     course_id: None,
@@ -80,7 +80,7 @@ impl PlatformRewardCandidateStore for PostgresPlatformRewardCandidateStore<'_> {
         status: Option<String>,
     ) -> BoxFuture<'_, Result<i64, PlatformRewardCandidatesError>> {
         async move {
-            reward_candidate_repository::count_candidates(
+            reward_candidate_records::count_candidates(
                 self.conn,
                 RewardCandidateFilter {
                     course_id: None,
