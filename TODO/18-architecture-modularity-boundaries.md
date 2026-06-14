@@ -1148,31 +1148,31 @@ remaining gaps.
 | 250 | Moved platform wallet-reconciliation reward status sets into the reporting application layer, leaving Postgres to translate typed statuses into SQL filters for missing-record counts. |
 | 251 | Split platform wallet-reconciliation candidate-id resolution into a dedicated Postgres helper and shared mapper, leaving the count adapter focused on aggregation and application-owned status-set filters. |
 | 252 | Moved organization reward-dashboard sponsored teacher-application status bucketing into the reporting application layer, leaving Postgres to load status rows only. |
+| 253 | Moved organization reward-dashboard course, approved reward, approved amount, and wallet balance total aggregation into the reporting application layer behind dashboard fact structs. |
 
 ## Recent Slice Evidence
 
-Slice 252: move organization reward-dashboard teacher-application status bucketing.
+Slice 253: move organization reward-dashboard total aggregation to application.
 
-- [x] Add
-      `application/reporting/organization_reward_dashboard/teacher_applications`
-      as the application owner for sponsored teacher-application dashboard
-      status bucketing.
-- [x] Repoint `organization_reward_dashboard_queries` to load status rows and
-      delegate summary construction to the application helper instead of
-      matching teacher-application status constants in Postgres.
-- [x] Preserve existing report behavior: every row still increments `total`,
-      exact known status keys increment their specific bucket, and unknown or
-      non-normalized statuses do not fail the read model.
-- [x] Cover the summary helper with pure application tests for normal bucket
-      assignment and unknown-status tolerance.
-- [x] Reduce `organization_reward_dashboard_queries` from 159 to 145 lines and
-      keep the new helper at 67 lines, preserving the manual Rust file-size
-      margin.
-- [x] Self-critique: the store still composes course totals and wallet balance
-      totals inside the Postgres adapter; a later slice should move those report
-      aggregation rules behind application-owned fact/output helpers.
+- [x] Add `application/reporting/organization_reward_dashboard/aggregation`
+      with dashboard fact structs and an application-owned output builder.
+- [x] Repoint `PostgresOrganizationRewardDashboardStore` to fetch organization,
+      teacher-application, course, and wallet facts, then delegate cross-row
+      totals to `organization_reward_dashboard_from_facts`.
+- [x] Move course reward count, approved reward count, approved amount total,
+      and wallet balance total aggregation out of the Postgres store while
+      preserving existing row DTOs and stringified decimal output.
+- [x] Cover the aggregation helper with pure application tests for populated and
+      empty fact sets.
+- [x] Reduce `organization_reward_dashboard_store` from 70 to 60 lines and
+      `organization_reward_dashboard_queries` from 145 to 140 lines, with the
+      new application aggregation helper at 148 lines.
+- [x] Self-critique: the organization reward dashboard query module still builds
+      application row DTOs directly from Diesel results; a later slice should
+      introduce narrower fact constructors or query mappers so row-shape
+      decisions stay closer to application.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib organization_reward_dashboard::teacher_applications`,
+      `./scripts/run-host-tests.sh cargo test --lib organization_reward_dashboard::aggregation`,
       `./scripts/run-host-tests.sh cargo test --test organization_dashboard`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,

@@ -1,4 +1,3 @@
-use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
@@ -6,7 +5,8 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::reporting::organization_reward_dashboard::store::OrganizationRewardDashboardStore;
 use crate::application::reporting::organization_reward_dashboard::{
-    OrganizationRewardDashboardError, OrganizationRewardDashboardOutput,
+    organization_reward_dashboard_from_facts, OrganizationRewardDashboardError,
+    OrganizationRewardDashboardFacts, OrganizationRewardDashboardOutput,
 };
 use crate::db::schema::organizations;
 use crate::infra::postgres::reporting::organization_reward_dashboard_queries::{
@@ -45,33 +45,15 @@ impl OrganizationRewardDashboardStore for PostgresOrganizationRewardDashboardSto
             let course_data = course_reward_rows(self.conn, organization_id, from, to).await?;
             let wallet_data = wallet_balance_rows(self.conn, organization_id).await?;
 
-            let course_reward_count = course_data
-                .iter()
-                .map(|data| data.row.reward_candidate_count)
-                .sum::<i64>();
-            let approved_reward_count = course_data
-                .iter()
-                .map(|data| data.row.approved_reward_count)
-                .sum::<i64>();
-            let approved_amount_total =
-                course_data.iter().fold(BigDecimal::from(0), |sum, data| {
-                    sum + data.approved_amount_total.clone()
-                });
-            let wallet_balance_total = wallet_data
-                .iter()
-                .fold(BigDecimal::from(0), |sum, data| sum + data.balance.clone());
-
-            Ok(OrganizationRewardDashboardOutput {
-                organization_id,
-                organization_name,
-                sponsored_teacher_applications,
-                course_reward_count,
-                approved_reward_count,
-                approved_amount_total: approved_amount_total.to_string(),
-                courses: course_data.into_iter().map(|data| data.row).collect(),
-                wallets: wallet_data.into_iter().map(|data| data.row).collect(),
-                wallet_balance_total: wallet_balance_total.to_string(),
-            })
+            Ok(organization_reward_dashboard_from_facts(
+                OrganizationRewardDashboardFacts {
+                    organization_id,
+                    organization_name,
+                    sponsored_teacher_applications,
+                    courses: course_data,
+                    wallets: wallet_data,
+                },
+            ))
         }
         .boxed()
     }

@@ -4,8 +4,9 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::organization_reward_dashboard::{
-    teacher_application_summary_from_statuses, OrganizationCourseRewardDashboardRowOutput,
-    OrganizationRewardDashboardError, OrganizationWalletBalanceRowOutput,
+    teacher_application_summary_from_statuses, OrganizationCourseRewardDashboardFact,
+    OrganizationCourseRewardDashboardRowOutput, OrganizationRewardDashboardError,
+    OrganizationWalletBalanceFact, OrganizationWalletBalanceRowOutput,
     TeacherApplicationDashboardSummaryOutput,
 };
 use crate::db::schema::{
@@ -35,7 +36,7 @@ pub(super) async fn course_reward_rows(
     organization_id: i32,
     from: Option<NaiveDate>,
     to: Option<NaiveDate>,
-) -> Result<Vec<CourseRewardData>, OrganizationRewardDashboardError> {
+) -> Result<Vec<OrganizationCourseRewardDashboardFact>, OrganizationRewardDashboardError> {
     let courses = courses_organizations::table
         .inner_join(courses::table.on(courses_organizations::course_id.eq(courses::id)))
         .filter(courses_organizations::organization_id.eq(organization_id))
@@ -58,7 +59,7 @@ async fn course_reward_row(
     course_title: String,
     from: Option<NaiveDate>,
     to: Option<NaiveDate>,
-) -> Result<CourseRewardData, OrganizationRewardDashboardError> {
+) -> Result<OrganizationCourseRewardDashboardFact, OrganizationRewardDashboardError> {
     let mut query = reward_candidates::table
         .filter(reward_candidates::course_id.eq(course_id))
         .into_boxed();
@@ -80,7 +81,7 @@ async fn course_reward_row(
         .cloned()
         .fold(BigDecimal::from(0), |sum, amount| sum + amount);
 
-    Ok(CourseRewardData {
+    Ok(OrganizationCourseRewardDashboardFact {
         row: OrganizationCourseRewardDashboardRowOutput {
             course_id,
             course_title,
@@ -95,7 +96,7 @@ async fn course_reward_row(
 pub(super) async fn wallet_balance_rows(
     conn: &mut AsyncPgConnection,
     organization_id: i32,
-) -> Result<Vec<WalletBalanceData>, OrganizationRewardDashboardError> {
+) -> Result<Vec<OrganizationWalletBalanceFact>, OrganizationRewardDashboardError> {
     wallets::table
         .filter(wallets::organization_id.eq(Some(organization_id)))
         .filter(wallets::user_id.is_null())
@@ -103,7 +104,11 @@ pub(super) async fn wallet_balance_rows(
         .order(wallets::id.asc())
         .load::<(i32, BigDecimal)>(conn)
         .await
-        .map(|rows| rows.into_iter().map(WalletBalanceData::from).collect())
+        .map(|rows| {
+            rows.into_iter()
+                .map(OrganizationWalletBalanceFact::from)
+                .collect()
+        })
         .map_err(map_diesel_error)
 }
 
@@ -115,17 +120,7 @@ fn end_of_day(date: NaiveDate) -> NaiveDateTime {
     NaiveDateTime::new(date, NaiveTime::from_hms_opt(23, 59, 59).unwrap())
 }
 
-pub(super) struct CourseRewardData {
-    pub(super) row: OrganizationCourseRewardDashboardRowOutput,
-    pub(super) approved_amount_total: BigDecimal,
-}
-
-pub(super) struct WalletBalanceData {
-    pub(super) row: OrganizationWalletBalanceRowOutput,
-    pub(super) balance: BigDecimal,
-}
-
-impl From<(i32, BigDecimal)> for WalletBalanceData {
+impl From<(i32, BigDecimal)> for OrganizationWalletBalanceFact {
     fn from((wallet_id, balance): (i32, BigDecimal)) -> Self {
         Self {
             row: OrganizationWalletBalanceRowOutput {
