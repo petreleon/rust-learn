@@ -1157,26 +1157,29 @@ remaining gaps.
 | 259 | Moved platform fraud-dashboard scope summary and output assembly into the reporting application layer, leaving Postgres to load active fraud-block facts. |
 | 260 | Split platform fraud-dashboard active-block loading and Diesel error mapping into focused Postgres helpers, leaving the store as orchestration only. |
 | 261 | Moved organization-summary count and output assembly into the reporting application layer, leaving Postgres to load summary facts. |
+| 262 | Split organization-summary identity, course, member, wallet, course-role, and Diesel mapper reads into focused Postgres helpers. |
 
 ## Recent Slice Evidence
 
-Slice 261: move organization-summary output assembly to application.
+Slice 262: split organization-summary Postgres query concerns.
 
-- [x] Add `application/reporting/organization_summary/aggregation` with an
-      `OrganizationSummaryFacts` boundary and
-      `organization_summary_from_facts` assembler.
-- [x] Move course-count and member-count calculation out of
-      `PostgresOrganizationSummaryStore`.
-- [x] Preserve existing behavior: course count still comes from loaded
-      organization course ids, member count still ignores nullable user ids,
-      and wallet/course-role assignment counts still pass through unchanged.
-- [x] Keep the Postgres store focused on loading organization name, course ids,
-      member ids, wallet count, and course-role assignment count.
-- [x] Keep changed Rust files small: application aggregation 65 lines, module
-      export 12 lines, and Postgres store 91 lines.
-- [x] Self-critique: organization-summary query ownership is still one store;
-      a later slice can split organization identity, membership, wallet, and
-      course-role reads into focused Postgres helpers if this path grows.
+- [x] Add focused Postgres helpers for organization identity, organization
+      course ids, organization member ids, organization wallet count, and
+      course-role assignment count.
+- [x] Add `organization_summary_mappers` for Diesel to
+      `OrganizationSummaryError` translation, preserving `NotFound` handling.
+- [x] Repoint `PostgresOrganizationSummaryStore` to orchestrate the focused
+      helpers and pass their values to the application summary assembler.
+- [x] Preserve existing SQL behavior: organization name lookup, course-id load,
+      distinct nullable member ids, wallet count, and empty-course role count
+      short-circuit are unchanged.
+- [x] Keep Diesel schema/query imports out of the store and confined to focused
+      Postgres helper modules.
+- [x] Keep changed Rust files small: store 49 lines, helpers 8-21 lines each,
+      and reporting module map 40 lines.
+- [x] Self-critique: organization-summary Postgres is now granular enough for
+      its current read model; the next reporting slice should inspect platform
+      CSV exports, which still carry several row-shaping adapters.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --lib organization_summary`,
       `./scripts/run-host-tests.sh cargo test --test reporting_exports organization_admin_can_read_and_export_org_summary`,
