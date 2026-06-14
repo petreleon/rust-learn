@@ -7,8 +7,8 @@ use crate::application::teacher_applications::{
     TeacherApplicationOutput,
 };
 use crate::infra::postgres::teacher_applications::teacher_application_permissions::has_organization_permission_name;
+use crate::infra::postgres::teacher_applications::teacher_application_records;
 use crate::models::teacher_application::{NewTeacherApplication, NewTeacherApplicationAuditEvent};
-use crate::repositories::teacher_application_repository;
 
 pub struct PostgresTeacherApplicationNominationStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -41,7 +41,7 @@ impl TeacherApplicationNominationStore for PostgresTeacherApplicationNominationS
     ) -> BoxFuture<'_, Result<Option<TeacherApplicationOutput>, TeacherApplicationNominationError>>
     {
         async move {
-            teacher_application_repository::find_application_by_idempotency_key(
+            teacher_application_records::find_application_by_idempotency_key(
                 self.conn,
                 &idempotency_key,
             )
@@ -58,7 +58,7 @@ impl TeacherApplicationNominationStore for PostgresTeacherApplicationNominationS
     ) -> BoxFuture<'_, Result<Option<TeacherApplicationOutput>, TeacherApplicationNominationError>>
     {
         async move {
-            teacher_application_repository::find_latest_application_for_applicant(
+            teacher_application_records::find_latest_application_for_applicant(
                 self.conn,
                 applicant_user_id,
             )
@@ -78,12 +78,12 @@ impl TeacherApplicationNominationStore for PostgresTeacherApplicationNominationS
             self.conn
                 .transaction::<_, diesel::result::Error, _>(|conn| {
                     Box::pin(async move {
-                        let application = teacher_application_repository::create_application(
+                        let application = teacher_application_records::create_application(
                             conn,
                             new_application(submission),
                         )
                         .await?;
-                        teacher_application_repository::create_audit_event(
+                        teacher_application_records::create_audit_event(
                             conn,
                             NewTeacherApplicationAuditEvent {
                                 application_id: application.id,

@@ -8,8 +8,8 @@ use crate::application::teacher_applications::{
 };
 use crate::domain::teacher_applications::status::TEACHER_APPLICATION_STATUS_APPROVED;
 use crate::infra::postgres::teacher_applications::teacher_application_permissions::has_platform_permission_name;
+use crate::infra::postgres::teacher_applications::teacher_application_records;
 use crate::models::teacher_application::NewTeacherApplicationAuditEvent;
-use crate::repositories::teacher_application_repository;
 
 use super::teacher_application_decision_roles::assign_approved_teaching_bundle;
 
@@ -42,7 +42,7 @@ impl TeacherApplicationDecisionStore for PostgresTeacherApplicationDecisionStore
         application_id: i64,
     ) -> BoxFuture<'_, Result<TeacherApplicationOutput, TeacherApplicationDecisionError>> {
         async move {
-            teacher_application_repository::find_application(self.conn, application_id)
+            teacher_application_records::find_application(self.conn, application_id)
                 .await
                 .map(Into::into)
                 .map_err(map_error)
@@ -62,7 +62,7 @@ impl TeacherApplicationDecisionStore for PostgresTeacherApplicationDecisionStore
                 .transaction::<_, diesel::result::Error, _>(|conn| {
                     Box::pin(async move {
                         let now = Utc::now();
-                        let updated = teacher_application_repository::update_application_decision(
+                        let updated = teacher_application_records::update_application_decision(
                             conn,
                             current.id,
                             actor_user_id,
@@ -75,7 +75,7 @@ impl TeacherApplicationDecisionStore for PostgresTeacherApplicationDecisionStore
                         if target_status == TEACHER_APPLICATION_STATUS_APPROVED {
                             assign_approved_teaching_bundle(conn, &updated_output).await?;
                         }
-                        teacher_application_repository::create_audit_event(
+                        teacher_application_records::create_audit_event(
                             conn,
                             NewTeacherApplicationAuditEvent {
                                 application_id: current.id,
