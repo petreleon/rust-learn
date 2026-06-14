@@ -1156,31 +1156,30 @@ remaining gaps.
 | 258 | Moved organization reward-dashboard organization-name lookup into a focused Postgres helper, leaving the store as dashboard fact orchestration only. |
 | 259 | Moved platform fraud-dashboard scope summary and output assembly into the reporting application layer, leaving Postgres to load active fraud-block facts. |
 | 260 | Split platform fraud-dashboard active-block loading and Diesel error mapping into focused Postgres helpers, leaving the store as orchestration only. |
+| 261 | Moved organization-summary count and output assembly into the reporting application layer, leaving Postgres to load summary facts. |
 
 ## Recent Slice Evidence
 
-Slice 260: split platform fraud-dashboard Postgres query concerns.
+Slice 261: move organization-summary output assembly to application.
 
-- [x] Add `platform_fraud_dashboard_blocks` as the focused Postgres owner for
-      active fraud-block loading and DB model to application fact conversion.
-- [x] Add `platform_fraud_dashboard_mappers` for Diesel to
-      `PlatformFraudDashboardError` translation.
-- [x] Repoint `PostgresPlatformFraudDashboardStore` to call
-      `active_fraud_block_facts` and then the application dashboard assembler.
-- [x] Preserve existing behavior: active blocks are still filtered by revoked
-      and expiry state, ordered newest-first, capped at 100, and mapped to the
-      same `FraudBlockDashboardFact` fields.
-- [x] Keep Diesel schema/query imports, `RewardFraudBlock`, `chrono::Utc`, and
-      Diesel error mapping out of the store.
-- [x] Keep changed Rust files small: store 31 lines, active-block helper 46
-      lines, mapper 5 lines, and reporting module map 34 lines.
-- [x] Self-critique: the platform fraud-dashboard adapter is now granular
-      enough for its current single read path; the next reporting slice should
-      inspect organization summary or CSV export stores for mixed SQL and
-      application output decisions.
+- [x] Add `application/reporting/organization_summary/aggregation` with an
+      `OrganizationSummaryFacts` boundary and
+      `organization_summary_from_facts` assembler.
+- [x] Move course-count and member-count calculation out of
+      `PostgresOrganizationSummaryStore`.
+- [x] Preserve existing behavior: course count still comes from loaded
+      organization course ids, member count still ignores nullable user ids,
+      and wallet/course-role assignment counts still pass through unchanged.
+- [x] Keep the Postgres store focused on loading organization name, course ids,
+      member ids, wallet count, and course-role assignment count.
+- [x] Keep changed Rust files small: application aggregation 65 lines, module
+      export 12 lines, and Postgres store 91 lines.
+- [x] Self-critique: organization-summary query ownership is still one store;
+      a later slice can split organization identity, membership, wallet, and
+      course-role reads into focused Postgres helpers if this path grows.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib platform_fraud_dashboard`,
-      `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_fraud_dashboard_reports_active_blocks_by_scope`,
+      `./scripts/run-host-tests.sh cargo test --lib organization_summary`,
+      `./scripts/run-host-tests.sh cargo test --test reporting_exports organization_admin_can_read_and_export_org_summary`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,

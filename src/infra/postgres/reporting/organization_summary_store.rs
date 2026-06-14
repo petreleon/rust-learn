@@ -4,7 +4,8 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::reporting::organization_summary::store::OrganizationSummaryStore;
 use crate::application::reporting::organization_summary::{
-    OrganizationSummaryError, OrganizationSummaryOutput,
+    organization_summary_from_facts, OrganizationSummaryError, OrganizationSummaryFacts,
+    OrganizationSummaryOutput,
 };
 use crate::db::schema::{
     courses_organizations, organizations, user_role_course, user_role_organization, wallets,
@@ -54,14 +55,14 @@ impl OrganizationSummaryStore for PostgresOrganizationSummaryStore<'_> {
             let course_role_assignment_count =
                 course_role_assignment_count(self.conn, &course_ids).await?;
 
-            Ok(OrganizationSummaryOutput {
+            Ok(organization_summary_from_facts(OrganizationSummaryFacts {
                 organization_id,
                 organization_name,
-                course_count: course_ids.len() as i64,
-                member_count: member_ids.into_iter().flatten().count() as i64,
+                course_ids,
+                member_user_ids: member_ids,
                 wallet_count,
                 course_role_assignment_count,
-            })
+            }))
         }
         .boxed()
     }
