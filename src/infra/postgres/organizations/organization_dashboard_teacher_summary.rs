@@ -5,11 +5,11 @@ use crate::application::organizations::get_organization_dashboard::{
     OrganizationDashboardError, OrganizationDashboardTeacherApplicationSummaryOutput,
 };
 use crate::db::schema::teacher_applications;
-use crate::infra::postgres::organizations::organization_dashboard_mappers::map_dashboard_error;
-use crate::models::teacher_application::{
+use crate::domain::teacher_applications::status::{
     TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
     TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
 };
+use crate::infra::postgres::organizations::organization_dashboard_mappers::map_dashboard_error;
 
 pub async fn load_teacher_application_summary(
     conn: &mut AsyncPgConnection,

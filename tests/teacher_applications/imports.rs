@@ -14,12 +14,12 @@ use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{courses, organizations, platform_roles, role_permission_platform};
+use rust_learn::domain::teacher_applications::status::{
+    TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_SUBMITTED,
+};
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::OrganizationRole;
-use rust_learn::models::teacher_application::{
-    TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_SUBMITTED,
-};
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::models::user_role_platform::UserRolePlatform;

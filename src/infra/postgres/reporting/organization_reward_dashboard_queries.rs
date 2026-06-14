@@ -10,7 +10,7 @@ use crate::application::reporting::organization_reward_dashboard::{
 use crate::db::schema::{
     courses, courses_organizations, reward_candidates, teacher_applications, wallets,
 };
-use crate::models::teacher_application::{
+use crate::domain::teacher_applications::status::{
     TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
     TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
 };

@@ -16,15 +16,15 @@ use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
 use rust_learn::domain::rewards::candidate::status::{
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_FAILED,
 };
+use rust_learn::domain::teacher_applications::scope::TEACHER_APPLICATION_SCOPE_PLATFORM;
+use rust_learn::domain::teacher_applications::status::TEACHER_APPLICATION_STATUS_SUBMITTED;
 use rust_learn::infra::postgres::organizations::organization_dashboard_use_case::PostgresOrganizationDashboardUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_candidate::NewRewardCandidate;
 use rust_learn::models::role::OrganizationRole;
-use rust_learn::models::teacher_application::{
-    NewTeacherApplication, TEACHER_APPLICATION_SCOPE_PLATFORM, TEACHER_APPLICATION_STATUS_SUBMITTED,
-};
+use rust_learn::models::teacher_application::NewTeacherApplication;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::models::wallet::NewWallet;

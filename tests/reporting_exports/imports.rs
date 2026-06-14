@@ -32,6 +32,8 @@ use rust_learn::domain::rewards::candidate::status::{
 use rust_learn::domain::rewards::policy::{
     REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
+use rust_learn::domain::teacher_applications::scope::TEACHER_APPLICATION_SCOPE_PLATFORM;
+use rust_learn::domain::teacher_applications::status::TEACHER_APPLICATION_STATUS_SUBMITTED;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::delegated_permission::{NewDelegatedPermission, DELEGATED_SCOPE_PLATFORM};
@@ -40,9 +42,7 @@ use rust_learn::models::reward_candidate::NewRewardCandidate;
 use rust_learn::models::reward_fraud_block::NewRewardFraudBlock;
 use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::role::{OrganizationRole, PlatformRole};
-use rust_learn::models::teacher_application::{
-    NewTeacherApplication, TEACHER_APPLICATION_SCOPE_PLATFORM, TEACHER_APPLICATION_STATUS_SUBMITTED,
-};
+use rust_learn::models::teacher_application::NewTeacherApplication;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
 use rust_learn::models::user_role_platform::UserRolePlatform;

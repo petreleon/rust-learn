@@ -8,11 +8,11 @@ use crate::application::organizations::list_organization_teacher_applications::{
     TeacherApplicationDashboardSummaryOutput,
 };
 use crate::db::schema::teacher_application_audit_events;
-use crate::models::teacher_application::{
-    TeacherApplication, TeacherApplicationAuditEvent, TEACHER_APPLICATION_STATUS_APPROVED,
-    TEACHER_APPLICATION_STATUS_NEEDS_CHANGES, TEACHER_APPLICATION_STATUS_REJECTED,
-    TEACHER_APPLICATION_STATUS_SUBMITTED,
+use crate::domain::teacher_applications::status::{
+    TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
+    TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
 };
+use crate::models::teacher_application::{TeacherApplication, TeacherApplicationAuditEvent};
 
 pub async fn load_audits(
     conn: &mut AsyncPgConnection,
