@@ -26,7 +26,7 @@ use rust_learn::models::reward_candidate::NewRewardCandidate;
 use rust_learn::models::role::OrganizationRole;
 use rust_learn::models::teacher_application::NewTeacherApplication;
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_organization::UserRoleOrganization;
+use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::models::wallet::NewWallet;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::utils::jwt_utils::create_jwt;

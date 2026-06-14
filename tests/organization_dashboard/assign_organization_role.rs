@@ -7,7 +7,7 @@ async fn assign_organization_role(
     let role_id = OrganizationRole::find_by_name(role_name, conn)
         .await
         .expect("organization role should exist");
-    UserRoleOrganization::assign(conn, user_id, organization_id, role_id)
+    organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)
         .await
         .expect("failed to assign organization role");
 }

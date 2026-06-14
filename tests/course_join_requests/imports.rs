@@ -20,7 +20,7 @@ use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
-use rust_learn::models::user_role_organization::UserRoleOrganization;
+use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::course_repository::user_permission_course_request;
 use rust_learn::repositories::user_repository::create_user;
@@ -172,7 +172,7 @@ async fn force_assign_organization_role(
     let role_id = OrganizationRole::find_by_name(role_name, conn)
         .await
         .expect("organization role not found");
-    UserRoleOrganization::assign(conn, user_id, organization_id, role_id)
+    organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)
         .await
         .expect("failed to assign organization role");
 }

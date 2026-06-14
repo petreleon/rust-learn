@@ -30,7 +30,7 @@ use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_candidate::NewRewardCandidate;
 use rust_learn::models::role::{OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_organization::UserRoleOrganization;
+use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::persistent_state_repository::set_persistent_state;
 use rust_learn::repositories::user_repository::create_user;

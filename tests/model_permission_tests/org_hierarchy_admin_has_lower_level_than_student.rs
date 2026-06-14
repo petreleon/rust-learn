@@ -10,10 +10,10 @@ async fn org_hierarchy_admin_has_lower_level_than_student() {
         .await
         .unwrap();
 
-    UserRoleOrganization::assign(&mut conn, admin.id(), 1, admin_role_id)
+    organization_role_records::assign_organization_role_to_user(&mut conn, admin.id(), 1, admin_role_id)
         .await
         .unwrap();
-    UserRoleOrganization::assign(&mut conn, student.id(), 1, student_role_id)
+    organization_role_records::assign_organization_role_to_user(&mut conn, student.id(), 1, student_role_id)
         .await
         .unwrap();
 

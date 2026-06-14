@@ -1075,29 +1075,37 @@ remaining gaps.
 | 177 | Moved platform role-permission assignment off the Diesel model and into `infra/postgres/access_control/permission_assignment_records`; the legacy platform-permission repository now delegates to access-control Postgres records, leaving `models::role_permission_platform` as a persistence shape only. |
 | 178 | Moved platform user-role assignment and platform role-permission checks off the Diesel model and into `infra/postgres/access_control/platform_role_records`; legacy platform repositories, teacher-application role assignment, and fixtures now use access-control Postgres records, leaving `models::user_role_platform` as a persistence shape only. |
 | 179 | Moved password authentication row creation off the Diesel model and into `infra/postgres/identity/authentication_records`; legacy user creation now delegates to identity Postgres records, leaving `models::authentication` as a persistence shape only. |
+| 180 | Moved organization user-role assignment and organization permission checks off the Diesel model and into `infra/postgres/access_control/organization_role_records`; legacy organization repositories, teacher-application role assignment, and fixtures now use access-control Postgres records, leaving `models::user_role_organization` as a persistence shape only. |
 
 ## Recent Slice Evidence
 
-Slice 179: move authentication Active Record helper into identity Postgres
-records.
+Slice 180: move organization user-role Active Record helpers into
+access-control Postgres records.
 
-- [x] Add `infra/postgres/identity/authentication_records` for authentication
-      row creation.
-- [x] Retarget legacy `repositories::user_repository::create_user` to call the
-      identity-owned Postgres record function inside its existing transaction.
-- [x] Delete `Authentication::create` from `models::authentication`; the model
-      now owns only the Diesel row shape.
-- [x] Self-critique: `user_repository::create_user` still combines password
-      hashing, user row creation, and authentication row creation; later slices
-      should move that orchestration into an identity registration/store use
-      case and leave the repository as a temporary compatibility bridge.
+- [x] Add `infra/postgres/access_control/organization_role_records` for
+      organization user-role assignment and direct organization permission
+      checks.
+- [x] Retarget legacy organization repositories, the teacher-application
+      organization role assignment path, and direct fixtures to the
+      access-control-owned Postgres functions.
+- [x] Delete `UserRoleOrganization::assign` and
+      `UserRoleOrganization::has_permission` from
+      `models::user_role_organization`; the model now owns only the Diesel row
+      shape.
+- [x] Self-critique: course user-role assignment/check helpers still mirror the
+      same Active Record pattern; the next access-control slice should extract
+      `UserRoleCourse::*` into access-control Postgres records and then revisit
+      the teacher-application exists-before-assign guards as a unified
+      assignment adapter.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test repository_core_tests test_create_user`,
-      `./scripts/run-host-tests.sh cargo test --test authentication_flow`,
+      `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
+      `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
+      `./scripts/run-host-tests.sh cargo test --test organization_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test teacher_applications`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      calls `Authentication::create` and `models::authentication` has no DB
-      helper implementation.
+      calls `UserRoleOrganization::assign`/`has_permission` and
+      `models::user_role_organization` has no DB helper implementation.
 
 ## Legacy Transition Rules
 

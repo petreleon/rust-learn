@@ -8,7 +8,7 @@ use rust_learn::infra::postgres::access_control::hierarchy_records;
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
-use rust_learn::models::user_role_organization::UserRoleOrganization;
+use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::user_repository::create_user;
 
@@ -126,11 +126,11 @@ async fn org_admin_has_org_permission() {
         .await
         .unwrap();
 
-    UserRoleOrganization::assign(&mut conn, u.id(), 1, org_role_id)
+    organization_role_records::assign_organization_role_to_user(&mut conn, u.id(), 1, org_role_id)
         .await
         .unwrap();
 
-    assert!(UserRoleOrganization::has_permission(
+    assert!(organization_role_records::organization_user_has_permission(
         &mut conn,
         u.id(),
         1,
@@ -145,7 +145,7 @@ async fn org_stranger_has_no_org_permission() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "org_stranger").await;
 
-    assert!(!UserRoleOrganization::has_permission(
+    assert!(!organization_role_records::organization_user_has_permission(
         &mut conn,
         u.id(),
         999,
