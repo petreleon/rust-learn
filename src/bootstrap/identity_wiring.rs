@@ -7,12 +7,14 @@ use crate::application::identity::current_session::CurrentSessionUseCase;
 use crate::application::identity::get_user_profile::UserProfileReadUseCase;
 use crate::application::identity::list_users::UserListUseCase;
 use crate::application::identity::login::LoginUseCase;
+use crate::application::identity::verify_email::VerifyEmailUseCase;
 use crate::db::DbPool;
 use crate::infra::postgres::identity::current_session_use_case::PostgresCurrentSessionUseCase;
 use crate::infra::postgres::identity::login_use_case::PostgresLoginUseCase;
 use crate::infra::postgres::identity::platform_role_assignment_use_case::PostgresPlatformRoleAssignmentUseCase;
 use crate::infra::postgres::identity::user_list_use_case::PostgresUserListUseCase;
 use crate::infra::postgres::identity::user_profile_read_use_case::PostgresUserProfileReadUseCase;
+use crate::infra::postgres::identity::verify_email_use_case::PostgresVerifyEmailUseCase;
 
 #[derive(Clone)]
 pub struct IdentityUseCases {
@@ -21,6 +23,7 @@ pub struct IdentityUseCases {
     pub platform_role_assignment: Arc<dyn PlatformRoleAssignmentUseCase>,
     pub user_list: Arc<dyn UserListUseCase>,
     pub user_profile: Arc<dyn UserProfileReadUseCase>,
+    pub verify_email: Arc<dyn VerifyEmailUseCase>,
 }
 
 pub fn build_identity_use_cases(pool: &DbPool) -> IdentityUseCases {
@@ -33,6 +36,7 @@ pub fn build_identity_use_cases(pool: &DbPool) -> IdentityUseCases {
         )),
         user_list: Arc::new(PostgresUserListUseCase::new(pool.clone())),
         user_profile: Arc::new(PostgresUserProfileReadUseCase::new(pool.clone())),
+        verify_email: Arc::new(PostgresVerifyEmailUseCase::new(pool.clone())),
     }
 }
 
@@ -41,5 +45,6 @@ pub fn configure_identity_app_data(cfg: &mut web::ServiceConfig, identity: &Iden
         .app_data(web::Data::new(identity.login.clone()))
         .app_data(web::Data::new(identity.platform_role_assignment.clone()))
         .app_data(web::Data::new(identity.user_list.clone()))
-        .app_data(web::Data::new(identity.user_profile.clone()));
+        .app_data(web::Data::new(identity.user_profile.clone()))
+        .app_data(web::Data::new(identity.verify_email.clone()));
 }

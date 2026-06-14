@@ -1023,37 +1023,38 @@ remaining gaps.
 | 125 | Moved `GET /user/{id}` behind `application/identity/get_user_profile` command/service/authorization behavior, a Postgres profile-read use-case wrapper, `UserProfileAccessStore` permission port, identity app-data wiring, and a DB-free HTTP profile handler; `http/identity/user_handlers.rs` no longer imports `DbPool`, repositories, infra, or Diesel. |
 | 126 | Moved `POST /user/{id}/role` behind `application/identity/assign_platform_role`, a Postgres hierarchy-aware role-assignment store/use-case, best-effort platform role notification delivery inside infra, identity app-data wiring, and a DB-free HTTP assignment handler; `http/identity/platform_role_assignment.rs` no longer imports `DbPool`, repositories, Diesel, or `NotificationsState`. |
 | 127 | Moved `POST /auth/login` behind `application/identity/login`, Postgres credential lookup, bcrypt password verification, JWT token issuance adapters, identity app-data wiring, and a DB-free HTTP login handler; login keeps existing response semantics for invalid credentials, unverified email, connection failure, and JWT creation failure. |
+| 128 | Moved `GET /auth/verify-email` behind `application/identity/verify_email`, a Postgres email-verification token adapter/use case, identity app-data wiring, and a DB-free `http/identity/authentication/verify_email.rs` route; resend-verification remains isolated in the legacy email-verification HTTP file for a later slice. |
 
 ## Recent Slice Evidence
 
-Slice 127: move login behind an injected use case.
+Slice 128: move email verification behind an injected use case.
 
-- [x] Add `application/identity/login` with command, output, error, credential
-      record, store, password-verifier, token-issuer, and service contracts.
-- [x] Move login decision behavior into a fake-tested application handler:
-      missing user, bad password, missing password authentication, unverified
-      email, and successful JWT output.
-- [x] Add Postgres login store for `User::find_with_password_auth`, preserving
-      existing invalid-credentials behavior for lookup misses or query errors.
-- [x] Add bcrypt password-verifier and JWT token-issuer adapters under
-      `infra/postgres/identity`, keeping bcrypt and `utils::jwt_utils` outside
-      application and HTTP.
-- [x] Add a Postgres login use case that owns pool access and delegates to the
-      application login handler with the concrete security adapters.
-- [x] Register login through `bootstrap/identity_wiring`, update auth-flow test
-      app-data wiring, and rework `POST /auth/login` so HTTP normalizes email,
-      builds the command, maps application errors, and no longer imports
-      `DbPool`, Diesel, `User`, bcrypt, or JWT utilities.
-- [x] Self-critique: registration, email verification, forgot-password, and
-      reset-password still own DB/token/transaction behavior in HTTP; migrate
-      them as separate auth slices to avoid mixing account creation and token
-      consumption semantics.
-- [x] Prove behavior with login application unit tests, focused auth-flow login
-      contracts, the full `authentication_flow` suite, API route reachability,
-      formatting, line-count checks, `git diff --check`, and boundary scans
-      proving the login HTTP handler is DB-free while the login application
+- [x] Add `application/identity/verify_email` with command, outcome, error,
+      store, service, and fake-tested handler behavior for token verification
+      delegation and store-error propagation.
+- [x] Add a Postgres verify-email store/use-case that owns pool access, token
+      hashing, `EmailVerificationToken::verify`, and mapping existing model
+      outcomes into application outcomes.
+- [x] Register verify-email through `bootstrap/identity_wiring` and update the
+      auth-flow test app-data wiring to match production.
+- [x] Split the migrated `GET /auth/verify-email` route into
+      `http/identity/authentication/verify_email.rs` so the route file is
+      DB-free while the legacy resend-verification HTTP handler remains
+      isolated for a later migration.
+- [x] Rework `GET /auth/verify-email` so HTTP only validates the raw token,
+      builds the application command, and maps application outcomes to the
+      existing response bodies.
+- [x] Self-critique: `POST /auth/resend-verification` still owns DB lookup,
+      token generation, token persistence, privacy-preserving unknown-account
+      logging, and mock email delivery in HTTP; migrate it as its own auth
+      slice.
+- [x] Prove behavior with verify-email application unit tests, focused
+      successful/replay and expired/invalid auth-flow contracts, the full
+      `authentication_flow` suite, API route reachability, formatting,
+      line-count checks, `git diff --check`, and boundary scans proving the
+      verify-email HTTP route is DB-free while the verify-email application
       module does not import Actix, Diesel, DB pools, repositories, infra,
-      models, services, utils, config, bcrypt, or JWT crates.
+      models, services, utils, or config.
 
 ## Legacy Transition Rules
 
@@ -1215,6 +1216,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] `POST /auth/login` now uses an injected identity login use case with
       Postgres credential lookup, bcrypt verification, and JWT issuance behind
       infra adapters.
+- [x] `GET /auth/verify-email` now uses an injected identity verify-email use
+      case, a Postgres token adapter, and a DB-free HTTP route file.
 - [x] `http/identity/authentication` owns `/auth`, JWKS, login, registration,
       email verification, password reset, and auth session helper routes; the
       legacy `api/authentication` module has been deleted.

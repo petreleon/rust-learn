@@ -5,3 +5,4 @@ pub mod list_users;
 pub mod login;
 pub mod ports;
 pub mod user_profile;
+pub mod verify_email;

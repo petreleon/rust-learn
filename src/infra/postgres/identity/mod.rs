@@ -10,3 +10,5 @@ pub mod platform_role_assignment_use_case;
 pub mod user_list_use_case;
 pub mod user_profile_read_use_case;
 pub mod user_profile_store;
+pub mod verify_email_store;
+pub mod verify_email_use_case;

@@ -12,7 +12,9 @@ use rust_learn::models::password_reset_token::PasswordResetToken;
 use rust_learn::models::role::PlatformRole;
 use rust_learn::models::user::User;
 use rust_learn::application::identity::login::LoginUseCase;
+use rust_learn::application::identity::verify_email::VerifyEmailUseCase;
 use rust_learn::infra::postgres::identity::login_use_case::PostgresLoginUseCase;
+use rust_learn::infra::postgres::identity::verify_email_use_case::PostgresVerifyEmailUseCase;
 use rust_learn::utils::email::verification_token_hash;
 use rust_learn::utils::jwt_utils::decode_jwt;
 use std::sync::Arc;
@@ -49,11 +51,16 @@ fn auth_test_app(
     App::new()
         .app_data(web::Data::new(pool.clone()))
         .app_data(login_use_case_data(&pool))
+        .app_data(verify_email_use_case_data(&pool))
         .service(web::scope("/api").service(rust_learn::http::identity::auth_scope()))
 }
 
 fn login_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn LoginUseCase>> {
     web::Data::new(Arc::new(PostgresLoginUseCase::new(pool.clone())))
+}
+
+fn verify_email_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn VerifyEmailUseCase>> {
+    web::Data::new(Arc::new(PostgresVerifyEmailUseCase::new(pool.clone())))
 }
 
 #[actix_web::test]

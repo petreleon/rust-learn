@@ -6,6 +6,7 @@ mod password_reset;
 mod registration;
 mod session;
 mod support;
+mod verify_email;
 
 #[cfg(test)]
 mod tests;
@@ -22,6 +23,6 @@ pub fn auth_scope() -> actix_web::Scope {
         .service(registration::register)
         .service(email_verification::resend_verification)
         .service(password_reset::reset_password)
-        .service(email_verification::verify_email)
+        .service(verify_email::verify_email)
         .service(session::user_id)
 }
