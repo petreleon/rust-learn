@@ -3,6 +3,8 @@ mod handler;
 mod output;
 mod service;
 
+pub const NOTIFICATION_LIST_LIMIT: i64 = 50;
+
 pub use error::NotificationInboxError;
 pub use handler::{clear_notifications, list_notifications, mark_notification_read};
 pub use output::NotificationOutput;

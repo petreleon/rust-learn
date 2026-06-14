@@ -1,3 +1,4 @@
+use crate::application::notifications::notification_inbox::NOTIFICATION_LIST_LIMIT;
 use crate::db::DbPool;
 use crate::models::notification::{NewNotification, Notification};
 use anyhow::Result;

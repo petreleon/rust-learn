@@ -1,7 +1,7 @@
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::notifications::notification_inbox::{
-    NotificationInboxError, NotificationOutput,
+    NotificationInboxError, NotificationOutput, NOTIFICATION_LIST_LIMIT,
 };
 use crate::application::notifications::ports::NotificationInboxStore;
 use crate::models::notification::Notification;
@@ -22,7 +22,7 @@ impl NotificationInboxStore for PostgresNotificationInboxStore<'_> {
         user_id: i32,
     ) -> BoxFuture<'_, Result<Vec<NotificationOutput>, NotificationInboxError>> {
         async move {
-            Notification::find_by_user_id(user_id, self.conn)
+            Notification::find_by_user_id(user_id, NOTIFICATION_LIST_LIMIT, self.conn)
                 .await
                 .map(|rows| rows.into_iter().map(NotificationOutput::from).collect())
                 .map_err(map_notification_inbox_error)

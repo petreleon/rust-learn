@@ -152,7 +152,7 @@ impl NotificationsState {
             .get()
             .await
             .map_err(|e| anyhow::anyhow!("DB Connection error: {}", e))?;
-        let rows = Notification::find_by_user_id(user_id, &mut conn).await?;
+        let rows = Notification::find_by_user_id(user_id, NOTIFICATION_LIST_LIMIT, &mut conn).await?;
         Ok(rows)
     }
 }

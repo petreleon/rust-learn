@@ -1067,27 +1067,30 @@ remaining gaps.
 | 169 | Removed KYC status/audit-event vocabulary and unused Active Record query helpers from the Diesel models; KYC Postgres adapters and tests now import submission statuses from `domain/kyc/submission` and audit events from `domain/kyc/audit`, leaving KYC models as persistence shapes only. |
 | 170 | Removed delegated-permission scope compatibility aliases from the Diesel model; course-service legacy helpers, access-control/learning/organization/reward Postgres adapters, and fixtures now import delegation scopes from `domain/access_control/delegation`, leaving `models::delegated_permission` as persistence shapes only. |
 | 171 | Removed the wallet deposit pending-status compatibility alias from the Diesel model; legacy wallet deposit-intent creation and the migrated Postgres wallet deposit-intent adapter now import status vocabulary from `domain/wallet/deposit`, leaving `models::wallet_token_deposit_intent` as persistence shapes only. |
+| 172 | Moved the notification inbox list limit out of the Diesel model and into the notification inbox application boundary; migrated inbox stores, legacy notification state, and tests now pass the caller-owned limit into the model helper, leaving `src/models` with no public constants. |
 
 ## Recent Slice Evidence
 
-Slice 171: remove wallet deposit status vocabulary from the Diesel model.
+Slice 172: move notification inbox query limit out of the Diesel model.
 
-- [x] Delete `WALLET_DEPOSIT_STATUS_PENDING` from
-      `models::wallet_token_deposit_intent`; the file now owns only Diesel
-      record and insert shapes.
-- [x] Retarget legacy wallet deposit-intent creation and the migrated Postgres
-      wallet deposit-intent adapter to import pending-status vocabulary from
-      `domain/wallet/deposit`.
-- [x] Self-critique: `NOTIFICATION_LIST_LIMIT` remains model-owned, but it is a
-      read/query limit rather than business vocabulary; move it to a
-      notification query/infra owner or explicitly classify it in a later slice.
+- [x] Add `NOTIFICATION_LIST_LIMIT` to
+      `application/notifications/notification_inbox` as inbox contract/query
+      configuration instead of model vocabulary.
+- [x] Change `Notification::find_by_user_id` to accept an explicit limit, and
+      update migrated Postgres inbox reads plus legacy `NotificationsState`
+      reads to pass the application-owned limit.
+- [x] Update notification integration coverage to import the limit from the
+      notification inbox application boundary.
+- [x] Self-critique: `models::notification` still has legacy Active Record
+      helper methods for create/list/mark-read/delete; move those queries into
+      notification-owned Postgres modules in a later deeper slice.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib wallet`,
+      `./scripts/run-host-tests.sh cargo test --lib notification`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving
-      `src/models/wallet_token_deposit_intent.rs` has no wallet deposit status
-      constants and no code imports wallet deposit status constants through
-      `models::wallet_token_deposit_intent`.
+      `src/models` has no public constants, no code imports
+      `NOTIFICATION_LIST_LIMIT` through `models::notification`, and no stale
+      `Notification::find_by_user_id` calls omit the explicit limit.
 
 ## Legacy Transition Rules
 
