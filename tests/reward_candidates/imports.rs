@@ -19,6 +19,14 @@ use rust_learn::domain::rewards::fraud_block::{
     REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
     REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
 };
+use rust_learn::domain::rewards::candidate::event_type::{
+    REWARD_EVENT_COURSE_COMPLETION, REWARD_EVENT_MANUAL_COMPLETION,
+};
+use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_ORGANIZATION;
+use rust_learn::domain::rewards::candidate::status::{
+    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+    REWARD_STATUS_TEACHER_APPROVED,
+};
 use rust_learn::domain::rewards::policy::{
     REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
@@ -31,11 +39,6 @@ use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::reward_audit_event::{
     REWARD_AUDIT_EVENT_AMOUNT_DECISION, REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED,
     REWARD_AUDIT_EVENT_TEACHER_DECISION,
-};
-use rust_learn::models::reward_candidate::{
-    REWARD_EVENT_COURSE_COMPLETION, REWARD_EVENT_MANUAL_COMPLETION, REWARD_SOURCE_ORGANIZATION,
-    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
-    REWARD_STATUS_TEACHER_APPROVED,
 };
 use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};

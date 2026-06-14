@@ -21,15 +21,16 @@ use rust_learn::domain::rewards::policy::{
 use rust_learn::domain::access_control::delegation::{
     DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
 };
+use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
+use rust_learn::domain::rewards::candidate::status::{
+    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+    REWARD_STATUS_TEACHER_APPROVED,
+};
 use rust_learn::infra::postgres::access_control::delegated_permissions::use_case::PostgresDelegatedPermissionUseCase;
 use rust_learn::infra::postgres::rewards::reward_amount_decision_use_case::PostgresRewardAmountDecisionUseCase;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::reward_candidate::{
-    REWARD_EVENT_COURSE_COMPLETION, REWARD_STATUS_AMOUNT_APPROVED,
-    REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
-};
 use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::role::{CourseRole, PlatformRole};
 use rust_learn::models::user::User;

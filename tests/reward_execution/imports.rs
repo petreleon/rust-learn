@@ -18,13 +18,16 @@ use rust_learn::domain::rewards::audit::{
     REWARD_AUDIT_EVENT_TOKEN_CONFIRMED, REWARD_AUDIT_EVENT_WALLET_CREDITED,
     REWARD_AUDIT_EVENT_WALLET_CREDIT_NOTIFIED,
 };
+use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
+use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
+use rust_learn::domain::rewards::candidate::status::{
+    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_NOTIFIED,
+    REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TOKEN_CONFIRMED,
+    REWARD_STATUS_TOKEN_PENDING, REWARD_STATUS_WALLET_CREDITED,
+};
 use rust_learn::domain::rewards::wallet_credit::REWARD_TRANSACTION_TYPE_WALLET_CREDIT;
 use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::reward_candidate::{
-    NewRewardCandidate, RewardCandidate, REWARD_EVENT_COURSE_COMPLETION, REWARD_SOURCE_COURSE,
-    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_NOTIFIED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
-    REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_TOKEN_PENDING, REWARD_STATUS_WALLET_CREDITED,
-};
+use rust_learn::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
 use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_platform::UserRolePlatform;

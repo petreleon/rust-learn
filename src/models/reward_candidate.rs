@@ -5,48 +5,6 @@ use diesel::prelude::*;
 use serde::Serialize;
 use serde_json::Value;
 
-pub const REWARD_EVENT_ASSESSMENT_COMPLETION: &str =
-    crate::domain::rewards::candidate::event_type::REWARD_EVENT_ASSESSMENT_COMPLETION;
-pub const REWARD_EVENT_COURSE_COMPLETION: &str =
-    crate::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
-pub const REWARD_EVENT_MANUAL_COMPLETION: &str =
-    crate::domain::rewards::candidate::event_type::REWARD_EVENT_MANUAL_COMPLETION;
-pub const REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT: &str =
-    crate::domain::rewards::candidate::event_type::REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT;
-
-pub const REWARD_SOURCE_COURSE: &str =
-    crate::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
-pub const REWARD_SOURCE_ORGANIZATION: &str =
-    crate::domain::rewards::candidate::source::REWARD_SOURCE_ORGANIZATION;
-
-pub const REWARD_STATUS_PENDING_TEACHER_APPROVAL: &str =
-    crate::domain::rewards::candidate::status::REWARD_STATUS_PENDING_TEACHER_APPROVAL;
-pub const REWARD_STATUS_TEACHER_APPROVED: &str =
-    crate::domain::rewards::candidate::status::REWARD_STATUS_TEACHER_APPROVED;
-pub const REWARD_STATUS_TEACHER_REJECTED: &str =
-    crate::domain::rewards::candidate::status::REWARD_STATUS_TEACHER_REJECTED;
-pub const REWARD_STATUS_AMOUNT_APPROVED: &str =
-    crate::domain::rewards::candidate::status::REWARD_STATUS_AMOUNT_APPROVED;
-pub const REWARD_STATUS_AMOUNT_REJECTED: &str =
-    crate::domain::rewards::candidate::status::REWARD_STATUS_AMOUNT_REJECTED;
-#[allow(dead_code)]
-pub const REWARD_STATUS_ADJUSTED: &str =
-    crate::domain::rewards::candidate::status::REWARD_STATUS_ADJUSTED;
-pub const REWARD_STATUS_TOKEN_PENDING: &str =
-    crate::domain::rewards::candidate::status::REWARD_STATUS_TOKEN_PENDING;
-pub const REWARD_STATUS_TOKEN_CONFIRMED: &str =
-    crate::domain::rewards::candidate::status::REWARD_STATUS_TOKEN_CONFIRMED;
-pub const REWARD_STATUS_WALLET_CREDITED: &str =
-    crate::domain::rewards::candidate::status::REWARD_STATUS_WALLET_CREDITED;
-pub const REWARD_STATUS_NOTIFIED: &str =
-    crate::domain::rewards::candidate::status::REWARD_STATUS_NOTIFIED;
-pub const REWARD_STATUS_COMPLETED: &str =
-    crate::domain::rewards::candidate::status::REWARD_STATUS_COMPLETED;
-pub const REWARD_STATUS_NEEDS_RECONCILIATION: &str =
-    crate::domain::rewards::candidate::status::REWARD_STATUS_NEEDS_RECONCILIATION;
-pub const REWARD_STATUS_FAILED: &str =
-    crate::domain::rewards::candidate::status::REWARD_STATUS_FAILED;
-
 #[derive(Queryable, Identifiable, Selectable, Debug, Clone, Serialize)]
 #[diesel(table_name = reward_candidates)]
 pub struct RewardCandidate {

@@ -20,12 +20,14 @@ use rust_learn::db::schema::{
     users, wallet_token_deposit_intents, wallets,
 };
 use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::models::course::NewCourse;
-use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::reward_candidate::{
-    NewRewardCandidate, REWARD_EVENT_COURSE_COMPLETION, REWARD_SOURCE_COURSE,
+use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
+use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
+use rust_learn::domain::rewards::candidate::status::{
     REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_WALLET_CREDITED,
 };
+use rust_learn::models::course::NewCourse;
+use rust_learn::models::organization::{NewOrganization, Organization};
+use rust_learn::models::reward_candidate::NewRewardCandidate;
 use rust_learn::models::role::{OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
