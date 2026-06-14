@@ -6,11 +6,11 @@ use crate::application::organizations::list_organization_courses::{
     OrganizationCourseRosterSummaryOutput,
 };
 use crate::db::schema::{course_join_requests, course_roles, reward_candidates, user_role_course};
+use crate::domain::rewards::candidate::status::{
+    REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
+};
 use crate::models::course_join_request::{
     COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
-};
-use crate::models::reward_candidate::{
-    REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
 };
 
 pub async fn load_course_roster_summary(

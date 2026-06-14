@@ -1057,26 +1057,29 @@ remaining gaps.
 | 159 | Moved core wallet-credit candidate lookup/status update, wallet-credit record lookup/create, and audit-event insert calls off legacy repositories; `reward_wallet_credit_transaction` now uses rewards-owned candidate, wallet-credit record, and audit helpers. |
 | 160 | Moved wallet-credit notification candidate lookup/status update, wallet-credit record lookup/notification marking, and audit-event insert calls off legacy repositories; `reward_wallet_credit_notification_transaction` now uses rewards-owned candidate, wallet-credit record, and audit helpers. |
 | 161 | Moved reconciliation candidate refreshes, payout-record lookup, and wallet-credit record lookup off legacy repositories; `src/infra/postgres/rewards` no longer imports `crate::repositories`. |
+| 162 | Moved migrated learning and organization reward queue/status read models off reward-candidate model status aliases; teacher dashboard, teacher-student reward progress, and organization course metric queries now import reward status vocabulary from `domain/rewards/candidate/status`. |
 
 ## Recent Slice Evidence
 
-Slice 161: finish rewards infra repository-import removal.
+Slice 162: move migrated reward status read models to domain vocabulary.
 
-- [x] Update `reward_reconciliation_transaction` to use rewards-owned
-      candidate, payout-record, and wallet-credit record helpers instead of
-      legacy repositories.
-- [x] Preserve reconciliation candidate refreshes after wallet-credit and
-      notification repairs, payout external-link repair, internal-link repair,
-      reconciliation audit behavior, and final status output.
-- [x] Verify `rg -n "crate::repositories|repositories::" src/infra/postgres/rewards`
-      returns no matches.
-- [x] Self-critique: legacy repositories and some legacy services still exist
-      for unmigrated/test paths; the architectural gain here is that migrated
-      rewards infra no longer crosses backward into the repository layer.
+- [x] Update migrated learning/organization Postgres read models for teacher
+      reward queues, teacher-student reward progress, and organization course
+      reward queues to import reward status constants from
+      `domain/rewards/candidate/status`.
+- [x] Keep `models::reward_candidate` as the Diesel record/legacy compatibility
+      surface while avoiding status alias imports in these migrated adapters.
+- [x] Preserve teacher dashboard queue counts, teacher-student reward progress
+      counts, and organization course reward queue counts.
+- [x] Self-critique: old services and repository tests still use model aliases;
+      those are compatibility paths until the surrounding legacy modules are
+      retired or converted.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test reward_execution`,
+      `./scripts/run-host-tests.sh cargo test --test teacher_course_dashboard`,
+      `./scripts/run-host-tests.sh cargo test --test course_discovery`,
       `git diff --check`, line-count checks, and boundary scans proving the
-      rewards infra context no longer imports legacy repositories.
+      touched migrated read models no longer import reward status aliases from
+      `models::reward_candidate`.
 
 ## Legacy Transition Rules
 

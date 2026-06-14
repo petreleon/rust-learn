@@ -8,7 +8,7 @@ use crate::application::learning::get_teacher_course_students::{
 };
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError;
 use crate::db::schema::reward_candidates;
-use crate::models::reward_candidate::{
+use crate::domain::rewards::candidate::status::{
     REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
     REWARD_STATUS_TEACHER_APPROVED, REWARD_STATUS_TEACHER_REJECTED,
 };
