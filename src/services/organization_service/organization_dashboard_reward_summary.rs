@@ -1,4 +1,26 @@
-async fn organization_dashboard_reward_summary(
+use crate::application::reporting::organization_reward_dashboard::{
+    load_organization_reward_dashboard, OrganizationRewardDashboardError,
+};
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::{courses_organizations, reward_candidates, wallets};
+use crate::domain::rewards::candidate::status::{
+    REWARD_STATUS_FAILED, REWARD_STATUS_NEEDS_RECONCILIATION,
+};
+use crate::infra::postgres::reporting::organization_reward_dashboard_store::PostgresOrganizationRewardDashboardStore;
+use bigdecimal::BigDecimal;
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
+
+use super::dashboard_types_and_reads::{
+    OrganizationDashboardError, OrganizationDashboardRewardSummary,
+    OrganizationDashboardWalletSummary,
+};
+use super::support::{
+    OrganizationDashboardCourseSummary, OrganizationDashboardMemberSummary,
+    OrganizationDashboardTeacherApplicationSummary,
+};
+
+pub(super) async fn organization_dashboard_reward_summary(
     conn: &mut diesel_async::AsyncPgConnection,
     organization_id: i32,
 ) -> Result<OrganizationDashboardRewardSummary, OrganizationDashboardError> {
@@ -54,7 +76,7 @@ fn map_reward_dashboard_error(
     }
 }
 
-async fn organization_dashboard_wallet_summary(
+pub(super) async fn organization_dashboard_wallet_summary(
     conn: &mut diesel_async::AsyncPgConnection,
     organization_id: i32,
 ) -> Result<OrganizationDashboardWalletSummary, OrganizationDashboardError> {
@@ -77,7 +99,7 @@ async fn organization_dashboard_wallet_summary(
     })
 }
 
-fn gated_member_summary() -> OrganizationDashboardMemberSummary {
+pub(super) fn gated_member_summary() -> OrganizationDashboardMemberSummary {
     OrganizationDashboardMemberSummary {
         available: false,
         missing_permissions: vec![Permissions::VIEW_ORGANIZATION.to_string()],
@@ -88,7 +110,7 @@ fn gated_member_summary() -> OrganizationDashboardMemberSummary {
     }
 }
 
-fn gated_course_summary() -> OrganizationDashboardCourseSummary {
+pub(super) fn gated_course_summary() -> OrganizationDashboardCourseSummary {
     OrganizationDashboardCourseSummary {
         available: false,
         missing_permissions: vec![Permissions::VIEW_ORGANIZATION.to_string()],
@@ -103,7 +125,8 @@ fn gated_course_summary() -> OrganizationDashboardCourseSummary {
     }
 }
 
-fn gated_teacher_application_summary() -> OrganizationDashboardTeacherApplicationSummary {
+pub(super) fn gated_teacher_application_summary() -> OrganizationDashboardTeacherApplicationSummary
+{
     OrganizationDashboardTeacherApplicationSummary {
         available: false,
         missing_permissions: vec![
@@ -114,7 +137,7 @@ fn gated_teacher_application_summary() -> OrganizationDashboardTeacherApplicatio
     }
 }
 
-fn gated_reward_summary() -> OrganizationDashboardRewardSummary {
+pub(super) fn gated_reward_summary() -> OrganizationDashboardRewardSummary {
     OrganizationDashboardRewardSummary {
         available: false,
         missing_permissions: vec![Permissions::VIEW_ORG_REWARD_REPORTS.to_string()],
@@ -126,7 +149,7 @@ fn gated_reward_summary() -> OrganizationDashboardRewardSummary {
     }
 }
 
-fn gated_wallet_summary() -> OrganizationDashboardWalletSummary {
+pub(super) fn gated_wallet_summary() -> OrganizationDashboardWalletSummary {
     OrganizationDashboardWalletSummary {
         available: false,
         missing_permissions: vec![

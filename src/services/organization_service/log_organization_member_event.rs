@@ -1,4 +1,27 @@
-async fn log_organization_member_event(
+use crate::db::schema::{
+    courses, courses_organizations, delegated_permissions, teacher_applications,
+};
+use crate::domain::learning::course::status::{
+    COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED, COURSE_STATUS_DRAFT,
+    COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
+    COURSE_STATUS_SUSPENDED,
+};
+use crate::domain::teacher_applications::status::{
+    TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
+    TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
+};
+use chrono::{DateTime, Utc};
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
+
+use super::dashboard_types_and_reads::OrganizationDashboardError;
+use super::organization_dashboard_alerts::build_organization_member_builders;
+use super::support::{
+    OrganizationDashboardCourseSummary, OrganizationDashboardMemberSummary,
+    OrganizationDashboardTeacherApplicationSummary,
+};
+
+pub(super) async fn log_organization_member_event(
     conn: &mut diesel_async::AsyncPgConnection,
     organization_id: i32,
     actor_user_id: Option<i32>,
@@ -24,7 +47,7 @@ async fn log_organization_member_event(
     Ok(())
 }
 
-async fn organization_dashboard_member_summary(
+pub(super) async fn organization_dashboard_member_summary(
     conn: &mut diesel_async::AsyncPgConnection,
     organization_id: i32,
 ) -> Result<OrganizationDashboardMemberSummary, OrganizationDashboardError> {
@@ -64,7 +87,7 @@ async fn organization_dashboard_member_summary(
     })
 }
 
-async fn organization_dashboard_course_summary(
+pub(super) async fn organization_dashboard_course_summary(
     conn: &mut diesel_async::AsyncPgConnection,
     organization_id: i32,
 ) -> Result<OrganizationDashboardCourseSummary, OrganizationDashboardError> {
@@ -104,7 +127,7 @@ async fn organization_dashboard_course_summary(
     Ok(summary)
 }
 
-async fn organization_dashboard_teacher_application_summary(
+pub(super) async fn organization_dashboard_teacher_application_summary(
     conn: &mut diesel_async::AsyncPgConnection,
     organization_id: i32,
 ) -> Result<OrganizationDashboardTeacherApplicationSummary, OrganizationDashboardError> {

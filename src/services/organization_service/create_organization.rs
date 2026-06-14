@@ -1,3 +1,15 @@
+use crate::db::schema::{courses_organizations, organizations, user_role_organization};
+use crate::db::DbPool;
+use crate::models::course::Course;
+use crate::models::courses_organizations::NewCourseOrganization;
+use crate::models::organization::{NewOrganization, Organization, UpdateOrganization};
+use crate::repositories::organization_repository::assign_role_to_user_in_organization;
+use diesel::prelude::*;
+use diesel_async::{AsyncConnection, RunQueryDsl};
+
+use super::get_organization_dashboard::CreateOrganizationDto;
+use super::log_organization_member_event::log_organization_member_event;
+
 pub async fn create_organization(
     pool: &DbPool,
     req: CreateOrganizationDto,
@@ -129,7 +141,6 @@ pub async fn remove_organization_member(
     org_id: i32,
     target_user_id: i32,
 ) -> Result<(), String> {
-    use crate::db::schema::user_role_organization;
     let mut conn = pool
         .get()
         .await

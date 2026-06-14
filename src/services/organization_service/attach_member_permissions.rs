@@ -1,4 +1,18 @@
-async fn attach_member_permissions(
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::{
+    delegated_permissions, role_permission_organization, user_role_organization,
+};
+use crate::repositories::organization_repository::user_permission_organization_request;
+use crate::repositories::platform_repository::user_permission_platform_request;
+use chrono::{DateTime, Utc};
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
+use std::collections::BTreeMap;
+
+use super::dashboard_types_and_reads::OrganizationMemberBuilder;
+use super::support::{OrganizationMemberListError, OrganizationMemberOperatorPermissions};
+
+pub(super) async fn attach_member_permissions(
     conn: &mut diesel_async::AsyncPgConnection,
     organization_id: i32,
     members: &mut BTreeMap<i32, OrganizationMemberBuilder>,
@@ -34,7 +48,7 @@ async fn attach_member_permissions(
     Ok(())
 }
 
-async fn attach_member_delegations(
+pub(super) async fn attach_member_delegations(
     conn: &mut diesel_async::AsyncPgConnection,
     organization_id: i32,
     members: &mut BTreeMap<i32, OrganizationMemberBuilder>,
@@ -70,7 +84,7 @@ async fn attach_member_delegations(
     Ok(())
 }
 
-async fn build_member_operator_permissions(
+pub(super) async fn build_member_operator_permissions(
     conn: &mut diesel_async::AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,
@@ -114,7 +128,7 @@ async fn build_member_operator_permissions(
     })
 }
 
-async fn user_has_platform_or_organization_permission(
+pub(super) async fn user_has_platform_or_organization_permission(
     conn: &mut diesel_async::AsyncPgConnection,
     user_id: i32,
     organization_id: i32,

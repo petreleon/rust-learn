@@ -1,3 +1,10 @@
+use std::collections::BTreeSet;
+
+use super::super::user_has_organization_dashboard_access::{
+    member_matches_query, normalize_query_value, sorted_vec,
+};
+use super::member_filtering::{test_member, test_query};
+
 #[test]
 fn search_is_case_insensitive() {
     let member = test_member(

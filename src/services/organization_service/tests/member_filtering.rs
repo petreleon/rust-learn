@@ -1,7 +1,7 @@
-use super::*;
-use std::collections::BTreeSet;
+use super::super::support::{OrganizationMemberListItem, OrganizationMemberListQuery};
+use super::super::user_has_organization_dashboard_access::member_matches_query;
 
-fn test_member(
+pub(super) fn test_member(
     name: &str,
     email: &str,
     roles: Vec<&str>,
@@ -24,7 +24,7 @@ fn test_member(
     }
 }
 
-fn test_query(
+pub(super) fn test_query(
     search: Option<&str>,
     role: Option<&str>,
     permission: Option<&str>,

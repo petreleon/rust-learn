@@ -1,4 +1,18 @@
-fn organization_dashboard_alerts(
+use crate::db::schema::{organization_roles, user_role_organization, users};
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
+use std::collections::{BTreeMap, BTreeSet};
+
+use super::dashboard_types_and_reads::{
+    OrganizationDashboardAlert, OrganizationDashboardOperatorPermissions,
+    OrganizationDashboardRewardSummary, OrganizationDashboardWalletSummary,
+    OrganizationMemberBuilder,
+};
+use super::support::{
+    OrganizationDashboardCourseSummary, OrganizationDashboardTeacherApplicationSummary,
+};
+
+pub(super) fn organization_dashboard_alerts(
     organization_id: i32,
     courses: &OrganizationDashboardCourseSummary,
     teacher_applications: &OrganizationDashboardTeacherApplicationSummary,
@@ -89,7 +103,7 @@ fn organization_dashboard_alerts(
     alerts
 }
 
-async fn build_organization_member_builders(
+pub(super) async fn build_organization_member_builders(
     conn: &mut diesel_async::AsyncPgConnection,
     organization_id: i32,
 ) -> QueryResult<BTreeMap<i32, OrganizationMemberBuilder>> {

@@ -1,3 +1,16 @@
+use crate::config::constants::permissions::Permissions;
+
+use super::super::dashboard_types_and_reads::{
+    OrganizationDashboardOperatorPermissions, OrganizationDashboardRewardSummary,
+    OrganizationDashboardWalletSummary,
+};
+use super::super::organization_dashboard_reward_summary::{
+    gated_course_summary, gated_member_summary,
+};
+use super::super::support::{
+    OrganizationDashboardCourseSummary, OrganizationDashboardTeacherApplicationSummary,
+};
+
 // ── gated summaries ──
 
 #[test]
@@ -23,7 +36,10 @@ fn gated_course_summary_has_correct_permission() {
 
 // ── organization_dashboard_alerts ──
 
-fn course_summary(available: bool, needs_changes: i64) -> OrganizationDashboardCourseSummary {
+pub(super) fn course_summary(
+    available: bool,
+    needs_changes: i64,
+) -> OrganizationDashboardCourseSummary {
     OrganizationDashboardCourseSummary {
         available,
         missing_permissions: if available {
@@ -41,7 +57,10 @@ fn course_summary(available: bool, needs_changes: i64) -> OrganizationDashboardC
         archived: 0,
     }
 }
-fn ta_summary(available: bool, submitted: i64) -> OrganizationDashboardTeacherApplicationSummary {
+pub(super) fn ta_summary(
+    available: bool,
+    submitted: i64,
+) -> OrganizationDashboardTeacherApplicationSummary {
     OrganizationDashboardTeacherApplicationSummary {
         available,
         missing_permissions: if available {
@@ -57,7 +76,7 @@ fn ta_summary(available: bool, submitted: i64) -> OrganizationDashboardTeacherAp
     }
 }
 
-fn reward_summary(
+pub(super) fn reward_summary(
     available: bool,
     failed: i64,
     needs_reconciliation: i64,
@@ -77,7 +96,7 @@ fn reward_summary(
     }
 }
 
-fn wallet_summary(available: bool) -> OrganizationDashboardWalletSummary {
+pub(super) fn wallet_summary(available: bool) -> OrganizationDashboardWalletSummary {
     OrganizationDashboardWalletSummary {
         available,
         missing_permissions: if available {
@@ -90,7 +109,7 @@ fn wallet_summary(available: bool) -> OrganizationDashboardWalletSummary {
     }
 }
 
-fn operator_permissions() -> OrganizationDashboardOperatorPermissions {
+pub(super) fn operator_permissions() -> OrganizationDashboardOperatorPermissions {
     OrganizationDashboardOperatorPermissions {
         can_view_dashboard: true,
         can_view_members: true,

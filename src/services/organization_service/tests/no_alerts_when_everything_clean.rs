@@ -1,3 +1,9 @@
+use super::super::dashboard_types_and_reads::OrganizationDashboardWalletSummary;
+use super::super::organization_dashboard_alerts::organization_dashboard_alerts;
+use super::gated_member_summary_has_correct_permission::{
+    course_summary, operator_permissions, reward_summary, ta_summary, wallet_summary,
+};
+
 #[test]
 fn no_alerts_when_everything_clean() {
     let alerts = organization_dashboard_alerts(

@@ -1,4 +1,16 @@
-async fn user_has_organization_dashboard_access(
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::{delegated_permissions, user_role_organization};
+use chrono::{DateTime, Utc};
+use diesel::dsl::{exists, select};
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
+use std::collections::BTreeSet;
+
+use super::attach_member_permissions::user_has_platform_or_organization_permission;
+use super::dashboard_types_and_reads::OrganizationMemberBuilder;
+use super::support::{OrganizationMemberListItem, OrganizationMemberListQuery};
+
+pub(super) async fn user_has_organization_dashboard_access(
     conn: &mut diesel_async::AsyncPgConnection,
     user_id: i32,
     organization_id: i32,
@@ -43,7 +55,7 @@ async fn user_has_organization_dashboard_access(
     .await
 }
 
-fn member_matches_query(
+pub(super) fn member_matches_query(
     member: &OrganizationMemberListItem,
     query: &OrganizationMemberListQuery,
 ) -> bool {
@@ -90,7 +102,7 @@ fn member_matches_query(
     matches_search && matches_role && matches_permission
 }
 
-fn normalize_query_value(value: Option<String>) -> Option<String> {
+pub(super) fn normalize_query_value(value: Option<String>) -> Option<String> {
     value.and_then(|text| {
         let trimmed = text.trim();
         if trimmed.is_empty() {
@@ -101,7 +113,7 @@ fn normalize_query_value(value: Option<String>) -> Option<String> {
     })
 }
 
-fn sorted_vec(values: BTreeSet<String>) -> Vec<String> {
+pub(super) fn sorted_vec(values: BTreeSet<String>) -> Vec<String> {
     values.into_iter().collect()
 }
 
@@ -137,6 +149,3 @@ impl From<OrganizationMemberBuilder> for OrganizationMemberListItem {
         }
     }
 }
-
-#[cfg(test)]
-mod tests;

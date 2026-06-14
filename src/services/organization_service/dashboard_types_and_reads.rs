@@ -1,3 +1,15 @@
+use crate::db::schema::organizations;
+use crate::db::DbPool;
+use crate::models::organization::Organization;
+use diesel::prelude::*;
+use diesel::result::Error as DieselError;
+use diesel_async::RunQueryDsl;
+use serde::Serialize;
+use std::collections::BTreeSet;
+
+use super::support::{OrganizationMemberListError, OrganizationMemberListQuery};
+use super::user_has_organization_dashboard_access::normalize_query_value;
+
 #[derive(Debug, Serialize)]
 pub struct OrganizationDashboardRewardSummary {
     pub available: bool,
@@ -56,16 +68,16 @@ impl From<DieselError> for OrganizationDashboardError {
 }
 
 #[derive(Debug)]
-struct OrganizationMemberBuilder {
-    id: i32,
-    name: String,
-    email: String,
-    email_verified: bool,
-    kyc_verified: bool,
-    joined_at: chrono::NaiveDateTime,
-    roles: BTreeSet<String>,
-    direct_permissions: BTreeSet<String>,
-    delegated_permissions: BTreeSet<String>,
+pub(super) struct OrganizationMemberBuilder {
+    pub(super) id: i32,
+    pub(super) name: String,
+    pub(super) email: String,
+    pub(super) email_verified: bool,
+    pub(super) kyc_verified: bool,
+    pub(super) joined_at: chrono::NaiveDateTime,
+    pub(super) roles: BTreeSet<String>,
+    pub(super) direct_permissions: BTreeSet<String>,
+    pub(super) delegated_permissions: BTreeSet<String>,
 }
 
 impl OrganizationMemberListQuery {

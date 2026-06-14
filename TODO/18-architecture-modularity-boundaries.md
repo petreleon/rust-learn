@@ -1092,40 +1092,43 @@ remaining gaps.
 | 194 | Replaced the include-based `wallet_deposit_indexer_service` shell with normal child modules, explicit worker-facing re-exports, and dedicated poll-logging plus Ethereum-log helper modules for indexer retry/idle throttling and event parsing support. |
 | 195 | Replaced the include-based `wallet_service` shell and wallet service unit-test shell with normal child modules, explicit public re-exports, and `pub(super)` internal helper sharing for wallet token validation, tax, deposit-intent, and wallet-linking workflows. |
 | 196 | Replaced the include-based `reward_candidate_service` shell and unit-test shell with normal child modules, a named support module, a separate course-submission entrypoint, and explicit `pub(super)` helper boundaries across submission, amount decision, fraud-block, policy, and normalization workflows. |
+| 197 | Replaced the include-based `organization_service` shell and unit-test shell with normal child modules, explicit public re-exports, and `pub(super)` helper boundaries across organization CRUD, member listing, dashboard summaries, alerts, permissions, and audit logging. |
 
 ## Recent Slice Evidence
 
-Slice 196: normalize the reward candidate legacy service module and unit tests.
+Slice 197: normalize the organization legacy service module and unit tests.
 
-- [x] Replace `src/services/reward_candidate_service.rs` `include!`
+- [x] Replace `src/services/organization_service.rs` `include!`
       statements with normal `mod` declarations and explicit root re-exports
-      for the existing reward candidate compatibility API.
-- [x] Rename `reward_candidate_service/imports.rs` to
-      `reward_candidate_service/support.rs`; shared command aliases,
-      teacher-decision DTOs, and legacy error mapping now live behind a named
-      support module.
-- [x] Extract `submit_course_reward_candidate` into its own child module
-      instead of leaving a public entrypoint inside the former textual prelude.
-- [x] Give submission, teacher decision, amount decision, candidate creation,
-      fraud-block checks, policy/evidence eligibility, permission gates, and
-      normalization helpers explicit imports and `pub(super)` boundaries.
-- [x] Replace `reward_candidate_service/tests.rs` `include!` statements with
+      for the existing organization CRUD, member-list, dashboard, and role
+      compatibility API.
+- [x] Rename `organization_service/imports.rs` to
+      `organization_service/support.rs`; shared member/dashboard DTOs and
+      legacy error types now live behind a named support module instead of a
+      textual prelude.
+- [x] Give organization CRUD, member listing, dashboard assembly, member audit,
+      summary reads, alert construction, permission checks, member conversion,
+      and query filtering explicit imports and `pub(super)` helper boundaries.
+- [x] Replace `organization_service/tests.rs` `include!` statements with
       normal test modules and rename `tests/imports.rs` to
-      `tests/normalization.rs`; sibling tests now import only their fixture and
-      helper surfaces.
-- [x] Self-critique: this removes the reward candidate service include shells,
-      but `organization_service` and the large `course_service` legacy shells
-      remain. This slice preserves the compatibility service API; deeper
-      follow-up should continue moving submission/decision behavior behind
-      `application/rewards` ports rather than extending this legacy service.
+      `tests/member_filtering.rs`; sibling tests now import only shared
+      fixtures and helper surfaces.
+- [x] Self-critique: this removes the organization service include shells, but
+      `course_service` remains a large include-based legacy shell. The current
+      slice intentionally preserves physical file names even where legacy
+      grouping is imperfect, such as member-builder helpers living in the
+      dashboard-alert file; the follow-up course slice should avoid creating
+      more such mixed helper modules.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib reward_candidate_service`,
-      `./scripts/run-host-tests.sh cargo test --test reward_candidates`,
-      `./scripts/run-host-tests.sh cargo test --test reward_course_candidates`,
+      `./scripts/run-host-tests.sh cargo test --lib organization_service`,
+      `./scripts/run-host-tests.sh cargo test --test organization_dashboard`,
+      `./scripts/run-host-tests.sh cargo test --test organization_members`,
+      `./scripts/run-host-tests.sh cargo test --test organization_management`,
+      `./scripts/run-host-tests.sh cargo test --test organization_permissions`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no
       `include!`, `imports.rs`, or stale include target remains under
-      `services/reward_candidate_service`.
+      `services/organization_service`.
 
 ## Legacy Transition Rules
 

@@ -1,40 +1,10 @@
-use crate::application::reporting::organization_reward_dashboard::{
-    load_organization_reward_dashboard, OrganizationRewardDashboardError,
-};
-use crate::config::constants::permissions::Permissions;
-use crate::db::schema::{
-    courses, courses_organizations, delegated_permissions, organization_roles, organizations,
-    reward_candidates, role_permission_organization, teacher_applications, user_role_organization,
-    users, wallets,
-};
-use crate::db::DbPool;
-use crate::domain::learning::course::status::{
-    COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED, COURSE_STATUS_DRAFT,
-    COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
-    COURSE_STATUS_SUSPENDED,
-};
-use crate::domain::rewards::candidate::status::{
-    REWARD_STATUS_FAILED, REWARD_STATUS_NEEDS_RECONCILIATION,
-};
-use crate::domain::teacher_applications::status::{
-    TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
-    TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
-};
-use crate::infra::postgres::reporting::organization_reward_dashboard_store::PostgresOrganizationRewardDashboardStore;
-use crate::models::course::Course;
-use crate::models::courses_organizations::NewCourseOrganization;
-use crate::models::organization::{NewOrganization, Organization, UpdateOrganization};
-use crate::repositories::organization_repository::assign_role_to_user_in_organization;
-use crate::repositories::organization_repository::user_permission_organization_request;
-use crate::repositories::platform_repository::user_permission_platform_request;
-use bigdecimal::BigDecimal;
-use chrono::{DateTime, Utc};
-use diesel::dsl::{exists, select};
-use diesel::prelude::*;
 use diesel::result::Error as DieselError;
-use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde::Serialize;
-use std::collections::{BTreeMap, BTreeSet};
+
+use super::dashboard_types_and_reads::{
+    OrganizationDashboardAlert, OrganizationDashboardOperatorPermissions,
+    OrganizationDashboardRewardSummary, OrganizationDashboardWalletSummary,
+};
 
 #[derive(Debug)]
 pub struct OrganizationMemberListQuery {

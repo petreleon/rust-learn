@@ -1,3 +1,28 @@
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::organizations;
+use crate::models::organization::Organization;
+use diesel::prelude::*;
+use diesel_async::RunQueryDsl;
+
+use super::attach_member_permissions::user_has_platform_or_organization_permission;
+use super::dashboard_types_and_reads::{
+    OrganizationDashboardError, OrganizationDashboardOperatorPermissions,
+};
+use super::log_organization_member_event::{
+    organization_dashboard_course_summary, organization_dashboard_member_summary,
+    organization_dashboard_teacher_application_summary,
+};
+use super::organization_dashboard_alerts::organization_dashboard_alerts;
+use super::organization_dashboard_reward_summary::{
+    gated_course_summary, gated_member_summary, gated_reward_summary,
+    gated_teacher_application_summary, gated_wallet_summary, organization_dashboard_reward_summary,
+    organization_dashboard_wallet_summary,
+};
+use super::support::{
+    OrganizationDashboardHealth, OrganizationDashboardOrganization, OrganizationDashboardResponse,
+};
+use super::user_has_organization_dashboard_access::user_has_organization_dashboard_access;
+
 pub async fn get_organization_dashboard(
     conn: &mut diesel_async::AsyncPgConnection,
     actor_user_id: i32,

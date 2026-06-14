@@ -1,4 +1,4 @@
-include!("tests/imports.rs");
-include!("tests/search_is_case_insensitive.rs");
-include!("tests/gated_member_summary_has_correct_permission.rs");
-include!("tests/no_alerts_when_everything_clean.rs");
+mod gated_member_summary_has_correct_permission;
+mod member_filtering;
+mod no_alerts_when_everything_clean;
+mod search_is_case_insensitive;
