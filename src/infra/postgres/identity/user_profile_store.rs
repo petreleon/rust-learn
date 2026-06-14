@@ -3,10 +3,12 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::identity::list_users::ListUsersQuery;
-use crate::application::identity::ports::UserProfileStore;
+use crate::application::identity::ports::{UserProfileAccessStore, UserProfileStore};
 use crate::application::identity::user_profile::{UserProfileError, UserProfileOutput};
+use crate::config::constants::permissions::Permissions;
 use crate::db::schema::users;
 use crate::models::user::User;
+use crate::repositories::platform_repository::user_permission_platform_request;
 
 pub struct PostgresUserProfileStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -52,6 +54,21 @@ impl UserProfileStore for PostgresUserProfileStore<'_> {
                 .await
                 .map(UserProfileOutput::from)
                 .map_err(map_user_profile_error)
+        }
+        .boxed()
+    }
+}
+
+impl UserProfileAccessStore for PostgresUserProfileStore<'_> {
+    fn can_view_any_user(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, UserProfileError>> {
+        async move {
+            user_permission_platform_request(
+                self.conn,
+                user_id,
+                &Permissions::VIEW_USER.to_string(),
+            )
+            .await
+            .map_err(map_user_profile_error)
         }
         .boxed()
     }

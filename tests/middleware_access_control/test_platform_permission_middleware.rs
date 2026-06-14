@@ -19,6 +19,7 @@ async fn test_platform_permission_middleware() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .app_data(user_list_use_case_data(&pool))
+            .app_data(user_profile_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::identity::configure_routes),
     )
@@ -90,6 +91,7 @@ async fn platform_role_assignment_enforces_hierarchy() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .app_data(user_list_use_case_data(&pool))
+            .app_data(user_profile_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::identity::configure_routes),
     )

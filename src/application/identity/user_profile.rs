@@ -13,6 +13,7 @@ pub struct UserProfileOutput {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UserProfileError {
+    Forbidden,
     NotFound,
     Database(String),
 }

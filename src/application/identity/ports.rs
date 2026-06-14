@@ -22,3 +22,7 @@ pub trait UserProfileStore {
         user_id: i32,
     ) -> BoxFuture<'_, Result<UserProfileOutput, UserProfileError>>;
 }
+
+pub trait UserProfileAccessStore {
+    fn can_view_any_user(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, UserProfileError>>;
+}

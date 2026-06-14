@@ -24,6 +24,7 @@ pub(super) async fn list_users(
 
 fn user_profile_error_log(error: &UserProfileError) -> String {
     match error {
+        UserProfileError::Forbidden => "forbidden".to_string(),
         UserProfileError::NotFound => "not_found".to_string(),
         UserProfileError::Database(message) => message.clone(),
     }
