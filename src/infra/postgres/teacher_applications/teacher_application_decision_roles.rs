@@ -8,10 +8,10 @@ use crate::domain::teacher_applications::scope::{
     TEACHER_APPLICATION_SCOPE_COURSE, TEACHER_APPLICATION_SCOPE_ORGANIZATION,
     TEACHER_APPLICATION_SCOPE_PLATFORM,
 };
+use crate::infra::postgres::access_control::course_role_records;
 use crate::infra::postgres::access_control::organization_role_records;
 use crate::infra::postgres::access_control::platform_role_records;
 use crate::models::role::{CourseRole, OrganizationRole, PlatformRole};
-use crate::models::user_role_course::UserRoleCourse;
 
 pub async fn assign_approved_teaching_bundle(
     conn: &mut AsyncPgConnection,
@@ -111,7 +111,13 @@ async fn assign_course_role_if_missing(
     .await?;
 
     if !already_assigned {
-        UserRoleCourse::assign(conn, target_user_id, course_id, course_role_id).await?;
+        course_role_records::assign_course_role_to_user(
+            conn,
+            target_user_id,
+            course_id,
+            course_role_id,
+        )
+        .await?;
     }
     Ok(())
 }

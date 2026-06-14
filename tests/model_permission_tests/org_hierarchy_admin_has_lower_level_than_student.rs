@@ -42,11 +42,11 @@ async fn course_teacher_has_course_permission() {
         .await
         .unwrap();
 
-    UserRoleCourse::assign(&mut conn, u.id(), 1, role_id)
+    course_role_records::assign_course_role_to_user(&mut conn, u.id(), 1, role_id)
         .await
         .unwrap();
 
-    assert!(UserRoleCourse::has_permission(
+    assert!(course_role_records::course_user_has_permission(
         &mut conn,
         u.id(),
         1,
@@ -61,7 +61,7 @@ async fn course_stranger_has_no_course_permission() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "course_x").await;
 
-    assert!(!UserRoleCourse::has_permission(
+    assert!(!course_role_records::course_user_has_permission(
         &mut conn,
         u.id(),
         999,
@@ -83,10 +83,10 @@ async fn course_hierarchy_teacher_above_student() {
         .await
         .unwrap();
 
-    UserRoleCourse::assign(&mut conn, teacher.id(), 1, teacher_role_id)
+    course_role_records::assign_course_role_to_user(&mut conn, teacher.id(), 1, teacher_role_id)
         .await
         .unwrap();
-    UserRoleCourse::assign(&mut conn, student.id(), 1, student_role_id)
+    course_role_records::assign_course_role_to_user(&mut conn, student.id(), 1, student_role_id)
         .await
         .unwrap();
 

@@ -30,7 +30,7 @@ use rust_learn::models::reward_candidate::NewRewardCandidate;
 use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::role::{CourseRole, PlatformRole};
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_course::UserRoleCourse;
+use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::application::learning::get_teacher_course_enrollment_workspace::TeacherCourseEnrollmentWorkspaceUseCase;
@@ -126,7 +126,7 @@ async fn assign_course_role(
     let role_id = CourseRole::find_by_name(role_name, conn)
         .await
         .expect("course role should exist");
-    UserRoleCourse::assign(conn, user_id, course_id, role_id)
+    course_role_records::assign_course_role_to_user(conn, user_id, course_id, role_id)
         .await
         .expect("failed to assign course role");
 }

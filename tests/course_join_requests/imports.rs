@@ -19,7 +19,7 @@ use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_course::UserRoleCourse;
+use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::course_repository::user_permission_course_request;

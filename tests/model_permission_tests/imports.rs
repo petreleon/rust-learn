@@ -7,7 +7,7 @@ use rust_learn::db::schema::users;
 use rust_learn::infra::postgres::access_control::hierarchy_records;
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_course::UserRoleCourse;
+use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::user_repository::create_user;

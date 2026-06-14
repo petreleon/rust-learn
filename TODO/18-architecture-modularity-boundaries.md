@@ -1076,36 +1076,36 @@ remaining gaps.
 | 178 | Moved platform user-role assignment and platform role-permission checks off the Diesel model and into `infra/postgres/access_control/platform_role_records`; legacy platform repositories, teacher-application role assignment, and fixtures now use access-control Postgres records, leaving `models::user_role_platform` as a persistence shape only. |
 | 179 | Moved password authentication row creation off the Diesel model and into `infra/postgres/identity/authentication_records`; legacy user creation now delegates to identity Postgres records, leaving `models::authentication` as a persistence shape only. |
 | 180 | Moved organization user-role assignment and organization permission checks off the Diesel model and into `infra/postgres/access_control/organization_role_records`; legacy organization repositories, teacher-application role assignment, and fixtures now use access-control Postgres records, leaving `models::user_role_organization` as a persistence shape only. |
+| 181 | Moved course user-role assignment and course permission checks off the Diesel model and into `infra/postgres/access_control/course_role_records`; legacy course repositories, teacher-application role assignment, and fixtures now use access-control Postgres records, leaving `models::user_role_course` as a persistence shape only. |
 
 ## Recent Slice Evidence
 
-Slice 180: move organization user-role Active Record helpers into
+Slice 181: move course user-role Active Record helpers into
 access-control Postgres records.
 
-- [x] Add `infra/postgres/access_control/organization_role_records` for
-      organization user-role assignment and direct organization permission
-      checks.
-- [x] Retarget legacy organization repositories, the teacher-application
-      organization role assignment path, and direct fixtures to the
+- [x] Add `infra/postgres/access_control/course_role_records` for course
+      user-role assignment and direct course permission checks.
+- [x] Retarget legacy course repositories, the teacher-application course role
+      assignment path, and direct fixtures to the
       access-control-owned Postgres functions.
-- [x] Delete `UserRoleOrganization::assign` and
-      `UserRoleOrganization::has_permission` from
-      `models::user_role_organization`; the model now owns only the Diesel row
+- [x] Delete `UserRoleCourse::assign` and
+      `UserRoleCourse::has_permission` from
+      `models::user_role_course`; the model now owns only the Diesel row
       shape.
-- [x] Self-critique: course user-role assignment/check helpers still mirror the
-      same Active Record pattern; the next access-control slice should extract
-      `UserRoleCourse::*` into access-control Postgres records and then revisit
-      the teacher-application exists-before-assign guards as a unified
-      assignment adapter.
+- [x] Self-critique: platform, organization, and course user-role helpers now
+      live in access-control infra, but role-name lookup still lives on
+      `models::role`; later slices should extract role lookup/catalog records
+      and collapse teacher-application exists-before-assign guards into a
+      unified assignment adapter.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
       `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
-      `./scripts/run-host-tests.sh cargo test --test organization_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test course_permissions`,
       `./scripts/run-host-tests.sh cargo test --test teacher_applications`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      calls `UserRoleOrganization::assign`/`has_permission` and
-      `models::user_role_organization` has no DB helper implementation.
+      calls `UserRoleCourse::assign`/`has_permission` and
+      `models::user_role_course` has no DB helper implementation.
 
 ## Legacy Transition Rules
 

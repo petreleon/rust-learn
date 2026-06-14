@@ -7,7 +7,7 @@ async fn force_assign_course_role(
     let role_id = CourseRole::find_by_name(role_name, conn)
         .await
         .expect("course role not found");
-    UserRoleCourse::assign(conn, user_id, course_id, role_id)
+    course_role_records::assign_course_role_to_user(conn, user_id, course_id, role_id)
         .await
         .expect("failed to assign course role");
 }

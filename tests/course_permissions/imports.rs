@@ -10,7 +10,7 @@ use rust_learn::db::schema::courses;
 use rust_learn::infra::postgres::learning::course_role_assignment_store::PostgresCourseRoleAssignmentStore;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::role::CourseRole;
-use rust_learn::models::user_role_course::UserRoleCourse;
+use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::repositories::course_repository::user_permission_course_request;
 use rust_learn::repositories::user_repository::create_user;
 
@@ -52,7 +52,7 @@ async fn force_assign_role(
     let role_id = CourseRole::find_by_name(role_name, conn)
         .await
         .expect("role not found");
-    UserRoleCourse::assign(conn, user_id, course_id, role_id)
+    course_role_records::assign_course_role_to_user(conn, user_id, course_id, role_id)
         .await
         .expect("force assign failed");
 }

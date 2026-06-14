@@ -4,7 +4,7 @@ async fn assign_course_role(
     course_id: i32,
     role_id: i32,
 ) {
-    UserRoleCourse::assign(conn, user_id, course_id, role_id)
+    course_role_records::assign_course_role_to_user(conn, user_id, course_id, role_id)
         .await
         .expect("failed to assign course role");
 }
