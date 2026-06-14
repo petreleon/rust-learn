@@ -6,7 +6,9 @@ use rust_learn::db::schema::users;
 use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_COURSE;
 use rust_learn::models::delegated_permission::NewDelegatedPermission;
 use rust_learn::models::user::User;
-use rust_learn::repositories::delegated_permission_repository::{self, DelegatedPermissionFilter};
+use rust_learn::infra::postgres::access_control::delegated_permissions::{
+    self as delegated_permissions, DelegatedPermissionFilter,
+};
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 
 fn unique_string(prefix: &str) -> String {
@@ -60,7 +62,7 @@ async fn test_create_and_find() {
     let grantor = create_user_helper(&mut conn, "d1g").await;
     let grantee = create_user_helper(&mut conn, "d1e").await;
 
-    let d = delegated_permission_repository::create_delegated_permission(
+    let d = delegated_permissions::create_delegated_permission(
         &mut conn,
         new_del(grantor.id(), grantee.id(), "VIEW_COURSE_REWARD_STATUS", 1),
     )
@@ -70,7 +72,7 @@ async fn test_create_and_find() {
     assert_eq!(d.grantor_user_id, grantor.id());
     assert_eq!(d.grantee_user_id, grantee.id());
 
-    let found = delegated_permission_repository::find_delegated_permission(&mut conn, d.id)
+    let found = delegated_permissions::find_delegated_permission(&mut conn, d.id)
         .await
         .unwrap();
     assert_eq!(found.id, d.id);
@@ -82,14 +84,14 @@ async fn test_duplicate_returns_existing() {
     let grantor = create_user_helper(&mut conn, "d2g").await;
     let grantee = create_user_helper(&mut conn, "d2e").await;
 
-    let d1 = delegated_permission_repository::create_delegated_permission(
+    let d1 = delegated_permissions::create_delegated_permission(
         &mut conn,
         new_del(grantor.id(), grantee.id(), "VIEW_COURSE_REWARD_STATUS", 1),
     )
     .await
     .unwrap();
 
-    let d2 = delegated_permission_repository::create_delegated_permission(
+    let d2 = delegated_permissions::create_delegated_permission(
         &mut conn,
         new_del(grantor.id(), grantee.id(), "VIEW_COURSE_REWARD_STATUS", 1),
     )
@@ -105,14 +107,14 @@ async fn test_find_active() {
     let grantor = create_user_helper(&mut conn, "d3g").await;
     let grantee = create_user_helper(&mut conn, "d3e").await;
 
-    delegated_permission_repository::create_delegated_permission(
+    delegated_permissions::create_delegated_permission(
         &mut conn,
         new_del(grantor.id(), grantee.id(), "VIEW_COURSE_REWARD_STATUS", 2),
     )
     .await
     .unwrap();
 
-    let active = delegated_permission_repository::find_active_delegated_permission(
+    let active = delegated_permissions::find_active_delegated_permission(
         &mut conn,
         grantee.id(),
         "VIEW_COURSE_REWARD_STATUS",
@@ -124,7 +126,7 @@ async fn test_find_active() {
     .unwrap();
     assert!(active.is_some());
 
-    let none = delegated_permission_repository::find_active_delegated_permission(
+    let none = delegated_permissions::find_active_delegated_permission(
         &mut conn,
         grantee.id(),
         "VIEW_COURSE_REWARD_STATUS",
@@ -144,14 +146,14 @@ async fn test_revoke() {
     let grantee = create_user_helper(&mut conn, "d4e").await;
     let revoker = create_user_helper(&mut conn, "d4r").await;
 
-    let d = delegated_permission_repository::create_delegated_permission(
+    let d = delegated_permissions::create_delegated_permission(
         &mut conn,
         new_del(grantor.id(), grantee.id(), "VIEW_COURSE_REWARD_STATUS", 3),
     )
     .await
     .unwrap();
 
-    let revoked = delegated_permission_repository::revoke_delegated_permission(
+    let revoked = delegated_permissions::revoke_delegated_permission(
         &mut conn,
         d.id,
         revoker.id(),

@@ -1,4 +1,3 @@
-pub mod delegated_permission_repository;
 pub mod persistent_state_repository;
 pub mod reward_audit_event_repository;
 pub mod reward_candidate_repository;

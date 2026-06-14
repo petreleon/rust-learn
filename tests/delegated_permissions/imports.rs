@@ -37,7 +37,7 @@ use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::infra::postgres::access_control::authorization_checks::user_permission_course_request;
-use rust_learn::repositories::delegated_permission_repository::find_delegated_permission;
+use rust_learn::infra::postgres::access_control::delegated_permissions::find_delegated_permission;
 use rust_learn::infra::postgres::access_control::authorization_checks::user_permission_organization_request;
 use rust_learn::infra::postgres::access_control::authorization_checks::user_permission_platform_request;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;

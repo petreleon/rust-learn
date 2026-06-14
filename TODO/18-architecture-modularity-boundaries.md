@@ -1122,37 +1122,38 @@ remaining gaps.
 | 224 | Moved the version-2 bootstrap admin creation/update path off legacy user/platform repositories and onto `infra/postgres/identity/bootstrap_accounts` plus access-control role catalog/assignment adapters, making production `src` free of `crate::repositories` imports. |
 | 225 | Added an infra-owned verified password user helper, repointed all integration-test `user_repository::create_user` fixtures to it, and deleted the unused legacy `user_repository` module/export. |
 | 226 | Promoted access-control permission, hierarchy, platform-role, organization-role, and platform-permission fixture helpers to `infra/postgres/access_control/authorization_checks`, repointed tests to that facade, and deleted the unused legacy course/organization/platform/platform-permission repository modules. |
+| 227 | Promoted delegated-permission fixture/read helpers to `infra/postgres/access_control/delegated_permissions`, repointed tests to that infra module, and deleted the legacy delegated-permission repository shell plus child bridge modules. |
 
 ## Recent Slice Evidence
 
-Slice 226: delete legacy access-control repository shells.
+Slice 227: delete legacy delegated-permission repository shell.
 
-- [x] Promote the access-control authorization facade to a public infra module
-      for integration fixtures that need permission checks, hierarchy
-      comparisons, direct platform role assignment, platform permission
-      assignment, and hierarchy-aware organization role assignment.
-- [x] Repoint tests from legacy course, organization, platform, and
-      platform-permission repository imports to
-      `infra/postgres/access_control/authorization_checks`.
-- [x] Delete `src/repositories/course_repository.rs`,
-      `src/repositories/organization_repository.rs`,
-      `src/repositories/platform_repository.rs`, and
-      `src/repositories/platform_permission_repository.rs`, then remove their
-      module exports.
-- [x] Confirm scans show no course/organization/platform access-control
-      repository names remain in `src` or `tests`; remaining
-      `rust_learn::repositories` test hits are delegated-permission,
-      persistent-state, reward, and teacher-application fixtures.
-- [x] Self-critique: the public infra facade is still test/support oriented and
-      not a pure application authorization port. It is a direct improvement
-      because the compatibility repository shells are gone, but request-time
-      authorization still deserves an application-level boundary in a later
-      slice.
+- [x] Add public delegated-permission infra helpers for create/find/find-active,
+      list, revoke, and active platform/organization/course delegation checks,
+      while leaving SQL ownership in the existing records and
+      permission-delegation modules.
+- [x] Re-export the application `DelegatedPermissionFilter` from the infra
+      delegated-permissions module so repository-focused tests keep the same
+      filter shape without importing `src/repositories`.
+- [x] Repoint KYC, current-session, organization-member, delegated-permission,
+      and repository-delegation tests from
+      `rust_learn::repositories::delegated_permission_repository` to
+      `infra/postgres/access_control/delegated_permissions`.
+- [x] Delete `src/repositories/delegated_permission_repository.rs` and its
+      `records`/`revocation` child bridge modules, then remove the export from
+      `src/repositories/mod.rs`.
+- [x] Confirm scans show no delegated-permission repository references remain;
+      remaining `rust_learn::repositories` test hits are reward,
+      persistent-state, and teacher-application fixtures.
+- [x] Self-critique: the delegated-permission infra facade exposes model-level
+      records for test support. A later application-level test-support layer
+      would be cleaner, but this removes the repository compatibility shell and
+      keeps one concrete Postgres owner.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans for removed access-control repository
+      `git diff --check`, scans for removed delegated-permission repository
       references, and file-size checks keeping changed Rust files under the
       manual 180-line ceiling.
 
