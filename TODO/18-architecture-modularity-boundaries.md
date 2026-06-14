@@ -1147,30 +1147,33 @@ remaining gaps.
 | 249 | Moved per-student teacher reward progress status bucketing into the teacher-students application layer, leaving Postgres to group candidate status rows and pass typed reward statuses. |
 | 250 | Moved platform wallet-reconciliation reward status sets into the reporting application layer, leaving Postgres to translate typed statuses into SQL filters for missing-record counts. |
 | 251 | Split platform wallet-reconciliation candidate-id resolution into a dedicated Postgres helper and shared mapper, leaving the count adapter focused on aggregation and application-owned status-set filters. |
+| 252 | Moved organization reward-dashboard sponsored teacher-application status bucketing into the reporting application layer, leaving Postgres to load status rows only. |
 
 ## Recent Slice Evidence
 
-Slice 251: split platform wallet-reconciliation candidate-id resolution.
+Slice 252: move organization reward-dashboard teacher-application status bucketing.
 
-- [x] Add `infra/postgres/reporting/platform_wallet_reconciliation_candidate_ids`
-      as the Postgres owner for resolving wallet-related reward candidate IDs
-      from wallet credit records, user wallets, and organization wallets.
-- [x] Add `platform_wallet_reconciliation_mappers` so candidate, count, missing
-      record, and wallet-list query modules share one Diesel-to-application
-      error translation instead of borrowing helpers from each other.
-- [x] Repoint `platform_wallet_reconciliation_counts` to call the candidate-ID
-      helper, keeping that adapter focused on aggregation counts and
-      application-owned status-set filters.
-- [x] Reduce `platform_wallet_reconciliation_counts` from 170 to 121 lines and
-      keep the new helper at 54 lines, preserving the repo's manual Rust file
-      size margin before future reconciliation work.
-- [x] Preserve query behavior: the same wallet credit, student user, and source
-      organization candidate sources are unioned through a `HashSet`.
-- [x] Self-critique: this is an infra granularity and file-pressure cleanup, not
-      a new business-rule extraction; the next slice should resume moving raw
-      reward/reporting status decisions out of Postgres query modules.
+- [x] Add
+      `application/reporting/organization_reward_dashboard/teacher_applications`
+      as the application owner for sponsored teacher-application dashboard
+      status bucketing.
+- [x] Repoint `organization_reward_dashboard_queries` to load status rows and
+      delegate summary construction to the application helper instead of
+      matching teacher-application status constants in Postgres.
+- [x] Preserve existing report behavior: every row still increments `total`,
+      exact known status keys increment their specific bucket, and unknown or
+      non-normalized statuses do not fail the read model.
+- [x] Cover the summary helper with pure application tests for normal bucket
+      assignment and unknown-status tolerance.
+- [x] Reduce `organization_reward_dashboard_queries` from 159 to 145 lines and
+      keep the new helper at 67 lines, preserving the manual Rust file-size
+      margin.
+- [x] Self-critique: the store still composes course totals and wallet balance
+      totals inside the Postgres adapter; a later slice should move those report
+      aggregation rules behind application-owned fact/output helpers.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_csv_exports_cover_business_reward_datasets`,
+      `./scripts/run-host-tests.sh cargo test --lib organization_reward_dashboard::teacher_applications`,
+      `./scripts/run-host-tests.sh cargo test --test organization_dashboard`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,

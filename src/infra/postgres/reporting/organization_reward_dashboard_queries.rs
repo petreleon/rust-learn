@@ -4,15 +4,12 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::organization_reward_dashboard::{
-    OrganizationCourseRewardDashboardRowOutput, OrganizationRewardDashboardError,
-    OrganizationWalletBalanceRowOutput, TeacherApplicationDashboardSummaryOutput,
+    teacher_application_summary_from_statuses, OrganizationCourseRewardDashboardRowOutput,
+    OrganizationRewardDashboardError, OrganizationWalletBalanceRowOutput,
+    TeacherApplicationDashboardSummaryOutput,
 };
 use crate::db::schema::{
     courses, courses_organizations, reward_candidates, teacher_applications, wallets,
-};
-use crate::domain::teacher_applications::status::{
-    TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
-    TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
 };
 
 pub(super) async fn sponsored_teacher_application_summary(
@@ -30,18 +27,7 @@ pub(super) async fn sponsored_teacher_application_summary(
         .await
         .map_err(map_diesel_error)?;
 
-    let mut summary = TeacherApplicationDashboardSummaryOutput::default();
-    for status in statuses {
-        summary.total += 1;
-        match status.as_str() {
-            TEACHER_APPLICATION_STATUS_SUBMITTED => summary.submitted += 1,
-            TEACHER_APPLICATION_STATUS_NEEDS_CHANGES => summary.needs_changes += 1,
-            TEACHER_APPLICATION_STATUS_APPROVED => summary.approved += 1,
-            TEACHER_APPLICATION_STATUS_REJECTED => summary.rejected += 1,
-            _ => {}
-        }
-    }
-    Ok(summary)
+    Ok(teacher_application_summary_from_statuses(statuses))
 }
 
 pub(super) async fn course_reward_rows(
