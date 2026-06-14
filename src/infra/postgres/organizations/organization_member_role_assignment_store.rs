@@ -1,4 +1,3 @@
-use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
@@ -7,11 +6,9 @@ use crate::application::organizations::assign_organization_member_role::{
     OrganizationMemberRoleAssignmentStore,
 };
 use crate::config::constants::permissions::Permissions;
-use crate::db::schema::{
-    organization_member_audit_events, organization_roles, role_organization_hierarchy,
-    user_role_organization,
-};
+use crate::db::schema::organization_member_audit_events;
 use crate::infra::postgres::organizations::organization_permission_checks::has_organization_permission;
+use crate::infra::postgres::organizations::organization_role_assignments;
 use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
 
 pub struct PostgresOrganizationMemberRoleAssignmentStore<'conn> {
@@ -49,9 +46,13 @@ impl OrganizationMemberRoleAssignmentStore for PostgresOrganizationMemberRoleAss
         organization_id: i32,
     ) -> BoxFuture<'_, Result<Option<i32>, OrganizationMemberRoleAssignmentError>> {
         async move {
-            organization_min_level(self.conn, actor_user_id, organization_id)
-                .await
-                .map_err(map_assignment_error)
+            organization_role_assignments::organization_min_level(
+                self.conn,
+                actor_user_id,
+                organization_id,
+            )
+            .await
+            .map_err(map_assignment_error)
         }
         .boxed()
     }
@@ -62,9 +63,13 @@ impl OrganizationMemberRoleAssignmentStore for PostgresOrganizationMemberRoleAss
         organization_id: i32,
     ) -> BoxFuture<'_, Result<Option<i32>, OrganizationMemberRoleAssignmentError>> {
         async move {
-            organization_min_level(self.conn, target_user_id, organization_id)
-                .await
-                .map_err(map_assignment_error)
+            organization_role_assignments::organization_min_level(
+                self.conn,
+                target_user_id,
+                organization_id,
+            )
+            .await
+            .map_err(map_assignment_error)
         }
         .boxed()
     }
@@ -75,12 +80,8 @@ impl OrganizationMemberRoleAssignmentStore for PostgresOrganizationMemberRoleAss
     ) -> BoxFuture<'_, Result<Option<i32>, OrganizationMemberRoleAssignmentError>> {
         let role_name = role_name.to_string();
         async move {
-            organization_roles::table
-                .filter(organization_roles::name.eq(role_name))
-                .select(organization_roles::id)
-                .first::<i32>(self.conn)
+            organization_role_assignments::role_id_by_name(self.conn, &role_name)
                 .await
-                .optional()
                 .map_err(map_assignment_error)
         }
         .boxed()
@@ -91,12 +92,8 @@ impl OrganizationMemberRoleAssignmentStore for PostgresOrganizationMemberRoleAss
         role_id: i32,
     ) -> BoxFuture<'_, Result<Option<i32>, OrganizationMemberRoleAssignmentError>> {
         async move {
-            role_organization_hierarchy::table
-                .filter(role_organization_hierarchy::organization_role_id.eq(role_id))
-                .select(role_organization_hierarchy::hierarchy_level)
-                .first::<i32>(self.conn)
+            organization_role_assignments::role_hierarchy_level(self.conn, role_id)
                 .await
-                .optional()
                 .map_err(map_assignment_error)
         }
         .boxed()
@@ -109,16 +106,15 @@ impl OrganizationMemberRoleAssignmentStore for PostgresOrganizationMemberRoleAss
         role_id: i32,
     ) -> BoxFuture<'_, Result<(), OrganizationMemberRoleAssignmentError>> {
         async move {
-            diesel::insert_into(user_role_organization::table)
-                .values((
-                    user_role_organization::user_id.eq(target_user_id),
-                    user_role_organization::organization_id.eq(organization_id),
-                    user_role_organization::organization_role_id.eq(role_id),
-                ))
-                .execute(self.conn)
-                .await
-                .map(|_| ())
-                .map_err(map_assignment_error)
+            organization_role_assignments::assign_role(
+                self.conn,
+                target_user_id,
+                organization_id,
+                role_id,
+            )
+            .await
+            .map(|_| ())
+            .map_err(map_assignment_error)
         }
         .boxed()
     }
@@ -145,25 +141,6 @@ impl OrganizationMemberRoleAssignmentStore for PostgresOrganizationMemberRoleAss
         }
         .boxed()
     }
-}
-
-async fn organization_min_level(
-    conn: &mut AsyncPgConnection,
-    user_id: i32,
-    organization_id: i32,
-) -> diesel::QueryResult<Option<i32>> {
-    role_organization_hierarchy::table
-        .inner_join(
-            user_role_organization::table.on(role_organization_hierarchy::organization_role_id
-                .eq(user_role_organization::organization_role_id)),
-        )
-        .filter(user_role_organization::user_id.eq(user_id))
-        .filter(user_role_organization::organization_id.eq(organization_id))
-        .select(diesel::dsl::min(
-            role_organization_hierarchy::hierarchy_level,
-        ))
-        .first::<Option<i32>>(conn)
-        .await
 }
 
 fn map_assignment_error(error: diesel::result::Error) -> OrganizationMemberRoleAssignmentError {

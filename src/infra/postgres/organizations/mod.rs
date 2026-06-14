@@ -28,6 +28,7 @@ pub mod organization_member_removal_use_case;
 pub mod organization_member_role_assignment_store;
 pub mod organization_member_role_assignment_use_case;
 mod organization_permission_checks;
+mod organization_role_assignments;
 mod organization_teacher_application_audit_context;
 mod organization_teacher_application_context;
 mod organization_teacher_application_mappers;

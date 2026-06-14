@@ -7,9 +7,9 @@ use crate::application::organizations::invite_organization_member::{
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::organization_member_audit_events;
 use crate::infra::postgres::organizations::organization_permission_checks::has_organization_permission;
+use crate::infra::postgres::organizations::organization_role_assignments::assign_role_with_hierarchy;
 use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
 use crate::models::user::User;
-use crate::repositories::organization_repository::assign_role_to_user_in_organization;
 
 pub struct PostgresOrganizationMemberInviteStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -65,7 +65,7 @@ impl OrganizationMemberInviteStore for PostgresOrganizationMemberInviteStore<'_>
         role_name: String,
     ) -> BoxFuture<'_, Result<(), OrganizationMemberInviteError>> {
         async move {
-            assign_role_to_user_in_organization(
+            assign_role_with_hierarchy(
                 self.conn,
                 actor_user_id,
                 target_user_id,
