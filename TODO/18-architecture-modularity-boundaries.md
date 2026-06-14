@@ -1036,27 +1036,32 @@ remaining gaps.
 | 138 | Moved migrated identity account lookup and password-auth reads from `models::user` Active Record methods into `infra/postgres/identity/accounts`, and updated login, resend-verification, and password-reset request stores to call the context-owned Postgres account adapter. |
 | 139 | Moved registration account creation, default student role lookup/assignment, and password-auth insertion from `models::*` Active Record methods into `infra/postgres/identity/accounts`; the registration store now delegates account setup to the identity Postgres account adapter while keeping verification-token creation in the same transaction. |
 | 140 | Moved the migrated user-profile access check off `repositories::platform_repository::user_permission_platform_request` and into `infra/postgres/identity/platform_permissions`, preserving direct platform-role permission checks, active platform delegation checks, and delegation logging. |
+| 141 | Moved hierarchy-aware platform role assignment from `repositories::platform_repository::assign_role_to_user_with_hierarchy` into `infra/postgres/identity/platform_role_assignments`; the migrated platform-role assignment store now calls identity-owned Diesel queries for assigner hierarchy, target hierarchy, target role lookup, and assignment insertion. |
 
 ## Recent Slice Evidence
 
-Slice 140: move user-profile platform permission checks into identity infra.
+Slice 141: move hierarchy-aware platform role assignment into identity infra.
 
-- [x] Add `infra/postgres/identity/platform_permissions` with
-      `user_has_platform_permission`, direct role-permission lookup, active
-      platform delegation lookup, and the existing
-      `delegated_permission_used scope=platform` log event.
-- [x] Update `PostgresUserProfileStore::can_view_any_user` to call the
-      identity-owned platform permission helper instead of the legacy platform
-      repository helper.
-- [x] Self-critique: user-profile access is now free of the legacy platform
-      repository, but `current_session_store`, `current_session_delegations`,
-      and `platform_role_assignment_store` still import legacy repository
-      helpers; move those behind identity-owned Postgres modules next.
-- [x] Prove behavior with focused `/user` and `/user/{id}` middleware access
-      coverage, get-user-profile application tests, API route reachability,
-      formatting, line-count checks, `git diff --check`, and boundary scans
-      proving `user_profile_store` no longer imports or calls
-      `user_permission_platform_request`.
+- [x] Add `infra/postgres/identity/platform_role_assignments` with
+      `assign_platform_role_with_hierarchy`, assigner/target hierarchy queries,
+      platform role lookup, target role-level lookup, and assignment insertion.
+- [x] Preserve the legacy hierarchy semantics: missing assigner hierarchy maps
+      to not-found, assigning a role higher than or equal to the assigner is a
+      hierarchy violation, and assigning to a user with a higher/equal existing
+      role is also a hierarchy violation.
+- [x] Update `PostgresPlatformRoleAssignmentStore` to call the identity-owned
+      helper instead of `repositories::platform_repository`.
+- [x] Self-critique: platform role assignment is now free of the legacy platform
+      repository, but `current_session_store` and
+      `current_session_delegations` still import legacy session/delegation
+      repositories; move current-session reads behind identity-owned Postgres
+      modules next.
+- [x] Prove behavior with focused successful assignment middleware coverage,
+      hierarchy rejection middleware coverage, assign-platform-role application
+      tests, API route reachability, formatting, line-count checks,
+      `git diff --check`, and boundary scans proving the platform role
+      assignment store no longer imports or calls
+      `assign_role_to_user_with_hierarchy`.
 
 ## Legacy Transition Rules
 

@@ -3,7 +3,7 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::assign_platform_role::{
     AssignPlatformRoleCommand, AssignPlatformRoleError, PlatformRoleAssignmentStore,
 };
-use crate::repositories::platform_repository::assign_role_to_user_with_hierarchy;
+use crate::infra::postgres::identity::platform_role_assignments::assign_platform_role_with_hierarchy;
 
 pub struct PostgresPlatformRoleAssignmentStore<'conn> {
     conn: &'conn mut diesel_async::AsyncPgConnection,
@@ -21,7 +21,7 @@ impl PlatformRoleAssignmentStore for PostgresPlatformRoleAssignmentStore<'_> {
         command: AssignPlatformRoleCommand,
     ) -> BoxFuture<'_, Result<(), AssignPlatformRoleError>> {
         async move {
-            assign_role_to_user_with_hierarchy(
+            assign_platform_role_with_hierarchy(
                 self.conn,
                 command.requester_user_id,
                 command.target_user_id,
