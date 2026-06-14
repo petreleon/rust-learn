@@ -1,10 +1,9 @@
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::db::schema::kyc_audit_events;
+use crate::domain::kyc::audit::{KYC_AUDIT_EVENT_REVIEW_DECISION, KYC_AUDIT_EVENT_SUBMITTED};
 use crate::domain::kyc::submission::NormalizedKycDecision;
-use crate::models::kyc_audit_event::{
-    KycAuditEvent, NewKycAuditEvent, KYC_AUDIT_EVENT_REVIEW_DECISION, KYC_AUDIT_EVENT_SUBMITTED,
-};
+use crate::models::kyc_audit_event::{KycAuditEvent, NewKycAuditEvent};
 use crate::models::kyc_submission::KycSubmission;
 
 pub(super) async fn record_submission_audit(

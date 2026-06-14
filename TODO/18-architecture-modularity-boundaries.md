@@ -1064,27 +1064,31 @@ remaining gaps.
 | 166 | Moved course lifecycle vocabulary into `domain/learning/course/status`; migrated lifecycle/progress use cases, Postgres read adapters, legacy service hubs, and fixtures now import course statuses from domain, leaving `models::course` as record/change-set structs only. |
 | 167 | Moved course enrollment join-request vocabulary into `domain/learning/enrollment/status`; migrated enrollment/progress use cases, Postgres read/write adapters, legacy service hubs, and fixtures now import join statuses from domain, leaving `models::course_join_request` as record/insert structs only. |
 | 168 | Removed teacher-application status/scope vocabulary from the Diesel model; organization/dashboard/reporting adapters, legacy service hubs, and fixtures now import lifecycle/scope vocabulary from `domain/teacher_applications`, leaving `models::teacher_application` as persistence record/insert structs only. |
+| 169 | Removed KYC status/audit-event vocabulary and unused Active Record query helpers from the Diesel models; KYC Postgres adapters and tests now import submission statuses from `domain/kyc/submission` and audit events from `domain/kyc/audit`, leaving KYC models as persistence shapes only. |
 
 ## Recent Slice Evidence
 
-Slice 168: remove teacher-application vocabulary from the Diesel model.
+Slice 169: remove KYC vocabulary and dead query helpers from Diesel models.
 
-- [x] Delete teacher-application status/scope constants from
-      `models::teacher_application`; the file now owns only Diesel record,
-      insert, and audit-event shapes.
-- [x] Update organization/dashboard/reporting adapters, legacy organization
-      service imports, and shared route/integration fixtures to import
-      teacher-application statuses/scopes from `domain/teacher_applications`.
-- [x] Self-critique: KYC status/audit vocabulary, delegated-permission scopes,
-      and wallet deposit statuses still live in model files; move each into its
-      owning domain context in later slices.
+- [x] Add `domain/kyc/audit` as the owner of KYC audit event names while
+      keeping KYC status vocabulary in `domain/kyc/submission`.
+- [x] Delete duplicated KYC status/audit constants from
+      `models::kyc_submission` and `models::kyc_audit_event`.
+- [x] Remove unused Active Record query helpers from KYC models; migrated KYC
+      Postgres stores already own submission lookup, review queue, decision,
+      audit insert, and audit listing queries.
+- [x] Update KYC Postgres audit writes and KYC review tests to import audit
+      vocabulary from `domain/kyc/audit`.
+- [x] Self-critique: delegated-permission scopes and wallet deposit statuses
+      still live in model files; move each into its owning domain context in
+      later slices.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib teacher_applications`,
+      `./scripts/run-host-tests.sh cargo test --lib kyc`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving
-      `src/models/teacher_application.rs` has no teacher-application status or
-      scope constants and no code imports those constants through
-      `models::teacher_application`.
+      KYC models have no status/audit vocabulary constants, no code imports KYC
+      vocabulary through KYC model modules, and no code calls the removed
+      Active Record KYC model query helpers.
 
 ## Legacy Transition Rules
 
