@@ -18,6 +18,7 @@ async fn test_platform_permission_middleware() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(platform_role_assignment_use_case_data(&pool))
             .app_data(user_list_use_case_data(&pool))
             .app_data(user_profile_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
@@ -90,6 +91,7 @@ async fn platform_role_assignment_enforces_hierarchy() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(platform_role_assignment_use_case_data(&pool))
             .app_data(user_list_use_case_data(&pool))
             .app_data(user_profile_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)

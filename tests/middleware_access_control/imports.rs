@@ -8,6 +8,7 @@ use rust_learn::utils::jwt_utils::create_jwt;
 use actix_service::Service;
 use chrono::NaiveDate;
 use rust_learn::application::access_control::list_roles::RoleCatalogUseCase;
+use rust_learn::application::identity::assign_platform_role::PlatformRoleAssignmentUseCase;
 use rust_learn::application::identity::get_user_profile::UserProfileReadUseCase;
 use rust_learn::application::identity::list_users::UserListUseCase;
 use rust_learn::application::learning::discover_courses::CourseDiscoveryUseCase;
@@ -15,6 +16,7 @@ use rust_learn::application::learning::get_course::CourseReadUseCase;
 use rust_learn::application::learning::list_course_organizations::CourseOrganizationsUseCase;
 use rust_learn::db::schema::{courses, organizations};
 use rust_learn::infra::postgres::access_control::role_catalog_use_case::PostgresRoleCatalogUseCase;
+use rust_learn::infra::postgres::identity::platform_role_assignment_use_case::PostgresPlatformRoleAssignmentUseCase;
 use rust_learn::infra::postgres::identity::user_list_use_case::PostgresUserListUseCase;
 use rust_learn::infra::postgres::identity::user_profile_read_use_case::PostgresUserProfileReadUseCase;
 use rust_learn::infra::postgres::learning::course_discovery_use_case::PostgresCourseDiscoveryUseCase;
@@ -60,6 +62,15 @@ fn generate_token(user_id: i32) -> String {
 
 fn role_catalog_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn RoleCatalogUseCase>> {
     web::Data::new(Arc::new(PostgresRoleCatalogUseCase::new(pool.clone())))
+}
+
+fn platform_role_assignment_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn PlatformRoleAssignmentUseCase>> {
+    web::Data::new(Arc::new(PostgresPlatformRoleAssignmentUseCase::new(
+        pool.clone(),
+        rust_learn::utils::notifications::NotificationsState::new(pool.clone()),
+    )))
 }
 
 fn user_list_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn UserListUseCase>> {

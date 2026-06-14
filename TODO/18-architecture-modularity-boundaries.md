@@ -1021,38 +1021,37 @@ remaining gaps.
 | 123 | Moved teacher-application notification fan-out behind `application/teacher_applications/notify_application_event`, a Postgres recipient lookup and notification sender adapter/use case, optional HTTP app-data wiring, and teacher-application bootstrap construction; `http/teacher_applications` no longer imports `DbPool`, repositories, or `NotificationsState` for notification recipient lookup. |
 | 124 | Moved `GET /user` behind an injected `application/identity/list_users::UserListUseCase`, a Postgres user-list use-case wrapper, `bootstrap/identity_wiring`, and a DB-free `http/identity/user_list` handler; central app-data registration now delegates identity and teacher-application use-case bundles to context wiring helpers. |
 | 125 | Moved `GET /user/{id}` behind `application/identity/get_user_profile` command/service/authorization behavior, a Postgres profile-read use-case wrapper, `UserProfileAccessStore` permission port, identity app-data wiring, and a DB-free HTTP profile handler; `http/identity/user_handlers.rs` no longer imports `DbPool`, repositories, infra, or Diesel. |
+| 126 | Moved `POST /user/{id}/role` behind `application/identity/assign_platform_role`, a Postgres hierarchy-aware role-assignment store/use-case, best-effort platform role notification delivery inside infra, identity app-data wiring, and a DB-free HTTP assignment handler; `http/identity/platform_role_assignment.rs` no longer imports `DbPool`, repositories, Diesel, or `NotificationsState`. |
 
 ## Recent Slice Evidence
 
-Slice 125: move identity user profile read behind an injected use case.
+Slice 126: move platform role assignment behind an injected use case.
 
-- [x] Add `GetUserProfileCommand` and `UserProfileReadUseCase` under
-      `application/identity/get_user_profile` so HTTP depends on an application
-      profile-read contract.
-- [x] Move the self-read versus cross-user `VIEW_USER` decision into the
-      application handler with fake-tested behavior for self reads, forbidden
-      cross-user reads, and permitted cross-user reads.
-- [x] Add `UserProfileAccessStore` as the authorization port and implement it
-      in `PostgresUserProfileStore` using the existing platform permission
-      repository with `Permissions::VIEW_USER`.
-- [x] Add `infra/postgres/identity/user_profile_read_use_case` to own pool
-      access, Postgres store construction, and delegation to the application
-      profile handler.
-- [x] Register the profile-read use case through `bootstrap/identity_wiring`
-      and adapt direct identity route test harnesses to provide the same
-      app-data as production.
-- [x] Rework `GET /user/{id}` so `http/identity/user_handlers.rs` authenticates
-      the request, builds the command, maps application errors, and no longer
-      imports `DbPool`, repositories, infra, Diesel, or permission constants.
-- [x] Self-critique: `POST /user/{id}/role` still owns DB access,
-      hierarchy-based role assignment, and role-assignment notification fan-out
-      in HTTP; migrate it as the next identity/access-control slice.
-- [x] Prove behavior with profile-read application unit tests, focused
-      `/user/{id}` middleware contract coverage, API route reachability,
-      current-session API tests, formatting, line-count checks,
-      `git diff --check`, and boundary scans proving identity profile HTTP is
-      DB-free while the new application profile module does not import Actix,
-      Diesel, DB pools, repositories, infra, models, services, utils, or config.
+- [x] Add `application/identity/assign_platform_role` with command, error,
+      outcome, store, service, and fake-tested handler behavior for assignment
+      delegation and store-error propagation.
+- [x] Add a Postgres platform role-assignment store that maps the existing
+      hierarchy-aware repository errors into application errors:
+      hierarchy violation, role not found, and database failure.
+- [x] Add a Postgres platform role-assignment use case that owns DB connection
+      access, delegates to the application handler, and sends the existing
+      platform role-assignment notification best-effort after success.
+- [x] Register the use case through `bootstrap/identity_wiring` and adapt
+      direct identity route test harnesses to provide the same app-data as
+      production.
+- [x] Rework `POST /user/{id}/role` so HTTP authenticates the actor, builds the
+      command, maps application errors to the existing response bodies, and no
+      longer imports `DbPool`, repositories, Diesel, or `NotificationsState`.
+- [x] Self-critique: identity authentication routes still open DB pools and use
+      Diesel directly for login, registration, email verification, and password
+      reset; migrate those as separate auth slices because they touch password,
+      token, and transaction semantics.
+- [x] Prove behavior with platform role-assignment application unit tests,
+      focused platform permission and hierarchy route contracts, API route
+      reachability, formatting, line-count checks, `git diff --check`, and
+      boundary scans proving identity `/user` HTTP handlers are DB-free while
+      the new application assignment module does not import Actix, Diesel, DB
+      pools, repositories, infra, models, services, utils, or config.
 
 ## Legacy Transition Rules
 
@@ -1208,6 +1207,9 @@ boundary checks from the matrix above to every canonical context.
       a Postgres use-case wrapper, and a DB-free HTTP handler.
 - [x] `GET /user/{id}` now uses an injected identity profile-read application
       use case, a Postgres use-case wrapper, and a DB-free HTTP handler.
+- [x] `POST /user/{id}/role` now uses an injected identity platform
+      role-assignment use case, a Postgres hierarchy-aware adapter, and
+      DB-free HTTP error mapping.
 - [x] `http/identity/authentication` owns `/auth`, JWKS, login, registration,
       email verification, password reset, and auth session helper routes; the
       legacy `api/authentication` module has been deleted.
