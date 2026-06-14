@@ -1,15 +1,16 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use diesel::prelude::*;
 use diesel::result::Error as DieselError;
-use diesel_async::AsyncPgConnection;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::identity::current_session::CurrentSessionError;
+use crate::db::schema::{courses, organizations};
 use crate::infra::postgres::identity::current_session_scope_builder::{
     course_builder, organization_builder, CourseScopeBuilder, OrganizationScopeBuilder,
     PlatformScopeBuilder,
 };
 use crate::models::delegated_permission::DelegatedPermission;
-use crate::repositories::session_repository;
 
 pub(super) async fn organization_labels(
     conn: &mut AsyncPgConnection,
@@ -22,7 +23,14 @@ pub(super) async fn organization_labels(
         .into_iter()
         .collect::<Vec<_>>();
 
-    session_repository::organization_labels(conn, &ids)
+    if ids.is_empty() {
+        return Ok(BTreeMap::new());
+    }
+
+    organizations::table
+        .filter(organizations::id.eq_any(&ids))
+        .select((organizations::id, organizations::name))
+        .load::<(i32, String)>(conn)
         .await
         .map(|rows| rows.into_iter().collect())
         .map_err(map_current_session_error)
@@ -39,7 +47,14 @@ pub(super) async fn course_labels(
         .into_iter()
         .collect::<Vec<_>>();
 
-    session_repository::course_labels(conn, &ids)
+    if ids.is_empty() {
+        return Ok(BTreeMap::new());
+    }
+
+    courses::table
+        .filter(courses::id.eq_any(&ids))
+        .select((courses::id, courses::title, courses::lifecycle_status))
+        .load::<(i32, String, String)>(conn)
         .await
         .map(|rows| {
             rows.into_iter()
