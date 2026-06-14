@@ -1071,30 +1071,31 @@ remaining gaps.
 | 173 | Moved notification create/list/mark-read/delete Diesel operations out of `models::notification` and into `infra/postgres/notifications/notification_records`; migrated inbox stores and legacy notification utilities now use the notification-owned Postgres record helper, leaving `models::notification` as persistence shapes only. |
 | 174 | Moved persistent-state get/set calls off the Diesel model; the legacy persistent-state repository now delegates to operations-owned Postgres helpers, leaving `models::persistent_state` as a persistence shape only. |
 | 175 | Moved DB version-control get/update queries off the Diesel model and into `infra/postgres/operations/db_version_control`; startup DB setup and the regression test now use operations-owned Postgres records, leaving `models::db_version_control` as a persistence shape only. |
+| 176 | Moved platform, organization, and course role-hierarchy reads off the Diesel models and into `infra/postgres/access_control/hierarchy_records`; legacy repository bridges and hierarchy tests now use access-control Postgres records, leaving the hierarchy models as persistence shapes only. |
 
 ## Recent Slice Evidence
 
-Slice 175: move DB version-control Active Record helpers into operations Postgres
-records.
+Slice 176: move role-hierarchy Active Record helpers into access-control
+Postgres records.
 
-- [x] Add `infra/postgres/operations/db_version_control` for current-version
-      reads and control-row upserts.
-- [x] Retarget startup DB setup and the `db_version_control` integration test
-      to the operations-owned Postgres functions.
-- [x] Delete `DbVersionControl::get_current_version` and
-      `DbVersionControl::update_version` from `models::db_version_control`; the
-      model now owns only the Diesel row shape.
-- [x] Self-critique: the operations record module is public so the existing
-      integration test can exercise the adapter directly; later slices should
-      prefer a narrower startup/version application port or a crate-private
-      adapter test once legacy public module exports are tightened.
+- [x] Add `infra/postgres/access_control/hierarchy_records` for platform,
+      organization, and course hierarchy-level reads.
+- [x] Retarget legacy platform, organization, and course repository bridges to
+      call access-control-owned hierarchy records.
+- [x] Delete `RolePlatformHierarchy::*`, `RoleOrganizationHierarchy::*`, and
+      `RoleCourseHierarchy::*` DB helper methods from `models`; the hierarchy
+      models now own only Diesel row shapes.
+- [x] Self-critique: the legacy repositories still mix authorization,
+      hierarchy decisions, and assignment orchestration; later slices should
+      move those bridge functions behind access-control application ports and
+      leave repositories as temporary compatibility shims only.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test db_version_control`,
-      `./scripts/run-host-tests.sh cargo test --lib db_setup`,
+      `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
+      `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      calls `DbVersionControl::*` and `models::db_version_control` has no DB
-      helper implementation.
+      calls the removed hierarchy model methods and hierarchy SQL lives only in
+      `infra/postgres/access_control/hierarchy_records`.
 
 ## Legacy Transition Rules
 

@@ -4,10 +4,8 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::users;
+use rust_learn::infra::postgres::access_control::hierarchy_records;
 use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
-use rust_learn::models::role_course_hierarchy::RoleCourseHierarchy;
-use rust_learn::models::role_organization_hierarchy::RoleOrganizationHierarchy;
-use rust_learn::models::role_platform_hierarchy::RolePlatformHierarchy;
 use rust_learn::models::user::User;
 use rust_learn::models::user_role_course::UserRoleCourse;
 use rust_learn::models::user_role_organization::UserRoleOrganization;
@@ -101,7 +99,7 @@ async fn platform_hierarchy_super_admin_is_level_0() {
         .await
         .unwrap();
 
-    let level = RolePlatformHierarchy::get_min_level(&mut conn, u.id())
+    let level = hierarchy_records::platform_min_level_for_user(&mut conn, u.id())
         .await
         .unwrap();
     assert_eq!(level, Some(0));
@@ -112,7 +110,7 @@ async fn unassigned_user_has_no_platform_level() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "hier_none").await;
 
-    let level = RolePlatformHierarchy::get_min_level(&mut conn, u.id())
+    let level = hierarchy_records::platform_min_level_for_user(&mut conn, u.id())
         .await
         .unwrap();
     assert_eq!(level, None);

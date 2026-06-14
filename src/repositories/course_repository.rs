@@ -2,7 +2,7 @@ use diesel::prelude::*;
 use diesel_async::AsyncPgConnection;
 use std::cmp::Ordering;
 
-use crate::models::role_course_hierarchy::RoleCourseHierarchy;
+use crate::infra::postgres::access_control::hierarchy_records;
 use crate::models::user_role_course::UserRoleCourse;
 use crate::repositories::delegated_permission_repository;
 
@@ -45,8 +45,10 @@ pub async fn user_hierarchy_compare_course(
     user1_id: i32,
     user2_id: i32,
 ) -> QueryResult<Ordering> {
-    let user1_top_level = RoleCourseHierarchy::get_min_level(conn, user1_id, course_id).await?;
-    let user2_top_level = RoleCourseHierarchy::get_min_level(conn, user2_id, course_id).await?;
+    let user1_top_level =
+        hierarchy_records::course_min_level_for_user(conn, user1_id, course_id).await?;
+    let user2_top_level =
+        hierarchy_records::course_min_level_for_user(conn, user2_id, course_id).await?;
 
     match (user1_top_level, user2_top_level) {
         // Reverse compare so smaller number (higher privilege) wins

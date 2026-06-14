@@ -3,8 +3,8 @@ use diesel_async::AsyncPgConnection;
 use std::cmp::Ordering;
 
 use crate::config::constants::roles::Roles;
+use crate::infra::postgres::access_control::hierarchy_records;
 use crate::models::role::PlatformRole;
-use crate::models::role_platform_hierarchy::RolePlatformHierarchy;
 use crate::models::user_role_platform::UserRolePlatform;
 use crate::repositories::delegated_permission_repository;
 
@@ -39,8 +39,8 @@ pub async fn user_hierarchy_compare_platform(
     user1_id: i32,
     user2_id: i32,
 ) -> QueryResult<Ordering> {
-    let user1_max_level = RolePlatformHierarchy::get_min_level(conn, user1_id).await?;
-    let user2_max_level = RolePlatformHierarchy::get_min_level(conn, user2_id).await?;
+    let user1_max_level = hierarchy_records::platform_min_level_for_user(conn, user1_id).await?;
+    let user2_max_level = hierarchy_records::platform_min_level_for_user(conn, user2_id).await?;
 
     match (user1_max_level, user2_max_level) {
         (Some(level1), Some(level2)) => Ok(level2.cmp(&level1)),
@@ -69,14 +69,15 @@ pub async fn assign_role_to_user_with_hierarchy(
     target_user_id: i32,
     role_name: &str,
 ) -> QueryResult<usize> {
-    let assigner_level = RolePlatformHierarchy::get_min_level(conn, assigner_id)
+    let assigner_level = hierarchy_records::platform_min_level_for_user(conn, assigner_id)
         .await?
         .ok_or(diesel::result::Error::NotFound)?;
 
-    let target_level_opt = RolePlatformHierarchy::get_min_level(conn, target_user_id).await?;
+    let target_level_opt =
+        hierarchy_records::platform_min_level_for_user(conn, target_user_id).await?;
 
     let role_id = PlatformRole::find_by_name(role_name, conn).await?;
-    let target_role_level = RolePlatformHierarchy::get_role_level(conn, role_id).await?;
+    let target_role_level = hierarchy_records::platform_role_level(conn, role_id).await?;
 
     if assigner_level >= target_role_level {
         return Err(diesel::result::Error::RollbackTransaction);

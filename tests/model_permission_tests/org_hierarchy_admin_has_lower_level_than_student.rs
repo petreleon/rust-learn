@@ -17,12 +17,14 @@ async fn org_hierarchy_admin_has_lower_level_than_student() {
         .await
         .unwrap();
 
-    let admin_level = RoleOrganizationHierarchy::get_min_level(&mut conn, admin.id(), 1)
-        .await
-        .unwrap();
-    let student_level = RoleOrganizationHierarchy::get_min_level(&mut conn, student.id(), 1)
-        .await
-        .unwrap();
+    let admin_level =
+        hierarchy_records::organization_min_level_for_user(&mut conn, admin.id(), 1)
+            .await
+            .unwrap();
+    let student_level =
+        hierarchy_records::organization_min_level_for_user(&mut conn, student.id(), 1)
+            .await
+            .unwrap();
 
     assert!(
         admin_level.unwrap() < student_level.unwrap(),
@@ -88,10 +90,10 @@ async fn course_hierarchy_teacher_above_student() {
         .await
         .unwrap();
 
-    let t_level = RoleCourseHierarchy::get_min_level(&mut conn, teacher.id(), 1)
+    let t_level = hierarchy_records::course_min_level_for_user(&mut conn, teacher.id(), 1)
         .await
         .unwrap();
-    let s_level = RoleCourseHierarchy::get_min_level(&mut conn, student.id(), 1)
+    let s_level = hierarchy_records::course_min_level_for_user(&mut conn, student.id(), 1)
         .await
         .unwrap();
 
@@ -106,7 +108,7 @@ async fn user_without_course_role_has_no_course_level() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "ch_none").await;
 
-    let level = RoleCourseHierarchy::get_min_level(&mut conn, u.id(), 1)
+    let level = hierarchy_records::course_min_level_for_user(&mut conn, u.id(), 1)
         .await
         .unwrap();
     assert_eq!(level, None);

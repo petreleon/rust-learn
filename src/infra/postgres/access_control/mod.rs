@@ -1,4 +1,5 @@
 pub mod delegated_permissions;
+pub mod hierarchy_records;
 pub(crate) mod permission_checks;
 mod permission_delegations;
 pub mod reward_authorization_store;
