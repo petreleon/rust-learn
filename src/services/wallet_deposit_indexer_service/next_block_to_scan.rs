@@ -1,4 +1,19 @@
-async fn next_block_to_scan(
+use crate::application::wallet::index_deposit::ObservedWalletDepositEvent;
+use crate::domain::wallet::deposit::{WALLET_DEPOSIT_EVENT_IMPORT, WALLET_DEPOSIT_EVENT_TRANSFER};
+use crate::repositories::persistent_state_repository::get_persistent_state;
+use crate::services::wallet_deposit_indexer_service::build_observed_event::build_observed_event;
+use crate::services::wallet_deposit_indexer_service::ethereum_log_helpers::{
+    address_from_topic, event_signature,
+};
+use crate::services::wallet_deposit_indexer_service::support::{
+    WalletDepositIndexerConfig, NEXT_BLOCK_STATE_KEY,
+};
+use ethers::providers::Middleware;
+use ethers::types::{Address, BlockNumber, Filter, Log, U64};
+use std::collections::HashSet;
+use std::env;
+
+pub(super) async fn next_block_to_scan(
     conn: &mut diesel_async::AsyncPgConnection,
     confirmed_to_block: u64,
     config: &WalletDepositIndexerConfig,
@@ -21,7 +36,7 @@ async fn next_block_to_scan(
     Ok(confirmed_to_block.saturating_sub(config.lookback_blocks))
 }
 
-async fn fetch_transfer_deposit_events<M: Middleware>(
+pub(super) async fn fetch_transfer_deposit_events<M: Middleware>(
     provider: &M,
     token_address: Address,
     treasury_addresses: HashSet<Address>,
@@ -49,7 +64,7 @@ async fn fetch_transfer_deposit_events<M: Middleware>(
         .collect::<Result<Vec<_>, _>>()
 }
 
-async fn fetch_imported_deposit_events<M: Middleware>(
+pub(super) async fn fetch_imported_deposit_events<M: Middleware>(
     provider: &M,
     token_address: Address,
     importer_address: Address,

@@ -1,4 +1,22 @@
-async fn run_wallet_deposit_indexer_once(
+use crate::application::wallet::index_deposit::index_observed_deposit;
+use crate::db::DbPool;
+use crate::infra::postgres::wallet::wallet_deposit_index_store::PostgresWalletDepositIndexStore;
+use crate::repositories::persistent_state_repository::{
+    get_persistent_state, set_persistent_state,
+};
+use crate::services::wallet_deposit_indexer_service::ethereum_log_helpers::parse_address;
+use crate::services::wallet_deposit_indexer_service::next_block_to_scan::{
+    fetch_imported_deposit_events, fetch_transfer_deposit_events, next_block_to_scan,
+};
+use crate::services::wallet_deposit_indexer_service::support::{
+    WalletDepositIndexerConfig, NEXT_BLOCK_STATE_KEY,
+};
+use ethers::providers::Middleware;
+use ethers::types::Address;
+use std::collections::HashSet;
+use std::env;
+
+pub(super) async fn run_wallet_deposit_indexer_once(
     pool: &DbPool,
     config: &WalletDepositIndexerConfig,
 ) -> Result<usize, String> {

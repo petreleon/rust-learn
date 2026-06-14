@@ -1,5 +1,12 @@
-include!("wallet_deposit_indexer_service/imports.rs");
-include!("wallet_deposit_indexer_service/run_wallet_deposit_indexer_once.rs");
-include!("wallet_deposit_indexer_service/next_block_to_scan.rs");
-include!("wallet_deposit_indexer_service/build_observed_event.rs");
-include!("wallet_deposit_indexer_service/indexer_config.rs");
+mod build_observed_event;
+mod ethereum_log_helpers;
+mod indexer_config;
+mod next_block_to_scan;
+mod poll_logging;
+mod run_wallet_deposit_indexer_once;
+mod support;
+
+pub use support::{spawn_wallet_deposit_indexer, wallet_deposit_indexer_enabled};
+
+#[cfg(test)]
+mod tests;

@@ -1,4 +1,4 @@
-use super::{should_log_indexer_poll, PollFailureLogLevel, PollFailureLogState};
+use super::poll_logging::{should_log_indexer_poll, PollFailureLogLevel, PollFailureLogState};
 use std::time::{Duration, Instant};
 
 #[test]

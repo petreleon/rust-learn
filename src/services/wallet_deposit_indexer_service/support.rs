@@ -1,71 +1,30 @@
-use crate::application::wallet::index_deposit::{
-    index_observed_deposit, ObservedWalletDepositEvent,
-};
 use crate::db::DbPool;
-use crate::domain::wallet::deposit::{
-    WALLET_DEPOSIT_EVENT_IMPORT, WALLET_DEPOSIT_EVENT_TRANSFER,
+use crate::services::wallet_deposit_indexer_service::poll_logging::{
+    should_log_indexer_poll, PollFailureLogLevel, PollFailureLogState,
 };
-use crate::infra::postgres::wallet::wallet_deposit_index_store::PostgresWalletDepositIndexStore;
-use crate::repositories::persistent_state_repository::{
-    get_persistent_state, set_persistent_state,
-};
-use bigdecimal::BigDecimal;
-use ethers::providers::Middleware;
-use ethers::types::{Address, BlockNumber, Filter, Log, H256, U256, U64};
-use std::collections::HashSet;
+use crate::services::wallet_deposit_indexer_service::run_wallet_deposit_indexer_once::run_wallet_deposit_indexer_once;
 use std::env;
-use std::str::FromStr;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
 use std::time::{Duration, Instant};
 
-const NEXT_BLOCK_STATE_KEY: &str = "wallet_deposit_indexer_next_block";
-const DEFAULT_POLL_SECONDS: u64 = 15;
-const DEFAULT_CONFIRMATIONS: u64 = 1;
-const DEFAULT_BATCH_BLOCKS: u64 = 500;
-const DEFAULT_LOOKBACK_BLOCKS: u64 = 100;
-const DEFAULT_IDLE_LOG_SECONDS: u64 = 60;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum PollFailureLogLevel {
-    Info,
-    Warn,
-    Suppress,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct PollFailureLogDecision {
-    level: PollFailureLogLevel,
-    consecutive_failures: u64,
-    suppressed_failure_count: u64,
-    outage_seconds: u64,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct PollFailureRecovery {
-    consecutive_failures: u64,
-    suppressed_failure_count: u64,
-    outage_seconds: u64,
-}
-
-#[derive(Debug, Default)]
-struct PollFailureLogState {
-    first_failure_at: Option<Instant>,
-    last_warning_at: Option<Instant>,
-    consecutive_failures: u64,
-    suppressed_failure_count: u64,
-}
+pub(super) const NEXT_BLOCK_STATE_KEY: &str = "wallet_deposit_indexer_next_block";
+pub(super) const DEFAULT_POLL_SECONDS: u64 = 15;
+pub(super) const DEFAULT_CONFIRMATIONS: u64 = 1;
+pub(super) const DEFAULT_BATCH_BLOCKS: u64 = 500;
+pub(super) const DEFAULT_LOOKBACK_BLOCKS: u64 = 100;
+pub(super) const DEFAULT_IDLE_LOG_SECONDS: u64 = 60;
 
 #[derive(Debug, Clone)]
-struct WalletDepositIndexerConfig {
-    poll_seconds: u64,
-    confirmations: u64,
-    batch_blocks: u64,
-    lookback_blocks: u64,
-    idle_log_seconds: u64,
-    token_decimals: u32,
+pub(super) struct WalletDepositIndexerConfig {
+    pub(super) poll_seconds: u64,
+    pub(super) confirmations: u64,
+    pub(super) batch_blocks: u64,
+    pub(super) lookback_blocks: u64,
+    pub(super) idle_log_seconds: u64,
+    pub(super) token_decimals: u32,
 }
 
 pub fn wallet_deposit_indexer_enabled() -> bool {
@@ -149,4 +108,16 @@ async fn run_wallet_deposit_indexer(pool: DbPool, shutdown: Arc<AtomicBool>) {
     }
 
     log::info!("event=wallet_deposit_indexer_exit reason=shutdown");
+}
+
+fn env_bool(key: &str, default: bool) -> bool {
+    env::var(key)
+        .ok()
+        .map(|value| {
+            matches!(
+                value.to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes" | "on"
+            )
+        })
+        .unwrap_or(default)
 }

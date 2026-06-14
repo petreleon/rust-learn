@@ -1,5 +1,11 @@
+use crate::services::wallet_deposit_indexer_service::support::{
+    WalletDepositIndexerConfig, DEFAULT_BATCH_BLOCKS, DEFAULT_CONFIRMATIONS,
+    DEFAULT_IDLE_LOG_SECONDS, DEFAULT_LOOKBACK_BLOCKS, DEFAULT_POLL_SECONDS,
+};
+use std::env;
+
 impl WalletDepositIndexerConfig {
-    fn from_env() -> Self {
+    pub(super) fn from_env() -> Self {
         WalletDepositIndexerConfig {
             poll_seconds: positive_u64_env(
                 "WALLET_DEPOSIT_INDEXER_POLL_SECONDS",
@@ -36,6 +42,3 @@ fn positive_u64_env(key: &str, default: u64) -> u64 {
         .filter(|value| *value > 0)
         .unwrap_or(default)
 }
-
-#[cfg(test)]
-mod tests;

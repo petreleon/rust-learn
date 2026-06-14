@@ -1,4 +1,9 @@
-fn build_observed_event(
+use crate::application::wallet::index_deposit::ObservedWalletDepositEvent;
+use bigdecimal::BigDecimal;
+use ethers::types::{Address, Log, U256};
+use std::str::FromStr;
+
+pub(super) fn build_observed_event(
     log: Log,
     contract_address: Address,
     event_type: &str,
@@ -56,100 +61,4 @@ fn u256_to_decimal(amount: U256, token_decimals: u32) -> Result<BigDecimal, Stri
     let trimmed = decimal.trim_end_matches('0').trim_end_matches('.');
     BigDecimal::from_str(if trimmed.is_empty() { "0" } else { trimmed })
         .map_err(|error| format!("failed to parse token amount: {error}"))
-}
-
-fn address_from_topic(topic: H256) -> Option<Address> {
-    Some(Address::from_slice(&topic.as_bytes()[12..]))
-}
-
-fn event_signature(signature: &str) -> H256 {
-    H256::from_slice(&ethers::utils::keccak256(signature.as_bytes()))
-}
-
-fn parse_address(value: &str) -> Result<Address, String> {
-    Address::from_str(value.trim())
-        .map_err(|error| format!("invalid address '{}': {error}", value.trim()))
-}
-
-fn env_bool(key: &str, default: bool) -> bool {
-    env::var(key)
-        .ok()
-        .map(|value| {
-            matches!(
-                value.to_ascii_lowercase().as_str(),
-                "1" | "true" | "yes" | "on"
-            )
-        })
-        .unwrap_or(default)
-}
-
-fn should_log_indexer_poll(
-    credited_count: usize,
-    last_idle_log: Option<Instant>,
-    idle_log_interval: Duration,
-    now: Instant,
-) -> bool {
-    if credited_count > 0 {
-        return true;
-    }
-
-    last_idle_log
-        .map(|logged_at| now.duration_since(logged_at) >= idle_log_interval)
-        .unwrap_or(true)
-}
-
-impl PollFailureLogState {
-    fn record_failure(&mut self, now: Instant, warn_interval: Duration) -> PollFailureLogDecision {
-        let first_failure_at = *self.first_failure_at.get_or_insert(now);
-        self.consecutive_failures = self.consecutive_failures.saturating_add(1);
-        let outage = now.saturating_duration_since(first_failure_at);
-
-        let warn_due = outage >= warn_interval
-            && self
-                .last_warning_at
-                .map(|last_warning_at| {
-                    now.saturating_duration_since(last_warning_at) >= warn_interval
-                })
-                .unwrap_or(true);
-
-        if warn_due {
-            let suppressed_failure_count = self.suppressed_failure_count;
-            self.suppressed_failure_count = 0;
-            self.last_warning_at = Some(now);
-            return PollFailureLogDecision {
-                level: PollFailureLogLevel::Warn,
-                consecutive_failures: self.consecutive_failures,
-                suppressed_failure_count,
-                outage_seconds: outage.as_secs(),
-            };
-        }
-
-        if self.consecutive_failures == 1 {
-            return PollFailureLogDecision {
-                level: PollFailureLogLevel::Info,
-                consecutive_failures: self.consecutive_failures,
-                suppressed_failure_count: 0,
-                outage_seconds: outage.as_secs(),
-            };
-        }
-
-        self.suppressed_failure_count = self.suppressed_failure_count.saturating_add(1);
-        PollFailureLogDecision {
-            level: PollFailureLogLevel::Suppress,
-            consecutive_failures: self.consecutive_failures,
-            suppressed_failure_count: self.suppressed_failure_count,
-            outage_seconds: outage.as_secs(),
-        }
-    }
-
-    fn record_success(&mut self, now: Instant) -> Option<PollFailureRecovery> {
-        let first_failure_at = self.first_failure_at?;
-        let recovery = PollFailureRecovery {
-            consecutive_failures: self.consecutive_failures,
-            suppressed_failure_count: self.suppressed_failure_count,
-            outage_seconds: now.saturating_duration_since(first_failure_at).as_secs(),
-        };
-        *self = Self::default();
-        Some(recovery)
-    }
 }

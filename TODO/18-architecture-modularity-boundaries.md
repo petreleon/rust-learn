@@ -1089,32 +1089,40 @@ remaining gaps.
 | 191 | Replaced the include-based legacy delegated-permission repository shell with normal `records` and `revocation` child modules plus explicit public re-exports; the repository no longer has an `imports.rs` file. |
 | 192 | Moved delegated-permission create/find/list/revoke SQL into `infra/postgres/access_control/delegated_permissions/records`; the Level 2 Postgres adapter and legacy repository now share the same access-control record adapter. |
 | 193 | Replaced the include-based `reward_execution_service` shell with normal child modules, explicit per-module imports, and root re-exports that preserve the legacy reward execution API over migrated reward application use cases. |
+| 194 | Replaced the include-based `wallet_deposit_indexer_service` shell with normal child modules, explicit worker-facing re-exports, and dedicated poll-logging plus Ethereum-log helper modules for indexer retry/idle throttling and event parsing support. |
 
 ## Recent Slice Evidence
 
-Slice 193: normalize the reward execution legacy service module.
+Slice 194: normalize the wallet deposit indexer legacy service module.
 
-- [x] Replace `src/services/reward_execution_service.rs` `include!`
-      statements with normal `mod` declarations and explicit root re-exports.
-- [x] Rename `reward_execution_service/imports.rs` to
-      `reward_execution_service/support.rs`; shared error conversions, legacy
-      type aliases, and reward constants now live in a named support module.
-- [x] Give payout/wallet-credit, wallet-credit notification/reconciliation, and
-      token-confirmation child modules explicit imports instead of relying on
-      include-shared scope.
-- [x] Preserve the legacy service API used by reward execution integration
-      tests while the implementation continues delegating to migrated
-      `application/rewards` use cases and Postgres stores.
-- [x] Self-critique: this removes one more `include!`/`imports.rs` service
-      shell, but the broader legacy reward candidate, wallet, organization,
-      course, and indexer services still have include-based shells. Normalize
-      them one at a time only where focused tests can prove the public surface.
+- [x] Replace `src/services/wallet_deposit_indexer_service.rs` `include!`
+      statements with normal `mod` declarations and root re-exports for only
+      `spawn_wallet_deposit_indexer` and `wallet_deposit_indexer_enabled`.
+- [x] Rename `wallet_deposit_indexer_service/imports.rs` to
+      `wallet_deposit_indexer_service/support.rs`; runtime wiring, shared
+      indexer config, and persistent next-block constants now live behind a
+      named support module.
+- [x] Extract indexer retry/idle logging state into
+      `wallet_deposit_indexer_service/poll_logging.rs` instead of leaving it
+      mixed into Ethereum event construction helpers.
+- [x] Extract Ethereum address/topic/signature parsing into
+      `wallet_deposit_indexer_service/ethereum_log_helpers.rs`, leaving
+      `build_observed_event.rs` focused on observed wallet-deposit event
+      construction.
+- [x] Give one-shot polling, block selection/log fetching, event construction,
+      config parsing, and poll logging explicit imports and `pub(super)`
+      sharing instead of relying on include-shared scope.
+- [x] Self-critique: this removes one worker service include shell, but
+      wallet, organization, reward candidate, and course legacy service shells
+      still need the same treatment. The current slice intentionally keeps the
+      public worker API stable and does not yet move provider/persistent-state
+      orchestration deeper into `application/wallet`.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test reward_execution`,
+      `./scripts/run-host-tests.sh cargo test --lib wallet_deposit_indexer_service`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no
       `include!`, `imports.rs`, or stale include target remains under
-      `services/reward_execution_service`.
+      `services/wallet_deposit_indexer_service`.
 
 ## Legacy Transition Rules
 
