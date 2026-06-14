@@ -3,8 +3,6 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 
-pub const WALLET_DEPOSIT_STATUS_PENDING: &str = "pending_chain_confirmation";
-
 #[derive(Queryable, Identifiable, Debug, Clone)]
 #[diesel(table_name = wallet_token_deposit_intents)]
 pub struct WalletTokenDepositIntent {

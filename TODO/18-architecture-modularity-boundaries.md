@@ -1066,28 +1066,28 @@ remaining gaps.
 | 168 | Removed teacher-application status/scope vocabulary from the Diesel model; organization/dashboard/reporting adapters, legacy service hubs, and fixtures now import lifecycle/scope vocabulary from `domain/teacher_applications`, leaving `models::teacher_application` as persistence record/insert structs only. |
 | 169 | Removed KYC status/audit-event vocabulary and unused Active Record query helpers from the Diesel models; KYC Postgres adapters and tests now import submission statuses from `domain/kyc/submission` and audit events from `domain/kyc/audit`, leaving KYC models as persistence shapes only. |
 | 170 | Removed delegated-permission scope compatibility aliases from the Diesel model; course-service legacy helpers, access-control/learning/organization/reward Postgres adapters, and fixtures now import delegation scopes from `domain/access_control/delegation`, leaving `models::delegated_permission` as persistence shapes only. |
+| 171 | Removed the wallet deposit pending-status compatibility alias from the Diesel model; legacy wallet deposit-intent creation and the migrated Postgres wallet deposit-intent adapter now import status vocabulary from `domain/wallet/deposit`, leaving `models::wallet_token_deposit_intent` as persistence shapes only. |
 
 ## Recent Slice Evidence
 
-Slice 170: remove delegated-permission scope vocabulary from the Diesel model.
+Slice 171: remove wallet deposit status vocabulary from the Diesel model.
 
-- [x] Delete delegated scope constants from `models::delegated_permission`;
-      the file now owns only Diesel record and insert shapes.
-- [x] Retarget course-service legacy helpers, access-control permission
-      delegation queries, learning dashboard delegation queries, organization
-      permission checks, reward fraud-block notification recipients, and
-      fixtures to import scope vocabulary from
-      `domain/access_control/delegation`.
-- [x] Self-critique: wallet deposit status still lives in a model file, and
-      `NOTIFICATION_LIST_LIMIT` remains model-owned even though it is a query
-      limit rather than domain vocabulary; move or classify them in later
-      slices.
+- [x] Delete `WALLET_DEPOSIT_STATUS_PENDING` from
+      `models::wallet_token_deposit_intent`; the file now owns only Diesel
+      record and insert shapes.
+- [x] Retarget legacy wallet deposit-intent creation and the migrated Postgres
+      wallet deposit-intent adapter to import pending-status vocabulary from
+      `domain/wallet/deposit`.
+- [x] Self-critique: `NOTIFICATION_LIST_LIMIT` remains model-owned, but it is a
+      read/query limit rather than business vocabulary; move it to a
+      notification query/infra owner or explicitly classify it in a later slice.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib delegation`,
+      `./scripts/run-host-tests.sh cargo test --lib wallet`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving
-      `src/models/delegated_permission.rs` has no scope constants and no code
-      imports delegated scope constants through `models::delegated_permission`.
+      `src/models/wallet_token_deposit_intent.rs` has no wallet deposit status
+      constants and no code imports wallet deposit status constants through
+      `models::wallet_token_deposit_intent`.
 
 ## Legacy Transition Rules
 

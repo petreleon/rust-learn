@@ -4,10 +4,11 @@ pub use crate::application::wallet::index_deposit::{
 use crate::application::wallet::index_deposit::WalletDepositIndexError;
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{users, wallet_token_deposit_intents, wallets};
+use crate::domain::wallet::deposit::WALLET_DEPOSIT_STATUS_PENDING;
 use crate::infra::postgres::wallet::wallet_deposit_index_store::PostgresWalletDepositIndexStore;
 use crate::models::wallet::{NewWallet, Wallet};
 use crate::models::wallet_token_deposit_intent::{
-    NewWalletTokenDepositIntent, WalletTokenDepositIntent, WALLET_DEPOSIT_STATUS_PENDING,
+    NewWalletTokenDepositIntent, WalletTokenDepositIntent,
 };
 use crate::repositories::persistent_state_repository::{
     get_persistent_state, set_persistent_state,
