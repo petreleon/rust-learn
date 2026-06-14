@@ -16,7 +16,7 @@ use actix_web::{App, HttpServer};
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();
-    crate::utils::logging::init_logging("api");
+    crate::bootstrap::logging::init_logging("api");
 
     let app_state = bootstrap::startup::initialize_app_state().await?;
 

@@ -1105,28 +1105,29 @@ remaining gaps.
 | 207 | Moved Ethereum provider URL normalization and provider construction out of `utils::eth::provider` and into `infra/ethereum/operations/provider`; readiness checks, the wallet deposit indexer, and deployment helpers now call the infra owner while `utils::eth_utils::try_get_provider` remains a compatibility re-export for tests and callers. |
 | 208 | Moved Actix request-auth helper functions out of `utils::request_auth` and into `http/extractors/request_auth`; HTTP handlers now import authentication helpers from the HTTP boundary and the old `utils::request_auth` module was deleted instead of kept as a compatibility owner. |
 | 209 | Folded the legacy `utils::api_error` response-envelope structs into `http/errors`; the HTTP ring now owns its JSON error contract directly and the unused utility helper module was deleted. |
+| 210 | Moved structured process logging initialization out of `utils::logging` and into `bootstrap/logging`; the API and worker entrypoints now call bootstrap-owned logging setup and the old utility module was removed. |
 
 ## Recent Slice Evidence
 
-Slice 209: move API error envelope ownership to HTTP errors.
+Slice 210: move process logging setup to bootstrap.
 
-- [x] Move the JSON error envelope/body structs from `src/utils/api_error.rs`
-      into `src/http/errors.rs` beside the Actix `ResponseError`
-      implementation that renders them.
-- [x] Delete the old `api_error_response`, `api_not_found`,
-      `api_bad_request`, and `api_internal_error` utility helpers because code
-      search showed no remaining callers.
-- [x] Remove `pub mod api_error` from `src/utils/mod.rs`, leaving HTTP error
-      response mapping owned by the HTTP ring instead of a cross-cutting utility.
-- [x] Self-critique: HTTP error ownership is cleaner, but not every handler uses
-      `http::errors::ApiError` yet; future route slices should keep replacing
-      ad-hoc `HttpResponse` error construction with context-specific
-      application errors mapped through the HTTP boundary.
+- [x] Move `src/utils/logging.rs` to `src/bootstrap/logging.rs`, because
+      structured logger initialization is process startup wiring rather than a
+      cross-context utility.
+- [x] Update `src/main.rs` and `src/bin/worker/runtime.rs` to call
+      `bootstrap::logging::init_logging` for the `api` and `worker` service
+      labels.
+- [x] Remove `pub mod logging` from `src/utils/mod.rs`, leaving no
+      `utils::logging` compatibility surface because only binary entrypoints
+      used it.
+- [x] Self-critique: worker retry/env parsing still lives in `utils::worker`;
+      future operations/worker slices should move runtime configuration and
+      heartbeat helpers to an explicit worker or operations module.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib http::errors`,
-      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh cargo check --bin worker --features worker-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing no stale `utils::api_error` callers,
+      `git diff --check`, scans showing no stale `utils::logging` callers,
       and backend ring scans showing no `include!`/`imports.rs`.
 
 ## Legacy Transition Rules

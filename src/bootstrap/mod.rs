@@ -4,6 +4,7 @@ pub mod app_state;
 pub(crate) mod contract_startup;
 mod identity_wiring;
 mod kyc_wiring;
+pub mod logging;
 mod organization_wiring;
 pub mod readiness;
 pub mod routes;

@@ -15,7 +15,7 @@ use rust_learn::utils::worker as worker_utils;
 
 pub fn init_environment() {
     dotenv().ok();
-    rust_learn::utils::logging::init_logging("worker");
+    rust_learn::bootstrap::logging::init_logging("worker");
 }
 
 pub fn init_pool() -> Result<DbPool> {
