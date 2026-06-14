@@ -2,9 +2,8 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::platform_wallet_reconciliation::{
-    platform_wallet_reconciliation_row, PlatformWalletReconciliationError,
+    platform_wallet_reconciliation_output, PlatformWalletReconciliationError,
     PlatformWalletReconciliationOutput, PlatformWalletReconciliationRowFact,
-    PlatformWalletReconciliationRowOutput,
 };
 use crate::db::schema::wallets;
 use crate::infra::postgres::reporting::platform_wallet_reconciliation_counts::{
@@ -22,36 +21,21 @@ pub(super) async fn load_platform_wallet_reconciliation(
         .await
         .map_err(map_diesel_error)?;
 
-    let mut rows = Vec::new();
-    let mut total_internal_transactions = 0;
-    let mut total_external_transactions = 0;
-    let mut total_reward_records = 0;
-    let mut total_needs_reconciliation = 0;
+    let mut wallet_facts = Vec::new();
 
     for wallet in wallet_rows {
         let counts = wallet_reconciliation_counts(conn, &wallet).await?;
-        total_internal_transactions += counts.internal_transaction_count;
-        total_external_transactions += counts.external_transaction_count;
-        total_reward_records += counts.reward_record_count;
-        total_needs_reconciliation += counts.needs_reconciliation_count;
-        rows.push(wallet_reconciliation_row(wallet, counts));
+        wallet_facts.push(wallet_reconciliation_fact(wallet, counts));
     }
 
-    Ok(PlatformWalletReconciliationOutput {
-        total_wallets: rows.len() as i64,
-        total_internal_transactions,
-        total_external_transactions,
-        total_reward_records,
-        total_needs_reconciliation,
-        wallets: rows,
-    })
+    Ok(platform_wallet_reconciliation_output(wallet_facts))
 }
 
-fn wallet_reconciliation_row(
+fn wallet_reconciliation_fact(
     wallet: Wallet,
     counts: WalletReconciliationCounts,
-) -> PlatformWalletReconciliationRowOutput {
-    platform_wallet_reconciliation_row(PlatformWalletReconciliationRowFact {
+) -> PlatformWalletReconciliationRowFact {
+    PlatformWalletReconciliationRowFact {
         wallet_id: wallet.id,
         user_id: wallet.user_id,
         organization_id: wallet.organization_id,
@@ -63,5 +47,5 @@ fn wallet_reconciliation_row(
         missing_credit_count: counts.missing_credit_count,
         missing_notification_count: counts.missing_notification_count,
         missing_payout_count: counts.missing_payout_count,
-    })
+    }
 }

@@ -1,6 +1,8 @@
 use bigdecimal::BigDecimal;
 
-use crate::application::reporting::platform_wallet_reconciliation::PlatformWalletReconciliationRowOutput;
+use crate::application::reporting::platform_wallet_reconciliation::{
+    PlatformWalletReconciliationOutput, PlatformWalletReconciliationRowOutput,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PlatformWalletReconciliationRowFact {
@@ -40,6 +42,38 @@ pub(crate) fn platform_wallet_reconciliation_row(
     }
 }
 
+pub(crate) fn platform_wallet_reconciliation_output(
+    facts: Vec<PlatformWalletReconciliationRowFact>,
+) -> PlatformWalletReconciliationOutput {
+    let total_internal_transactions = facts
+        .iter()
+        .map(|fact| fact.internal_transaction_count)
+        .sum();
+    let total_external_transactions = facts
+        .iter()
+        .map(|fact| fact.external_transaction_count)
+        .sum();
+    let total_reward_records = facts.iter().map(|fact| fact.reward_record_count).sum();
+    let total_needs_reconciliation = facts
+        .iter()
+        .map(|fact| fact.needs_reconciliation_count)
+        .sum();
+    let total_wallets = facts.len() as i64;
+    let wallets = facts
+        .into_iter()
+        .map(platform_wallet_reconciliation_row)
+        .collect();
+
+    PlatformWalletReconciliationOutput {
+        total_wallets,
+        total_internal_transactions,
+        total_external_transactions,
+        total_reward_records,
+        total_needs_reconciliation,
+        wallets,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -61,6 +95,27 @@ mod tests {
         assert_eq!(row.owner_type, "organization");
         assert_eq!(row.user_id, None);
         assert_eq!(row.organization_id, Some(8));
+    }
+
+    #[test]
+    fn builds_wallet_reconciliation_output_totals_from_row_facts() {
+        let output = platform_wallet_reconciliation_output(vec![
+            row_fact(Some(7), None),
+            PlatformWalletReconciliationRowFact {
+                internal_transaction_count: 10,
+                external_transaction_count: 11,
+                reward_record_count: 12,
+                needs_reconciliation_count: 13,
+                ..row_fact(None, Some(8))
+            },
+        ]);
+
+        assert_eq!(output.total_wallets, 2);
+        assert_eq!(output.total_internal_transactions, 12);
+        assert_eq!(output.total_external_transactions, 14);
+        assert_eq!(output.total_reward_records, 16);
+        assert_eq!(output.total_needs_reconciliation, 18);
+        assert_eq!(output.wallets.len(), 2);
     }
 
     fn row_fact(

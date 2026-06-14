@@ -1,3 +1,4 @@
+mod dashboard;
 mod error;
 mod handler;
 mod output;
@@ -7,6 +8,7 @@ mod service;
 pub mod store;
 mod summary;
 
+pub(crate) use dashboard::{platform_reward_dashboard_output, PlatformRewardDashboardFact};
 pub use error::PlatformRewardDashboardError;
 pub use handler::load_platform_reward_dashboard;
 pub use output::{

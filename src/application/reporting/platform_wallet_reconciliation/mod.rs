@@ -9,7 +9,7 @@ pub mod store;
 pub use error::PlatformWalletReconciliationError;
 pub use handler::load_platform_wallet_reconciliation;
 pub use output::{PlatformWalletReconciliationOutput, PlatformWalletReconciliationRowOutput};
-pub(crate) use rows::{platform_wallet_reconciliation_row, PlatformWalletReconciliationRowFact};
+pub(crate) use rows::{platform_wallet_reconciliation_output, PlatformWalletReconciliationRowFact};
 pub use service::PlatformWalletReconciliationUseCase;
 pub(crate) use status_sets::{
     missing_credit_record_candidate_statuses, missing_notification_record_candidate_statuses,

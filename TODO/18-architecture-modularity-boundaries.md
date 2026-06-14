@@ -1165,41 +1165,46 @@ remaining gaps.
 | 267 | Moved platform wallet-credit CSV row assembly into the reporting application layer behind a wallet-credit export fact. |
 | 268 | Moved the final platform token-payout CSV row assembly and optional external-transaction defaulting into the reporting application layer, closing the platform CSV export row-assembly migration batch. |
 | 269 | Moved platform reward-dashboard and wallet-reconciliation row display shaping into application-owned row fact assemblers, leaving Postgres helpers to load records and pass typed facts. |
+| 270 | Moved platform summary, platform reward-dashboard, and platform wallet-reconciliation top-level output assembly into application-owned report builders, leaving Postgres stores to load counts/rows/facts. |
 
 ## Recent Slice Evidence
 
-Batch 269: move reporting dashboard/read-model display shaping to application.
+Batch 270: move platform report wrapper assembly to application builders.
 
-- [x] Add `application/reporting/platform_reward_dashboard/rows` with
-      dashboard row facts and builders for pending amount approvals, payout
-      failures, and reconciliation mismatches.
-- [x] Move platform reward-dashboard approved amount formatting, mismatch type
-      string selection, and row output construction out of
-      `infra/postgres/reporting/platform_reward_dashboard_rows` and
-      `platform_reward_dashboard_reconciliation`.
-- [x] Add `application/reporting/platform_wallet_reconciliation/rows` with a
-      wallet reconciliation row fact and builder.
-- [x] Move wallet reconciliation owner-type selection and wallet balance string
-      formatting out of
-      `infra/postgres/reporting/platform_wallet_reconciliation_queries`.
-- [x] Preserve existing behavior: reward-dashboard rows keep the same ordering,
-      limits, counts, failure fields, reconciliation mismatch labels, and
-      approved amount display strings; wallet reconciliation rows keep the same
-      wallet ordering, aggregate totals, owner labels, balances, and missing
-      record counts.
-- [x] Keep changed Rust files small: platform reward-dashboard row module 160
-      lines, wallet-reconciliation row module 84 lines, module exports 27 and
-      17 lines, and touched Postgres helpers 86, 99, and 67 lines.
-- [x] Boundary scans prove the old display-shaping expressions are gone from
-      the touched Postgres helpers; remaining reporting infra `to_string`
-      occurrences are Diesel/connection error mapping or fact pass-through.
-- [x] Self-critique: reporting Postgres stores still assemble some top-level
-      output wrappers while loading data; a future batch should audit whether
-      those wrappers can be consistently represented as application report
-      facts without disrupting store-port contracts.
+- [x] Add `application/reporting/platform_summary/summary` with
+      `PlatformSummaryFact` and `platform_summary_output`.
+- [x] Add `application/reporting/platform_reward_dashboard/dashboard` with
+      `PlatformRewardDashboardFact` and `platform_reward_dashboard_output`,
+      including application-owned reconciliation mismatch count derivation from
+      the returned mismatch rows.
+- [x] Extend `application/reporting/platform_wallet_reconciliation/rows` with
+      `platform_wallet_reconciliation_output`, so application now derives
+      platform wallet totals from loaded per-wallet facts.
+- [x] Repoint `platform_summary_store`, `platform_reward_dashboard_store`, and
+      `platform_wallet_reconciliation_queries` to load counts/rows/facts and
+      call the application report builders instead of constructing top-level
+      outputs directly.
+- [x] Preserve existing behavior: platform summary count fields are unchanged,
+      reward dashboard section summaries/counts/row ordering remain unchanged,
+      and wallet reconciliation totals still equal the sum of per-wallet count
+      facts while wallet rows keep the same ordering.
+- [x] Keep changed Rust files small: new platform summary builder 39 lines,
+      new reward-dashboard builder 67 lines, wallet-reconciliation row/report
+      builder 139 lines, module exports 12/29/17 lines, and touched Postgres
+      helpers 66/52/51 lines.
+- [x] Boundary scans prove `PlatformSummaryOutput`, `PlatformRewardDashboardOutput`,
+      and `PlatformWalletReconciliationOutput` construction for the selected
+      reports now appears only in application modules/tests, not in reporting
+      Postgres helpers.
+- [x] Self-critique: reporting infra still owns database error-to-application
+      error string mapping and some report-store orchestration; future batches
+      should look outside reporting at remaining Level 2 gaps rather than
+      over-abstracting these already-thin stores.
 - [x] Prove behavior with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib platform_summary`,
       `./scripts/run-host-tests.sh cargo test --lib platform_reward_dashboard`,
       `./scripts/run-host-tests.sh cargo test --lib platform_wallet_reconciliation`,
+      `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_admin_can_read_and_export_platform_summary`,
       `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_reward_dashboard_reports_actionable_reward_audit_work`,
       `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_csv_exports_cover_business_reward_datasets`,
       `./scripts/run-host-tests.sh cargo check --lib`,
