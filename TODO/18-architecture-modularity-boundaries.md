@@ -1141,27 +1141,29 @@ remaining gaps.
 | 243 | Moved platform reward-dashboard candidate-status bucket assignment into the reporting application layer, leaving Postgres to parse DB status strings into the domain enum before applying report shape. |
 | 244 | Moved platform reward-dashboard reconciliation mismatch classification and scan-status ownership into the reporting application layer, leaving Postgres to load records and pass typed facts. |
 | 245 | Moved wallet-audit reward reconciliation classification from `domain/wallet/audit` into `domain/rewards/candidate/reconciliation`, leaving wallet infra as a consumer of reward-domain facts. |
+| 246 | Moved organization-dashboard reward attention status bucketing into the organization dashboard application layer, leaving Postgres to parse candidate DB status strings into the reward domain enum. |
 
 ## Recent Slice Evidence
 
-Slice 245: move wallet-audit reward reconciliation classification to reward domain.
+Slice 246: move organization-dashboard reward attention bucketing to application.
 
-- [x] Add `domain/rewards/candidate/reconciliation` for the wallet-audit
-      reward candidate reconciliation facts and status classifier.
-- [x] Move the existing pure classifier tests with the rule so missing payout,
-      missing wallet credit, notification gaps, pending, closed, reconciled,
-      and unknown statuses remain covered.
-- [x] Repoint the wallet-audit Postgres adapter to consume reward-domain
-      reconciliation facts instead of importing from `domain/wallet/audit`.
-- [x] Delete the now-empty `domain/wallet/audit` module so wallet no longer
-      owns reward candidate reconciliation vocabulary.
-- [x] Self-critique: this fixes the cross-context ownership problem for wallet
-      audit, but the platform reward-dashboard mismatch classifier still has a
-      report-specific subset in application; that is acceptable while its
-      output semantics differ from the full audit reconciliation status.
+- [x] Add `record_organization_dashboard_reward_status` under
+      `application/organizations/get_organization_dashboard` so the
+      organization dashboard application layer owns the failed/reconciliation
+      reward attention buckets.
+- [x] Repoint the Postgres organization dashboard reward-summary adapter to
+      parse stored candidate status strings into `RewardCandidateStatus` and
+      pass the typed status to the application helper.
+- [x] Preserve existing behavior for unknown stored statuses: they still do not
+      increment any dashboard attention bucket.
+- [x] Cover failed, needs-reconciliation, and ignored non-attention statuses
+      with pure application tests.
+- [x] Self-critique: this removes one organization/reporting adapter coupling,
+      but course and teacher dashboard metric queries still count raw reward
+      statuses directly and should get the same treatment in later slices.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate::reconciliation`,
-      `./scripts/run-host-tests.sh cargo test --test wallet_linking`,
+      `./scripts/run-host-tests.sh cargo test --lib get_organization_dashboard::rewards`,
+      `./scripts/run-host-tests.sh cargo test --test organization_dashboard`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
