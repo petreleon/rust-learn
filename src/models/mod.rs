@@ -39,7 +39,6 @@ pub mod teacher_application;
 pub mod transaction;
 pub mod upload_job;
 pub mod user;
-pub mod user_jwt;
 pub mod user_role_course;
 pub mod user_role_organization;
 pub mod user_role_platform;

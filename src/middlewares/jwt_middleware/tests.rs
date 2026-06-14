@@ -1,5 +1,5 @@
 use super::JwtMiddleware;
-use crate::models::user_jwt::UserJWT;
+use crate::domain::identity::UserJWT;
 use actix_service::Service;
 use actix_web::{http::StatusCode, test, web, App, HttpMessage, HttpRequest, HttpResponse};
 use chrono::{Duration, Utc};

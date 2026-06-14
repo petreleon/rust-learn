@@ -2,8 +2,8 @@ use super::auth_scope;
 use crate::application::identity::password_policy::{
     validate_password_strength, PASSWORD_TOO_LONG_MESSAGE,
 };
+use crate::domain::identity::UserJWT;
 use crate::infra::tokens::jwt::create_jwt;
-use crate::models::user_jwt::UserJWT;
 use actix_web::{http::StatusCode, test as actix_test, App, HttpMessage};
 
 #[test]

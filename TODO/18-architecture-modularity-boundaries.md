@@ -31,10 +31,10 @@ handler, Diesel query, permission rule, and domain workflow to change together.
 
 - [ ] Stop adding new `include!`-based service modules. They split files but
       keep one shared module namespace, shared imports, and hidden coupling.
-- [ ] Move direct Diesel usage out of API handlers. Examples to migrate include
+- [x] Move direct Diesel usage out of API handlers. Examples to migrate include
       chapters, notification preferences, course assessments, user search, and
       content mutations.
-- [ ] Separate DB records from API DTOs. Avoid returning Diesel models directly
+- [x] Separate DB records from API DTOs. Avoid returning Diesel models directly
       from handlers for user-facing contracts.
 - [x] Stop mixing Active Record and Repository patterns. DB methods currently
       live both on `models::*` and in `repositories::*`; converge on repository
@@ -1170,43 +1170,47 @@ remaining gaps.
 | 272 | Split content item and KYC Postgres stores into thin orchestration modules backed by focused record, scope, read-query, and permission-query helpers. |
 | 273 | Split bootstrap app-state construction and app-data registration into context-owned wiring bundles for learning, content, notifications, rewards, wallet, and reporting. |
 | 274 | Moved the remaining wallet and transaction Active Record methods out of `models::*` and into wallet Postgres ledger records, leaving model files as Diesel row shapes only. |
+| 275 | Moved JWT request claims from `models` into pure `domain/identity`, repointed HTTP extractors, middleware, and token infra, and proved the HTTP ring no longer imports models, DB, schema, repositories, services, or Diesel. |
 
 ## Recent Slice Evidence
 
-Batch 274: remove the remaining Active Record persistence methods from models.
+Batch 275: move JWT request claims into the identity domain and seal HTTP model
+leaks.
 
-- [x] Added `infra/postgres/wallet/wallet_ledger_records.rs` as the wallet
-      Postgres owner for wallet lookup/creation, guarded balance updates,
-      internal/external transaction inserts, and transaction-link queries.
-- [x] Repointed centralized wallet records/transfers and token reconciliation
-      to the wallet ledger records helper instead of calling
-      `Wallet::*`, `Transaction::*`, `InternalTransaction::*`,
-      `ExternalTransaction::*`, or `TransactionLink::*` model methods.
-- [x] Trimmed `models/wallet.rs` and `models/transaction.rs` back to Diesel
-      row and insertable structs only. The repository module had already been
-      removed, and the current scan confirms `src/repositories` is absent.
-- [x] Boundary scans confirm there are no remaining calls to the removed model
-      DB methods and no model files with DB execution helpers such as
-      `diesel::insert_into`, `diesel::update`, `.execute(conn)`,
-      `.get_result(conn)`, `.first(conn)`, or `.load(conn)`.
-- [x] Keep changed Rust files under the manual 180-line ceiling:
-      `wallet_ledger_records.rs` 165 lines, `token_reconciliation_records.rs`
-      136, centralized wallet transfers 111, centralized wallet records 101,
-      `models/transaction.rs` 81, and `models/wallet.rs` 20.
-- [x] Self-critique: this closes the model Active Record pattern without
-      redesigning every wallet ledger adapter. There is still useful follow-up
-      work to reduce duplicated transaction insert helpers in reward/wallet
-      adapters and to keep records owned by the smallest context-specific
-      helper that can express the behavior.
+- [x] Added `domain/identity/auth_claims.rs` and exposed `UserJWT` from
+      `domain/identity`, making token claims a pure identity value type instead
+      of a `models` module entry.
+- [x] Repointed JWT token creation/decoding, JWT middleware, permission and
+      hierarchy middleware, HTTP auth extractors, and auth tests to
+      `domain::identity::UserJWT`.
+- [x] Deleted `models/user_jwt.rs` and removed it from `models/mod.rs`, leaving
+      `models` for Diesel row/insertable shapes instead of request-auth
+      vocabulary.
+- [x] Boundary scans prove `src/http` no longer imports `crate::models`,
+      `crate::db`, `schema::`, `crate::repositories`, `crate::services`,
+      `DbPool`, or Diesel. This completes the current direct-Diesel-in-handler
+      and DB-record-as-HTTP-contract cleanup items.
+- [x] Keep touched Rust files under the manual 180-line ceiling: new
+      `auth_claims.rs` 17 lines, `domain/identity/mod.rs` 3,
+      `request_auth.rs` 119, `auth_user.rs` 98, `jwt.rs` 102, and the touched
+      middleware files remain at or below 160 lines.
+- [x] Remaining estimate after this batch: roughly 6-10 focused backend batches
+      for authorization centralization, reward leftovers, utility ownership,
+      route/wrapper audit cleanup, and stronger final requirement-by-requirement
+      evidence; frontend capability synchronization is a separate frontend
+      slice.
+- [x] Self-critique: keeping the historical `UserJWT` name avoids churn, but a
+      later identity cleanup could rename it to a clearer `AuthClaims` or
+      `UserClaims` once downstream imports have stabilized.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
-      `./scripts/run-host-tests.sh cargo test --lib centralized_wallets`,
-      `./scripts/run-host-tests.sh cargo test --lib token_reconciliation_records`,
-      `./scripts/run-host-tests.sh cargo test --test token_reconciliation`,
+      `./scripts/run-host-tests.sh cargo test --lib request_auth`,
+      `./scripts/run-host-tests.sh cargo test --lib auth_user`,
+      `./scripts/run-host-tests.sh cargo test --lib jwt_middleware`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, Active Record boundary scans, repository absence
-      scan, and file-size checks.
+      `git diff --check`, HTTP boundary scans, stale `models::user_jwt` scans,
+      and file-size checks.
 
 ## Legacy Transition Rules
 

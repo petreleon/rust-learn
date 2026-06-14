@@ -12,10 +12,10 @@ use std::cmp::Ordering;
 use std::marker::PhantomData;
 
 use crate::db::DbPool;
+use crate::domain::identity::UserJWT;
 use crate::http::request_params::extract_param;
 use crate::http::request_params::ParamType;
 use crate::infra::postgres::access_control::authorization_checks::user_hierarchy_compare_organization;
-use crate::models::user_jwt::UserJWT;
 
 pub struct OrganizationHierarchyMiddleware<S> {
     _service: PhantomData<S>,

@@ -2,9 +2,9 @@ use actix_web::dev::Payload;
 use actix_web::{Error, FromRequest, HttpMessage, HttpRequest};
 use futures::future::{ready, Ready};
 
+use crate::domain::identity::UserJWT;
 use crate::http::errors::ApiError;
 use crate::infra::tokens::jwt::decode_jwt;
-use crate::models::user_jwt::UserJWT;
 
 #[derive(Clone)]
 pub struct AuthUser(pub UserJWT);
@@ -52,7 +52,7 @@ fn auth_user_from_request(req: &HttpRequest) -> Result<AuthUser, ApiError> {
 #[cfg(test)]
 mod tests {
     use super::auth_user_from_request;
-    use crate::models::user_jwt::UserJWT;
+    use crate::domain::identity::UserJWT;
     use actix_web::{http::StatusCode, test as actix_test, HttpMessage, ResponseError};
 
     #[test]

@@ -10,9 +10,9 @@ use std::cmp::Ordering;
 use std::marker::PhantomData;
 
 use crate::db::DbPool;
+use crate::domain::identity::UserJWT;
 use crate::http::request_params::{extract_param, ParamType};
 use crate::infra::postgres::access_control::authorization_checks::user_hierarchy_compare_platform;
-use crate::models::user_jwt::UserJWT;
 
 pub struct PlatformHierarchyMiddleware<S> {
     _service: PhantomData<S>,

@@ -1,7 +1,7 @@
 use actix_web::{HttpMessage, HttpRequest, HttpResponse};
 
+use crate::domain::identity::UserJWT;
 use crate::infra::tokens::jwt::decode_jwt;
-use crate::models::user_jwt::UserJWT;
 
 pub(crate) fn authenticated_user(req: &HttpRequest) -> Result<UserJWT, HttpResponse> {
     if let Some(user_jwt) = req.extensions().get::<UserJWT>() {
@@ -32,7 +32,7 @@ pub(crate) fn authenticated_user_id(req: &HttpRequest) -> Result<i32, HttpRespon
 #[cfg(test)]
 mod tests {
     use super::{authenticated_user, authenticated_user_id};
-    use crate::models::user_jwt::UserJWT;
+    use crate::domain::identity::UserJWT;
     use actix_web::{body::to_bytes, http::StatusCode, test as actix_test, HttpMessage};
 
     #[test]

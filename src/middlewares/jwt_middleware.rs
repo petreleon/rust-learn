@@ -9,8 +9,8 @@ use futures::future::{ok, ready, Either, Ready};
 use jsonwebtoken::errors::ErrorKind;
 use std::task::{Context, Poll};
 
+use crate::domain::identity::UserJWT;
 use crate::infra::tokens::jwt::decode_jwt;
-use crate::models::user_jwt::UserJWT;
 
 pub struct JwtMiddleware;
 

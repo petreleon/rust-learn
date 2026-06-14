@@ -9,7 +9,7 @@ use openssl::pkey::PKey;
 use serde::Serialize;
 use std::env;
 
-use crate::models::user_jwt::UserJWT;
+use crate::domain::identity::UserJWT;
 
 const DEFAULT_JWT_EXPIRATION_SECONDS: i64 = 24 * 60 * 60;
 const DEFAULT_JWT_KEY_ID: &str = "rust-learn-local";
