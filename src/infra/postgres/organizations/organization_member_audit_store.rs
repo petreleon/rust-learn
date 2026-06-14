@@ -11,8 +11,8 @@ use crate::db::schema::organization_member_audit_events;
 use crate::infra::postgres::organizations::organization_member_audit_mappers::{
     map_member_audit_error, organization_member_audit_output_from_model,
 };
+use crate::infra::postgres::organizations::organization_permission_checks::has_organization_permission;
 use crate::models::organization_member_audit_event::OrganizationMemberAuditEvent;
-use crate::repositories::organization_repository::user_permission_organization_request;
 
 pub struct PostgresOrganizationMemberAuditStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -31,11 +31,11 @@ impl OrganizationMemberAuditStore for PostgresOrganizationMemberAuditStore<'_> {
         organization_id: i32,
     ) -> BoxFuture<'_, Result<bool, OrganizationMemberAuditError>> {
         async move {
-            user_permission_organization_request(
+            has_organization_permission(
                 self.conn,
                 actor_user_id,
                 organization_id,
-                &Permissions::VIEW_ORGANIZATION.to_string(),
+                Permissions::VIEW_ORGANIZATION,
             )
             .await
             .map_err(map_member_audit_error)

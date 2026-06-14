@@ -9,8 +9,8 @@ use crate::application::organizations::remove_organization_member::{
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{organization_member_audit_events, user_role_organization};
 use crate::infra::postgres::organizations::organization_member_removal_mappers::map_member_removal_error;
+use crate::infra::postgres::organizations::organization_permission_checks::has_organization_permission;
 use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
-use crate::repositories::organization_repository::user_permission_organization_request;
 
 pub struct PostgresOrganizationMemberRemovalStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -29,11 +29,11 @@ impl OrganizationMemberRemovalStore for PostgresOrganizationMemberRemovalStore<'
         organization_id: i32,
     ) -> BoxFuture<'_, Result<bool, OrganizationMemberRemovalError>> {
         async move {
-            user_permission_organization_request(
+            has_organization_permission(
                 self.conn,
                 actor_user_id,
                 organization_id,
-                &Permissions::MANAGE_ORG_MEMBERS.to_string(),
+                Permissions::MANAGE_ORG_MEMBERS,
             )
             .await
             .map_err(map_member_removal_error)

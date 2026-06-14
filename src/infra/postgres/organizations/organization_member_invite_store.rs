@@ -6,11 +6,10 @@ use crate::application::organizations::invite_organization_member::{
 };
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::organization_member_audit_events;
+use crate::infra::postgres::organizations::organization_permission_checks::has_organization_permission;
 use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
 use crate::models::user::User;
-use crate::repositories::organization_repository::{
-    assign_role_to_user_in_organization, user_permission_organization_request,
-};
+use crate::repositories::organization_repository::assign_role_to_user_in_organization;
 
 pub struct PostgresOrganizationMemberInviteStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -29,11 +28,11 @@ impl OrganizationMemberInviteStore for PostgresOrganizationMemberInviteStore<'_>
         organization_id: i32,
     ) -> BoxFuture<'_, Result<bool, OrganizationMemberInviteError>> {
         async move {
-            user_permission_organization_request(
+            has_organization_permission(
                 self.conn,
                 actor_user_id,
                 organization_id,
-                &Permissions::INVITE_USER_TO_ORGANIZATION.to_string(),
+                Permissions::INVITE_USER_TO_ORGANIZATION,
             )
             .await
             .map_err(map_member_invite_error)

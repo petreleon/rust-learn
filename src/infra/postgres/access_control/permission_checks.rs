@@ -11,7 +11,7 @@ use crate::infra::postgres::access_control::permission_delegations::{
     has_active_platform_delegation,
 };
 
-pub(super) async fn has_platform_permission(
+pub(crate) async fn has_platform_permission(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     permission: &str,
@@ -32,7 +32,7 @@ pub(super) async fn has_platform_permission(
     Ok(has_delegation)
 }
 
-pub(super) async fn has_course_permission(
+pub(crate) async fn has_course_permission(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,
@@ -56,7 +56,7 @@ pub(super) async fn has_course_permission(
     Ok(has_delegation)
 }
 
-pub(super) async fn has_organization_permission(
+pub(crate) async fn has_organization_permission(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,

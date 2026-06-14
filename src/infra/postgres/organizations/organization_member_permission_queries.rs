@@ -12,15 +12,14 @@ use crate::db::schema::{
     delegated_permissions, role_permission_organization, user_role_organization,
 };
 use crate::infra::postgres::organizations::organization_member_builders::OrganizationMemberBuilder;
-use crate::repositories::organization_repository::user_permission_organization_request;
-use crate::repositories::platform_repository::user_permission_platform_request;
+use crate::infra::postgres::organizations::organization_permission_checks::has_platform_or_organization_permission;
 
 pub async fn can_view_organization_members(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,
 ) -> Result<bool, OrganizationMemberListError> {
-    user_has_platform_or_organization_permission(
+    can_organization_operator(
         conn,
         actor_user_id,
         organization_id,
@@ -37,28 +36,28 @@ pub async fn build_member_operator_permissions(
     Ok(OrganizationMemberOperatorPermissionsOutput {
         can_view_members: can_view_organization_members(conn, actor_user_id, organization_id)
             .await?,
-        can_invite_members: user_has_platform_or_organization_permission(
+        can_invite_members: can_organization_operator(
             conn,
             actor_user_id,
             organization_id,
             Permissions::INVITE_USER_TO_ORGANIZATION,
         )
         .await?,
-        can_manage_members: user_has_platform_or_organization_permission(
+        can_manage_members: can_organization_operator(
             conn,
             actor_user_id,
             organization_id,
             Permissions::MANAGE_ORG_MEMBERS,
         )
         .await?,
-        can_assign_roles: user_has_platform_or_organization_permission(
+        can_assign_roles: can_organization_operator(
             conn,
             actor_user_id,
             organization_id,
             Permissions::ASSIGN_ROLES_TO_ORG_USERS,
         )
         .await?,
-        can_manage_settings: user_has_platform_or_organization_permission(
+        can_manage_settings: can_organization_operator(
             conn,
             actor_user_id,
             organization_id,
@@ -142,21 +141,13 @@ pub(super) async fn attach_member_delegations(
     Ok(())
 }
 
-async fn user_has_platform_or_organization_permission(
+async fn can_organization_operator(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,
     permission: Permissions,
 ) -> Result<bool, OrganizationMemberListError> {
-    let permission_name = permission.to_string();
-    if user_permission_platform_request(conn, actor_user_id, &permission_name)
-        .await
-        .map_err(map_member_error)?
-    {
-        return Ok(true);
-    }
-
-    user_permission_organization_request(conn, actor_user_id, organization_id, &permission_name)
+    has_platform_or_organization_permission(conn, actor_user_id, organization_id, permission)
         .await
         .map_err(map_member_error)
 }

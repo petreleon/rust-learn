@@ -1042,30 +1042,34 @@ remaining gaps.
 | 144 | Moved current-session user, platform role/permission, organization scope, and course scope reads from `repositories::session_repository` into granular identity-owned Postgres query modules; the migrated current-session store no longer imports legacy repositories. |
 | 145 | Moved KYC review platform permission checks from `repositories::platform_repository::user_permission_platform_request` into `infra/postgres/kyc/kyc_permissions`, preserving direct platform-role checks, active platform delegation checks, and delegation logging. |
 | 146 | Moved migrated access-control reward, wallet, and delegated-permission grant checks from legacy `user_permission_*_request` repository helpers into `infra/postgres/access_control` permission-check/delegation helpers, preserving direct role checks, active scoped delegation checks, and delegated-permission logging. |
+| 147 | Moved organization course-list, member-list, dashboard, teacher-application tracking, member-audit, invite, removal, and role-assignment permission gates off legacy `user_permission_*_request` repository helpers and into an organization-owned Postgres permission adapter that asks the reusable access-control Postgres helper. |
 
 ## Recent Slice Evidence
 
-Slice 146: move migrated access-control authorization stores onto
-access-control-owned Postgres permission helpers.
+Slice 147: move organization permission gates into an organization-owned
+Postgres adapter.
 
-- [x] Add `infra/postgres/access_control/permission_checks` for platform,
-      course, and organization role permission checks, plus
-      `permission_delegations` for active platform, course, and organization
-      delegation lookups.
-- [x] Update reward authorization, wallet authorization, and
-      delegated-permission grant checks to call the access-control-owned
-      helpers instead of `repositories::{platform,course,organization}_repository`.
-- [x] Preserve delegated-permission audit logging for platform, course, and
-      organization scopes when authorization succeeds through delegation.
-- [x] Self-critique: the first delegated-permission test run failed because a
-      generic nullable filter used `eq(None)` where the legacy behavior used
-      `IS NULL`; fixed by using explicit scope-specific delegation queries and
-      shared persisted scope constants.
-- [x] Prove behavior with `delegated_permissions`, `wallet_linking`, and
-      `reward_fraud_blocks` integration tests, formatting, line-count checks,
-      `git diff --check`, and boundary scans proving
-      `infra/postgres/access_control` no longer imports legacy repositories or
-      calls `user_permission_*_request`.
+- [x] Make the access-control Postgres permission helper reusable inside infra
+      and add `infra/postgres/organizations/organization_permission_checks` for
+      organization-local permission questions.
+- [x] Update organization course-list, member-list, dashboard,
+      teacher-application tracking, member-audit, invite, removal, and
+      role-assignment permission gates to stop calling legacy
+      `user_permission_platform_request` and
+      `user_permission_organization_request`.
+- [x] Preserve the dashboard fallback where an actor with any organization role
+      or any active organization-scoped delegation may see the limited dashboard
+      even without the explicit `VIEW_ORGANIZATION` permission.
+- [x] Self-critique: `organization_member_invite_store` still imports the
+      legacy organization repository for hierarchy-aware role assignment; keep
+      that as a separate slice because it needs assignment/hierarchy coverage,
+      not just permission-gate coverage.
+- [x] Prove behavior with `organization_members`, filtered
+      `course_discovery organization_course_list`, `organization_dashboard`,
+      `organization_teacher_applications`, and `organization_permissions`
+      integration tests, formatting, line-count checks, `git diff --check`, and
+      boundary scans proving `infra/postgres/organizations` no longer calls
+      `user_permission_*_request`.
 
 ## Legacy Transition Rules
 

@@ -11,8 +11,8 @@ use crate::db::schema::{
     organization_member_audit_events, organization_roles, role_organization_hierarchy,
     user_role_organization,
 };
+use crate::infra::postgres::organizations::organization_permission_checks::has_organization_permission;
 use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
-use crate::repositories::organization_repository::user_permission_organization_request;
 
 pub struct PostgresOrganizationMemberRoleAssignmentStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -31,11 +31,11 @@ impl OrganizationMemberRoleAssignmentStore for PostgresOrganizationMemberRoleAss
         organization_id: i32,
     ) -> BoxFuture<'_, Result<bool, OrganizationMemberRoleAssignmentError>> {
         async move {
-            user_permission_organization_request(
+            has_organization_permission(
                 self.conn,
                 actor_user_id,
                 organization_id,
-                &Permissions::ASSIGN_ROLES_TO_ORG_USERS.to_string(),
+                Permissions::ASSIGN_ROLES_TO_ORG_USERS,
             )
             .await
             .map_err(map_assignment_error)
