@@ -1161,27 +1161,29 @@ remaining gaps.
 | 263 | Moved platform CSV export Diesel error mapping into a focused Postgres mapper module, leaving the CSV store as orchestration only. |
 | 264 | Moved platform teacher-application CSV row assembly into the reporting application layer behind a teacher-application export fact. |
 | 265 | Moved platform reward-approval CSV row assembly into the reporting application layer behind a reward-approval export fact. |
+| 266 | Moved platform delegated-permission CSV row assembly and state classification into the reporting application layer behind a delegated-permission export fact. |
 
 ## Recent Slice Evidence
 
-Slice 265: move platform reward-approval CSV row assembly to application.
+Slice 266: move platform delegated-permission CSV row assembly to application.
 
-- [x] Add `application/reporting/platform_csv_exports/reward_approvals` with
-      `PlatformRewardApprovalExportFact` and
-      `platform_reward_approval_export_row`.
-- [x] Move reward-approval CSV teacher/amount decision reason defaulting and
-      approved amount string formatting out of the Postgres query helper.
-- [x] Repoint `platform_csv_export_reward_approvals` to load reward candidates,
-      convert DB models to application facts, and call the application row
-      assembler.
-- [x] Preserve existing behavior: rows still require either teacher or amount
-      decision timestamps, remain ordered by `updated_at desc`, capped at 1000,
-      and emit the same CSV-visible field values.
-- [x] Keep changed Rust files small: application reward-approval CSV module 118
-      lines, module export 22 lines, and Postgres helper 54 lines.
-- [x] Self-critique: delegated-permission, wallet-credit, and token-payout CSV
-      exports still perform row assembly in Postgres helpers; future slices
-      should move them behind application-owned fact/row assembly one at a time.
+- [x] Add `application/reporting/platform_csv_exports/delegated_permissions`
+      with `PlatformDelegatedPermissionExportFact` and
+      `platform_delegated_permission_export_row`.
+- [x] Move delegated-permission CSV state classification plus grant/revoke
+      reason defaulting out of the Postgres query helper.
+- [x] Repoint `platform_csv_export_delegated_permissions` to load
+      `DelegatedPermission` rows, convert DB models to application facts, and
+      call the application row assembler.
+- [x] Preserve existing behavior: rows remain ordered by `created_at desc`,
+      capped at 1000, revoked rows win over expiry, expired rows compare
+      `expires_at <= now`, and missing reason fields still export as empty
+      strings.
+- [x] Keep changed Rust files small: application delegated-permission CSV
+      module 140 lines, module export 26 lines, and Postgres helper 48 lines.
+- [x] Self-critique: wallet-credit and token-payout CSV exports still perform
+      row assembly in Postgres helpers; future slices should move them behind
+      application-owned fact/row assembly one at a time.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --lib platform_csv_exports`,
       `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_csv_exports_cover_business_reward_datasets`,

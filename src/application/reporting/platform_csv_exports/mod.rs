@@ -1,3 +1,4 @@
+mod delegated_permissions;
 mod error;
 mod handler;
 mod output;
@@ -6,6 +7,9 @@ mod service;
 pub mod store;
 mod teacher_applications;
 
+pub(crate) use delegated_permissions::{
+    platform_delegated_permission_export_row, PlatformDelegatedPermissionExportFact,
+};
 pub use error::PlatformCsvExportError;
 pub use handler::{
     load_platform_delegated_permission_exports, load_platform_reward_approval_exports,
