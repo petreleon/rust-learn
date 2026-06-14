@@ -8,5 +8,6 @@ pub mod ports;
 pub mod register;
 pub mod request_password_reset;
 pub mod resend_verification;
+pub mod reset_password;
 pub mod user_profile;
 pub mod verify_email;

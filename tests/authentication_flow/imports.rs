@@ -14,11 +14,13 @@ use rust_learn::models::user::User;
 use rust_learn::application::identity::login::LoginUseCase;
 use rust_learn::application::identity::register::RegisterUseCase;
 use rust_learn::application::identity::request_password_reset::RequestPasswordResetUseCase;
+use rust_learn::application::identity::reset_password::ResetPasswordUseCase;
 use rust_learn::application::identity::resend_verification::ResendVerificationUseCase;
 use rust_learn::application::identity::verify_email::VerifyEmailUseCase;
 use rust_learn::infra::postgres::identity::login_use_case::PostgresLoginUseCase;
 use rust_learn::infra::postgres::identity::registration_use_case::PostgresRegisterUseCase;
 use rust_learn::infra::postgres::identity::request_password_reset_use_case::PostgresRequestPasswordResetUseCase;
+use rust_learn::infra::postgres::identity::reset_password_use_case::PostgresResetPasswordUseCase;
 use rust_learn::infra::postgres::identity::resend_verification_use_case::PostgresResendVerificationUseCase;
 use rust_learn::infra::postgres::identity::verify_email_use_case::PostgresVerifyEmailUseCase;
 use rust_learn::utils::email::verification_token_hash;
@@ -59,6 +61,7 @@ fn auth_test_app(
         .app_data(login_use_case_data(&pool))
         .app_data(register_use_case_data(&pool))
         .app_data(request_password_reset_use_case_data(&pool))
+        .app_data(reset_password_use_case_data(&pool))
         .app_data(resend_verification_use_case_data(&pool))
         .app_data(verify_email_use_case_data(&pool))
         .service(web::scope("/api").service(rust_learn::http::identity::auth_scope()))
@@ -78,6 +81,10 @@ fn request_password_reset_use_case_data(
     web::Data::new(Arc::new(PostgresRequestPasswordResetUseCase::new(
         pool.clone(),
     )))
+}
+
+fn reset_password_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn ResetPasswordUseCase>> {
+    web::Data::new(Arc::new(PostgresResetPasswordUseCase::new(pool.clone())))
 }
 
 fn resend_verification_use_case_data(
