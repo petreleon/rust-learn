@@ -1138,21 +1138,29 @@ remaining gaps.
 | 240 | Moved the wallet-credit payout-evidence-required predicate for reconciliation candidates into `domain/rewards/candidate/lifecycle`, leaving evidence lookup and error wording in the Postgres adapter. |
 | 241 | Moved the prior-candidate statuses that allow a fresh reward submission into `domain/rewards/candidate/lifecycle`, leaving the Postgres eligibility query to consume the named domain set. |
 | 242 | Split reward candidate lifecycle tests by concern into reconciliation, wallet-credit, and submission modules so the domain lifecycle boundary can keep growing under the manual file-size ceiling. |
+| 243 | Moved platform reward-dashboard candidate-status bucket assignment into the reporting application layer, leaving Postgres to parse DB status strings into the domain enum before applying report shape. |
 
 ## Recent Slice Evidence
 
-Slice 242: split reward candidate lifecycle tests by concern.
+Slice 243: move platform reward-dashboard status bucketing to reporting application.
 
-- [x] Replace the near-limit monolithic `lifecycle_tests.rs` with focused
-      reconciliation, wallet-credit, and submission lifecycle test modules.
-- [x] Keep production lifecycle rules in `domain/rewards/candidate/lifecycle`
-      unchanged while making the pure-domain test boundary more granular.
-- [x] Preserve all existing lifecycle assertions under concern-named modules.
-- [x] Self-critique: this slice improves modularity pressure and reviewability,
-      but does not move another production rule out of an adapter; the next
-      slice should resume reducing reward reporting/status coupling.
+- [x] Add `record_reward_candidate_status_count` under
+      `application/reporting/platform_reward_dashboard` so report output shape
+      owns candidate-status bucket assignment.
+- [x] Repoint the Postgres platform reward-dashboard summary adapter to parse
+      stored status strings with `RewardCandidateStatus::parse` and then call
+      the application helper.
+- [x] Preserve existing behavior for unknown stored statuses: they still
+      increase the total summary count without filling a known bucket.
+- [x] Cover the application helper with pure tests for every known dashboard
+      bucket and the currently unbucketed `Adjusted` status.
+- [x] Self-critique: this removes one reporting/status coupling from a Diesel
+      adapter, but `platform_reward_dashboard_reconciliation` still owns a raw
+      status-to-mismatch classifier that should become a domain/application
+      rule in a later slice.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate::lifecycle`,
+      `./scripts/run-host-tests.sh cargo test --lib platform_reward_dashboard::summary`,
+      `./scripts/run-host-tests.sh cargo test --test reporting_exports`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
