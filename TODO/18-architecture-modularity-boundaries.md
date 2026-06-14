@@ -1114,33 +1114,32 @@ remaining gaps.
 | 216 | Moved the include-based centralized-wallet DB helper out of `utils::centralized_wallets` and into explicit `infra/postgres/wallet/centralized_wallets` records/transfer modules; the old utility path is now only a compatibility re-export and production source has no callers on that utility path. |
 | 217 | Deleted the `utils::jwt_utils` compatibility bridge after moving HTTP extractors, authentication JWKS/tests, JWT middleware, and integration fixtures to the `infra/tokens/jwt` owner directly. |
 | 218 | Deleted the `utils::notifications` compatibility bridge after moving HTTP best-effort notification senders and integration fixtures to the `infra/notifications` owner directly. |
+| 219 | Deleted the `utils::s3_utils` compatibility bridge after moving S3, readiness, and video-upload integration fixtures to the `infra/object_storage` owner directly. |
 
 ## Recent Slice Evidence
 
-Slice 218: delete notification utility compatibility bridge.
+Slice 219: delete S3 utility compatibility bridge.
 
-- [x] Move HTTP content creation, course enrollment decisions, course role
-      assignment, organization member-role assignment, and integration fixtures
-      off `utils::notifications` and onto the explicit
-      `infra::notifications` owner.
-- [x] Delete `src/utils/notifications.rs` and remove it from `src/utils/mod.rs`
+- [x] Move S3, readiness, and video-upload integration fixtures off
+      `utils::s3_utils` and onto the explicit `infra::object_storage` owner.
+- [x] Delete `src/utils/s3_utils.rs` and remove it from `src/utils/mod.rs`
       after scans proved no source or test references remain.
-- [x] Preserve notification behavior through the existing infra notification
-      API, especially `NotificationsState` and best-effort sender methods used
-      by HTTP handlers and test app wiring.
-- [x] Self-critique: these HTTP handlers still perform best-effort notification
-      sends directly against concrete `NotificationsState`. Removing the hidden
-      utility bridge is progress, but later content/learning/organization slices
-      should push these sends behind application ports or bootstrap-wired
-      context notification services.
+- [x] Preserve object-storage behavior through the existing infra API,
+      especially `S3State` construction, readiness health checks, and video
+      upload fixture wiring.
+- [x] Self-critique: `infra/object_storage::S3State` still includes video
+      processing methods that depend directly on concrete notification infra.
+      A later content/worker slice should split media-processing orchestration
+      behind an application port rather than keeping notification fan-out inside
+      the object-storage adapter.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib notifications`,
+      `./scripts/run-host-tests.sh cargo test --lib object_storage`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing no `utils::notifications` references
-      remain, scans showing `utils/mod.rs` no longer exports notification
-      utilities, and file-size checks keeping changed Rust files under the
-      manual 180-line ceiling.
+      `git diff --check`, scans showing no source/test `s3_utils` references
+      remain, scans showing `utils/mod.rs` no longer exports S3 utilities, and
+      file-size checks keeping changed Rust files under the manual 180-line
+      ceiling.
 
 ## Legacy Transition Rules
 

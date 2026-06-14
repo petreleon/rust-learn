@@ -2,7 +2,7 @@ use actix_web::{http::StatusCode, test, web, App};
 use rust_learn::application::operations::readiness_check::ReadinessUseCase;
 use rust_learn::bootstrap::readiness::RuntimeReadinessUseCase;
 use rust_learn::db::establish_connection;
-use rust_learn::utils::s3_utils::S3State;
+use rust_learn::infra::object_storage::S3State;
 use serde_json::Value;
 use std::sync::Arc;
 
