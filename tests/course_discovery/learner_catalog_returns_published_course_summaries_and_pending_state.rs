@@ -25,8 +25,9 @@ async fn learner_catalog_returns_published_course_summaries_and_pending_state() 
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(learner_course_catalog_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope()),
+            .service(rust_learn::http::learning::course_scope()),
     )
     .await;
 

@@ -23,7 +23,7 @@ async fn delegated_permission_grant_requires_platform_delegate_permission() {
 
     assert!(matches!(
         denied,
-        rust_learn::services::delegated_permission_service::DelegatedPermissionError::PermissionDenied(permission)
+        DelegatedPermissionError::PermissionDenied(permission)
             if permission == Permissions::DELEGATE_REWARD_APPROVAL.to_string()
     ));
 }

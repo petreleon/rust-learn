@@ -7,12 +7,25 @@ use rust_learn::db::schema::{
     authentications, email_verification_tokens, password_reset_tokens, user_role_platform, users,
 };
 use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::models::email_verification_token::EmailVerificationToken;
-use rust_learn::models::password_reset_token::PasswordResetToken;
-use rust_learn::models::role::PlatformRole;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
-use rust_learn::utils::email::verification_token_hash;
-use rust_learn::utils::jwt_utils::decode_jwt;
+use rust_learn::application::identity::login::LoginUseCase;
+use rust_learn::application::identity::register::RegisterUseCase;
+use rust_learn::application::identity::request_password_reset::RequestPasswordResetUseCase;
+use rust_learn::application::identity::reset_password::ResetPasswordUseCase;
+use rust_learn::application::identity::resend_verification::ResendVerificationUseCase;
+use rust_learn::application::identity::verify_email::VerifyEmailUseCase;
+use rust_learn::infra::postgres::identity::login_use_case::PostgresLoginUseCase;
+use rust_learn::infra::postgres::identity::registration_use_case::PostgresRegisterUseCase;
+use rust_learn::infra::postgres::identity::request_password_reset_use_case::PostgresRequestPasswordResetUseCase;
+use rust_learn::infra::postgres::identity::reset_password_use_case::PostgresResetPasswordUseCase;
+use rust_learn::infra::postgres::identity::resend_verification_use_case::PostgresResendVerificationUseCase;
+use rust_learn::infra::postgres::identity::verify_email_use_case::PostgresVerifyEmailUseCase;
+use rust_learn::infra::postgres::identity::email_verification_tokens::create_email_verification_token;
+use rust_learn::infra::tokens::identity::identity_token_hash;
+use rust_learn::infra::postgres::identity::password_reset_tokens::create_password_reset_token;
+use rust_learn::infra::tokens::jwt::decode_jwt;
+use std::sync::Arc;
 
 fn unique_email(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -44,8 +57,44 @@ fn auth_test_app(
     >,
 > {
     App::new()
-        .app_data(web::Data::new(pool))
-        .service(web::scope("/api").service(rust_learn::api::authentication::auth_scope()))
+        .app_data(web::Data::new(pool.clone()))
+        .app_data(login_use_case_data(&pool))
+        .app_data(register_use_case_data(&pool))
+        .app_data(request_password_reset_use_case_data(&pool))
+        .app_data(reset_password_use_case_data(&pool))
+        .app_data(resend_verification_use_case_data(&pool))
+        .app_data(verify_email_use_case_data(&pool))
+        .service(web::scope("/api").service(rust_learn::http::identity::auth_scope()))
+}
+
+fn login_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn LoginUseCase>> {
+    web::Data::new(Arc::new(PostgresLoginUseCase::new(pool.clone())))
+}
+
+fn register_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn RegisterUseCase>> {
+    web::Data::new(Arc::new(PostgresRegisterUseCase::new(pool.clone())))
+}
+
+fn request_password_reset_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn RequestPasswordResetUseCase>> {
+    web::Data::new(Arc::new(PostgresRequestPasswordResetUseCase::new(
+        pool.clone(),
+    )))
+}
+
+fn reset_password_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn ResetPasswordUseCase>> {
+    web::Data::new(Arc::new(PostgresResetPasswordUseCase::new(pool.clone())))
+}
+
+fn resend_verification_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn ResendVerificationUseCase>> {
+    web::Data::new(Arc::new(PostgresResendVerificationUseCase::new(pool.clone())))
+}
+
+fn verify_email_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn VerifyEmailUseCase>> {
+    web::Data::new(Arc::new(PostgresVerifyEmailUseCase::new(pool.clone())))
 }
 
 #[actix_web::test]
@@ -94,7 +143,7 @@ async fn register_creates_unverified_user_auth_role_and_verification_token() {
     let password_hash = password_hash.expect("password hash should be stored");
     assert!(verify(password, &password_hash).expect("password hash should be valid bcrypt"));
 
-    let student_role_id = PlatformRole::find_by_name("STUDENT", &mut conn)
+    let student_role_id = role_catalog_store::platform_role_id_by_name(&mut conn, "STUDENT")
         .await
         .expect("STUDENT role should be seeded");
     let role_assignments: i64 = user_role_platform::table

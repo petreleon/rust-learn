@@ -15,7 +15,6 @@ pub mod notification;
 pub mod notification_preferences;
 pub mod organization;
 pub mod organization_member_audit_event;
-pub mod param_type;
 pub mod password_reset_token;
 pub mod path;
 pub mod path_course;

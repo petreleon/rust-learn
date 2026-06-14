@@ -1,22 +1,33 @@
 use actix_web::{http::StatusCode, test, web, App};
 use chrono::NaiveDate;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::organizations::list_organization_teacher_applications::OrganizationTeacherApplicationListUseCase;
+use rust_learn::application::teacher_applications::TeacherApplicationOutput;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::schema::organizations;
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::organizations::organization_teacher_application_use_case::PostgresOrganizationTeacherApplicationUseCase;
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::role::OrganizationRole;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_organization::UserRoleOrganization;
+use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::repositories::platform_repository::assign_role_to_user;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::services::teacher_application_service::{
-    decide_application, nominate_application, OrganizationTeacherNominationRequest,
-    TeacherApplicationDecisionRequest,
-};
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::Value;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
+
+#[derive(Debug, PartialEq, Eq)]
+enum TeacherApplicationError {
+    PermissionDenied(String),
+    InvalidInput(String),
+    InvalidTransition(String),
+    NotFound,
+    Database(String),
+}
 
 static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -65,14 +76,22 @@ async fn assign_organization_role(
     organization_id: i32,
     role_name: &str,
 ) {
-    let role_id = OrganizationRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
         .await
         .expect("organization role should exist");
-    UserRoleOrganization::assign(conn, user_id, organization_id, role_id)
+    organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)
         .await
         .expect("failed to assign organization role");
 }
 
 fn token_for(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to create JWT")
+}
+
+fn organization_teacher_application_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn OrganizationTeacherApplicationListUseCase>> {
+    web::Data::new(Arc::new(PostgresOrganizationTeacherApplicationUseCase::new(
+        pool.clone(),
+    )))
 }

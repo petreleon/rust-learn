@@ -3,28 +3,44 @@ use actix_web::{test, web, App};
 use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::content::manage_chapter::ChapterUseCases;
+use rust_learn::application::content::manage_content_item::ContentItemUseCases;
+use rust_learn::application::content::process_upload_job::ContentProcessingUseCase;
+use rust_learn::application::content::request_media_url::ContentMediaUrlUseCase;
+use rust_learn::application::content::request_upload_url::ContentUploadUrlUseCase;
 use rust_learn::db::schema::{courses, notifications, upload_jobs};
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::content::chapter_use_cases::PostgresChapterUseCases;
+use rust_learn::infra::postgres::content::content_item_use_cases::PostgresContentItemUseCases;
+use rust_learn::infra::postgres::content::media_url_use_case::PostgresContentMediaUrlUseCase;
+use rust_learn::infra::postgres::content::processing_use_case::PostgresContentProcessingUseCase;
+use rust_learn::infra::postgres::content::upload_url_use_case::PostgresContentUploadUrlUseCase;
 use rust_learn::models::chapter::Chapter;
 use rust_learn::models::content::Content;
 use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::role::CourseRole;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::upload_job::UploadJob;
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_course::UserRoleCourse;
+use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::utils::jwt_utils::create_jwt;
-use rust_learn::utils::notifications::NotificationsState;
-use rust_learn::utils::s3_utils::S3State;
+use rust_learn::infra::tokens::jwt::create_jwt;
+use rust_learn::infra::notifications::NotificationsState;
+use rust_learn::infra::object_storage::S3State;
 use serde::Deserialize;
 use std::path::Path;
 use std::process::Command;
+use std::sync::Arc;
 use std::time::Duration as StdDuration;
 
 #[derive(Deserialize)]
 struct UploadUrlResponse {
     upload_url: String,
     object_key: String,
+}
+
+#[derive(Deserialize)]
+struct MediaUrlResponse {
+    url: String,
 }
 
 fn unique_string(prefix: &str) -> String {
@@ -38,6 +54,40 @@ async fn setup_conn(
     pool.get()
         .await
         .expect("failed to get DB connection from pool")
+}
+
+fn chapter_use_cases_data(pool: &DbPool) -> web::Data<Arc<dyn ChapterUseCases>> {
+    web::Data::new(Arc::new(PostgresChapterUseCases::new(pool.clone())))
+}
+
+fn content_item_use_cases_data(pool: &DbPool) -> web::Data<Arc<dyn ContentItemUseCases>> {
+    web::Data::new(Arc::new(PostgresContentItemUseCases::new(pool.clone())))
+}
+
+fn upload_url_use_case_data(
+    pool: &DbPool,
+    s3: &S3State,
+) -> web::Data<Arc<dyn ContentUploadUrlUseCase>> {
+    web::Data::new(Arc::new(PostgresContentUploadUrlUseCase::new(
+        pool.clone(),
+        s3.clone(),
+    )))
+}
+
+fn media_url_use_case_data(
+    pool: &DbPool,
+    s3: &S3State,
+) -> web::Data<Arc<dyn ContentMediaUrlUseCase>> {
+    web::Data::new(Arc::new(PostgresContentMediaUrlUseCase::new(
+        pool.clone(),
+        s3.clone(),
+    )))
+}
+
+fn content_processing_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn ContentProcessingUseCase>> {
+    web::Data::new(Arc::new(PostgresContentProcessingUseCase::new(
+        pool.clone(),
+    )))
 }
 
 async fn create_test_user(conn: &mut AsyncPgConnection, name: &str) -> User {
@@ -59,10 +109,10 @@ async fn force_assign_course_role(
     course_id: i32,
     role_name: &str,
 ) {
-    let role_id = CourseRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::course_role_id_by_name(conn, role_name)
         .await
         .expect("role not found");
-    UserRoleCourse::assign(conn, user_id, course_id, role_id)
+    course_role_records::assign_course_role_to_user(conn, user_id, course_id, role_id)
         .await
         .expect("assign failed");
 }

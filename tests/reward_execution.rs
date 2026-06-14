@@ -1,4 +1,6 @@
 include!("reward_execution/imports.rs");
+include!("reward_execution/use_case_helpers.rs");
+include!("reward_execution/reconciliation_use_case_helpers.rs");
 include!("reward_execution/create_course.rs");
 include!("reward_execution/execute_reward_payout_permission_gates_token_confirmation_and_wallet_credit.rs");
 include!("reward_execution/treasury_policy_uses_presigner_when_contract_is_available.rs");

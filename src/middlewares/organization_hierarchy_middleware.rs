@@ -12,9 +12,10 @@ use std::cmp::Ordering;
 use std::marker::PhantomData;
 
 use crate::db::DbPool;
-use crate::models::{param_type::ParamType, user_jwt::UserJWT};
+use crate::http::request_params::extract_param;
+use crate::http::request_params::ParamType;
+use crate::models::user_jwt::UserJWT;
 use crate::repositories::organization_repository::user_hierarchy_compare_organization;
-use crate::utils::request_utils::extract_param;
 
 pub struct OrganizationHierarchyMiddleware<S> {
     _service: PhantomData<S>,

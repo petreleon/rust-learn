@@ -47,7 +47,7 @@ async fn test_course_role_assignment_admin_can_assign_student() {
     let admin_role_id = get_course_admin_role_id(&mut conn).await;
     assign_course_role(&mut conn, admin.id(), course.id, admin_role_id).await;
 
-    let result = rust_learn::repositories::course_repository::assign_role_to_user_in_course(
+    let result = assign_course_role_with_use_case(
         &mut conn,
         admin.id(),
         student.id(),
@@ -64,10 +64,10 @@ async fn test_course_role_assignment_admin_can_assign_student() {
 async fn test_platform_permission_check_super_admin_has_perms() {
     let mut conn = setup_conn().await;
     let user = create_user_helper(&mut conn, "plat_perm_admin", true).await;
-    let role_id = PlatformRole::find_by_name("SUPER_ADMIN", &mut conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(&mut conn, "SUPER_ADMIN")
         .await
         .expect("super admin role not found");
-    UserRolePlatform::assign(&mut conn, user.id(), role_id)
+    platform_role_records::assign_platform_role_to_user(&mut conn, user.id(), role_id)
         .await
         .expect("failed to assign platform role");
 

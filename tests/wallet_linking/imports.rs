@@ -4,6 +4,21 @@ use chrono::NaiveDate;
 use chrono::Utc;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use std::sync::Arc;
+use rust_learn::application::wallet::audit_wallet::WalletAuditUseCase;
+use rust_learn::application::wallet::create_deposit_intent::{
+    create_deposit_intent, WalletDepositIntentRequest as WalletTokenTransferRequest,
+    WalletDepositIntentUseCase, WalletDepositIntentView,
+};
+use rust_learn::application::wallet::index_deposit::{
+    index_observed_deposit, ObservedWalletDepositEvent, WalletDepositIndexOutput,
+};
+use rust_learn::application::wallet::link_wallet::{
+    link_wallet, LinkedWalletView, WalletLinkSubject, WalletLinkUseCase,
+};
+use rust_learn::application::wallet::manage_token_tax::WalletTokenTaxUseCase;
+use rust_learn::application::wallet::read_wallet::WalletReadUseCase;
+use rust_learn::application::wallet::retire_tokens::WalletRetirementUseCase;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::schema::{
     courses, external_transactions, internal_transactions, organization_roles, organizations,
@@ -13,22 +28,30 @@ use rust_learn::db::schema::{
     users, wallet_token_deposit_intents, wallets,
 };
 use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::models::course::NewCourse;
-use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::reward_candidate::{
-    NewRewardCandidate, REWARD_EVENT_COURSE_COMPLETION, REWARD_SOURCE_COURSE,
+use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
+use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
+use rust_learn::domain::rewards::candidate::status::{
     REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_WALLET_CREDITED,
 };
-use rust_learn::models::role::{OrganizationRole, PlatformRole};
+use rust_learn::models::course::NewCourse;
+use rust_learn::models::organization::{NewOrganization, Organization};
+use rust_learn::models::reward_candidate::NewRewardCandidate;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_organization::UserRoleOrganization;
-use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::infra::postgres::access_control::organization_role_records;
+use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::persistent_state_repository::set_persistent_state;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::services::wallet_service::{
-    self, credit_observed_wallet_deposit, ObservedWalletDepositEvent, WalletTokenTransferRequest,
-};
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::postgres::wallet::wallet_audit_use_case::PostgresWalletAuditUseCase;
+use rust_learn::infra::postgres::wallet::wallet_deposit_index_store::PostgresWalletDepositIndexStore;
+use rust_learn::infra::postgres::wallet::wallet_deposit_intent_store::PostgresWalletDepositIntentStore;
+use rust_learn::infra::postgres::wallet::wallet_deposit_intent_use_case::PostgresWalletDepositIntentUseCase;
+use rust_learn::infra::postgres::wallet::wallet_link_store::PostgresWalletLinkStore;
+use rust_learn::infra::postgres::wallet::wallet_link_use_case::PostgresWalletLinkUseCase;
+use rust_learn::infra::postgres::wallet::wallet_read_use_case::PostgresWalletReadUseCase;
+use rust_learn::infra::postgres::wallet::wallet_retirement_use_case::PostgresWalletRetirementUseCase;
+use rust_learn::infra::postgres::wallet::wallet_token_tax_use_case::PostgresWalletTokenTaxUseCase;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::json;
 use serde_json::Value;
 
@@ -66,6 +89,51 @@ async fn mark_user_kyc_verified(conn: &mut AsyncPgConnection, user_id: i32) {
         .expect("failed to mark user KYC verified");
 }
 
+async fn link_user_wallet(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+) -> Result<LinkedWalletView, rust_learn::application::wallet::link_wallet::WalletLinkError> {
+    let mut store = PostgresWalletLinkStore::new(conn);
+    link_wallet(&mut store, user_id, WalletLinkSubject::OwnUser).await
+}
+
+async fn link_organization_wallet(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    organization_id: i32,
+) -> Result<LinkedWalletView, rust_learn::application::wallet::link_wallet::WalletLinkError> {
+    let mut store = PostgresWalletLinkStore::new(conn);
+    link_wallet(
+        &mut store,
+        actor_user_id,
+        WalletLinkSubject::Organization(organization_id),
+    )
+    .await
+}
+
+async fn deposit_tokens_to_user_wallet(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    request: WalletTokenTransferRequest,
+) -> Result<
+    WalletDepositIntentView,
+    rust_learn::application::wallet::create_deposit_intent::WalletDepositIntentError,
+> {
+    let mut store = PostgresWalletDepositIntentStore::new(conn);
+    create_deposit_intent(&mut store, user_id, request).await
+}
+
+async fn credit_observed_wallet_deposit(
+    conn: &mut AsyncPgConnection,
+    event: ObservedWalletDepositEvent,
+) -> Result<
+    WalletDepositIndexOutput,
+    rust_learn::application::wallet::index_deposit::WalletDepositIndexError,
+> {
+    let mut store = PostgresWalletDepositIndexStore::new(conn);
+    index_observed_deposit(&mut store, event).await
+}
+
 async fn create_test_organization(conn: &mut AsyncPgConnection) -> Organization {
     let new_org = NewOrganization {
         name: unique_string("wallet_org"),
@@ -95,10 +163,10 @@ async fn create_test_course(conn: &mut AsyncPgConnection) -> i32 {
 }
 
 async fn assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
-    let role_id = PlatformRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(conn, role_name)
         .await
         .expect("platform role should exist");
-    UserRolePlatform::assign(conn, user_id, role_id)
+    platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
         .await
         .expect("failed to assign platform role");
 }

@@ -1,7 +1,7 @@
 async fn create_reward_financial_records(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
-    wallet: &Wallet,
+    wallet_id: i32,
     amount: BigDecimal,
 ) -> RewardFinancialFixture {
     let payout_transaction_id = diesel::insert_into(transactions::table)
@@ -53,7 +53,7 @@ async fn create_reward_financial_records(
         .expect("failed to create wallet credit transaction");
     let internal_transaction_id = diesel::insert_into(internal_transactions::table)
         .values((
-            internal_transactions::wallet_id.eq(wallet.id),
+            internal_transactions::wallet_id.eq(wallet_id),
             internal_transactions::amount.eq(amount),
         ))
         .returning(internal_transactions::id)
@@ -71,7 +71,7 @@ async fn create_reward_financial_records(
     let wallet_credit_record_id = diesel::insert_into(reward_wallet_credit_records::table)
         .values((
             reward_wallet_credit_records::reward_candidate_id.eq(candidate_id),
-            reward_wallet_credit_records::wallet_id.eq(wallet.id),
+            reward_wallet_credit_records::wallet_id.eq(wallet_id),
             reward_wallet_credit_records::transaction_id.eq(wallet_transaction_id),
             reward_wallet_credit_records::internal_transaction_id.eq(internal_transaction_id),
         ))

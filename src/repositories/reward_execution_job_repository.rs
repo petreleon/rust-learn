@@ -1,7 +1,6 @@
 use crate::db::schema::reward_execution_jobs;
-use crate::models::reward_execution_job::{
-    NewRewardExecutionJob, RewardExecutionJob, REWARD_EXECUTION_STATUS_QUEUED,
-};
+use crate::domain::rewards::execution::RewardExecutionJobStatus;
+use crate::models::reward_execution_job::{NewRewardExecutionJob, RewardExecutionJob};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
@@ -11,7 +10,7 @@ pub async fn enqueue_reward_execution_job(
 ) -> QueryResult<RewardExecutionJob> {
     let new_job = NewRewardExecutionJob {
         reward_candidate_id,
-        status: REWARD_EXECUTION_STATUS_QUEUED.to_string(),
+        status: RewardExecutionJobStatus::Queued.as_str().to_string(),
     };
 
     diesel::insert_into(reward_execution_jobs::table)

@@ -25,11 +25,10 @@ async fn duplicate_pending_deposit_intents_are_marked_ambiguous_without_creditin
         platform_address: Some("0x00000000000000000000000000000000000000bb".to_string()),
     };
 
-    let first =
-        wallet_service::deposit_tokens_to_user_wallet(&mut conn, learner.id(), request.clone())
-            .await
-            .expect("first deposit intent should be created");
-    let second = wallet_service::deposit_tokens_to_user_wallet(&mut conn, learner.id(), request)
+    let first = deposit_tokens_to_user_wallet(&mut conn, learner.id(), request.clone())
+        .await
+        .expect("first deposit intent should be created");
+    let second = deposit_tokens_to_user_wallet(&mut conn, learner.id(), request)
         .await
         .expect("second deposit intent should be created");
     assert_ne!(first.id, second.id);

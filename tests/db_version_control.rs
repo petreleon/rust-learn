@@ -4,7 +4,7 @@ use diesel_async::{
 };
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::db_version_control;
-use rust_learn::models::db_version_control::DbVersionControl;
+use rust_learn::infra::postgres::operations::db_version_control as db_version_control_records;
 
 async fn setup_conn() -> PooledConnection<AsyncPgConnection> {
     let _ = dotenvy::dotenv();
@@ -25,12 +25,14 @@ async fn update_version_recreates_missing_control_row() {
                     .execute(conn)
                     .await?;
 
-                DbVersionControl::update_version(conn, 7).await?;
-                let version_after_insert = DbVersionControl::get_current_version(conn).await?;
+                db_version_control_records::update_version(conn, 7).await?;
+                let version_after_insert =
+                    db_version_control_records::get_current_version(conn).await?;
                 assert_eq!(version_after_insert, 7);
 
-                DbVersionControl::update_version(conn, 9).await?;
-                let version_after_update = DbVersionControl::get_current_version(conn).await?;
+                db_version_control_records::update_version(conn, 9).await?;
+                let version_after_update =
+                    db_version_control_records::get_current_version(conn).await?;
                 assert_eq!(version_after_update, 9);
 
                 Err(diesel::result::Error::RollbackTransaction)

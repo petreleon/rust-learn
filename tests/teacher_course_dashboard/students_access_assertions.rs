@@ -2,8 +2,12 @@ async fn assert_teacher_students(fixture: &TeacherDashboardFixture) {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
+            .app_data(teacher_dashboard_use_case_data(&fixture.pool))
+            .app_data(teacher_workspace_use_case_data(&fixture.pool))
+            .app_data(teacher_students_use_case_data(&fixture.pool))
+            .app_data(teacher_enrollment_workspace_use_case_data(&fixture.pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope()),
+            .service(rust_learn::http::learning::course_scope()),
     )
     .await;
 
@@ -93,8 +97,12 @@ async fn assert_outsider_teacher_dashboard_access(fixture: &TeacherDashboardFixt
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
+            .app_data(teacher_dashboard_use_case_data(&fixture.pool))
+            .app_data(teacher_workspace_use_case_data(&fixture.pool))
+            .app_data(teacher_students_use_case_data(&fixture.pool))
+            .app_data(teacher_enrollment_workspace_use_case_data(&fixture.pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope()),
+            .service(rust_learn::http::learning::course_scope()),
     )
     .await;
 

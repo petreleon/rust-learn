@@ -12,7 +12,7 @@ async fn assign_hierarchy_check_fail_assigning_higher_role() {
     let new_user = create_user_helper(&mut conn, "target_user").await;
 
     // 3. Student tries to assign TEACHER
-    let result = assign_role_to_user_in_course(
+    let result = assign_course_role_via_use_case(
         &mut conn,
         student_assigner.id(),
         new_user.id(),

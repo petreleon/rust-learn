@@ -1,6 +1,7 @@
-use crate::models::role_organization_hierarchy::RoleOrganizationHierarchy;
-use crate::models::user_role_organization::UserRoleOrganization;
-use crate::repositories::delegated_permission_repository;
+use crate::infra::postgres::access_control::hierarchy_records;
+use crate::infra::postgres::access_control::organization_role_records;
+use crate::infra::postgres::access_control::permission_checks;
+use crate::infra::postgres::access_control::role_catalog_store;
 use diesel::prelude::*;
 use diesel_async::AsyncPgConnection;
 use std::cmp::Ordering;
@@ -12,27 +13,7 @@ pub async fn user_permission_organization_request(
     organization_id: i32,
     permission: &str,
 ) -> QueryResult<bool> {
-    if UserRoleOrganization::has_permission(conn, user_id, organization_id, permission).await? {
-        return Ok(true);
-    }
-
-    let has_delegation = delegated_permission_repository::has_active_organization_delegation(
-        conn,
-        user_id,
-        organization_id,
-        permission,
-    )
-    .await?;
-    if has_delegation {
-        log::info!(
-            "event=delegated_permission_used scope=organization user_id={} organization_id={} permission={}",
-            user_id,
-            organization_id,
-            permission
-        );
-    }
-
-    Ok(has_delegation)
+    permission_checks::has_organization_permission(conn, user_id, organization_id, permission).await
 }
 
 /// Compares the hierarchy of two users in an organization
@@ -43,9 +24,9 @@ pub async fn user_hierarchy_compare_organization(
     user2_id: i32,
 ) -> QueryResult<Ordering> {
     let user1_max_level =
-        RoleOrganizationHierarchy::get_min_level(conn, user1_id, organization_id).await?;
+        hierarchy_records::organization_min_level_for_user(conn, user1_id, organization_id).await?;
     let user2_max_level =
-        RoleOrganizationHierarchy::get_min_level(conn, user2_id, organization_id).await?;
+        hierarchy_records::organization_min_level_for_user(conn, user2_id, organization_id).await?;
 
     match (user1_max_level, user2_max_level) {
         (Some(level1), Some(level2)) => Ok(level2.cmp(&level1)),
@@ -64,19 +45,20 @@ pub async fn assign_role_to_user_in_organization(
 ) -> QueryResult<usize> {
     // 1. Get Assigner's Hierarchy Level
     let assigner_level =
-        RoleOrganizationHierarchy::get_min_level(conn, assigner_id, p_organization_id)
+        hierarchy_records::organization_min_level_for_user(conn, assigner_id, p_organization_id)
             .await?
             .ok_or(diesel::result::Error::NotFound)?; // Assigner must have a role in the org
 
     // 2. Get Assignee's (Target User) Hierarchy Level
     let assignee_level_opt =
-        RoleOrganizationHierarchy::get_min_level(conn, p_user_id, p_organization_id).await?;
+        hierarchy_records::organization_min_level_for_user(conn, p_user_id, p_organization_id)
+            .await?;
 
     // 3. Get Role ID
-    let role_id = crate::models::role::OrganizationRole::find_by_name(role_name, conn).await?;
+    let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name).await?;
 
     // 4. Get Target Role's Hierarchy Level
-    let target_role_level = RoleOrganizationHierarchy::get_role_level(conn, role_id).await?;
+    let target_role_level = hierarchy_records::organization_role_level(conn, role_id).await?;
 
     // 5. Enforce Hierarchy Rules: Lower value means higher rank (0 is highest)
 
@@ -92,5 +74,11 @@ pub async fn assign_role_to_user_in_organization(
         }
     }
 
-    UserRoleOrganization::assign(conn, p_user_id, p_organization_id, role_id).await
+    organization_role_records::assign_organization_role_to_user(
+        conn,
+        p_user_id,
+        p_organization_id,
+        role_id,
+    )
+    .await
 }

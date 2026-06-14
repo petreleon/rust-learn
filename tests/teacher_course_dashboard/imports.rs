@@ -8,30 +8,45 @@ use rust_learn::db::schema::{
     organizations, reward_candidates, reward_policies,
 };
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
+use rust_learn::domain::learning::enrollment::status::{
+    COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
+};
+use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
+use rust_learn::domain::rewards::candidate::status::{
+    REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+    REWARD_STATUS_TEACHER_APPROVED,
+};
+use rust_learn::domain::rewards::policy::{
+    REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
+};
 use rust_learn::models::chapter::NewChapter;
 use rust_learn::models::content::NewContent;
-use rust_learn::models::course::{Course, NewCourse, COURSE_STATUS_PUBLISHED};
-use rust_learn::models::course_join_request::{
-    NewCourseJoinRequest, COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING,
-    COURSE_JOIN_STATUS_WAITLISTED,
-};
+use rust_learn::models::course::{Course, NewCourse};
+use rust_learn::models::course_join_request::NewCourseJoinRequest;
 use rust_learn::models::courses_organizations::NewCourseOrganization;
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::reward_candidate::{
-    NewRewardCandidate, REWARD_SOURCE_COURSE, REWARD_STATUS_FAILED,
-    REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
-};
-use rust_learn::models::reward_policy::{
-    NewRewardPolicy, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
-};
-use rust_learn::models::role::{CourseRole, PlatformRole};
+use rust_learn::models::reward_candidate::NewRewardCandidate;
+use rust_learn::models::reward_policy::NewRewardPolicy;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_course::UserRoleCourse;
-use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::infra::postgres::access_control::course_role_records;
+use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::application::learning::get_teacher_course_enrollment_workspace::TeacherCourseEnrollmentWorkspaceUseCase;
+use rust_learn::application::learning::get_teacher_course_students::TeacherCourseStudentsUseCase;
+use rust_learn::application::learning::get_teacher_course_workspace::TeacherCourseWorkspaceUseCase;
+use rust_learn::application::learning::list_teacher_course_dashboard::TeacherCourseDashboardListUseCase;
+use rust_learn::infra::postgres::learning::teacher_course_dashboard_list_use_case::PostgresTeacherCourseDashboardListUseCase;
+use rust_learn::infra::postgres::learning::teacher_course_enrollment_workspace_use_case::PostgresTeacherCourseEnrollmentWorkspaceUseCase;
+use rust_learn::infra::postgres::learning::teacher_course_students_use_case::PostgresTeacherCourseStudentsUseCase;
+use rust_learn::infra::postgres::learning::teacher_course_workspace_use_case::PostgresTeacherCourseWorkspaceUseCase;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::{json, Value};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
 
 static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -49,6 +64,38 @@ async fn setup_conn(
         .expect("failed to get DB connection from pool")
 }
 
+fn teacher_dashboard_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn TeacherCourseDashboardListUseCase>> {
+    web::Data::new(Arc::new(PostgresTeacherCourseDashboardListUseCase::new(
+        pool.clone(),
+    )))
+}
+
+fn teacher_workspace_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn TeacherCourseWorkspaceUseCase>> {
+    web::Data::new(Arc::new(PostgresTeacherCourseWorkspaceUseCase::new(
+        pool.clone(),
+    )))
+}
+
+fn teacher_students_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn TeacherCourseStudentsUseCase>> {
+    web::Data::new(Arc::new(PostgresTeacherCourseStudentsUseCase::new(
+        pool.clone(),
+    )))
+}
+
+fn teacher_enrollment_workspace_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn TeacherCourseEnrollmentWorkspaceUseCase>> {
+    web::Data::new(Arc::new(
+        PostgresTeacherCourseEnrollmentWorkspaceUseCase::new(pool.clone()),
+    ))
+}
+
 async fn create_test_user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
     create_user(
         conn,
@@ -62,10 +109,10 @@ async fn create_test_user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
 }
 
 async fn assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
-    let role_id = PlatformRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(conn, role_name)
         .await
         .expect("platform role should exist");
-    UserRolePlatform::assign(conn, user_id, role_id)
+    platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
         .await
         .expect("failed to assign platform role");
 }
@@ -76,10 +123,10 @@ async fn assign_course_role(
     course_id: i32,
     role_name: &str,
 ) {
-    let role_id = CourseRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::course_role_id_by_name(conn, role_name)
         .await
         .expect("course role should exist");
-    UserRoleCourse::assign(conn, user_id, course_id, role_id)
+    course_role_records::assign_course_role_to_user(conn, user_id, course_id, role_id)
         .await
         .expect("failed to assign course role");
 }

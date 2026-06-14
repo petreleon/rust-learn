@@ -4,15 +4,6 @@ use diesel::prelude::*;
 use serde::Serialize;
 use serde_json::Value;
 
-pub const TEACHER_APPLICATION_STATUS_SUBMITTED: &str = "submitted";
-pub const TEACHER_APPLICATION_STATUS_NEEDS_CHANGES: &str = "needs_changes";
-pub const TEACHER_APPLICATION_STATUS_APPROVED: &str = "approved";
-pub const TEACHER_APPLICATION_STATUS_REJECTED: &str = "rejected";
-
-pub const TEACHER_APPLICATION_SCOPE_PLATFORM: &str = "platform";
-pub const TEACHER_APPLICATION_SCOPE_ORGANIZATION: &str = "organization";
-pub const TEACHER_APPLICATION_SCOPE_COURSE: &str = "course";
-
 #[derive(Queryable, Identifiable, Selectable, Debug, Clone, Serialize)]
 #[diesel(table_name = teacher_applications)]
 pub struct TeacherApplication {

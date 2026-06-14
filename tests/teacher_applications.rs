@@ -1,4 +1,8 @@
 include!("teacher_applications/imports.rs");
+include!("teacher_applications/submit_support.rs");
+include!("teacher_applications/nomination_support.rs");
+include!("teacher_applications/decision_support.rs");
+include!("teacher_applications/platform_review_support.rs");
 include!("teacher_applications/create_custom_platform_role.rs");
 include!("teacher_applications/custom_platform_permissions_drive_teacher_application_flow.rs");
 include!("teacher_applications/platform_teacher_application_review_contract_returns_context_and_filters.rs");

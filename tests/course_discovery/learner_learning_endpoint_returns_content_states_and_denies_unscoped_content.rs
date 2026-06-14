@@ -46,8 +46,9 @@ async fn learner_learning_endpoint_returns_content_states_and_denies_unscoped_co
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(learner_course_learning_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope()),
+            .service(rust_learn::http::learning::course_scope()),
     )
     .await;
 

@@ -1,0 +1,111 @@
+use crate::application::teacher_applications::list_platform_review::{
+    TeacherApplicationPlatformReviewError, TeacherApplicationPlatformReviewItemOutput,
+    TeacherApplicationPlatformReviewOutput, TeacherApplicationPlatformReviewPermissionsOutput,
+    TeacherApplicationPlatformReviewQuery, TeacherApplicationPlatformReviewStore,
+};
+use crate::domain::teacher_applications::status::normalize_optional_status;
+
+pub async fn list_platform_review_applications(
+    store: &mut impl TeacherApplicationPlatformReviewStore,
+    query: TeacherApplicationPlatformReviewQuery,
+) -> Result<TeacherApplicationPlatformReviewOutput, TeacherApplicationPlatformReviewError> {
+    if !store
+        .can_review_teacher_applications(query.actor_user_id)
+        .await?
+    {
+        return Err(TeacherApplicationPlatformReviewError::PermissionDenied(
+            "REVIEW_TEACHER_APPLICATIONS".to_string(),
+        ));
+    }
+
+    let status = normalize_optional_status(query.status)?;
+    let search = normalize_optional_text(query.search);
+    let limit = query.limit.unwrap_or(25).clamp(1, 100);
+    let offset = query.offset.unwrap_or(0).max(0);
+    let can_approve_applications = store
+        .can_approve_teacher_application(query.actor_user_id)
+        .await?;
+    let can_reject_applications = store
+        .can_reject_teacher_application(query.actor_user_id)
+        .await?;
+    let dataset = store.list_applications().await?;
+    let mut applications = dataset.applications;
+
+    if let Some(status) = status.as_deref() {
+        applications.retain(|application| application.status == status);
+    }
+    if let Some(search) = search.as_deref() {
+        let normalized = search.to_lowercase();
+        applications.retain(|application| application_matches_search(application, &normalized));
+    }
+
+    let total = applications.len() as i64;
+    let applications = applications
+        .into_iter()
+        .skip(offset as usize)
+        .take(limit as usize)
+        .collect::<Vec<_>>();
+
+    Ok(TeacherApplicationPlatformReviewOutput {
+        applications,
+        summary: dataset.summary,
+        operator_permissions: TeacherApplicationPlatformReviewPermissionsOutput {
+            can_view_applications: true,
+            can_approve_applications,
+            can_reject_applications,
+            can_request_changes: true,
+        },
+        total,
+        limit,
+        offset,
+        status,
+        search,
+    })
+}
+
+fn normalize_optional_text(value: Option<String>) -> Option<String> {
+    value.and_then(|text| {
+        let trimmed = text.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
+}
+
+fn application_matches_search(
+    application: &TeacherApplicationPlatformReviewItemOutput,
+    search: &str,
+) -> bool {
+    application.id.to_string().contains(search)
+        || application.applicant.id.to_string().contains(search)
+        || application.applicant.name.to_lowercase().contains(search)
+        || application.applicant.email.to_lowercase().contains(search)
+        || application
+            .experience_summary
+            .to_lowercase()
+            .contains(search)
+        || application.status.to_lowercase().contains(search)
+        || application.requested_scope.to_lowercase().contains(search)
+        || application.requested_course.as_ref().is_some_and(|course| {
+            course.id.to_string().contains(search) || course.title.to_lowercase().contains(search)
+        })
+        || application
+            .requested_organization
+            .as_ref()
+            .is_some_and(|organization| {
+                organization.id.to_string().contains(search)
+                    || organization.name.to_lowercase().contains(search)
+            })
+        || application
+            .sponsor_organization
+            .as_ref()
+            .is_some_and(|organization| {
+                organization.id.to_string().contains(search)
+                    || organization.name.to_lowercase().contains(search)
+            })
+}
+
+#[cfg(test)]
+mod tests;

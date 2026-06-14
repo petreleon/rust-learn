@@ -28,6 +28,36 @@ async fn current_session_returns_profile_scopes_and_delegations() {
     )
     .await
     .expect("failed to create delegated permission");
+    create_delegated_permission(
+        &mut conn,
+        NewDelegatedPermission {
+            grantor_user_id: grantor.id(),
+            grantee_user_id: user.id(),
+            permission: "MANAGE_ORG_SETTINGS".to_string(),
+            scope_type: "organization".to_string(),
+            organization_id: Some(organization.id),
+            course_id: None,
+            reason: Some("session API organization delegation".to_string()),
+            expires_at: None,
+        },
+    )
+    .await
+    .expect("failed to create organization delegated permission");
+    create_delegated_permission(
+        &mut conn,
+        NewDelegatedPermission {
+            grantor_user_id: grantor.id(),
+            grantee_user_id: user.id(),
+            permission: "GRADE_ASSESSMENT".to_string(),
+            scope_type: "course".to_string(),
+            organization_id: None,
+            course_id: Some(course.id),
+            reason: Some("session API course delegation".to_string()),
+            expires_at: None,
+        },
+    )
+    .await
+    .expect("failed to create course delegated permission");
     drop(conn);
 
     let app = test::init_service(current_session_test_app(pool.clone())).await;
@@ -75,6 +105,14 @@ async fn current_session_returns_profile_scopes_and_delegations() {
         &session_org["direct_permissions"],
         "GENERATE_REPORT"
     ));
+    assert!(array_contains(
+        &session_org["delegated_permissions"],
+        "MANAGE_ORG_SETTINGS"
+    ));
+    assert!(array_contains(
+        &session_org["effective_permissions"],
+        "MANAGE_ORG_SETTINGS"
+    ));
 
     let courses = body["courses"].as_array().expect("courses array");
     let session_course = courses
@@ -90,6 +128,14 @@ async fn current_session_returns_profile_scopes_and_delegations() {
         &session_course["direct_permissions"],
         "CREATE_CONTENT"
     ));
+    assert!(array_contains(
+        &session_course["delegated_permissions"],
+        "GRADE_ASSESSMENT"
+    ));
+    assert!(array_contains(
+        &session_course["effective_permissions"],
+        "GRADE_ASSESSMENT"
+    ));
 
     let delegations = body["delegated_permissions"]
         .as_array()
@@ -97,6 +143,20 @@ async fn current_session_returns_profile_scopes_and_delegations() {
     assert!(delegations.iter().any(|delegation| {
         delegation["permission"].as_str() == Some("EXECUTE_REWARD_PAYOUT")
             && delegation["scope_type"].as_str() == Some("platform")
+    }));
+    assert!(delegations.iter().any(|delegation| {
+        delegation["permission"].as_str() == Some("MANAGE_ORG_SETTINGS")
+            && delegation["scope_type"].as_str() == Some("organization")
+            && delegation["organization_id"].as_i64() == Some(organization.id as i64)
+            && delegation["organization_name"].as_str() == Some(organization.name.as_str())
+    }));
+    assert!(delegations.iter().any(|delegation| {
+        delegation["permission"].as_str() == Some("GRADE_ASSESSMENT")
+            && delegation["scope_type"].as_str() == Some("course")
+            && delegation["course_id"].as_i64() == Some(course.id as i64)
+            && delegation["course_title"].as_str() == Some(course.title.as_str())
+            && delegation["course_lifecycle_status"].as_str()
+                == Some(course.lifecycle_status.as_str())
     }));
 }
 

@@ -30,7 +30,7 @@ async fn test_course_permission_middleware() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope()),
+            .service(rust_learn::http::learning::course_scope()),
     )
     .await;
 
@@ -85,8 +85,10 @@ async fn read_user_routes_require_view_user_or_self() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(user_list_use_case_data(&pool))
+            .app_data(user_profile_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::users::user_scope()),
+            .configure(rust_learn::http::identity::configure_routes),
     )
     .await;
 
@@ -100,17 +102,47 @@ async fn read_user_routes_require_view_user_or_self() {
         .uri("/user")
         .insert_header(("Authorization", format!("Bearer {}", admin_token)))
         .to_request();
-    assert_eq!(response_status(app.call(req).await), StatusCode::OK);
+    let response = app.call(req).await.expect("admin user list should run");
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = test::read_body_json(response).await;
+    assert!(user_list_contains_email(&body, target.email.as_str()));
+
+    let req = test::TestRequest::get()
+        .uri(&format!("/user?search={}", target.email))
+        .insert_header(("Authorization", format!("Bearer {}", admin_token)))
+        .to_request();
+    let response = app
+        .call(req)
+        .await
+        .expect("admin user search should run");
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = test::read_body_json(response).await;
+    assert!(user_list_contains_email(&body, target.email.as_str()));
+    assert!(!user_list_contains_email(&body, admin.email.as_str()));
 
     let req = test::TestRequest::get()
         .uri(&format!("/user/{}", target.id()))
         .insert_header(("Authorization", format!("Bearer {}", target_token)))
         .to_request();
-    assert_eq!(response_status(app.call(req).await), StatusCode::OK);
+    let response = app
+        .call(req)
+        .await
+        .expect("self user profile request should run");
+    assert_eq!(response.status(), StatusCode::OK);
+    let body: serde_json::Value = test::read_body_json(response).await;
+    assert_eq!(body["id"].as_i64(), Some(target.id() as i64));
+    assert_eq!(body["email"].as_str(), Some(target.email.as_str()));
 
     let req = test::TestRequest::get()
         .uri(&format!("/user/{}", target.id()))
         .insert_header(("Authorization", format!("Bearer {}", stranger_token)))
         .to_request();
     assert_eq!(response_status(app.call(req).await), StatusCode::FORBIDDEN);
+}
+
+fn user_list_contains_email(body: &serde_json::Value, email: &str) -> bool {
+    body["users"]
+        .as_array()
+        .map(|users| users.iter().any(|user| user["email"].as_str() == Some(email)))
+        .unwrap_or(false)
 }

@@ -1,7 +1,8 @@
-# RustLearn Frontend TODO
+# RustLearn TODO
 
-This roadmap is focused on the real product frontend that learners, teachers,
-organization operators, and platform administrators will use. The existing
+This roadmap is focused on the real product experience that learners, teachers,
+organization operators, and platform administrators will use, plus the backend
+architecture work needed to keep that product maintainable. The existing
 operations console is useful for exercising backend workflows, but it is not the
 finished RustLearn user experience.
 
@@ -52,6 +53,10 @@ application.
 - [17-observed-missing-product-work.md](17-observed-missing-product-work.md) -
   current objective file for missing product features, ugly interface states,
   recursive verification, and build-ready acceptance checks.
+- [18-architecture-modularity-boundaries.md](18-architecture-modularity-boundaries.md) -
+  backend modular-monolith refactor plan for Actix/Rust boundaries,
+  authorization centralization, DTO separation, and context-by-context
+  migration.
 
 ## Current Frontend Baseline
 
@@ -99,5 +104,8 @@ application.
 - Use [17-observed-missing-product-work.md](17-observed-missing-product-work.md)
   as the active build backlog for observed missing features until its checks
   are proven by code, tests, and rendered route evidence.
+- Use [18-architecture-modularity-boundaries.md](18-architecture-modularity-boundaries.md)
+  before large backend refactors that touch API, services, repositories,
+  permissions, or infrastructure adapters.
 - Keep completed checks honest: mark an item done only when current code and
   runtime evidence prove it.

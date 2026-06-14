@@ -3,11 +3,6 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;
 
-pub const REWARD_FRAUD_BLOCK_SCOPE_TEACHER: &str = "teacher";
-pub const REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION: &str = "organization";
-pub const REWARD_FRAUD_BLOCK_SCOPE_COURSE: &str = "course";
-pub const REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY: &str = "reward_policy";
-
 #[derive(Queryable, Identifiable, Selectable, Debug, Clone, Serialize)]
 #[diesel(table_name = reward_fraud_blocks)]
 pub struct RewardFraudBlock {

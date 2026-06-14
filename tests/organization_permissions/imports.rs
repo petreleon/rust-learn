@@ -9,8 +9,8 @@ use rust_learn::repositories::organization_repository::{
 use rust_learn::repositories::user_repository::create_user;
 // We need to bypass the helper to setup the initial super-user/assigner
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::models::role::OrganizationRole;
-use rust_learn::models::user_role_organization::UserRoleOrganization;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
+use rust_learn::infra::postgres::access_control::organization_role_records;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -68,10 +68,10 @@ async fn force_assign_role(
     org_id: i32,
     role_name: &str,
 ) {
-    let role_id = OrganizationRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
         .await
         .expect("role not found");
-    UserRoleOrganization::assign(conn, user_id, org_id, role_id)
+    organization_role_records::assign_organization_role_to_user(conn, user_id, org_id, role_id)
         .await
         .expect("force assign failed");
 }

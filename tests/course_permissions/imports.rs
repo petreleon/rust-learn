@@ -1,14 +1,17 @@
 use chrono::NaiveDate;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::learning::assign_course_role::{
+    assign_course_role as run_course_role_assignment, CourseRoleAssignmentCommand,
+    CourseRoleAssignmentError, CourseRoleAssignmentOutput,
+};
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::courses;
+use rust_learn::infra::postgres::learning::course_role_assignment_store::PostgresCourseRoleAssignmentStore;
 use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::role::CourseRole;
-use rust_learn::models::user_role_course::UserRoleCourse;
-use rust_learn::repositories::course_repository::{
-    assign_role_to_user_in_course, user_permission_course_request,
-};
+use rust_learn::infra::postgres::access_control::role_catalog_store;
+use rust_learn::infra::postgres::access_control::course_role_records;
+use rust_learn::repositories::course_repository::user_permission_course_request;
 use rust_learn::repositories::user_repository::create_user;
 
 fn unique_string(prefix: &str) -> String {
@@ -46,12 +49,32 @@ async fn force_assign_role(
     course_id: i32,
     role_name: &str,
 ) {
-    let role_id = CourseRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::course_role_id_by_name(conn, role_name)
         .await
         .expect("role not found");
-    UserRoleCourse::assign(conn, user_id, course_id, role_id)
+    course_role_records::assign_course_role_to_user(conn, user_id, course_id, role_id)
         .await
         .expect("force assign failed");
+}
+
+async fn assign_course_role_via_use_case(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    target_user_id: i32,
+    course_id: i32,
+    role_name: &str,
+) -> Result<CourseRoleAssignmentOutput, CourseRoleAssignmentError> {
+    let mut store = PostgresCourseRoleAssignmentStore::new(conn);
+    run_course_role_assignment(
+        &mut store,
+        CourseRoleAssignmentCommand {
+            actor_user_id,
+            course_id,
+            target_user_id,
+            role_name: role_name.to_string(),
+        },
+    )
+    .await
 }
 
 async fn create_user_helper(

@@ -1,11 +1,7 @@
 use crate::db::schema::delegated_permissions;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
-use serde::{Deserialize, Serialize};
-
-pub const DELEGATED_SCOPE_PLATFORM: &str = "platform";
-pub const DELEGATED_SCOPE_ORGANIZATION: &str = "organization";
-pub const DELEGATED_SCOPE_COURSE: &str = "course";
+use serde::Serialize;
 
 #[derive(Queryable, Identifiable, Selectable, Debug, Clone, Serialize)]
 #[diesel(table_name = delegated_permissions)]
@@ -30,17 +26,6 @@ pub struct DelegatedPermission {
 #[diesel(table_name = delegated_permissions)]
 pub struct NewDelegatedPermission {
     pub grantor_user_id: i32,
-    pub grantee_user_id: i32,
-    pub permission: String,
-    pub scope_type: String,
-    pub organization_id: Option<i32>,
-    pub course_id: Option<i32>,
-    pub reason: Option<String>,
-    pub expires_at: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct GrantDelegatedPermissionRequest {
     pub grantee_user_id: i32,
     pub permission: String,
     pub scope_type: String,

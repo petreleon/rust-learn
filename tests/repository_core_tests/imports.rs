@@ -1,16 +1,21 @@
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::learning::assign_course_role::{
+    assign_course_role as run_course_role_assignment, CourseRoleAssignmentCommand,
+    CourseRoleAssignmentError, CourseRoleAssignmentOutput,
+};
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::{courses, organizations, users};
+use rust_learn::infra::postgres::learning::course_role_assignment_store::PostgresCourseRoleAssignmentStore;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_course::UserRoleCourse;
-use rust_learn::models::user_role_organization::UserRoleOrganization;
-use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::infra::postgres::access_control::course_role_records;
+use rust_learn::infra::postgres::access_control::organization_role_records;
+use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::course_repository::user_permission_course_request;
 use rust_learn::repositories::organization_repository::{
     assign_role_to_user_in_organization, user_hierarchy_compare_organization,
@@ -80,31 +85,51 @@ async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
 }
 
 async fn get_org_admin_role_id(conn: &mut AsyncPgConnection) -> i32 {
-    OrganizationRole::find_by_name("ADMIN", conn)
+    role_catalog_store::organization_role_id_by_name(conn, "ADMIN")
         .await
         .expect("organization admin role not found")
 }
 
 async fn get_org_member_role_id(conn: &mut AsyncPgConnection) -> i32 {
-    OrganizationRole::find_by_name("STUDENT", conn)
+    role_catalog_store::organization_role_id_by_name(conn, "STUDENT")
         .await
         .expect("organization student role not found")
 }
 
 async fn get_course_admin_role_id(conn: &mut AsyncPgConnection) -> i32 {
-    CourseRole::find_by_name("TEACHER", conn)
+    role_catalog_store::course_role_id_by_name(conn, "TEACHER")
         .await
         .expect("course teacher role not found")
 }
 
 async fn get_course_student_role_id(conn: &mut AsyncPgConnection) -> i32 {
-    CourseRole::find_by_name("STUDENT", conn)
+    role_catalog_store::course_role_id_by_name(conn, "STUDENT")
         .await
         .expect("course student role not found")
 }
 
 async fn assign_org_role(conn: &mut AsyncPgConnection, user_id: i32, org_id: i32, role_id: i32) {
-    UserRoleOrganization::assign(conn, user_id, org_id, role_id)
+    organization_role_records::assign_organization_role_to_user(conn, user_id, org_id, role_id)
         .await
         .expect("failed to assign org role");
+}
+
+async fn assign_course_role_with_use_case(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    target_user_id: i32,
+    course_id: i32,
+    role_name: &str,
+) -> Result<CourseRoleAssignmentOutput, CourseRoleAssignmentError> {
+    let mut store = PostgresCourseRoleAssignmentStore::new(conn);
+    run_course_role_assignment(
+        &mut store,
+        CourseRoleAssignmentCommand {
+            actor_user_id,
+            course_id,
+            target_user_id,
+            role_name: role_name.to_string(),
+        },
+    )
+    .await
 }

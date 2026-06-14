@@ -1,4 +1,4 @@
-use rust_learn::utils::email::{build_mock_verification_email, verification_url};
+use rust_learn::infra::email::identity::{build_mock_verification_email, verification_url};
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();

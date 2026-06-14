@@ -29,8 +29,9 @@ async fn organization_teacher_applications_deny_users_without_scope() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(organization_teacher_application_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::organizations::organization_scope()),
+            .service(rust_learn::http::organizations::organization_scope()),
     )
     .await;
 

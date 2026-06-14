@@ -2,7 +2,7 @@ async fn create_failed_reward_execution_job(conn: &mut AsyncPgConnection, candid
     diesel::insert_into(reward_execution_jobs::table)
         .values((
             reward_execution_jobs::reward_candidate_id.eq(candidate_id),
-            reward_execution_jobs::status.eq("failed"),
+            reward_execution_jobs::status.eq(RewardExecutionJobStatus::Failed.as_str()),
             reward_execution_jobs::attempts.eq(3),
             reward_execution_jobs::last_error.eq(Some("token transfer failed")),
         ))

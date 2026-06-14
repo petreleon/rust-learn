@@ -4,14 +4,12 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::establish_connection;
 use rust_learn::db::schema::users;
-use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
-use rust_learn::models::role_course_hierarchy::RoleCourseHierarchy;
-use rust_learn::models::role_organization_hierarchy::RoleOrganizationHierarchy;
-use rust_learn::models::role_platform_hierarchy::RolePlatformHierarchy;
+use rust_learn::infra::postgres::access_control::hierarchy_records;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_course::UserRoleCourse;
-use rust_learn::models::user_role_organization::UserRoleOrganization;
-use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::infra::postgres::access_control::course_role_records;
+use rust_learn::infra::postgres::access_control::organization_role_records;
+use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::user_repository::create_user;
 
 fn unique_string(prefix: &str) -> String {
@@ -52,14 +50,14 @@ async fn user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
 async fn super_admin_has_all_permissions() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "perm_super").await;
-    let role_id = PlatformRole::find_by_name("SUPER_ADMIN", &mut conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(&mut conn, "SUPER_ADMIN")
         .await
         .unwrap();
-    UserRolePlatform::assign(&mut conn, u.id(), role_id)
+    platform_role_records::assign_platform_role_to_user(&mut conn, u.id(), role_id)
         .await
         .unwrap();
 
-    assert!(UserRolePlatform::has_permission(
+    assert!(platform_role_records::platform_user_has_permission(
         &mut conn,
         u.id(),
         &Permissions::VIEW_REWARD_AUDIT.to_string(),
@@ -67,7 +65,7 @@ async fn super_admin_has_all_permissions() {
     .await
     .unwrap());
 
-    assert!(UserRolePlatform::has_permission(
+    assert!(platform_role_records::platform_user_has_permission(
         &mut conn,
         u.id(),
         &Permissions::EXECUTE_REWARD_PAYOUT.to_string(),
@@ -81,7 +79,7 @@ async fn regular_user_has_no_platform_permission() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "perm_nobody").await;
 
-    assert!(!UserRolePlatform::has_permission(
+    assert!(!platform_role_records::platform_user_has_permission(
         &mut conn,
         u.id(),
         &Permissions::VIEW_REWARD_AUDIT.to_string(),
@@ -94,14 +92,14 @@ async fn regular_user_has_no_platform_permission() {
 async fn platform_hierarchy_super_admin_is_level_0() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "hier_super").await;
-    let role_id = PlatformRole::find_by_name("SUPER_ADMIN", &mut conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(&mut conn, "SUPER_ADMIN")
         .await
         .unwrap();
-    UserRolePlatform::assign(&mut conn, u.id(), role_id)
+    platform_role_records::assign_platform_role_to_user(&mut conn, u.id(), role_id)
         .await
         .unwrap();
 
-    let level = RolePlatformHierarchy::get_min_level(&mut conn, u.id())
+    let level = hierarchy_records::platform_min_level_for_user(&mut conn, u.id())
         .await
         .unwrap();
     assert_eq!(level, Some(0));
@@ -112,7 +110,7 @@ async fn unassigned_user_has_no_platform_level() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "hier_none").await;
 
-    let level = RolePlatformHierarchy::get_min_level(&mut conn, u.id())
+    let level = hierarchy_records::platform_min_level_for_user(&mut conn, u.id())
         .await
         .unwrap();
     assert_eq!(level, None);
@@ -124,15 +122,15 @@ async fn unassigned_user_has_no_platform_level() {
 async fn org_admin_has_org_permission() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "org_admin_p").await;
-    let org_role_id = OrganizationRole::find_by_name("ADMIN", &mut conn)
+    let org_role_id = role_catalog_store::organization_role_id_by_name(&mut conn, "ADMIN")
         .await
         .unwrap();
 
-    UserRoleOrganization::assign(&mut conn, u.id(), 1, org_role_id)
+    organization_role_records::assign_organization_role_to_user(&mut conn, u.id(), 1, org_role_id)
         .await
         .unwrap();
 
-    assert!(UserRoleOrganization::has_permission(
+    assert!(organization_role_records::organization_user_has_permission(
         &mut conn,
         u.id(),
         1,
@@ -147,7 +145,7 @@ async fn org_stranger_has_no_org_permission() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "org_stranger").await;
 
-    assert!(!UserRoleOrganization::has_permission(
+    assert!(!organization_role_records::organization_user_has_permission(
         &mut conn,
         u.id(),
         999,

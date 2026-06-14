@@ -3,7 +3,7 @@
 pub mod updates;
 
 use self::updates::{apply_update_v1, apply_update_v2};
-use crate::models::db_version_control::DbVersionControl;
+use crate::infra::postgres::operations::db_version_control;
 use anyhow::Result;
 use diesel_async::AsyncPgConnection;
 use futures::future::BoxFuture;
@@ -30,7 +30,7 @@ fn updates() -> Vec<(i32, UpdateFn)> {
 ///   (no change if there are no updates or max <= current).
 pub async fn version_updater(conn: &mut AsyncPgConnection) -> Result<()> {
     // Query the current version row. If it's missing or null, treat as 0.
-    let current_version = DbVersionControl::get_current_version(conn).await?;
+    let current_version = db_version_control::get_current_version(conn).await?;
 
     let updates = updates();
 
@@ -56,7 +56,7 @@ pub async fn version_updater(conn: &mut AsyncPgConnection) -> Result<()> {
 
     // Only write back if we advanced (or if the available max is greater).
     if max_version > current_version {
-        DbVersionControl::update_version(conn, max_version).await?;
+        db_version_control::update_version(conn, max_version).await?;
     }
 
     Ok(())

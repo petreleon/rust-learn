@@ -22,7 +22,7 @@ async fn assign_platform_permission_role(
         .await
         .expect("failed to assign platform permission to test role");
 
-    UserRolePlatform::assign(conn, user_id, role_id)
+    platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
         .await
         .expect("failed to assign platform permission test role");
 }
@@ -33,10 +33,10 @@ async fn assign_organization_role(
     organization_id: i32,
     role_name: &str,
 ) {
-    let role_id = OrganizationRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
         .await
         .expect("organization role should exist");
-    UserRoleOrganization::assign(conn, user_id, organization_id, role_id)
+    organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)
         .await
         .expect("failed to assign organization role");
 }
@@ -67,7 +67,7 @@ async fn assign_organization_permission_role(
         .await
         .expect("failed to assign organization permission to test role");
 
-    UserRoleOrganization::assign(conn, user_id, organization_id, role_id)
+    organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)
         .await
         .expect("failed to assign organization permission test role");
 }
@@ -87,8 +87,27 @@ fn wallet_test_app(
         InitError = (),
     >,
 > {
+    let wallet_audit_use_case: Arc<dyn WalletAuditUseCase> =
+        Arc::new(PostgresWalletAuditUseCase::new(pool.clone()));
+    let wallet_deposit_intent_use_case: Arc<dyn WalletDepositIntentUseCase> =
+        Arc::new(PostgresWalletDepositIntentUseCase::new(pool.clone()));
+    let wallet_link_use_case: Arc<dyn WalletLinkUseCase> =
+        Arc::new(PostgresWalletLinkUseCase::new(pool.clone()));
+    let wallet_read_use_case: Arc<dyn WalletReadUseCase> =
+        Arc::new(PostgresWalletReadUseCase::new(pool.clone()));
+    let wallet_retirement_use_case: Arc<dyn WalletRetirementUseCase> =
+        Arc::new(PostgresWalletRetirementUseCase::new(pool.clone()));
+    let wallet_token_tax_use_case: Arc<dyn WalletTokenTaxUseCase> =
+        Arc::new(PostgresWalletTokenTaxUseCase::new(pool.clone()));
+
     App::new()
         .app_data(web::Data::new(pool))
+        .app_data(web::Data::new(wallet_audit_use_case))
+        .app_data(web::Data::new(wallet_deposit_intent_use_case))
+        .app_data(web::Data::new(wallet_link_use_case))
+        .app_data(web::Data::new(wallet_read_use_case))
+        .app_data(web::Data::new(wallet_retirement_use_case))
+        .app_data(web::Data::new(wallet_token_tax_use_case))
         .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-        .service(web::scope("/api").service(rust_learn::api::wallets::wallet_scope()))
+        .service(web::scope("/api").configure(rust_learn::http::wallet::configure_routes))
 }

@@ -1,58 +1,75 @@
+use actix_web::{body::to_bytes, http::StatusCode, test, web, App};
 use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::rewards::manage_fraud_block::{
+    CreateRewardFraudBlockCommand, RewardFraudBlockError, RewardFraudBlockOutput,
+    RewardFraudBlockUseCase,
+};
+use rust_learn::application::rewards::list_platform_candidates::PlatformRewardCandidatesUseCase;
 use rust_learn::config::constants::permissions::Permissions;
-use rust_learn::db::establish_connection;
+use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::db::schema::{
     course_roles, courses, courses_organizations, organizations, platform_roles,
     reward_execution_jobs, reward_policies, role_permission_course, role_permission_platform,
     users,
 };
-use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::courses_organizations::NewCourseOrganization;
-use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::reward_audit_event::{
+use rust_learn::domain::rewards::audit::{
     REWARD_AUDIT_EVENT_AMOUNT_DECISION, REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED,
     REWARD_AUDIT_EVENT_TEACHER_DECISION,
 };
-use rust_learn::models::reward_candidate::{
-    REWARD_EVENT_COURSE_COMPLETION, REWARD_EVENT_MANUAL_COMPLETION, REWARD_SOURCE_ORGANIZATION,
-    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
-    REWARD_STATUS_TEACHER_APPROVED,
-};
-use rust_learn::models::reward_execution_job::REWARD_EXECUTION_STATUS_QUEUED;
-use rust_learn::models::reward_fraud_block::{
+use rust_learn::domain::rewards::fraud_block::{
     REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
     REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
 };
-use rust_learn::models::reward_policy::{
-    NewRewardPolicy, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
+use rust_learn::domain::rewards::candidate::event_type::{
+    REWARD_EVENT_COURSE_COMPLETION, REWARD_EVENT_MANUAL_COMPLETION,
 };
-use rust_learn::models::role::{CourseRole, OrganizationRole, PlatformRole};
+use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_ORGANIZATION;
+use rust_learn::domain::rewards::candidate::status::{
+    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+    REWARD_STATUS_TEACHER_APPROVED,
+};
+use rust_learn::domain::rewards::policy::{
+    REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
+};
+use rust_learn::domain::rewards::execution::REWARD_EXECUTION_STATUS_QUEUED;
+use rust_learn::infra::postgres::rewards::platform_reward_candidate_use_case::PostgresPlatformRewardCandidatesUseCase;
+use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
+use rust_learn::models::course::{Course, NewCourse};
+use rust_learn::models::courses_organizations::NewCourseOrganization;
+use rust_learn::models::organization::{NewOrganization, Organization};
+use rust_learn::models::reward_policy::NewRewardPolicy;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_course::UserRoleCourse;
-use rust_learn::models::user_role_organization::UserRoleOrganization;
-use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::infra::postgres::access_control::course_role_records;
+use rust_learn::infra::postgres::access_control::organization_role_records;
+use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::reward_audit_event_repository::list_reward_audit_events;
 use rust_learn::repositories::reward_candidate_repository::find_candidate;
 use rust_learn::repositories::reward_execution_job_repository::find_job_by_candidate;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::services::reward_candidate_service::{
-    decide_reward_amount, decide_reward_candidate_by_teacher, list_platform_reward_candidates,
-    submit_course_reward_candidate, submit_organization_reward_candidate,
-    PlatformRewardCandidatesRequest, RewardAmountDecisionRequest, RewardCandidateError,
-    SubmitRewardCandidateRequest, TeacherRewardCandidateDecisionRequest,
-};
-use rust_learn::services::reward_fraud_block_service::{
-    create_reward_fraud_block, revoke_reward_fraud_block, RewardFraudBlockRequest,
-};
-use serde_json::json;
+use rust_learn::infra::tokens::jwt::create_jwt;
+use serde_json::{json, Value};
+use std::sync::Arc;
 use std::str::FromStr;
+
+type RewardFraudBlockRequest = CreateRewardFraudBlockCommand;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
+}
+
+fn token_for(user_id: i32) -> String {
+    create_jwt(user_id).expect("failed to create JWT")
+}
+
+fn platform_reward_candidates_use_case(
+    pool: &DbPool,
+) -> Arc<dyn PlatformRewardCandidatesUseCase> {
+    Arc::new(PostgresPlatformRewardCandidatesUseCase::new(pool.clone()))
 }
 
 async fn setup_conn(
@@ -62,6 +79,28 @@ async fn setup_conn(
     pool.get()
         .await
         .expect("failed to get DB connection from pool")
+}
+
+async fn create_reward_fraud_block(
+    _conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    request: RewardFraudBlockRequest,
+) -> Result<RewardFraudBlockOutput, RewardFraudBlockError> {
+    let pool = establish_connection();
+    PostgresRewardFraudBlockUseCase::new(pool)
+        .create_reward_fraud_block(actor_user_id, request)
+        .await
+}
+
+async fn revoke_reward_fraud_block(
+    _conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    block_id: i64,
+) -> Result<RewardFraudBlockOutput, RewardFraudBlockError> {
+    let pool = establish_connection();
+    PostgresRewardFraudBlockUseCase::new(pool)
+        .revoke_reward_fraud_block(actor_user_id, block_id)
+        .await
 }
 
 async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {

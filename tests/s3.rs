@@ -1,7 +1,7 @@
 use std::env;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use rust_learn::utils::s3_utils::S3State;
+use rust_learn::infra::object_storage::S3State;
 
 static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 

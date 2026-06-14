@@ -1,14 +1,19 @@
 use actix_web::{http::StatusCode, test, web, App};
 use chrono::NaiveDate;
 use diesel_async::AsyncPgConnection;
+use rust_learn::application::access_control::manage_delegated_permissions::DelegatedPermissionUseCase;
+use rust_learn::application::rewards::manage_fraud_block::RewardFraudBlockUseCase;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::models::role::PlatformRole;
+use rust_learn::infra::postgres::access_control::delegated_permissions::use_case::PostgresDelegatedPermissionUseCase;
+use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_platform::UserRolePlatform;
+use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::{json, Value};
+use std::sync::Arc;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -37,14 +42,22 @@ async fn create_test_user(conn: &mut AsyncPgConnection, name: &str) -> User {
 }
 
 async fn assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
-    let role_id = PlatformRole::find_by_name(role_name, conn)
+    let role_id = role_catalog_store::platform_role_id_by_name(conn, role_name)
         .await
         .expect("platform role should exist");
-    UserRolePlatform::assign(conn, user_id, role_id)
+    platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
         .await
         .expect("failed to assign platform role");
 }
 
 fn token_for(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to create JWT")
+}
+
+fn reward_fraud_block_use_case(pool: &DbPool) -> Arc<dyn RewardFraudBlockUseCase> {
+    Arc::new(PostgresRewardFraudBlockUseCase::new(pool.clone()))
+}
+
+fn delegated_permission_use_case(pool: &DbPool) -> Arc<dyn DelegatedPermissionUseCase> {
+    Arc::new(PostgresDelegatedPermissionUseCase::new(pool.clone()))
 }

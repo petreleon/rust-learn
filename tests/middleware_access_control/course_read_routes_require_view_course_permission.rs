@@ -27,8 +27,11 @@ async fn course_read_routes_require_view_course_permission() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(course_discovery_use_case_data(&pool))
+            .app_data(course_read_use_case_data(&pool))
+            .app_data(course_organizations_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::courses::course_scope()),
+            .service(rust_learn::http::learning::course_scope()),
     )
     .await;
 
@@ -46,6 +49,18 @@ async fn course_read_routes_require_view_course_permission() {
 
     let req = test::TestRequest::get()
         .uri(&format!("/courses/{}", course.id))
+        .insert_header(("Authorization", format!("Bearer {}", student_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::OK);
+
+    let req = test::TestRequest::get()
+        .uri(&format!("/courses/{}/organizations", course.id))
+        .insert_header(("Authorization", format!("Bearer {}", stranger_token)))
+        .to_request();
+    assert_eq!(response_status(app.call(req).await), StatusCode::FORBIDDEN);
+
+    let req = test::TestRequest::get()
+        .uri(&format!("/courses/{}/organizations", course.id))
         .insert_header(("Authorization", format!("Bearer {}", student_token)))
         .to_request();
     assert_eq!(response_status(app.call(req).await), StatusCode::OK);
@@ -80,7 +95,7 @@ async fn organization_read_routes_require_view_organization_permission() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::api::organizations::organization_scope()),
+            .service(rust_learn::http::organizations::organization_scope()),
     )
     .await;
 

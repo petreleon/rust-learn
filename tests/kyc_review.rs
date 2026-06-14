@@ -1,28 +1,35 @@
 use chrono::NaiveDate;
 use diesel_async::AsyncPgConnection;
-use rust_learn::config::constants::roles::Roles;
-use rust_learn::db::establish_connection;
-use rust_learn::models::kyc_audit_event::{
-    KYC_AUDIT_EVENT_REVIEW_DECISION, KYC_AUDIT_EVENT_SUBMITTED,
+use rust_learn::application::kyc::{
+    KycAuditQuery, KycAuditUseCase, KycDecisionCommand, KycError, KycReviewUseCase,
+    KycSubmissionUseCase, SubmitKycCommand,
 };
-use rust_learn::models::kyc_submission::{KYC_STATUS_REJECTED, KYC_STATUS_SUBMITTED};
+use rust_learn::config::constants::permissions::Permissions;
+use rust_learn::config::constants::roles::Roles;
+use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_PLATFORM;
+use rust_learn::domain::kyc::audit::{KYC_AUDIT_EVENT_REVIEW_DECISION, KYC_AUDIT_EVENT_SUBMITTED};
+use rust_learn::domain::kyc::submission::{KYC_STATUS_REJECTED, KYC_STATUS_SUBMITTED};
+use rust_learn::infra::postgres::kyc::kyc_use_case::PostgresKycUseCase;
+use rust_learn::models::delegated_permission::NewDelegatedPermission;
 use rust_learn::models::user::User;
+use rust_learn::repositories::delegated_permission_repository::create_delegated_permission;
 use rust_learn::repositories::platform_repository::assign_role_to_user;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::services::kyc_service::{
-    decide_submission, list_submission_audit, submit_my_kyc, KycDecisionRequest, KycError,
-    SubmitKycRequest,
-};
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
 }
 
-async fn setup_conn(
-) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
+async fn setup_pool() -> DbPool {
     let _ = dotenvy::dotenv();
-    let pool = establish_connection();
+    establish_connection()
+}
+
+async fn setup_conn(
+    pool: &DbPool,
+) -> diesel_async::pooled_connection::deadpool::Object<AsyncPgConnection> {
     pool.get().await.expect("failed to get DB connection")
 }
 
@@ -38,37 +45,67 @@ async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User 
     .expect("failed to create user")
 }
 
-fn kyc_request(name: &str) -> SubmitKycRequest {
-    SubmitKycRequest {
+fn kyc_command(user_id: i32, name: &str) -> SubmitKycCommand {
+    SubmitKycCommand {
         country_code: "US".to_string(),
         document_last4: Some("1234".to_string()),
         document_type: "passport".to_string(),
         evidence_reference: Some("s3://kyc/evidence".to_string()),
         legal_name: name.to_string(),
         provider_reference: Some("provider-ref".to_string()),
+        user_id,
     }
 }
 
 #[actix_web::test]
 async fn kyc_submission_and_review_write_permission_scoped_audit_events() {
-    let mut conn = setup_conn().await;
+    let pool = setup_pool().await;
+    let mut conn = setup_conn(&pool).await;
     let learner = create_user_helper(&mut conn, "kyc_audit_learner").await;
     let admin = create_user_helper(&mut conn, "kyc_audit_admin").await;
+    let delegated_reviewer = create_user_helper(&mut conn, "kyc_audit_delegate").await;
     assign_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
         .await
         .expect("failed to assign ADMIN role");
+    create_delegated_permission(
+        &mut conn,
+        NewDelegatedPermission {
+            grantor_user_id: admin.id(),
+            grantee_user_id: delegated_reviewer.id(),
+            permission: Permissions::REVIEW_KYC_SUBMISSIONS.to_string(),
+            scope_type: DELEGATED_SCOPE_PLATFORM.to_string(),
+            organization_id: None,
+            course_id: None,
+            reason: Some("KYC review delegation".to_string()),
+            expires_at: None,
+        },
+    )
+    .await
+    .expect("failed to delegate KYC review permission");
+    drop(conn);
 
-    let submitted = submit_my_kyc(&mut conn, learner.id(), kyc_request("Learner User"))
+    let use_case = PostgresKycUseCase::new(pool.clone());
+    let submitted = use_case
+        .submit_my_kyc(kyc_command(learner.id(), "Learner User"))
         .await
         .expect("submission should persist")
         .submission
         .expect("submission returned");
-    let denied = list_submission_audit(&mut conn, learner.id(), submitted.id)
+
+    let denied = use_case
+        .list_submission_audit(KycAuditQuery {
+            reviewer_user_id: learner.id(),
+            submission_id: submitted.id,
+        })
         .await
         .expect_err("learner cannot read review audit");
     assert!(matches!(denied, KycError::PermissionDenied(_)));
 
-    let audit = list_submission_audit(&mut conn, admin.id(), submitted.id)
+    let audit = use_case
+        .list_submission_audit(KycAuditQuery {
+            reviewer_user_id: admin.id(),
+            submission_id: submitted.id,
+        })
         .await
         .expect("admin can read audit");
     assert_eq!(audit.len(), 1);
@@ -77,20 +114,32 @@ async fn kyc_submission_and_review_write_permission_scoped_audit_events() {
     assert_eq!(audit[0].from_status, None);
     assert_eq!(audit[0].to_status, KYC_STATUS_SUBMITTED);
 
-    let rejected = decide_submission(
-        &mut conn,
-        admin.id(),
-        submitted.id,
-        KycDecisionRequest {
+    let delegated_audit = use_case
+        .list_submission_audit(KycAuditQuery {
+            reviewer_user_id: delegated_reviewer.id(),
+            submission_id: submitted.id,
+        })
+        .await
+        .expect("delegated reviewer can read audit");
+    assert_eq!(delegated_audit.len(), 1);
+    assert_eq!(delegated_audit[0].to_status, KYC_STATUS_SUBMITTED);
+
+    let rejected = use_case
+        .decide_submission(KycDecisionCommand {
             rejection_reason: Some("Document expired".to_string()),
+            reviewer_user_id: admin.id(),
             status: KYC_STATUS_REJECTED.to_string(),
-        },
-    )
-    .await
-    .expect("admin can reject KYC");
+            submission_id: submitted.id,
+        })
+        .await
+        .expect("admin can reject KYC");
     assert_eq!(rejected.status, KYC_STATUS_REJECTED);
 
-    let audit = list_submission_audit(&mut conn, admin.id(), submitted.id)
+    let audit = use_case
+        .list_submission_audit(KycAuditQuery {
+            reviewer_user_id: admin.id(),
+            submission_id: submitted.id,
+        })
         .await
         .expect("admin can read decision audit");
     assert_eq!(audit.len(), 2);
@@ -100,12 +149,17 @@ async fn kyc_submission_and_review_write_permission_scoped_audit_events() {
     assert_eq!(audit[1].to_status, KYC_STATUS_REJECTED);
     assert_eq!(audit[1].reason.as_deref(), Some("Document expired"));
 
-    let resubmitted = submit_my_kyc(&mut conn, learner.id(), kyc_request("Learner User Again"))
+    let resubmitted = use_case
+        .submit_my_kyc(kyc_command(learner.id(), "Learner User Again"))
         .await
         .expect("rejected learner can resubmit")
         .submission
         .expect("resubmission returned");
-    let resubmitted_audit = list_submission_audit(&mut conn, admin.id(), resubmitted.id)
+    let resubmitted_audit = use_case
+        .list_submission_audit(KycAuditQuery {
+            reviewer_user_id: admin.id(),
+            submission_id: resubmitted.id,
+        })
         .await
         .expect("admin can read resubmission audit");
     assert_eq!(resubmitted_audit.len(), 1);

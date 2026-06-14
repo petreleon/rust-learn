@@ -1,0 +1,44 @@
+use futures::future::{BoxFuture, FutureExt};
+
+use crate::application::identity::verify_email::{
+    VerifyEmailError, VerifyEmailOutcome, VerifyEmailStore,
+};
+use crate::infra::postgres::identity::email_verification_tokens::{
+    verify_email_verification_token, EmailVerificationTokenStatus,
+};
+use crate::infra::tokens::identity::identity_token_hash;
+
+pub struct PostgresVerifyEmailStore<'conn> {
+    conn: &'conn mut diesel_async::AsyncPgConnection,
+}
+
+impl<'conn> PostgresVerifyEmailStore<'conn> {
+    pub fn new(conn: &'conn mut diesel_async::AsyncPgConnection) -> Self {
+        Self { conn }
+    }
+}
+
+impl VerifyEmailStore for PostgresVerifyEmailStore<'_> {
+    fn verify_email_token(
+        &mut self,
+        token: String,
+    ) -> BoxFuture<'_, Result<VerifyEmailOutcome, VerifyEmailError>> {
+        async move {
+            let token_hash = identity_token_hash(&token);
+            verify_email_verification_token(self.conn, &token_hash)
+                .await
+                .map(map_outcome)
+                .map_err(|error| VerifyEmailError::Database(error.to_string()))
+        }
+        .boxed()
+    }
+}
+
+fn map_outcome(outcome: EmailVerificationTokenStatus) -> VerifyEmailOutcome {
+    match outcome {
+        EmailVerificationTokenStatus::Verified => VerifyEmailOutcome::Verified,
+        EmailVerificationTokenStatus::AlreadyVerified => VerifyEmailOutcome::AlreadyVerified,
+        EmailVerificationTokenStatus::Expired => VerifyEmailOutcome::Expired,
+        EmailVerificationTokenStatus::Invalid => VerifyEmailOutcome::Invalid,
+    }
+}

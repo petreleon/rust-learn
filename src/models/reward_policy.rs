@@ -4,14 +4,6 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;
 
-pub const REWARD_POLICY_SCOPE_PLATFORM: &str = "platform";
-pub const REWARD_POLICY_SCOPE_ORGANIZATION: &str = "organization";
-pub const REWARD_POLICY_SCOPE_COURSE: &str = "course";
-
-pub const REWARD_PAYMENT_TREASURY_TRANSFER: &str = "treasury_transfer";
-pub const REWARD_PAYMENT_MINT: &str = "mint";
-pub const REWARD_PAYMENT_OFF_CHAIN: &str = "off_chain";
-
 #[derive(Queryable, Identifiable, Selectable, Debug, Clone, Serialize)]
 #[diesel(table_name = reward_policies)]
 pub struct RewardPolicy {

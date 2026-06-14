@@ -3,30 +3,38 @@ use bigdecimal::BigDecimal;
 use chrono::NaiveDate;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rust_learn::application::organizations::get_organization_dashboard::OrganizationDashboardUseCase;
 use rust_learn::db::schema::{
     courses, courses_organizations, organizations, reward_candidates, teacher_applications, wallets,
 };
 use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::models::course::{
-    Course, NewCourse, COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED,
+use rust_learn::domain::learning::course::status::{
+    COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED,
 };
-use rust_learn::models::courses_organizations::NewCourseOrganization;
-use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::reward_candidate::{
-    NewRewardCandidate, REWARD_EVENT_COURSE_COMPLETION, REWARD_SOURCE_COURSE,
+use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
+use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
+use rust_learn::domain::rewards::candidate::status::{
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_FAILED,
 };
-use rust_learn::models::role::OrganizationRole;
-use rust_learn::models::teacher_application::{
-    NewTeacherApplication, TEACHER_APPLICATION_SCOPE_PLATFORM, TEACHER_APPLICATION_STATUS_SUBMITTED,
-};
+use rust_learn::domain::teacher_applications::scope::TEACHER_APPLICATION_SCOPE_PLATFORM;
+use rust_learn::domain::teacher_applications::status::TEACHER_APPLICATION_STATUS_SUBMITTED;
+use rust_learn::infra::postgres::organizations::organization_dashboard_use_case::PostgresOrganizationDashboardUseCase;
+use rust_learn::models::course::{Course, NewCourse};
+use rust_learn::models::courses_organizations::NewCourseOrganization;
+use rust_learn::models::organization::{NewOrganization, Organization};
+use rust_learn::models::reward_candidate::NewRewardCandidate;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
+use rust_learn::models::teacher_application::NewTeacherApplication;
 use rust_learn::models::user::User;
-use rust_learn::models::user_role_organization::UserRoleOrganization;
+use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::models::wallet::NewWallet;
 use rust_learn::repositories::user_repository::create_user;
-use rust_learn::utils::jwt_utils::create_jwt;
+use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::{json, Value};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc,
+};
 
 static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -107,4 +115,12 @@ async fn create_course(
         .get_result(conn)
         .await
         .expect("failed to reload course")
+}
+
+fn organization_dashboard_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn OrganizationDashboardUseCase>> {
+    web::Data::new(Arc::new(PostgresOrganizationDashboardUseCase::new(
+        pool.clone(),
+    )))
 }

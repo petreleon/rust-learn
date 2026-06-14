@@ -8,9 +8,17 @@ RustLearn is an incentivized learning platform. The backend is a Rust/Actix Web 
 
 ## Repository map
 
-- `src/main.rs` — Actix Web binary entrypoint, application state, DB setup, S3 setup, and startup contract deployment.
+- `src/main.rs` — thin Actix Web binary entrypoint; bootstrap owns state setup,
+  route wiring, DB/S3 setup, and startup contract deployment.
 - `src/lib.rs` — library exports for tests and secondary binaries.
-- `src/api/` — HTTP route handlers and route scopes.
+- `src/http/` — Actix route handlers, route scopes, extractors, and HTTP DTOs.
+- `src/application/` — use-case handlers, ports, commands, outputs, and
+  orchestration for migrated contexts.
+- `src/domain/` — pure domain vocabulary, invariants, and transition helpers.
+- `src/infra/` — concrete adapters such as PostgreSQL, object storage, and
+  Ethereum integrations for migrated contexts.
+- `src/bootstrap/` — process wiring, app state, app data registration, startup,
+  and top-level routes.
 - `src/middlewares/` — JWT, conditional access, hierarchy, and permission middleware.
 - `src/models/` — Diesel models and request/response domain types.
 - `src/repositories/` — database access helpers.
