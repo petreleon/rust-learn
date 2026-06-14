@@ -1111,37 +1111,36 @@ remaining gaps.
 | 213 | Moved JWT signing, verification, JWKS generation, env-backed key loading, and token tests out of `utils::jwt_utils` and into `infra/tokens/jwt`; the identity login issuer now calls the infra token adapter directly while `utils::jwt_utils` remains a compatibility re-export for HTTP middleware, extractors, and existing tests. |
 | 214 | Moved notification message construction, DB-backed notification state, senders, mutations, and tests out of include-based `utils::notifications` and into explicit `infra/notifications` modules; bootstrap, worker, infra adapters, and S3 processing now call the infra owner directly while `utils::notifications` remains a compatibility re-export for route handlers and existing tests. |
 | 215 | Moved S3 client state, object-storage client operations, presigned URL/download helpers, video-processing helpers, and S3 tests out of include-based `utils::s3_utils` and into explicit `infra/object_storage` modules; bootstrap, worker, content/object-storage infra, and content Postgres use cases now call the infra owner while `utils::s3_utils` remains a compatibility re-export for existing integration tests. |
+| 216 | Moved the include-based centralized-wallet DB helper out of `utils::centralized_wallets` and into explicit `infra/postgres/wallet/centralized_wallets` records/transfer modules; the old utility path is now only a compatibility re-export and production source has no callers on that utility path. |
 
 ## Recent Slice Evidence
 
-Slice 215: move object-storage adapter ownership to infra.
+Slice 216: move centralized-wallet DB helper ownership to wallet infra.
 
-- [x] Move `S3State`, internal/external endpoint setup, bucket/object
-      operations, presigned URL/download helpers, video-processing helpers, and
-      object-storage tests out of `src/utils/s3_utils/*` and into explicit
-      `src/infra/object_storage/*` modules.
-- [x] Replace the old include-based utility shell with granular modules:
-      `state`, `client`, `presigned_urls`, `video_processing`, plus existing
-      `content` and `operations` children.
-- [x] Update bootstrap, worker, object-storage content/operations adapters, and
-      content Postgres use cases to import `infra::object_storage::S3State`
-      directly.
-- [x] Keep `utils::s3_utils` as a one-line compatibility re-export for existing
-      integration tests that still construct S3 state through the legacy path.
-- [x] Self-critique: `process_uploaded_video` still depends directly on
-      `infra::notifications::NotificationsState`; a later content/worker
-      application slice should put video-processing notification fan-out behind
-      a port. Integration tests also still exercise the compatibility path until
-      their fixtures are migrated to `infra::object_storage`.
+- [x] Move owner parsing, wallet lookup/creation, guarded wallet balance
+      mutation, internal-transfer transaction linking, and tests out of
+      `src/utils/centralized_wallets/*` and into
+      `src/infra/postgres/wallet/centralized_wallets/*`.
+- [x] Replace the old include-based utility shell with explicit wallet infra
+      modules: `records`, `transfers`, and module-root tests.
+- [x] Keep `utils::centralized_wallets` as a compatibility re-export preserving
+      the previous public helper names while removing the `include!`/`imports.rs`
+      structure.
+- [x] Confirm production source no longer imports `utils::centralized_wallets`;
+      the helper is now either wallet-infra owned or compatibility-only.
+- [x] Self-critique: this remains a low-level Postgres workflow over Diesel
+      models rather than an application use case with ports, and it currently
+      has no production callers. A later wallet cleanup should either route a
+      real centralized-transfer feature through `application/wallet` or delete
+      this compatibility surface if the feature is dead.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib object_storage`,
-      `./scripts/run-host-tests.sh cargo check --bin worker --features worker-bin`,
+      `./scripts/run-host-tests.sh cargo test --lib centralized_wallets`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing backend rings have no
-      `include!`/`imports.rs`, scans showing production callers no longer use
-      `utils::s3_utils`, and file-size checks keeping changed Rust files under
-      the manual 180-line ceiling.
+      `git diff --check`, scans showing the centralized-wallet utility has no
+      `include!`/`imports.rs`, scans showing no production callers use
+      `utils::centralized_wallets`, and file-size checks keeping changed Rust
+      files under the manual 180-line ceiling.
 
 ## Legacy Transition Rules
 

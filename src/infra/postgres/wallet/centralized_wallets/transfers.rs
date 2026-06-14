@@ -1,3 +1,20 @@
+use anyhow::{anyhow, Result};
+use bigdecimal::BigDecimal;
+use diesel::pg::PgConnection;
+use diesel::prelude::*;
+
+use crate::models::transaction::{Transaction, TransactionLink};
+use crate::models::wallet::Wallet;
+
+use super::records::{pay, receive, wallet_locator};
+
+#[derive(Debug)]
+pub struct TransferResult {
+    pub transaction_id: i64,
+    pub debit_internal_id: i64,
+    pub credit_internal_id: i64,
+}
+
 /// Perform an internal transfer between two wallets.
 /// Creates:
 /// - two internal_transactions rows (debit negative, credit positive)
@@ -91,6 +108,3 @@ pub fn send_money(
     let to_wallet = wallet_locator(conn, to_type, to_id)?;
     transfers_between_wallets(conn, from_wallet, to_wallet, amount)
 }
-
-#[cfg(test)]
-mod tests;

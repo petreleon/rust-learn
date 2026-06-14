@@ -1,9 +1,8 @@
-use crate::models::transaction::{InternalTransaction, Transaction, TransactionLink};
+use crate::models::transaction::InternalTransaction;
 use crate::models::wallet::{NewWallet, Wallet};
 use anyhow::{anyhow, Result};
 use bigdecimal::BigDecimal;
 use diesel::pg::PgConnection;
-use diesel::prelude::*;
 
 /// Owner type for locating a wallet
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -59,13 +58,6 @@ pub fn wallet_locator(conn: &mut PgConnection, owner_type: &str, owner_id: i32) 
             Ok(new_id)
         }
     }
-}
-
-#[derive(Debug)]
-pub struct TransferResult {
-    pub transaction_id: i64,
-    pub debit_internal_id: i64,
-    pub credit_internal_id: i64,
 }
 
 /// Core helper: applies an internal transaction effect to a single wallet.

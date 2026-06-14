@@ -1,2 +1,4 @@
-include!("centralized_wallets/imports.rs");
-include!("centralized_wallets/transfers_between_wallets.rs");
+pub use crate::infra::postgres::wallet::centralized_wallets::{
+    pay, receive, send_money, transact, transfers_between_wallets, wallet_locator, OwnerType,
+    TransferResult,
+};
