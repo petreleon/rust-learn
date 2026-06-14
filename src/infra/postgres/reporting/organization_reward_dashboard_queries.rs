@@ -5,8 +5,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::organization_reward_dashboard::{
     teacher_application_summary_from_statuses, OrganizationCourseRewardDashboardFact,
-    OrganizationCourseRewardDashboardRowOutput, OrganizationRewardDashboardError,
-    OrganizationWalletBalanceFact, OrganizationWalletBalanceRowOutput,
+    OrganizationRewardDashboardError, OrganizationWalletBalanceFact,
     TeacherApplicationDashboardSummaryOutput,
 };
 use crate::db::schema::{
@@ -81,16 +80,13 @@ async fn course_reward_row(
         .cloned()
         .fold(BigDecimal::from(0), |sum, amount| sum + amount);
 
-    Ok(OrganizationCourseRewardDashboardFact {
-        row: OrganizationCourseRewardDashboardRowOutput {
-            course_id,
-            course_title,
-            reward_candidate_count: amounts.len() as i64,
-            approved_reward_count: approved_amounts.len() as i64,
-            approved_amount_total: approved_amount_total.to_string(),
-        },
+    Ok(OrganizationCourseRewardDashboardFact::new(
+        course_id,
+        course_title,
+        amounts.len() as i64,
+        approved_amounts.len() as i64,
         approved_amount_total,
-    })
+    ))
 }
 
 pub(super) async fn wallet_balance_rows(
@@ -106,7 +102,7 @@ pub(super) async fn wallet_balance_rows(
         .await
         .map(|rows| {
             rows.into_iter()
-                .map(OrganizationWalletBalanceFact::from)
+                .map(|(wallet_id, balance)| OrganizationWalletBalanceFact::new(wallet_id, balance))
                 .collect()
         })
         .map_err(map_diesel_error)
@@ -118,18 +114,6 @@ fn start_of_day(date: NaiveDate) -> NaiveDateTime {
 
 fn end_of_day(date: NaiveDate) -> NaiveDateTime {
     NaiveDateTime::new(date, NaiveTime::from_hms_opt(23, 59, 59).unwrap())
-}
-
-impl From<(i32, BigDecimal)> for OrganizationWalletBalanceFact {
-    fn from((wallet_id, balance): (i32, BigDecimal)) -> Self {
-        Self {
-            row: OrganizationWalletBalanceRowOutput {
-                wallet_id,
-                balance: balance.to_string(),
-            },
-            balance,
-        }
-    }
 }
 
 pub(super) fn map_diesel_error(error: diesel::result::Error) -> OrganizationRewardDashboardError {

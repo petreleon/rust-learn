@@ -16,14 +16,47 @@ pub(crate) struct OrganizationRewardDashboardFacts {
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct OrganizationCourseRewardDashboardFact {
-    pub row: OrganizationCourseRewardDashboardRowOutput,
-    pub approved_amount_total: BigDecimal,
+    row: OrganizationCourseRewardDashboardRowOutput,
+    approved_amount_total: BigDecimal,
+}
+
+impl OrganizationCourseRewardDashboardFact {
+    pub(crate) fn new(
+        course_id: i32,
+        course_title: String,
+        reward_candidate_count: i64,
+        approved_reward_count: i64,
+        approved_amount_total: BigDecimal,
+    ) -> Self {
+        Self {
+            row: OrganizationCourseRewardDashboardRowOutput {
+                course_id,
+                course_title,
+                reward_candidate_count,
+                approved_reward_count,
+                approved_amount_total: approved_amount_total.to_string(),
+            },
+            approved_amount_total,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct OrganizationWalletBalanceFact {
-    pub row: OrganizationWalletBalanceRowOutput,
-    pub balance: BigDecimal,
+    row: OrganizationWalletBalanceRowOutput,
+    balance: BigDecimal,
+}
+
+impl OrganizationWalletBalanceFact {
+    pub(crate) fn new(wallet_id: i32, balance: BigDecimal) -> Self {
+        Self {
+            row: OrganizationWalletBalanceRowOutput {
+                wallet_id,
+                balance: balance.to_string(),
+            },
+            balance,
+        }
+    }
 }
 
 pub(crate) fn organization_reward_dashboard_from_facts(
@@ -95,8 +128,10 @@ mod tests {
         assert_eq!(dashboard.approved_reward_count, 3);
         assert_eq!(dashboard.approved_amount_total, "20");
         assert_eq!(dashboard.courses.len(), 2);
+        assert_eq!(dashboard.courses[0].approved_amount_total, "12");
         assert_eq!(dashboard.wallet_balance_total, "12");
         assert_eq!(dashboard.wallets.len(), 2);
+        assert_eq!(dashboard.wallets[0].balance, "5");
     }
 
     #[test]
@@ -124,25 +159,16 @@ mod tests {
         approved_reward_count: i64,
         approved_amount_total: BigDecimal,
     ) -> OrganizationCourseRewardDashboardFact {
-        OrganizationCourseRewardDashboardFact {
-            row: OrganizationCourseRewardDashboardRowOutput {
-                course_id,
-                course_title: format!("Course {course_id}"),
-                reward_candidate_count,
-                approved_reward_count,
-                approved_amount_total: approved_amount_total.to_string(),
-            },
+        OrganizationCourseRewardDashboardFact::new(
+            course_id,
+            format!("Course {course_id}"),
+            reward_candidate_count,
+            approved_reward_count,
             approved_amount_total,
-        }
+        )
     }
 
     fn wallet_fact(wallet_id: i32, balance: BigDecimal) -> OrganizationWalletBalanceFact {
-        OrganizationWalletBalanceFact {
-            row: OrganizationWalletBalanceRowOutput {
-                wallet_id,
-                balance: balance.to_string(),
-            },
-            balance,
-        }
+        OrganizationWalletBalanceFact::new(wallet_id, balance)
     }
 }
