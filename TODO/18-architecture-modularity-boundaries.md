@@ -1168,42 +1168,39 @@ remaining gaps.
 | 270 | Moved platform summary, platform reward-dashboard, and platform wallet-reconciliation top-level output assembly into application-owned report builders, leaving Postgres stores to load counts/rows/facts. |
 | 271 | Moved simple notification, delegated-permission, content, KYC, and wallet output assembly into application-owned fact builders, leaving Postgres adapters to translate Diesel records into facts and call the application boundary. |
 | 272 | Split content item and KYC Postgres stores into thin orchestration modules backed by focused record, scope, read-query, and permission-query helpers. |
+| 273 | Split bootstrap app-state construction and app-data registration into context-owned wiring bundles for learning, content, notifications, rewards, wallet, and reporting. |
 
 ## Recent Slice Evidence
 
-Batch 272: split content item and KYC Postgres stores into focused helpers.
+Batch 273: split bootstrap wiring into context-owned bundles.
 
-- [x] Split `content_item_store.rs` into a 100-line orchestration store,
-      `content_item_records.rs` for list/create/update/delete/recipient
-      queries, and `content_item_scope.rs` for chapter/content scope checks and
-      content-specific Diesel error mapping.
-- [x] Split `kyc_store.rs` into an 82-line orchestration store,
-      `kyc_read_queries.rs` for user verification/submission/review-queue/audit
-      reads, and `kyc_permission_queries.rs` for the KYC review permission
-      lookup.
-- [x] Preserve the existing application ports and public behavior; no HTTP,
-      bootstrap, or application contract changes were needed.
-- [x] Boundary scans prove the stores no longer own raw schema/table query
-      builders, status-set filters, or permission-check calls; the raw Diesel
-      work now lives in focused Postgres helper modules.
-- [x] Keep changed Rust files under the manual 180-line ceiling: content item
-      store 100 lines, content item records 86, content item scope 49, KYC
-      store 82, KYC read queries 88, and KYC permission queries 16.
-- [x] Self-critique: this is a granularity batch, not a new vertical use-case
-      migration. It makes the next content and KYC changes safer by lowering
-      file-size pressure and isolating query responsibilities, but deeper KYC
-      work still remains around complete route/context ownership and richer
-      application fake-port coverage.
+- [x] Added bootstrap wiring modules for learning, content, notifications,
+      rewards, wallet, and reporting. Each module owns its context bundle,
+      concrete use-case construction, and Actix app-data registration.
+- [x] Added matching app-data registration helpers to access-control, KYC, and
+      organization wiring, bringing them in line with the existing identity and
+      teacher-application bootstrap pattern.
+- [x] Reduced `AppState` to shared process state plus context bundles; reduced
+      `use_case_wiring.rs` to context builder composition plus readiness and
+      notification runtime setup; reduced `app_data.rs` to shared data and
+      context registration delegation.
+- [x] Keep bootstrap files under the manual 180-line ceiling: `app_state.rs` 36
+      lines, `use_case_wiring.rs` 37, `app_data.rs` 43, and the largest new
+      context wiring module, `learning_wiring.rs`, 126.
+- [x] Boundary scans show the former fat bootstrap files no longer own direct
+      Postgres construction for each context, and only shared pool/S3/
+      notifications/readiness data remain in top-level `app_data.rs`.
+- [x] Self-critique: this gives bootstrap firmer context boundaries without
+      changing runtime behavior, but `AppState` still stores broad context
+      bundles. A future bootstrap batch can move readiness and notification
+      runtime state into operations/notifications-owned bundles if that would
+      make route-scope registration even more explicit.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib content`,
-      `./scripts/run-host-tests.sh cargo test --lib kyc`,
-      `./scripts/run-host-tests.sh cargo test --test course_content_management test_course_content_lifecycle`,
-      `./scripts/run-host-tests.sh cargo test --test kyc_review kyc_submission_and_review_write_permission_scoped_audit_events`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans, and file-size checks keeping changed Rust files
-      under the manual 180-line ceiling.
+      `git diff --check`, bootstrap module scans, and file-size checks.
 
 ## Legacy Transition Rules
 
