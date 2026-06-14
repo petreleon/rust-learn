@@ -21,7 +21,7 @@ use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::delegated_permission_repository::create_delegated_permission;
 use rust_learn::repositories::user_repository::create_user;
 use rust_learn::infra::tokens::jwt::create_jwt;
-use rust_learn::utils::notifications::NotificationsState;
+use rust_learn::infra::notifications::NotificationsState;
 use serde_json::Value;
 use std::sync::Arc;
 

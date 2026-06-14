@@ -7,7 +7,7 @@ use crate::application::learning::assign_course_role::{
 };
 use crate::http::extractors::request_auth::authenticated_user_id;
 use crate::http::learning::dto::AssignCourseRoleRequest;
-use crate::utils::notifications::NotificationsState;
+use crate::infra::notifications::NotificationsState;
 
 pub(super) async fn assign_role(
     req: HttpRequest,

@@ -9,7 +9,7 @@ use crate::http::extractors::request_auth::authenticated_user_id;
 use crate::http::learning::dto::{
     CourseEnrollmentRemovalResponse, CourseJoinDecisionRequest, CourseJoinRequestResponse,
 };
-use crate::utils::notifications::NotificationsState;
+use crate::infra::notifications::NotificationsState;
 
 use super::support::course_enrollment_error_response;
 

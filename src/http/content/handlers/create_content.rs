@@ -4,7 +4,7 @@ use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::content::manage_content_item::{ContentItemError, ContentItemUseCases};
 use crate::http::content::dto::{ContentItemResponse, CreateContentItemRequest};
-use crate::utils::notifications::NotificationsState;
+use crate::infra::notifications::NotificationsState;
 
 use super::content_item_error_log;
 

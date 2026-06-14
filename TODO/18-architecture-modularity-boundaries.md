@@ -1113,30 +1113,34 @@ remaining gaps.
 | 215 | Moved S3 client state, object-storage client operations, presigned URL/download helpers, video-processing helpers, and S3 tests out of include-based `utils::s3_utils` and into explicit `infra/object_storage` modules; bootstrap, worker, content/object-storage infra, and content Postgres use cases now call the infra owner while `utils::s3_utils` remains a compatibility re-export for existing integration tests. |
 | 216 | Moved the include-based centralized-wallet DB helper out of `utils::centralized_wallets` and into explicit `infra/postgres/wallet/centralized_wallets` records/transfer modules; the old utility path is now only a compatibility re-export and production source has no callers on that utility path. |
 | 217 | Deleted the `utils::jwt_utils` compatibility bridge after moving HTTP extractors, authentication JWKS/tests, JWT middleware, and integration fixtures to the `infra/tokens/jwt` owner directly. |
+| 218 | Deleted the `utils::notifications` compatibility bridge after moving HTTP best-effort notification senders and integration fixtures to the `infra/notifications` owner directly. |
 
 ## Recent Slice Evidence
 
-Slice 217: delete JWT utility compatibility bridge.
+Slice 218: delete notification utility compatibility bridge.
 
-- [x] Move HTTP auth extractors, authentication JWKS route/tests, JWT
-      middleware, and integration fixtures off `utils::jwt_utils` and onto the
-      explicit `infra::tokens::jwt` owner.
-- [x] Delete `src/utils/jwt_utils.rs` and remove it from `src/utils/mod.rs`
+- [x] Move HTTP content creation, course enrollment decisions, course role
+      assignment, organization member-role assignment, and integration fixtures
+      off `utils::notifications` and onto the explicit
+      `infra::notifications` owner.
+- [x] Delete `src/utils/notifications.rs` and remove it from `src/utils/mod.rs`
       after scans proved no source or test references remain.
-- [x] Preserve JWT behavior through the existing token-infra API:
-      `create_jwt`, `decode_jwt`, and `public_jwks_from_env`.
-- [x] Self-critique: HTTP extractors and middleware still verify JWTs directly
-      through the concrete infra token adapter. That is better than a hidden
-      utility bridge, but a later identity/access-control slice should move
-      request authentication behind an application-level verifier or bootstrap
-      injected boundary.
+- [x] Preserve notification behavior through the existing infra notification
+      API, especially `NotificationsState` and best-effort sender methods used
+      by HTTP handlers and test app wiring.
+- [x] Self-critique: these HTTP handlers still perform best-effort notification
+      sends directly against concrete `NotificationsState`. Removing the hidden
+      utility bridge is progress, but later content/learning/organization slices
+      should push these sends behind application ports or bootstrap-wired
+      context notification services.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib jwt`,
+      `./scripts/run-host-tests.sh cargo test --lib notifications`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing no `jwt_utils` references remain, scans
-      showing `utils/mod.rs` no longer exports JWT utilities, and file-size
-      checks keeping changed Rust files under the manual 180-line ceiling.
+      `git diff --check`, scans showing no `utils::notifications` references
+      remain, scans showing `utils/mod.rs` no longer exports notification
+      utilities, and file-size checks keeping changed Rust files under the
+      manual 180-line ceiling.
 
 ## Legacy Transition Rules
 

@@ -69,7 +69,7 @@ fn platform_role_assignment_use_case_data(
 ) -> web::Data<Arc<dyn PlatformRoleAssignmentUseCase>> {
     web::Data::new(Arc::new(PostgresPlatformRoleAssignmentUseCase::new(
         pool.clone(),
-        rust_learn::utils::notifications::NotificationsState::new(pool.clone()),
+        rust_learn::infra::notifications::NotificationsState::new(pool.clone()),
     )))
 }
 
