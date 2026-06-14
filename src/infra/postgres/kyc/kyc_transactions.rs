@@ -5,7 +5,7 @@ use crate::application::kyc::{KycError, KycSubmissionOutput};
 use crate::db::schema::{kyc_submissions, users};
 use crate::domain::kyc::submission::{NormalizedKycDecision, NormalizedKycSubmission};
 use crate::infra::postgres::kyc::kyc_audit::{record_decision_audit, record_submission_audit};
-use crate::infra::postgres::kyc::kyc_mappers::map_error;
+use crate::infra::postgres::kyc::kyc_mappers::{kyc_submission_output_from_record, map_error};
 use crate::models::kyc_submission::{KycSubmission, NewKycSubmission};
 
 pub(super) async fn create_submission(
@@ -32,7 +32,7 @@ pub(super) async fn create_submission(
         })
     })
     .await
-    .map(Into::into)
+    .map(kyc_submission_output_from_record)
     .map_err(map_error)
 }
 
@@ -65,6 +65,6 @@ pub(super) async fn decide_submission(
         })
     })
     .await
-    .map(Into::into)
+    .map(kyc_submission_output_from_record)
     .map_err(map_error)
 }

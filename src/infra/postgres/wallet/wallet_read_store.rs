@@ -7,7 +7,7 @@ use crate::db::schema::{organizations, users, wallets};
 use crate::infra::postgres::wallet::wallet_access::{
     can_view_organization_wallet, can_view_user_wallet,
 };
-use crate::infra::postgres::wallet::wallet_mappers::wallet_view_from_model;
+use crate::infra::postgres::wallet::wallet_mappers::wallet_view_output_from_record;
 use crate::models::wallet::Wallet;
 
 pub struct PostgresWalletReadStore<'conn> {
@@ -88,7 +88,7 @@ impl WalletReadStore for PostgresWalletReadStore<'_> {
                 .first::<Wallet>(self.conn)
                 .await
                 .optional()
-                .map(|wallet| wallet.map(wallet_view_from_model))
+                .map(|wallet| wallet.map(wallet_view_output_from_record))
                 .map_err(|error| WalletReadError::WalletLoad(error.to_string()))
         }
         .boxed()
@@ -105,7 +105,7 @@ impl WalletReadStore for PostgresWalletReadStore<'_> {
                 .first::<Wallet>(self.conn)
                 .await
                 .optional()
-                .map(|wallet| wallet.map(wallet_view_from_model))
+                .map(|wallet| wallet.map(wallet_view_output_from_record))
                 .map_err(|error| WalletReadError::WalletLoad(error.to_string()))
         }
         .boxed()

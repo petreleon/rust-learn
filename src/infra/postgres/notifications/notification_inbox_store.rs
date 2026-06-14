@@ -1,7 +1,8 @@
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::notifications::notification_inbox::{
-    NotificationInboxError, NotificationOutput, NOTIFICATION_LIST_LIMIT,
+    notification_output, NotificationFact, NotificationInboxError, NotificationOutput,
+    NOTIFICATION_LIST_LIMIT,
 };
 use crate::application::notifications::ports::NotificationInboxStore;
 use crate::infra::postgres::notifications::notification_records::{
@@ -27,7 +28,12 @@ impl NotificationInboxStore for PostgresNotificationInboxStore<'_> {
         async move {
             list_user_notifications(self.conn, user_id, NOTIFICATION_LIST_LIMIT)
                 .await
-                .map(|rows| rows.into_iter().map(NotificationOutput::from).collect())
+                .map(|rows| {
+                    rows.into_iter()
+                        .map(notification_fact_from_record)
+                        .map(notification_output)
+                        .collect()
+                })
                 .map_err(map_notification_inbox_error)
         }
         .boxed()
@@ -58,16 +64,14 @@ impl NotificationInboxStore for PostgresNotificationInboxStore<'_> {
     }
 }
 
-impl From<Notification> for NotificationOutput {
-    fn from(notification: Notification) -> Self {
-        Self {
-            id: notification.id,
-            user_id: notification.user_id,
-            title: notification.title,
-            body: notification.body,
-            created_at: notification.created_at,
-            read: notification.read,
-        }
+fn notification_fact_from_record(notification: Notification) -> NotificationFact {
+    NotificationFact {
+        id: notification.id,
+        user_id: notification.user_id,
+        title: notification.title,
+        body: notification.body,
+        created_at: notification.created_at,
+        read: notification.read,
     }
 }
 

@@ -12,6 +12,7 @@ pub use handler::{
     grant_delegated_permission, list_delegated_permissions, revoke_delegated_permission,
 };
 pub use output::DelegatedPermissionOutput;
+pub(crate) use output::{delegated_permission_output, DelegatedPermissionFact};
 pub use query::ListDelegatedPermissionsQuery;
 pub use service::DelegatedPermissionUseCase;
 pub use store::{DelegatedPermissionCreate, DelegatedPermissionFilter, DelegatedPermissionStore};

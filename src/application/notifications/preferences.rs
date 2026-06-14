@@ -19,6 +19,24 @@ impl NotificationPreferenceOutput {
     }
 }
 
+pub(crate) struct NotificationPreferenceFact {
+    pub user_id: i32,
+    pub email_enabled: bool,
+    pub push_enabled: bool,
+    pub updated_at: DateTime<Utc>,
+}
+
+pub(crate) fn notification_preference_output(
+    fact: NotificationPreferenceFact,
+) -> NotificationPreferenceOutput {
+    NotificationPreferenceOutput {
+        user_id: fact.user_id,
+        email_enabled: fact.email_enabled,
+        push_enabled: fact.push_enabled,
+        updated_at: Some(fact.updated_at),
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NotificationPreferencesError {
     Connection(String),

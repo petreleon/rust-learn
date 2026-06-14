@@ -4,7 +4,8 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::notifications::ports::NotificationPreferenceStore;
 use crate::application::notifications::preferences::{
-    NotificationPreferenceOutput, NotificationPreferencesError,
+    notification_preference_output, NotificationPreferenceFact, NotificationPreferenceOutput,
+    NotificationPreferencesError,
 };
 use crate::application::notifications::save_preferences::SaveNotificationPreferencesCommand;
 use crate::db::schema::user_notification_preferences;
@@ -34,7 +35,10 @@ impl NotificationPreferenceStore for PostgresNotificationPreferenceStore<'_> {
                 .first::<NotificationPreferences>(self.conn)
                 .await
                 .optional()
-                .map(|row| row.map(NotificationPreferenceOutput::from))
+                .map(|row| {
+                    row.map(notification_preference_fact_from_record)
+                        .map(notification_preference_output)
+                })
                 .map_err(map_notification_preferences_error)
         }
         .boxed()
@@ -62,21 +66,22 @@ impl NotificationPreferenceStore for PostgresNotificationPreferenceStore<'_> {
                 .values(&payload)
                 .get_result::<NotificationPreferences>(self.conn)
                 .await
-                .map(NotificationPreferenceOutput::from)
+                .map(notification_preference_fact_from_record)
+                .map(notification_preference_output)
                 .map_err(map_notification_preferences_error)
         }
         .boxed()
     }
 }
 
-impl From<NotificationPreferences> for NotificationPreferenceOutput {
-    fn from(preferences: NotificationPreferences) -> Self {
-        Self {
-            user_id: preferences.user_id,
-            email_enabled: preferences.email_enabled,
-            push_enabled: preferences.push_enabled,
-            updated_at: Some(preferences.updated_at),
-        }
+fn notification_preference_fact_from_record(
+    preferences: NotificationPreferences,
+) -> NotificationPreferenceFact {
+    NotificationPreferenceFact {
+        user_id: preferences.user_id,
+        email_enabled: preferences.email_enabled,
+        push_enabled: preferences.push_enabled,
+        updated_at: preferences.updated_at,
     }
 }
 

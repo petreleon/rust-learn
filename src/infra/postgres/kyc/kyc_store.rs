@@ -9,7 +9,9 @@ use crate::domain::kyc::submission::{
     NormalizedKycDecision, NormalizedKycSubmission, KYC_STATUS_SUBMITTED, KYC_STATUS_UNDER_REVIEW,
 };
 use crate::infra::postgres::access_control::permission_checks;
-use crate::infra::postgres::kyc::kyc_mappers::map_error;
+use crate::infra::postgres::kyc::kyc_mappers::{
+    kyc_audit_event_output_from_record, kyc_submission_output_from_record, map_error,
+};
 use crate::infra::postgres::kyc::kyc_transactions::{create_submission, decide_submission};
 use crate::models::kyc_audit_event::KycAuditEvent;
 use crate::models::kyc_submission::KycSubmission;
@@ -49,7 +51,7 @@ impl KycStore for PostgresKycStore<'_> {
                 .first::<KycSubmission>(self.conn)
                 .await
                 .optional()
-                .map(|submission| submission.map(Into::into))
+                .map(|submission| submission.map(kyc_submission_output_from_record))
                 .map_err(map_error)
         }
         .boxed()
@@ -83,7 +85,12 @@ impl KycStore for PostgresKycStore<'_> {
                 .limit(50)
                 .load::<KycSubmission>(self.conn)
                 .await
-                .map(|items| items.into_iter().map(Into::into).collect())
+                .map(|items| {
+                    items
+                        .into_iter()
+                        .map(kyc_submission_output_from_record)
+                        .collect()
+                })
                 .map_err(map_error)
         }
         .boxed()
@@ -98,7 +105,7 @@ impl KycStore for PostgresKycStore<'_> {
                 .find(submission_id)
                 .first::<KycSubmission>(self.conn)
                 .await
-                .map(Into::into)
+                .map(kyc_submission_output_from_record)
                 .map_err(map_error)
         }
         .boxed()
@@ -135,7 +142,12 @@ impl KycStore for PostgresKycStore<'_> {
                 .then_order_by(kyc_audit_events::id.asc())
                 .load::<KycAuditEvent>(self.conn)
                 .await
-                .map(|items| items.into_iter().map(Into::into).collect())
+                .map(|items| {
+                    items
+                        .into_iter()
+                        .map(kyc_audit_event_output_from_record)
+                        .collect()
+                })
                 .map_err(map_error)
         }
         .boxed()

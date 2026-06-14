@@ -7,6 +7,7 @@ use crate::application::content::manage_content_item::{
 };
 use crate::application::content::ports::ContentItemStore;
 use crate::db::schema::{chapters, contents, user_role_course};
+use crate::infra::postgres::content::mappers::content_item_output_from_record;
 use crate::models::content::{Content, NewContent, UpdateContent};
 
 pub struct PostgresContentItemStore<'conn> {
@@ -32,7 +33,12 @@ impl ContentItemStore for PostgresContentItemStore<'_> {
                 .order(contents::order.asc())
                 .load::<Content>(self.conn)
                 .await
-                .map(|items| items.into_iter().map(ContentItemOutput::from).collect())
+                .map(|items| {
+                    items
+                        .into_iter()
+                        .map(content_item_output_from_record)
+                        .collect()
+                })
                 .map_err(map_database_error)
         }
         .boxed()
@@ -56,7 +62,7 @@ impl ContentItemStore for PostgresContentItemStore<'_> {
                 .values(&new_content)
                 .get_result::<Content>(self.conn)
                 .await
-                .map(ContentItemOutput::from)
+                .map(content_item_output_from_record)
                 .map_err(map_database_error)
         }
         .boxed()
@@ -99,7 +105,7 @@ impl ContentItemStore for PostgresContentItemStore<'_> {
                 .set(&update)
                 .get_result::<Content>(self.conn)
                 .await
-                .map(ContentItemOutput::from)
+                .map(content_item_output_from_record)
                 .map_err(map_content_error)
         }
         .boxed()

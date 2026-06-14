@@ -1166,47 +1166,54 @@ remaining gaps.
 | 268 | Moved the final platform token-payout CSV row assembly and optional external-transaction defaulting into the reporting application layer, closing the platform CSV export row-assembly migration batch. |
 | 269 | Moved platform reward-dashboard and wallet-reconciliation row display shaping into application-owned row fact assemblers, leaving Postgres helpers to load records and pass typed facts. |
 | 270 | Moved platform summary, platform reward-dashboard, and platform wallet-reconciliation top-level output assembly into application-owned report builders, leaving Postgres stores to load counts/rows/facts. |
+| 271 | Moved simple notification, delegated-permission, content, KYC, and wallet output assembly into application-owned fact builders, leaving Postgres adapters to translate Diesel records into facts and call the application boundary. |
 
 ## Recent Slice Evidence
 
-Batch 270: move platform report wrapper assembly to application builders.
+Batch 271: move simple cross-context output assembly to application builders.
 
-- [x] Add `application/reporting/platform_summary/summary` with
-      `PlatformSummaryFact` and `platform_summary_output`.
-- [x] Add `application/reporting/platform_reward_dashboard/dashboard` with
-      `PlatformRewardDashboardFact` and `platform_reward_dashboard_output`,
-      including application-owned reconciliation mismatch count derivation from
-      the returned mismatch rows.
-- [x] Extend `application/reporting/platform_wallet_reconciliation/rows` with
-      `platform_wallet_reconciliation_output`, so application now derives
-      platform wallet totals from loaded per-wallet facts.
-- [x] Repoint `platform_summary_store`, `platform_reward_dashboard_store`, and
-      `platform_wallet_reconciliation_queries` to load counts/rows/facts and
-      call the application report builders instead of constructing top-level
-      outputs directly.
-- [x] Preserve existing behavior: platform summary count fields are unchanged,
-      reward dashboard section summaries/counts/row ordering remain unchanged,
-      and wallet reconciliation totals still equal the sum of per-wallet count
-      facts while wallet rows keep the same ordering.
-- [x] Keep changed Rust files small: new platform summary builder 39 lines,
-      new reward-dashboard builder 67 lines, wallet-reconciliation row/report
-      builder 139 lines, module exports 12/29/17 lines, and touched Postgres
-      helpers 66/52/51 lines.
-- [x] Boundary scans prove `PlatformSummaryOutput`, `PlatformRewardDashboardOutput`,
-      and `PlatformWalletReconciliationOutput` construction for the selected
-      reports now appears only in application modules/tests, not in reporting
-      Postgres helpers.
-- [x] Self-critique: reporting infra still owns database error-to-application
-      error string mapping and some report-store orchestration; future batches
-      should look outside reporting at remaining Level 2 gaps rather than
-      over-abstracting these already-thin stores.
+- [x] Add application-owned fact/builders for notification inbox items,
+      notification preferences, delegated permissions, chapters, content items,
+      KYC submissions, KYC audit events, wallet views, and linked-wallet
+      wrappers.
+- [x] Repoint the selected Postgres adapters to translate Diesel records into
+      application facts and call application builders instead of using
+      `impl From<Model> for Output`, `Output::from`, or direct output struct
+      literals in infra.
+- [x] Keep persistence-specific conversion at the Postgres boundary where it
+      belongs: wallet `BigDecimal` values are still stringified in infra, while
+      application now owns wallet `owner_type` classification.
+- [x] Preserve existing behavior with focused unit filters for
+      `notification`, `delegated_permission`, `content`, `kyc`, and `wallet`;
+      route/integration regressions for notification preference round-trip,
+      notification inbox list/mark-read/clear, delegated permission
+      grant/list/revoke, course content lifecycle, KYC submission/review audit,
+      and wallet link/readback.
+- [x] Boundary scans prove the removed leaks stay removed: no selected
+      `impl From<Model> for Output`, no selected `Output::from`, no
+      `wallet_view_from_model`, no forbidden application imports, and no direct
+      selected output struct literals, including `LinkedWalletView`, in the
+      touched Postgres adapters.
+- [x] Keep changed Rust files under the manual 180-line ceiling; the largest
+      touched files are `content_item_store.rs` at 179 lines and
+      `application/kyc/output.rs` at 110 lines.
+- [x] Self-critique: store ports still return application output types, so
+      Postgres mappers necessarily call the application builders. This is
+      acceptable for the current Level 2 boundary, but `content_item_store.rs`
+      is close enough to the line ceiling that a future content batch should
+      split its validation/query helpers before adding more behavior there.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib platform_summary`,
-      `./scripts/run-host-tests.sh cargo test --lib platform_reward_dashboard`,
-      `./scripts/run-host-tests.sh cargo test --lib platform_wallet_reconciliation`,
-      `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_admin_can_read_and_export_platform_summary`,
-      `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_reward_dashboard_reports_actionable_reward_audit_work`,
-      `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_csv_exports_cover_business_reward_datasets`,
+      `./scripts/run-host-tests.sh cargo test --lib notification`,
+      `./scripts/run-host-tests.sh cargo test --lib delegated_permission`,
+      `./scripts/run-host-tests.sh cargo test --lib content`,
+      `./scripts/run-host-tests.sh cargo test --lib kyc`,
+      `./scripts/run-host-tests.sh cargo test --lib wallet`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api notification_preferences_default_and_save_round_trip`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api notification_inbox_routes_list_mark_read_and_clear`,
+      `./scripts/run-host-tests.sh cargo test --test reward_management_api delegated_permission_api_grants_lists_and_revokes_reward_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test course_content_management test_course_content_lifecycle`,
+      `./scripts/run-host-tests.sh cargo test --test kyc_review kyc_submission_and_review_write_permission_scoped_audit_events`,
+      `./scripts/run-host-tests.sh cargo test --test wallet_linking user_can_link_and_read_own_wallet_idempotently`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
