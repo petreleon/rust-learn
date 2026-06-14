@@ -12,8 +12,7 @@ pub(super) fn ensure_amount_transition(
             "reward amount can be decided only after teacher approval".to_string(),
         )
     })?;
-    let approved = target_status == RewardCandidateStatus::AmountApproved;
-    transition::amount_decision(current_status, approved).map_err(|_| {
+    transition::amount_decision_transition(current_status, target_status).map_err(|_| {
         RewardAmountDecisionError::InvalidStatus(
             "reward amount can be decided only after teacher approval".to_string(),
         )

@@ -1129,26 +1129,28 @@ remaining gaps.
 | 231 | Moved upload-job queue claim/metrics/done/failure/retry persistence out of `models::upload_job` and into `infra/postgres/content/upload_job_queue`, leaving `UploadJob` as a row shape plus pure id helper while the worker and upload tests call the infra owner. |
 | 232 | Moved user read persistence out of `models::user` and into `infra/postgres/identity/accounts`, repointed bootstrap, organization invite, and authentication-flow fixtures to identity infra helpers, leaving `src/models` free of async DB methods. |
 | 233 | Moved teacher and amount reward-decision target-status alias parsing into pure `domain/rewards/candidate/transition` helpers, leaving application validation as thin error translation. |
+| 234 | Moved teacher and amount reward-decision target-transition validation into pure `domain/rewards/candidate/transition` helpers, leaving Postgres adapters responsible only for stored-status parsing and error translation. |
 
 ## Recent Slice Evidence
 
-Slice 233: move reward decision target-status parsing into domain.
+Slice 234: move reward decision target-transition validation into domain.
 
-- [x] Add `teacher_decision_target_status` and
-      `amount_decision_target_status` to
-      `domain/rewards/candidate/transition`.
-- [x] Cover the domain helpers with pure unit tests for legacy aliases and
-      unsupported status inputs.
-- [x] Repoint teacher-decision and amount-decision application validation to
-      call the domain helpers and only translate `None` into use-case-specific
-      invalid-status errors.
-- [x] Keep approved-amount validation in the amount-decision application
-      validation module, since this slice only moves decision status
-      vocabulary and transition target parsing.
+- [x] Add `teacher_decision_transition` and
+      `amount_decision_transition` to the reward candidate domain so callers
+      can validate requested target statuses without rebuilding the rule.
+- [x] Keep database string parsing and use-case-specific invalid-status error
+      translation in the Postgres adapters, while the target transition rule
+      itself lives in pure domain code.
+- [x] Repoint the teacher-decision and amount-decision Postgres adapters to
+      call the domain target-transition helpers directly.
+- [x] Move transition unit tests into a sibling `transition_tests` module so
+      the production transition file has room to grow without crossing the
+      manual file-size ceiling.
 - [x] Confirm changed Rust files remain under the manual 180-line ceiling.
-- [x] Self-critique: this is a partial candidate-transition extraction, not the
-      whole TODO item. The next transition slice should move more status-change
-      validity checks out of Postgres stores and into pure domain helpers.
+- [x] Self-critique: this is still a partial candidate-transition extraction.
+      Token confirmation, wallet credit, notification, completion, failure, and
+      reconciliation should receive the same target-style boundary or a
+      use-case-owned domain command API before the broader TODO item is done.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate::transition`,
       `./scripts/run-host-tests.sh cargo test --lib decide_teacher_candidate::validation`,

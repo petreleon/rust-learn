@@ -169,8 +169,7 @@ fn ensure_teacher_transition(
             "reward candidate has already left teacher approval".to_string(),
         )
     })?;
-    let approved = target_status == RewardCandidateStatus::TeacherApproved;
-    transition::teacher_decision(current_status, approved).map_err(|_| {
+    transition::teacher_decision_transition(current_status, target_status).map_err(|_| {
         TeacherRewardCandidateDecisionError::InvalidStatus(
             "reward candidate has already left teacher approval".to_string(),
         )

@@ -21,6 +21,12 @@ pub struct TransitionError {
     pub action: TransitionAction,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TargetTransitionError {
+    pub from: RewardCandidateStatus,
+    pub target: RewardCandidateStatus,
+}
+
 pub fn apply_transition(
     from: RewardCandidateStatus,
     action: TransitionAction,
@@ -74,6 +80,32 @@ pub fn amount_decision(
     apply_transition(from, action)
 }
 
+pub fn teacher_decision_transition(
+    from: RewardCandidateStatus,
+    target: RewardCandidateStatus,
+) -> Result<RewardCandidateStatus, TargetTransitionError> {
+    use RewardCandidateStatus as Status;
+
+    match (from, target) {
+        (Status::PendingTeacherApproval, Status::TeacherApproved | Status::TeacherRejected) => {
+            Ok(target)
+        }
+        _ => Err(TargetTransitionError { from, target }),
+    }
+}
+
+pub fn amount_decision_transition(
+    from: RewardCandidateStatus,
+    target: RewardCandidateStatus,
+) -> Result<RewardCandidateStatus, TargetTransitionError> {
+    use RewardCandidateStatus as Status;
+
+    match (from, target) {
+        (Status::TeacherApproved, Status::AmountApproved | Status::AmountRejected) => Ok(target),
+        _ => Err(TargetTransitionError { from, target }),
+    }
+}
+
 pub fn teacher_decision_target_status(status: &str) -> Option<RewardCandidateStatus> {
     match normalize_decision_status(status).as_str() {
         "approved" | "teacher_approved" => Some(RewardCandidateStatus::TeacherApproved),
@@ -92,82 +124,4 @@ pub fn amount_decision_target_status(status: &str) -> Option<RewardCandidateStat
 
 fn normalize_decision_status(status: &str) -> String {
     status.trim().to_ascii_lowercase()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{
-        amount_decision, amount_decision_target_status, apply_transition, teacher_decision,
-        teacher_decision_target_status, TransitionAction,
-    };
-    use crate::domain::rewards::candidate::status::RewardCandidateStatus as Status;
-
-    #[test]
-    fn teacher_approval_starts_from_pending_teacher_approval() {
-        assert_eq!(
-            teacher_decision(Status::PendingTeacherApproval, true).unwrap(),
-            Status::TeacherApproved
-        );
-        assert!(teacher_decision(Status::AmountApproved, true).is_err());
-    }
-
-    #[test]
-    fn amount_approval_starts_from_teacher_approved() {
-        assert_eq!(
-            amount_decision(Status::TeacherApproved, true).unwrap(),
-            Status::AmountApproved
-        );
-        assert!(amount_decision(Status::PendingTeacherApproval, true).is_err());
-    }
-
-    #[test]
-    fn normalizes_teacher_decision_target_status_aliases() {
-        assert_eq!(
-            teacher_decision_target_status(" approved "),
-            Some(Status::TeacherApproved)
-        );
-        assert_eq!(
-            teacher_decision_target_status("teacher_rejected"),
-            Some(Status::TeacherRejected)
-        );
-        assert_eq!(teacher_decision_target_status("teacher-approved"), None);
-    }
-
-    #[test]
-    fn normalizes_amount_decision_target_status_aliases() {
-        assert_eq!(
-            amount_decision_target_status(" APPROVED "),
-            Some(Status::AmountApproved)
-        );
-        assert_eq!(
-            amount_decision_target_status("amount_rejected"),
-            Some(Status::AmountRejected)
-        );
-        assert_eq!(amount_decision_target_status("pending"), None);
-    }
-
-    #[test]
-    fn token_confirmation_requires_token_pending() {
-        assert_eq!(
-            apply_transition(Status::TokenPending, TransitionAction::ConfirmToken).unwrap(),
-            Status::TokenConfirmed
-        );
-        assert!(apply_transition(Status::AmountApproved, TransitionAction::ConfirmToken).is_err());
-    }
-
-    #[test]
-    fn wallet_credit_accepts_confirmed_off_chain_or_reconciliation_states() {
-        assert_eq!(
-            apply_transition(Status::TokenConfirmed, TransitionAction::CreditWallet).unwrap(),
-            Status::WalletCredited
-        );
-        assert_eq!(
-            apply_transition(Status::AmountApproved, TransitionAction::CreditWallet).unwrap(),
-            Status::WalletCredited
-        );
-        assert_eq!(
-            apply_transition(Status::NeedsReconciliation, TransitionAction::CreditWallet).unwrap(),
-            Status::WalletCredited
-        );
-    }
 }
