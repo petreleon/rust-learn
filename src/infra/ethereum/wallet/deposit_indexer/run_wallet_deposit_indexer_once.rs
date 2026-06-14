@@ -18,7 +18,7 @@ pub(super) async fn run_wallet_deposit_indexer_once(
     pool: &DbPool,
     config: &WalletDepositIndexerConfig,
 ) -> Result<usize, String> {
-    let provider = crate::utils::eth::provider::try_get_provider()?;
+    let provider = crate::infra::ethereum::operations::provider::try_get_provider()?;
     let latest = provider
         .get_block_number()
         .await

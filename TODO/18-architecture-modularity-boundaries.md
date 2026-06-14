@@ -1102,29 +1102,33 @@ remaining gaps.
 | 204 | Deleted the now-unused legacy `wallet_service` compatibility module after wallet and reward-history integration fixtures were switched to Level 2 wallet application handlers backed by Postgres wallet stores, leaving `src/services` with only the reward-candidate compatibility surface. |
 | 205 | Deleted the final legacy `reward_candidate_service` compatibility module and removed the `services` crate module entirely after reward-candidate and delegated-permission fixtures were switched to Level 2 reward submission, teacher-decision, and amount-decision use cases. |
 | 206 | Moved the Ethereum wallet deposit indexer's persistent-state reads/writes off the legacy repository bridge and onto `infra/postgres/operations/persistent_state`, making backend source rings free of `repositories::*` imports. |
+| 207 | Moved Ethereum provider URL normalization and provider construction out of `utils::eth::provider` and into `infra/ethereum/operations/provider`; readiness checks, the wallet deposit indexer, and deployment helpers now call the infra owner while `utils::eth_utils::try_get_provider` remains a compatibility re-export for tests and callers. |
 
 ## Recent Slice Evidence
 
-Slice 206: move deposit indexer persistent state to operations infra.
+Slice 207: move Ethereum provider helper to operations infra.
 
-- [x] Replace `crate::repositories::persistent_state_repository` imports in
-      `infra/ethereum/wallet/deposit_indexer` with direct calls to
-      `infra/postgres/operations/persistent_state`.
-- [x] Keep the same persistent state keys and error messages for the wallet
-      deposit indexer's next-block, LearnToken address, importer address, and
-      persisted next-block update paths.
-- [x] Self-critique: `utils::eth` still owns Ethereum provider/deployment
-      helpers, so the utility ownership problem is not finished. This slice
-      removes the last repository dependency from backend source rings; a later
-      slice should move Ethereum deployment/provider ownership behind
-      `infra/ethereum/operations`.
+- [x] Move `src/utils/eth/provider.rs` and its tests to
+      `src/infra/ethereum/operations/provider.rs` and
+      `src/infra/ethereum/operations/provider/tests.rs`.
+- [x] Update Ethereum readiness, the wallet deposit indexer, and deployment
+      helpers to call `infra::ethereum::operations::provider::try_get_provider`
+      directly.
+- [x] Preserve the old `utils::eth_utils::try_get_provider` public surface as a
+      re-export so existing Ethereum integration tests and external callers do
+      not need a behavior-changing import migration in this slice.
+- [x] Self-critique: Ethereum deployment and wallet loading still live under
+      `utils::eth`, so utility ownership is not complete. This slice pulls the
+      provider runtime adapter into the infra ring; later slices should move
+      deployment startup and wallet loading behind explicit
+      `infra/ethereum/operations` modules.
 - [x] Prove behavior with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib provider`,
       `./scripts/run-host-tests.sh cargo test --lib deposit_indexer`,
       `./scripts/run-host-tests.sh cargo check --bin worker --features worker-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing no backend source-ring
-      `repositories::*` imports, and backend ring scans showing no
-      `include!`/`imports.rs`.
+      `git diff --check`, scans showing no stale `utils::eth::provider` callers,
+      and backend ring scans showing no `include!`/`imports.rs`.
 
 ## Legacy Transition Rules
 

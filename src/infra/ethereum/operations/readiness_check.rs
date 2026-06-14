@@ -2,7 +2,7 @@ use ethers::providers::Middleware;
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::operations::ports::ReadinessDependency;
-use crate::utils::eth::provider::try_get_provider;
+use crate::infra::ethereum::operations::provider::try_get_provider;
 
 pub struct EthereumReadinessCheck;
 
