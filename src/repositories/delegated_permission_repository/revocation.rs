@@ -1,3 +1,9 @@
+use crate::db::schema::delegated_permissions;
+use crate::models::delegated_permission::DelegatedPermission;
+use chrono::Utc;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
 pub async fn revoke_delegated_permission(
     conn: &mut AsyncPgConnection,
     delegation_id: i64,

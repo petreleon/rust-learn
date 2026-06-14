@@ -1086,39 +1086,37 @@ remaining gaps.
 | 188 | Removed duplicate learning course/platform/organization permission-delegation SQL; learning Postgres stores and query helpers now call `infra/postgres/access_control/permission_checks` directly for course-context authorization. |
 | 189 | Turned legacy platform/course/organization repository permission request functions into thin compatibility bridges over `infra/postgres/access_control/permission_checks`, removing their local role-plus-delegation composition. |
 | 190 | Turned legacy delegated-permission active platform/organization/course checks into thin compatibility bridges over `infra/postgres/access_control/permission_delegations`, removing hard-coded scoped delegation SQL from the repository active-check helpers. |
+| 191 | Replaced the include-based legacy delegated-permission repository shell with normal `records` and `revocation` child modules plus explicit public re-exports; the repository no longer has an `imports.rs` file. |
 
 ## Recent Slice Evidence
 
-Slice 190: route legacy active delegated-permission checks through access-control.
+Slice 191: remove the delegated-permission repository `include!` shell.
 
-- [x] Expose `infra/postgres/access_control/permission_delegations` at
-      `pub(crate)` visibility so legacy repository bridges can share the same
-      scoped active-delegation queries as access-control permission checks.
-- [x] Retarget
-      `repositories::delegated_permission_repository::has_active_platform_delegation`
-      to the access-control active platform delegation helper.
-- [x] Retarget
-      `repositories::delegated_permission_repository::has_active_organization_delegation`
-      to the access-control active organization delegation helper.
-- [x] Retarget
-      `repositories::delegated_permission_repository::has_active_course_delegation`
-      to the access-control active course delegation helper.
-- [x] Self-critique: this removes duplicated active-delegation SQL from the
-      repository layer, but the legacy delegated-permission repository still
-      owns create/find/list/revoke SQL and still uses `include!`. Those should
-      move into an access-control record adapter and normal modules in a later
-      slice with repository-delegation route/test coverage.
+- [x] Replace `src/repositories/delegated_permission_repository.rs` `include!`
+      statements with normal `mod records`, `mod revocation`, and explicit
+      public re-exports.
+- [x] Rename `delegated_permission_repository/imports.rs` to
+      `delegated_permission_repository/records.rs`; the legacy repository no
+      longer has an `imports.rs` file.
+- [x] Rename `delegated_permission_repository/revoke_delegated_permission.rs`
+      to `delegated_permission_repository/revocation.rs` and give that module
+      its own imports instead of relying on include-shared scope.
+- [x] Keep the public repository API stable for unmigrated tests and callers:
+      create/find/list/revoke functions, active delegation checks, and
+      `DelegatedPermissionFilter` are still re-exported from
+      `repositories::delegated_permission_repository`.
+- [x] Self-critique: this removes one legacy module-system smell without
+      changing behavior, but create/find/list/revoke SQL still belongs in an
+      access-control record adapter rather than a repository. That is the next
+      deeper delegated-permission persistence slice.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test platform_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test course_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test organization_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
-      `./scripts/run-host-tests.sh cargo test --test delegated_permissions`,
       `./scripts/run-host-tests.sh cargo test --test repository_delegation_tests`,
+      `./scripts/run-host-tests.sh cargo test --test delegated_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, line-count checks, and boundary scans proving no code
-      under `repositories/delegated_permission_repository` contains hard-coded
-      platform, organization, or course active-delegation scope SQL.
+      `git diff --check`, line-count checks, and boundary scans proving no
+      `include!`, `imports.rs`, or old revoke module file remains under the
+      delegated-permission repository.
 
 ## Legacy Transition Rules
 
