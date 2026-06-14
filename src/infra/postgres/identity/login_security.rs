@@ -1,6 +1,7 @@
 use bcrypt::verify;
 
 use crate::application::identity::login::{LoginError, LoginTokenIssuer, PasswordVerifier};
+use crate::infra::tokens::jwt::create_jwt;
 
 #[derive(Clone, Copy)]
 pub struct BcryptPasswordVerifier;
@@ -16,7 +17,7 @@ pub struct JwtLoginTokenIssuer;
 
 impl LoginTokenIssuer for JwtLoginTokenIssuer {
     fn issue_token(&self, user_id: i32) -> Result<String, LoginError> {
-        crate::utils::jwt_utils::create_jwt(user_id).map_err(|error| LoginError::Token {
+        create_jwt(user_id).map_err(|error| LoginError::Token {
             user_id,
             message: error.to_string(),
         })

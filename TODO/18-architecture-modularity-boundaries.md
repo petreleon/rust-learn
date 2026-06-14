@@ -1108,33 +1108,34 @@ remaining gaps.
 | 210 | Moved structured process logging initialization out of `utils::logging` and into `bootstrap/logging`; the API and worker entrypoints now call bootstrap-owned logging setup and the old utility module was removed. |
 | 211 | Moved worker runtime configuration, retry-backoff helpers, and heartbeat writing out of `utils::worker` and into `bootstrap/worker_runtime`; the worker binary now imports process-runtime helpers from bootstrap and the old utility module was removed. |
 | 212 | Moved Ethereum contract compilation, startup deployment, deployment wallet loading, and contract-address persistence out of `utils::eth` and into `infra/ethereum/operations`; production startup now calls the infra deployer directly while `utils::eth_utils` remains only as a compatibility re-export for existing Ethereum tests and callers. |
+| 213 | Moved JWT signing, verification, JWKS generation, env-backed key loading, and token tests out of `utils::jwt_utils` and into `infra/tokens/jwt`; the identity login issuer now calls the infra token adapter directly while `utils::jwt_utils` remains a compatibility re-export for HTTP middleware, extractors, and existing tests. |
 
 ## Recent Slice Evidence
 
-Slice 212: move Ethereum compiler, wallet, and deployer to operations infra.
+Slice 213: move JWT implementation to token infra.
 
-- [x] Move `utils/eth/compiler.rs`, `utils/eth/compiler/*`,
-      `utils/eth/deployer.rs`, `utils/eth/deployer/*`, and `utils/eth/wallet.rs`
-      into `infra/ethereum/operations`.
-- [x] Update `bootstrap/contract_startup.rs` to call
-      `infra::ethereum::operations::deployer::deploy_all_startup` directly.
-- [x] Update Ethereum deployment persistence to call
-      `infra/postgres/operations/persistent_state` instead of the legacy
-      persistent-state repository bridge.
-- [x] Keep `utils::eth_utils` as a four-item compatibility re-export for
-      `try_get_provider`, `try_compile_contract`, `try_deploy_contract`, and
-      `try_load_wallet_from_env` while tests still import that public surface.
-- [x] Self-critique: `utils::eth_utils` is now only a re-export shell, but it is
-      still visible. Later cleanup can migrate Ethereum tests and any external
-      callers to `infra::ethereum::operations` and delete the shell entirely.
+- [x] Move `src/utils/jwt_utils.rs` and its tests to
+      `src/infra/tokens/jwt.rs` and `src/infra/tokens/jwt/tests.rs`.
+- [x] Add `infra::tokens::jwt` as the owner of JWT signing, verification,
+      JWKS generation, expiration/key-id parsing, and env-backed key loading.
+- [x] Update the identity login token issuer in
+      `infra/postgres/identity/login_security.rs` to call
+      `infra::tokens::jwt::create_jwt` directly.
+- [x] Keep `utils::jwt_utils` as a compatibility re-export for
+      `create_jwt`, `decode_jwt`, `public_jwks_from_env`,
+      `public_jwks_from_pem`, `JsonWebKey`, and `JwksResponse` while HTTP
+      middleware/extractors and integration tests still import the old surface.
+- [x] Self-critique: HTTP auth extraction and middleware still call the
+      compatibility re-export. A later auth-boundary slice should move token
+      verification behind an injected session/authentication boundary instead
+      of letting HTTP parse env-backed token keys directly.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test eth_utils_tests test_compile_learn_token_loads_artifact`,
-      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh cargo test --lib jwt`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing no production `utils::eth_utils`
-      callers and no Ethereum deployment calls to the legacy persistent-state
-      repository, and backend ring scans showing no `include!`/`imports.rs`.
+      `git diff --check`, scans showing `utils::jwt_utils` is a re-export shell
+      and the identity login issuer calls `infra::tokens::jwt`, and backend ring
+      scans showing no `include!`/`imports.rs`.
 
 ## Legacy Transition Rules
 
