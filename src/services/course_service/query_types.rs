@@ -1,3 +1,10 @@
+use crate::models::course::Course;
+use serde::Serialize;
+
+use super::learner_course_types::{
+    LearnerCourseCatalogChapter, LearnerCourseCatalogItem, LearnerCourseLearningChapter,
+};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CourseDiscoveryQuery {
     pub search: Option<String>,

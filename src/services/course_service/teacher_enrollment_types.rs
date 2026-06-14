@@ -1,3 +1,8 @@
+use chrono::{DateTime, Utc};
+use serde::Serialize;
+
+use super::teacher_course_types::TeacherStudentRewardEligibilitySummary;
+
 #[derive(Debug, Serialize)]
 pub struct TeacherCourseJoinRequestPage {
     pub requests: Vec<TeacherCourseJoinRequestItem>,
@@ -107,4 +112,15 @@ pub struct OrganizationCoursePermissionSummary {
     pub can_submit_reward_events: bool,
     pub can_view_reward_reports: bool,
     pub can_manage_reward_budget: bool,
+}
+
+impl TeacherCoursePermissionSummary {
+    pub(super) fn has_teacher_access(&self) -> bool {
+        self.can_manage_settings
+            || self.can_manage_content
+            || self.can_manage_enrollments
+            || self.can_view_reward_candidates
+            || self.can_approve_reward_candidates
+            || self.can_manage_reward_rules
+    }
 }

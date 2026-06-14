@@ -1,4 +1,21 @@
-fn apply_join_request_status_filter<'a>(
+use crate::db::schema::{course_join_requests, course_roles, user_role_course, users};
+use crate::domain::learning::enrollment::status::{
+    COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
+};
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use std::collections::BTreeSet;
+
+use super::errors::TeacherCourseDashboardError;
+use super::learner_enrollment::load_actor_course_roles;
+use super::teacher_enrollment_types::{
+    TeacherCourseRosterLearner, TeacherCourseRosterPage, TeacherEnrollmentUserSummary,
+};
+use super::teacher_reward_eligibility::{
+    load_teacher_course_reward_eligibility_summary, load_teacher_student_reward_eligibility,
+};
+
+pub(super) fn apply_join_request_status_filter<'a>(
     query: course_join_requests::BoxedQuery<'a, diesel::pg::Pg>,
     status: Option<&'a str>,
 ) -> course_join_requests::BoxedQuery<'a, diesel::pg::Pg> {
@@ -12,7 +29,7 @@ fn apply_join_request_status_filter<'a>(
     }
 }
 
-async fn load_teacher_course_roster_page(
+pub(super) async fn load_teacher_course_roster_page(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     can_manage_enrollments: bool,
@@ -48,9 +65,13 @@ async fn load_teacher_course_roster_page(
         let roles = load_actor_course_roles(conn, id, course_id).await?;
         let latest_join_request_status =
             load_latest_join_request_status(conn, course_id, id).await?;
-        let reward_eligibility =
-            load_teacher_student_reward_eligibility(conn, course_id, id, &course_reward_eligibility)
-                .await?;
+        let reward_eligibility = load_teacher_student_reward_eligibility(
+            conn,
+            course_id,
+            id,
+            &course_reward_eligibility,
+        )
+        .await?;
 
         learners.push(TeacherCourseRosterLearner {
             user: TeacherEnrollmentUserSummary {
@@ -74,7 +95,7 @@ async fn load_teacher_course_roster_page(
     Ok(TeacherCourseRosterPage { learners, total })
 }
 
-async fn load_teacher_enrollment_user_summary(
+pub(super) async fn load_teacher_enrollment_user_summary(
     conn: &mut AsyncPgConnection,
     user_id: i32,
 ) -> Result<Option<TeacherEnrollmentUserSummary>, TeacherCourseDashboardError> {
@@ -104,7 +125,7 @@ async fn load_teacher_enrollment_user_summary(
         .map_err(TeacherCourseDashboardError::from)
 }
 
-async fn load_latest_join_request_status(
+pub(super) async fn load_latest_join_request_status(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     user_id: i32,

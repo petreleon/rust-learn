@@ -1,3 +1,23 @@
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::{courses, courses_organizations, pending_course_organization_invites};
+use crate::domain::learning::course::status::{
+    COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED, COURSE_STATUS_DRAFT,
+    COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
+    COURSE_STATUS_SUSPENDED,
+};
+use crate::models::course::Course;
+use crate::models::courses_organizations::NewCourseOrganization;
+use crate::models::pending_course_organization_invites::{
+    NewPendingCourseOrganizationInvite, PendingCourseOrganizationInvite,
+};
+use crate::repositories::course_repository::user_permission_course_request;
+use crate::repositories::platform_repository::user_permission_platform_request;
+use diesel::prelude::*;
+use diesel::QueryResult;
+use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+
+use super::errors::{CourseLifecycleError, CourseLifecycleUpdateRequest};
+
 pub async fn update_course_lifecycle(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
@@ -49,7 +69,7 @@ async fn ensure_lifecycle_permission(
     ))
 }
 
-fn normalize_course_status(status: &str) -> Result<String, CourseLifecycleError> {
+pub(super) fn normalize_course_status(status: &str) -> Result<String, CourseLifecycleError> {
     let normalized = status.trim().to_ascii_lowercase();
     match normalized.as_str() {
         COURSE_STATUS_DRAFT

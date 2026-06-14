@@ -1,4 +1,9 @@
-fn course_title_search_pattern(search: &str) -> String {
+use super::errors::{
+    LearnerCourseCatalogError, OrganizationCourseListError, TeacherCourseDashboardError,
+};
+use super::LIKE_ESCAPE_CHAR;
+
+pub(super) fn course_title_search_pattern(search: &str) -> String {
     let mut escaped = String::with_capacity(search.len());
     for ch in search.chars() {
         match ch {
@@ -13,7 +18,7 @@ fn course_title_search_pattern(search: &str) -> String {
     format!("%{}%", escaped)
 }
 
-fn normalize_optional_string(value: Option<String>) -> Option<String> {
+pub(super) fn normalize_optional_string(value: Option<String>) -> Option<String> {
     value
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())

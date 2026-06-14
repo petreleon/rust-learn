@@ -1,4 +1,21 @@
-async fn load_teacher_course_roster_summary(
+use crate::db::schema::{course_join_requests, course_roles, user_role_course};
+use crate::domain::learning::enrollment::status::{
+    COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
+};
+use crate::models::course_join_request::CourseJoinRequest;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::errors::TeacherCourseDashboardError;
+use super::query_types::TeacherCourseEnrollmentQuery;
+use super::teacher_enrollment_types::{
+    TeacherCourseJoinRequestItem, TeacherCourseJoinRequestPage, TeacherCourseRosterSummary,
+};
+use super::teacher_roster_pages::{
+    apply_join_request_status_filter, load_teacher_enrollment_user_summary,
+};
+
+pub(super) async fn load_teacher_course_roster_summary(
     conn: &mut AsyncPgConnection,
     course_id: i32,
 ) -> Result<TeacherCourseRosterSummary, TeacherCourseDashboardError> {
@@ -39,7 +56,7 @@ async fn count_course_join_requests_by_status(
         .map_err(TeacherCourseDashboardError::from)
 }
 
-async fn load_teacher_course_join_request_page(
+pub(super) async fn load_teacher_course_join_request_page(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     query: &TeacherCourseEnrollmentQuery,

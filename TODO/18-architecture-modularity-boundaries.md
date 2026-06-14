@@ -1093,42 +1093,50 @@ remaining gaps.
 | 195 | Replaced the include-based `wallet_service` shell and wallet service unit-test shell with normal child modules, explicit public re-exports, and `pub(super)` internal helper sharing for wallet token validation, tax, deposit-intent, and wallet-linking workflows. |
 | 196 | Replaced the include-based `reward_candidate_service` shell and unit-test shell with normal child modules, a named support module, a separate course-submission entrypoint, and explicit `pub(super)` helper boundaries across submission, amount decision, fraud-block, policy, and normalization workflows. |
 | 197 | Replaced the include-based `organization_service` shell and unit-test shell with normal child modules, explicit public re-exports, and `pub(super)` helper boundaries across organization CRUD, member listing, dashboard summaries, alerts, permissions, and audit logging. |
+| 198 | Replaced the include-based `course_service` shell with normal child modules, explicit compatibility re-exports, per-module imports, and `pub(super)` helper boundaries across discovery, learner catalog/detail/learning/progress, teacher dashboards, enrollment workspaces, organization course lists, lifecycle, invites, and mutations. |
 
 ## Recent Slice Evidence
 
-Slice 197: normalize the organization legacy service module and unit tests.
+Slice 198: normalize the course legacy service module.
 
-- [x] Replace `src/services/organization_service.rs` `include!`
-      statements with normal `mod` declarations and explicit root re-exports
-      for the existing organization CRUD, member-list, dashboard, and role
-      compatibility API.
-- [x] Rename `organization_service/imports.rs` to
-      `organization_service/support.rs`; shared member/dashboard DTOs and
-      legacy error types now live behind a named support module instead of a
-      textual prelude.
-- [x] Give organization CRUD, member listing, dashboard assembly, member audit,
-      summary reads, alert construction, permission checks, member conversion,
-      and query filtering explicit imports and `pub(super)` helper boundaries.
-- [x] Replace `organization_service/tests.rs` `include!` statements with
-      normal test modules and rename `tests/imports.rs` to
-      `tests/member_filtering.rs`; sibling tests now import only shared
-      fixtures and helper surfaces.
-- [x] Self-critique: this removes the organization service include shells, but
-      `course_service` remains a large include-based legacy shell. The current
-      slice intentionally preserves physical file names even where legacy
-      grouping is imperfect, such as member-builder helpers living in the
-      dashboard-alert file; the follow-up course slice should avoid creating
-      more such mixed helper modules.
+- [x] Replace `src/services/course_service.rs` `include!` statements with
+      normal `mod` declarations and explicit root re-exports for the existing
+      discovery, learner catalog/detail/learning/progress, teacher dashboard,
+      organization course list, lifecycle, invite, and mutation compatibility
+      API.
+- [x] Give every `course_service/*` child module explicit imports for its
+      schema, models, domain vocabulary, Diesel traits, DTOs, errors, and
+      sibling helpers instead of inheriting the old shared root prelude.
+- [x] Convert cross-file helper calls to `pub(super)` boundaries across
+      catalog builders, learner metadata/enrollment/permission helpers, teacher
+      scope/delegation helpers, roster pages, reward summaries, content display
+      state, and lifecycle normalization.
+- [x] Move `TeacherCourseCandidateScope` into the teacher scope module and move
+      `TeacherCoursePermissionSummary::has_teacher_access` onto the teacher
+      enrollment type module, reducing mixed helper ownership while keeping
+      external behavior stable.
+- [x] Replace course service unit-test `super::*` imports with explicit imports
+      from the modules under test, so query/default, permission/status, and
+      content-helper tests no longer depend on the legacy flat namespace.
+- [x] Self-critique: this removes the last `include!` shell under the scanned
+      backend rings, but `course_service` remains a legacy compatibility module
+      that still performs Diesel orchestration directly. The next Level 2 work
+      should convert the remaining compatibility surfaces into
+      `application/learning` and `infra/postgres/learning` ports/adapters
+      rather than treating normal `mod` files as the final architecture.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib organization_service`,
-      `./scripts/run-host-tests.sh cargo test --test organization_dashboard`,
-      `./scripts/run-host-tests.sh cargo test --test organization_members`,
-      `./scripts/run-host-tests.sh cargo test --test organization_management`,
-      `./scripts/run-host-tests.sh cargo test --test organization_permissions`,
+      `./scripts/run-host-tests.sh cargo test --lib course_service`,
+      `./scripts/run-host-tests.sh cargo test --test course_discovery`,
+      `./scripts/run-host-tests.sh cargo test --test teacher_course_dashboard`,
+      `./scripts/run-host-tests.sh cargo test --test course_lifecycle`,
+      `./scripts/run-host-tests.sh cargo test --test course_creation_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test course_join_requests`,
+      `./scripts/run-host-tests.sh cargo test --test course_enrollment_api`,
+      `./scripts/run-host-tests.sh cargo test --test course_editing_permissions`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, line-count checks, and boundary scans proving no
-      `include!`, `imports.rs`, or stale include target remains under
-      `services/organization_service`.
+      line-count checks, and boundary scans proving no `include!` or
+      `imports.rs` remains under `src/services`, `src/http`, `src/application`,
+      `src/infra`, or `src/domain`.
 
 ## Legacy Transition Rules
 

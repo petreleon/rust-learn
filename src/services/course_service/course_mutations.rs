@@ -1,3 +1,16 @@
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::{courses, courses_organizations};
+use crate::models::course::{Course, NewCourse, UpdateCourse};
+use crate::models::courses_organizations::NewCourseOrganization;
+use crate::repositories::course_repository::user_permission_course_request;
+use crate::repositories::organization_repository::user_permission_organization_request;
+use crate::repositories::platform_repository::user_permission_platform_request;
+use diesel::prelude::*;
+use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+
+use super::course_lifecycle_invites::create_course_organization_invite;
+use super::errors::{CourseCreationError, CourseUpdateError};
+
 pub async fn create_course_with_invites(
     conn: &mut AsyncPgConnection,
     title: String,

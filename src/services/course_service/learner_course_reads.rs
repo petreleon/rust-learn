@@ -1,3 +1,22 @@
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::{courses, courses_organizations};
+use crate::models::course::Course;
+use diesel::prelude::*;
+use diesel::{EscapeExpressionMethods, PgTextExpressionMethods};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::catalog_dashboard_builders::build_learner_course_catalog_item;
+use super::errors::LearnerCourseCatalogError;
+use super::learner_enrollment::load_learner_course_chapters;
+use super::learner_learning_helpers::load_learner_course_learning_chapters;
+use super::learner_permissions::course_visible_to_learner;
+use super::query_types::{
+    LearnerCourseCatalogQuery, LearnerCourseCatalogResponse, LearnerCourseDetailResponse,
+    LearnerCourseLearningResponse,
+};
+use super::shared_helpers::course_title_search_pattern;
+use super::LIKE_ESCAPE_CHAR;
+
 pub async fn discover_learner_course_catalog(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,

@@ -1,4 +1,13 @@
-use super::*;
+use crate::config::constants::permissions::Permissions;
+use crate::domain::learning::course::status::{
+    COURSE_STATUS_APPROVED, COURSE_STATUS_ARCHIVED, COURSE_STATUS_DRAFT,
+    COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
+    COURSE_STATUS_SUSPENDED,
+};
+
+use super::super::course_lifecycle_invites::normalize_course_status;
+use super::super::teacher_enrollment_types::TeacherCoursePermissionSummary;
+use super::super::teacher_scope::teacher_course_dashboard_permission_names;
 
 // ── teacher_course_dashboard_permission_names ──
 

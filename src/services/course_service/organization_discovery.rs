@@ -1,3 +1,20 @@
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::{courses, courses_organizations, organizations};
+use crate::models::course::Course;
+use diesel::prelude::*;
+use diesel::{EscapeExpressionMethods, PgTextExpressionMethods};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::catalog_dashboard_builders::build_organization_course_list_item;
+use super::course_permission_summaries::build_organization_course_permissions;
+use super::errors::OrganizationCourseListError;
+use super::learner_course_types::LearnerCourseCatalogOrganization;
+use super::query_types::OrganizationCourseListQuery;
+use super::shared_helpers::course_title_search_pattern;
+use super::teacher_course_types::OrganizationCourseListResponse;
+use super::teacher_delegated_scope::user_has_platform_or_organization_permission;
+use super::LIKE_ESCAPE_CHAR;
+
 pub async fn discover_organization_courses(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,

@@ -1,4 +1,28 @@
-async fn build_learner_course_catalog_item(
+use crate::db::schema::{chapters, contents};
+use crate::models::course::Course;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::errors::{
+    LearnerCourseCatalogError, OrganizationCourseListError, TeacherCourseDashboardError,
+};
+use super::learner_course_types::LearnerCourseCatalogItem;
+use super::learner_enrollment::build_learner_course_enrollment;
+use super::learner_learning_helpers::{content_display_state, load_latest_content_processing};
+use super::learner_metadata::{
+    build_learner_course_access, load_learner_course_content_summary,
+    load_learner_course_organizations, load_learner_course_reward_summary,
+    load_learner_course_teachers,
+};
+use super::teacher_course_types::{OrganizationCourseListItem, TeacherCourseDashboardItem};
+use super::teacher_enrollment_types::{
+    OrganizationCoursePermissionSummary, TeacherCoursePermissionSummary,
+    TeacherCourseWorkspaceChapter, TeacherCourseWorkspaceContent,
+};
+use super::teacher_join_requests::load_teacher_course_roster_summary;
+use super::teacher_reward_progress::load_teacher_course_reward_queue_summary;
+
+pub(super) async fn build_learner_course_catalog_item(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course: Course,
@@ -41,7 +65,7 @@ async fn build_learner_course_catalog_item(
     })
 }
 
-async fn build_organization_course_list_item(
+pub(super) async fn build_organization_course_list_item(
     conn: &mut AsyncPgConnection,
     course: Course,
     permissions: OrganizationCoursePermissionSummary,
@@ -65,7 +89,7 @@ async fn build_organization_course_list_item(
     })
 }
 
-async fn build_teacher_course_dashboard_item(
+pub(super) async fn build_teacher_course_dashboard_item(
     conn: &mut AsyncPgConnection,
     course: Course,
     permissions: TeacherCoursePermissionSummary,
@@ -89,7 +113,7 @@ async fn build_teacher_course_dashboard_item(
     })
 }
 
-async fn load_teacher_course_workspace_chapters(
+pub(super) async fn load_teacher_course_workspace_chapters(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     course_lifecycle_status: &str,
@@ -148,6 +172,6 @@ async fn load_teacher_course_workspace_chapters(
     Ok(result)
 }
 
-fn teacher_content_publication_status(course_lifecycle_status: &str) -> String {
+pub(super) fn teacher_content_publication_status(course_lifecycle_status: &str) -> String {
     format!("inherits_course_{}", course_lifecycle_status)
 }

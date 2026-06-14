@@ -1,4 +1,18 @@
-async fn load_teacher_course_reward_eligibility_summary(
+use crate::db::schema::{courses_organizations, reward_policies};
+use crate::domain::rewards::policy::{
+    REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
+};
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use std::collections::BTreeSet;
+
+use super::errors::TeacherCourseDashboardError;
+use super::teacher_course_types::{
+    TeacherCourseRewardEligibilitySummary, TeacherStudentRewardEligibilitySummary,
+};
+use super::teacher_reward_progress::count_student_reward_candidates;
+
+pub(super) async fn load_teacher_course_reward_eligibility_summary(
     conn: &mut AsyncPgConnection,
     course_id: i32,
 ) -> Result<TeacherCourseRewardEligibilitySummary, TeacherCourseDashboardError> {
@@ -47,7 +61,7 @@ async fn load_teacher_course_reward_eligibility_summary(
     })
 }
 
-async fn load_teacher_student_reward_eligibility(
+pub(super) async fn load_teacher_student_reward_eligibility(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     student_user_id: i32,
@@ -61,7 +75,7 @@ async fn load_teacher_student_reward_eligibility(
     ))
 }
 
-fn teacher_student_reward_eligibility_from_count(
+pub(super) fn teacher_student_reward_eligibility_from_count(
     course_eligibility: &TeacherCourseRewardEligibilitySummary,
     reward_candidate_count: i64,
 ) -> TeacherStudentRewardEligibilitySummary {

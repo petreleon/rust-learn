@@ -1,4 +1,20 @@
-async fn load_teacher_student_reward_progress(
+use crate::db::schema::reward_candidates;
+use crate::domain::rewards::candidate::status::{
+    REWARD_STATUS_COMPLETED, REWARD_STATUS_FAILED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
+    REWARD_STATUS_TEACHER_APPROVED, REWARD_STATUS_TEACHER_REJECTED,
+};
+use chrono::{DateTime, Utc};
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use serde_json::Value;
+
+use super::errors::TeacherCourseDashboardError;
+use super::teacher_course_types::{
+    TeacherStudentRewardCandidateSummary, TeacherStudentRewardProgressSummary,
+};
+use super::teacher_enrollment_types::TeacherCourseRewardQueueSummary;
+
+pub(super) async fn load_teacher_student_reward_progress(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     student_user_id: i32,
@@ -98,7 +114,7 @@ async fn load_teacher_student_reward_progress(
     })
 }
 
-async fn count_student_reward_candidates(
+pub(super) async fn count_student_reward_candidates(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     student_user_id: i32,
@@ -119,7 +135,7 @@ async fn count_student_reward_candidates(
         .map_err(TeacherCourseDashboardError::from)
 }
 
-async fn load_teacher_course_reward_queue_summary(
+pub(super) async fn load_teacher_course_reward_queue_summary(
     conn: &mut AsyncPgConnection,
     course_id: i32,
 ) -> Result<TeacherCourseRewardQueueSummary, TeacherCourseDashboardError> {
@@ -153,15 +169,4 @@ async fn count_reward_candidates_by_status(
         .get_result::<i64>(conn)
         .await
         .map_err(TeacherCourseDashboardError::from)
-}
-
-impl TeacherCoursePermissionSummary {
-    fn has_teacher_access(&self) -> bool {
-        self.can_manage_settings
-            || self.can_manage_content
-            || self.can_manage_enrollments
-            || self.can_view_reward_candidates
-            || self.can_approve_reward_candidates
-            || self.can_manage_reward_rules
-    }
 }

@@ -1,4 +1,12 @@
-async fn load_teacher_student_lesson_progress(
+use crate::db::schema::{chapters, contents, course_progress};
+use chrono::{DateTime, Utc};
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::errors::TeacherCourseDashboardError;
+use super::teacher_course_types::TeacherStudentProgressSummary;
+
+pub(super) async fn load_teacher_student_lesson_progress(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     student_user_id: i32,
@@ -34,7 +42,11 @@ async fn load_teacher_student_lesson_progress(
         });
     };
 
-    let completed = if total_content_count == 0 { 0_i64 } else { 1_i64 };
+    let completed = if total_content_count == 0 {
+        0_i64
+    } else {
+        1_i64
+    };
     let percentage = if total_content_count == 0 {
         0.0
     } else {

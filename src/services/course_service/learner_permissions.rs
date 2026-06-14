@@ -1,4 +1,16 @@
-async fn course_visible_to_learner(
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::courses_organizations;
+use crate::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
+use crate::models::course::Course;
+use crate::repositories::course_repository::user_permission_course_request;
+use crate::repositories::organization_repository::user_permission_organization_request;
+use crate::repositories::platform_repository::user_permission_platform_request;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::errors::LearnerCourseCatalogError;
+
+pub(super) async fn course_visible_to_learner(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course: &Course,
@@ -23,7 +35,7 @@ async fn course_visible_to_learner(
     Ok(false)
 }
 
-async fn user_has_any_permission_for_course_context(
+pub(super) async fn user_has_any_permission_for_course_context(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,
@@ -40,7 +52,7 @@ async fn user_has_any_permission_for_course_context(
     Ok(false)
 }
 
-async fn user_has_permission_for_course_context(
+pub(super) async fn user_has_permission_for_course_context(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,

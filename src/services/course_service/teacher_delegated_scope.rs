@@ -1,4 +1,18 @@
-async fn delegated_teacher_course_ids(
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::{courses_organizations, delegated_permissions};
+use crate::domain::access_control::delegation::{
+    DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION,
+};
+use crate::repositories::organization_repository::user_permission_organization_request;
+use crate::repositories::platform_repository::user_permission_platform_request;
+use chrono::Utc;
+use diesel::prelude::*;
+use diesel::BoolExpressionMethods;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::errors::{OrganizationCourseListError, TeacherCourseDashboardError};
+
+pub(super) async fn delegated_teacher_course_ids(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     permission_names: &[String],
@@ -22,7 +36,7 @@ async fn delegated_teacher_course_ids(
     Ok(rows.into_iter().flatten().collect())
 }
 
-async fn delegated_teacher_organization_ids(
+pub(super) async fn delegated_teacher_organization_ids(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     permission_names: &[String],
@@ -46,7 +60,7 @@ async fn delegated_teacher_organization_ids(
     Ok(rows.into_iter().flatten().collect())
 }
 
-async fn courses_for_organizations(
+pub(super) async fn courses_for_organizations(
     conn: &mut AsyncPgConnection,
     organization_ids: &[i32],
 ) -> Result<Vec<i32>, TeacherCourseDashboardError> {
@@ -62,7 +76,7 @@ async fn courses_for_organizations(
         .map_err(TeacherCourseDashboardError::from)
 }
 
-async fn user_has_platform_or_organization_permission(
+pub(super) async fn user_has_platform_or_organization_permission(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,

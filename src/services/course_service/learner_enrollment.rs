@@ -1,4 +1,19 @@
-async fn build_learner_course_enrollment(
+use crate::db::schema::{chapters, contents, course_join_requests, course_roles, user_role_course};
+use crate::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
+use crate::domain::learning::enrollment::status::{
+    COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_REJECTED,
+    COURSE_JOIN_STATUS_WAITLISTED,
+};
+use crate::models::course_join_request::CourseJoinRequest;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::errors::LearnerCourseCatalogError;
+use super::learner_course_types::{
+    LearnerCourseCatalogChapter, LearnerCourseCatalogContent, LearnerCourseEnrollmentSummary,
+};
+
+pub(super) async fn build_learner_course_enrollment(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,
@@ -85,7 +100,7 @@ async fn build_learner_course_enrollment(
     })
 }
 
-async fn load_actor_course_roles(
+pub(super) async fn load_actor_course_roles(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,
@@ -107,7 +122,7 @@ async fn load_actor_course_roles(
     Ok(roles)
 }
 
-async fn load_learner_course_chapters(
+pub(super) async fn load_learner_course_chapters(
     conn: &mut AsyncPgConnection,
     course_id: i32,
 ) -> Result<Vec<LearnerCourseCatalogChapter>, LearnerCourseCatalogError> {

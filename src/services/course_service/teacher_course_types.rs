@@ -1,3 +1,18 @@
+use chrono::{DateTime, Utc};
+use serde::Serialize;
+use serde_json::Value;
+
+use super::learner_course_types::{
+    LearnerCourseCatalogOrganization, LearnerCourseCatalogTeacher, LearnerCourseContentSummary,
+    LearnerCourseRewardSummary,
+};
+use super::teacher_enrollment_types::{
+    OrganizationCoursePermissionSummary, TeacherCourseJoinRequestPage,
+    TeacherCoursePermissionSummary, TeacherCoursePublicationSummary,
+    TeacherCourseRewardQueueSummary, TeacherCourseRosterPage, TeacherCourseRosterSummary,
+    TeacherCourseWorkspaceChapter, TeacherEnrollmentUserSummary,
+};
+
 #[derive(Debug, Serialize)]
 pub struct TeacherCourseDashboardResponse {
     pub courses: Vec<TeacherCourseDashboardItem>,

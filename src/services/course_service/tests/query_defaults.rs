@@ -1,4 +1,10 @@
-use super::*;
+use diesel::result::Error as DieselError;
+
+use super::super::errors::CourseLifecycleError;
+use super::super::query_types::{
+    CourseDiscoveryQuery, LearnerCourseCatalogQuery, OrganizationCourseListQuery,
+    TeacherCourseDashboardQuery, TeacherCourseEnrollmentQuery,
+};
 
 // ── Query constructors ──
 
@@ -79,7 +85,7 @@ fn course_lifecycle_diesel_not_found_maps_to_not_found() {
 #[test]
 fn course_lifecycle_diesel_other_errors_map_to_database() {
     assert!(matches!(
-        CourseLifecycleError::from(diesel::result::Error::RollbackTransaction),
+        CourseLifecycleError::from(DieselError::RollbackTransaction),
         CourseLifecycleError::Database(_)
     ));
 }

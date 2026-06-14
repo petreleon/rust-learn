@@ -1,4 +1,14 @@
-async fn build_organization_course_permissions(
+use crate::config::constants::permissions::Permissions;
+use diesel_async::AsyncPgConnection;
+
+use super::errors::{OrganizationCourseListError, TeacherCourseDashboardError};
+use super::learner_permissions::user_has_permission_for_course_context;
+use super::teacher_delegated_scope::user_has_platform_or_organization_permission;
+use super::teacher_enrollment_types::{
+    OrganizationCoursePermissionSummary, TeacherCoursePermissionSummary,
+};
+
+pub(super) async fn build_organization_course_permissions(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,
@@ -70,7 +80,7 @@ async fn build_organization_course_permissions(
     })
 }
 
-async fn build_teacher_course_permissions(
+pub(super) async fn build_teacher_course_permissions(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,

@@ -1,4 +1,11 @@
-async fn load_learner_course_learning_chapters(
+use crate::db::schema::{chapters, contents, upload_jobs};
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::errors::LearnerCourseCatalogError;
+use super::learner_course_types::{LearnerCourseLearningChapter, LearnerCourseLearningContent};
+
+pub(super) async fn load_learner_course_learning_chapters(
     conn: &mut AsyncPgConnection,
     course_id: i32,
 ) -> Result<Vec<LearnerCourseLearningChapter>, LearnerCourseCatalogError> {
@@ -55,7 +62,7 @@ async fn load_learner_course_learning_chapters(
     Ok(result)
 }
 
-async fn load_latest_content_processing(
+pub(super) async fn load_latest_content_processing(
     conn: &mut AsyncPgConnection,
     object_key: Option<&str>,
 ) -> Result<Option<(String, Option<String>)>, LearnerCourseCatalogError> {
@@ -73,7 +80,7 @@ async fn load_latest_content_processing(
         .map_err(LearnerCourseCatalogError::from)
 }
 
-fn content_display_state(
+pub(super) fn content_display_state(
     content_type: &str,
     data: Option<&str>,
     processing: &Option<(String, Option<String>)>,
@@ -104,7 +111,7 @@ fn content_display_state(
     "ready".to_string()
 }
 
-fn is_media_content_type(content_type: &str) -> bool {
+pub(super) fn is_media_content_type(content_type: &str) -> bool {
     content_type == "video"
         || content_type.starts_with("video/")
         || content_type == "document"

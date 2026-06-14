@@ -1,3 +1,29 @@
+use crate::db::schema::courses;
+use crate::models::course::Course;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::catalog_dashboard_builders::{
+    build_teacher_course_dashboard_item, load_teacher_course_workspace_chapters,
+};
+use super::course_permission_summaries::build_teacher_course_permissions;
+use super::errors::TeacherCourseDashboardError;
+use super::learner_enrollment::load_actor_course_roles;
+use super::learner_metadata::load_learner_course_content_summary;
+use super::query_types::TeacherCourseEnrollmentQuery;
+use super::teacher_course_types::{
+    TeacherCourseEnrollmentWorkspaceResponse, TeacherCourseStudentProgressItem,
+    TeacherCourseStudentsResponse, TeacherCourseWorkspaceResponse,
+};
+use super::teacher_enrollment_types::TeacherCoursePublicationSummary;
+use super::teacher_join_requests::load_teacher_course_join_request_page;
+use super::teacher_reward_eligibility::{
+    load_teacher_course_reward_eligibility_summary, teacher_student_reward_eligibility_from_count,
+};
+use super::teacher_reward_progress::load_teacher_student_reward_progress;
+use super::teacher_roster_pages::load_teacher_course_roster_page;
+use super::teacher_student_progress::load_teacher_student_lesson_progress;
+
 pub async fn get_teacher_course_workspace(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,

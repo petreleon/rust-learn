@@ -1,3 +1,20 @@
+use crate::db::schema::{courses, courses_organizations};
+use crate::models::course::Course;
+use diesel::prelude::*;
+use diesel::{EscapeExpressionMethods, PgTextExpressionMethods, QueryResult};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::catalog_dashboard_builders::build_teacher_course_dashboard_item;
+use super::course_permission_summaries::build_teacher_course_permissions;
+use super::errors::TeacherCourseDashboardError;
+use super::query_types::{
+    CourseDiscoveryQuery, CourseDiscoveryResponse, TeacherCourseDashboardQuery,
+};
+use super::shared_helpers::course_title_search_pattern;
+use super::teacher_course_types::TeacherCourseDashboardResponse;
+use super::teacher_scope::{teacher_course_candidate_scope, TeacherCourseCandidateScope};
+use super::LIKE_ESCAPE_CHAR;
+
 pub async fn discover_courses(
     conn: &mut AsyncPgConnection,
     discovery: CourseDiscoveryQuery,

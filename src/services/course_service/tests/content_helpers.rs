@@ -1,4 +1,8 @@
-use super::*;
+use crate::domain::learning::course::status::{COURSE_STATUS_DRAFT, COURSE_STATUS_PUBLISHED};
+
+use super::super::catalog_dashboard_builders::teacher_content_publication_status;
+use super::super::learner_learning_helpers::{content_display_state, is_media_content_type};
+use super::super::shared_helpers::{course_title_search_pattern, normalize_optional_string};
 
 // ── course_title_search_pattern ──
 

@@ -1,3 +1,15 @@
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::{chapters, contents, course_join_requests, course_progress, courses};
+use crate::domain::learning::enrollment::status::COURSE_JOIN_STATUS_APPROVED;
+use crate::models::course::Course;
+use crate::models::course_progress::{CourseProgress, NewCourseProgress};
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::errors::LearnerCourseCatalogError;
+use super::learner_enrollment::load_actor_course_roles;
+use super::learner_permissions::course_visible_to_learner;
+
 pub async fn save_learner_progress(
     conn: &mut AsyncPgConnection,
     user_id: i32,

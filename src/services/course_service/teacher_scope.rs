@@ -1,4 +1,26 @@
-async fn teacher_course_candidate_scope(
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::{
+    delegated_permissions, role_permission_course, role_permission_organization,
+    role_permission_platform, user_role_course, user_role_organization, user_role_platform,
+};
+use crate::domain::access_control::delegation::DELEGATED_SCOPE_PLATFORM;
+use chrono::Utc;
+use diesel::prelude::*;
+use diesel::BoolExpressionMethods;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use std::collections::BTreeSet;
+
+use super::errors::TeacherCourseDashboardError;
+use super::teacher_delegated_scope::{
+    courses_for_organizations, delegated_teacher_course_ids, delegated_teacher_organization_ids,
+};
+
+pub(super) enum TeacherCourseCandidateScope {
+    All,
+    CourseIds(Vec<i32>),
+}
+
+pub(super) async fn teacher_course_candidate_scope(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
 ) -> Result<TeacherCourseCandidateScope, TeacherCourseDashboardError> {
@@ -38,7 +60,7 @@ async fn teacher_course_candidate_scope(
     ))
 }
 
-fn teacher_course_dashboard_permission_names() -> Vec<String> {
+pub(super) fn teacher_course_dashboard_permission_names() -> Vec<String> {
     [
         Permissions::MANAGE_COURSE_SETTINGS,
         Permissions::CREATE_CONTENT,

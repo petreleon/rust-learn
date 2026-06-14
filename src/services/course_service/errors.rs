@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum LearnerCourseCatalogError {
     PermissionDenied(String),

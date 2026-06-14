@@ -1,4 +1,23 @@
-async fn load_learner_course_organizations(
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::{
+    chapters, contents, course_roles, courses_organizations, organizations, reward_policies,
+    user_role_course, users,
+};
+use bigdecimal::BigDecimal;
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use std::collections::BTreeSet;
+
+use super::errors::LearnerCourseCatalogError;
+use super::learner_course_types::{
+    LearnerCourseAccessSummary, LearnerCourseCatalogOrganization, LearnerCourseCatalogTeacher,
+    LearnerCourseContentSummary, LearnerCourseRewardSummary,
+};
+use super::learner_permissions::{
+    user_has_any_permission_for_course_context, user_has_permission_for_course_context,
+};
+
+pub(super) async fn load_learner_course_organizations(
     conn: &mut AsyncPgConnection,
     course_id: i32,
 ) -> Result<Vec<LearnerCourseCatalogOrganization>, LearnerCourseCatalogError> {
@@ -19,7 +38,7 @@ async fn load_learner_course_organizations(
         .collect())
 }
 
-async fn load_learner_course_teachers(
+pub(super) async fn load_learner_course_teachers(
     conn: &mut AsyncPgConnection,
     course_id: i32,
 ) -> Result<Vec<LearnerCourseCatalogTeacher>, LearnerCourseCatalogError> {
@@ -43,7 +62,7 @@ async fn load_learner_course_teachers(
         .collect())
 }
 
-async fn load_learner_course_content_summary(
+pub(super) async fn load_learner_course_content_summary(
     conn: &mut AsyncPgConnection,
     course_id: i32,
 ) -> Result<LearnerCourseContentSummary, LearnerCourseCatalogError> {
@@ -76,7 +95,7 @@ async fn load_learner_course_content_summary(
     })
 }
 
-async fn load_learner_course_reward_summary(
+pub(super) async fn load_learner_course_reward_summary(
     conn: &mut AsyncPgConnection,
     course_id: i32,
 ) -> Result<LearnerCourseRewardSummary, LearnerCourseCatalogError> {
@@ -112,7 +131,7 @@ async fn load_learner_course_reward_summary(
     })
 }
 
-async fn build_learner_course_access(
+pub(super) async fn build_learner_course_access(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,

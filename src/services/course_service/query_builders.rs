@@ -1,3 +1,10 @@
+use super::query_types::{
+    CourseDiscoveryQuery, LearnerCourseCatalogQuery, OrganizationCourseListQuery,
+    TeacherCourseDashboardQuery, TeacherCourseEnrollmentQuery,
+};
+use super::shared_helpers::normalize_optional_string;
+use super::{DEFAULT_COURSE_LIMIT, MAX_COURSE_LIMIT};
+
 impl CourseDiscoveryQuery {
     pub fn new(
         search: Option<String>,

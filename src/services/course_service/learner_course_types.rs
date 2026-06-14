@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 #[derive(Debug, Serialize)]
 pub struct LearnerCourseCatalogItem {
     pub id: i32,
@@ -58,11 +60,6 @@ pub struct LearnerCourseAccessSummary {
     pub can_view_content: bool,
     pub can_view_rewards: bool,
     pub can_request_join: bool,
-}
-
-enum TeacherCourseCandidateScope {
-    All,
-    CourseIds(Vec<i32>),
 }
 
 #[derive(Debug, Serialize)]
