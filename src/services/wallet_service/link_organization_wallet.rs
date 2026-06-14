@@ -1,3 +1,26 @@
+use crate::db::schema::wallets;
+use crate::models::wallet::NewWallet;
+use crate::models::wallet_token_deposit_intent::WalletTokenDepositIntent;
+use crate::repositories::persistent_state_repository::{
+    get_persistent_state, set_persistent_state,
+};
+use crate::repositories::platform_repository::user_permission_platform_request;
+use bigdecimal::BigDecimal;
+use diesel::prelude::*;
+use diesel::result::Error as DieselError;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use std::str::FromStr;
+
+use super::create_user_wallet_token_deposit_intent::create_user_wallet_token_deposit_intent;
+use super::ensure_user_kyc_verified::ensure_user_kyc_verified;
+use super::support::{
+    LinkedWallet, SetWalletTokenTaxRequest, WalletTokenDepositIntentResponse, WalletTokenOperation,
+    WalletTokenTaxResponse, WalletTokenTaxSettingsResponse, WalletTokenTransferError,
+    WalletTokenTransferRequest, TOKEN_TRANSFER_OPERATION_DEPOSIT,
+};
+use super::validate_positive_amount::validate_non_negative_amount;
+use super::wallet_token_helpers::{find_organization_wallet, is_unique_violation};
+
 pub async fn link_organization_wallet(
     conn: &mut AsyncPgConnection,
     organization_id: i32,
@@ -85,7 +108,7 @@ async fn ensure_can_set_wallet_token_tax(
     }
 }
 
-async fn get_wallet_token_tax(
+pub(super) async fn get_wallet_token_tax(
     conn: &mut AsyncPgConnection,
     operation: WalletTokenOperation,
 ) -> Result<BigDecimal, WalletTokenTransferError> {

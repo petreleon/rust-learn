@@ -1090,39 +1090,40 @@ remaining gaps.
 | 192 | Moved delegated-permission create/find/list/revoke SQL into `infra/postgres/access_control/delegated_permissions/records`; the Level 2 Postgres adapter and legacy repository now share the same access-control record adapter. |
 | 193 | Replaced the include-based `reward_execution_service` shell with normal child modules, explicit per-module imports, and root re-exports that preserve the legacy reward execution API over migrated reward application use cases. |
 | 194 | Replaced the include-based `wallet_deposit_indexer_service` shell with normal child modules, explicit worker-facing re-exports, and dedicated poll-logging plus Ethereum-log helper modules for indexer retry/idle throttling and event parsing support. |
+| 195 | Replaced the include-based `wallet_service` shell and wallet service unit-test shell with normal child modules, explicit public re-exports, and `pub(super)` internal helper sharing for wallet token validation, tax, deposit-intent, and wallet-linking workflows. |
 
 ## Recent Slice Evidence
 
-Slice 194: normalize the wallet deposit indexer legacy service module.
+Slice 195: normalize the wallet legacy service module and wallet unit tests.
 
-- [x] Replace `src/services/wallet_deposit_indexer_service.rs` `include!`
-      statements with normal `mod` declarations and root re-exports for only
-      `spawn_wallet_deposit_indexer` and `wallet_deposit_indexer_enabled`.
-- [x] Rename `wallet_deposit_indexer_service/imports.rs` to
-      `wallet_deposit_indexer_service/support.rs`; runtime wiring, shared
-      indexer config, and persistent next-block constants now live behind a
-      named support module.
-- [x] Extract indexer retry/idle logging state into
-      `wallet_deposit_indexer_service/poll_logging.rs` instead of leaving it
-      mixed into Ethereum event construction helpers.
-- [x] Extract Ethereum address/topic/signature parsing into
-      `wallet_deposit_indexer_service/ethereum_log_helpers.rs`, leaving
-      `build_observed_event.rs` focused on observed wallet-deposit event
-      construction.
-- [x] Give one-shot polling, block selection/log fetching, event construction,
-      config parsing, and poll logging explicit imports and `pub(super)`
-      sharing instead of relying on include-shared scope.
-- [x] Self-critique: this removes one worker service include shell, but
-      wallet, organization, reward candidate, and course legacy service shells
-      still need the same treatment. The current slice intentionally keeps the
-      public worker API stable and does not yet move provider/persistent-state
-      orchestration deeper into `application/wallet`.
+- [x] Replace `src/services/wallet_service.rs` `include!` statements with
+      normal `mod` declarations and explicit root re-exports for the existing
+      wallet-linking, token-tax, deposit-intent, and observed-deposit credit
+      API.
+- [x] Rename `wallet_service/imports.rs` to `wallet_service/support.rs`;
+      shared DTOs, constants, and wallet transfer errors now live behind a
+      named support module instead of a textual prelude.
+- [x] Give wallet-link helpers, organization wallet/tax orchestration,
+      deposit-intent creation, KYC validation, platform receiver lookup,
+      validation helpers, wallet interaction helpers, and observed-deposit
+      crediting explicit imports and `pub(super)` helper boundaries.
+- [x] Replace `wallet_service/tests.rs` `include!` statements with normal test
+      modules and rename `tests/imports.rs` to
+      `tests/amount_validation.rs`; each test module imports the helper surface
+      it exercises.
+- [x] Self-critique: this removes the wallet service include shells, but the
+      legacy organization, reward candidate, and course service shells still
+      need the same treatment. This slice preserves the compatibility service
+      API; deeper follow-up should continue moving token-tax/deposit
+      orchestration behind `application/wallet` ports instead of extending the
+      legacy service.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib wallet_deposit_indexer_service`,
+      `./scripts/run-host-tests.sh cargo test --lib wallet_service`,
+      `./scripts/run-host-tests.sh cargo test --test wallet_linking`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no
       `include!`, `imports.rs`, or stale include target remains under
-      `services/wallet_deposit_indexer_service`.
+      `services/wallet_service`.
 
 ## Legacy Transition Rules
 

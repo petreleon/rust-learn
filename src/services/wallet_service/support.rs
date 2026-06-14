@@ -1,25 +1,10 @@
+use crate::application::wallet::index_deposit::WalletDepositIndexError;
 pub use crate::application::wallet::index_deposit::{
     ObservedWalletDepositEvent, WalletDepositIndexOutput as WalletDepositCreditResult,
 };
-use crate::application::wallet::index_deposit::WalletDepositIndexError;
-use crate::config::constants::permissions::Permissions;
-use crate::db::schema::{users, wallet_token_deposit_intents, wallets};
-use crate::domain::wallet::deposit::WALLET_DEPOSIT_STATUS_PENDING;
-use crate::infra::postgres::wallet::wallet_deposit_index_store::PostgresWalletDepositIndexStore;
-use crate::models::wallet::{NewWallet, Wallet};
-use crate::models::wallet_token_deposit_intent::{
-    NewWalletTokenDepositIntent, WalletTokenDepositIntent,
-};
-use crate::repositories::persistent_state_repository::{
-    get_persistent_state, set_persistent_state,
-};
-use crate::repositories::platform_repository::user_permission_platform_request;
+use crate::models::wallet::Wallet;
 use bigdecimal::BigDecimal;
-use diesel::prelude::*;
-use diesel::result::{DatabaseErrorKind, Error as DieselError};
-use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use serde::{Deserialize, Serialize};
-use std::{env, str::FromStr};
 
 pub const TOKEN_TRANSFER_OPERATION_DEPOSIT: &str = "deposit";
 pub const TOKEN_TRANSFER_OPERATION_RETIRE: &str = "retire";
@@ -28,12 +13,14 @@ pub const TOKEN_TRANSFER_GAS_PAYER_PLATFORM: &str = "platform";
 pub const TOKEN_TRANSFER_WALLET_PROVIDER_METAMASK: &str = "metamask";
 pub const TOKEN_TRANSFER_WALLET_PROVIDER_PLATFORM: &str = "platform";
 
-const TOKEN_DEPOSIT_TAX_KEY: &str = "wallet.deposit_tax_tokens";
-const TOKEN_RETIRE_TAX_KEY: &str = "wallet.retire_tax_tokens";
-const TOKEN_TRANSFER_ACTION_METAMASK_TRANSFER: &str = "metamask_transfer";
-const TOKEN_TRANSFER_ACTION_METAMASK_PERMIT_SIGNATURE: &str = "metamask_permit_signature";
-const TOKEN_TRANSFER_ACTION_METAMASK_PRESIGNED_TRANSFER: &str = "metamask_presigned_transfer";
-const TOKEN_TRANSFER_ACTION_PLATFORM_TRANSFER: &str = "platform_transfer";
+pub(super) const TOKEN_DEPOSIT_TAX_KEY: &str = "wallet.deposit_tax_tokens";
+pub(super) const TOKEN_RETIRE_TAX_KEY: &str = "wallet.retire_tax_tokens";
+pub(super) const TOKEN_TRANSFER_ACTION_METAMASK_TRANSFER: &str = "metamask_transfer";
+pub(super) const TOKEN_TRANSFER_ACTION_METAMASK_PERMIT_SIGNATURE: &str =
+    "metamask_permit_signature";
+pub(super) const TOKEN_TRANSFER_ACTION_METAMASK_PRESIGNED_TRANSFER: &str =
+    "metamask_presigned_transfer";
+pub(super) const TOKEN_TRANSFER_ACTION_PLATFORM_TRANSFER: &str = "platform_transfer";
 
 #[derive(Debug)]
 pub struct LinkedWallet {
@@ -124,7 +111,7 @@ pub enum WalletTokenOperation {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum WalletTokenGasPayer {
+pub(super) enum WalletTokenGasPayer {
     User,
     Platform,
 }

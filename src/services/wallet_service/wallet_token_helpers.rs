@@ -1,29 +1,43 @@
+use crate::config::constants::permissions::Permissions;
+use crate::db::schema::wallets;
+use crate::models::wallet::{NewWallet, Wallet};
+use bigdecimal::BigDecimal;
+use diesel::prelude::*;
+use diesel::result::{DatabaseErrorKind, Error as DieselError};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use super::support::{
+    LinkedWallet, WalletTokenGasPayer, WalletTokenOperation, WalletTokenTransferError,
+    TOKEN_DEPOSIT_TAX_KEY, TOKEN_RETIRE_TAX_KEY, TOKEN_TRANSFER_GAS_PAYER_PLATFORM,
+    TOKEN_TRANSFER_GAS_PAYER_USER, TOKEN_TRANSFER_OPERATION_DEPOSIT,
+    TOKEN_TRANSFER_OPERATION_RETIRE,
+};
+
 impl WalletTokenOperation {
-    fn as_str(self) -> &'static str {
+    pub(super) fn as_str(self) -> &'static str {
         match self {
             WalletTokenOperation::Deposit => TOKEN_TRANSFER_OPERATION_DEPOSIT,
             WalletTokenOperation::Retire => TOKEN_TRANSFER_OPERATION_RETIRE,
         }
     }
 
-    fn tax_key(self) -> &'static str {
+    pub(super) fn tax_key(self) -> &'static str {
         match self {
             WalletTokenOperation::Deposit => TOKEN_DEPOSIT_TAX_KEY,
             WalletTokenOperation::Retire => TOKEN_RETIRE_TAX_KEY,
         }
     }
 
-    fn set_tax_permission(self) -> Permissions {
+    pub(super) fn set_tax_permission(self) -> Permissions {
         match self {
             WalletTokenOperation::Deposit => Permissions::SET_DEPOSIT_TAX,
             WalletTokenOperation::Retire => Permissions::SET_RETIRE_TAX,
         }
     }
-
 }
 
 impl WalletTokenGasPayer {
-    fn parse(value: &str) -> Result<Self, WalletTokenTransferError> {
+    pub(super) fn parse(value: &str) -> Result<Self, WalletTokenTransferError> {
         match value.trim().to_ascii_lowercase().as_str() {
             TOKEN_TRANSFER_GAS_PAYER_USER => Ok(WalletTokenGasPayer::User),
             TOKEN_TRANSFER_GAS_PAYER_PLATFORM => Ok(WalletTokenGasPayer::Platform),
@@ -33,7 +47,7 @@ impl WalletTokenGasPayer {
         }
     }
 
-    fn as_str(self) -> &'static str {
+    pub(super) fn as_str(self) -> &'static str {
         match self {
             WalletTokenGasPayer::User => TOKEN_TRANSFER_GAS_PAYER_USER,
             WalletTokenGasPayer::Platform => TOKEN_TRANSFER_GAS_PAYER_PLATFORM,
@@ -47,7 +61,7 @@ impl From<DieselError> for WalletTokenTransferError {
     }
 }
 
-fn is_unique_violation(error: &DieselError) -> bool {
+pub(super) fn is_unique_violation(error: &DieselError) -> bool {
     matches!(
         error,
         DieselError::DatabaseError(DatabaseErrorKind::UniqueViolation, _)

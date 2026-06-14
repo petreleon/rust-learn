@@ -1,4 +1,11 @@
-async fn configured_deposit_platform_address(
+use crate::repositories::persistent_state_repository::get_persistent_state;
+use diesel_async::AsyncPgConnection;
+use std::env;
+
+use super::apply_wallet_token_ledger_entries::normalize_address;
+use super::support::{WalletTokenGasPayer, WalletTokenTransferError};
+
+pub(super) async fn configured_deposit_platform_address(
     conn: &mut AsyncPgConnection,
     gas_payer: WalletTokenGasPayer,
 ) -> Result<String, WalletTokenTransferError> {

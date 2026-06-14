@@ -1,3 +1,11 @@
+use crate::config::constants::permissions::Permissions;
+
+use super::super::support::{
+    WalletTokenGasPayer, WalletTokenOperation, TOKEN_DEPOSIT_TAX_KEY, TOKEN_RETIRE_TAX_KEY,
+    TOKEN_TRANSFER_GAS_PAYER_PLATFORM, TOKEN_TRANSFER_GAS_PAYER_USER,
+    TOKEN_TRANSFER_OPERATION_DEPOSIT, TOKEN_TRANSFER_OPERATION_RETIRE,
+};
+
 // ── WalletTokenOperation enum ──
 
 #[test]

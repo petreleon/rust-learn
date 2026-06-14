@@ -1,4 +1,27 @@
-async fn create_user_wallet_token_deposit_intent(
+use crate::db::schema::wallet_token_deposit_intents;
+use crate::domain::wallet::deposit::WALLET_DEPOSIT_STATUS_PENDING;
+use crate::models::wallet_token_deposit_intent::{
+    NewWalletTokenDepositIntent, WalletTokenDepositIntent,
+};
+use bigdecimal::BigDecimal;
+use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+
+use super::apply_wallet_token_ledger_entries::{
+    addresses_equal, normalize_address, wallet_interaction_for_transfer,
+};
+use super::configured_deposit_platform_address::configured_deposit_platform_address;
+use super::link_organization_wallet::get_wallet_token_tax;
+use super::support::{
+    WalletTokenDepositIntentResponse, WalletTokenGasPayer, WalletTokenOperation,
+    WalletTokenTransferError, WalletTokenTransferRequest,
+};
+use super::validate_positive_amount::{
+    validate_external_transaction_fields, validate_positive_amount,
+    validate_transfer_request_addresses,
+};
+use super::wallet_token_helpers::link_user_wallet;
+
+pub(super) async fn create_user_wallet_token_deposit_intent(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     request: WalletTokenTransferRequest,

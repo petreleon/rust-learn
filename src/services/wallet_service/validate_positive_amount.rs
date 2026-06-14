@@ -1,4 +1,8 @@
-fn validate_positive_amount(
+use bigdecimal::BigDecimal;
+
+use super::support::{WalletTokenTransferError, WalletTokenTransferRequest};
+
+pub(super) fn validate_positive_amount(
     amount: &BigDecimal,
     field_name: &str,
 ) -> Result<(), WalletTokenTransferError> {
@@ -11,7 +15,7 @@ fn validate_positive_amount(
     Ok(())
 }
 
-fn validate_non_negative_amount(
+pub(super) fn validate_non_negative_amount(
     amount: &BigDecimal,
     field_name: &str,
 ) -> Result<(), WalletTokenTransferError> {
@@ -24,7 +28,7 @@ fn validate_non_negative_amount(
     Ok(())
 }
 
-fn validate_transfer_request_addresses(
+pub(super) fn validate_transfer_request_addresses(
     request: &WalletTokenTransferRequest,
 ) -> Result<(), WalletTokenTransferError> {
     if request.ethereum_address.trim().is_empty() {
@@ -47,7 +51,7 @@ fn validate_transfer_request_addresses(
     Ok(())
 }
 
-fn validate_external_transaction_fields(
+pub(super) fn validate_external_transaction_fields(
     request: &WalletTokenTransferRequest,
 ) -> Result<(), WalletTokenTransferError> {
     if request

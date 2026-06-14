@@ -1,4 +1,4 @@
-include!("tests/imports.rs");
-include!("tests/empty_ethereum_address_fails.rs");
-include!("tests/equal_addresses_case_insensitive.rs");
-include!("tests/operation_as_str.rs");
+mod amount_validation;
+mod empty_ethereum_address_fails;
+mod equal_addresses_case_insensitive;
+mod operation_as_str;

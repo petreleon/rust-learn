@@ -1,3 +1,13 @@
+use super::super::apply_wallet_token_ledger_entries::{
+    addresses_equal, wallet_interaction_for_transfer,
+};
+use super::super::support::{
+    WalletTokenGasPayer, WalletTokenOperation, TOKEN_TRANSFER_ACTION_METAMASK_PERMIT_SIGNATURE,
+    TOKEN_TRANSFER_ACTION_METAMASK_PRESIGNED_TRANSFER, TOKEN_TRANSFER_ACTION_METAMASK_TRANSFER,
+    TOKEN_TRANSFER_ACTION_PLATFORM_TRANSFER, TOKEN_TRANSFER_WALLET_PROVIDER_METAMASK,
+    TOKEN_TRANSFER_WALLET_PROVIDER_PLATFORM,
+};
+
 // ── addresses_equal ──
 
 #[test]

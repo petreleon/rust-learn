@@ -1,3 +1,10 @@
+use bigdecimal::BigDecimal;
+
+use super::super::support::{WalletTokenTransferRequest, TOKEN_TRANSFER_GAS_PAYER_USER};
+use super::super::validate_positive_amount::{
+    validate_external_transaction_fields, validate_transfer_request_addresses,
+};
+
 #[test]
 fn empty_ethereum_address_fails() {
     let req = WalletTokenTransferRequest {
