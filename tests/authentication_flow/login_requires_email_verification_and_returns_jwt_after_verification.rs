@@ -32,7 +32,7 @@ async fn login_requires_email_verification_and_returns_jwt_after_verification() 
     assert_eq!(body.as_ref(), b"Email verification required");
 
     let mut conn = setup_conn(&pool).await;
-    let user = User::find_by_email(&email, &mut conn)
+    let user = find_user_by_email(&mut conn, &email)
         .await
         .expect("registered user should exist");
     diesel::update(users::table.find(user.id()))

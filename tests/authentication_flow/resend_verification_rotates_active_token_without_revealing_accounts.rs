@@ -18,7 +18,7 @@ async fn resend_verification_rotates_active_token_without_revealing_accounts() {
     assert_eq!(register_resp.status(), StatusCode::OK);
 
     let mut conn = setup_conn(&pool).await;
-    let user = User::find_by_email(&email, &mut conn)
+    let user = find_user_by_email(&mut conn, &email)
         .await
         .expect("registered user should exist");
     assert_eq!(active_verification_tokens(&mut conn, user.id()).await, 1);

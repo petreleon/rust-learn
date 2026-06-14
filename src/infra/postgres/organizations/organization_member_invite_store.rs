@@ -6,10 +6,10 @@ use crate::application::organizations::invite_organization_member::{
 };
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::organization_member_audit_events;
+use crate::infra::postgres::identity::accounts::find_user_by_email;
 use crate::infra::postgres::organizations::organization_permission_checks::has_organization_permission;
 use crate::infra::postgres::organizations::organization_role_assignments::assign_role_with_hierarchy;
 use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
-use crate::models::user::User;
 
 pub struct PostgresOrganizationMemberInviteStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -45,7 +45,7 @@ impl OrganizationMemberInviteStore for PostgresOrganizationMemberInviteStore<'_>
         email: String,
     ) -> BoxFuture<'_, Result<OrganizationMemberInviteTarget, OrganizationMemberInviteError>> {
         async move {
-            let user = User::find_by_email(&email, self.conn)
+            let user = find_user_by_email(self.conn, &email)
                 .await
                 .map_err(map_user_lookup_error)?;
             Ok(OrganizationMemberInviteTarget {

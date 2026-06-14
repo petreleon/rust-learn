@@ -3,6 +3,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::db::schema::{authentications, platform_roles, user_role_platform, users};
+use crate::models::user::User;
 
 const DEFAULT_REGISTRATION_ROLE: &str = "STUDENT";
 const PASSWORD_AUTH_TYPE: &str = "password";
@@ -48,6 +49,17 @@ pub async fn find_identity_user_by_email(
         .await
         .optional()
         .map(|user| user.map(map_identity_user_account))
+}
+
+pub async fn find_user_by_id(conn: &mut AsyncPgConnection, user_id: i32) -> QueryResult<User> {
+    users::table.find(user_id).first(conn).await
+}
+
+pub async fn find_user_by_email(conn: &mut AsyncPgConnection, email: &str) -> QueryResult<User> {
+    users::table
+        .filter(users::email.eq(email))
+        .first(conn)
+        .await
 }
 
 pub async fn find_password_authentication_by_email(

@@ -6,6 +6,7 @@ use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use std::{error::Error, fmt};
 
 use crate::db::schema::{authentications, users};
+use crate::infra::postgres::identity::accounts::find_user_by_id;
 use crate::models::user::User;
 
 const PASSWORD_AUTH_TYPE: &str = "password";
@@ -116,7 +117,7 @@ pub async fn create_verified_password_user(
     )
     .await?;
 
-    User::find_by_id(created.user_id, conn)
+    find_user_by_id(conn, created.user_id)
         .await
         .map_err(BootstrapAccountError::Database)
 }

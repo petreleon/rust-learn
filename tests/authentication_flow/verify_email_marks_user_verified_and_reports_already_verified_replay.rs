@@ -38,7 +38,7 @@ async fn verify_email_marks_user_verified_and_reports_already_verified_replay() 
     assert_eq!(body.as_ref(), b"Email verified successfully");
 
     let mut conn = setup_conn(&pool).await;
-    let verified = User::find_by_id(user.id(), &mut conn)
+    let verified = find_user_by_id(&mut conn, user.id())
         .await
         .expect("user should still exist");
     assert!(verified.email_verified);

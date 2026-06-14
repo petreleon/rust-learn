@@ -8,7 +8,6 @@ use rust_learn::db::schema::{
 };
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::infra::postgres::access_control::role_catalog_store;
-use rust_learn::models::user::User;
 use rust_learn::application::identity::login::LoginUseCase;
 use rust_learn::application::identity::register::RegisterUseCase;
 use rust_learn::application::identity::request_password_reset::RequestPasswordResetUseCase;
@@ -22,6 +21,7 @@ use rust_learn::infra::postgres::identity::reset_password_use_case::PostgresRese
 use rust_learn::infra::postgres::identity::resend_verification_use_case::PostgresResendVerificationUseCase;
 use rust_learn::infra::postgres::identity::verify_email_use_case::PostgresVerifyEmailUseCase;
 use rust_learn::infra::postgres::identity::email_verification_tokens::create_email_verification_token;
+use rust_learn::infra::postgres::identity::accounts::{find_user_by_email, find_user_by_id};
 use rust_learn::infra::tokens::identity::identity_token_hash;
 use rust_learn::infra::postgres::identity::password_reset_tokens::create_password_reset_token;
 use rust_learn::infra::tokens::jwt::decode_jwt;
@@ -122,7 +122,7 @@ async fn register_creates_unverified_user_auth_role_and_verification_token() {
     assert_eq!(body.as_ref(), b"Registration successful");
 
     let mut conn = setup_conn(&pool).await;
-    let user = User::find_by_email(&email, &mut conn)
+    let user = find_user_by_email(&mut conn, &email)
         .await
         .expect("registered user should exist");
     assert_eq!(user.name, "Auth Register");
