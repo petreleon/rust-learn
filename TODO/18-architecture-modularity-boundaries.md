@@ -1074,34 +1074,30 @@ remaining gaps.
 | 176 | Moved platform, organization, and course role-hierarchy reads off the Diesel models and into `infra/postgres/access_control/hierarchy_records`; legacy repository bridges and hierarchy tests now use access-control Postgres records, leaving the hierarchy models as persistence shapes only. |
 | 177 | Moved platform role-permission assignment off the Diesel model and into `infra/postgres/access_control/permission_assignment_records`; the legacy platform-permission repository now delegates to access-control Postgres records, leaving `models::role_permission_platform` as a persistence shape only. |
 | 178 | Moved platform user-role assignment and platform role-permission checks off the Diesel model and into `infra/postgres/access_control/platform_role_records`; legacy platform repositories, teacher-application role assignment, and fixtures now use access-control Postgres records, leaving `models::user_role_platform` as a persistence shape only. |
+| 179 | Moved password authentication row creation off the Diesel model and into `infra/postgres/identity/authentication_records`; legacy user creation now delegates to identity Postgres records, leaving `models::authentication` as a persistence shape only. |
 
 ## Recent Slice Evidence
 
-Slice 178: move platform user-role Active Record helpers into access-control
-Postgres records.
+Slice 179: move authentication Active Record helper into identity Postgres
+records.
 
-- [x] Add `infra/postgres/access_control/platform_role_records` for platform
-      user-role assignment and direct platform role-permission checks.
-- [x] Retarget legacy platform repositories, the teacher-application platform
-      role assignment path, and direct fixtures to the access-control-owned
-      Postgres functions.
-- [x] Delete `UserRolePlatform::assign` and `UserRolePlatform::has_permission`
-      from `models::user_role_platform`; the model now owns only the Diesel row
-      shape.
-- [x] Self-critique: `teacher_application_decision_roles` still has local
-      exists-before-assign guards for platform, organization, and course role
-      grants; later slices should extract those guards into access-control
-      assignment adapters or an application port instead of keeping Diesel
-      orchestration in teacher-applications infra.
+- [x] Add `infra/postgres/identity/authentication_records` for authentication
+      row creation.
+- [x] Retarget legacy `repositories::user_repository::create_user` to call the
+      identity-owned Postgres record function inside its existing transaction.
+- [x] Delete `Authentication::create` from `models::authentication`; the model
+      now owns only the Diesel row shape.
+- [x] Self-critique: `user_repository::create_user` still combines password
+      hashing, user row creation, and authentication row creation; later slices
+      should move that orchestration into an identity registration/store use
+      case and leave the repository as a temporary compatibility bridge.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test platform_permissions_unit`,
-      `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
-      `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
-      `./scripts/run-host-tests.sh cargo test --test teacher_applications`,
+      `./scripts/run-host-tests.sh cargo test --test repository_core_tests test_create_user`,
+      `./scripts/run-host-tests.sh cargo test --test authentication_flow`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      calls `UserRolePlatform::assign`/`has_permission` and
-      `models::user_role_platform` has no DB helper implementation.
+      calls `Authentication::create` and `models::authentication` has no DB
+      helper implementation.
 
 ## Legacy Transition Rules
 

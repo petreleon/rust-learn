@@ -4,6 +4,7 @@ use diesel::result::Error as DieselError;
 use diesel_async::{AsyncConnection, AsyncPgConnection};
 use std::{error::Error, fmt};
 
+use crate::infra::postgres::identity::authentication_records;
 use crate::models::authentication::Authentication;
 use crate::models::user::{NewUser, User};
 
@@ -69,7 +70,7 @@ pub async fn create_user(
                 info_auth: hashed_password,
             };
 
-            Authentication::create(new_auth, conn).await?;
+            authentication_records::create_authentication(conn, new_auth).await?;
 
             Ok(inserted_user)
         })
