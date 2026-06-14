@@ -6,8 +6,10 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::reset_password::{
     ResetPasswordError, ResetPasswordOutcome, ResetPasswordStore,
 };
+use crate::infra::postgres::identity::password_reset_tokens::{
+    consume_password_reset_token, PasswordResetTokenStatus,
+};
 use crate::infra::tokens::identity::identity_token_hash;
-use crate::models::password_reset_token::{PasswordResetResult, PasswordResetToken};
 
 const PASSWORD_AUTH_TYPE: &str = "password";
 
@@ -32,8 +34,8 @@ impl ResetPasswordStore for PostgresResetPasswordStore<'_> {
             self.conn
                 .transaction::<_, DieselError, _>(|conn| {
                     Box::pin(async move {
-                        let outcome = PasswordResetToken::consume(conn, &token_hash).await?;
-                        let PasswordResetResult::Reset { user_id } = outcome else {
+                        let outcome = consume_password_reset_token(conn, &token_hash).await?;
+                        let PasswordResetTokenStatus::Reset { user_id } = outcome else {
                             return Ok(map_outcome(outcome));
                         };
 
@@ -59,10 +61,10 @@ impl ResetPasswordStore for PostgresResetPasswordStore<'_> {
     }
 }
 
-fn map_outcome(outcome: PasswordResetResult) -> ResetPasswordOutcome {
+fn map_outcome(outcome: PasswordResetTokenStatus) -> ResetPasswordOutcome {
     match outcome {
-        PasswordResetResult::Reset { .. } => ResetPasswordOutcome::Reset,
-        PasswordResetResult::Expired => ResetPasswordOutcome::Expired,
-        PasswordResetResult::Invalid => ResetPasswordOutcome::Invalid,
+        PasswordResetTokenStatus::Reset { .. } => ResetPasswordOutcome::Reset,
+        PasswordResetTokenStatus::Expired => ResetPasswordOutcome::Expired,
+        PasswordResetTokenStatus::Invalid => ResetPasswordOutcome::Invalid,
     }
 }

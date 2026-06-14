@@ -7,7 +7,6 @@ use rust_learn::db::schema::{
     authentications, email_verification_tokens, password_reset_tokens, user_role_platform, users,
 };
 use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::models::password_reset_token::PasswordResetToken;
 use rust_learn::models::role::PlatformRole;
 use rust_learn::models::user::User;
 use rust_learn::application::identity::login::LoginUseCase;
@@ -24,6 +23,7 @@ use rust_learn::infra::postgres::identity::resend_verification_use_case::Postgre
 use rust_learn::infra::postgres::identity::verify_email_use_case::PostgresVerifyEmailUseCase;
 use rust_learn::infra::postgres::identity::email_verification_tokens::create_email_verification_token;
 use rust_learn::infra::tokens::identity::identity_token_hash;
+use rust_learn::infra::postgres::identity::password_reset_tokens::create_password_reset_token;
 use rust_learn::utils::jwt_utils::decode_jwt;
 use std::sync::Arc;
 

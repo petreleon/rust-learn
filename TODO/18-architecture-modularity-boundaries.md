@@ -1032,33 +1032,34 @@ remaining gaps.
 | 134 | Moved identity mock email URL building, rendering, and printing from `utils::email` into `infra/email/identity`, wired registration/resend-verification/password-reset request delivery adapters to the email infra module, and updated the `mock_email` helper binary; `utils::email` now contains only token generation/hash helpers. |
 | 135 | Moved identity token generation and hashing from `utils::email` into `infra/tokens/identity`, updated identity Postgres adapters and auth-flow token seeding to use the token infra module, removed `utils::email` from the utility module tree, and deleted the old utility file. |
 | 136 | Moved email-verification token creation and verification behavior from `models::email_verification_token` into `infra/postgres/identity/email_verification_tokens`, updated registration/resend/verify adapters and auth-flow token seeding to call the Postgres identity token adapter, and left the model as a Diesel record/insert shape only. |
+| 137 | Moved password-reset token creation and consumption behavior from `models::password_reset_token` into `infra/postgres/identity/password_reset_tokens`, updated request/reset adapters and auth-flow token seeding to call the Postgres identity token adapter, and left the model as a Diesel record/insert shape only. |
 
 ## Recent Slice Evidence
 
-Slice 136: move email-verification token persistence out of models.
+Slice 137: move password-reset token persistence out of models.
 
-- [x] Add `infra/postgres/identity/email_verification_tokens` with
-      `create_email_verification_token`, `verify_email_verification_token`,
-      token TTL handling, active-token invalidation, user verification update,
-      and infra-owned verification outcome vocabulary.
-- [x] Reduce `models::email_verification_token` to Diesel record and insert
-      structs only; remove async `create_for_user`, async `verify`, and the
-      model-owned verification result enum.
-- [x] Update registration, resend-verification, and verify-email Postgres
+- [x] Add `infra/postgres/identity/password_reset_tokens` with
+      `create_password_reset_token`, `consume_password_reset_token`, token TTL
+      handling, active-token invalidation, consume/replay/expiry decisions, and
+      infra-owned reset-token outcome vocabulary.
+- [x] Reduce `models::password_reset_token` to Diesel record and insert structs
+      only; remove async `create_for_user`, async `consume`, and the model-owned
+      reset result enum.
+- [x] Update request-password-reset and reset-password Postgres
       adapters to call the Postgres identity token adapter instead of
-      `EmailVerificationToken::*` Active Record methods.
+      `PasswordResetToken::*` Active Record methods.
 - [x] Update auth-flow token seeding tests to call the Postgres identity token
       adapter.
-- [x] Self-critique: `models::password_reset_token` still owns async
-      create/consume behavior and is still called by password reset adapters
-      and tests; move password-reset token persistence into
-      `infra/postgres/identity` next.
-- [x] Prove behavior with focused registration, resend-verification,
-      successful/replay verify-email, expired/invalid verify-email tests, the
-      full `authentication_flow` suite, API route reachability, formatting,
-      line-count checks, `git diff --check`, and boundary scans proving no
-      `EmailVerificationToken::` or model-owned verification result references
-      remain.
+- [x] Self-critique: identity auth token persistence is now out of models, but
+      `User`, `Authentication`, `PlatformRole`, and `UserRolePlatform` still
+      expose async DB methods that identity infra adapters call; continue
+      reducing Active Record-style model behavior behind context-owned Postgres
+      adapters.
+- [x] Prove behavior with focused one-time reset and
+      missing/invalid/expired reset-token tests, the full `authentication_flow`
+      suite, API route reachability, formatting, line-count checks,
+      `git diff --check`, and boundary scans proving no `PasswordResetToken::`
+      or model-owned reset result references remain.
 
 ## Legacy Transition Rules
 

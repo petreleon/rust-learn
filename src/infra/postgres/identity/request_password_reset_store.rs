@@ -4,8 +4,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::request_password_reset::{
     PasswordResetRecipient, RequestPasswordResetError, RequestPasswordResetStore,
 };
+use crate::infra::postgres::identity::password_reset_tokens::create_password_reset_token;
 use crate::infra::tokens::identity::identity_token_hash;
-use crate::models::password_reset_token::PasswordResetToken;
 use crate::models::user::User;
 
 pub struct PostgresRequestPasswordResetStore<'conn> {
@@ -39,7 +39,7 @@ impl RequestPasswordResetStore for PostgresRequestPasswordResetStore<'_> {
         token: String,
     ) -> BoxFuture<'_, Result<(), RequestPasswordResetError>> {
         async move {
-            PasswordResetToken::create_for_user(self.conn, user_id, identity_token_hash(&token))
+            create_password_reset_token(self.conn, user_id, identity_token_hash(&token))
                 .await
                 .map(|_| ())
                 .map_err(|error| RequestPasswordResetError::Store(error.to_string()))
