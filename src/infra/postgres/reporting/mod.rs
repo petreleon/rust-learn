@@ -14,6 +14,7 @@ pub mod organization_summary_store;
 pub mod organization_summary_use_case;
 pub mod organization_summary_wallets;
 pub mod platform_csv_export_delegated_permissions;
+pub mod platform_csv_export_mappers;
 pub mod platform_csv_export_reward_approvals;
 pub mod platform_csv_export_store;
 pub mod platform_csv_export_teacher_applications;

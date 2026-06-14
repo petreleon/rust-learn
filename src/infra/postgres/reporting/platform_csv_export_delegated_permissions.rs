@@ -5,7 +5,7 @@ use crate::application::reporting::platform_csv_exports::{
     PlatformCsvExportError, PlatformDelegatedPermissionExportRowOutput,
 };
 use crate::db::schema::delegated_permissions;
-use crate::infra::postgres::reporting::platform_csv_export_store::map_diesel_error;
+use crate::infra::postgres::reporting::platform_csv_export_mappers::map_diesel_error;
 use crate::models::delegated_permission::DelegatedPermission;
 
 pub(super) async fn load_delegated_permission_export_rows(

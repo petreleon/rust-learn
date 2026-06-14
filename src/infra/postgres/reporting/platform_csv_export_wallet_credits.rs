@@ -6,7 +6,7 @@ use crate::application::reporting::platform_csv_exports::{
     PlatformCsvExportError, PlatformWalletCreditExportRowOutput,
 };
 use crate::db::schema::{internal_transactions, reward_candidates, reward_wallet_credit_records};
-use crate::infra::postgres::reporting::platform_csv_export_store::map_diesel_error;
+use crate::infra::postgres::reporting::platform_csv_export_mappers::map_diesel_error;
 use crate::models::reward_candidate::RewardCandidate;
 use crate::models::reward_wallet_credit_record::RewardWalletCreditRecord;
 

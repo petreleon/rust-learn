@@ -5,7 +5,7 @@ use crate::application::reporting::platform_csv_exports::{
     PlatformCsvExportError, PlatformRewardApprovalExportRowOutput,
 };
 use crate::db::schema::reward_candidates;
-use crate::infra::postgres::reporting::platform_csv_export_store::map_diesel_error;
+use crate::infra::postgres::reporting::platform_csv_export_mappers::map_diesel_error;
 use crate::models::reward_candidate::RewardCandidate;
 
 pub(super) async fn load_reward_approval_export_rows(

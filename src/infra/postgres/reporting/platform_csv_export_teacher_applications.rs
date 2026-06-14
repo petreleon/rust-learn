@@ -5,7 +5,7 @@ use crate::application::reporting::platform_csv_exports::{
     PlatformCsvExportError, PlatformTeacherApplicationExportRowOutput,
 };
 use crate::db::schema::teacher_applications;
-use crate::infra::postgres::reporting::platform_csv_export_store::map_diesel_error;
+use crate::infra::postgres::reporting::platform_csv_export_mappers::map_diesel_error;
 use crate::models::teacher_application::TeacherApplication;
 
 pub(super) async fn load_teacher_application_export_rows(

@@ -1158,31 +1158,29 @@ remaining gaps.
 | 260 | Split platform fraud-dashboard active-block loading and Diesel error mapping into focused Postgres helpers, leaving the store as orchestration only. |
 | 261 | Moved organization-summary count and output assembly into the reporting application layer, leaving Postgres to load summary facts. |
 | 262 | Split organization-summary identity, course, member, wallet, course-role, and Diesel mapper reads into focused Postgres helpers. |
+| 263 | Moved platform CSV export Diesel error mapping into a focused Postgres mapper module, leaving the CSV store as orchestration only. |
 
 ## Recent Slice Evidence
 
-Slice 262: split organization-summary Postgres query concerns.
+Slice 263: split platform CSV export Diesel error mapping.
 
-- [x] Add focused Postgres helpers for organization identity, organization
-      course ids, organization member ids, organization wallet count, and
-      course-role assignment count.
-- [x] Add `organization_summary_mappers` for Diesel to
-      `OrganizationSummaryError` translation, preserving `NotFound` handling.
-- [x] Repoint `PostgresOrganizationSummaryStore` to orchestrate the focused
-      helpers and pass their values to the application summary assembler.
-- [x] Preserve existing SQL behavior: organization name lookup, course-id load,
-      distinct nullable member ids, wallet count, and empty-course role count
-      short-circuit are unchanged.
-- [x] Keep Diesel schema/query imports out of the store and confined to focused
-      Postgres helper modules.
-- [x] Keep changed Rust files small: store 49 lines, helpers 8-21 lines each,
-      and reporting module map 40 lines.
-- [x] Self-critique: organization-summary Postgres is now granular enough for
-      its current read model; the next reporting slice should inspect platform
-      CSV exports, which still carry several row-shaping adapters.
+- [x] Add `platform_csv_export_mappers` as the focused Postgres owner for
+      Diesel to `PlatformCsvExportError` translation.
+- [x] Repoint teacher-application, reward-approval, token-payout,
+      wallet-credit, and delegated-permission CSV query helpers to import the
+      mapper module directly.
+- [x] Remove `map_diesel_error` from `PostgresPlatformCsvExportStore`, leaving
+      the store as export-kind to query-helper orchestration only.
+- [x] Preserve existing behavior: Diesel errors still become
+      `PlatformCsvExportError::Database(error.to_string())`.
+- [x] Keep changed Rust files small: CSV store 78 lines, mapper 5 lines, and
+      reporting module map 41 lines.
+- [x] Self-critique: platform CSV exports still do row shaping inside several
+      Postgres query helpers; the next slices should move one export dataset at
+      a time behind application-owned fact/row assembly.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib organization_summary`,
-      `./scripts/run-host-tests.sh cargo test --test reporting_exports organization_admin_can_read_and_export_org_summary`,
+      `./scripts/run-host-tests.sh cargo test --lib platform_csv_exports`,
+      `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_csv_exports_cover_business_reward_datasets`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,

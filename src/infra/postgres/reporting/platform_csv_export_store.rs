@@ -76,7 +76,3 @@ impl PlatformCsvExportStore for PostgresPlatformCsvExportStore<'_> {
         .boxed()
     }
 }
-
-pub(super) fn map_diesel_error(error: diesel::result::Error) -> PlatformCsvExportError {
-    PlatformCsvExportError::Database(error.to_string())
-}
