@@ -6,13 +6,21 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::identity::current_session::{CurrentSessionError, CurrentSessionOutput};
 use crate::application::identity::ports::CurrentSessionStore;
+use crate::infra::postgres::identity::current_session_course_queries::{
+    list_course_permissions, list_course_roles,
+};
 use crate::infra::postgres::identity::current_session_delegations::{
     active_delegations_for_user, apply_delegations, course_labels, organization_labels,
+};
+use crate::infra::postgres::identity::current_session_organization_queries::{
+    list_organization_permissions, list_organization_roles,
+};
+use crate::infra::postgres::identity::current_session_platform_queries::{
+    find_user, list_platform_permissions, list_platform_roles,
 };
 use crate::infra::postgres::identity::current_session_scope_builder::{
     course_builder, delegated_permission_session, organization_builder, PlatformScopeBuilder,
 };
-use crate::repositories::session_repository;
 
 pub struct PostgresCurrentSessionStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -37,7 +45,7 @@ async fn load_current_session(
     conn: &mut AsyncPgConnection,
     user_id: i32,
 ) -> Result<CurrentSessionOutput, CurrentSessionError> {
-    let user = session_repository::find_user(conn, user_id)
+    let user = find_user(conn, user_id)
         .await
         .map_err(map_current_session_error)?;
     if !user.email_verified {
@@ -45,12 +53,12 @@ async fn load_current_session(
     }
 
     let mut platform = PlatformScopeBuilder {
-        roles: session_repository::list_platform_roles(conn, user_id)
+        roles: list_platform_roles(conn, user_id)
             .await
             .map_err(map_current_session_error)?
             .into_iter()
             .collect(),
-        direct_permissions: session_repository::list_platform_permissions(conn, user_id)
+        direct_permissions: list_platform_permissions(conn, user_id)
             .await
             .map_err(map_current_session_error)?
             .into_iter()
@@ -59,7 +67,7 @@ async fn load_current_session(
     };
 
     let mut organizations = BTreeMap::new();
-    for row in session_repository::list_organization_roles(conn, user_id)
+    for row in list_organization_roles(conn, user_id)
         .await
         .map_err(map_current_session_error)?
     {
@@ -72,7 +80,7 @@ async fn load_current_session(
         .insert(row.role_name);
     }
 
-    for row in session_repository::list_organization_permissions(conn, user_id)
+    for row in list_organization_permissions(conn, user_id)
         .await
         .map_err(map_current_session_error)?
     {
@@ -86,7 +94,7 @@ async fn load_current_session(
     }
 
     let mut courses = BTreeMap::new();
-    for row in session_repository::list_course_roles(conn, user_id)
+    for row in list_course_roles(conn, user_id)
         .await
         .map_err(map_current_session_error)?
     {
@@ -100,7 +108,7 @@ async fn load_current_session(
         .insert(row.role_name);
     }
 
-    for row in session_repository::list_course_permissions(conn, user_id)
+    for row in list_course_permissions(conn, user_id)
         .await
         .map_err(map_current_session_error)?
     {

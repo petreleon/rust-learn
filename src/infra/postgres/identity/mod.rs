@@ -1,5 +1,8 @@
 pub mod accounts;
+pub mod current_session_course_queries;
 pub mod current_session_delegations;
+pub mod current_session_organization_queries;
+pub mod current_session_platform_queries;
 pub mod current_session_scope_builder;
 pub mod current_session_store;
 pub mod current_session_use_case;

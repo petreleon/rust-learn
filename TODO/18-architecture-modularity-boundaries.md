@@ -1039,29 +1039,31 @@ remaining gaps.
 | 141 | Moved hierarchy-aware platform role assignment from `repositories::platform_repository::assign_role_to_user_with_hierarchy` into `infra/postgres/identity/platform_role_assignments`; the migrated platform-role assignment store now calls identity-owned Diesel queries for assigner hierarchy, target hierarchy, target role lookup, and assignment insertion. |
 | 142 | Moved current-session delegated organization/course label lookups from `repositories::session_repository` into `infra/postgres/identity/current_session_delegations`, and expanded current-session API coverage to prove organization and course delegated permissions keep their labels in both scoped and top-level session output. |
 | 143 | Moved current-session active delegated-permission loading from `repositories::delegated_permission_repository` into `infra/postgres/identity/current_session_delegations`; `current_session_store` now asks identity infra for active delegations and no longer builds a legacy `DelegatedPermissionFilter`. |
+| 144 | Moved current-session user, platform role/permission, organization scope, and course scope reads from `repositories::session_repository` into granular identity-owned Postgres query modules; the migrated current-session store no longer imports legacy repositories. |
 
 ## Recent Slice Evidence
 
-Slice 143: move current-session active delegated-permission loading into identity infra.
+Slice 144: move current-session session reads into identity infra.
 
-- [x] Add `active_delegations_for_user` to
-      `infra/postgres/identity/current_session_delegations`, querying
-      `delegated_permissions` directly with the same active semantics:
-      matching grantee, not revoked, and no expiry or future expiry.
-- [x] Preserve the legacy current-session result cap and ordering by keeping
-      `created_at DESC` and `LIMIT 500`.
-- [x] Update `current_session_store` to call the identity-owned delegation
-      loader instead of `delegated_permission_repository::list_delegated_permissions`
-      and `DelegatedPermissionFilter`.
-- [x] Self-critique: current-session delegation loading and labels are now
-      identity-owned, but `current_session_store` still imports
-      `session_repository` for user, platform, organization, and course scope
-      reads; move those reads behind identity-owned Postgres modules next.
-- [x] Prove behavior with focused current-session delegated scope API coverage,
-      unverified-email coverage, the full `current_session_api` suite, API route
-      reachability, formatting, line-count checks, `git diff --check`, and
-      boundary scans proving `current_session_store` no longer imports or calls
-      `delegated_permission_repository` or `DelegatedPermissionFilter`.
+- [x] Add `current_session_platform_queries` for current user lookup, platform
+      roles, and platform direct permissions.
+- [x] Add `current_session_organization_queries` for organization roles and
+      direct permissions, preserving organization id/name row shapes.
+- [x] Add `current_session_course_queries` for course roles and direct
+      permissions, preserving course title and lifecycle status row shapes.
+- [x] Update `current_session_store` to call identity-owned query modules for
+      user, platform, organization, course, and delegated scope data; migrated
+      current-session modules no longer import `repositories::*`.
+- [x] Self-critique: identity current-session is now free of legacy repository
+      imports, but it still returns persistence `User` records through an infra
+      conversion boundary and wider legacy repositories remain in other
+      contexts; continue shrinking model/repository leaks in the next highest
+      traffic context.
+- [x] Prove behavior with focused current-session delegated scopes, missing
+      user, and unverified-email coverage, the full `current_session_api` suite,
+      API route reachability, formatting, line-count checks, `git diff --check`,
+      and boundary scans proving identity current-session modules no longer
+      import `repositories`.
 
 ## Legacy Transition Rules
 
