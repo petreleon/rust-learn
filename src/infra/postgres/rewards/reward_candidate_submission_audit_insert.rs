@@ -5,10 +5,11 @@ use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
 };
 use crate::domain::rewards::audit::RewardAuditEventType;
+use crate::infra::postgres::rewards::reward_audit_records::create_reward_audit_event;
+use crate::infra::postgres::rewards::reward_candidate_records::create_candidate;
 use crate::infra::postgres::rewards::reward_candidate_submission_mappers::map_reward_candidate_submission_error;
 use crate::models::reward_audit_event::NewRewardAuditEvent;
 use crate::models::reward_candidate::NewRewardCandidate;
-use crate::repositories::{reward_audit_event_repository, reward_candidate_repository};
 
 pub(super) async fn create_candidate_with_audit(
     conn: &mut AsyncPgConnection,
@@ -18,9 +19,8 @@ pub(super) async fn create_candidate_with_audit(
     let created = conn
         .transaction::<_, diesel::result::Error, _>(|conn| {
             Box::pin(async move {
-                let created =
-                    reward_candidate_repository::create_candidate(conn, new_candidate).await?;
-                reward_audit_event_repository::create_reward_audit_event(
+                let created = create_candidate(conn, new_candidate).await?;
+                create_reward_audit_event(
                     conn,
                     NewRewardAuditEvent {
                         reward_candidate_id: created.id,

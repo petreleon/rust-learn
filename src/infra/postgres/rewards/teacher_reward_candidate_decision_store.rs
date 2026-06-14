@@ -10,11 +10,12 @@ use crate::application::rewards::decide_teacher_candidate::{
 use crate::domain::rewards::audit::RewardAuditEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::rewards::candidate::transition;
+use crate::infra::postgres::rewards::reward_audit_records::create_reward_audit_event;
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::ensure_no_active_reward_fraud_block;
+use crate::infra::postgres::rewards::reward_candidate_records;
 use crate::infra::postgres::rewards::teacher_reward_candidate_decision_mappers::map_teacher_decision_error;
 use crate::models::reward_audit_event::NewRewardAuditEvent;
-use crate::repositories::{reward_audit_event_repository, reward_candidate_repository};
 
 pub struct PostgresTeacherRewardCandidateDecisionStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -107,7 +108,7 @@ async fn apply_teacher_decision(
     conn: &mut AsyncPgConnection,
     decision: TeacherRewardCandidateDecision,
 ) -> Result<TeacherRewardCandidateDecisionOutput, TeacherRewardCandidateDecisionError> {
-    let existing = reward_candidate_repository::find_candidate(conn, decision.candidate_id)
+    let existing = reward_candidate_records::find_candidate(conn, decision.candidate_id)
         .await
         .map_err(map_teacher_decision_error)?;
     if existing.course_id != decision.course_id {
@@ -130,7 +131,7 @@ async fn apply_teacher_decision(
 
     let from_status = existing.status;
     let now = Utc::now();
-    let updated = reward_candidate_repository::update_teacher_decision(
+    let updated = reward_candidate_records::update_teacher_decision(
         conn,
         decision.candidate_id,
         decision.actor_user_id,
@@ -141,7 +142,7 @@ async fn apply_teacher_decision(
     .await
     .map_err(map_teacher_decision_error)?;
 
-    reward_audit_event_repository::create_reward_audit_event(
+    create_reward_audit_event(
         conn,
         NewRewardAuditEvent {
             reward_candidate_id: updated.id,

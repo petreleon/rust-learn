@@ -2,9 +2,9 @@ use diesel_async::AsyncPgConnection;
 
 use crate::application::rewards::reconcile_candidate::RewardReconciliationError;
 use crate::domain::rewards::audit::RewardAuditEventType;
+use crate::infra::postgres::rewards::reward_audit_records::create_reward_audit_event;
 use crate::infra::postgres::rewards::reward_reconciliation_mappers::map_diesel_error;
 use crate::models::reward_audit_event::NewRewardAuditEvent;
-use crate::repositories::reward_audit_event_repository;
 
 pub(super) async fn create_reconciliation_audit_event(
     conn: &mut AsyncPgConnection,
@@ -18,7 +18,7 @@ pub(super) async fn create_reconciliation_audit_event(
         return Ok(());
     }
 
-    reward_audit_event_repository::create_reward_audit_event(
+    create_reward_audit_event(
         conn,
         NewRewardAuditEvent {
             reward_candidate_id,

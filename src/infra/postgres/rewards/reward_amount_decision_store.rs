@@ -13,12 +13,14 @@ use crate::infra::postgres::rewards::reward_amount_decision_mappers::map_reward_
 use crate::infra::postgres::rewards::reward_amount_decision_transition::{
     candidate_teacher_user_ids, ensure_amount_transition,
 };
+use crate::infra::postgres::rewards::reward_audit_records::create_reward_audit_event;
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::ensure_no_active_reward_fraud_block;
-use crate::models::reward_audit_event::NewRewardAuditEvent;
-use crate::repositories::{
-    reward_audit_event_repository, reward_candidate_repository, reward_execution_job_repository,
+use crate::infra::postgres::rewards::reward_candidate_records::{
+    find_candidate, update_amount_decision,
 };
+use crate::infra::postgres::rewards::reward_execution_job_records::enqueue_reward_execution_job;
+use crate::models::reward_audit_event::NewRewardAuditEvent;
 
 pub struct PostgresRewardAmountDecisionStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -109,7 +111,7 @@ async fn apply_amount_decision(
     conn: &mut AsyncPgConnection,
     decision: RewardAmountDecision,
 ) -> Result<RewardAmountDecisionOutput, RewardAmountDecisionError> {
-    let existing = reward_candidate_repository::find_candidate(conn, decision.candidate_id)
+    let existing = find_candidate(conn, decision.candidate_id)
         .await
         .map_err(map_reward_amount_decision_error)?;
     if existing.status == decision.target_status.as_str() {
@@ -129,7 +131,7 @@ async fn apply_amount_decision(
     .await?;
 
     let now = Utc::now();
-    let updated = reward_candidate_repository::update_amount_decision(
+    let updated = update_amount_decision(
         conn,
         decision.candidate_id,
         decision.actor_user_id,
@@ -141,7 +143,7 @@ async fn apply_amount_decision(
     .await
     .map_err(map_reward_amount_decision_error)?;
 
-    reward_audit_event_repository::create_reward_audit_event(
+    create_reward_audit_event(
         conn,
         NewRewardAuditEvent {
             reward_candidate_id: updated.id,
@@ -159,7 +161,7 @@ async fn apply_amount_decision(
     .map_err(map_reward_amount_decision_error)?;
 
     if decision.target_status == RewardCandidateStatus::AmountApproved {
-        reward_execution_job_repository::enqueue_reward_execution_job(conn, decision.candidate_id)
+        enqueue_reward_execution_job(conn, decision.candidate_id)
             .await
             .map_err(map_reward_amount_decision_error)?;
     }

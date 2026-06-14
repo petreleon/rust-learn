@@ -1048,27 +1048,34 @@ remaining gaps.
 | 150 | Moved wallet-facing persistent key/value state reads and writes from `repositories::persistent_state_repository` and `models::PersistentState` into `infra/postgres/operations/persistent_state`; wallet deposit-intent, retirement, and token-tax stores now use the operations-owned adapter directly. |
 | 151 | Moved teacher-application persistence and reviewer-recipient queries from `repositories::teacher_application_repository` into `infra/postgres/teacher_applications` records/recipients modules; submit, nomination, decision, and notification stores no longer import legacy repositories. |
 | 152 | Moved reward payout planning off legacy reward-candidate and persistent-state repositories; `reward_payout_plan_store` now uses `infra/postgres/rewards/reward_candidate_records` and `infra/postgres/operations/persistent_state` for candidate loading and presigner detection. |
+| 153 | Moved reward candidate creation/idempotency lookup, teacher decision updates, amount decision updates, audit-event insertion, and execution-job enqueueing off legacy repositories into rewards-owned Postgres record helpers; candidate submission, teacher decision, amount decision, and reconciliation audit stores now use context-owned persistence helpers. |
 
 ## Recent Slice Evidence
 
-Slice 152: move reward payout planning repository calls into rewards/operations
-infra.
+Slice 153: move reward candidate, audit, and execution-job persistence into
+rewards infra.
 
-- [x] Add `infra/postgres/rewards/reward_candidate_records::find_candidate`
-      as the rewards-owned candidate lookup used by payout planning.
-- [x] Update `reward_payout_plan_store` to call the rewards candidate lookup
-      and `infra/postgres/operations/persistent_state` for
-      `learn_token_presigner_address`.
-- [x] Preserve payout candidate loading, missing-presigner behavior, and
-      non-empty presigner detection.
-- [x] Self-critique: most remaining repository imports are still in rewards
-      candidate decisions, audit/event writes, policy/fraud-block management,
-      token confirmation, compensation, wallet credit, and reconciliation; move
-      those by use-case cluster rather than one broad risky rewrite.
-- [x] Prove behavior with the reward candidate records compile smoke, the full
-      `reward_execution` integration suite, formatting, line-count checks,
-      `git diff --check`, and boundary scans proving payout planning no longer
-      imports legacy repositories.
+- [x] Add rewards-owned Postgres record helpers for candidate create,
+      idempotency lookup, teacher decision update, amount decision update,
+      audit-event insertion, and reward execution job enqueueing.
+- [x] Update candidate submission, teacher decision, amount decision, and
+      reconciliation audit stores to call rewards-owned persistence helpers
+      instead of legacy reward repositories.
+- [x] Preserve idempotent candidate submission, teacher approval/rejection,
+      amount approval/rejection, audit-event creation, fraud-block pauses, and
+      execution-job enqueue behavior.
+- [x] Self-critique: remaining reward repository imports are now concentrated
+      in wallet-credit transactions/notifications, token confirmation,
+      reconciliation transactions, compensation, platform candidate listing,
+      reward policies, and fraud-block management/mappers. Move those by
+      transaction/listing cluster rather than broad rewrites.
+- [x] Prove behavior with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --test reward_candidates`,
+      `./scripts/run-host-tests.sh cargo test --test reward_candidate_audit`,
+      `./scripts/run-host-tests.sh cargo test --test reward_execution`,
+      line-count checks, and boundary scans proving the touched
+      candidate/audit/amount-decision cluster no longer imports legacy
+      repositories.
 
 ## Legacy Transition Rules
 

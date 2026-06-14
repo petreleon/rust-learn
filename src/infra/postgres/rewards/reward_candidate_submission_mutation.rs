@@ -7,6 +7,7 @@ use crate::application::rewards::submit_candidate::{
 use crate::domain::rewards::candidate::evidence::ensure_reward_evidence_is_eligible;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::ensure_no_active_reward_fraud_block;
+use crate::infra::postgres::rewards::reward_candidate_records::find_candidate_by_idempotency_key;
 use crate::infra::postgres::rewards::reward_candidate_submission_audit_insert::create_candidate_with_audit;
 use crate::infra::postgres::rewards::reward_candidate_submission_eligibility::{
     ensure_no_prior_active_reward_candidate, ensure_reward_target_eligible,
@@ -16,7 +17,6 @@ use crate::infra::postgres::rewards::reward_candidate_submission_validation::{
     normalize_idempotency_key, normalize_reward_event_type,
 };
 use crate::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
-use crate::repositories::reward_candidate_repository;
 
 pub(super) async fn submit_reward_candidate(
     conn: &mut AsyncPgConnection,
@@ -31,10 +31,9 @@ pub(super) async fn submit_reward_candidate(
     )?;
     let event_type_string = event_type.as_str().to_string();
 
-    if let Some(existing) =
-        reward_candidate_repository::find_candidate_by_idempotency_key(conn, &idempotency_key)
-            .await
-            .map_err(map_reward_candidate_submission_error)?
+    if let Some(existing) = find_candidate_by_idempotency_key(conn, &idempotency_key)
+        .await
+        .map_err(map_reward_candidate_submission_error)?
     {
         return idempotent_replay_or_conflict(
             existing,
