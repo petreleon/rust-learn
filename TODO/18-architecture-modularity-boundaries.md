@@ -1072,30 +1072,32 @@ remaining gaps.
 | 174 | Moved persistent-state get/set calls off the Diesel model; the legacy persistent-state repository now delegates to operations-owned Postgres helpers, leaving `models::persistent_state` as a persistence shape only. |
 | 175 | Moved DB version-control get/update queries off the Diesel model and into `infra/postgres/operations/db_version_control`; startup DB setup and the regression test now use operations-owned Postgres records, leaving `models::db_version_control` as a persistence shape only. |
 | 176 | Moved platform, organization, and course role-hierarchy reads off the Diesel models and into `infra/postgres/access_control/hierarchy_records`; legacy repository bridges and hierarchy tests now use access-control Postgres records, leaving the hierarchy models as persistence shapes only. |
+| 177 | Moved platform role-permission assignment off the Diesel model and into `infra/postgres/access_control/permission_assignment_records`; the legacy platform-permission repository now delegates to access-control Postgres records, leaving `models::role_permission_platform` as a persistence shape only. |
 
 ## Recent Slice Evidence
 
-Slice 176: move role-hierarchy Active Record helpers into access-control
+Slice 177: move platform role-permission assignment into access-control
 Postgres records.
 
-- [x] Add `infra/postgres/access_control/hierarchy_records` for platform,
-      organization, and course hierarchy-level reads.
-- [x] Retarget legacy platform, organization, and course repository bridges to
-      call access-control-owned hierarchy records.
-- [x] Delete `RolePlatformHierarchy::*`, `RoleOrganizationHierarchy::*`, and
-      `RoleCourseHierarchy::*` DB helper methods from `models`; the hierarchy
-      models now own only Diesel row shapes.
-- [x] Self-critique: the legacy repositories still mix authorization,
-      hierarchy decisions, and assignment orchestration; later slices should
-      move those bridge functions behind access-control application ports and
-      leave repositories as temporary compatibility shims only.
+- [x] Add `infra/postgres/access_control/permission_assignment_records` for
+      idempotent platform role-permission writes.
+- [x] Retarget `repositories::platform_permission_repository` to call the
+      access-control-owned Postgres assignment function.
+- [x] Delete `RolePermissionPlatform::assign` from
+      `models::role_permission_platform`; the model now owns only the Diesel
+      row shape.
+- [x] Self-critique: the repository still combines role-name lookup,
+      permission enum conversion, and assignment orchestration; a later
+      access-control application use case should own the command and expose the
+      repository only as a temporary compatibility shim.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
-      `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
+      `./scripts/run-host-tests.sh cargo test --test platform_permissions assign_permission_to_admin_and_verify_user_gets_it`,
+      `./scripts/run-host-tests.sh cargo test --test platform_permissions_unit`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      calls the removed hierarchy model methods and hierarchy SQL lives only in
-      `infra/postgres/access_control/hierarchy_records`.
+      calls `RolePermissionPlatform::assign` and the idempotent insert/query
+      logic lives only in
+      `infra/postgres/access_control/permission_assignment_records`.
 
 ## Legacy Transition Rules
 

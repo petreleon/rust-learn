@@ -1,11 +1,11 @@
 use crate::config::constants::permissions::Permissions;
 use crate::config::constants::roles::Roles;
+use crate::infra::postgres::access_control::permission_assignment_records;
 use crate::models::role::PlatformRole;
-use crate::models::role_permission_platform::RolePermissionPlatform;
 use diesel::QueryResult;
 use diesel_async::AsyncPgConnection;
 
-/// Assigns a permission to a platform role after checking if it already exists.
+/// Compatibility bridge for assigning a permission to a platform role.
 pub async fn assign_permission_to_role_platform(
     conn: &mut AsyncPgConnection,
     role: Roles,
@@ -18,5 +18,10 @@ pub async fn assign_permission_to_role_platform(
     let perm_str = perm.to_string();
 
     // Assign permission to role
-    RolePermissionPlatform::assign(conn, platform_role_id_value, &perm_str).await
+    permission_assignment_records::assign_platform_permission_to_role(
+        conn,
+        platform_role_id_value,
+        &perm_str,
+    )
+    .await
 }
