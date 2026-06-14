@@ -1,5 +1,7 @@
 pub mod chapter_store;
 pub mod chapter_use_cases;
+mod content_item_records;
+mod content_item_scope;
 pub mod content_item_store;
 pub mod content_item_use_cases;
 mod mappers;

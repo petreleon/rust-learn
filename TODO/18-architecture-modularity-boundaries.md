@@ -1167,53 +1167,38 @@ remaining gaps.
 | 269 | Moved platform reward-dashboard and wallet-reconciliation row display shaping into application-owned row fact assemblers, leaving Postgres helpers to load records and pass typed facts. |
 | 270 | Moved platform summary, platform reward-dashboard, and platform wallet-reconciliation top-level output assembly into application-owned report builders, leaving Postgres stores to load counts/rows/facts. |
 | 271 | Moved simple notification, delegated-permission, content, KYC, and wallet output assembly into application-owned fact builders, leaving Postgres adapters to translate Diesel records into facts and call the application boundary. |
+| 272 | Split content item and KYC Postgres stores into thin orchestration modules backed by focused record, scope, read-query, and permission-query helpers. |
 
 ## Recent Slice Evidence
 
-Batch 271: move simple cross-context output assembly to application builders.
+Batch 272: split content item and KYC Postgres stores into focused helpers.
 
-- [x] Add application-owned fact/builders for notification inbox items,
-      notification preferences, delegated permissions, chapters, content items,
-      KYC submissions, KYC audit events, wallet views, and linked-wallet
-      wrappers.
-- [x] Repoint the selected Postgres adapters to translate Diesel records into
-      application facts and call application builders instead of using
-      `impl From<Model> for Output`, `Output::from`, or direct output struct
-      literals in infra.
-- [x] Keep persistence-specific conversion at the Postgres boundary where it
-      belongs: wallet `BigDecimal` values are still stringified in infra, while
-      application now owns wallet `owner_type` classification.
-- [x] Preserve existing behavior with focused unit filters for
-      `notification`, `delegated_permission`, `content`, `kyc`, and `wallet`;
-      route/integration regressions for notification preference round-trip,
-      notification inbox list/mark-read/clear, delegated permission
-      grant/list/revoke, course content lifecycle, KYC submission/review audit,
-      and wallet link/readback.
-- [x] Boundary scans prove the removed leaks stay removed: no selected
-      `impl From<Model> for Output`, no selected `Output::from`, no
-      `wallet_view_from_model`, no forbidden application imports, and no direct
-      selected output struct literals, including `LinkedWalletView`, in the
-      touched Postgres adapters.
-- [x] Keep changed Rust files under the manual 180-line ceiling; the largest
-      touched files are `content_item_store.rs` at 179 lines and
-      `application/kyc/output.rs` at 110 lines.
-- [x] Self-critique: store ports still return application output types, so
-      Postgres mappers necessarily call the application builders. This is
-      acceptable for the current Level 2 boundary, but `content_item_store.rs`
-      is close enough to the line ceiling that a future content batch should
-      split its validation/query helpers before adding more behavior there.
+- [x] Split `content_item_store.rs` into a 100-line orchestration store,
+      `content_item_records.rs` for list/create/update/delete/recipient
+      queries, and `content_item_scope.rs` for chapter/content scope checks and
+      content-specific Diesel error mapping.
+- [x] Split `kyc_store.rs` into an 82-line orchestration store,
+      `kyc_read_queries.rs` for user verification/submission/review-queue/audit
+      reads, and `kyc_permission_queries.rs` for the KYC review permission
+      lookup.
+- [x] Preserve the existing application ports and public behavior; no HTTP,
+      bootstrap, or application contract changes were needed.
+- [x] Boundary scans prove the stores no longer own raw schema/table query
+      builders, status-set filters, or permission-check calls; the raw Diesel
+      work now lives in focused Postgres helper modules.
+- [x] Keep changed Rust files under the manual 180-line ceiling: content item
+      store 100 lines, content item records 86, content item scope 49, KYC
+      store 82, KYC read queries 88, and KYC permission queries 16.
+- [x] Self-critique: this is a granularity batch, not a new vertical use-case
+      migration. It makes the next content and KYC changes safer by lowering
+      file-size pressure and isolating query responsibilities, but deeper KYC
+      work still remains around complete route/context ownership and richer
+      application fake-port coverage.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib notification`,
-      `./scripts/run-host-tests.sh cargo test --lib delegated_permission`,
       `./scripts/run-host-tests.sh cargo test --lib content`,
       `./scripts/run-host-tests.sh cargo test --lib kyc`,
-      `./scripts/run-host-tests.sh cargo test --lib wallet`,
-      `./scripts/run-host-tests.sh cargo test --test current_session_api notification_preferences_default_and_save_round_trip`,
-      `./scripts/run-host-tests.sh cargo test --test current_session_api notification_inbox_routes_list_mark_read_and_clear`,
-      `./scripts/run-host-tests.sh cargo test --test reward_management_api delegated_permission_api_grants_lists_and_revokes_reward_permissions`,
       `./scripts/run-host-tests.sh cargo test --test course_content_management test_course_content_lifecycle`,
       `./scripts/run-host-tests.sh cargo test --test kyc_review kyc_submission_and_review_write_permission_scoped_audit_events`,
-      `./scripts/run-host-tests.sh cargo test --test wallet_linking user_can_link_and_read_own_wallet_idempotently`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
