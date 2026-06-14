@@ -1101,37 +1101,29 @@ remaining gaps.
 | 203 | Moved the wallet deposit indexer out of the legacy services layer and into `infra/ethereum/wallet/deposit_indexer`; the worker now spawns the Ethereum wallet infra adapter directly, leaving `services` focused on the remaining compatibility surfaces only. |
 | 204 | Deleted the now-unused legacy `wallet_service` compatibility module after wallet and reward-history integration fixtures were switched to Level 2 wallet application handlers backed by Postgres wallet stores, leaving `src/services` with only the reward-candidate compatibility surface. |
 | 205 | Deleted the final legacy `reward_candidate_service` compatibility module and removed the `services` crate module entirely after reward-candidate and delegated-permission fixtures were switched to Level 2 reward submission, teacher-decision, and amount-decision use cases. |
+| 206 | Moved the Ethereum wallet deposit indexer's persistent-state reads/writes off the legacy repository bridge and onto `infra/postgres/operations/persistent_state`, making backend source rings free of `repositories::*` imports. |
 
 ## Recent Slice Evidence
 
-Slice 205: delete the final legacy services module.
+Slice 206: move deposit indexer persistent state to operations infra.
 
-- [x] Replace the remaining reward-candidate integration fixture dependency on
-      `reward_candidate_service` with a test-local `RewardCandidateError` and a
-      teacher-decision helper backed by
-      `PostgresTeacherRewardCandidateDecisionUseCase`.
-- [x] Keep existing Level 2 fixture paths for reward submission and amount
-      decision, so reward candidate tests now exercise
-      `application/rewards/{submit_candidate,decide_teacher_candidate,
-      decide_amount}` through Postgres reward adapters.
-- [x] Apply the same teacher-decision and fixture-error replacement in delegated
-      permission tests, preserving the shared permission/delegation assertions
-      without importing `rust_learn::services`.
-- [x] Delete `src/services/reward_candidate_service.rs`, all
-      `reward_candidate_service/*` children, the empty `src/services/mod.rs`,
-      and the `services` declarations from `src/lib.rs` and `src/main.rs`.
-- [x] Self-critique: the integration test roots still use `include!` fixture
-      assembly, but backend source rings no longer have include/import shims or
-      a public service compatibility layer. Remaining architectural work should
-      focus on direct Diesel-in-handler pockets, repository compatibility
-      bridges, and utility/infra ownership rather than the old service bucket.
+- [x] Replace `crate::repositories::persistent_state_repository` imports in
+      `infra/ethereum/wallet/deposit_indexer` with direct calls to
+      `infra/postgres/operations/persistent_state`.
+- [x] Keep the same persistent state keys and error messages for the wallet
+      deposit indexer's next-block, LearnToken address, importer address, and
+      persisted next-block update paths.
+- [x] Self-critique: `utils::eth` still owns Ethereum provider/deployment
+      helpers, so the utility ownership problem is not finished. This slice
+      removes the last repository dependency from backend source rings; a later
+      slice should move Ethereum deployment/provider ownership behind
+      `infra/ethereum/operations`.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test reward_candidates`,
-      `./scripts/run-host-tests.sh cargo test --test delegated_permissions`,
-      `./scripts/run-host-tests.sh cargo test --lib`,
+      `./scripts/run-host-tests.sh cargo test --lib deposit_indexer`,
+      `./scripts/run-host-tests.sh cargo check --bin worker --features worker-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, source/test scans showing no `services` module or
-      `rust_learn::services` references, and backend ring scans showing no
+      `git diff --check`, scans showing no backend source-ring
+      `repositories::*` imports, and backend ring scans showing no
       `include!`/`imports.rs`.
 
 ## Legacy Transition Rules
