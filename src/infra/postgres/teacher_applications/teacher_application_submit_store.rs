@@ -8,7 +8,7 @@ use crate::application::teacher_applications::{
     TeacherApplicationOutput,
 };
 use crate::config::constants::permissions::Permissions;
-use crate::infra::postgres::teacher_applications::teacher_application_permissions::has_platform_permission;
+use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::teacher_applications::teacher_application_records;
 use crate::models::teacher_application::{NewTeacherApplication, NewTeacherApplicationAuditEvent};
 
@@ -28,13 +28,10 @@ impl TeacherApplicationSubmitStore for PostgresTeacherApplicationSubmitStore<'_>
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationSubmitError>> {
         async move {
-            has_platform_permission(
-                self.conn,
-                actor_user_id,
-                Permissions::SUBMIT_TEACHER_APPLICATION,
-            )
-            .await
-            .map_err(map_error)
+            let permission = Permissions::SUBMIT_TEACHER_APPLICATION.to_string();
+            permission_checks::has_platform_permission(self.conn, actor_user_id, &permission)
+                .await
+                .map_err(map_error)
         }
         .boxed()
     }

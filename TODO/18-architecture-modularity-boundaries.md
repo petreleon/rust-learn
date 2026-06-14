@@ -1080,25 +1080,24 @@ remaining gaps.
 | 182 | Moved platform, organization, and course role-name lookups off `models::role` and into `infra/postgres/access_control/role_catalog_store`; repositories, teacher-application assignment, and fixtures now resolve role IDs through access-control infra, leaving `models::role` as Diesel row shapes only. |
 | 183 | Moved teacher-application approved-bundle exists-before-assign guards into `infra/postgres/access_control/*_role_records`; teacher-application role decisions now only resolve the teacher role and delegate idempotent assignment to access-control record adapters. |
 | 184 | Moved teacher-application reviewer-recipient permission queries into `infra/postgres/access_control/permission_recipient_records`; teacher-application notification storage and the legacy teacher-application repository export now share the same access-control read adapter, removing duplicate recipient SQL. |
+| 185 | Removed the thin `infra/postgres/teacher_applications/teacher_application_permissions` shim; teacher-application stores now call `infra/postgres/access_control/permission_checks` directly for platform and organization authorization. |
 
 ## Recent Slice Evidence
 
-Slice 184: move teacher-application permission-recipient reads into
-access-control records.
+Slice 185: remove teacher-application permission-check shim.
 
-- [x] Add `infra/postgres/access_control/permission_recipient_records` for
-      platform and organization user IDs that hold a named role permission.
-- [x] Retarget teacher-application notification storage to the access-control
-      recipient adapter and keep the legacy `teacher_application_repository`
-      public functions as re-exports only.
-- [x] Delete duplicate recipient SQL from
-      `infra/postgres/teacher_applications/teacher_application_recipients` and
-      `repositories/teacher_application_repository/permissions`.
-- [x] Self-critique: teacher-application reviewer-recipient queries now have an
-      access-control owner, but there are still several context-specific
-      permission read models across learning, identity, KYC, reporting, and
-      organizations that should be reviewed one context at a time instead of
-      flattened prematurely.
+- [x] Retarget teacher-application list, submit, platform review, decision,
+      audit, and nomination stores to
+      `infra/postgres/access_control/permission_checks`.
+- [x] Delete `teacher_application_permissions`; the teacher-application
+      context no longer owns a permission-check wrapper over access-control.
+- [x] Keep permission-string mapping local to each store where application port
+      contracts pass `Permissions` or dynamic permission strings.
+- [x] Self-critique: teacher-application permission checking now points at
+      access-control directly, but direct imports of `permission_checks` are
+      still a crate-internal convention; later slices should decide whether
+      these checks remain a shared infra helper or become explicit access-
+      control ports for broader cross-context reuse.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
       `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
@@ -1107,8 +1106,7 @@ access-control records.
       `./scripts/run-host-tests.sh cargo test --test notification_events`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      in teacher-application infra or the legacy teacher-application repository
-      owns recipient role-permission SQL.
+      references `teacher_application_permissions` or its wrapper helpers.
 
 ## Legacy Transition Rules
 

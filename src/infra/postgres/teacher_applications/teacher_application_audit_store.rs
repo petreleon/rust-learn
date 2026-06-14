@@ -8,7 +8,7 @@ use crate::application::teacher_applications::{
 };
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::teacher_application_audit_events;
-use crate::infra::postgres::teacher_applications::teacher_application_permissions::has_platform_permission;
+use crate::infra::postgres::access_control::permission_checks;
 use crate::models::teacher_application::TeacherApplicationAuditEvent;
 
 pub struct PostgresTeacherApplicationAuditStore<'conn> {
@@ -27,13 +27,10 @@ impl TeacherApplicationAuditStore for PostgresTeacherApplicationAuditStore<'_> {
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationAuditError>> {
         async move {
-            has_platform_permission(
-                self.conn,
-                actor_user_id,
-                Permissions::REVIEW_TEACHER_APPLICATIONS,
-            )
-            .await
-            .map_err(map_error)
+            let permission = Permissions::REVIEW_TEACHER_APPLICATIONS.to_string();
+            permission_checks::has_platform_permission(self.conn, actor_user_id, &permission)
+                .await
+                .map_err(map_error)
         }
         .boxed()
     }

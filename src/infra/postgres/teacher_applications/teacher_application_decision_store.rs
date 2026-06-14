@@ -7,7 +7,7 @@ use crate::application::teacher_applications::{
     TeacherApplicationOutput,
 };
 use crate::domain::teacher_applications::status::TEACHER_APPLICATION_STATUS_APPROVED;
-use crate::infra::postgres::teacher_applications::teacher_application_permissions::has_platform_permission_name;
+use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::teacher_applications::teacher_application_records;
 use crate::models::teacher_application::NewTeacherApplicationAuditEvent;
 
@@ -30,7 +30,7 @@ impl TeacherApplicationDecisionStore for PostgresTeacherApplicationDecisionStore
         permission: String,
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationDecisionError>> {
         async move {
-            has_platform_permission_name(self.conn, actor_user_id, &permission)
+            permission_checks::has_platform_permission(self.conn, actor_user_id, &permission)
                 .await
                 .map_err(map_error)
         }
