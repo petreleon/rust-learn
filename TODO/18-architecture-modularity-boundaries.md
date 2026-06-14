@@ -1085,37 +1085,40 @@ remaining gaps.
 | 187 | Removed duplicate identity user-profile platform permission/delegation SQL; `infra/postgres/identity/user_profile_store` now calls `infra/postgres/access_control/permission_checks` directly for `VIEW_USER` authorization. |
 | 188 | Removed duplicate learning course/platform/organization permission-delegation SQL; learning Postgres stores and query helpers now call `infra/postgres/access_control/permission_checks` directly for course-context authorization. |
 | 189 | Turned legacy platform/course/organization repository permission request functions into thin compatibility bridges over `infra/postgres/access_control/permission_checks`, removing their local role-plus-delegation composition. |
+| 190 | Turned legacy delegated-permission active platform/organization/course checks into thin compatibility bridges over `infra/postgres/access_control/permission_delegations`, removing hard-coded scoped delegation SQL from the repository active-check helpers. |
 
 ## Recent Slice Evidence
 
-Slice 189: make legacy permission repositories delegate to access-control.
+Slice 190: route legacy active delegated-permission checks through access-control.
 
-- [x] Retarget `repositories::platform_repository::user_permission_platform_request`
-      to `infra/postgres/access_control/permission_checks::has_platform_permission`.
-- [x] Retarget `repositories::course_repository::user_permission_course_request`
-      to `infra/postgres/access_control/permission_checks::has_course_permission`.
+- [x] Expose `infra/postgres/access_control/permission_delegations` at
+      `pub(crate)` visibility so legacy repository bridges can share the same
+      scoped active-delegation queries as access-control permission checks.
 - [x] Retarget
-      `repositories::organization_repository::user_permission_organization_request`
-      to `infra/postgres/access_control/permission_checks::has_organization_permission`.
-- [x] Keep legacy repository function names as compatibility bridges for
-      unmigrated services and middleware while removing their duplicated
-      role/delegation orchestration.
-- [x] Self-critique: this improves the single-source permission boundary, but
-      the repositories still own hierarchy comparison and role-assignment
-      compatibility functions. Those are adjacent access-control concerns and
-      should move only with focused hierarchy/assignment tests, not as part of
-      this permission-read slice.
+      `repositories::delegated_permission_repository::has_active_platform_delegation`
+      to the access-control active platform delegation helper.
+- [x] Retarget
+      `repositories::delegated_permission_repository::has_active_organization_delegation`
+      to the access-control active organization delegation helper.
+- [x] Retarget
+      `repositories::delegated_permission_repository::has_active_course_delegation`
+      to the access-control active course delegation helper.
+- [x] Self-critique: this removes duplicated active-delegation SQL from the
+      repository layer, but the legacy delegated-permission repository still
+      owns create/find/list/revoke SQL and still uses `include!`. Those should
+      move into an access-control record adapter and normal modules in a later
+      slice with repository-delegation route/test coverage.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --test platform_permissions`,
       `./scripts/run-host-tests.sh cargo test --test course_permissions`,
       `./scripts/run-host-tests.sh cargo test --test organization_permissions`,
       `./scripts/run-host-tests.sh cargo test --test model_permission_tests`,
       `./scripts/run-host-tests.sh cargo test --test delegated_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test repository_core_tests`,
+      `./scripts/run-host-tests.sh cargo test --test repository_delegation_tests`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
       `git diff --check`, line-count checks, and boundary scans proving no code
-      in the three legacy permission request functions calls
-      `delegated_permission_repository` or direct role-permission record checks.
+      under `repositories/delegated_permission_repository` contains hard-coded
+      platform, organization, or course active-delegation scope SQL.
 
 ## Legacy Transition Rules
 

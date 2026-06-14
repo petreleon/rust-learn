@@ -8,7 +8,7 @@ use crate::domain::access_control::delegation::{
     DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
 };
 
-pub(super) async fn has_active_platform_delegation(
+pub(crate) async fn has_active_platform_delegation(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     permission: &str,
@@ -32,7 +32,7 @@ pub(super) async fn has_active_platform_delegation(
     .await
 }
 
-pub(super) async fn has_active_course_delegation(
+pub(crate) async fn has_active_course_delegation(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,
@@ -57,7 +57,7 @@ pub(super) async fn has_active_course_delegation(
     .await
 }
 
-pub(super) async fn has_active_organization_delegation(
+pub(crate) async fn has_active_organization_delegation(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,

@@ -25,22 +25,11 @@ pub async fn has_active_platform_delegation(
     grantee_user_id: i32,
     permission: &str,
 ) -> QueryResult<bool> {
-    let now = Utc::now();
-    select(exists(
-        delegated_permissions::table
-            .filter(delegated_permissions::grantee_user_id.eq(grantee_user_id))
-            .filter(delegated_permissions::permission.eq(permission))
-            .filter(delegated_permissions::scope_type.eq("platform"))
-            .filter(delegated_permissions::organization_id.is_null())
-            .filter(delegated_permissions::course_id.is_null())
-            .filter(delegated_permissions::revoked_at.is_null())
-            .filter(
-                delegated_permissions::expires_at
-                    .is_null()
-                    .or(delegated_permissions::expires_at.gt(now)),
-            ),
-    ))
-    .get_result(conn)
+    crate::infra::postgres::access_control::permission_delegations::has_active_platform_delegation(
+        conn,
+        grantee_user_id,
+        permission,
+    )
     .await
 }
 
@@ -50,22 +39,12 @@ pub async fn has_active_organization_delegation(
     organization_id: i32,
     permission: &str,
 ) -> QueryResult<bool> {
-    let now = Utc::now();
-    select(exists(
-        delegated_permissions::table
-            .filter(delegated_permissions::grantee_user_id.eq(grantee_user_id))
-            .filter(delegated_permissions::permission.eq(permission))
-            .filter(delegated_permissions::scope_type.eq("organization"))
-            .filter(delegated_permissions::organization_id.eq(Some(organization_id)))
-            .filter(delegated_permissions::course_id.is_null())
-            .filter(delegated_permissions::revoked_at.is_null())
-            .filter(
-                delegated_permissions::expires_at
-                    .is_null()
-                    .or(delegated_permissions::expires_at.gt(now)),
-            ),
-    ))
-    .get_result(conn)
+    crate::infra::postgres::access_control::permission_delegations::has_active_organization_delegation(
+        conn,
+        grantee_user_id,
+        organization_id,
+        permission,
+    )
     .await
 }
 
@@ -75,21 +54,11 @@ pub async fn has_active_course_delegation(
     course_id: i32,
     permission: &str,
 ) -> QueryResult<bool> {
-    let now = Utc::now();
-    select(exists(
-        delegated_permissions::table
-            .filter(delegated_permissions::grantee_user_id.eq(grantee_user_id))
-            .filter(delegated_permissions::permission.eq(permission))
-            .filter(delegated_permissions::scope_type.eq("course"))
-            .filter(delegated_permissions::organization_id.is_null())
-            .filter(delegated_permissions::course_id.eq(Some(course_id)))
-            .filter(delegated_permissions::revoked_at.is_null())
-            .filter(
-                delegated_permissions::expires_at
-                    .is_null()
-                    .or(delegated_permissions::expires_at.gt(now)),
-            ),
-    ))
-    .get_result(conn)
+    crate::infra::postgres::access_control::permission_delegations::has_active_course_delegation(
+        conn,
+        grantee_user_id,
+        course_id,
+        permission,
+    )
     .await
 }

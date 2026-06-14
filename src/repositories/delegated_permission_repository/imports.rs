@@ -1,7 +1,6 @@
 use crate::db::schema::delegated_permissions;
 use crate::models::delegated_permission::{DelegatedPermission, NewDelegatedPermission};
 use chrono::Utc;
-use diesel::dsl::{exists, select};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
