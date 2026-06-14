@@ -72,6 +72,7 @@ pub mod reward_wallet_credit_notification_transaction;
 pub mod reward_wallet_credit_notification_use_case;
 pub mod reward_wallet_credit_notification_validation;
 pub mod reward_wallet_credit_policy;
+pub mod reward_wallet_credit_records;
 pub mod reward_wallet_credit_store;
 pub mod reward_wallet_credit_transaction;
 pub mod reward_wallet_credit_transactions;
