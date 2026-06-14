@@ -1035,31 +1035,28 @@ remaining gaps.
 | 137 | Moved password-reset token creation and consumption behavior from `models::password_reset_token` into `infra/postgres/identity/password_reset_tokens`, updated request/reset adapters and auth-flow token seeding to call the Postgres identity token adapter, and left the model as a Diesel record/insert shape only. |
 | 138 | Moved migrated identity account lookup and password-auth reads from `models::user` Active Record methods into `infra/postgres/identity/accounts`, and updated login, resend-verification, and password-reset request stores to call the context-owned Postgres account adapter. |
 | 139 | Moved registration account creation, default student role lookup/assignment, and password-auth insertion from `models::*` Active Record methods into `infra/postgres/identity/accounts`; the registration store now delegates account setup to the identity Postgres account adapter while keeping verification-token creation in the same transaction. |
+| 140 | Moved the migrated user-profile access check off `repositories::platform_repository::user_permission_platform_request` and into `infra/postgres/identity/platform_permissions`, preserving direct platform-role permission checks, active platform delegation checks, and delegation logging. |
 
 ## Recent Slice Evidence
 
-Slice 139: move registration account creation out of model methods.
+Slice 140: move user-profile platform permission checks into identity infra.
 
-- [x] Extend `infra/postgres/identity/accounts` with a
-      `NewIdentityPasswordAccount` command, a created-account record, and
-      `create_unverified_student_password_account`.
-- [x] Move user insert, default `STUDENT` role lookup, platform-role assignment,
-      and password-auth insertion behind the context-owned Postgres account
-      adapter using schema-table operations instead of model methods.
-- [x] Update the registration store to build the infra account command and keep
-      verification-token creation inside the same transaction after account
-      setup succeeds.
-- [x] Self-critique: migrated identity modules no longer call
-      `User::`, `Authentication::`, `PlatformRole::`, or `UserRolePlatform::`
-      methods directly, but profile, current-session, and platform-role
-      assignment adapters still depend on legacy repository helpers and
-      persistence records; continue moving those reads/writes behind
-      identity-owned Postgres modules.
-- [x] Prove behavior with focused registration creation, duplicate-email, and
-      login-after-verification tests, the full `authentication_flow` suite, API
-      route reachability, formatting, line-count checks, `git diff --check`, and
-      boundary scans proving migrated identity modules no longer call the old
-      registration model methods.
+- [x] Add `infra/postgres/identity/platform_permissions` with
+      `user_has_platform_permission`, direct role-permission lookup, active
+      platform delegation lookup, and the existing
+      `delegated_permission_used scope=platform` log event.
+- [x] Update `PostgresUserProfileStore::can_view_any_user` to call the
+      identity-owned platform permission helper instead of the legacy platform
+      repository helper.
+- [x] Self-critique: user-profile access is now free of the legacy platform
+      repository, but `current_session_store`, `current_session_delegations`,
+      and `platform_role_assignment_store` still import legacy repository
+      helpers; move those behind identity-owned Postgres modules next.
+- [x] Prove behavior with focused `/user` and `/user/{id}` middleware access
+      coverage, get-user-profile application tests, API route reachability,
+      formatting, line-count checks, `git diff --check`, and boundary scans
+      proving `user_profile_store` no longer imports or calls
+      `user_permission_platform_request`.
 
 ## Legacy Transition Rules
 

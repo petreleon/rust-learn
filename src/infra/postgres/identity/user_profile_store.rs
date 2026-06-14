@@ -7,8 +7,8 @@ use crate::application::identity::ports::{UserProfileAccessStore, UserProfileSto
 use crate::application::identity::user_profile::{UserProfileError, UserProfileOutput};
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::users;
+use crate::infra::postgres::identity::platform_permissions::user_has_platform_permission;
 use crate::models::user::User;
-use crate::repositories::platform_repository::user_permission_platform_request;
 
 pub struct PostgresUserProfileStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -62,13 +62,9 @@ impl UserProfileStore for PostgresUserProfileStore<'_> {
 impl UserProfileAccessStore for PostgresUserProfileStore<'_> {
     fn can_view_any_user(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, UserProfileError>> {
         async move {
-            user_permission_platform_request(
-                self.conn,
-                user_id,
-                &Permissions::VIEW_USER.to_string(),
-            )
-            .await
-            .map_err(map_user_profile_error)
+            user_has_platform_permission(self.conn, user_id, &Permissions::VIEW_USER.to_string())
+                .await
+                .map_err(map_user_profile_error)
         }
         .boxed()
     }
