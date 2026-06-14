@@ -27,6 +27,7 @@ async fn course_read_routes_require_view_course_permission() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(permission_check_use_case_data(&pool))
             .app_data(course_discovery_use_case_data(&pool))
             .app_data(course_read_use_case_data(&pool))
             .app_data(course_organizations_use_case_data(&pool))
@@ -94,6 +95,7 @@ async fn organization_read_routes_require_view_organization_permission() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(permission_check_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(web::resource("/organizations").route(
                 web::get()

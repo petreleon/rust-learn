@@ -99,6 +99,9 @@ fn course_enrollment_test_app(
 > {
     App::new()
         .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
         .app_data(course_enrollment_use_case_data(&pool))
         .app_data(course_role_assignment_use_case_data(&pool))
         .app_data(web::Data::new(NotificationsState::new(pool)))

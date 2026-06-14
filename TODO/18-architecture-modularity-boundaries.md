@@ -1174,55 +1174,48 @@ remaining gaps.
 | 276 | Routed platform, course, and organization permission middlewares through an application access-control permission-check use case instead of direct Postgres authorization helper calls. |
 | 277 | Routed platform and organization hierarchy middlewares through an application access-control hierarchy-check use case, moved hierarchy-level ordering semantics into pure domain, and made organization hierarchy middleware mountable with normal Actix route wrapping. |
 | 278 | Deleted the mixed `infra/postgres/access_control/authorization_checks` facade after splitting it into focused permission-query, hierarchy-query, and role-assignment modules and repointing integration fixtures to those owners. |
+| 279 | Moved access-control middleware app-state dependencies off concrete `DbPool` and onto application-owned permission/hierarchy check service app data, with bootstrap wiring registering the Postgres-backed implementations for production and route tests. |
 
 ## Recent Slice Evidence
 
-Batch 278: split the mixed access-control Postgres helper facade.
+Batch 279: move access-control middleware off concrete database app data.
 
-- [x] Deleted `infra/postgres/access_control/authorization_checks.rs`, which
-      had mixed permission reads, hierarchy comparisons, platform role
-      assignment helpers, platform permission assignment helpers, and
-      organization hierarchy-aware assignment helpers in one vague module.
-- [x] Added `infra/postgres/access_control/permission_queries.rs` as the public
-      Postgres fixture/query owner for platform, course, and organization
-      permission checks over the internal `permission_checks` implementation.
-- [x] Added `infra/postgres/access_control/hierarchy_queries.rs` as the public
-      hierarchy comparison query owner for platform, organization, and course
-      user comparisons using the domain hierarchy comparison rule.
-- [x] Added `infra/postgres/access_control/role_assignments.rs` as the public
-      role/permission assignment helper owner for integration fixtures and
-      hierarchy-aware organization role assignment.
-- [x] Repointed integration fixtures from old
-      `authorization_checks::{user_permission_*_request,
-      user_hierarchy_compare_*, assign_role_to_user,
-      assign_permission_to_role_platform, assign_role_to_user_in_organization}`
-      names to focused `permission_queries`, `hierarchy_queries`, and
-      `role_assignments` modules.
-- [x] Boundary scans prove no `authorization_checks`, old
-      `user_permission_*_request`, old `user_hierarchy_compare*`, or old mixed
-      assignment-helper names remain in `src` or `tests`; the file is removed
-      from disk.
-- [x] Keep changed Rust files under the manual 180-line ceiling:
-      permission queries 30 lines, hierarchy queries 47, role assignments 61,
-      access-control Postgres `mod.rs` 18, and touched fixture import buckets at
-      or below 177 lines.
-- [x] Self-critique: this removes one legacy helper surface and makes the
-      access-control Postgres layer more granular, but the broader
+- [x] Added application-owned Actix app-data aliases:
+      `PermissionCheckService` and `HierarchyCheckService`. Middleware now
+      consumes these application contracts instead of extracting `DbPool`.
+- [x] Extended access-control bootstrap wiring so production app-data registers
+      the Postgres-backed permission and hierarchy check implementations
+      alongside the existing access-control use-case bundle.
+- [x] Added a public bootstrap helper for integration tests to register the
+      same access-control check app data without exposing the private
+      `access_control_wiring` module.
+- [x] Rewired platform/course/organization permission middlewares and
+      platform/organization hierarchy middlewares to require application
+      permission/hierarchy services, leaving Postgres selection in bootstrap.
+- [x] Updated middleware, API-routing, and route-style integration test apps to
+      register the same access-control check app data and adjusted the missing
+      dependency smoke assertion to name the application service dependency.
+- [x] Boundary scans prove `src/middlewares` no longer mentions `DbPool`,
+      `crate::db`, `rust_learn::db`, `infra::postgres`,
+      `permission_checks::`, `hierarchy_records::`, or the old database-pool
+      app-data error path.
+- [x] Keep changed manual non-Markdown files under the 180-line ceiling; the
+      largest touched files are exactly 180 lines and all others are lower.
+- [x] Self-critique: middleware now calls the same application access-control
+      contracts that the rest of the Level 2 backend can share, but the broad
       authorization item remains open until frontend capabilities come from the
-      backend and direct infra authorization composition is either accepted as
-      adapter-local or routed through a single policy API.
+      backend and direct adapter-local authorization compositions are either
+      accepted by policy or folded behind one explicit authorization API.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
-      focused affected suites:
-      `platform_permissions`, `platform_permissions_unit`,
-      `course_permissions`, `organization_permissions`,
-      `repository_core_tests`, `delegated_permissions`, `course_join_requests`,
-      `reward_policies`, `teacher_applications`, `kyc_review`,
-      `course_editing_permissions`, `organization_management`, and
-      `organization_teacher_applications`, plus
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --test middleware_access_control --test api_routing'`,
+      a broad route batch covering reporting, course discovery/content/
+      enrollment/assessment, organization, rewards, current session, health,
+      video upload, wallet, authentication, and teacher dashboard tests,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, old-helper scans, and file-size checks.
+      `git diff --check`, boundary scans, private-wiring scans, and file-size
+      checks.
 
 ## Legacy Transition Rules
 

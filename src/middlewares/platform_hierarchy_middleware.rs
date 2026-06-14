@@ -10,9 +10,8 @@ use std::cmp::Ordering;
 use std::marker::PhantomData;
 
 use crate::application::access_control::compare_hierarchy::{
-    HierarchyCheckError, HierarchyCheckUseCase, HierarchyScope,
+    HierarchyCheckError, HierarchyCheckService, HierarchyScope,
 };
-use crate::db::DbPool;
 use crate::domain::identity::UserJWT;
 use crate::http::request_params::{extract_param, ParamType};
 
@@ -72,11 +71,12 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let db_pool = match req.app_data::<web::Data<DbPool>>() {
+        let hierarchy_check = match req.app_data::<web::Data<HierarchyCheckService>>() {
             Some(pool) => pool.get_ref().clone(),
             None => {
-                let error =
-                    actix_web::error::ErrorInternalServerError("Failed to access database pool");
+                let error = actix_web::error::ErrorInternalServerError(
+                    "Failed to access hierarchy check use case",
+                );
                 return future::ready(Err(error)).boxed_local();
             }
         };
@@ -118,7 +118,7 @@ where
                 None => return Err(actix_web::error::ErrorUnauthorized("Unauthorized access")),
             };
 
-            match db_pool
+            match hierarchy_check
                 .compare_users(HierarchyScope::Platform, user_jwt.user_id, second_user_id)
                 .await
             {

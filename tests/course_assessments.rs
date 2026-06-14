@@ -130,6 +130,9 @@ async fn assessment_read_routes_are_published_and_user_scoped() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
             .app_data(course_assessments_use_case_data(&pool))
             .app_data(assessment_attempts_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)

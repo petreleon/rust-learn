@@ -70,6 +70,9 @@ async fn course_list_supports_search_org_filter_and_pagination() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
             .app_data(course_discovery_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),

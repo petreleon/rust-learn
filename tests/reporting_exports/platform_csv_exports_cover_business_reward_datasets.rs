@@ -50,6 +50,7 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool))
             .app_data(csv_exports_use_case)
             .app_data(wallet_reconciliation_use_case)
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)

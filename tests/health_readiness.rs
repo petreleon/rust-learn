@@ -42,6 +42,9 @@ async fn readiness_checks_database_s3_and_ethereum() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
             .app_data(readiness_use_case_data(pool, s3))
             .service(rust_learn::http::operations::health_scope()),
     )

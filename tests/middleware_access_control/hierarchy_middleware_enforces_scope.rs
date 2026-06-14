@@ -17,6 +17,7 @@ async fn platform_hierarchy_middleware_blocks_lower_actor() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(hierarchy_check_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(web::resource("/platform/users/{id}").route(
                 web::put()
@@ -73,6 +74,7 @@ async fn organization_hierarchy_middleware_blocks_lower_actor() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(hierarchy_check_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(
                 web::resource("/organizations/{organization_id}/members/{user_id}").route(

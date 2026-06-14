@@ -2,7 +2,7 @@ use actix_web::{dev::ServiceRequest, web, HttpMessage};
 use futures::FutureExt;
 
 use crate::application::access_control::check_permission::{
-    PermissionCheckError, PermissionCheckUseCase, PermissionScope,
+    PermissionCheckError, PermissionCheckService, PermissionScope,
 };
 use crate::domain::identity::UserJWT;
 use crate::http::request_params::extract_param;
@@ -23,16 +23,16 @@ impl OrganizationPermissionMiddleware {
                 let type_param_of_organization = type_param_of_organization;
                 let name_param_of_organization = name_param_of_organization.clone();
 
-                let db_pool = match req.app_data::<web::Data<crate::db::DbPool>>() {
+                let permission_check = match req.app_data::<web::Data<PermissionCheckService>>() {
                     Some(pool) => pool.get_ref().clone(),
                     None => {
                         log::error!(
-                            "event=permission_check_failed scope=organization reason=missing_db_pool permission={}",
+                            "event=permission_check_failed scope=organization reason=missing_permission_check_use_case permission={}",
                             permission_name
                         );
                         return Box::pin(futures::future::ready(Err(
                             actix_web::error::ErrorInternalServerError(
-                                "Failed to access database pool",
+                                "Failed to access permission check use case",
                             ),
                         )));
                     }
@@ -79,7 +79,7 @@ impl OrganizationPermissionMiddleware {
                 };
 
                 async move {
-                    match db_pool
+                    match permission_check
                         .has_permission(
                             user_jwt.user_id,
                             PermissionScope::Organization { organization_id },

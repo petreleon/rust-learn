@@ -140,7 +140,9 @@ async fn api_scope_and_following_routes_are_reachable() {
         {
             Ok(response) => assert_ne!(response.status(), StatusCode::NOT_FOUND, "{route}"),
             Err(error) => assert!(
-                error.to_string().contains("database pool"),
+                error.to_string().contains("database pool")
+                    || error.to_string().contains("permission check use case")
+                    || error.to_string().contains("hierarchy check use case"),
                 "{route} returned unexpected service error: {error}"
             ),
         }

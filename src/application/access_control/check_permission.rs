@@ -1,4 +1,7 @@
 use futures::future::BoxFuture;
+use std::sync::Arc;
+
+pub type PermissionCheckService = Arc<dyn PermissionCheckUseCase + Send + Sync>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PermissionScope {

@@ -1,5 +1,8 @@
 use futures::future::BoxFuture;
 use std::cmp::Ordering;
+use std::sync::Arc;
+
+pub type HierarchyCheckService = Arc<dyn HierarchyCheckUseCase + Send + Sync>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HierarchyScope {

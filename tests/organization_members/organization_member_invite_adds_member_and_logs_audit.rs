@@ -13,6 +13,9 @@ async fn organization_member_invite_adds_member_and_logs_audit() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
             .app_data(organization_member_invite_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::organizations::organization_scope()),
@@ -62,6 +65,9 @@ async fn organization_member_invite_denies_users_without_invite_scope() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
             .app_data(organization_member_invite_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::organizations::organization_scope()),

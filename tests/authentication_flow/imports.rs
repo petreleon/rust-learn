@@ -58,6 +58,9 @@ fn auth_test_app(
 > {
     App::new()
         .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
         .app_data(login_use_case_data(&pool))
         .app_data(register_use_case_data(&pool))
         .app_data(request_password_reset_use_case_data(&pool))

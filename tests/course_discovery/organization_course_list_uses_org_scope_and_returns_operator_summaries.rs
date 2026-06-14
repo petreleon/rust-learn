@@ -30,6 +30,9 @@ async fn organization_course_list_uses_org_scope_and_returns_operator_summaries(
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
             .app_data(organization_course_list_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::organizations::organization_scope()),
@@ -100,6 +103,9 @@ async fn organization_course_list_denies_users_without_org_scope() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
             .app_data(organization_course_list_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::organizations::organization_scope()),
