@@ -1024,37 +1024,35 @@ remaining gaps.
 | 126 | Moved `POST /user/{id}/role` behind `application/identity/assign_platform_role`, a Postgres hierarchy-aware role-assignment store/use-case, best-effort platform role notification delivery inside infra, identity app-data wiring, and a DB-free HTTP assignment handler; `http/identity/platform_role_assignment.rs` no longer imports `DbPool`, repositories, Diesel, or `NotificationsState`. |
 | 127 | Moved `POST /auth/login` behind `application/identity/login`, Postgres credential lookup, bcrypt password verification, JWT token issuance adapters, identity app-data wiring, and a DB-free HTTP login handler; login keeps existing response semantics for invalid credentials, unverified email, connection failure, and JWT creation failure. |
 | 128 | Moved `GET /auth/verify-email` behind `application/identity/verify_email`, a Postgres email-verification token adapter/use case, identity app-data wiring, and a DB-free `http/identity/authentication/verify_email.rs` route; resend-verification remains isolated in the legacy email-verification HTTP file for a later slice. |
+| 129 | Moved `POST /auth/resend-verification` behind `application/identity/resend_verification`, Postgres account lookup/token-rotation adapters, token generation and mock verification-email adapters, identity app-data wiring, and a DB-free HTTP resend handler; privacy-preserving response semantics remain unchanged. |
 
 ## Recent Slice Evidence
 
-Slice 128: move email verification behind an injected use case.
+Slice 129: move resend verification behind an injected use case.
 
-- [x] Add `application/identity/verify_email` with command, outcome, error,
-      store, service, and fake-tested handler behavior for token verification
-      delegation and store-error propagation.
-- [x] Add a Postgres verify-email store/use-case that owns pool access, token
-      hashing, `EmailVerificationToken::verify`, and mapping existing model
-      outcomes into application outcomes.
-- [x] Register verify-email through `bootstrap/identity_wiring` and update the
-      auth-flow test app-data wiring to match production.
-- [x] Split the migrated `GET /auth/verify-email` route into
-      `http/identity/authentication/verify_email.rs` so the route file is
-      DB-free while the legacy resend-verification HTTP handler remains
-      isolated for a later migration.
-- [x] Rework `GET /auth/verify-email` so HTTP only validates the raw token,
-      builds the application command, and maps application outcomes to the
-      existing response bodies.
-- [x] Self-critique: `POST /auth/resend-verification` still owns DB lookup,
-      token generation, token persistence, privacy-preserving unknown-account
-      logging, and mock email delivery in HTTP; migrate it as its own auth
-      slice.
-- [x] Prove behavior with verify-email application unit tests, focused
-      successful/replay and expired/invalid auth-flow contracts, the full
+- [x] Add `application/identity/resend_verification` with command, outcome,
+      error, record, store, token-generator, email-sender, service, and
+      fake-tested handler behavior for unknown, already verified, unverified,
+      and token-generation-failure paths.
+- [x] Add Postgres resend-verification adapters for account lookup and token
+      rotation, plus infra-owned token generation and mock verification-email
+      delivery adapters.
+- [x] Register resend-verification through `bootstrap/identity_wiring` and
+      update the auth-flow test app-data wiring to match production.
+- [x] Rework `POST /auth/resend-verification` so HTTP only normalizes input,
+      rejects blank email, calls the application use case, keeps
+      privacy-preserving unknown-account logging, and maps application errors
+      to the existing response bodies.
+- [x] Self-critique: registration and password-reset flows still own DB
+      transactions, token creation, token persistence, password hashing, and
+      mock email delivery in HTTP; migrate them as separate auth slices.
+- [x] Prove behavior with resend-verification application unit tests, focused
+      token-rotation/auth privacy integration coverage, the full
       `authentication_flow` suite, API route reachability, formatting,
       line-count checks, `git diff --check`, and boundary scans proving the
-      verify-email HTTP route is DB-free while the verify-email application
-      module does not import Actix, Diesel, DB pools, repositories, infra,
-      models, services, utils, or config.
+      resend/verify HTTP routes are DB-free while the application modules do
+      not import Actix, Diesel, DB pools, repositories, infra, models,
+      services, utils, or config.
 
 ## Legacy Transition Rules
 

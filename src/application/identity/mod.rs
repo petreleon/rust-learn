@@ -4,5 +4,6 @@ pub mod get_user_profile;
 pub mod list_users;
 pub mod login;
 pub mod ports;
+pub mod resend_verification;
 pub mod user_profile;
 pub mod verify_email;
