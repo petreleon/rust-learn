@@ -1,6 +1,5 @@
 use chrono::NaiveDate;
-use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::AsyncPgConnection;
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::reporting::organization_reward_dashboard::store::OrganizationRewardDashboardStore;
@@ -8,9 +7,8 @@ use crate::application::reporting::organization_reward_dashboard::{
     organization_reward_dashboard_from_facts, OrganizationRewardDashboardError,
     OrganizationRewardDashboardFacts, OrganizationRewardDashboardOutput,
 };
-use crate::db::schema::organizations;
 use crate::infra::postgres::reporting::organization_reward_dashboard_courses::course_reward_rows;
-use crate::infra::postgres::reporting::organization_reward_dashboard_mappers::map_diesel_error;
+use crate::infra::postgres::reporting::organization_reward_dashboard_organizations::organization_name;
 use crate::infra::postgres::reporting::organization_reward_dashboard_teacher_applications::sponsored_teacher_application_summary;
 use crate::infra::postgres::reporting::organization_reward_dashboard_wallets::wallet_balance_rows;
 
@@ -33,13 +31,7 @@ impl OrganizationRewardDashboardStore for PostgresOrganizationRewardDashboardSto
     ) -> BoxFuture<'_, Result<OrganizationRewardDashboardOutput, OrganizationRewardDashboardError>>
     {
         async move {
-            let organization_name = organizations::table
-                .find(organization_id)
-                .select(organizations::name)
-                .first::<String>(self.conn)
-                .await
-                .map_err(map_diesel_error)?;
-
+            let organization_name = organization_name(self.conn, organization_id).await?;
             let sponsored_teacher_applications =
                 sponsored_teacher_application_summary(self.conn, organization_id).await?;
             let course_data = course_reward_rows(self.conn, organization_id, from, to).await?;

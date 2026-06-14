@@ -1153,30 +1153,28 @@ remaining gaps.
 | 255 | Moved organization reward-dashboard date-window expansion into the reporting application layer, leaving Postgres to consume prepared inclusive timestamp bounds. |
 | 256 | Moved organization reward-dashboard per-course approved amount summarization into the reporting application layer, leaving Postgres to load nullable amount values only. |
 | 257 | Split the organization reward-dashboard Postgres adapter into focused course, teacher-application, wallet, and mapper modules instead of one mixed query bucket. |
+| 258 | Moved organization reward-dashboard organization-name lookup into a focused Postgres helper, leaving the store as dashboard fact orchestration only. |
 
 ## Recent Slice Evidence
 
-Slice 257: split organization reward-dashboard Postgres query concerns.
+Slice 258: extract organization reward-dashboard organization identity lookup.
 
-- [x] Replace the mixed
-      `infra/postgres/reporting/organization_reward_dashboard_queries` module
-      with focused `organization_reward_dashboard_courses`,
-      `organization_reward_dashboard_teacher_applications`,
-      `organization_reward_dashboard_wallets`, and
-      `organization_reward_dashboard_mappers` modules.
-- [x] Repoint `PostgresOrganizationRewardDashboardStore` to import the focused
-      course, teacher-application, wallet, and mapper helpers directly.
-- [x] Preserve existing SQL behavior: sponsored teacher-application status
-      reads, course reward amount reads with application date windows, wallet
-      balance reads, and organization-name `NotFound` mapping are unchanged.
-- [x] Delete the old mixed query module so future changes land beside the
-      specific Postgres concern they affect.
-- [x] Keep the new adapter files small: courses 64 lines, teacher applications
-      27 lines, wallets 28 lines, mappers 8 lines, and store 60 lines.
-- [x] Self-critique: the store still owns organization-name lookup and final
-      dashboard fact orchestration; a later slice could extract organization
-      identity lookup into its own Postgres helper before adding more reporting
-      behavior there.
+- [x] Add `organization_reward_dashboard_organizations` as the Postgres owner
+      for loading the organization name used by the dashboard report.
+- [x] Repoint `PostgresOrganizationRewardDashboardStore` to call
+      `organization_name` instead of importing Diesel schema/query traits
+      directly.
+- [x] Preserve existing behavior: organization lookup still uses
+      `organizations::table.find(id).select(name)` and maps Diesel
+      `NotFound` through the organization dashboard error mapper.
+- [x] Keep the store focused on assembling application dashboard facts from
+      organization, teacher-application, course, and wallet helpers.
+- [x] Reduce `organization_reward_dashboard_store` from 60 to 52 lines and keep
+      the new organization helper at 18 lines.
+- [x] Self-critique: organization reward-dashboard fact orchestration is now
+      thin enough, so the next reporting slice should inspect another reporting
+      adapter for mixed SQL/application decisions rather than continue shaving
+      this already granular path.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --test organization_dashboard`,
       `./scripts/run-host-tests.sh cargo check --lib`,

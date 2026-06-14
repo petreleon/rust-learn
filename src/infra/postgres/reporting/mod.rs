@@ -1,5 +1,6 @@
 pub mod organization_reward_dashboard_courses;
 pub mod organization_reward_dashboard_mappers;
+pub mod organization_reward_dashboard_organizations;
 pub mod organization_reward_dashboard_store;
 pub mod organization_reward_dashboard_teacher_applications;
 pub mod organization_reward_dashboard_use_case;
