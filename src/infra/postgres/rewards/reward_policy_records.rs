@@ -8,7 +8,7 @@ const DEFAULT_REWARD_POLICY_LIMIT: i64 = 25;
 const MAX_REWARD_POLICY_LIMIT: i64 = 100;
 
 #[derive(Debug, Clone, Default)]
-pub(super) struct RewardPolicyFilter {
+pub struct RewardPolicyFilter {
     pub scope_type: Option<String>,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,
@@ -30,7 +30,7 @@ impl RewardPolicyFilter {
     }
 }
 
-pub(super) async fn create_policy(
+pub async fn create_policy(
     conn: &mut AsyncPgConnection,
     new_policy: NewRewardPolicy,
 ) -> QueryResult<RewardPolicy> {
@@ -40,7 +40,7 @@ pub(super) async fn create_policy(
         .await
 }
 
-pub(super) async fn list_policies(
+pub async fn list_policies(
     conn: &mut AsyncPgConnection,
     filter: RewardPolicyFilter,
 ) -> QueryResult<Vec<RewardPolicy>> {
@@ -79,7 +79,7 @@ pub(super) async fn list_policies(
         .await
 }
 
-pub(super) async fn next_policy_version(
+pub async fn next_policy_version(
     conn: &mut AsyncPgConnection,
     scope_type: &str,
     organization_id: Option<i32>,

@@ -4,7 +4,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::db::schema::reward_policies;
 
-pub(super) async fn deactivate_active_policies(
+pub async fn deactivate_active_policies(
     conn: &mut AsyncPgConnection,
     scope_type: &str,
     organization_id: Option<i32>,

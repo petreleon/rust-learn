@@ -7,7 +7,6 @@ pub mod http;
 pub mod infra;
 pub mod middlewares;
 mod models;
-pub mod repositories;
 pub mod shared;
 
 use actix_web::{App, HttpServer};

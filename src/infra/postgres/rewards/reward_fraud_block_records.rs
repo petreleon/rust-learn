@@ -6,7 +6,7 @@ use crate::db::schema::reward_fraud_blocks;
 use crate::models::reward_fraud_block::{NewRewardFraudBlock, RewardFraudBlock};
 
 #[derive(Debug, Default)]
-pub(super) struct RewardFraudBlockFilter {
+pub struct RewardFraudBlockFilter {
     pub scope_type: Option<String>,
     pub teacher_user_id: Option<i32>,
     pub organization_id: Option<i32>,
@@ -17,7 +17,7 @@ pub(super) struct RewardFraudBlockFilter {
     pub offset: Option<i64>,
 }
 
-pub(super) async fn create_reward_fraud_block(
+pub async fn create_reward_fraud_block(
     conn: &mut AsyncPgConnection,
     new_block: NewRewardFraudBlock,
 ) -> QueryResult<RewardFraudBlock> {
@@ -27,14 +27,14 @@ pub(super) async fn create_reward_fraud_block(
         .await
 }
 
-pub(super) async fn find_reward_fraud_block(
+pub async fn find_reward_fraud_block(
     conn: &mut AsyncPgConnection,
     block_id: i64,
 ) -> QueryResult<RewardFraudBlock> {
     reward_fraud_blocks::table.find(block_id).first(conn).await
 }
 
-pub(super) async fn list_reward_fraud_blocks(
+pub async fn list_reward_fraud_blocks(
     conn: &mut AsyncPgConnection,
     filter: RewardFraudBlockFilter,
 ) -> QueryResult<(Vec<RewardFraudBlock>, i64)> {
@@ -123,7 +123,7 @@ pub(super) async fn list_reward_fraud_blocks(
     Ok((blocks, total))
 }
 
-pub(super) async fn revoke_reward_fraud_block(
+pub async fn revoke_reward_fraud_block(
     conn: &mut AsyncPgConnection,
     block_id: i64,
     revoked_by_user_id: i32,

@@ -10,7 +10,7 @@ const DEFAULT_REWARD_CANDIDATE_LIMIT: i64 = 25;
 const MAX_REWARD_CANDIDATE_LIMIT: i64 = 100;
 
 #[derive(Debug, Clone, Default)]
-pub(super) struct RewardCandidateFilter {
+pub struct RewardCandidateFilter {
     pub course_id: Option<i32>,
     pub student_user_id: Option<i32>,
     pub status: Option<String>,
@@ -30,7 +30,7 @@ impl RewardCandidateFilter {
     }
 }
 
-pub(super) async fn create_candidate(
+pub async fn create_candidate(
     conn: &mut AsyncPgConnection,
     new_candidate: NewRewardCandidate,
 ) -> QueryResult<RewardCandidate> {
@@ -40,7 +40,7 @@ pub(super) async fn create_candidate(
         .await
 }
 
-pub(super) async fn find_candidate(
+pub async fn find_candidate(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
 ) -> QueryResult<RewardCandidate> {
@@ -50,7 +50,7 @@ pub(super) async fn find_candidate(
         .await
 }
 
-pub(super) async fn find_candidate_by_idempotency_key(
+pub async fn find_candidate_by_idempotency_key(
     conn: &mut AsyncPgConnection,
     idempotency_key: &str,
 ) -> QueryResult<Option<RewardCandidate>> {
@@ -61,7 +61,7 @@ pub(super) async fn find_candidate_by_idempotency_key(
         .optional()
 }
 
-pub(super) async fn list_candidates(
+pub async fn list_candidates(
     conn: &mut AsyncPgConnection,
     filter: RewardCandidateFilter,
 ) -> QueryResult<Vec<RewardCandidate>> {
@@ -89,7 +89,7 @@ pub(super) async fn list_candidates(
         .await
 }
 
-pub(super) async fn count_candidates(
+pub async fn count_candidates(
     conn: &mut AsyncPgConnection,
     filter: RewardCandidateFilter,
 ) -> QueryResult<i64> {
@@ -110,7 +110,7 @@ pub(super) async fn count_candidates(
     query.count().get_result(conn).await
 }
 
-pub(super) async fn update_teacher_decision(
+pub async fn update_teacher_decision(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
     approver_user_id: i32,
@@ -130,7 +130,7 @@ pub(super) async fn update_teacher_decision(
         .await
 }
 
-pub(super) async fn update_amount_decision(
+pub async fn update_amount_decision(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
     reviewer_user_id: i32,

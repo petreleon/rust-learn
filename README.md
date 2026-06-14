@@ -22,7 +22,7 @@ The target LearnToken reward flow is defined in
 
 ```text
 .
-├── src/                    # Rust API, modular rings, legacy services, and utilities
+├── src/                    # Rust API, Level 2 rings, bootstrap, and shared types
 │   ├── http/               # Actix route handlers, route scopes, extractors, DTOs
 │   ├── application/        # Use cases, ports, commands, outputs
 │   ├── domain/             # Pure domain vocabulary and rules
@@ -32,10 +32,8 @@ The target LearnToken reward flow is defined in
 │   ├── config/             # DB setup and role/permission constants
 │   ├── db/                 # Diesel schema and connection setup
 │   ├── middlewares/        # JWT, hierarchy, and permission middleware
-│   ├── models/             # Diesel/domain models
-│   ├── repositories/       # Persistence helpers
-│   ├── services/           # Business workflows
-│   └── utils/              # JWT, S3, notifications, wallets, Ethereum helpers
+│   ├── models/             # Diesel row shapes and compatibility DTOs
+│   └── shared/             # Cross-cutting shared types and helpers
 ├── ethereum/               # Solidity contracts and generated ABI/bin artifacts
 ├── migrations/             # Diesel migrations
 ├── tests/                  # Integration and permission tests
@@ -57,14 +55,16 @@ flowchart LR
     Browser[Browser] --> Web[Next.js frontend]
     Web --> API[Actix Web API]
     API --> Auth[JWT and permission middleware]
-    Auth --> Services[Services and repositories]
-    Services --> Postgres[(PostgreSQL / Diesel)]
-    Services --> RustFS[(RustFS / S3 objects)]
-    Services --> Ethereum[Anvil or Ethereum RPC]
+    Auth --> HTTP[HTTP routes and extractors]
+    HTTP --> Application[Application use cases]
+    Application --> Domain[Domain rules]
+    Application --> Infra[Infra adapters]
+    Infra --> Postgres[(PostgreSQL / Diesel)]
+    Infra --> RustFS[(RustFS / S3 objects)]
+    Infra --> Ethereum[Anvil or Ethereum RPC]
     API --> Jobs[Upload and video jobs]
     Jobs --> Worker[Worker binary]
-    Worker --> RustFS
-    Worker --> Postgres
+    Worker --> Infra
 ```
 
 ## Core components
@@ -76,7 +76,8 @@ flowchart LR
 - Route modules for authentication, users, wallets, courses, organizations, and roles.
 - Registration rejects weak passwords: passwords must be at least 12 characters and include lowercase, uppercase, numeric, and symbol characters.
 - Diesel and Diesel Async with PostgreSQL.
-- Repository and service layers for persistence/business logic.
+- Application use cases coordinate business workflows; context-owned infra
+  adapters own persistence and external integrations.
 
 ### Permissions and roles
 

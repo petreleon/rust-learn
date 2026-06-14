@@ -1125,31 +1125,39 @@ remaining gaps.
 | 227 | Promoted delegated-permission fixture/read helpers to `infra/postgres/access_control/delegated_permissions`, repointed tests to that infra module, and deleted the legacy delegated-permission repository shell plus child bridge modules. |
 | 228 | Made `infra/postgres/operations/persistent_state` the public Postgres owner for persistent key/value state, repointed wallet/reward integration fixtures to it, and deleted the legacy persistent-state repository shell. |
 | 229 | Moved teacher-application audit fixture reads to the Postgres teacher-application audit store helper, repointed tests to that infra owner, and deleted the legacy teacher-application repository shell. |
+| 230 | Promoted reward fixture record helpers to `infra/postgres/rewards`, repointed reward tests to those Postgres owners, removed `repositories` from the binary/library module trees, deleted the entire legacy `src/repositories` module, and refreshed public architecture maps. |
 
 ## Recent Slice Evidence
 
-Slice 229: delete legacy teacher-application repository shell.
+Slice 230: delete the legacy repositories module.
 
-- [x] Add `list_teacher_application_audit_events` to
-      `infra/postgres/teacher_applications/teacher_application_audit_store` and
-      reuse it inside the audit-store trait implementation.
-- [x] Repoint teacher-application integration fixtures from
-      `rust_learn::repositories::teacher_application_repository::list_audit_events`
-      to the teacher-application Postgres audit helper.
-- [x] Delete `src/repositories/teacher_application_repository.rs` and remove its
-      export from `src/repositories/mod.rs`.
-- [x] Confirm scans show no teacher-application repository references remain;
-      remaining `rust_learn::repositories` test hits are reward fixtures only.
-- [x] Self-critique: this exposes a concrete Postgres audit read for test
-      fixtures. A later test-support layer could hide raw storage details, but
-      the legacy repository shell is gone and audit read SQL has one owner.
+- [x] Promote the reward record helpers needed by fixtures from `pub(super)` to
+      public infra APIs in `infra/postgres/rewards` for audit events,
+      candidates, execution jobs, fraud blocks, and policies.
+- [x] Add missing infra-owned reward audit listing and execution-job lookup
+      helpers so tests no longer need legacy repository shells for readback.
+- [x] Repoint reward candidate, reward execution, reward compensation, and
+      repository reward tests from `rust_learn::repositories::*` to
+      `rust_learn::infra::postgres::rewards::*`.
+- [x] Remove `pub mod repositories` from `src/lib.rs` and `src/main.rs`, then
+      delete all remaining files under `src/repositories`.
+- [x] Update `AGENTS.md` and `README.md` so contributor guidance and the
+      repository layout describe Level 2 application/infra boundaries instead
+      of the deleted repository/service/utility layers.
+- [x] Confirm scans show no `crate::repositories`, `rust_learn::repositories`,
+      `repositories::`, or `pub mod repositories` references remain in `src` or
+      `tests`, and that no `src/repositories` directory remains on disk.
+- [x] Self-critique: integration fixtures now call concrete reward Postgres
+      record helpers directly. That is a firmer Level 2 boundary than a generic
+      repository layer, but a later dedicated test-support module could make
+      fixture setup less storage-aware.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans for removed teacher-application repository
-      references, and file-size checks keeping changed Rust files under the
-      manual 180-line ceiling.
+      `git diff --check`, repository-boundary scans, `test ! -e
+      src/repositories`, and file-size checks keeping changed Rust files
+      under the manual 180-line ceiling.
 
 ## Legacy Transition Rules
 
