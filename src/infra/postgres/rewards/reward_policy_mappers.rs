@@ -1,8 +1,8 @@
 use crate::application::rewards::manage_reward_policy::{
     RewardPolicyDraft, RewardPolicyError, RewardPolicyListFilter, RewardPolicyOutput,
 };
+use crate::infra::postgres::rewards::reward_policy_records::RewardPolicyFilter;
 use crate::models::reward_policy::{NewRewardPolicy, RewardPolicy};
-use crate::repositories::reward_policy_repository::RewardPolicyFilter;
 
 pub(super) fn new_reward_policy(draft: RewardPolicyDraft, version: i32) -> NewRewardPolicy {
     NewRewardPolicy {

@@ -9,10 +9,13 @@ use crate::application::rewards::manage_reward_policy::{
 use crate::application::rewards::ports::RewardPolicyStore;
 use crate::db::schema::{courses, organizations};
 use crate::infra::postgres::rewards::reward_authorization_access;
+use crate::infra::postgres::rewards::reward_policy_activation::deactivate_active_policies;
 use crate::infra::postgres::rewards::reward_policy_mappers::{
     map_reward_policy_error, new_reward_policy,
 };
-use crate::repositories::reward_policy_repository::{self, RewardPolicyFilter};
+use crate::infra::postgres::rewards::reward_policy_records::{
+    create_policy, list_policies, next_policy_version, RewardPolicyFilter,
+};
 
 pub struct PostgresRewardPolicyStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -78,7 +81,7 @@ impl RewardPolicyStore for PostgresRewardPolicyStore<'_> {
         filter: RewardPolicyListFilter,
     ) -> BoxFuture<'_, Result<Vec<RewardPolicyOutput>, RewardPolicyError>> {
         async move {
-            reward_policy_repository::list_policies(self.conn, RewardPolicyFilter::from(filter))
+            list_policies(self.conn, RewardPolicyFilter::from(filter))
                 .await
                 .map(|rows| rows.into_iter().map(RewardPolicyOutput::from).collect())
                 .map_err(map_reward_policy_error)
@@ -93,7 +96,7 @@ async fn create_versioned_policy(
 ) -> Result<RewardPolicyOutput, RewardPolicyError> {
     conn.transaction::<_, diesel::result::Error, _>(|conn| {
         Box::pin(async move {
-            let version = reward_policy_repository::next_policy_version(
+            let version = next_policy_version(
                 conn,
                 &draft.scope_type,
                 draft.organization_id,
@@ -103,7 +106,7 @@ async fn create_versioned_policy(
             .await?;
 
             if draft.active {
-                reward_policy_repository::deactivate_active_policies(
+                deactivate_active_policies(
                     conn,
                     &draft.scope_type,
                     draft.organization_id,
@@ -114,7 +117,7 @@ async fn create_versioned_policy(
                 .await?;
             }
 
-            reward_policy_repository::create_policy(conn, new_reward_policy(draft, version))
+            create_policy(conn, new_reward_policy(draft, version))
                 .await
                 .map(RewardPolicyOutput::from)
         })

@@ -1,0 +1,127 @@
+use chrono::{DateTime, Utc};
+use diesel::prelude::*;
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
+
+use crate::db::schema::reward_policies;
+
+pub(super) async fn deactivate_active_policies(
+    conn: &mut AsyncPgConnection,
+    scope_type: &str,
+    organization_id: Option<i32>,
+    course_id: Option<i32>,
+    event_type: &str,
+    updated_at: DateTime<Utc>,
+) -> QueryResult<usize> {
+    match (organization_id, course_id) {
+        (Some(organization_id), Some(course_id)) => {
+            deactivate_for_course_org(
+                conn,
+                scope_type,
+                organization_id,
+                course_id,
+                event_type,
+                updated_at,
+            )
+            .await
+        }
+        (Some(organization_id), None) => {
+            deactivate_for_org(conn, scope_type, organization_id, event_type, updated_at).await
+        }
+        (None, Some(course_id)) => {
+            deactivate_for_course(conn, scope_type, course_id, event_type, updated_at).await
+        }
+        (None, None) => deactivate_global(conn, scope_type, event_type, updated_at).await,
+    }
+}
+
+async fn deactivate_for_course_org(
+    conn: &mut AsyncPgConnection,
+    scope_type: &str,
+    organization_id: i32,
+    course_id: i32,
+    event_type: &str,
+    updated_at: DateTime<Utc>,
+) -> QueryResult<usize> {
+    diesel::update(
+        reward_policies::table
+            .filter(reward_policies::scope_type.eq(scope_type))
+            .filter(reward_policies::organization_id.eq(Some(organization_id)))
+            .filter(reward_policies::course_id.eq(Some(course_id)))
+            .filter(reward_policies::event_type.eq(event_type))
+            .filter(reward_policies::active.eq(true)),
+    )
+    .set((
+        reward_policies::active.eq(false),
+        reward_policies::updated_at.eq(updated_at),
+    ))
+    .execute(conn)
+    .await
+}
+
+async fn deactivate_for_org(
+    conn: &mut AsyncPgConnection,
+    scope_type: &str,
+    organization_id: i32,
+    event_type: &str,
+    updated_at: DateTime<Utc>,
+) -> QueryResult<usize> {
+    diesel::update(
+        reward_policies::table
+            .filter(reward_policies::scope_type.eq(scope_type))
+            .filter(reward_policies::organization_id.eq(Some(organization_id)))
+            .filter(reward_policies::course_id.is_null())
+            .filter(reward_policies::event_type.eq(event_type))
+            .filter(reward_policies::active.eq(true)),
+    )
+    .set((
+        reward_policies::active.eq(false),
+        reward_policies::updated_at.eq(updated_at),
+    ))
+    .execute(conn)
+    .await
+}
+
+async fn deactivate_for_course(
+    conn: &mut AsyncPgConnection,
+    scope_type: &str,
+    course_id: i32,
+    event_type: &str,
+    updated_at: DateTime<Utc>,
+) -> QueryResult<usize> {
+    diesel::update(
+        reward_policies::table
+            .filter(reward_policies::scope_type.eq(scope_type))
+            .filter(reward_policies::organization_id.is_null())
+            .filter(reward_policies::course_id.eq(Some(course_id)))
+            .filter(reward_policies::event_type.eq(event_type))
+            .filter(reward_policies::active.eq(true)),
+    )
+    .set((
+        reward_policies::active.eq(false),
+        reward_policies::updated_at.eq(updated_at),
+    ))
+    .execute(conn)
+    .await
+}
+
+async fn deactivate_global(
+    conn: &mut AsyncPgConnection,
+    scope_type: &str,
+    event_type: &str,
+    updated_at: DateTime<Utc>,
+) -> QueryResult<usize> {
+    diesel::update(
+        reward_policies::table
+            .filter(reward_policies::scope_type.eq(scope_type))
+            .filter(reward_policies::organization_id.is_null())
+            .filter(reward_policies::course_id.is_null())
+            .filter(reward_policies::event_type.eq(event_type))
+            .filter(reward_policies::active.eq(true)),
+    )
+    .set((
+        reward_policies::active.eq(false),
+        reward_policies::updated_at.eq(updated_at),
+    ))
+    .execute(conn)
+    .await
+}

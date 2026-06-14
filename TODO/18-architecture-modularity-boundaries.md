@@ -1050,26 +1050,27 @@ remaining gaps.
 | 152 | Moved reward payout planning off legacy reward-candidate and persistent-state repositories; `reward_payout_plan_store` now uses `infra/postgres/rewards/reward_candidate_records` and `infra/postgres/operations/persistent_state` for candidate loading and presigner detection. |
 | 153 | Moved reward candidate creation/idempotency lookup, teacher decision updates, amount decision updates, audit-event insertion, and execution-job enqueueing off legacy repositories into rewards-owned Postgres record helpers; candidate submission, teacher decision, amount decision, and reconciliation audit stores now use context-owned persistence helpers. |
 | 154 | Moved platform reward candidate listing/counting off the legacy reward-candidate repository; `platform_reward_candidate_store` now uses rewards-owned candidate filtering and list/count helpers. |
+| 155 | Moved reward policy create/list/version/deactivation persistence off the legacy reward-policy repository; `reward_policy_store` and mappers now use rewards-owned policy record and activation helpers. |
 
 ## Recent Slice Evidence
 
-Slice 154: move platform reward candidate listing into rewards infra.
+Slice 155: move reward policy persistence into rewards infra.
 
-- [x] Add rewards-owned `RewardCandidateFilter`, `list_candidates`, and
-      `count_candidates` helpers to `infra/postgres/rewards/reward_candidate_records`.
-- [x] Update `platform_reward_candidate_store` to call those helpers instead
-      of `repositories::reward_candidate_repository`.
-- [x] Preserve platform candidate review enrichment, status filtering,
-      permission flags, pagination, and candidate counts.
+- [x] Add rewards-owned `RewardPolicyFilter`, create/list/version helpers, and
+      active-policy deactivation helpers under `infra/postgres/rewards`.
+- [x] Update `reward_policy_store` and `reward_policy_mappers` to call those
+      helpers instead of `repositories::reward_policy_repository`.
+- [x] Preserve platform policy permission gating, version increments, active
+      policy replacement, course-scope validation, and list filtering.
 - [x] Self-critique: remaining reward repository imports are now concentrated
       in wallet-credit transactions/notifications, token confirmation,
-      reconciliation transactions, compensation, reward policies, and
-      fraud-block management/mappers. Move those by transaction/listing cluster
-      rather than broad rewrites.
+      reconciliation transactions, compensation, and fraud-block
+      management/mappers. Move those by transaction cluster rather than broad
+      rewrites.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test reward_candidates`,
+      `./scripts/run-host-tests.sh cargo test --test reward_policies`,
       `git diff --check`, line-count checks, and boundary scans proving the
-      platform candidate listing store no longer imports legacy repositories.
+      reward policy store/mappers no longer import legacy repositories.
 
 ## Legacy Transition Rules
 
