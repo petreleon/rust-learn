@@ -2,7 +2,7 @@ use actix_web::{http::StatusCode, test, web, App};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::user::User;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::tokens::jwt::create_jwt;
 
 use actix_service::Service;

@@ -17,7 +17,7 @@ use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::user::User;
 use rust_learn::repositories::platform_repository::assign_role_to_user;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use std::str::FromStr;
 
 fn unique_string(prefix: &str) -> String {

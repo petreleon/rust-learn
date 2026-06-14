@@ -22,7 +22,7 @@ use rust_learn::repositories::organization_repository::{
     user_permission_organization_request,
 };
 use rust_learn::repositories::platform_repository::user_permission_platform_request;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use std::cmp::Ordering;
 
 fn unique_string(prefix: &str) -> String {

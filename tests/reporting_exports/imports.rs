@@ -48,7 +48,7 @@ use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::models::wallet::NewWallet;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::reporting::organization_reward_dashboard_use_case::PostgresOrganizationRewardDashboardUseCase;
 use rust_learn::infra::postgres::reporting::organization_summary_use_case::PostgresOrganizationSummaryUseCase;
 use rust_learn::infra::postgres::reporting::platform_fraud_dashboard_use_case::PostgresPlatformFraudDashboardUseCase;

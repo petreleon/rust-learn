@@ -32,7 +32,7 @@ use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::application::learning::get_teacher_course_enrollment_workspace::TeacherCourseEnrollmentWorkspaceUseCase;
 use rust_learn::application::learning::get_teacher_course_students::TeacherCourseStudentsUseCase;
 use rust_learn::application::learning::get_teacher_course_workspace::TeacherCourseWorkspaceUseCase;

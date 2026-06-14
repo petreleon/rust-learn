@@ -7,11 +7,11 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::application::learning::submit_assessment_attempt::AssessmentSubmissionUseCase;
 use rust_learn::db::schema::{assessment_attempts, assessment_questions, assessments, courses};
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::learning::assessment_submission_use_case::PostgresAssessmentSubmissionUseCase;
 use rust_learn::infra::tokens::jwt::create_jwt;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::user::User;
-use rust_learn::repositories::user_repository::create_user;
 use serde_json::{json, Value};
 
 fn unique_string(prefix: &str) -> String {

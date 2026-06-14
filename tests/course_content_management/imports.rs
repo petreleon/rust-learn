@@ -11,7 +11,7 @@ use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::course_role_records;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::application::content::manage_chapter::ChapterUseCases;
 use rust_learn::application::content::manage_content_item::ContentItemUseCases;
 use rust_learn::application::content::process_upload_job::ContentProcessingUseCase;

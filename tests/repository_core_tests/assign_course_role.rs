@@ -9,7 +9,7 @@ async fn assign_course_role(
         .expect("failed to assign course role");
 }
 
-// ── user_repository ──
+// ── identity bootstrap accounts ──
 
 #[actix_web::test]
 async fn test_create_user_with_verified_email() {

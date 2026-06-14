@@ -49,7 +49,7 @@ use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::repositories::reward_audit_event_repository::list_reward_audit_events;
 use rust_learn::repositories::reward_candidate_repository::find_candidate;
 use rust_learn::repositories::reward_execution_job_repository::find_job_by_candidate;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::{json, Value};
 use std::sync::Arc;

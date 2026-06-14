@@ -28,7 +28,7 @@ use rust_learn::repositories::reward_candidate_repository::{self, RewardCandidat
 use rust_learn::repositories::reward_execution_job_repository;
 use rust_learn::repositories::reward_fraud_block_repository::{self, RewardFraudBlockFilter};
 use rust_learn::repositories::reward_policy_repository;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use serde_json::json;
 
 fn unique_string(prefix: &str) -> String {

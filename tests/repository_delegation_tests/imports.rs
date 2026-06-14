@@ -7,7 +7,7 @@ use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_COURSE;
 use rust_learn::models::delegated_permission::NewDelegatedPermission;
 use rust_learn::models::user::User;
 use rust_learn::repositories::delegated_permission_repository::{self, DelegatedPermissionFilter};
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);

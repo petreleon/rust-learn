@@ -25,7 +25,7 @@ use rust_learn::infra::postgres::organizations::organization_member_list_use_cas
 use rust_learn::infra::postgres::organizations::organization_member_removal_use_case::PostgresOrganizationMemberRemovalUseCase;
 use rust_learn::infra::postgres::organizations::organization_member_role_assignment_use_case::PostgresOrganizationMemberRoleAssignmentUseCase;
 use rust_learn::repositories::delegated_permission_repository::create_delegated_permission;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::Value;
 use std::sync::{

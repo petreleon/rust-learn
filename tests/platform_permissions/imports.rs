@@ -6,7 +6,7 @@ use rust_learn::repositories::platform_permission_repository::assign_permission_
 use rust_learn::repositories::platform_repository::{
     assign_role_to_user, user_permission_platform_request,
 };
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 
 fn unique_email(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);

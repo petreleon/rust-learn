@@ -37,7 +37,7 @@ use rust_learn::models::user::User;
 use rust_learn::application::rewards::record_token_confirmation::RewardTokenConfirmationCommand as RewardTokenConfirmationRequest;
 use rust_learn::repositories::persistent_state_repository::set_persistent_state;
 use rust_learn::repositories::reward_audit_event_repository::list_reward_audit_events;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use serde_json::json;
 use std::sync::atomic::{AtomicU64, Ordering};
 
