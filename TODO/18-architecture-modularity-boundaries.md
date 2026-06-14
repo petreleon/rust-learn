@@ -1131,34 +1131,35 @@ remaining gaps.
 | 233 | Moved teacher and amount reward-decision target-status alias parsing into pure `domain/rewards/candidate/transition` helpers, leaving application validation as thin error translation. |
 | 234 | Moved teacher and amount reward-decision target-transition validation into pure `domain/rewards/candidate/transition` helpers, leaving Postgres adapters responsible only for stored-status parsing and error translation. |
 | 235 | Moved wallet-credit notification and reward reconciliation lifecycle predicates into `domain/rewards/candidate/lifecycle`, leaving Postgres validation modules responsible for stored-status parsing and use-case error wording. |
+| 236 | Added named reward candidate domain transitions for token confirmation and wallet credit, and repointed Postgres adapters away from raw `TransitionAction` selection. |
 
 ## Recent Slice Evidence
 
-Slice 235: move notification/reconciliation lifecycle predicates into domain.
+Slice 236: name token confirmation and wallet credit transitions in domain.
 
-- [x] Add `domain/rewards/candidate/lifecycle` for pure reward candidate
-      status predicates that are broader than a single transition action.
-- [x] Move wallet-credit notification inspection/creation status gates into
-      domain helpers while keeping database status parsing and error wording in
-      the Postgres notification validation module.
-- [x] Move reconciliation eligibility and reconciliation wallet-credit creation
-      status gates into domain helpers while keeping reconciliation error
-      translation in the Postgres validation module.
-- [x] Cover the new lifecycle helpers with pure unit tests for normal,
-      repaired, and rejected states.
+- [x] Add `confirm_token` and `credit_wallet` named helpers to
+      `domain/rewards/candidate/transition`.
+- [x] Repoint token-confirmation persistence to parse the stored candidate
+      status locally, then ask the domain for the token-confirmation
+      transition.
+- [x] Repoint wallet-credit validation to keep policy and reconciliation
+      allowance checks in the adapter, then ask the domain for the wallet-credit
+      transition.
+- [x] Update pure transition tests to exercise the named helpers rather than
+      raw action dispatch for those workflows.
 - [x] Confirm changed Rust files remain under the manual 180-line ceiling.
-- [x] Self-critique: these predicates are now in the domain, but token
-      confirmation and wallet credit still call raw transition actions from
-      Postgres adapters. The next lifecycle slice should give those workflows
-      named domain functions too.
+- [x] Self-critique: production adapters no longer select token/wallet actions
+      directly, but lower-frequency lifecycle transitions such as notified,
+      completed, failed, and reconciliation-needed still need the same named
+      domain surface before the candidate-transition TODO is fully done.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate::lifecycle`,
-      `./scripts/run-host-tests.sh cargo test --lib notify_wallet_credit::handler`,
-      `./scripts/run-host-tests.sh cargo test --lib reconcile_candidate::handler`,
+      `./scripts/run-host-tests.sh cargo test --lib domain::rewards::candidate::transition`,
+      `./scripts/run-host-tests.sh cargo test --lib record_token_confirmation::handler`,
+      `./scripts/run-host-tests.sh cargo test --lib credit_wallet::handler`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans for local lifecycle status gates, and file-size
+      `git diff --check`, scans for raw production transition actions, and file-size
       checks keeping changed Rust files under the manual 180-line ceiling.
 
 ## Legacy Transition Rules

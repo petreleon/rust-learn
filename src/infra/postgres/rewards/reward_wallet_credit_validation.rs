@@ -3,7 +3,7 @@ use diesel_async::AsyncPgConnection;
 
 use crate::application::rewards::credit_wallet::RewardWalletCreditError;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-use crate::domain::rewards::candidate::transition::{apply_transition, TransitionAction};
+use crate::domain::rewards::candidate::transition;
 use crate::infra::postgres::rewards::reward_wallet_credit_policy::reward_policy_is_off_chain;
 use crate::models::reward_candidate::RewardCandidate;
 
@@ -65,7 +65,7 @@ pub(super) async fn ensure_wallet_credit_allowed(
         return Err(token_confirmation_required_error());
     }
 
-    apply_transition(status, TransitionAction::CreditWallet)
+    transition::credit_wallet(status)
         .map(|_| ())
         .map_err(|_| token_confirmation_required_error())
 }

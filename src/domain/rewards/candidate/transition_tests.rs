@@ -1,8 +1,7 @@
 use super::status::RewardCandidateStatus as Status;
 use super::transition::{
-    amount_decision, amount_decision_target_status, amount_decision_transition, apply_transition,
-    teacher_decision, teacher_decision_target_status, teacher_decision_transition,
-    TransitionAction,
+    amount_decision, amount_decision_target_status, amount_decision_transition, confirm_token,
+    credit_wallet, teacher_decision, teacher_decision_target_status, teacher_decision_transition,
 };
 
 #[test]
@@ -87,24 +86,24 @@ fn normalizes_amount_decision_target_status_aliases() {
 #[test]
 fn token_confirmation_requires_token_pending() {
     assert_eq!(
-        apply_transition(Status::TokenPending, TransitionAction::ConfirmToken).unwrap(),
+        confirm_token(Status::TokenPending).unwrap(),
         Status::TokenConfirmed
     );
-    assert!(apply_transition(Status::AmountApproved, TransitionAction::ConfirmToken).is_err());
+    assert!(confirm_token(Status::AmountApproved).is_err());
 }
 
 #[test]
 fn wallet_credit_accepts_confirmed_off_chain_or_reconciliation_states() {
     assert_eq!(
-        apply_transition(Status::TokenConfirmed, TransitionAction::CreditWallet).unwrap(),
+        credit_wallet(Status::TokenConfirmed).unwrap(),
         Status::WalletCredited
     );
     assert_eq!(
-        apply_transition(Status::AmountApproved, TransitionAction::CreditWallet).unwrap(),
+        credit_wallet(Status::AmountApproved).unwrap(),
         Status::WalletCredited
     );
     assert_eq!(
-        apply_transition(Status::NeedsReconciliation, TransitionAction::CreditWallet).unwrap(),
+        credit_wallet(Status::NeedsReconciliation).unwrap(),
         Status::WalletCredited
     );
 }

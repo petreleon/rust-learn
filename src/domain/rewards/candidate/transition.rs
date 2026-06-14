@@ -80,6 +80,18 @@ pub fn amount_decision(
     apply_transition(from, action)
 }
 
+pub fn confirm_token(
+    from: RewardCandidateStatus,
+) -> Result<RewardCandidateStatus, TransitionError> {
+    apply_transition(from, TransitionAction::ConfirmToken)
+}
+
+pub fn credit_wallet(
+    from: RewardCandidateStatus,
+) -> Result<RewardCandidateStatus, TransitionError> {
+    apply_transition(from, TransitionAction::CreditWallet)
+}
+
 pub fn teacher_decision_transition(
     from: RewardCandidateStatus,
     target: RewardCandidateStatus,
