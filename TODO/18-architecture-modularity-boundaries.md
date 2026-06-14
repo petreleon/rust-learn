@@ -1123,37 +1123,31 @@ remaining gaps.
 | 225 | Added an infra-owned verified password user helper, repointed all integration-test `user_repository::create_user` fixtures to it, and deleted the unused legacy `user_repository` module/export. |
 | 226 | Promoted access-control permission, hierarchy, platform-role, organization-role, and platform-permission fixture helpers to `infra/postgres/access_control/authorization_checks`, repointed tests to that facade, and deleted the unused legacy course/organization/platform/platform-permission repository modules. |
 | 227 | Promoted delegated-permission fixture/read helpers to `infra/postgres/access_control/delegated_permissions`, repointed tests to that infra module, and deleted the legacy delegated-permission repository shell plus child bridge modules. |
+| 228 | Made `infra/postgres/operations/persistent_state` the public Postgres owner for persistent key/value state, repointed wallet/reward integration fixtures to it, and deleted the legacy persistent-state repository shell. |
 
 ## Recent Slice Evidence
 
-Slice 227: delete legacy delegated-permission repository shell.
+Slice 228: delete legacy persistent-state repository shell.
 
-- [x] Add public delegated-permission infra helpers for create/find/find-active,
-      list, revoke, and active platform/organization/course delegation checks,
-      while leaving SQL ownership in the existing records and
-      permission-delegation modules.
-- [x] Re-export the application `DelegatedPermissionFilter` from the infra
-      delegated-permissions module so repository-focused tests keep the same
-      filter shape without importing `src/repositories`.
-- [x] Repoint KYC, current-session, organization-member, delegated-permission,
-      and repository-delegation tests from
-      `rust_learn::repositories::delegated_permission_repository` to
-      `infra/postgres/access_control/delegated_permissions`.
-- [x] Delete `src/repositories/delegated_permission_repository.rs` and its
-      `records`/`revocation` child bridge modules, then remove the export from
-      `src/repositories/mod.rs`.
-- [x] Confirm scans show no delegated-permission repository references remain;
-      remaining `rust_learn::repositories` test hits are reward,
-      persistent-state, and teacher-application fixtures.
-- [x] Self-critique: the delegated-permission infra facade exposes model-level
-      records for test support. A later application-level test-support layer
-      would be cleaner, but this removes the repository compatibility shell and
-      keeps one concrete Postgres owner.
+- [x] Make `infra/postgres/operations/persistent_state` public and expose its
+      `set_persistent_state`/`get_persistent_state` helpers as the single
+      Postgres owner for persistent key/value process state.
+- [x] Repoint reward-execution and wallet-linking integration fixtures from
+      `rust_learn::repositories::persistent_state_repository` to the operations
+      infra module.
+- [x] Delete `src/repositories/persistent_state_repository.rs` and remove its
+      export from `src/repositories/mod.rs`.
+- [x] Confirm scans show no persistent-state repository references remain;
+      remaining `rust_learn::repositories` test hits are reward and
+      teacher-application fixtures.
+- [x] Self-critique: this deliberately exposes a concrete operations/Postgres
+      helper for integration fixtures. It is appropriate for process-state
+      setup, but a future test-support module could hide raw storage details.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans for removed delegated-permission repository
+      `git diff --check`, scans for removed persistent-state repository
       references, and file-size checks keeping changed Rust files under the
       manual 180-line ceiling.
 

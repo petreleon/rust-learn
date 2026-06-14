@@ -35,7 +35,7 @@ use rust_learn::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
 use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::user::User;
 use rust_learn::application::rewards::record_token_confirmation::RewardTokenConfirmationCommand as RewardTokenConfirmationRequest;
-use rust_learn::repositories::persistent_state_repository::set_persistent_state;
+use rust_learn::infra::postgres::operations::persistent_state::set_persistent_state;
 use rust_learn::repositories::reward_audit_event_repository::list_reward_audit_events;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use serde_json::json;

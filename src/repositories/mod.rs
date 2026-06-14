@@ -1,4 +1,3 @@
-pub mod persistent_state_repository;
 pub mod reward_audit_event_repository;
 pub mod reward_candidate_repository;
 pub mod reward_compensation_record_repository;

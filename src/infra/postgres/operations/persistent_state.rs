@@ -4,7 +4,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::db::schema::persistent_states;
 
-pub(crate) async fn set_persistent_state(
+pub async fn set_persistent_state(
     conn: &mut AsyncPgConnection,
     key: &str,
     value: &str,
@@ -21,7 +21,7 @@ pub(crate) async fn set_persistent_state(
         .await
 }
 
-pub(crate) async fn get_persistent_state(
+pub async fn get_persistent_state(
     conn: &mut AsyncPgConnection,
     key: &str,
 ) -> QueryResult<Option<String>> {
