@@ -1,7 +1,8 @@
 use crate::application::identity::register::{
     RegisterError, RegistrationEmailSender, RegistrationTokenGenerator,
 };
-use crate::utils::email::{generate_verification_token, print_mock_verification_email};
+use crate::infra::email::identity::print_mock_verification_email;
+use crate::utils::email::generate_verification_token;
 
 pub struct GeneratedRegistrationToken;
 

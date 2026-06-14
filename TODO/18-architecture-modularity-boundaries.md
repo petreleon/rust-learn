@@ -1029,33 +1029,31 @@ remaining gaps.
 | 131 | Moved `POST /auth/forgot-password` behind `application/identity/request_password_reset`, Postgres account lookup/reset-token adapters, token generation and mock password-reset email adapters, identity app-data wiring, and a DB-free `http/identity/authentication/forgot_password.rs` route; private known/unknown-account response semantics remain unchanged. |
 | 132 | Moved `POST /auth/reset-password` behind `application/identity/reset_password`, a Postgres reset-token consumption/password-update transaction adapter/use case, bcrypt reset-password hashing adapter, identity app-data wiring, and a DB-free HTTP completion handler; missing/invalid/expired token and successful password-update responses remain unchanged. |
 | 133 | Moved auth email normalization and privacy log hashing from `http/identity/authentication/support.rs` into `application/identity/email`, deleted the HTTP support module, and updated migrated auth routes to import identity email vocabulary without reaching into `utils::email`. |
+| 134 | Moved identity mock email URL building, rendering, and printing from `utils::email` into `infra/email/identity`, wired registration/resend-verification/password-reset request delivery adapters to the email infra module, and updated the `mock_email` helper binary; `utils::email` now contains only token generation/hash helpers. |
 
 ## Recent Slice Evidence
 
-Slice 133: move auth email helper vocabulary out of HTTP.
+Slice 134: move identity mock email delivery into infra/email.
 
-- [x] Add `application/identity/email` with pure `normalize_email` and
-      privacy-preserving `email_log_hash` helpers plus focused unit tests for
-      normalization, redaction, and distinct-address hashing.
-- [x] Update login, registration, resend-verification, and forgot-password
-      routes to import identity email helpers from the application ring.
-- [x] Delete `http/identity/authentication/support.rs` so migrated auth HTTP
-      routes no longer reach into `utils::email` for privacy log hashing.
-- [x] Remove duplicate HTTP helper tests now that application email vocabulary
-      owns that coverage.
-- [x] Self-critique: identity auth route internals are now DB-free and utility
-      free, but `utils::email` still bundles token generation, token hashing,
-      URL building, and mock email printing for both identity and password
-      reset; split those adapter-oriented responsibilities by infra/email and
-      token hashing boundaries during the next identity cleanup pass.
-- [x] Prove behavior with application email unit tests, auth HTTP unit tests,
-      the full `authentication_flow` suite, API route reachability,
-      formatting, line-count checks, `git diff --check`, and boundary scans
-      proving migrated auth HTTP routes no longer import DB/Diesel, legacy
-      services, model token types, bcrypt, `utils::email`, or the deleted
-      support module while application identity modules stay free of Actix,
-      Diesel, DB pools, repositories, infra, models, services, utils, config,
-      and bcrypt adapters.
+- [x] Add `infra/email/identity` with verification/password-reset public URL
+      construction, mock email rendering, and terminal mock email printing.
+- [x] Move URL/default-base and mock email rendering tests from `utils::email`
+      into the infra email module, including password-reset mock email
+      coverage.
+- [x] Update registration, resend-verification, and password-reset request
+      delivery adapters to import mock email delivery from `infra/email` while
+      keeping token generation as the only remaining `utils::email` dependency
+      in those delivery adapters.
+- [x] Update the `mock_email` helper binary to use the infra email module.
+- [x] Self-critique: `utils::email` is now narrowed to token generation and
+      token hashing, but identity Postgres adapters and auth-flow tests still
+      import those helpers directly; split token generation/hash into clearer
+      token infra/shared boundaries next.
+- [x] Prove behavior with infra email unit tests, token utility unit tests,
+      `mock_email` binary check, the full `authentication_flow` suite, API
+      route reachability, formatting, line-count checks, `git diff --check`,
+      and boundary scans proving mock email rendering/URL builders no longer
+      live in or import from `utils::email`.
 
 ## Legacy Transition Rules
 
