@@ -1034,29 +1034,32 @@ remaining gaps.
 | 136 | Moved email-verification token creation and verification behavior from `models::email_verification_token` into `infra/postgres/identity/email_verification_tokens`, updated registration/resend/verify adapters and auth-flow token seeding to call the Postgres identity token adapter, and left the model as a Diesel record/insert shape only. |
 | 137 | Moved password-reset token creation and consumption behavior from `models::password_reset_token` into `infra/postgres/identity/password_reset_tokens`, updated request/reset adapters and auth-flow token seeding to call the Postgres identity token adapter, and left the model as a Diesel record/insert shape only. |
 | 138 | Moved migrated identity account lookup and password-auth reads from `models::user` Active Record methods into `infra/postgres/identity/accounts`, and updated login, resend-verification, and password-reset request stores to call the context-owned Postgres account adapter. |
+| 139 | Moved registration account creation, default student role lookup/assignment, and password-auth insertion from `models::*` Active Record methods into `infra/postgres/identity/accounts`; the registration store now delegates account setup to the identity Postgres account adapter while keeping verification-token creation in the same transaction. |
 
 ## Recent Slice Evidence
 
-Slice 138: move migrated identity account lookup out of models.
+Slice 139: move registration account creation out of model methods.
 
-- [x] Add `infra/postgres/identity/accounts` with query helpers for identity
-      user lookup by email and password-auth account lookup by email.
-- [x] Return infra-owned account records from those helpers instead of forcing
-      migrated stores to call `User::find_by_email` or
-      `User::find_with_password_auth`.
-- [x] Update login, resend-verification, and password-reset request Postgres
-      stores to call the context-owned account adapter and keep use-case record
-      mapping local to the store.
-- [x] Self-critique: registration still calls `User::create`,
-      `PlatformRole::find_by_name`, `UserRolePlatform::assign`, and
-      `Authentication::create` inside its transaction; move account creation and
-      default role/password-auth setup behind identity-owned Postgres helpers
-      next.
-- [x] Prove behavior with focused login, resend-verification, and password-reset
-      request tests, the full `authentication_flow` suite, API route
-      reachability, formatting, line-count checks, `git diff --check`, and
-      boundary scans proving migrated identity stores no longer call
-      `User::find_by_email` or `User::find_with_password_auth`.
+- [x] Extend `infra/postgres/identity/accounts` with a
+      `NewIdentityPasswordAccount` command, a created-account record, and
+      `create_unverified_student_password_account`.
+- [x] Move user insert, default `STUDENT` role lookup, platform-role assignment,
+      and password-auth insertion behind the context-owned Postgres account
+      adapter using schema-table operations instead of model methods.
+- [x] Update the registration store to build the infra account command and keep
+      verification-token creation inside the same transaction after account
+      setup succeeds.
+- [x] Self-critique: migrated identity modules no longer call
+      `User::`, `Authentication::`, `PlatformRole::`, or `UserRolePlatform::`
+      methods directly, but profile, current-session, and platform-role
+      assignment adapters still depend on legacy repository helpers and
+      persistence records; continue moving those reads/writes behind
+      identity-owned Postgres modules.
+- [x] Prove behavior with focused registration creation, duplicate-email, and
+      login-after-verification tests, the full `authentication_flow` suite, API
+      route reachability, formatting, line-count checks, `git diff --check`, and
+      boundary scans proving migrated identity modules no longer call the old
+      registration model methods.
 
 ## Legacy Transition Rules
 

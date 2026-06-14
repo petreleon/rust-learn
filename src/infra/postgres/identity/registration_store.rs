@@ -1,4 +1,3 @@
-use chrono::Utc;
 use diesel::result::{DatabaseErrorKind, Error as DieselError};
 use diesel_async::AsyncConnection;
 use futures::future::{BoxFuture, FutureExt};
@@ -6,15 +5,11 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::register::{
     RegisterError, RegisterStore, RegisteredUser, RegistrationAccount,
 };
+use crate::infra::postgres::identity::accounts::{
+    create_unverified_student_password_account, NewIdentityPasswordAccount,
+};
 use crate::infra::postgres::identity::email_verification_tokens::create_email_verification_token;
 use crate::infra::tokens::identity::identity_token_hash;
-use crate::models::authentication::Authentication;
-use crate::models::role::PlatformRole;
-use crate::models::user::{NewUser, User};
-use crate::models::user_role_platform::UserRolePlatform;
-
-const DEFAULT_REGISTRATION_ROLE: &str = "STUDENT";
-const PASSWORD_AUTH_TYPE: &str = "password";
 
 pub struct PostgresRegistrationStore<'conn> {
     conn: &'conn mut diesel_async::AsyncPgConnection,
@@ -34,35 +29,21 @@ impl RegisterStore for PostgresRegistrationStore<'_> {
         verification_token: String,
     ) -> BoxFuture<'_, Result<RegisteredUser, RegisterError>> {
         async move {
-            let new_user = NewUser {
+            let new_account = NewIdentityPasswordAccount {
                 name: account.name,
                 email: account.email,
                 date_of_birth: account.date_of_birth,
-                created_at: Utc::now().naive_utc(),
-                kyc_verified: false,
-                email_verified: false,
+                password_hash,
             };
             let token_hash = identity_token_hash(&verification_token);
 
             self.conn
                 .transaction::<_, DieselError, _>(|conn| {
                     Box::pin(async move {
-                        let inserted_user = User::create(new_user, conn).await?;
-                        let role_id =
-                            PlatformRole::find_by_name(DEFAULT_REGISTRATION_ROLE, conn).await?;
-                        UserRolePlatform::assign(conn, inserted_user.id(), role_id).await?;
+                        let inserted_user =
+                            create_unverified_student_password_account(conn, new_account).await?;
 
-                        Authentication::create(
-                            Authentication {
-                                user_id: inserted_user.id(),
-                                type_authentication: PASSWORD_AUTH_TYPE.to_string(),
-                                info_auth: password_hash,
-                            },
-                            conn,
-                        )
-                        .await?;
-
-                        create_email_verification_token(conn, inserted_user.id(), token_hash)
+                        create_email_verification_token(conn, inserted_user.user_id, token_hash)
                             .await?;
 
                         Ok(RegisteredUser {
