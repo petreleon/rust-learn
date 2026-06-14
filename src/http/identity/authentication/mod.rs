@@ -1,4 +1,5 @@
 mod email_verification;
+mod forgot_password;
 mod jwks;
 mod login;
 mod password_reset;
@@ -16,7 +17,7 @@ pub use jwks::jwks;
 
 pub fn auth_scope() -> actix_web::Scope {
     web::scope("/auth")
-        .service(password_reset::forgot_password)
+        .service(forgot_password::forgot_password)
         .service(login::login)
         .service(registration::register)
         .service(email_verification::resend_verification)

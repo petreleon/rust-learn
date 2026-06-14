@@ -1026,39 +1026,39 @@ remaining gaps.
 | 128 | Moved `GET /auth/verify-email` behind `application/identity/verify_email`, a Postgres email-verification token adapter/use case, identity app-data wiring, and a DB-free `http/identity/authentication/verify_email.rs` route; resend-verification remains isolated in the legacy email-verification HTTP file for a later slice. |
 | 129 | Moved `POST /auth/resend-verification` behind `application/identity/resend_verification`, Postgres account lookup/token-rotation adapters, token generation and mock verification-email adapters, identity app-data wiring, and a DB-free HTTP resend handler; privacy-preserving response semantics remain unchanged. |
 | 130 | Moved `POST /auth/register` behind `application/identity/register`, a reusable application password policy, Postgres registration transaction adapter/use case, bcrypt hashing/token generation/mock verification-email adapters, identity app-data wiring, and a DB-free HTTP registration handler with unchanged response semantics. |
+| 131 | Moved `POST /auth/forgot-password` behind `application/identity/request_password_reset`, Postgres account lookup/reset-token adapters, token generation and mock password-reset email adapters, identity app-data wiring, and a DB-free `http/identity/authentication/forgot_password.rs` route; private known/unknown-account response semantics remain unchanged. |
 
 ## Recent Slice Evidence
 
-Slice 130: move registration behind an injected use case.
+Slice 131: move forgot-password behind an injected use case.
 
-- [x] Add `application/identity/register` with command, outcome, error,
-      records, store, password-hasher, token-generator, email-sender, service,
-      and fake-tested handler behavior for password-policy rejection and
-      successful account creation/email delivery.
-- [x] Move the pure password policy from HTTP into
-      `application/identity/password_policy` so registration, password reset,
-      and bootstrap admin validation share the same application rule.
-- [x] Add Postgres registration adapters for the user/authentication/student
-      role/email-verification-token transaction, plus infra-owned bcrypt
-      hashing, token generation, and mock verification-email delivery.
-- [x] Register registration through `bootstrap/identity_wiring` and update the
-      auth-flow test app-data wiring to match production.
-- [x] Rework `POST /auth/register` so HTTP only normalizes email, keeps the
-      existing early blank/weak-password checks, calls the application use
-      case, and maps application errors to the existing response bodies and log
-      events.
-- [x] Self-critique: password-reset request/completion still own DB lookup,
-      token creation, token persistence, token consumption, password hashing,
-      authentication update, privacy-preserving unknown-account logging, and
-      mock email delivery in HTTP; migrate forgot/reset password as the next
-      auth slices.
-- [x] Prove behavior with register application unit tests, focused registration
-      integration contracts for create/duplicate/normalization, the full
-      `authentication_flow` suite, API route reachability, password-policy/lib
-      filters, formatting, line-count checks, `git diff --check`, and boundary
-      scans proving migrated auth HTTP routes are DB-free while the application
-      modules do not import Actix, Diesel, DB pools, repositories, infra,
-      models, services, utils, config, or bcrypt adapters.
+- [x] Add `application/identity/request_password_reset` with command, outcome,
+      error, recipient record, store, token-generator, email-sender, service,
+      and fake-tested handler behavior for unknown-email, known-email, and
+      token-generation-failure paths.
+- [x] Add Postgres request-password-reset adapters for account lookup and reset
+      token storage, plus infra-owned token generation and mock reset-email
+      delivery adapters.
+- [x] Register request-password-reset through `bootstrap/identity_wiring` and
+      update the auth-flow test app-data wiring to match production.
+- [x] Split `POST /auth/forgot-password` into
+      `http/identity/authentication/forgot_password.rs` so the route is
+      DB-free while `POST /auth/reset-password` remains isolated in the legacy
+      password-reset route file for the next slice.
+- [x] Rework `POST /auth/forgot-password` so HTTP only normalizes email,
+      rejects blank email, calls the application use case, keeps
+      privacy-preserving unknown-account logging, and maps application errors
+      to the existing response bodies and log events.
+- [x] Self-critique: `POST /auth/reset-password` still owns token consumption,
+      password hashing, authentication update, DB transaction, and direct
+      Diesel/schema work in HTTP; migrate completion as the next auth slice.
+- [x] Prove behavior with request-password-reset application unit tests,
+      focused password-reset privacy/completion integration coverage, the full
+      `authentication_flow` suite, API route reachability, formatting,
+      line-count checks, `git diff --check`, and boundary scans proving
+      migrated auth HTTP routes are DB-free while the application modules do
+      not import Actix, Diesel, DB pools, repositories, infra, models,
+      services, utils, config, or bcrypt adapters.
 
 ## Legacy Transition Rules
 

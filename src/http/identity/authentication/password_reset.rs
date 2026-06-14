@@ -5,82 +5,15 @@ use diesel::result::Error as DieselError;
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde::Deserialize;
 
-use super::support::{email_log_hash, normalize_email};
 use crate::application::identity::password_policy::validate_password_strength;
 use crate::db;
 use crate::models::password_reset_token::{PasswordResetResult, PasswordResetToken};
-use crate::models::user::User;
-use crate::utils::email::{
-    generate_verification_token, print_mock_password_reset_email, verification_token_hash,
-};
-
-const PASSWORD_RESET_REQUEST_MESSAGE: &str =
-    "If an account matches that email, a password reset link has been sent.";
-
-#[derive(Deserialize)]
-pub(super) struct ForgotPasswordRequest {
-    email: String,
-}
+use crate::utils::email::verification_token_hash;
 
 #[derive(Deserialize)]
 pub(super) struct ResetPasswordRequest {
     token: String,
     password: String,
-}
-
-#[post("/forgot-password")]
-pub(super) async fn forgot_password(
-    pool: web::Data<db::DbPool>,
-    req: web::Json<ForgotPasswordRequest>,
-) -> impl Responder {
-    let email = normalize_email(&req.email);
-    if email.is_empty() {
-        return HttpResponse::BadRequest().body("Email is required");
-    }
-
-    let mut conn = match pool.get().await {
-        Ok(c) => c,
-        Err(_) => return HttpResponse::InternalServerError().body("Failed to get DB connection"),
-    };
-
-    let user = match User::find_by_email(&email, &mut conn).await.optional() {
-        Ok(user) => user,
-        Err(err) => {
-            log::error!("event=password_reset_lookup_failed error={err}");
-            return HttpResponse::InternalServerError().body("Failed to request password reset");
-        }
-    };
-
-    if let Some(user) = user {
-        let reset_token = match generate_verification_token() {
-            Ok(token) => token,
-            Err(err) => {
-                log::error!("event=password_reset_token_generate_failed error={}", err);
-                return HttpResponse::InternalServerError()
-                    .body("Failed to create password reset token");
-            }
-        };
-
-        if let Err(err) = PasswordResetToken::create_for_user(
-            &mut conn,
-            user.id(),
-            verification_token_hash(&reset_token),
-        )
-        .await
-        {
-            log::error!("event=password_reset_token_store_failed error={err}");
-            return HttpResponse::InternalServerError().body("Failed to request password reset");
-        }
-
-        print_mock_password_reset_email(&user.email, &user.name, &reset_token);
-    } else {
-        log::info!(
-            "event=password_reset_requested_unknown_email email_hash={}",
-            email_log_hash(&email)
-        );
-    }
-
-    HttpResponse::Ok().body(PASSWORD_RESET_REQUEST_MESSAGE)
 }
 
 #[post("/reset-password")]

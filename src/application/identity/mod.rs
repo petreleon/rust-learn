@@ -6,6 +6,7 @@ pub mod login;
 pub mod password_policy;
 pub mod ports;
 pub mod register;
+pub mod request_password_reset;
 pub mod resend_verification;
 pub mod user_profile;
 pub mod verify_email;
