@@ -1,6 +1,7 @@
 use bigdecimal::BigDecimal;
 
 use crate::application::rewards::notify_wallet_credit::RewardWalletCreditNotificationError;
+use crate::domain::rewards::candidate::lifecycle;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::models::reward_candidate::RewardCandidate;
 
@@ -50,33 +51,23 @@ fn can_inspect_notification(
     candidate: &RewardCandidate,
     allow_reconciliation_repair: bool,
 ) -> bool {
-    matches!(
-        RewardCandidateStatus::parse(&candidate.status),
-        Ok(RewardCandidateStatus::WalletCredited)
-            | Ok(RewardCandidateStatus::Notified)
-            | Ok(RewardCandidateStatus::Completed)
-            | Ok(RewardCandidateStatus::NeedsReconciliation)
-    ) || (allow_reconciliation_repair
-        && matches!(
-            RewardCandidateStatus::parse(&candidate.status),
-            Ok(RewardCandidateStatus::AmountApproved)
-                | Ok(RewardCandidateStatus::TokenConfirmed)
-                | Ok(RewardCandidateStatus::NeedsReconciliation)
-        ))
+    RewardCandidateStatus::parse(&candidate.status)
+        .map(|status| {
+            lifecycle::can_inspect_wallet_credit_notification(status, allow_reconciliation_repair)
+        })
+        .unwrap_or(false)
 }
 
 fn can_create_missing_notification(
     candidate: &RewardCandidate,
     allow_reconciliation_repair: bool,
 ) -> bool {
-    matches!(
-        RewardCandidateStatus::parse(&candidate.status),
-        Ok(RewardCandidateStatus::WalletCredited)
-    ) || (allow_reconciliation_repair
-        && matches!(
-            RewardCandidateStatus::parse(&candidate.status),
-            Ok(RewardCandidateStatus::AmountApproved)
-                | Ok(RewardCandidateStatus::TokenConfirmed)
-                | Ok(RewardCandidateStatus::NeedsReconciliation)
-        ))
+    RewardCandidateStatus::parse(&candidate.status)
+        .map(|status| {
+            lifecycle::can_create_missing_wallet_credit_notification(
+                status,
+                allow_reconciliation_repair,
+            )
+        })
+        .unwrap_or(false)
 }
