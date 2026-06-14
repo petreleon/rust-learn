@@ -1056,28 +1056,27 @@ remaining gaps.
 | 158 | Moved token-confirmation candidate lookup/status update, payout-record lookup/create, and audit-event insert calls off legacy repositories; `reward_token_confirmation_transaction` now uses rewards-owned candidate, payout, and audit helpers. |
 | 159 | Moved core wallet-credit candidate lookup/status update, wallet-credit record lookup/create, and audit-event insert calls off legacy repositories; `reward_wallet_credit_transaction` now uses rewards-owned candidate, wallet-credit record, and audit helpers. |
 | 160 | Moved wallet-credit notification candidate lookup/status update, wallet-credit record lookup/notification marking, and audit-event insert calls off legacy repositories; `reward_wallet_credit_notification_transaction` now uses rewards-owned candidate, wallet-credit record, and audit helpers. |
+| 161 | Moved reconciliation candidate refreshes, payout-record lookup, and wallet-credit record lookup off legacy repositories; `src/infra/postgres/rewards` no longer imports `crate::repositories`. |
 
 ## Recent Slice Evidence
 
-Slice 160: move reward wallet-credit notification persistence into rewards
-infra.
+Slice 161: finish rewards infra repository-import removal.
 
-- [x] Add wallet-credit record notification marking to the rewards-owned
-      `reward_wallet_credit_records` helper.
-- [x] Update `reward_wallet_credit_notification_transaction` to use
-      rewards-owned candidate, wallet-credit record, and audit helpers instead
-      of legacy repositories.
-- [x] Preserve notification idempotency, missing-notification repair,
-      notification creation, wallet-credit record notification references,
-      notified candidate transition, and audit metadata.
-- [x] Self-critique: reconciliation is now the only remaining reward infra
-      module importing legacy repositories; finish it as the final transaction
-      cluster instead of mixing it into notification work.
+- [x] Update `reward_reconciliation_transaction` to use rewards-owned
+      candidate, payout-record, and wallet-credit record helpers instead of
+      legacy repositories.
+- [x] Preserve reconciliation candidate refreshes after wallet-credit and
+      notification repairs, payout external-link repair, internal-link repair,
+      reconciliation audit behavior, and final status output.
+- [x] Verify `rg -n "crate::repositories|repositories::" src/infra/postgres/rewards`
+      returns no matches.
+- [x] Self-critique: legacy repositories and some legacy services still exist
+      for unmigrated/test paths; the architectural gain here is that migrated
+      rewards infra no longer crosses backward into the repository layer.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo test --test reward_execution`,
       `git diff --check`, line-count checks, and boundary scans proving the
-      wallet-credit notification transaction no longer imports legacy
-      repositories.
+      rewards infra context no longer imports legacy repositories.
 
 ## Legacy Transition Rules
 

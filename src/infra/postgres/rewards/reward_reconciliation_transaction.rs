@@ -3,6 +3,8 @@ use diesel_async::AsyncPgConnection;
 use crate::application::rewards::reconcile_candidate::{
     RewardReconciliation, RewardReconciliationError, RewardReconciliationOutput,
 };
+use crate::infra::postgres::rewards::reward_candidate_records::find_candidate;
+use crate::infra::postgres::rewards::reward_payout_records::find_reward_payout_record_by_candidate;
 use crate::infra::postgres::rewards::reward_reconciliation_audit::{
     create_reconciliation_audit_event, ReconciliationOutcome,
 };
@@ -16,10 +18,7 @@ use crate::infra::postgres::rewards::reward_reconciliation_mappers::{
 use crate::infra::postgres::rewards::reward_reconciliation_validation::{
     ensure_candidate_reconcilable, should_create_reconciliation_wallet_credit,
 };
-use crate::repositories::{
-    reward_candidate_repository, reward_payout_record_repository,
-    reward_wallet_credit_record_repository,
-};
+use crate::infra::postgres::rewards::reward_wallet_credit_records::find_reward_wallet_credit_record_by_candidate;
 
 pub(super) async fn reconcile_reward_candidate(
     conn: &mut AsyncPgConnection,
@@ -34,17 +33,15 @@ async fn reconcile_candidate_transaction(
     conn: &mut AsyncPgConnection,
     reconciliation: RewardReconciliation,
 ) -> Result<RewardReconciliationOutput, RewardReconciliationError> {
-    let mut candidate =
-        reward_candidate_repository::find_candidate(conn, reconciliation.candidate_id)
-            .await
-            .map_err(map_diesel_error)?;
+    let mut candidate = find_candidate(conn, reconciliation.candidate_id)
+        .await
+        .map_err(map_diesel_error)?;
     ensure_candidate_reconcilable(&candidate)?;
     let initial_status = candidate.status.clone();
 
-    let payout_record =
-        reward_payout_record_repository::find_reward_payout_record_by_candidate(conn, candidate.id)
-            .await
-            .map_err(map_diesel_error)?;
+    let payout_record = find_reward_payout_record_by_candidate(conn, candidate.id)
+        .await
+        .map_err(map_diesel_error)?;
     let external_transaction_link_repaired = match payout_record.as_ref() {
         Some(record) => {
             ensure_external_transaction_link(
@@ -57,11 +54,7 @@ async fn reconcile_candidate_transaction(
         None => false,
     };
 
-    let mut credit_record =
-        reward_wallet_credit_record_repository::find_reward_wallet_credit_record_by_candidate(
-            conn,
-            candidate.id,
-        )
+    let mut credit_record = find_reward_wallet_credit_record_by_candidate(conn, candidate.id)
         .await
         .map_err(map_diesel_error)?;
     let mut wallet_credit_created = false;
@@ -76,14 +69,10 @@ async fn reconcile_candidate_transaction(
             .await
             .map_err(map_wallet_credit_error)?
             .credited;
-        candidate = reward_candidate_repository::find_candidate(conn, candidate.id)
+        candidate = find_candidate(conn, candidate.id)
             .await
             .map_err(map_diesel_error)?;
-        credit_record =
-            reward_wallet_credit_record_repository::find_reward_wallet_credit_record_by_candidate(
-                conn,
-                candidate.id,
-            )
+        credit_record = find_reward_wallet_credit_record_by_candidate(conn, candidate.id)
             .await
             .map_err(map_diesel_error)?;
     }
@@ -112,7 +101,7 @@ async fn reconcile_candidate_transaction(
             .await
             .map_err(map_wallet_notification_error)?;
         notification_created = notification_result.notified;
-        candidate = reward_candidate_repository::find_candidate(conn, candidate.id)
+        candidate = find_candidate(conn, candidate.id)
             .await
             .map_err(map_diesel_error)?;
     }
