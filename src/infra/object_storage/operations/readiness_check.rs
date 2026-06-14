@@ -1,7 +1,7 @@
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::operations::ports::ReadinessDependency;
-use crate::utils::s3_utils::S3State;
+use crate::infra::object_storage::S3State;
 
 pub struct S3ReadinessCheck {
     state: S3State,

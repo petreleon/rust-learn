@@ -7,8 +7,8 @@ use crate::application::operations::readiness_check::{
 use crate::db::DbPool;
 use crate::infra::ethereum::operations::readiness_check::EthereumReadinessCheck;
 use crate::infra::object_storage::operations::readiness_check::S3ReadinessCheck;
+use crate::infra::object_storage::S3State;
 use crate::infra::postgres::operations::readiness_check::PostgresReadinessCheck;
-use crate::utils::s3_utils::S3State;
 
 #[derive(Clone)]
 pub struct RuntimeReadinessUseCase {

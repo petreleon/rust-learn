@@ -5,8 +5,8 @@ use crate::application::content::request_upload_url::{
 };
 use crate::db::DbPool;
 use crate::infra::object_storage::content::upload_url_provider::S3ContentUploadUrlProvider;
+use crate::infra::object_storage::S3State;
 use crate::infra::postgres::content::upload_scope_store::PostgresContentUploadScopeStore;
-use crate::utils::s3_utils::S3State;
 
 #[derive(Clone)]
 pub struct PostgresContentUploadUrlUseCase {

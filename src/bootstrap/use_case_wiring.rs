@@ -8,6 +8,7 @@ use crate::bootstrap::organization_wiring::build_organization_use_cases;
 use crate::bootstrap::readiness::RuntimeReadinessUseCase;
 use crate::bootstrap::teacher_application_wiring::build_teacher_application_use_cases;
 use crate::db::DbPool;
+use crate::infra::object_storage::S3State;
 use crate::infra::postgres::content::chapter_use_cases::PostgresChapterUseCases;
 use crate::infra::postgres::content::content_item_use_cases::PostgresContentItemUseCases;
 use crate::infra::postgres::content::media_url_use_case::PostgresContentMediaUrlUseCase;
@@ -56,7 +57,6 @@ use crate::infra::postgres::wallet::wallet_link_use_case::PostgresWalletLinkUseC
 use crate::infra::postgres::wallet::wallet_read_use_case::PostgresWalletReadUseCase;
 use crate::infra::postgres::wallet::wallet_retirement_use_case::PostgresWalletRetirementUseCase;
 use crate::infra::postgres::wallet::wallet_token_tax_use_case::PostgresWalletTokenTaxUseCase;
-use crate::utils::s3_utils::S3State;
 pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
     let kyc_use_cases = build_kyc_use_cases(&pool);
     let organization_use_cases = build_organization_use_cases(&pool);

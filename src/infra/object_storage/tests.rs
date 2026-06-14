@@ -1,4 +1,4 @@
-use super::normalize_internal_s3_host_for_debug;
+use super::state::normalize_internal_s3_host_for_debug;
 
 #[test]
 fn leaves_non_compose_s3_hosts_unchanged() {

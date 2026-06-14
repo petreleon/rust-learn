@@ -1,44 +1,15 @@
+use anyhow::Result;
+use chrono::Utc;
+use std::process::Stdio;
+
+use tokio::fs as tokio_fs;
+use tokio::process::Command as TokioCommand;
+
+use crate::infra::notifications::NotificationsState;
+
+use super::state::S3State;
+
 impl S3State {
-    /// Generate a presigned PUT URL using the external endpoint.
-    pub async fn presign_external_put(
-        &self,
-        bucket: &str,
-        object: &str,
-        expires_seconds: u64,
-    ) -> Result<String> {
-        let host = env::var("S3_EXTERNAL_DOMAIN").unwrap_or_else(|_| "localhost".into());
-        let port = env::var("S3_EXTERNAL_PORT").unwrap_or_else(|_| "9000".into());
-        let scheme = env::var("S3_EXTERNAL_SCHEME").unwrap_or_else(|_| "http".into());
-        let endpoint = format!("{}://{}:{}", scheme, host, port);
-
-        let client = configured_client(endpoint).await;
-        let presign_config = PresigningConfig::builder()
-            .expires_in(Duration::from_secs(expires_seconds))
-            .build()?;
-
-        let url = client
-            .put_object()
-            .bucket(bucket)
-            .key(object)
-            .presigned(presign_config)
-            .await?;
-        Ok(url.uri().to_string())
-    }
-
-    /// Download an object via a presigned GET URL into a local path.
-    async fn download_via_presigned(&self, bucket: &str, object: &str, dst: PathBuf) -> Result<()> {
-        let url = self.presign_get(bucket, object, 60).await?; // short lived
-        let client = ReqwestClient::new();
-        let resp = client.get(&url).send().await?;
-        let bytes = resp.bytes().await?;
-        if let Some(parent) = dst.parent() {
-            tokio_fs::create_dir_all(parent).await?;
-        }
-        let mut f = tokio_fs::File::create(&dst).await?;
-        f.write_all(&bytes).await?;
-        Ok(())
-    }
-
     /// Process a freshly uploaded video: download it, run ffmpeg to transcode
     /// and extract audio, upload the resulting files back to the same bucket
     /// under a `processed/` prefix, and notify the user via `notifications`.
@@ -140,5 +111,3 @@ impl S3State {
         Ok(())
     }
 }
-#[cfg(test)]
-mod tests;

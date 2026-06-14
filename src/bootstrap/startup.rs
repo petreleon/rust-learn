@@ -3,7 +3,7 @@ use crate::bootstrap::contract_startup::deploy_startup_contracts;
 use crate::bootstrap::use_case_wiring::build_app_state;
 use crate::config::db_setup::version_updater;
 use crate::db;
-use crate::utils::s3_utils::S3State;
+use crate::infra::object_storage::S3State;
 
 pub async fn initialize_app_state() -> std::io::Result<AppState> {
     let pool = db::try_establish_connection().map_err(|error| {

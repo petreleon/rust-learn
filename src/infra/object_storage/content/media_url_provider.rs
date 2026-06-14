@@ -2,7 +2,7 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::content::ports::ContentMediaUrlProvider;
 use crate::application::content::request_media_url::ContentMediaUrlError;
-use crate::utils::s3_utils::S3State;
+use crate::infra::object_storage::S3State;
 
 pub struct S3ContentMediaUrlProvider {
     state: Option<S3State>,

@@ -2,7 +2,7 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::content::ports::ContentUploadUrlProvider;
 use crate::application::content::request_upload_url::ContentUploadUrlError;
-use crate::utils::s3_utils::S3State;
+use crate::infra::object_storage::S3State;
 
 pub struct S3ContentUploadUrlProvider {
     state: S3State,

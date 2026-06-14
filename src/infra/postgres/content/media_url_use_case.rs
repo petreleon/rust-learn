@@ -5,8 +5,8 @@ use crate::application::content::request_media_url::{
 };
 use crate::db::DbPool;
 use crate::infra::object_storage::content::media_url_provider::S3ContentMediaUrlProvider;
+use crate::infra::object_storage::S3State;
 use crate::infra::postgres::content::media_object_store::PostgresContentMediaStore;
-use crate::utils::s3_utils::S3State;
 
 #[derive(Clone)]
 pub struct PostgresContentMediaUrlUseCase {

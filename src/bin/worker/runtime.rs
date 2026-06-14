@@ -11,7 +11,7 @@ use tokio::task::JoinHandle;
 
 use rust_learn::bootstrap::worker_runtime as worker_utils;
 use rust_learn::db::DbPool;
-use rust_learn::utils::s3_utils::S3State;
+use rust_learn::infra::object_storage::S3State;
 
 pub fn init_environment() {
     dotenv().ok();

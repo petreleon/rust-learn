@@ -57,7 +57,7 @@ use crate::bootstrap::organization_wiring::OrganizationUseCases;
 use crate::bootstrap::teacher_application_wiring::TeacherApplicationUseCases;
 use crate::db::DbPool;
 use crate::infra::notifications::NotificationsState;
-use crate::utils::s3_utils::S3State;
+use crate::infra::object_storage::S3State;
 
 #[derive(Clone)]
 pub struct AppState {

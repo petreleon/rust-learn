@@ -1110,35 +1110,38 @@ remaining gaps.
 | 212 | Moved Ethereum contract compilation, startup deployment, deployment wallet loading, and contract-address persistence out of `utils::eth` and into `infra/ethereum/operations`; production startup now calls the infra deployer directly while `utils::eth_utils` remains only as a compatibility re-export for existing Ethereum tests and callers. |
 | 213 | Moved JWT signing, verification, JWKS generation, env-backed key loading, and token tests out of `utils::jwt_utils` and into `infra/tokens/jwt`; the identity login issuer now calls the infra token adapter directly while `utils::jwt_utils` remains a compatibility re-export for HTTP middleware, extractors, and existing tests. |
 | 214 | Moved notification message construction, DB-backed notification state, senders, mutations, and tests out of include-based `utils::notifications` and into explicit `infra/notifications` modules; bootstrap, worker, infra adapters, and S3 processing now call the infra owner directly while `utils::notifications` remains a compatibility re-export for route handlers and existing tests. |
+| 215 | Moved S3 client state, object-storage client operations, presigned URL/download helpers, video-processing helpers, and S3 tests out of include-based `utils::s3_utils` and into explicit `infra/object_storage` modules; bootstrap, worker, content/object-storage infra, and content Postgres use cases now call the infra owner while `utils::s3_utils` remains a compatibility re-export for existing integration tests. |
 
 ## Recent Slice Evidence
 
-Slice 214: move notification adapter ownership to infra.
+Slice 215: move object-storage adapter ownership to infra.
 
-- [x] Move notification message builders, `NotificationsState`, sender methods,
-      mutation helpers, teacher-application notification formatting, and tests
-      from `src/utils/notifications/*` into normal `src/infra/notifications/*`
-      modules.
-- [x] Replace the old include-based utility shell with explicit modules:
-      `messages`, `state`, `senders`, `mutations`, and `teacher_application`.
-- [x] Update bootstrap, worker, infra Postgres adapters, reward fraud-block
-      bulk notifications, and S3 video processing to import
-      `infra::notifications` directly.
-- [x] Keep `utils::notifications` as a compatibility re-export for HTTP route
-      handlers and integration tests that still fetch notification app data
-      through the legacy utility path.
-- [x] Self-critique: HTTP content/learning/organization handlers still accept
-      concrete `NotificationsState` app data through the compatibility path.
-      Later route-boundary slices should move those best-effort notification
-      sends behind application ports or bootstrap-wired context services.
+- [x] Move `S3State`, internal/external endpoint setup, bucket/object
+      operations, presigned URL/download helpers, video-processing helpers, and
+      object-storage tests out of `src/utils/s3_utils/*` and into explicit
+      `src/infra/object_storage/*` modules.
+- [x] Replace the old include-based utility shell with granular modules:
+      `state`, `client`, `presigned_urls`, `video_processing`, plus existing
+      `content` and `operations` children.
+- [x] Update bootstrap, worker, object-storage content/operations adapters, and
+      content Postgres use cases to import `infra::object_storage::S3State`
+      directly.
+- [x] Keep `utils::s3_utils` as a one-line compatibility re-export for existing
+      integration tests that still construct S3 state through the legacy path.
+- [x] Self-critique: `process_uploaded_video` still depends directly on
+      `infra::notifications::NotificationsState`; a later content/worker
+      application slice should put video-processing notification fan-out behind
+      a port. Integration tests also still exercise the compatibility path until
+      their fixtures are migrated to `infra::object_storage`.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib notifications`,
+      `./scripts/run-host-tests.sh cargo test --lib object_storage`,
+      `./scripts/run-host-tests.sh cargo check --bin worker --features worker-bin`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing `infra/notifications` has no
-      `include!`/`imports.rs` and non-HTTP production callers use
-      `infra::notifications`, and backend ring scans showing no
-      `include!`/`imports.rs`.
+      `git diff --check`, scans showing backend rings have no
+      `include!`/`imports.rs`, scans showing production callers no longer use
+      `utils::s3_utils`, and file-size checks keeping changed Rust files under
+      the manual 180-line ceiling.
 
 ## Legacy Transition Rules
 
