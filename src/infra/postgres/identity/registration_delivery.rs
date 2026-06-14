@@ -2,14 +2,13 @@ use crate::application::identity::register::{
     RegisterError, RegistrationEmailSender, RegistrationTokenGenerator,
 };
 use crate::infra::email::identity::print_mock_verification_email;
-use crate::utils::email::generate_verification_token;
+use crate::infra::tokens::identity::generate_identity_token;
 
 pub struct GeneratedRegistrationToken;
 
 impl RegistrationTokenGenerator for GeneratedRegistrationToken {
     fn generate_token(&self) -> Result<String, RegisterError> {
-        generate_verification_token()
-            .map_err(|error| RegisterError::TokenGeneration(error.to_string()))
+        generate_identity_token().map_err(|error| RegisterError::TokenGeneration(error.to_string()))
     }
 }
 

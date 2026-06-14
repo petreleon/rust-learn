@@ -23,7 +23,7 @@ use rust_learn::infra::postgres::identity::request_password_reset_use_case::Post
 use rust_learn::infra::postgres::identity::reset_password_use_case::PostgresResetPasswordUseCase;
 use rust_learn::infra::postgres::identity::resend_verification_use_case::PostgresResendVerificationUseCase;
 use rust_learn::infra::postgres::identity::verify_email_use_case::PostgresVerifyEmailUseCase;
-use rust_learn::utils::email::verification_token_hash;
+use rust_learn::infra::tokens::identity::identity_token_hash;
 use rust_learn::utils::jwt_utils::decode_jwt;
 use std::sync::Arc;
 

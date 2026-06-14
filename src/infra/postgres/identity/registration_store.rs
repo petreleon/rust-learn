@@ -6,12 +6,12 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::register::{
     RegisterError, RegisterStore, RegisteredUser, RegistrationAccount,
 };
+use crate::infra::tokens::identity::identity_token_hash;
 use crate::models::authentication::Authentication;
 use crate::models::email_verification_token::EmailVerificationToken;
 use crate::models::role::PlatformRole;
 use crate::models::user::{NewUser, User};
 use crate::models::user_role_platform::UserRolePlatform;
-use crate::utils::email::verification_token_hash;
 
 const DEFAULT_REGISTRATION_ROLE: &str = "STUDENT";
 const PASSWORD_AUTH_TYPE: &str = "password";
@@ -42,7 +42,7 @@ impl RegisterStore for PostgresRegistrationStore<'_> {
                 kyc_verified: false,
                 email_verified: false,
             };
-            let token_hash = verification_token_hash(&verification_token);
+            let token_hash = identity_token_hash(&verification_token);
 
             self.conn
                 .transaction::<_, DieselError, _>(|conn| {

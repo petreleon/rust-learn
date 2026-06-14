@@ -21,7 +21,7 @@ async fn verify_email_marks_user_verified_and_reports_already_verified_replay() 
         .expect("test should mark user unverified");
 
     let token = unique_token("verify-email-valid-token");
-    EmailVerificationToken::create_for_user(&mut conn, user.id(), verification_token_hash(&token))
+    EmailVerificationToken::create_for_user(&mut conn, user.id(), identity_token_hash(&token))
         .await
         .expect("failed to create verification token");
     drop(conn);

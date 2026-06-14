@@ -2,13 +2,13 @@ use crate::application::identity::resend_verification::{
     ResendVerificationError, VerificationEmailSender, VerificationTokenGenerator,
 };
 use crate::infra::email::identity::print_mock_verification_email;
-use crate::utils::email::generate_verification_token;
+use crate::infra::tokens::identity::generate_identity_token;
 
 pub struct GeneratedVerificationToken;
 
 impl VerificationTokenGenerator for GeneratedVerificationToken {
     fn generate_token(&self) -> Result<String, ResendVerificationError> {
-        generate_verification_token()
+        generate_identity_token()
             .map_err(|error| ResendVerificationError::TokenGeneration(error.to_string()))
     }
 }

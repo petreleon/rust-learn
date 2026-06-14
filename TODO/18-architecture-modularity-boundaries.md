@@ -1030,30 +1030,35 @@ remaining gaps.
 | 132 | Moved `POST /auth/reset-password` behind `application/identity/reset_password`, a Postgres reset-token consumption/password-update transaction adapter/use case, bcrypt reset-password hashing adapter, identity app-data wiring, and a DB-free HTTP completion handler; missing/invalid/expired token and successful password-update responses remain unchanged. |
 | 133 | Moved auth email normalization and privacy log hashing from `http/identity/authentication/support.rs` into `application/identity/email`, deleted the HTTP support module, and updated migrated auth routes to import identity email vocabulary without reaching into `utils::email`. |
 | 134 | Moved identity mock email URL building, rendering, and printing from `utils::email` into `infra/email/identity`, wired registration/resend-verification/password-reset request delivery adapters to the email infra module, and updated the `mock_email` helper binary; `utils::email` now contains only token generation/hash helpers. |
+| 135 | Moved identity token generation and hashing from `utils::email` into `infra/tokens/identity`, updated identity Postgres adapters and auth-flow token seeding to use the token infra module, removed `utils::email` from the utility module tree, and deleted the old utility file. |
 
 ## Recent Slice Evidence
 
-Slice 134: move identity mock email delivery into infra/email.
+Slice 135: move identity token helpers into infra/tokens.
 
-- [x] Add `infra/email/identity` with verification/password-reset public URL
-      construction, mock email rendering, and terminal mock email printing.
-- [x] Move URL/default-base and mock email rendering tests from `utils::email`
-      into the infra email module, including password-reset mock email
-      coverage.
-- [x] Update registration, resend-verification, and password-reset request
-      delivery adapters to import mock email delivery from `infra/email` while
-      keeping token generation as the only remaining `utils::email` dependency
-      in those delivery adapters.
-- [x] Update the `mock_email` helper binary to use the infra email module.
-- [x] Self-critique: `utils::email` is now narrowed to token generation and
-      token hashing, but identity Postgres adapters and auth-flow tests still
-      import those helpers directly; split token generation/hash into clearer
-      token infra/shared boundaries next.
-- [x] Prove behavior with infra email unit tests, token utility unit tests,
-      `mock_email` binary check, the full `authentication_flow` suite, API
-      route reachability, formatting, line-count checks, `git diff --check`,
-      and boundary scans proving mock email rendering/URL builders no longer
-      live in or import from `utils::email`.
+- [x] Add `infra/tokens/identity` with URL-safe random identity token
+      generation and SHA-256 URL-safe token hashing, plus focused unit tests for
+      token shape and hash stability.
+- [x] Update registration, resend-verification, password-reset request,
+      verify-email, and reset-password Postgres adapters to use
+      `infra::tokens::identity` instead of `utils::email`.
+- [x] Update auth-flow token seeding tests to use the token infra module.
+- [x] Remove `utils::email` from `utils::mod` and delete the old utility file,
+      leaving identity email/token responsibilities out of the generic utility
+      bucket.
+- [x] Self-critique: migrated identity auth now has route logic in HTTP,
+      use-case behavior in application, DB/token hashing in Postgres infra,
+      mock email rendering in email infra, and token generation in token infra;
+      remaining cleanup should move legacy token persistence behavior off
+      Active Record-style `models::*` methods into repository/adapters owned by
+      `infra/postgres/identity`.
+- [x] Prove behavior with token infra unit tests, focused verify-email and
+      password-reset integration coverage, the full `authentication_flow`
+      suite, API route reachability, `mock_email` binary check, formatting,
+      line-count checks, `git diff --check`, and boundary scans proving no
+      `utils::email`, `generate_verification_token`, or
+      `verification_token_hash` references remain outside historical TODO
+      notes.
 
 ## Legacy Transition Rules
 

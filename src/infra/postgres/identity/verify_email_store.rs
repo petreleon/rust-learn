@@ -3,8 +3,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::verify_email::{
     VerifyEmailError, VerifyEmailOutcome, VerifyEmailStore,
 };
+use crate::infra::tokens::identity::identity_token_hash;
 use crate::models::email_verification_token::{EmailVerificationResult, EmailVerificationToken};
-use crate::utils::email::verification_token_hash;
 
 pub struct PostgresVerifyEmailStore<'conn> {
     conn: &'conn mut diesel_async::AsyncPgConnection,
@@ -22,7 +22,7 @@ impl VerifyEmailStore for PostgresVerifyEmailStore<'_> {
         token: String,
     ) -> BoxFuture<'_, Result<VerifyEmailOutcome, VerifyEmailError>> {
         async move {
-            let token_hash = verification_token_hash(&token);
+            let token_hash = identity_token_hash(&token);
             EmailVerificationToken::verify(self.conn, &token_hash)
                 .await
                 .map(map_outcome)

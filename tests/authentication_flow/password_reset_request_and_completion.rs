@@ -54,7 +54,7 @@ async fn password_reset_request_is_private_and_completion_is_one_time() {
     assert_eq!(active_tokens, 1);
 
     let reset_token = unique_token("reset-token");
-    PasswordResetToken::create_for_user(&mut conn, user.id(), verification_token_hash(&reset_token))
+    PasswordResetToken::create_for_user(&mut conn, user.id(), identity_token_hash(&reset_token))
         .await
         .expect("test should create reset token");
 
@@ -148,13 +148,13 @@ async fn reset_password_rejects_missing_invalid_and_expired_tokens() {
     PasswordResetToken::create_for_user(
         &mut conn,
         user.id(),
-        verification_token_hash(&expired_token),
+        identity_token_hash(&expired_token),
     )
     .await
     .expect("test should create reset token");
     diesel::update(
         password_reset_tokens::table.filter(
-            password_reset_tokens::token_hash.eq(verification_token_hash(&expired_token)),
+            password_reset_tokens::token_hash.eq(identity_token_hash(&expired_token)),
         ),
     )
     .set(password_reset_tokens::expires_at.eq(chrono::Utc::now().naive_utc()))

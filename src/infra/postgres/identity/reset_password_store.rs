@@ -6,8 +6,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::reset_password::{
     ResetPasswordError, ResetPasswordOutcome, ResetPasswordStore,
 };
+use crate::infra::tokens::identity::identity_token_hash;
 use crate::models::password_reset_token::{PasswordResetResult, PasswordResetToken};
-use crate::utils::email::verification_token_hash;
 
 const PASSWORD_AUTH_TYPE: &str = "password";
 
@@ -28,7 +28,7 @@ impl ResetPasswordStore for PostgresResetPasswordStore<'_> {
         password_hash: String,
     ) -> BoxFuture<'_, Result<ResetPasswordOutcome, ResetPasswordError>> {
         async move {
-            let token_hash = verification_token_hash(&token);
+            let token_hash = identity_token_hash(&token);
             self.conn
                 .transaction::<_, DieselError, _>(|conn| {
                     Box::pin(async move {

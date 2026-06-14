@@ -2,13 +2,13 @@ use crate::application::identity::request_password_reset::{
     PasswordResetEmailSender, PasswordResetTokenGenerator, RequestPasswordResetError,
 };
 use crate::infra::email::identity::print_mock_password_reset_email;
-use crate::utils::email::generate_verification_token;
+use crate::infra::tokens::identity::generate_identity_token;
 
 pub struct GeneratedPasswordResetToken;
 
 impl PasswordResetTokenGenerator for GeneratedPasswordResetToken {
     fn generate_token(&self) -> Result<String, RequestPasswordResetError> {
-        generate_verification_token()
+        generate_identity_token()
             .map_err(|error| RequestPasswordResetError::TokenGeneration(error.to_string()))
     }
 }

@@ -5,7 +5,6 @@ pub mod jwt_utils;
 pub mod logging;
 // pub mod db_utils;
 pub mod course_utils;
-pub mod email;
 pub mod eth;
 pub mod request_auth;
 pub use eth as eth_utils;
