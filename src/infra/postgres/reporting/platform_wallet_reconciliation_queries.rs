@@ -9,6 +9,7 @@ use crate::db::schema::wallets;
 use crate::infra::postgres::reporting::platform_wallet_reconciliation_counts::{
     wallet_reconciliation_counts, WalletReconciliationCounts,
 };
+use crate::infra::postgres::reporting::platform_wallet_reconciliation_mappers::map_diesel_error;
 use crate::models::wallet::Wallet;
 
 pub(super) async fn load_platform_wallet_reconciliation(
@@ -67,8 +68,4 @@ fn wallet_reconciliation_row(
         missing_notification_count: counts.missing_notification_count,
         missing_payout_count: counts.missing_payout_count,
     }
-}
-
-pub(super) fn map_diesel_error(error: diesel::result::Error) -> PlatformWalletReconciliationError {
-    PlatformWalletReconciliationError::Database(error.to_string())
 }

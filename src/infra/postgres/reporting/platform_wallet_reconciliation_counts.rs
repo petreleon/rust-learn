@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
@@ -11,6 +9,8 @@ use crate::db::schema::{
     internal_transactions, reward_candidates, reward_payout_records, reward_wallet_credit_records,
 };
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::infra::postgres::reporting::platform_wallet_reconciliation_candidate_ids::reward_candidate_ids;
+use crate::infra::postgres::reporting::platform_wallet_reconciliation_mappers::map_diesel_error;
 use crate::infra::postgres::reporting::platform_wallet_reconciliation_missing::{
     count_missing_notifications, count_missing_payouts,
 };
@@ -53,51 +53,6 @@ pub(super) async fn wallet_reconciliation_counts(
         missing_notification_count: count_missing_notifications(conn, &candidate_ids).await?,
         missing_payout_count: count_missing_payouts(conn, &candidate_ids).await?,
     })
-}
-
-async fn reward_candidate_ids(
-    conn: &mut AsyncPgConnection,
-    wallet: &Wallet,
-) -> Result<Vec<i64>, PlatformWalletReconciliationError> {
-    let credit_candidate_ids: Vec<i64> = reward_wallet_credit_records::table
-        .filter(reward_wallet_credit_records::wallet_id.eq(wallet.id))
-        .select(reward_wallet_credit_records::reward_candidate_id)
-        .load(conn)
-        .await
-        .map_err(map_diesel_error)?;
-
-    let mut candidate_ids: HashSet<i64> = credit_candidate_ids.into_iter().collect();
-    if let Some(user_id) = wallet.user_id {
-        candidate_ids.extend(candidate_ids_for_user(conn, user_id).await?);
-    }
-    if let Some(organization_id) = wallet.organization_id {
-        candidate_ids.extend(candidate_ids_for_organization(conn, organization_id).await?);
-    }
-    Ok(candidate_ids.into_iter().collect())
-}
-
-async fn candidate_ids_for_user(
-    conn: &mut AsyncPgConnection,
-    user_id: i32,
-) -> Result<Vec<i64>, PlatformWalletReconciliationError> {
-    reward_candidates::table
-        .filter(reward_candidates::student_user_id.eq(user_id))
-        .select(reward_candidates::id)
-        .load::<i64>(conn)
-        .await
-        .map_err(map_diesel_error)
-}
-
-async fn candidate_ids_for_organization(
-    conn: &mut AsyncPgConnection,
-    organization_id: i32,
-) -> Result<Vec<i64>, PlatformWalletReconciliationError> {
-    reward_candidates::table
-        .filter(reward_candidates::source_organization_id.eq(organization_id))
-        .select(reward_candidates::id)
-        .load::<i64>(conn)
-        .await
-        .map_err(map_diesel_error)
 }
 
 async fn count_payout_records(
@@ -163,8 +118,4 @@ pub(super) fn status_keys<const N: usize>(
         .into_iter()
         .map(RewardCandidateStatus::as_str)
         .collect()
-}
-
-pub(super) fn map_diesel_error(error: diesel::result::Error) -> PlatformWalletReconciliationError {
-    PlatformWalletReconciliationError::Database(error.to_string())
 }

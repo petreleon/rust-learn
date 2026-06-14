@@ -1146,27 +1146,30 @@ remaining gaps.
 | 248 | Moved teacher course-dashboard reward queue status bucketing into the teacher dashboard application layer, leaving Postgres to group candidate status rows and pass typed reward statuses. |
 | 249 | Moved per-student teacher reward progress status bucketing into the teacher-students application layer, leaving Postgres to group candidate status rows and pass typed reward statuses. |
 | 250 | Moved platform wallet-reconciliation reward status sets into the reporting application layer, leaving Postgres to translate typed statuses into SQL filters for missing-record counts. |
+| 251 | Split platform wallet-reconciliation candidate-id resolution into a dedicated Postgres helper and shared mapper, leaving the count adapter focused on aggregation and application-owned status-set filters. |
 
 ## Recent Slice Evidence
 
-Slice 250: move platform wallet-reconciliation status sets to application.
+Slice 251: split platform wallet-reconciliation candidate-id resolution.
 
-- [x] Add wallet reconciliation status-set helpers under
-      `application/reporting/platform_wallet_reconciliation` for
-      needs-reconciliation, missing credit records, missing notification
-      records, and missing payout records.
-- [x] Repoint the Postgres wallet reconciliation count/missing-record adapters
-      to convert those typed `RewardCandidateStatus` sets into SQL status
-      filters instead of importing raw reward status constants.
-- [x] Preserve query behavior by keeping the same candidate status sets:
-      `NeedsReconciliation`, `WalletCredited/Notified/Completed`,
-      `Notified/Completed`, and `TokenConfirmed`.
-- [x] Cover the status-set helpers with pure application tests.
-- [x] Self-critique: this removes raw reward status constants from the wallet
-      reconciliation count filters, but `platform_wallet_reconciliation_counts`
-      is now 170 lines and should be split before it grows again.
+- [x] Add `infra/postgres/reporting/platform_wallet_reconciliation_candidate_ids`
+      as the Postgres owner for resolving wallet-related reward candidate IDs
+      from wallet credit records, user wallets, and organization wallets.
+- [x] Add `platform_wallet_reconciliation_mappers` so candidate, count, missing
+      record, and wallet-list query modules share one Diesel-to-application
+      error translation instead of borrowing helpers from each other.
+- [x] Repoint `platform_wallet_reconciliation_counts` to call the candidate-ID
+      helper, keeping that adapter focused on aggregation counts and
+      application-owned status-set filters.
+- [x] Reduce `platform_wallet_reconciliation_counts` from 170 to 121 lines and
+      keep the new helper at 54 lines, preserving the repo's manual Rust file
+      size margin before future reconciliation work.
+- [x] Preserve query behavior: the same wallet credit, student user, and source
+      organization candidate sources are unioned through a `HashSet`.
+- [x] Self-critique: this is an infra granularity and file-pressure cleanup, not
+      a new business-rule extraction; the next slice should resume moving raw
+      reward/reporting status decisions out of Postgres query modules.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib platform_wallet_reconciliation::status_sets`,
       `./scripts/run-host-tests.sh cargo test --test reporting_exports platform_csv_exports_cover_business_reward_datasets`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
