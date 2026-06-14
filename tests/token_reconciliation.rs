@@ -2,7 +2,7 @@ use bigdecimal::BigDecimal;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use rust_learn::db::schema::{external_transactions, transactions};
-use rust_learn::services::token_reconciliation::{
+use rust_learn::infra::postgres::wallet::token_reconciliation_records::{
     record_token_event, ObservedTokenEvent, TokenEventKind,
 };
 

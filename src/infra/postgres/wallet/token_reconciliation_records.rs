@@ -131,4 +131,5 @@ pub fn record_token_event(
 }
 
 #[cfg(test)]
+#[path = "token_reconciliation_records_tests.rs"]
 mod tests;

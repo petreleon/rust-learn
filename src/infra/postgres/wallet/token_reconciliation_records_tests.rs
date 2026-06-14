@@ -1,5 +1,6 @@
-use super::{validate_observed_event, ObservedTokenEvent, TokenEventKind};
 use bigdecimal::BigDecimal;
+
+use super::{validate_observed_event, ObservedTokenEvent, TokenEventKind};
 
 fn valid_event() -> ObservedTokenEvent {
     ObservedTokenEvent {

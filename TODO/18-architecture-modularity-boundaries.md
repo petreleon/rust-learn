@@ -1097,32 +1097,35 @@ remaining gaps.
 | 199 | Deleted the now-unused legacy `course_service` compatibility module after code search proved all course discovery, learner catalog/detail/learning/progress, teacher dashboard, enrollment, lifecycle, creation, update, and organization-course routes compile and run through Level 2 application/infra/http modules instead. |
 | 200 | Deleted the now-unused legacy `organization_service` compatibility module after code search proved organization CRUD, member list/invite/role/removal/audit, dashboard, course list, and teacher-application tracking flows compile and run through Level 2 application/infra/http modules instead. |
 | 201 | Deleted the now-unused legacy `reward_execution_service` compatibility module after reward execution tests were switched to application reward use-case helpers and domain payout constants, proving payout planning, token confirmation, wallet credit, notification, and reconciliation run through Level 2 rewards modules. |
+| 202 | Moved token reconciliation recording out of the legacy services layer and into `infra/postgres/wallet/token_reconciliation_records`; the integration test now imports the wallet Postgres record adapter directly and the legacy `token_reconciliation` service module was deleted. |
 
 ## Recent Slice Evidence
 
-Slice 201: delete the migrated reward execution legacy service.
+Slice 202: move token reconciliation records into wallet infra.
 
-- [x] Delete `src/services/reward_execution_service.rs` and its child modules
-      after code search showed no production references and tests were already
-      exercising Level 2 reward execution use-case adapters.
-- [x] Replace the remaining test import of `reward_execution_service` with
-      direct application/domain names: `RewardTokenConfirmationCommand` from
-      `application/rewards/record_token_confirmation` and payout method
-      constants from `domain/rewards/payout`.
-- [x] Keep reward execution behavior owned by existing Level 2 surfaces:
-      `application/rewards/{plan_payout,record_token_confirmation,credit_wallet,
-      notify_wallet_credit,reconcile_candidate}` and matching
-      `infra/postgres/rewards/*_use_case` adapters.
-- [x] Self-critique: this removes a thin compatibility wrapper over migrated
-      reward execution use cases, but reward candidate submission still has a
-      legacy service used by integration tests. The next rewards slice should
-      either switch those tests to `application/rewards/submit_candidate` or
-      prove which compatibility behavior still lacks a Level 2 owner.
+- [x] Move the sync Diesel token event reconciliation helper from
+      `src/services/token_reconciliation.rs` to
+      `src/infra/postgres/wallet/token_reconciliation_records.rs`.
+- [x] Keep `ObservedTokenEvent`, `TokenEventKind`,
+      `TokenReconciliationRecord`, validation, and idempotent
+      transaction/external-transaction linking behavior intact while placing
+      the persistence code in the Postgres wallet adapter ring.
+- [x] Move the helper unit tests into `token_reconciliation_records_tests.rs`
+      so the production adapter file stays under the 180-line limit.
+- [x] Update `tests/token_reconciliation.rs` to import the wallet infra adapter
+      directly and delete the legacy `services::token_reconciliation` export.
+- [x] Self-critique: this is still a low-level record adapter rather than a full
+      application use case; it is acceptable as a narrow infra cleanup because
+      no HTTP/application caller depended on it. If token reconciliation becomes
+      product-facing, add an `application/wallet` or `application/operations`
+      use case before exposing it.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --test reward_execution`,
+      `./scripts/run-host-tests.sh cargo test --lib token_reconciliation_records`,
+      `./scripts/run-host-tests.sh cargo test --test token_reconciliation`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      and code-reference scans showing `reward_execution_service` exists only in
-      TODO history after the deletion.
+      `git diff --check`, reference scans showing no
+      `services::token_reconciliation`, and backend ring scans showing no
+      `include!`/`imports.rs`.
 
 ## Legacy Transition Rules
 
