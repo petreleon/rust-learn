@@ -1,3 +1,6 @@
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::learning::create_course::{
     CourseCreationCommand, CourseCreationError, CourseCreationOutput, CourseCreationStore,
 };
@@ -8,8 +11,13 @@ pub async fn create_course(
     store: &mut impl CourseCreationStore,
     command: CourseCreationCommand,
 ) -> Result<CourseCreationOutput, CourseCreationError> {
+    let actor = AccessActor::user(command.actor_user_id);
     if !store
-        .has_platform_permission(command.actor_user_id, CREATE_COURSE)
+        .can(
+            actor,
+            AccessAction::permission(CREATE_COURSE),
+            AccessScope::platform(),
+        )
         .await?
         && !has_owner_organization_permission(store, &command).await?
     {
@@ -32,6 +40,10 @@ async fn has_owner_organization_permission(
     };
 
     store
-        .has_organization_permission(command.actor_user_id, *owner_organization_id, CREATE_COURSE)
+        .can(
+            AccessActor::user(command.actor_user_id),
+            AccessAction::permission(CREATE_COURSE),
+            AccessScope::organization(*owner_organization_id),
+        )
         .await
 }

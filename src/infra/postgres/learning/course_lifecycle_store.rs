@@ -2,6 +2,9 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::learning::update_course_lifecycle::{
     CourseLifecycleError, CourseLifecycleOutput, CourseLifecycleStore,
 };
@@ -20,40 +23,6 @@ impl<'conn> PostgresCourseLifecycleStore<'conn> {
 }
 
 impl CourseLifecycleStore for PostgresCourseLifecycleStore<'_> {
-    fn has_course_permission(
-        &mut self,
-        actor_user_id: i32,
-        course_id: i32,
-        permission: &str,
-    ) -> BoxFuture<'_, Result<bool, CourseLifecycleError>> {
-        let permission = permission.to_string();
-        async move {
-            permission_checks::can_course_permission(
-                self.conn,
-                actor_user_id,
-                course_id,
-                &permission,
-            )
-            .await
-            .map_err(map_lifecycle_error)
-        }
-        .boxed()
-    }
-
-    fn has_platform_permission(
-        &mut self,
-        actor_user_id: i32,
-        permission: &str,
-    ) -> BoxFuture<'_, Result<bool, CourseLifecycleError>> {
-        let permission = permission.to_string();
-        async move {
-            permission_checks::can_platform_permission(self.conn, actor_user_id, &permission)
-                .await
-                .map_err(map_lifecycle_error)
-        }
-        .boxed()
-    }
-
     fn update_status(
         &mut self,
         course_id: i32,
@@ -65,6 +34,24 @@ impl CourseLifecycleStore for PostgresCourseLifecycleStore<'_> {
                 .get_result::<Course>(self.conn)
                 .await
                 .map(course_lifecycle_output_from_model)
+                .map_err(map_lifecycle_error)
+        }
+        .boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresCourseLifecycleStore<'_> {
+    type Error = CourseLifecycleError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, CourseLifecycleError>> {
+        async move {
+            permission_checks::can(self.conn, actor, action, scope)
+                .await
                 .map_err(map_lifecycle_error)
         }
         .boxed()

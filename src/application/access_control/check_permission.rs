@@ -2,7 +2,6 @@ use futures::future::BoxFuture;
 use std::sync::Arc;
 
 pub type AccessDecisionService = Arc<dyn AccessDecisionUseCase + Send + Sync>;
-pub type PermissionCheckService = AccessDecisionService;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AccessActor {
@@ -100,8 +99,6 @@ pub enum AccessDecisionError {
     Query(String),
 }
 
-pub type PermissionCheckError = AccessDecisionError;
-
 pub trait AccessDecisionUseCase {
     fn can(
         &self,
@@ -111,22 +108,16 @@ pub trait AccessDecisionUseCase {
     ) -> BoxFuture<'_, Result<bool, AccessDecisionError>>;
 }
 
-pub trait PermissionCheckUseCase: AccessDecisionUseCase {
-    fn has_permission(
-        &self,
-        actor_user_id: i32,
-        scope: AccessScope,
-        permission: String,
-    ) -> BoxFuture<'_, Result<bool, AccessDecisionError>> {
-        self.can(
-            AccessActor::user(actor_user_id),
-            AccessAction::permission(permission),
-            scope,
-        )
-    }
-}
+pub trait AccessDecisionStore {
+    type Error;
 
-impl<T> PermissionCheckUseCase for T where T: AccessDecisionUseCase + ?Sized {}
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, Self::Error>>;
+}
 
 #[cfg(test)]
 mod tests {
@@ -157,15 +148,15 @@ mod tests {
     }
 
     #[test]
-    fn legacy_permission_check_delegates_to_can_decision() {
+    fn access_decision_use_case_captures_actor_action_and_scope() {
         let use_case = FakeDecisionUseCase {
             calls: Mutex::new(Vec::new()),
         };
 
-        let allowed = futures::executor::block_on(use_case.has_permission(
-            7,
+        let allowed = futures::executor::block_on(use_case.can(
+            AccessActor::user(7),
+            AccessAction::permission("VIEW_REPORT"),
             AccessScope::platform(),
-            "VIEW_REPORT".to_string(),
         ))
         .unwrap();
 

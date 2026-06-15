@@ -1,3 +1,6 @@
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::learning::learner_progress::{
     LearnerProgressError, LearnerProgressOutput, LearnerProgressStore, ProgressCourse,
     SaveLearnerProgressCommand,
@@ -65,14 +68,22 @@ async fn course_visible_to_learner(
         return Ok(true);
     }
     if store
-        .has_course_permission(actor_user_id, course.id, VIEW_COURSE)
+        .can(
+            AccessActor::user(actor_user_id),
+            AccessAction::permission(VIEW_COURSE),
+            AccessScope::course(course.id),
+        )
         .await?
     {
         return Ok(true);
     }
     for organization_id in store.course_organization_ids(course.id).await? {
         if store
-            .has_organization_permission(actor_user_id, organization_id, VIEW_COURSE)
+            .can(
+                AccessActor::user(actor_user_id),
+                AccessAction::permission(VIEW_COURSE),
+                AccessScope::organization(organization_id),
+            )
             .await?
         {
             return Ok(true);

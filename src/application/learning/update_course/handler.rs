@@ -1,3 +1,6 @@
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::learning::update_course::{
     CourseUpdateCommand, CourseUpdateError, CourseUpdateOutput, CourseUpdateStore,
 };
@@ -9,15 +12,20 @@ pub async fn update_course(
     store: &mut impl CourseUpdateStore,
     command: CourseUpdateCommand,
 ) -> Result<CourseUpdateOutput, CourseUpdateError> {
+    let actor = AccessActor::user(command.actor_user_id);
     if !store
-        .has_course_permission(
-            command.actor_user_id,
-            command.course_id,
-            MANAGE_COURSE_SETTINGS,
+        .can(
+            actor,
+            AccessAction::permission(MANAGE_COURSE_SETTINGS),
+            AccessScope::course(command.course_id),
         )
         .await?
         && !store
-            .has_platform_permission(command.actor_user_id, MODIFY_COURSE)
+            .can(
+                actor,
+                AccessAction::permission(MODIFY_COURSE),
+                AccessScope::platform(),
+            )
             .await?
     {
         return Err(CourseUpdateError::PermissionDenied(

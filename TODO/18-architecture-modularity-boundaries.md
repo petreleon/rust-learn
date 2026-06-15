@@ -1744,6 +1744,45 @@ Batch 307: route remaining Postgres permission adapters through `can(...)`.
       application ports themselves still have context-specific method names, so
       the final service-contract cleanup remains open.
 
+Batch 308: move learning authorization ports to access decisions.
+
+- [x] Added a mutable `AccessDecisionStore` port with an associated error to
+      `application/access_control`, giving transactional application stores the
+      same `can(actor, action, scope)` vocabulary as route middleware.
+- [x] Removed the legacy `PermissionCheckService`,
+      `PermissionCheckUseCase`, and `PermissionCheckError` compatibility
+      bridge now that bootstrap, middleware, and moved application paths use
+      access-decision names directly.
+- [x] Repointed course creation, course update, course lifecycle, and learner
+      progress application store ports away from context-specific
+      `has_platform_permission`, `has_course_permission`, and
+      `has_organization_permission` methods and onto the shared
+      `AccessDecisionStore` contract.
+- [x] Repointed the matching learning handlers and fake stores to build
+      typed `AccessActor`, `AccessAction`, and `AccessScope` decisions at the
+      application boundary while preserving each use case's error type.
+- [x] Repointed the matching Postgres learning adapters to implement
+      `AccessDecisionStore` through `permission_checks::can`, keeping raw
+      permission-query details behind the infra access-control adapter.
+- [x] Proved behavior and boundaries with `cargo fmt --all`,
+      `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib learning::create_course`,
+      `./scripts/run-host-tests.sh cargo test --lib learning::update_course`,
+      `./scripts/run-host-tests.sh cargo test --lib learning::learner_progress`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::check_permission`,
+      `./scripts/run-host-tests.sh cargo test --test course_creation_permissions --test course_discovery --test course_editing_permissions --test course_lifecycle`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale learning authorization-port scans, legacy permission-check alias
+      scans, ring import-boundary scans, `git diff --check`, and learning/
+      access-control file-size checks.
+- [x] Self-critique: this removes the context-specific learning permission
+      methods from the migrated course-creation, course-update, lifecycle, and
+      progress ports. Teacher-application, organization, identity, KYC, and
+      the final middleware/application same-service cleanup still need their
+      own contract cleanup before central authorization is complete.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1929,6 +1968,10 @@ boundary checks from the matrix above to every canonical context.
 - [x] Migrated learning, teacher-application, identity, KYC, organization, and
       delegated-permission Postgres adapters to shared `can_*_permission`
       decision wrappers instead of direct low-level permission helpers.
+- [x] Learning course creation, course update, course lifecycle, and learner
+      progress application store ports now use the shared mutable
+      access-decision store contract instead of context-specific permission
+      methods.
 - [ ] Make middleware call the same access-control service as application use
       cases.
 - [ ] Keep middleware as an early rejection optimization; do not make it the

@@ -1,5 +1,8 @@
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::learning::create_course::{
     create_course, CourseCreationCommand, CourseCreationError, CourseCreationOutput,
     CourseCreationStore,
@@ -14,27 +17,29 @@ struct FakeCourseCreationStore {
     created_organization_ids: Vec<i32>,
 }
 
+impl AccessDecisionStore for FakeCourseCreationStore {
+    type Error = CourseCreationError;
+
+    fn can(
+        &mut self,
+        _actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, CourseCreationError>> {
+        let allowed = match scope {
+            AccessScope::Platform(_) => self.platform_permission,
+            AccessScope::Organization(scope) => {
+                self.requested_organization_id = Some(scope.organization_id());
+                self.organization_permission
+            }
+            AccessScope::Course(_) => false,
+        };
+        assert_eq!(action.permission_name(), "CREATE_COURSE");
+        async move { Ok(allowed) }.boxed()
+    }
+}
+
 impl CourseCreationStore for FakeCourseCreationStore {
-    fn has_platform_permission(
-        &mut self,
-        _actor_user_id: i32,
-        _permission: &str,
-    ) -> BoxFuture<'_, Result<bool, CourseCreationError>> {
-        let allowed = self.platform_permission;
-        async move { Ok(allowed) }.boxed()
-    }
-
-    fn has_organization_permission(
-        &mut self,
-        _actor_user_id: i32,
-        organization_id: i32,
-        _permission: &str,
-    ) -> BoxFuture<'_, Result<bool, CourseCreationError>> {
-        self.requested_organization_id = Some(organization_id);
-        let allowed = self.organization_permission;
-        async move { Ok(allowed) }.boxed()
-    }
-
     fn create_course(
         &mut self,
         title: String,

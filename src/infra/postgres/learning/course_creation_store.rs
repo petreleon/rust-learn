@@ -2,6 +2,9 @@ use diesel::prelude::*;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::learning::create_course::{
     CourseCreationError, CourseCreationOutput, CourseCreationStore,
 };
@@ -22,40 +25,6 @@ impl<'conn> PostgresCourseCreationStore<'conn> {
 }
 
 impl CourseCreationStore for PostgresCourseCreationStore<'_> {
-    fn has_platform_permission(
-        &mut self,
-        actor_user_id: i32,
-        permission: &str,
-    ) -> BoxFuture<'_, Result<bool, CourseCreationError>> {
-        let permission = permission.to_string();
-        async move {
-            permission_checks::can_platform_permission(self.conn, actor_user_id, &permission)
-                .await
-                .map_err(map_course_creation_error)
-        }
-        .boxed()
-    }
-
-    fn has_organization_permission(
-        &mut self,
-        actor_user_id: i32,
-        organization_id: i32,
-        permission: &str,
-    ) -> BoxFuture<'_, Result<bool, CourseCreationError>> {
-        let permission = permission.to_string();
-        async move {
-            permission_checks::can_organization_permission(
-                self.conn,
-                actor_user_id,
-                organization_id,
-                &permission,
-            )
-            .await
-            .map_err(map_course_creation_error)
-        }
-        .boxed()
-    }
-
     fn create_course(
         &mut self,
         title: String,
@@ -70,6 +39,24 @@ impl CourseCreationStore for PostgresCourseCreationStore<'_> {
                         Ok(CourseCreationOutput::from(course))
                     })
                 })
+                .await
+                .map_err(map_course_creation_error)
+        }
+        .boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresCourseCreationStore<'_> {
+    type Error = CourseCreationError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, CourseCreationError>> {
+        async move {
+            permission_checks::can(self.conn, actor, action, scope)
                 .await
                 .map_err(map_course_creation_error)
         }

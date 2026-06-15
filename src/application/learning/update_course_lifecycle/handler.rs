@@ -1,3 +1,6 @@
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::learning::update_course_lifecycle::{
     CourseLifecycleCommand, CourseLifecycleError, CourseLifecycleOutput, CourseLifecycleStore,
 };
@@ -15,12 +18,21 @@ pub async fn update_course_lifecycle(
     let target_status =
         CourseLifecycleStatus::normalize(&command.status).map_err(|_| invalid_status_error())?;
     let course_permission = required_course_permission(target_status);
+    let actor = AccessActor::user(command.actor_user_id);
 
     if !store
-        .has_course_permission(command.actor_user_id, command.course_id, course_permission)
+        .can(
+            actor,
+            AccessAction::permission(course_permission),
+            AccessScope::course(command.course_id),
+        )
         .await?
         && !store
-            .has_platform_permission(command.actor_user_id, MODIFY_COURSE)
+            .can(
+                actor,
+                AccessAction::permission(MODIFY_COURSE),
+                AccessScope::platform(),
+            )
             .await?
     {
         return Err(CourseLifecycleError::PermissionDenied(
