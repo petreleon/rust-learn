@@ -4,6 +4,7 @@ use crate::application::identity::current_session::output::{
     CourseSessionScope, CurrentSessionAccess, OrganizationSessionScope, PlatformSessionScope,
     SessionCapability,
 };
+use crate::domain::access_control::permissions::Permissions;
 use definitions::CapabilityDefinition;
 
 pub fn platform_capabilities(effective_permissions: &[String]) -> Vec<SessionCapability> {
@@ -25,7 +26,7 @@ pub fn access_summary(
 ) -> CurrentSessionAccess {
     let teacher_application = has_permission(
         &platform.effective_permissions,
-        "SUBMIT_TEACHER_APPLICATION",
+        &Permissions::SUBMIT_TEACHER_APPLICATION.to_string(),
     );
     let platform_admin = platform
         .capabilities
@@ -57,7 +58,7 @@ fn capabilities(
             enabled: definition
                 .permissions
                 .iter()
-                .any(|permission| has_permission(effective_permissions, permission)),
+                .any(|permission| has_catalog_permission(effective_permissions, *permission)),
             key: definition.key.to_string(),
             label: definition.label.to_string(),
             permissions: definition
@@ -83,4 +84,8 @@ fn has_permission(effective_permissions: &[String], permission: &str) -> bool {
     effective_permissions
         .iter()
         .any(|current| current == permission)
+}
+
+fn has_catalog_permission(effective_permissions: &[String], permission: Permissions) -> bool {
+    has_permission(effective_permissions, &permission.to_string())
 }

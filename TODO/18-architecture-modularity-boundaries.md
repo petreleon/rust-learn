@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified pushed base before current batch: `f02bfd1b`
-(`Move Actix middleware under HTTP ring`).
+Latest verified pushed base before current batch: `ae518ea0`
+(`Move permission catalog into domain`).
 
 Objective: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
@@ -34,105 +34,98 @@ submodules only where a context or use case has real ownership.
 - `0db0000c`..`28019ba3`: delegated-permission scope, wallet statuses/events,
   token event boundaries, reward command vocabulary, teacher-application event
   vocabulary, and external token event outputs.
-- `004d1037`: KYC audit event vocabulary and organization member audit event
-  read/write/output vocabulary.
-- `7693fb71`: readiness dependency labels are abstract; wallet/platform reward
-  application command/output names are separated from HTTP DTO names.
-- `87c4ca4b`: reward evidence and reward audit metadata moved into domain
-  reward vocabulary; unused top-level `shared` module removed.
-- `18c1796c`: all Diesel model records moved from top-level `src/models` to
-  `src/infra/postgres/models`; root `models` exports removed.
-- `a489fcb7`: Diesel schema and pool construction moved from top-level `src/db`
-  to `src/infra/postgres`; root `db` exports removed.
-- `216b9529`: `make migrate` and `make migrate-redo` now run Diesel through a
-  Compose tool container; Dockerfile/Compose/docs updated and verified.
-- `2574c1c6`: DB setup/version updates moved from `src/config/db_setup` to
-  `src/infra/postgres/operations/db_setup`; startup and docs now import DB
-  versioning through Postgres infra.
-- `0dcd66e5`: Make targets are the primary development interface for Diesel
-  workflow; `make diesel-compose`, `make migration-generate`, `make
-  fmt-compose`, and `make mock-email` added; README/agent guidance no longer
-  requires host Diesel for schema generation.
+- `004d1037`..`87c4ca4b`: KYC/member audit vocabulary, readiness labels,
+  application command/output naming, reward evidence vocabulary, and unused
+  `shared` module removal.
+- `18c1796c`..`2574c1c6`: Diesel models, schema/pool, and DB setup/versioning
+  moved under `src/infra/postgres`; root `models`, `db`, and config DB exports
+  removed.
+- `216b9529` and `0dcd66e5`: Diesel development workflow now runs through Make
+  and Compose (`make migrate`, `make migrate-redo`, `make diesel-compose`,
+  `make migration-generate`) without requiring host Diesel.
 - `f02bfd1b`: Actix middleware moved from top-level `src/middlewares` to
   `src/http/middlewares`; root exports removed; routes/tests now import through
   `http::middlewares`.
+- `ae518ea0`: role/permission catalog moved from top-level `src/config` to
+  `src/domain/access_control`; root `config` exports removed; HTTP, infra, and
+  tests import through domain vocabulary; `PERMISSIONS.md` includes
+  `REVIEW_KYC_SUBMISSIONS`.
 
-Proof for recent pushed batches:
+Proof for completed pushed work:
 
 - Formatting, lib check, app binary check, and `cargo test --tests --no-run`.
-- Focused DB/Postgres tests: connection unit tests, `db_version_control`,
-  repository core, worker upload jobs, readiness, and API routing.
+- Focused tests for DB/Postgres, routing, permissions, middleware, readiness,
+  worker upload jobs, and affected product contexts.
 - Docker tooling checks: Make dry-runs, Compose config, Diesel tool image build,
   and Compose Diesel `--version`.
 - Scans: no old `crate::db` / `rust_learn::db` / `src/db` source references, no
-  root `src/db`, no domain/application infra/HTTP/DB leaks, no HTTP DB leaks,
-  no `include!`, no `imports.rs`, no application DTO/Actix leaks, and no
-  maintained Rust file over 180 lines.
+  root `src/db`, `src/models`, `src/config`, or `src/middlewares`, no
+  domain/application infra/HTTP/DB leaks, no HTTP DB leaks, no `include!`, no
+  `imports.rs`, no application DTO/Actix leaks, and no maintained Rust file over
+  180 lines.
 
 ## Current Verified Batch
 
 Included problems:
 
-- `src/config` was still a top-level non-ring module.
-- The only remaining config-owned data was pure role/permission vocabulary,
-  which belongs in domain access-control vocabulary.
-- `src/lib.rs` and `src/main.rs` exposed `config` as a root API.
-- HTTP routes, Postgres adapters, setup updates, and tests imported role and
-  permission names through `config::constants`.
-- `PERMISSIONS.md` missed `REVIEW_KYC_SUBMISSIONS` even though the enum and
-  migrations include it.
+- Current-session backend capability definitions duplicated permission catalog
+  strings in `src/application/identity/current_session/capabilities`.
+- Current-session access summary hardcoded `SUBMIT_TEACHER_APPLICATION`.
+- KYC review and audit handlers hardcoded `REVIEW_KYC_SUBMISSIONS`.
+- The domain role/permission catalog was value-like but not `Copy`/`Eq`, making
+  catalog-backed static metadata awkward.
 
 Fixes:
 
-- Moved `Permissions` and `Roles` to
-  `src/domain/access_control/{permissions,roles}.rs`.
-- Exported the moved vocabulary through `src/domain/access_control/mod.rs`.
-- Removed `src/config` and root `config` exports.
-- Updated HTTP, infra, setup, and test imports to use
-  `domain::access_control::{permissions,roles}`.
-- Updated README/AGENTS repository maps.
-- Added `REVIEW_KYC_SUBMISSIONS` to `PERMISSIONS.md` for platform ADMIN and
-  SUPER_ADMIN to match the seeded migration.
+- `CapabilityDefinition.permissions` now stores
+  `domain::access_control::permissions::Permissions` variants.
+- Current-session capability output still exposes `Vec<String>`, preserving the
+  API contract while deriving names from the domain catalog.
+- KYC review queue, decision, and audit authorization use
+  `Permissions::REVIEW_KYC_SUBMISSIONS`.
+- `Permissions` and `Roles` derive `Clone`, `Copy`, and `Eq` for safe static
+  catalog use.
 
 Deferred problems:
 
-- Raw permission literals still exist across application use cases and current
-  session capability definitions. Consolidating those behind typed domain
-  vocabulary spans multiple product flows and should be a separate vocabulary
-  batch or final-audit item, not mixed into this mechanical module move.
-- The newer `domain::access_control::Permission` enum still overlaps with the
-  moved `Permissions` catalog. Unifying those types would be a broader API
-  cleanup because existing authorization use cases intentionally use the smaller
-  typed subset.
+- Domain delegation permission rules still normalize a scoped raw string policy
+  list. That is a separate domain policy surface and should be audited as its
+  own batch if more vocabulary work is needed.
+- Some tests intentionally assert serialized permission strings. Those remain as
+  API-contract checks rather than production vocabulary duplication.
+- The smaller `domain::access_control::Permission` enum still overlaps with the
+  full `Permissions` catalog. Unifying them would be a broader authorization API
+  cleanup, not a safe side effect of this batch.
 
 Proof:
 
 - `cargo fmt --all --check`.
 - `./scripts/run-host-tests.sh cargo check --lib`.
-- `./scripts/run-host-tests.sh cargo test --test
-  permission_catalog_consistency`.
-- `./scripts/run-host-tests.sh cargo test --test platform_permissions_unit`.
+- `./scripts/run-host-tests.sh cargo test --test current_session_api`.
+- `./scripts/run-host-tests.sh cargo test --test kyc_review`.
 - `./scripts/run-host-tests.sh cargo check --bin rust-learn --features
   app-bin`.
 - `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
 - `git diff --check`.
-- Scans: no `src/config` directory, no `crate::config` /
-  `rust_learn::config` / `config::constants` references in source/tests/docs,
-  root `pub mod config` removed from `src/lib.rs` and `src/main.rs`, no
-  domain/application Actix/DB/HTTP leaks, and no maintained Rust file over 180
-  lines.
+- Scans: no raw permission string literals remain in current-session/KYC
+  application code; no maintained Rust file over 180 lines; domain/application
+  boundary scan found no concrete dependency leaks, only the domain vocabulary
+  variant `MANAGE_S3_OBJECTS`.
 
 ## Remaining Work
 
 - Audit TODO/18 requirement-by-requirement against current code and pushed
   evidence before calling Level 2 complete.
-- Continue raw vocabulary scans for migrated contexts; batch only one
-  architectural concern at a time.
+- Re-scan raw vocabulary across remaining migrated contexts; only batch more
+  cleanup if it is cohesive, behavior-preserving, and reviewable.
+- Decide whether the overlapping `Permission` and `Permissions` domain enums
+  should stay separate or be unified through a deliberate authorization API
+  cleanup.
 - Keep public API DTOs HTTP-owned and separate from application commands and
   outputs.
 - Keep use cases as the real authorization guard; middleware remains early
   rejection.
 - Do not jump to Level 3 crates/microservices or abstractions that only move
   files around.
-- Rough remaining effort: 0-1 focused vocabulary batch plus the final
-  requirement audit.
+- Rough remaining effort: final requirement audit, plus at most one focused
+  vocabulary/API cleanup if the audit proves it necessary.

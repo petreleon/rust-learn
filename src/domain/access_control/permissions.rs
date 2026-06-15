@@ -1,7 +1,7 @@
 // src/domain/access_control/permissions.rs
 use strum_macros::{Display, EnumIter, EnumString};
 
-#[derive(Display, EnumIter, EnumString, Debug, PartialEq)]
+#[derive(Display, EnumIter, EnumString, Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum Permissions {
     // Organization-related permissions
