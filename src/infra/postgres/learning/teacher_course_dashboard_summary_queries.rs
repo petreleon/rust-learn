@@ -9,11 +9,11 @@ use crate::application::learning::teacher_course_dashboard::{
     TeacherCourseDashboardItemOutput, TeacherCourseDashboardOrganizationOutput,
     TeacherCoursePermissionSummaryOutput, TeacherCourseRewardSummaryOutput,
 };
-use crate::db::schema::{
+use crate::infra::postgres::learning::teacher_course_dashboard_metric_queries;
+use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::schema::{
     chapters, contents, courses_organizations, organizations, reward_policies,
 };
-use crate::infra::postgres::learning::teacher_course_dashboard_metric_queries;
-use crate::models::course::Course;
 
 pub async fn build_teacher_course_dashboard_item(
     conn: &mut AsyncPgConnection,

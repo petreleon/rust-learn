@@ -1,3 +1,9 @@
+use crate::{
+    amount_decision_helper::*, force_assign_organization_role::*, link_course_to_organization::*,
+    reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
+    teacher_decision_helper::*,
+};
+
 #[actix_web::test]
 async fn fraud_block_permission_cannot_approve_candidates_or_amounts() {
     let mut conn = setup_conn().await;

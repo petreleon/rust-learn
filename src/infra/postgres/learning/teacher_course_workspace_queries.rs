@@ -5,8 +5,8 @@ use crate::application::learning::get_teacher_course_workspace::{
     TeacherCourseWorkspaceChapterOutput, TeacherCourseWorkspaceContentOutput,
 };
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError;
-use crate::db::schema::{chapters, contents, course_roles, user_role_course};
 use crate::infra::postgres::learning::content_processing_queries;
+use crate::infra::postgres::schema::{chapters, contents, course_roles, user_role_course};
 
 pub async fn load_teacher_course_workspace_chapters(
     conn: &mut AsyncPgConnection,

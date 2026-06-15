@@ -5,8 +5,8 @@ use crate::application::rewards::manage_fraud_block::{
     RewardFraudBlockAuditEventOutput, RewardFraudBlockError, RewardFraudBlockOutput,
     RewardFraudBlockUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::reward_fraud_block_store::PostgresRewardFraudBlockStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRewardFraudBlockUseCase {

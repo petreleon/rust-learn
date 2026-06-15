@@ -1,10 +1,10 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::reward_wallet_credit_records;
-use crate::models::reward_wallet_credit_record::{
+use crate::infra::postgres::models::reward_wallet_credit_record::{
     NewRewardWalletCreditRecord, RewardWalletCreditRecord,
 };
+use crate::infra::postgres::schema::reward_wallet_credit_records;
 
 pub(super) async fn create_reward_wallet_credit_record(
     conn: &mut AsyncPgConnection,

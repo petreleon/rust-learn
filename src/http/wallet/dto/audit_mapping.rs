@@ -40,7 +40,7 @@ impl From<WalletAuditWallet> for WalletAuditWalletResponse {
     fn from(wallet: WalletAuditWallet) -> Self {
         Self {
             id: wallet.id,
-            owner_type: wallet.owner_type,
+            owner_type: wallet.owner_type.as_str().to_string(),
             user_id: wallet.user_id,
             organization_id: wallet.organization_id,
             value: wallet.value,
@@ -72,7 +72,9 @@ impl From<WalletExternalTransactionAudit> for WalletExternalTransactionAuditResp
             contract_address: transaction.contract_address,
             transaction_hash: transaction.transaction_hash,
             log_index: transaction.log_index,
-            event_type: transaction.event_type,
+            event_type: transaction
+                .event_type
+                .map(|event_type| event_type.as_str().to_string()),
             from_address: transaction.from_address,
             to_address: transaction.to_address,
         }
@@ -83,8 +85,8 @@ impl From<WalletRewardRecordAudit> for WalletRewardRecordAuditResponse {
     fn from(record: WalletRewardRecordAudit) -> Self {
         Self {
             reward_candidate_id: record.reward_candidate_id,
-            candidate_status: record.candidate_status,
-            reconciliation_status: record.reconciliation_status,
+            candidate_status: record.candidate_status.as_str().to_string(),
+            reconciliation_status: record.reconciliation_status.as_str().to_string(),
             approved_amount: record.approved_amount,
             wallet_credit_record_id: record.wallet_credit_record_id,
             wallet_credit_transaction_id: record.wallet_credit_transaction_id,

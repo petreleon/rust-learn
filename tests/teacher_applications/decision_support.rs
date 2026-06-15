@@ -1,10 +1,12 @@
+use crate::support::*;
+
 #[derive(Debug, Clone, serde::Serialize)]
-struct TeacherApplicationDecisionRequest {
-    status: String,
-    decision_reason: Option<String>,
+pub(crate) struct TeacherApplicationDecisionRequest {
+    pub(crate) status: String,
+    pub(crate) decision_reason: Option<String>,
 }
 
-async fn decide_application(
+pub(crate) async fn decide_application(
     _conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     application_id: i64,
@@ -27,11 +29,11 @@ async fn decide_application(
 }
 
 #[allow(dead_code)]
-fn teacher_application_decision_data() -> web::Data<
+pub(crate) fn teacher_application_decision_data() -> web::Data<
     Arc<
         dyn rust_learn::application::teacher_applications::decide_application::TeacherApplicationDecisionUseCase,
     >,
-> {
+>{
     web::Data::new(Arc::new(
         rust_learn::infra::postgres::teacher_applications::teacher_application_decision_use_case::PostgresTeacherApplicationDecisionUseCase::new(
             establish_connection(),

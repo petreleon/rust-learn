@@ -6,8 +6,8 @@ use crate::application::organizations::get_organization_dashboard::{
     self, OrganizationDashboardError, OrganizationDashboardOutput, OrganizationDashboardQuery,
     OrganizationDashboardUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::organizations::organization_dashboard_store::PostgresOrganizationDashboardStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresOrganizationDashboardUseCase {

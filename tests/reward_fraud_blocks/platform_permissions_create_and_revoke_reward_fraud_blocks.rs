@@ -61,7 +61,7 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
         .create_reward_fraud_block(admin.id(), teacher_block_request(teacher.id()))
         .await
         .expect("admin should block teacher reward activity");
-    assert_eq!(teacher_block.scope_type, REWARD_FRAUD_BLOCK_SCOPE_TEACHER);
+    assert_eq!(teacher_block.scope_type, RewardFraudBlockScope::Teacher);
     assert_eq!(teacher_block.teacher_user_id, Some(teacher.id()));
     assert_eq!(teacher_block.created_by_user_id, admin.id());
     assert_eq!(teacher_block.reason, "suspicious reward approvals");
@@ -120,7 +120,7 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
         .expect("admin should block organization reward activity");
     assert_eq!(
         organization_block.scope_type,
-        REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION
+        RewardFraudBlockScope::Organization
     );
     assert_eq!(organization_block.organization_id, Some(organization.id));
     let mut conn = setup_conn(&pool).await;
@@ -160,7 +160,7 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
         )
         .await
         .expect("admin should block course reward activity through fraud management permission");
-    assert_eq!(course_block.scope_type, REWARD_FRAUD_BLOCK_SCOPE_COURSE);
+    assert_eq!(course_block.scope_type, RewardFraudBlockScope::Course);
     assert_eq!(course_block.course_id, Some(course.id));
 
     let mut conn = setup_conn(&pool).await;

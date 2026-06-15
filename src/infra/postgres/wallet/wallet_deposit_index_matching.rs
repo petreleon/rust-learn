@@ -2,14 +2,13 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::wallet::index_deposit::ObservedWalletDepositEvent;
-use crate::db::schema::wallet_token_deposit_intents;
 use crate::domain::wallet::deposit::{
-    WALLET_DEPOSIT_EVENT_IMPORT, WALLET_DEPOSIT_EVENT_TRANSFER, WALLET_DEPOSIT_STATUS_AMBIGUOUS,
-    WALLET_DEPOSIT_STATUS_CREDITED, WALLET_DEPOSIT_STATUS_PENDING, WALLET_GAS_PAYER_PLATFORM,
-    WALLET_GAS_PAYER_USER,
+    WalletDepositEventType, WALLET_DEPOSIT_STATUS_AMBIGUOUS, WALLET_DEPOSIT_STATUS_CREDITED,
+    WALLET_DEPOSIT_STATUS_PENDING, WALLET_GAS_PAYER_PLATFORM, WALLET_GAS_PAYER_USER,
 };
+use crate::infra::postgres::models::wallet_token_deposit_intent::WalletTokenDepositIntent;
+use crate::infra::postgres::schema::wallet_token_deposit_intents;
 use crate::infra::postgres::wallet::wallet_deposit_index_ledger::normalize_address;
-use crate::models::wallet_token_deposit_intent::WalletTokenDepositIntent;
 
 pub(super) async fn load_matching_pending_deposit_intents(
     conn: &mut AsyncPgConnection,
@@ -46,8 +45,8 @@ pub(super) fn deposit_intent_matches_observed_event(
     event: &ObservedWalletDepositEvent,
 ) -> bool {
     let expected_event_type = match intent.gas_payer.as_str() {
-        WALLET_GAS_PAYER_USER => WALLET_DEPOSIT_EVENT_TRANSFER,
-        WALLET_GAS_PAYER_PLATFORM => WALLET_DEPOSIT_EVENT_IMPORT,
+        WALLET_GAS_PAYER_USER => WalletDepositEventType::Transfer,
+        WALLET_GAS_PAYER_PLATFORM => WalletDepositEventType::Import,
         _ => return false,
     };
     let event_transaction_hash = event.transaction_hash.trim().to_ascii_lowercase();
@@ -145,7 +144,8 @@ pub(super) async fn mark_deposit_intent_credited(
             wallet_token_deposit_intents::transaction_hash
                 .eq(Some(event.transaction_hash.trim().to_ascii_lowercase())),
             wallet_token_deposit_intents::log_index.eq(Some(event.log_index)),
-            wallet_token_deposit_intents::event_type.eq(Some(event.event_type.clone())),
+            wallet_token_deposit_intents::event_type
+                .eq(Some(event.event_type.as_str().to_string())),
             wallet_token_deposit_intents::external_transaction_id.eq(Some(external_transaction_id)),
             wallet_token_deposit_intents::transaction_id.eq(Some(transaction_id)),
             wallet_token_deposit_intents::last_error.eq(None::<String>),

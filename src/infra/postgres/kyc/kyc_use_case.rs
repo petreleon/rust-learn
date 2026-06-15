@@ -7,8 +7,8 @@ use crate::application::kyc::{
     KycReviewQueueOutput, KycReviewUseCase, KycStatusOutput, KycStatusUseCase, KycSubmissionOutput,
     KycSubmissionUseCase, SubmitKycCommand,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::kyc::kyc_store::PostgresKycStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresKycUseCase {

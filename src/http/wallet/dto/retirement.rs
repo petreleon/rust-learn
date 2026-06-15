@@ -1,7 +1,7 @@
 use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 
-use crate::application::wallet::retire_tokens::{WalletRetirementRequest, WalletRetirementView};
+use crate::application::wallet::retire_tokens::{WalletRetirementCommand, WalletRetirementView};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct WalletRetirementRequestDto {
@@ -32,7 +32,7 @@ pub struct WalletRetirementResponse {
     pub wallet_action: String,
 }
 
-impl From<WalletRetirementRequestDto> for WalletRetirementRequest {
+impl From<WalletRetirementRequestDto> for WalletRetirementCommand {
     fn from(request: WalletRetirementRequestDto) -> Self {
         Self {
             amount: request.amount,

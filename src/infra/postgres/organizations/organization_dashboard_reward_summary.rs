@@ -7,12 +7,12 @@ use crate::application::organizations::get_organization_dashboard::{
     OrganizationDashboardRewardSummaryOutput, OrganizationDashboardWalletSummaryOutput,
 };
 use crate::application::reporting::organization_reward_dashboard::load_organization_reward_dashboard;
-use crate::db::schema::{courses_organizations, reward_candidates, wallets};
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::organizations::organization_dashboard_mappers::{
     map_dashboard_error, map_reward_dashboard_error,
 };
 use crate::infra::postgres::reporting::organization_reward_dashboard_store::PostgresOrganizationRewardDashboardStore;
+use crate::infra::postgres::schema::{courses_organizations, reward_candidates, wallets};
 
 pub async fn load_reward_summary(
     conn: &mut AsyncPgConnection,

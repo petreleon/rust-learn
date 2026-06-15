@@ -1,6 +1,6 @@
 use super::*;
 use crate::domain::rewards::fraud_block::{
-    REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
+    RewardFraudBlockScope, REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
     REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
 };
 
@@ -22,7 +22,7 @@ fn normalizes_valid_teacher_block() {
     let mut command = block_command(REWARD_FRAUD_BLOCK_SCOPE_TEACHER);
     command.teacher_user_id = Some(42);
     let result = validated_draft(7, command).unwrap();
-    assert_eq!(result.scope_type, "teacher");
+    assert_eq!(result.scope_type, RewardFraudBlockScope::Teacher);
     assert_eq!(result.teacher_user_id, Some(42));
     assert_eq!(result.created_by_user_id, 7);
 }
@@ -33,7 +33,7 @@ fn normalizes_valid_organization_block() {
     command.organization_id = Some(10);
     assert_eq!(
         validated_draft(7, command).unwrap().scope_type,
-        "organization"
+        RewardFraudBlockScope::Organization
     );
 }
 
@@ -41,7 +41,10 @@ fn normalizes_valid_organization_block() {
 fn normalizes_valid_course_block() {
     let mut command = block_command(REWARD_FRAUD_BLOCK_SCOPE_COURSE);
     command.course_id = Some(5);
-    assert_eq!(validated_draft(7, command).unwrap().scope_type, "course");
+    assert_eq!(
+        validated_draft(7, command).unwrap().scope_type,
+        RewardFraudBlockScope::Course
+    );
 }
 
 #[test]
@@ -50,7 +53,7 @@ fn normalizes_valid_policy_block() {
     command.reward_policy_id = Some(1);
     assert_eq!(
         validated_draft(7, command).unwrap().scope_type,
-        "reward_policy"
+        RewardFraudBlockScope::RewardPolicy
     );
 }
 

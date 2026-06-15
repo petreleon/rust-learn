@@ -8,6 +8,8 @@ use crate::application::rewards::decide_teacher_candidate::{
     TeacherRewardCandidateDecisionCommand, TeacherRewardCandidateDecisionError,
     TeacherRewardCandidateDecisionOutput, TeacherRewardCandidateDecisionStore,
 };
+use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 struct FakeStore {
@@ -48,7 +50,7 @@ impl TeacherRewardCandidateDecisionStore for FakeStore {
         Result<TeacherRewardCandidateDecisionOutput, TeacherRewardCandidateDecisionError>,
     > {
         self.decision = Some(decision.clone());
-        ready(Ok(output(decision.target_status.as_str()))).boxed()
+        ready(Ok(output(decision.target_status))).boxed()
     }
 }
 
@@ -67,7 +69,7 @@ fn delegates_normalized_teacher_approval() {
     ))
     .unwrap();
 
-    assert_eq!(result.status, "teacher_approved");
+    assert_eq!(result.status, RewardCandidateStatus::TeacherApproved);
     let decision = store.decision.unwrap();
     assert_eq!(decision.actor_user_id, 7);
     assert_eq!(decision.course_id, 11);
@@ -127,19 +129,19 @@ fn denies_without_course_permission_before_store_mutation() {
     assert!(store.decision.is_none());
 }
 
-fn output(status: &str) -> TeacherRewardCandidateDecisionOutput {
+fn output(status: RewardCandidateStatus) -> TeacherRewardCandidateDecisionOutput {
     let now = Utc::now();
     TeacherRewardCandidateDecisionOutput {
         id: 19,
         course_id: 11,
         student_user_id: 23,
         submitter_user_id: 7,
-        source_scope: "course".to_string(),
+        source_scope: RewardCandidateSourceScope::Course,
         source_organization_id: None,
-        event_type: "manual_completion".to_string(),
+        event_type: RewardEventType::ManualCompletion,
         idempotency_key: "manual:11:23".to_string(),
         evidence: json!({}),
-        status: status.to_string(),
+        status,
         teacher_approver_user_id: Some(7),
         teacher_decision_reason: Some("complete".to_string()),
         teacher_decided_at: Some(now),

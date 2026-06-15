@@ -1,3 +1,5 @@
+use crate::support::*;
+
 use rust_learn::application::rewards::credit_wallet::{
     RewardWalletCreditError, RewardWalletCreditOutput as RewardWalletCreditResult,
     RewardWalletCreditUseCase,
@@ -19,7 +21,7 @@ use rust_learn::infra::postgres::rewards::reward_token_confirmation_use_case::Po
 use rust_learn::infra::postgres::rewards::reward_wallet_credit_notification_use_case::PostgresRewardWalletCreditNotificationUseCase;
 use rust_learn::infra::postgres::rewards::reward_wallet_credit_use_case::PostgresRewardWalletCreditUseCase;
 
-async fn plan_reward_payout(
+pub(crate) async fn plan_reward_payout(
     _conn: &mut AsyncPgConnection,
     candidate_id: i64,
 ) -> Result<RewardPayoutPlan, RewardExecutionError> {
@@ -46,7 +48,7 @@ fn map_reward_payout_plan_error(error: RewardPayoutPlanError) -> RewardExecution
     }
 }
 
-async fn record_reward_token_confirmation(
+pub(crate) async fn record_reward_token_confirmation(
     _conn: &mut AsyncPgConnection,
     candidate_id: i64,
     request: RewardTokenConfirmationRequest,
@@ -58,7 +60,7 @@ async fn record_reward_token_confirmation(
         .map_err(map_reward_token_confirmation_error)
 }
 
-async fn record_reward_token_confirmation_for_actor(
+pub(crate) async fn record_reward_token_confirmation_for_actor(
     _conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     candidate_id: i64,
@@ -92,7 +94,7 @@ fn map_reward_token_confirmation_error(
     }
 }
 
-async fn credit_reward_wallet(
+pub(crate) async fn credit_reward_wallet(
     _conn: &mut AsyncPgConnection,
     candidate_id: i64,
 ) -> Result<RewardWalletCreditResult, RewardExecutionError> {
@@ -103,7 +105,7 @@ async fn credit_reward_wallet(
         .map_err(map_reward_wallet_credit_error)
 }
 
-async fn credit_reward_wallet_for_actor(
+pub(crate) async fn credit_reward_wallet_for_actor(
     _conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     candidate_id: i64,
@@ -123,17 +125,18 @@ fn map_reward_wallet_credit_error(error: RewardWalletCreditError) -> RewardExecu
         RewardWalletCreditError::InvalidStatus(message) => {
             RewardExecutionError::InvalidStatus(message)
         }
-        RewardWalletCreditError::InvalidInput(message) => RewardExecutionError::InvalidInput(message),
+        RewardWalletCreditError::InvalidInput(message) => {
+            RewardExecutionError::InvalidInput(message)
+        }
         RewardWalletCreditError::NoActivePolicy | RewardWalletCreditError::NotFound => {
             RewardExecutionError::NoActivePolicy
         }
-        RewardWalletCreditError::Connection(message) | RewardWalletCreditError::Database(message) => {
-            RewardExecutionError::Database(message)
-        }
+        RewardWalletCreditError::Connection(message)
+        | RewardWalletCreditError::Database(message) => RewardExecutionError::Database(message),
     }
 }
 
-async fn notify_reward_wallet_credit(
+pub(crate) async fn notify_reward_wallet_credit(
     _conn: &mut AsyncPgConnection,
     candidate_id: i64,
 ) -> Result<RewardWalletCreditNotificationResult, RewardExecutionError> {

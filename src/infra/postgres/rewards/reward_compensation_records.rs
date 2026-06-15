@@ -1,10 +1,10 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::reward_compensation_records;
-use crate::models::reward_compensation_record::{
+use crate::infra::postgres::models::reward_compensation_record::{
     NewRewardCompensationRecord, RewardCompensationRecord,
 };
+use crate::infra::postgres::schema::reward_compensation_records;
 
 pub(super) async fn create_reward_compensation_record(
     conn: &mut AsyncPgConnection,

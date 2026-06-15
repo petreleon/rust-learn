@@ -4,7 +4,6 @@ use crate::application::wallet::index_deposit::{
     ObservedWalletDepositEvent, WalletDepositIndexError, WalletDepositIndexOutput,
     WalletDepositIndexStore,
 };
-use crate::domain::wallet::deposit::wallet_deposit_event_type_is_supported;
 
 pub async fn index_observed_deposit(
     store: &mut impl WalletDepositIndexStore,
@@ -50,11 +49,6 @@ fn validate_observed_wallet_deposit_event(
     if event.amount <= BigDecimal::from(0) {
         return Err(WalletDepositIndexError::InvalidInput(
             "observed amount must be positive".to_string(),
-        ));
-    }
-    if !wallet_deposit_event_type_is_supported(event.event_type.as_str()) {
-        return Err(WalletDepositIndexError::InvalidInput(
-            "observed event_type must be 'import' or 'transfer'".to_string(),
         ));
     }
 

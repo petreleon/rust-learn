@@ -2,7 +2,7 @@ use diesel::{ExpressionMethods, QueryDsl};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::content::manage_content_item::ContentItemError;
-use crate::db::schema::{chapters, contents};
+use crate::infra::postgres::schema::{chapters, contents};
 
 pub(super) async fn ensure_chapter_belongs_to_course(
     conn: &mut AsyncPgConnection,

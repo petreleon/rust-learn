@@ -125,6 +125,8 @@ mod tests {
 
     use futures::future::{ready, FutureExt};
 
+    use crate::domain::access_control::permissions::Permissions;
+
     use super::*;
 
     struct FakeDecisionUseCase {
@@ -155,7 +157,7 @@ mod tests {
 
         let allowed = futures::executor::block_on(use_case.can(
             AccessActor::user(7),
-            AccessAction::permission("VIEW_REPORT"),
+            AccessAction::permission(Permissions::VIEW_REPORT),
             AccessScope::platform(),
         ))
         .unwrap();

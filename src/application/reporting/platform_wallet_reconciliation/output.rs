@@ -1,3 +1,5 @@
+use crate::domain::wallet::owner::WalletOwnerType;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlatformWalletReconciliationOutput {
     pub total_wallets: i64,
@@ -11,7 +13,7 @@ pub struct PlatformWalletReconciliationOutput {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlatformWalletReconciliationRowOutput {
     pub wallet_id: i32,
-    pub owner_type: String,
+    pub owner_type: WalletOwnerType,
     pub user_id: Option<i32>,
     pub organization_id: Option<i32>,
     pub balance: String,

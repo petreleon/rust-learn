@@ -9,12 +9,12 @@ use crate::application::organizations::list_organization_member_audit::{
     OrganizationMemberAuditError, OrganizationMemberAuditEventOutput, OrganizationMemberAuditQuery,
     OrganizationMemberAuditStore,
 };
-use crate::db::schema::organization_member_audit_events;
 use crate::infra::postgres::access_control::permission_checks;
+use crate::infra::postgres::models::organization_member_audit_event::OrganizationMemberAuditEvent;
 use crate::infra::postgres::organizations::organization_member_audit_mappers::{
     map_member_audit_error, organization_member_audit_output_from_model,
 };
-use crate::models::organization_member_audit_event::OrganizationMemberAuditEvent;
+use crate::infra::postgres::schema::organization_member_audit_events;
 
 pub struct PostgresOrganizationMemberAuditStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -58,17 +58,15 @@ async fn list_member_audit_events(
     conn: &mut AsyncPgConnection,
     query: OrganizationMemberAuditQuery,
 ) -> Result<Vec<OrganizationMemberAuditEventOutput>, OrganizationMemberAuditError> {
-    organization_member_audit_events::table
+    let events = organization_member_audit_events::table
         .filter(organization_member_audit_events::organization_id.eq(query.organization_id))
         .filter(organization_member_audit_events::target_user_id.eq(query.target_user_id))
         .order(organization_member_audit_events::created_at.desc())
         .load::<OrganizationMemberAuditEvent>(conn)
         .await
-        .map(|events| {
-            events
-                .into_iter()
-                .map(organization_member_audit_output_from_model)
-                .collect()
-        })
-        .map_err(map_member_audit_error)
+        .map_err(map_member_audit_error)?;
+    events
+        .into_iter()
+        .map(organization_member_audit_output_from_model)
+        .collect()
 }

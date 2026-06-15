@@ -14,12 +14,13 @@ pub async fn submit_course_reward_candidate(
     use_case: web::Data<Arc<dyn RewardCandidateSubmissionUseCase>>,
     body: web::Json<SubmitRewardCandidateRequest>,
 ) -> Result<(web::Json<RewardCandidateSubmissionResponse>, StatusCode), ApiError> {
+    let command = body
+        .into_inner()
+        .into_command()
+        .map_err(reward_candidate_submission_error)?;
+
     use_case
-        .submit_course_reward_candidate(
-            requester.user_id(),
-            path.into_inner(),
-            body.into_inner().into(),
-        )
+        .submit_course_reward_candidate(requester.user_id(), path.into_inner(), command)
         .await
         .map(RewardCandidateSubmissionResponse::from)
         .map(web::Json)
@@ -34,13 +35,17 @@ pub async fn submit_organization_reward_candidate(
     body: web::Json<SubmitRewardCandidateRequest>,
 ) -> Result<(web::Json<RewardCandidateSubmissionResponse>, StatusCode), ApiError> {
     let (organization_id, course_id) = path.into_inner();
+    let command = body
+        .into_inner()
+        .into_command()
+        .map_err(reward_candidate_submission_error)?;
 
     use_case
         .submit_organization_reward_candidate(
             requester.user_id(),
             organization_id,
             course_id,
-            body.into_inner().into(),
+            command,
         )
         .await
         .map(RewardCandidateSubmissionResponse::from)

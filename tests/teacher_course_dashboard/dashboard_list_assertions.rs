@@ -1,9 +1,12 @@
-async fn assert_teacher_dashboard_list(fixture: &TeacherDashboardFixture) {
+use crate::{link_course_to_org::*, support::*, teacher_course_dashboard_fixture::*};
+
+pub(crate) async fn assert_teacher_dashboard_list(fixture: &TeacherDashboardFixture) {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
             .app_data(teacher_dashboard_use_case_data(&fixture.pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )
     .await;

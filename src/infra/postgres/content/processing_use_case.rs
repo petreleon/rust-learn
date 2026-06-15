@@ -4,8 +4,8 @@ use crate::application::content::process_upload_job::{
     self, ContentProcessingUseCase, ProcessUploadJobCommand, ProcessUploadJobError,
     ProcessUploadJobOutput,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::content::upload_job_store::PostgresContentUploadJobStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresContentProcessingUseCase {

@@ -2,7 +2,7 @@ use chrono::Utc;
 use futures::executor::block_on;
 use futures::future::{ready, BoxFuture, FutureExt};
 
-use super::{list_organization_member_audit, VIEW_ORGANIZATION};
+use super::list_organization_member_audit;
 use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessDecisionStore, AccessScope,
 };
@@ -10,6 +10,8 @@ use crate::application::organizations::list_organization_member_audit::{
     OrganizationMemberAuditError, OrganizationMemberAuditEventOutput, OrganizationMemberAuditQuery,
     OrganizationMemberAuditStore,
 };
+use crate::domain::access_control::permissions::Permissions;
+use crate::domain::organizations::member_audit::OrganizationMemberAuditEventType;
 
 #[test]
 fn lists_events_after_permission_check() {
@@ -43,7 +45,7 @@ fn rejects_without_listing_events() {
 
     assert_eq!(
         error,
-        OrganizationMemberAuditError::PermissionDenied("VIEW_ORGANIZATION".to_string())
+        OrganizationMemberAuditError::PermissionDenied(Permissions::VIEW_ORGANIZATION.into())
     );
     assert!(store.checked_permission);
     assert!(!store.listed_events);
@@ -82,7 +84,10 @@ impl AccessDecisionStore for FakeOrganizationMemberAuditStore {
         action: AccessAction,
         scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, OrganizationMemberAuditError>> {
-        assert_eq!(action.permission_name(), VIEW_ORGANIZATION);
+        assert_eq!(
+            action.permission_name(),
+            Permissions::VIEW_ORGANIZATION.to_string()
+        );
         assert!(matches!(scope, AccessScope::Organization(_)));
         self.checked_permission = true;
         ready(Ok(self.can_view)).boxed()
@@ -101,7 +106,7 @@ impl OrganizationMemberAuditStore for FakeOrganizationMemberAuditStore {
             organization_id: query.organization_id,
             actor_user_id: Some(query.actor_user_id),
             target_user_id: query.target_user_id,
-            event_type: "role_assigned".to_string(),
+            event_type: OrganizationMemberAuditEventType::RoleAssigned,
             role_name: Some("STUDENT".to_string()),
             reason: Some("test fixture".to_string()),
             created_at: Utc::now(),

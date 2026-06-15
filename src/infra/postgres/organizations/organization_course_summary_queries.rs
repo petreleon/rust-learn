@@ -9,11 +9,11 @@ use crate::application::organizations::list_organization_courses::{
     OrganizationCourseListItemOutput, OrganizationCoursePermissionSummaryOutput,
     OrganizationCourseRewardSummaryOutput, OrganizationCourseTeacherOutput,
 };
-use crate::db::schema::{
+use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::organizations::organization_course_metric_queries;
+use crate::infra::postgres::schema::{
     chapters, contents, course_roles, reward_policies, user_role_course, users,
 };
-use crate::infra::postgres::organizations::organization_course_metric_queries;
-use crate::models::course::Course;
 
 pub async fn build_organization_course_list_item(
     conn: &mut AsyncPgConnection,

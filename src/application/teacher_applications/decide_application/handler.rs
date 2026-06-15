@@ -8,6 +8,7 @@ use crate::application::teacher_applications::{
     },
     TeacherApplicationOutput,
 };
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::teacher_applications::status::{
     normalize_decision_status, TEACHER_APPLICATION_STATUS_APPROVED,
     TEACHER_APPLICATION_STATUS_NEEDS_CHANGES, TEACHER_APPLICATION_STATUS_REJECTED,
@@ -28,7 +29,7 @@ pub async fn decide_application(
         .await?
     {
         return Err(TeacherApplicationDecisionError::PermissionDenied(
-            permission.to_string(),
+            permission.into(),
         ));
     }
 
@@ -68,11 +69,11 @@ pub async fn decide_application(
 
 fn required_permission(
     target_status: &str,
-) -> Result<&'static str, TeacherApplicationDecisionError> {
+) -> Result<Permissions, TeacherApplicationDecisionError> {
     match target_status {
-        TEACHER_APPLICATION_STATUS_APPROVED => Ok("APPROVE_TEACHER_APPLICATION"),
-        TEACHER_APPLICATION_STATUS_REJECTED => Ok("REJECT_TEACHER_APPLICATION"),
-        TEACHER_APPLICATION_STATUS_NEEDS_CHANGES => Ok("REVIEW_TEACHER_APPLICATIONS"),
+        TEACHER_APPLICATION_STATUS_APPROVED => Ok(Permissions::APPROVE_TEACHER_APPLICATION),
+        TEACHER_APPLICATION_STATUS_REJECTED => Ok(Permissions::REJECT_TEACHER_APPLICATION),
+        TEACHER_APPLICATION_STATUS_NEEDS_CHANGES => Ok(Permissions::REVIEW_TEACHER_APPLICATIONS),
         _ => Err(TeacherApplicationDecisionError::InvalidInput(
             "unsupported teacher application decision".to_string(),
         )),

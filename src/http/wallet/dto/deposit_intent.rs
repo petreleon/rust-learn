@@ -2,7 +2,7 @@ use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 
 use crate::application::wallet::create_deposit_intent::{
-    WalletDepositIntentRequest, WalletDepositIntentView,
+    WalletDepositIntentCommand, WalletDepositIntentView,
 };
 
 #[derive(Debug, Clone, Deserialize)]
@@ -38,7 +38,7 @@ pub struct WalletDepositIntentResponse {
     pub wallet_action: String,
 }
 
-impl From<WalletDepositIntentRequestDto> for WalletDepositIntentRequest {
+impl From<WalletDepositIntentRequestDto> for WalletDepositIntentCommand {
     fn from(request: WalletDepositIntentRequestDto) -> Self {
         Self {
             amount: request.amount,
@@ -58,7 +58,7 @@ impl From<WalletDepositIntentView> for WalletDepositIntentResponse {
         Self {
             operation: view.operation.to_string(),
             id: view.id,
-            status: view.status,
+            status: view.status.as_str().to_string(),
             wallet_id: view.wallet_id,
             amount: view.amount,
             tax_amount: view.tax_amount,

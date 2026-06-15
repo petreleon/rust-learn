@@ -4,6 +4,7 @@ use crate::application::rewards::plan_payout::validation::{
 use crate::application::rewards::plan_payout::{
     RewardPayoutPlan, RewardPayoutPlanError, RewardPayoutPlanStore, RewardPayoutPolicy,
 };
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::rewards::payout::RewardPayoutMethod;
 use crate::domain::rewards::policy::RewardPaymentStrategy;
 
@@ -26,7 +27,7 @@ pub async fn plan_reward_payout(
         policy_id: policy.id,
         amount,
         payment_strategy: policy.payment_strategy,
-        payout_method: payout_method.as_str().to_string(),
+        payout_method,
         requires_token_confirmation,
     };
 
@@ -60,7 +61,7 @@ async fn ensure_can_execute_reward_payout(
         Ok(())
     } else {
         Err(RewardPayoutPlanError::PermissionDenied(
-            "EXECUTE_REWARD_PAYOUT".to_string(),
+            Permissions::EXECUTE_REWARD_PAYOUT.into(),
         ))
     }
 }
@@ -69,17 +70,13 @@ async fn select_payout_method(
     store: &mut impl RewardPayoutPlanStore,
     policy: &RewardPayoutPolicy,
 ) -> Result<RewardPayoutMethod, RewardPayoutPlanError> {
-    let strategy =
-        RewardPaymentStrategy::parse(policy.payment_strategy.as_str()).map_err(|_| {
-            RewardPayoutPlanError::InvalidInput("unsupported reward payment strategy".to_string())
-        })?;
-    let has_presigner_contract = match strategy {
+    let has_presigner_contract = match policy.payment_strategy {
         RewardPaymentStrategy::TreasuryTransfer => store.has_presigner_contract().await?,
         RewardPaymentStrategy::Mint | RewardPaymentStrategy::OffChain => false,
     };
 
     Ok(RewardPayoutMethod::for_payment_strategy(
-        strategy,
+        policy.payment_strategy,
         has_presigner_contract,
     ))
 }

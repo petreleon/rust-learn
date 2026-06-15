@@ -7,8 +7,8 @@ use crate::application::learning::assessment::{
 };
 use crate::application::learning::list_assessment_attempts::{self, AssessmentAttemptsUseCase};
 use crate::application::learning::list_course_assessments::{self, CourseAssessmentsUseCase};
-use crate::db::DbPool;
 use crate::infra::postgres::learning::assessment_read_store::PostgresAssessmentReadStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresAssessmentReadUseCase {

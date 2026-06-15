@@ -5,6 +5,7 @@ use crate::application::rewards::manage_reward_policy::{
     CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyError, RewardPolicyOutput,
 };
 use crate::application::rewards::ports::RewardPolicyStore;
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn create_reward_policy(
     store: &mut impl RewardPolicyStore,
@@ -33,7 +34,7 @@ async fn ensure_can_manage(
         Ok(())
     } else {
         Err(RewardPolicyError::PermissionDenied(
-            "SET_REWARD_POLICY".to_string(),
+            Permissions::SET_REWARD_POLICY.into(),
         ))
     }
 }

@@ -1,3 +1,7 @@
+use crate::{
+    create_course::*, reconciliation_use_case_helpers::*, support::*, use_case_helpers::*,
+};
+
 #[actix_web::test]
 async fn reconciliation_repairs_reward_side_effects_without_duplicate_payouts() {
     let mut conn = setup_conn().await;
@@ -21,7 +25,7 @@ async fn reconciliation_repairs_reward_side_effects_without_duplicate_payouts() 
         contract_address: "0x00000000000000000000000000000000000000ff".to_string(),
         transaction_hash: unique_hash("reconcile"),
         log_index: 4,
-        event_type: "transfer".to_string(),
+        event_type: RewardTokenEventType::Transfer,
         from_address: Some("0x00000000000000000000000000000000000000ab".to_string()),
         to_address: "0x00000000000000000000000000000000000000ac".to_string(),
         amount: BigDecimal::from(17),
@@ -51,12 +55,12 @@ async fn reconciliation_repairs_reward_side_effects_without_duplicate_payouts() 
     assert!(first.wallet_credit_created);
     assert!(first.notification_created);
     assert!(!first.internal_transaction_link_repaired);
-    assert_eq!(first.final_status, REWARD_STATUS_NOTIFIED);
+    assert_eq!(first.final_status.as_str(), REWARD_STATUS_NOTIFIED);
 
     let wallet = wallets::table
         .filter(wallets::user_id.eq(Some(student.id())))
         .filter(wallets::organization_id.is_null())
-        .first::<rust_learn::models::wallet::Wallet>(&mut conn)
+        .first::<rust_learn::infra::postgres::models::wallet::Wallet>(&mut conn)
         .await
         .expect("wallet should exist after reconciliation");
     assert_eq!(wallet.value, BigDecimal::from(17));
@@ -75,7 +79,7 @@ async fn reconciliation_repairs_reward_side_effects_without_duplicate_payouts() 
 
     let credit_record = reward_wallet_credit_records::table
         .filter(reward_wallet_credit_records::reward_candidate_id.eq(candidate.id))
-        .first::<rust_learn::models::reward_wallet_credit_record::RewardWalletCreditRecord>(
+        .first::<rust_learn::infra::postgres::models::reward_wallet_credit_record::RewardWalletCreditRecord>(
             &mut conn,
         )
         .await
@@ -112,7 +116,7 @@ async fn reconciliation_repairs_reward_side_effects_without_duplicate_payouts() 
     assert!(!second.wallet_credit_created);
     assert!(!second.notification_created);
     assert!(second.internal_transaction_link_repaired);
-    assert_eq!(second.final_status, REWARD_STATUS_NOTIFIED);
+    assert_eq!(second.final_status.as_str(), REWARD_STATUS_NOTIFIED);
 
     let wallet_after_second_reconcile = wallets::table
         .find(wallet.id)
@@ -138,5 +142,5 @@ async fn reconciliation_repairs_reward_side_effects_without_duplicate_payouts() 
     assert!(!third.wallet_credit_created);
     assert!(!third.notification_created);
     assert!(!third.internal_transaction_link_repaired);
-    assert_eq!(third.final_status, REWARD_STATUS_NOTIFIED);
+    assert_eq!(third.final_status.as_str(), REWARD_STATUS_NOTIFIED);
 }

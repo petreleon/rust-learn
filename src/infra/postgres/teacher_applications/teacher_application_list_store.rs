@@ -11,9 +11,9 @@ use crate::application::teacher_applications::{
     },
     TeacherApplicationOutput,
 };
-use crate::db::schema::teacher_applications;
 use crate::infra::postgres::access_control::permission_checks;
-use crate::models::teacher_application::TeacherApplication;
+use crate::infra::postgres::models::teacher_application::TeacherApplication;
+use crate::infra::postgres::schema::teacher_applications;
 
 pub struct PostgresTeacherApplicationListStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

@@ -8,10 +8,10 @@ use crate::application::learning::teacher_course_enrollment::{
     TeacherCourseRosterLearnerOutput, TeacherCourseRosterPageOutput,
     TeacherEnrollmentUserSummaryOutput,
 };
-use crate::db::schema::{course_join_requests, course_roles, user_role_course, users};
 use crate::infra::postgres::learning::{
     teacher_course_reward_eligibility_queries, teacher_course_workspace_queries,
 };
+use crate::infra::postgres::schema::{course_join_requests, course_roles, user_role_course, users};
 
 pub async fn load_teacher_course_roster_page(
     conn: &mut AsyncPgConnection,

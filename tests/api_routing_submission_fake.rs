@@ -7,6 +7,8 @@ use rust_learn::application::rewards::submit_candidate::{
     RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
     RewardCandidateSubmissionUseCase, SubmitRewardCandidateCommand,
 };
+use rust_learn::domain::rewards::candidate::source::RewardCandidateSourceScope;
+use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
 use serde_json::json;
 
 struct RouteOnlyRewardCandidateSubmissionUseCase;
@@ -56,18 +58,17 @@ fn submission_output(
         student_user_id: command.student_user_id,
         submitter_user_id: 7,
         source_scope: if source_organization_id.is_some() {
-            "organization"
+            RewardCandidateSourceScope::Organization
         } else {
-            "course"
-        }
-        .to_string(),
+            RewardCandidateSourceScope::Course
+        },
         source_organization_id,
         event_type: command.event_type,
         idempotency_key: command
             .idempotency_key
             .unwrap_or_else(|| "manual:12:23".to_string()),
         evidence: command.evidence.unwrap_or_else(|| json!({})),
-        status: "pending_teacher_approval".to_string(),
+        status: RewardCandidateStatus::PendingTeacherApproval,
         teacher_approver_user_id: None,
         teacher_decision_reason: None,
         teacher_decided_at: None,

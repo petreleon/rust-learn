@@ -2,7 +2,7 @@ use diesel::dsl::{exists, select};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::role_permission_platform;
+use crate::infra::postgres::schema::role_permission_platform;
 
 pub async fn assign_platform_permission_to_role(
     conn: &mut AsyncPgConnection,

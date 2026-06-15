@@ -1,11 +1,13 @@
+use crate::{reward_candidate_error::RewardCandidateError, support::*};
+
+pub(crate) use rust_learn::application::rewards::decide_teacher_candidate::TeacherRewardCandidateDecisionCommand as TeacherRewardCandidateDecisionRequest;
 use rust_learn::application::rewards::decide_teacher_candidate::{
-    TeacherRewardCandidateDecisionCommand as TeacherRewardCandidateDecisionRequest,
     TeacherRewardCandidateDecisionError, TeacherRewardCandidateDecisionOutput,
     TeacherRewardCandidateDecisionUseCase,
 };
 use rust_learn::infra::postgres::rewards::teacher_reward_candidate_decision_use_case::PostgresTeacherRewardCandidateDecisionUseCase;
 
-async fn decide_reward_candidate_by_teacher(
+pub(crate) async fn decide_reward_candidate_by_teacher(
     _conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,

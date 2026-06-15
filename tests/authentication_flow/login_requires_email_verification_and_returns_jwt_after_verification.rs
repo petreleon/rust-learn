@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn login_requires_email_verification_and_returns_jwt_after_verification() {
     let _ = dotenvy::dotenv();

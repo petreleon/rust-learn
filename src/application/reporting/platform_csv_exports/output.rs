@@ -1,14 +1,39 @@
 use chrono::{DateTime, Utc};
 
+use crate::domain::access_control::delegation::DelegatedScopeType;
+use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::domain::rewards::token::RewardTokenEventType;
+use crate::domain::teacher_applications::scope::TeacherApplicationScope;
+use crate::domain::teacher_applications::status::TeacherApplicationStatus;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlatformDelegatedPermissionExportState {
+    Active,
+    Expired,
+    Revoked,
+}
+
+impl PlatformDelegatedPermissionExportState {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::Expired => "expired",
+            Self::Revoked => "revoked",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlatformTeacherApplicationExportRowOutput {
     pub application_id: i64,
     pub applicant_user_id: i32,
-    pub requested_scope: String,
+    pub requested_scope: TeacherApplicationScope,
     pub requested_organization_id: Option<i32>,
     pub requested_course_id: Option<i32>,
     pub organization_sponsor_id: Option<i32>,
-    pub status: String,
+    pub status: TeacherApplicationStatus,
     pub reviewer_id: Option<i32>,
     pub decision_reason: String,
     pub portfolio_links: String,
@@ -23,10 +48,10 @@ pub struct PlatformRewardApprovalExportRowOutput {
     pub course_id: i32,
     pub student_user_id: i32,
     pub submitter_user_id: i32,
-    pub source_scope: String,
+    pub source_scope: RewardCandidateSourceScope,
     pub source_organization_id: Option<i32>,
-    pub event_type: String,
-    pub status: String,
+    pub event_type: RewardEventType,
+    pub status: RewardCandidateStatus,
     pub teacher_approver_user_id: Option<i32>,
     pub teacher_decision_reason: String,
     pub teacher_decided_at: Option<DateTime<Utc>>,
@@ -52,7 +77,7 @@ pub struct PlatformTokenPayoutExportRowOutput {
     pub contract_address: String,
     pub transaction_hash: String,
     pub log_index: Option<i64>,
-    pub event_type: String,
+    pub event_type: Option<RewardTokenEventType>,
     pub from_address: String,
     pub to_address: String,
     pub created_at: DateTime<Utc>,
@@ -79,10 +104,10 @@ pub struct PlatformDelegatedPermissionExportRowOutput {
     pub grantor_user_id: i32,
     pub grantee_user_id: i32,
     pub permission: String,
-    pub scope_type: String,
+    pub scope_type: DelegatedScopeType,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,
-    pub state: String,
+    pub state: PlatformDelegatedPermissionExportState,
     pub reason: String,
     pub expires_at: Option<DateTime<Utc>>,
     pub revoked_at: Option<DateTime<Utc>>,

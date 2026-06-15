@@ -141,6 +141,7 @@ This document lists all permissions assigned to roles across **Course**, **Organ
 *   POST_IN_DISCUSSION
 *   RECONCILE_WALLETS
 *   REJECT_TEACHER_APPLICATION
+*   REVIEW_KYC_SUBMISSIONS
 *   REVIEW_TEACHER_APPLICATIONS
 *   RUN_MAINTENANCE_TASKS
 *   RUN_TESTS
@@ -263,6 +264,7 @@ This document lists all permissions assigned to roles across **Course**, **Organ
 *   REFUND_TRANSACTION
 *   REQUEST_JOIN_COURSE
 *   REQUEST_JOIN_ORGANIZATION
+*   REVIEW_KYC_SUBMISSIONS
 *   REVIEW_TEACHER_APPLICATIONS
 *   RUN_MAINTENANCE_TASKS
 *   RUN_TESTS

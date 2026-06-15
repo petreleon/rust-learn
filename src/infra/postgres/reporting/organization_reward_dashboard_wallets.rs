@@ -5,8 +5,8 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::application::reporting::organization_reward_dashboard::{
     OrganizationRewardDashboardError, OrganizationWalletBalanceFact,
 };
-use crate::db::schema::wallets;
 use crate::infra::postgres::reporting::organization_reward_dashboard_mappers::map_diesel_error;
+use crate::infra::postgres::schema::wallets;
 
 pub(super) async fn wallet_balance_rows(
     conn: &mut AsyncPgConnection,

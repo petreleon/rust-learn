@@ -1,12 +1,12 @@
 use crate::bootstrap::app_state::AppState;
 use crate::bootstrap::contract_startup::deploy_startup_contracts;
 use crate::bootstrap::use_case_wiring::build_app_state;
-use crate::config::db_setup::version_updater;
-use crate::db;
 use crate::infra::object_storage::S3State;
+use crate::infra::postgres;
+use crate::infra::postgres::operations::db_setup::version_updater;
 
 pub async fn initialize_app_state() -> std::io::Result<AppState> {
-    let pool = db::try_establish_connection().map_err(|error| {
+    let pool = postgres::try_establish_connection().map_err(|error| {
         log::error!("event=db_pool_init_failed error={}", error);
         std::io::Error::other(error)
     })?;
@@ -21,7 +21,7 @@ pub async fn initialize_app_state() -> std::io::Result<AppState> {
     Ok(build_app_state(pool, s3))
 }
 
-async fn run_startup_tasks(pool: &db::DbPool) -> std::io::Result<()> {
+async fn run_startup_tasks(pool: &postgres::DbPool) -> std::io::Result<()> {
     let mut conn = pool.get().await.map_err(|error| {
         log::error!("event=db_connection_failed phase=startup error={:?}", error);
         std::io::Error::other(format!("Failed to get DB connection from pool: {error}"))

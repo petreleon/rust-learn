@@ -1,4 +1,6 @@
-async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organization {
+use crate::support::*;
+
+pub(crate) async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organization {
     diesel::insert_into(organizations::table)
         .values(NewOrganization {
             name: name.to_string(),
@@ -10,7 +12,7 @@ async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organi
         .expect("failed to create organization")
 }
 
-async fn link_course_to_org(
+pub(crate) async fn link_course_to_org(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     organization_id: i32,
@@ -27,7 +29,7 @@ async fn link_course_to_org(
         .expect("failed to link course and organization");
 }
 
-async fn create_chapter(
+pub(crate) async fn create_chapter(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     title: &str,
@@ -45,7 +47,7 @@ async fn create_chapter(
         .expect("failed to create chapter")
 }
 
-async fn create_content(
+pub(crate) async fn create_content(
     conn: &mut AsyncPgConnection,
     chapter_id: i32,
     content_type: &str,
@@ -54,7 +56,7 @@ async fn create_content(
     create_content_with_data(conn, chapter_id, content_type, order, None).await;
 }
 
-async fn create_content_with_data(
+pub(crate) async fn create_content_with_data(
     conn: &mut AsyncPgConnection,
     chapter_id: i32,
     content_type: &str,
@@ -74,7 +76,7 @@ async fn create_content_with_data(
         .expect("failed to create content")
 }
 
-async fn create_upload_job(
+pub(crate) async fn create_upload_job(
     conn: &mut AsyncPgConnection,
     object_key: &str,
     status: &str,

@@ -1,4 +1,6 @@
-async fn link_course_to_organization(
+use crate::support::*;
+
+pub(crate) async fn link_course_to_organization(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     organization_id: i32,
@@ -14,7 +16,7 @@ async fn link_course_to_organization(
         .expect("failed to link course to organization");
 }
 
-async fn force_assign_course_role(
+pub(crate) async fn force_assign_course_role(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     course_id: i32,
@@ -28,7 +30,7 @@ async fn force_assign_course_role(
         .expect("failed to assign course role");
 }
 
-async fn create_custom_course_role(
+pub(crate) async fn create_custom_course_role(
     conn: &mut AsyncPgConnection,
     role_name: &str,
     permissions: &[Permissions],
@@ -58,7 +60,7 @@ async fn create_custom_course_role(
     role_id
 }
 
-async fn assign_course_role_id(
+pub(crate) async fn assign_course_role_id(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     course_id: i32,
@@ -69,7 +71,11 @@ async fn assign_course_role_id(
         .expect("failed to assign custom course role");
 }
 
-async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
+pub(crate) async fn force_assign_platform_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    role_name: &str,
+) {
     let role_id = role_catalog_store::platform_role_id_by_name(conn, role_name)
         .await
         .expect("platform role not found");
@@ -78,7 +84,7 @@ async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, 
         .expect("failed to assign platform role");
 }
 
-async fn create_custom_platform_role(
+pub(crate) async fn create_custom_platform_role(
     conn: &mut AsyncPgConnection,
     role_name: &str,
     permissions: &[Permissions],
@@ -108,7 +114,11 @@ async fn create_custom_platform_role(
     role_id
 }
 
-async fn assign_platform_role_id(conn: &mut AsyncPgConnection, user_id: i32, role_id: i32) {
+pub(crate) async fn assign_platform_role_id(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    role_id: i32,
+) {
     platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
         .await
         .expect("failed to assign custom platform role");

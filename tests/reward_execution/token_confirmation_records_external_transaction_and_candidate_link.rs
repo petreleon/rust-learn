@@ -1,3 +1,5 @@
+use crate::{create_course::*, support::*, use_case_helpers::*};
+
 #[actix_web::test]
 async fn token_confirmation_records_external_transaction_and_candidate_link() {
     let mut conn = setup_conn().await;
@@ -21,7 +23,7 @@ async fn token_confirmation_records_external_transaction_and_candidate_link() {
         contract_address: "0x00000000000000000000000000000000000000cc".to_string(),
         transaction_hash: unique_hash("reward"),
         log_index: 3,
-        event_type: "transfer".to_string(),
+        event_type: RewardTokenEventType::Transfer,
         from_address: Some("0x00000000000000000000000000000000000000dd".to_string()),
         to_address: "0x00000000000000000000000000000000000000ee".to_string(),
         amount: BigDecimal::from(17),
@@ -34,7 +36,7 @@ async fn token_confirmation_records_external_transaction_and_candidate_link() {
 
     let external = external_transactions::table
         .find(confirmation.external_transaction_id)
-        .first::<rust_learn::models::transaction::ExternalTransaction>(&mut conn)
+        .first::<rust_learn::infra::postgres::models::transaction::ExternalTransaction>(&mut conn)
         .await
         .expect("external transaction should exist");
     assert_eq!(external.chain_id, Some(request.chain_id));
@@ -60,7 +62,9 @@ async fn token_confirmation_records_external_transaction_and_candidate_link() {
 
     let payout_record = reward_payout_records::table
         .find(confirmation.payout_record_id)
-        .first::<rust_learn::models::reward_payout_record::RewardPayoutRecord>(&mut conn)
+        .first::<rust_learn::infra::postgres::models::reward_payout_record::RewardPayoutRecord>(
+            &mut conn,
+        )
         .await
         .expect("reward payout record should exist");
     assert_eq!(payout_record.reward_candidate_id, candidate.id);

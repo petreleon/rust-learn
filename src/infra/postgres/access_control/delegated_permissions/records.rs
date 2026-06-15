@@ -2,8 +2,10 @@ use chrono::Utc;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::delegated_permissions;
-use crate::models::delegated_permission::{DelegatedPermission, NewDelegatedPermission};
+use crate::infra::postgres::models::delegated_permission::{
+    DelegatedPermission, NewDelegatedPermission,
+};
+use crate::infra::postgres::schema::delegated_permissions;
 
 #[derive(Debug, Default)]
 pub(crate) struct DelegatedPermissionRecordFilter {

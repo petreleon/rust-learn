@@ -1,27 +1,35 @@
 use std::collections::BTreeMap;
 
 use crate::application::teacher_applications::list_platform_review::{
-    TeacherApplicationPlatformReviewAuditSummaryOutput,
+    TeacherApplicationPlatformReviewAuditSummaryOutput, TeacherApplicationPlatformReviewError,
     TeacherApplicationPlatformReviewSummaryOutput,
 };
+use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 use crate::domain::teacher_applications::status::{
     TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
     TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
 };
-use crate::models::teacher_application::{TeacherApplication, TeacherApplicationAuditEvent};
+use crate::infra::postgres::models::teacher_application::{
+    TeacherApplication, TeacherApplicationAuditEvent,
+};
 
 pub fn audit_summaries(
     audit_events: Vec<TeacherApplicationAuditEvent>,
-) -> BTreeMap<i64, TeacherApplicationPlatformReviewAuditSummaryOutput> {
+) -> Result<
+    BTreeMap<i64, TeacherApplicationPlatformReviewAuditSummaryOutput>,
+    TeacherApplicationPlatformReviewError,
+> {
     let mut summaries = BTreeMap::<i64, TeacherApplicationPlatformReviewAuditSummaryOutput>::new();
     for event in audit_events {
+        let event_type = TeacherApplicationAuditEventType::parse(&event.event_type)
+            .map_err(|error| TeacherApplicationPlatformReviewError::Database(error.to_string()))?;
         let summary = summaries.entry(event.application_id).or_default();
         summary.event_count += 1;
-        summary.latest_event_type = Some(event.event_type);
+        summary.latest_event_type = Some(event_type);
         summary.latest_event_at = Some(event.created_at);
         summary.latest_reason = event.reason;
     }
-    summaries
+    Ok(summaries)
 }
 
 pub fn application_summary(

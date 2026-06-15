@@ -6,8 +6,8 @@ use crate::application::learning::get_teacher_course_students::{
     self, TeacherCourseStudentsOutput, TeacherCourseStudentsQuery, TeacherCourseStudentsUseCase,
 };
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError;
-use crate::db::DbPool;
 use crate::infra::postgres::learning::teacher_course_students_store::PostgresTeacherCourseStudentsStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresTeacherCourseStudentsUseCase {

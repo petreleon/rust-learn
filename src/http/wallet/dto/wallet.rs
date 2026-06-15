@@ -15,7 +15,7 @@ impl From<WalletView> for WalletResponse {
     fn from(wallet: WalletView) -> Self {
         Self {
             id: wallet.id,
-            owner_type: wallet.owner_type,
+            owner_type: wallet.owner_type.as_str(),
             user_id: wallet.user_id,
             organization_id: wallet.organization_id,
             value: wallet.value,

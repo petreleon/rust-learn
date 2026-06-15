@@ -5,9 +5,7 @@ pub(crate) use rust_learn::application::learning::assign_course_role::{
     assign_course_role as run_course_role_assignment, CourseRoleAssignmentCommand,
     CourseRoleAssignmentError, CourseRoleAssignmentOutput,
 };
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
-pub(crate) use rust_learn::db::establish_connection;
-pub(crate) use rust_learn::db::schema::{courses, organizations, users};
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::hierarchy_queries::compare_organization_users;
 pub(crate) use rust_learn::infra::postgres::access_control::organization_role_records;
@@ -17,11 +15,13 @@ pub(crate) use rust_learn::infra::postgres::access_control::permission_queries::
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_organization_role_with_hierarchy;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
+pub(crate) use rust_learn::infra::postgres::establish_connection;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 pub(crate) use rust_learn::infra::postgres::learning::course_role_assignment_store::PostgresCourseRoleAssignmentStore;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
-pub(crate) use rust_learn::models::user::User;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::user::User;
+pub(crate) use rust_learn::infra::postgres::schema::{courses, organizations, users};
 pub(crate) use std::cmp::Ordering;
 
 pub(crate) fn unique_string(prefix: &str) -> String {

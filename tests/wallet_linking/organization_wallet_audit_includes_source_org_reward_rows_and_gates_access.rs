@@ -1,3 +1,9 @@
+use crate::http_support::{assign_organization_permission_role, assign_organization_role};
+use crate::support::*;
+use crate::wallet_org_audit_helpers::{
+    assert_organization_wallet_audit, OrganizationWalletAuditExpectation,
+};
+
 #[actix_web::test]
 async fn organization_wallet_audit_includes_source_org_reward_rows_and_gates_access() {
     let _ = dotenvy::dotenv();

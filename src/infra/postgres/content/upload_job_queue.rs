@@ -2,8 +2,8 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::upload_jobs;
-use crate::models::upload_job::{UploadJob, UploadJobQueueMetrics};
+use crate::infra::postgres::models::upload_job::{UploadJob, UploadJobQueueMetrics};
+use crate::infra::postgres::schema::upload_jobs;
 
 pub async fn claim_job(conn: &mut AsyncPgConnection) -> QueryResult<Option<UploadJob>> {
     conn.transaction::<Option<UploadJob>, diesel::result::Error, _>(|tx| {

@@ -3,6 +3,7 @@ use bigdecimal::BigDecimal;
 use crate::application::reporting::platform_wallet_reconciliation::{
     PlatformWalletReconciliationOutput, PlatformWalletReconciliationRowOutput,
 };
+use crate::domain::wallet::owner::WalletOwnerType;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PlatformWalletReconciliationRowFact {
@@ -24,11 +25,7 @@ pub(crate) fn platform_wallet_reconciliation_row(
 ) -> PlatformWalletReconciliationRowOutput {
     PlatformWalletReconciliationRowOutput {
         wallet_id: fact.wallet_id,
-        owner_type: if fact.user_id.is_some() {
-            "user".to_string()
-        } else {
-            "organization".to_string()
-        },
+        owner_type: WalletOwnerType::from_user_id(fact.user_id),
         user_id: fact.user_id,
         organization_id: fact.organization_id,
         balance: fact.balance.to_string(),
@@ -82,7 +79,7 @@ mod tests {
     fn builds_user_wallet_reconciliation_row() {
         let row = platform_wallet_reconciliation_row(row_fact(Some(7), None));
 
-        assert_eq!(row.owner_type, "user");
+        assert_eq!(row.owner_type, WalletOwnerType::User);
         assert_eq!(row.user_id, Some(7));
         assert_eq!(row.organization_id, None);
         assert_eq!(row.balance, "50");
@@ -92,7 +89,7 @@ mod tests {
     fn builds_organization_wallet_reconciliation_row() {
         let row = platform_wallet_reconciliation_row(row_fact(None, Some(8)));
 
-        assert_eq!(row.owner_type, "organization");
+        assert_eq!(row.owner_type, WalletOwnerType::Organization);
         assert_eq!(row.user_id, None);
         assert_eq!(row.organization_id, Some(8));
     }

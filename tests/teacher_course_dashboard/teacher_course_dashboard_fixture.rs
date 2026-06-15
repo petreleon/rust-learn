@@ -1,14 +1,16 @@
-struct TeacherDashboardFixture {
-    pool: DbPool,
-    teacher: User,
-    student: User,
-    pending_learner: User,
-    outsider: User,
-    org: Organization,
-    course: Course,
+use crate::{link_course_to_org::*, support::*};
+
+pub(crate) struct TeacherDashboardFixture {
+    pub(crate) pool: DbPool,
+    pub(crate) teacher: User,
+    pub(crate) student: User,
+    pub(crate) pending_learner: User,
+    pub(crate) outsider: User,
+    pub(crate) org: Organization,
+    pub(crate) course: Course,
 }
 
-async fn setup_teacher_dashboard_fixture() -> TeacherDashboardFixture {
+pub(crate) async fn setup_teacher_dashboard_fixture() -> TeacherDashboardFixture {
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
     let mut conn = setup_conn(&pool).await;

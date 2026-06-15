@@ -1,4 +1,6 @@
-async fn create_custom_platform_role(
+use crate::{submit_support::SubmitTeacherApplicationRequest, support::*};
+
+pub(crate) async fn create_custom_platform_role(
     conn: &mut AsyncPgConnection,
     role_name: &str,
     permissions: &[Permissions],
@@ -29,13 +31,17 @@ async fn create_custom_platform_role(
     role_id
 }
 
-async fn assign_platform_role_id(conn: &mut AsyncPgConnection, user_id: i32, role_id: i32) {
+pub(crate) async fn assign_platform_role_id(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    role_id: i32,
+) {
     platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
         .await
         .expect("failed to assign custom platform role");
 }
 
-fn platform_application_request() -> SubmitTeacherApplicationRequest {
+pub(crate) fn platform_application_request() -> SubmitTeacherApplicationRequest {
     SubmitTeacherApplicationRequest {
         requested_scope: "platform".to_string(),
         requested_organization_id: None,

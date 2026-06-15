@@ -12,10 +12,10 @@ pub fn platform_reward_approvals_csv(rows: &[PlatformRewardApprovalExportRowOutp
             row.course_id,
             row.student_user_id,
             row.submitter_user_id,
-            csv_value(&row.source_scope),
+            csv_value(row.source_scope.as_str()),
             csv_optional(row.source_organization_id),
-            csv_value(&row.event_type),
-            csv_value(&row.status),
+            csv_value(row.event_type.as_str()),
+            csv_value(row.status.as_str()),
             csv_optional(row.teacher_approver_user_id),
             csv_value(&row.teacher_decision_reason),
             csv_optional(row.teacher_decided_at.as_ref()),
@@ -36,6 +36,9 @@ mod tests {
 
     use super::platform_reward_approvals_csv;
     use crate::application::reporting::platform_csv_exports::PlatformRewardApprovalExportRowOutput;
+    use crate::domain::rewards::candidate::event_type::RewardEventType;
+    use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
+    use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
     #[test]
     fn keeps_legacy_reward_approvals_csv_shape() {
@@ -45,10 +48,10 @@ mod tests {
             course_id: 10,
             student_user_id: 20,
             submitter_user_id: 30,
-            source_scope: "course".to_string(),
+            source_scope: RewardCandidateSourceScope::Course,
             source_organization_id: None,
-            event_type: "course_completion".to_string(),
-            status: "amount_approved".to_string(),
+            event_type: RewardEventType::CourseCompletion,
+            status: RewardCandidateStatus::AmountApproved,
             teacher_approver_user_id: Some(40),
             teacher_decision_reason: "course reward approved".to_string(),
             teacher_decided_at: None,

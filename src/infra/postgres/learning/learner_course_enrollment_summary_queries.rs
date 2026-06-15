@@ -4,13 +4,13 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::application::learning::learner_course_catalog::{
     LearnerCourseCatalogError, LearnerCourseEnrollmentSummaryOutput,
 };
-use crate::db::schema::{course_join_requests, course_roles, user_role_course};
 use crate::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
 use crate::domain::learning::enrollment::status::{
     COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_REJECTED,
     COURSE_JOIN_STATUS_WAITLISTED,
 };
-use crate::models::course_join_request::CourseJoinRequest;
+use crate::infra::postgres::models::course_join_request::CourseJoinRequest;
+use crate::infra::postgres::schema::{course_join_requests, course_roles, user_role_course};
 
 pub async fn build_learner_course_enrollment(
     conn: &mut AsyncPgConnection,

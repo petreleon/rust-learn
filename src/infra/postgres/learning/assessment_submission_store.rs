@@ -8,8 +8,10 @@ use crate::application::learning::assessment::{
 };
 use crate::application::learning::ports::AssessmentSubmissionStore;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionError;
-use crate::db::schema::{assessment_attempts, assessment_questions, assessments};
-use crate::models::assessment::{Assessment, AssessmentAttempt, AssessmentQuestion};
+use crate::infra::postgres::models::assessment::{
+    Assessment, AssessmentAttempt, AssessmentQuestion,
+};
+use crate::infra::postgres::schema::{assessment_attempts, assessment_questions, assessments};
 
 pub struct PostgresAssessmentSubmissionStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

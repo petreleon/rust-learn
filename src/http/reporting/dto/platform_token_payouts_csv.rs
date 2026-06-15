@@ -20,7 +20,11 @@ pub fn platform_token_payouts_csv(rows: &[PlatformTokenPayoutExportRowOutput]) -
             csv_value(&row.contract_address),
             csv_value(&row.transaction_hash),
             csv_optional(row.log_index),
-            csv_value(&row.event_type),
+            csv_value(
+                row.event_type
+                    .map(|event_type| event_type.as_str())
+                    .unwrap_or_default()
+            ),
             csv_value(&row.from_address),
             csv_value(&row.to_address),
             row.created_at
@@ -35,6 +39,7 @@ mod tests {
 
     use super::platform_token_payouts_csv;
     use crate::application::reporting::platform_csv_exports::PlatformTokenPayoutExportRowOutput;
+    use crate::domain::rewards::token::RewardTokenEventType;
 
     #[test]
     fn keeps_legacy_token_payouts_csv_shape() {
@@ -51,7 +56,7 @@ mod tests {
             contract_address: "0xcontract".to_string(),
             transaction_hash: "0xtx".to_string(),
             log_index: Some(2),
-            event_type: "transfer".to_string(),
+            event_type: Some(RewardTokenEventType::Transfer),
             from_address: "from".to_string(),
             to_address: "to".to_string(),
             created_at: Utc::now(),

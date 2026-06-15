@@ -3,6 +3,7 @@ use crate::application::rewards::record_compensation::{
     RecordRewardCompensationCommand, RewardCompensation, RewardCompensationError,
     RewardCompensationOutput, RewardCompensationStore,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn record_reward_compensation(
     store: &mut impl RewardCompensationStore,
@@ -27,7 +28,7 @@ async fn ensure_can_record_reward_compensation(
         Ok(())
     } else {
         Err(RewardCompensationError::PermissionDenied(
-            "RECONCILE_WALLETS".to_string(),
+            Permissions::RECONCILE_WALLETS.into(),
         ))
     }
 }

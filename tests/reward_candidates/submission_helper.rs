@@ -1,11 +1,13 @@
+use crate::{reward_candidate_error::RewardCandidateError, support::*};
+
+pub(crate) use rust_learn::application::rewards::submit_candidate::SubmitRewardCandidateCommand as SubmitRewardCandidateRequest;
 use rust_learn::application::rewards::submit_candidate::{
     RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
     RewardCandidateSubmissionUseCase,
-    SubmitRewardCandidateCommand as SubmitRewardCandidateRequest,
 };
 use rust_learn::infra::postgres::rewards::reward_candidate_submission_use_case::PostgresRewardCandidateSubmissionUseCase;
 
-async fn submit_course_reward_candidate(
+pub(crate) async fn submit_course_reward_candidate(
     _conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,
@@ -18,7 +20,7 @@ async fn submit_course_reward_candidate(
         .map_err(map_reward_candidate_submission_error)
 }
 
-async fn submit_organization_reward_candidate(
+pub(crate) async fn submit_organization_reward_candidate(
     _conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,

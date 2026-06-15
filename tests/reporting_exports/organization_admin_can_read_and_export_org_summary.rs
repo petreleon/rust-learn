@@ -1,3 +1,5 @@
+use crate::{link_course_to_org::*, reporting_app_data::*, support::*};
+
 #[actix_web::test]
 async fn organization_admin_can_read_and_export_org_summary() {
     let _ = dotenvy::dotenv();
@@ -19,7 +21,8 @@ async fn organization_admin_can_read_and_export_org_summary() {
                 rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
             })
             .app_data(organization_summary_use_case(&pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::reporting::configure_routes),
     )
     .await;

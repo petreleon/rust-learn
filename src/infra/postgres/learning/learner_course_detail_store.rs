@@ -6,12 +6,12 @@ use crate::application::learning::get_learner_course_detail::{
     LearnerCourseDetailOutput, LearnerCourseDetailQuery, LearnerCourseDetailStore,
 };
 use crate::application::learning::learner_course_catalog::LearnerCourseCatalogError;
-use crate::db::schema::courses;
 use crate::infra::postgres::learning::{
     learner_course_access_queries, learner_course_catalog_chapter_queries,
     learner_course_catalog_item_queries,
 };
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::schema::courses;
 
 pub struct PostgresLearnerCourseDetailStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

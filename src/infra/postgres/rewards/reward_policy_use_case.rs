@@ -4,8 +4,8 @@ use crate::application::rewards::manage_reward_policy::{
     self, CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyError,
     RewardPolicyOutput, RewardPolicyUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::reward_policy_store::PostgresRewardPolicyStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRewardPolicyUseCase {

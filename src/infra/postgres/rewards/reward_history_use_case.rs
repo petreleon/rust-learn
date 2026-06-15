@@ -4,8 +4,8 @@ use crate::application::rewards::list_reward_history::{
     self, StudentRewardHistoryEntry, StudentRewardHistoryError, StudentRewardHistoryQuery,
     StudentRewardHistoryUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::reward_history_store::PostgresStudentRewardHistoryStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresStudentRewardHistoryUseCase {

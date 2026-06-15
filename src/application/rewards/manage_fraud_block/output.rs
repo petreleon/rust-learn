@@ -1,9 +1,11 @@
 use chrono::{DateTime, Utc};
 
+use crate::domain::rewards::fraud_block::{RewardFraudBlockAuditEventType, RewardFraudBlockScope};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RewardFraudBlockOutput {
     pub id: i64,
-    pub scope_type: String,
+    pub scope_type: RewardFraudBlockScope,
     pub teacher_user_id: Option<i32>,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,
@@ -29,9 +31,9 @@ pub struct ListRewardFraudBlocksOutput {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RewardFraudBlockAuditEventOutput {
     pub fraud_block_id: i64,
-    pub event_type: String,
+    pub event_type: RewardFraudBlockAuditEventType,
     pub actor_user_id: i32,
-    pub scope_type: String,
+    pub scope_type: RewardFraudBlockScope,
     pub teacher_user_id: Option<i32>,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,

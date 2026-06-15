@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use chrono::Utc;
 
 use super::*;
-use crate::models::delegated_permission::DelegatedPermission;
+use crate::infra::postgres::models::delegated_permission::DelegatedPermission;
 
 #[test]
 fn organization_builder_creates_new_entry() {

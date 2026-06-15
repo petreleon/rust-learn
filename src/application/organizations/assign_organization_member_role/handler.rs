@@ -5,8 +5,7 @@ use crate::application::organizations::assign_organization_member_role::{
     OrganizationMemberRoleAssignmentCommand, OrganizationMemberRoleAssignmentError,
     OrganizationMemberRoleAssignmentOutput, OrganizationMemberRoleAssignmentStore,
 };
-
-const ASSIGN_ROLES_TO_ORG_USERS: &str = "ASSIGN_ROLES_TO_ORG_USERS";
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn assign_organization_member_role(
     store: &mut impl OrganizationMemberRoleAssignmentStore,
@@ -15,7 +14,7 @@ pub async fn assign_organization_member_role(
     if !store
         .can(
             AccessActor::user(command.actor_user_id),
-            AccessAction::permission(ASSIGN_ROLES_TO_ORG_USERS),
+            AccessAction::permission(Permissions::ASSIGN_ROLES_TO_ORG_USERS),
             AccessScope::organization(command.organization_id),
         )
         .await?

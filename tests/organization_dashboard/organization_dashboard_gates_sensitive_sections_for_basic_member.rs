@@ -27,7 +27,8 @@ async fn organization_dashboard_gates_sensitive_sections_for_basic_member() {
                 rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
             })
             .app_data(organization_dashboard_use_case_data(&pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::organizations::organization_scope()),
     )
     .await;
@@ -90,7 +91,8 @@ async fn organization_dashboard_denies_outsiders_without_org_scope() {
                 rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
             })
             .app_data(organization_dashboard_use_case_data(&pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::organizations::organization_scope()),
     )
     .await;

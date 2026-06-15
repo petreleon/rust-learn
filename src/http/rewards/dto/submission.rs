@@ -3,16 +3,17 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::application::rewards::submit_candidate::{
-    RewardCandidateSubmissionOutput, SubmitRewardCandidateCommand,
+    RewardCandidateSubmissionError, RewardCandidateSubmissionOutput, SubmitRewardCandidateCommand,
 };
-use crate::shared::json::JsonValue;
+use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::evidence::RewardEvidence;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct SubmitRewardCandidateRequest {
     pub student_user_id: i32,
     pub event_type: String,
     pub idempotency_key: Option<String>,
-    pub evidence: Option<JsonValue>,
+    pub evidence: Option<RewardEvidence>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -25,7 +26,7 @@ pub struct RewardCandidateSubmissionResponse {
     pub source_organization_id: Option<i32>,
     pub event_type: String,
     pub idempotency_key: String,
-    pub evidence: JsonValue,
+    pub evidence: RewardEvidence,
     pub status: String,
     pub teacher_approver_user_id: Option<i32>,
     pub teacher_decision_reason: Option<String>,
@@ -38,14 +39,22 @@ pub struct RewardCandidateSubmissionResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<SubmitRewardCandidateRequest> for SubmitRewardCandidateCommand {
-    fn from(request: SubmitRewardCandidateRequest) -> Self {
-        Self {
-            student_user_id: request.student_user_id,
-            event_type: request.event_type,
-            idempotency_key: request.idempotency_key,
-            evidence: request.evidence,
-        }
+impl SubmitRewardCandidateRequest {
+    pub(in crate::http::rewards) fn into_command(
+        self,
+    ) -> Result<SubmitRewardCandidateCommand, RewardCandidateSubmissionError> {
+        let event_type = RewardEventType::normalize(&self.event_type).map_err(|_| {
+            RewardCandidateSubmissionError::InvalidInput(
+                "unsupported reward event type".to_string(),
+            )
+        })?;
+
+        Ok(SubmitRewardCandidateCommand {
+            student_user_id: self.student_user_id,
+            event_type,
+            idempotency_key: self.idempotency_key,
+            evidence: self.evidence,
+        })
     }
 }
 
@@ -56,12 +65,12 @@ impl From<RewardCandidateSubmissionOutput> for RewardCandidateSubmissionResponse
             course_id: candidate.course_id,
             student_user_id: candidate.student_user_id,
             submitter_user_id: candidate.submitter_user_id,
-            source_scope: candidate.source_scope,
+            source_scope: candidate.source_scope.as_str().to_string(),
             source_organization_id: candidate.source_organization_id,
-            event_type: candidate.event_type,
+            event_type: candidate.event_type.as_str().to_string(),
             idempotency_key: candidate.idempotency_key,
             evidence: candidate.evidence,
-            status: candidate.status,
+            status: candidate.status.as_str().to_string(),
             teacher_approver_user_id: candidate.teacher_approver_user_id,
             teacher_decision_reason: candidate.teacher_decision_reason,
             teacher_decided_at: candidate.teacher_decided_at,

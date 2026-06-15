@@ -6,8 +6,8 @@ use crate::application::organizations::invite_organization_member::{
     self, OrganizationMemberInviteCommand, OrganizationMemberInviteError,
     OrganizationMemberInviteOutput, OrganizationMemberInviteUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::organizations::organization_member_invite_store::PostgresOrganizationMemberInviteStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresOrganizationMemberInviteUseCase {

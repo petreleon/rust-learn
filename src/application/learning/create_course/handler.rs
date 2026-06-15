@@ -4,8 +4,7 @@ use crate::application::access_control::check_permission::{
 use crate::application::learning::create_course::{
     CourseCreationCommand, CourseCreationError, CourseCreationOutput, CourseCreationStore,
 };
-
-const CREATE_COURSE: &str = "CREATE_COURSE";
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn create_course(
     store: &mut impl CourseCreationStore,
@@ -15,14 +14,14 @@ pub async fn create_course(
     if !store
         .can(
             actor,
-            AccessAction::permission(CREATE_COURSE),
+            AccessAction::permission(Permissions::CREATE_COURSE),
             AccessScope::platform(),
         )
         .await?
         && !has_owner_organization_permission(store, &command).await?
     {
         return Err(CourseCreationError::PermissionDenied(
-            CREATE_COURSE.to_string(),
+            Permissions::CREATE_COURSE.into(),
         ));
     }
 
@@ -42,7 +41,7 @@ async fn has_owner_organization_permission(
     store
         .can(
             AccessActor::user(command.actor_user_id),
-            AccessAction::permission(CREATE_COURSE),
+            AccessAction::permission(Permissions::CREATE_COURSE),
             AccessScope::organization(*owner_organization_id),
         )
         .await

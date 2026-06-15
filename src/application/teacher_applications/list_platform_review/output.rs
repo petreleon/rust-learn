@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
 
+use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TeacherApplicationPlatformReviewOutput {
     pub applications: Vec<TeacherApplicationPlatformReviewItemOutput>,
@@ -59,7 +61,7 @@ pub struct TeacherApplicationPlatformReviewCourseOutput {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TeacherApplicationPlatformReviewAuditSummaryOutput {
     pub event_count: usize,
-    pub latest_event_type: Option<String>,
+    pub latest_event_type: Option<TeacherApplicationAuditEventType>,
     pub latest_event_at: Option<DateTime<Utc>>,
     pub latest_reason: Option<String>,
 }

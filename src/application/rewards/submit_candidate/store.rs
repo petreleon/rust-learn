@@ -3,12 +3,13 @@ use futures::future::BoxFuture;
 use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmissionError, RewardCandidateSubmissionOutput, SubmitRewardCandidateCommand,
 };
+use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RewardCandidateSubmission {
     pub actor_user_id: i32,
     pub course_id: i32,
-    pub source_scope: String,
+    pub source_scope: RewardCandidateSourceScope,
     pub source_organization_id: Option<i32>,
     pub command: SubmitRewardCandidateCommand,
 }

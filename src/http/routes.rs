@@ -1,7 +1,7 @@
 use actix_service::ServiceFactory;
 use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, Scope};
 
-use crate::middlewares::{
+use crate::http::middlewares::{
     conditional_access_middleware::ConditionalAccessMiddleware, jwt_middleware::JwtMiddleware,
 };
 use actix_web::web;

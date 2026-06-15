@@ -3,9 +3,9 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::reset_password::{
     self, ResetPasswordCommand, ResetPasswordError, ResetPasswordOutcome, ResetPasswordUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::identity::reset_password_security::BcryptResetPasswordHasher;
 use crate::infra::postgres::identity::reset_password_store::PostgresResetPasswordStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresResetPasswordUseCase {

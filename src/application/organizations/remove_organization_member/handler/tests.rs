@@ -1,7 +1,7 @@
 use futures::executor::block_on;
 use futures::future::{ready, BoxFuture, FutureExt};
 
-use super::{remove_organization_member, MANAGE_ORG_MEMBERS};
+use super::remove_organization_member;
 use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessDecisionStore, AccessScope,
 };
@@ -9,6 +9,7 @@ use crate::application::organizations::remove_organization_member::{
     OrganizationMemberRemovalCommand, OrganizationMemberRemovalError,
     OrganizationMemberRemovalStore,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 #[test]
 fn removes_member_after_permission_check() {
@@ -75,7 +76,10 @@ impl AccessDecisionStore for FakeOrganizationMemberRemovalStore {
         action: AccessAction,
         scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, OrganizationMemberRemovalError>> {
-        assert_eq!(action.permission_name(), MANAGE_ORG_MEMBERS);
+        assert_eq!(
+            action.permission_name(),
+            Permissions::MANAGE_ORG_MEMBERS.to_string()
+        );
         let organization_id = match scope {
             AccessScope::Organization(scope) => scope.organization_id(),
             _ => panic!("member removal must use organization scope"),

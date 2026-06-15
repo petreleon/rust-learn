@@ -6,6 +6,9 @@ use crate::application::rewards::record_token_confirmation::{
 use crate::domain::rewards::audit::RewardAuditEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::rewards::candidate::transition;
+use crate::infra::postgres::models::reward_audit_event::NewRewardAuditEvent;
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
+use crate::infra::postgres::models::reward_payout_record::NewRewardPayoutRecord;
 use crate::infra::postgres::rewards::reward_audit_records::create_reward_audit_event;
 use crate::infra::postgres::rewards::reward_candidate_records::{
     find_candidate, update_candidate_status,
@@ -15,9 +18,6 @@ use crate::infra::postgres::rewards::reward_payout_records::{
 };
 use crate::infra::postgres::rewards::reward_token_confirmation_external_transactions::record_external_reward_transaction;
 use crate::infra::postgres::rewards::reward_token_confirmation_mappers::RewardTokenConfirmationTransactionError;
-use crate::models::reward_audit_event::NewRewardAuditEvent;
-use crate::models::reward_candidate::RewardCandidate;
-use crate::models::reward_payout_record::NewRewardPayoutRecord;
 
 pub(super) async fn record_reward_token_confirmation(
     conn: &mut AsyncPgConnection,
@@ -40,7 +40,7 @@ pub(super) async fn record_reward_token_confirmation(
     let recorded = record_external_reward_transaction(
         conn,
         &confirmation.command,
-        &confirmation.transaction_type,
+        confirmation.transaction_type,
     )
     .await?;
     let payout_record = create_reward_payout_record(

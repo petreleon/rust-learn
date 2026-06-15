@@ -5,8 +5,6 @@ pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::application::identity::current_session::CurrentSessionUseCase;
 pub(crate) use rust_learn::application::notifications::notification_inbox::NotificationInboxUseCase;
 pub(crate) use rust_learn::application::notifications::preference_service::NotificationPreferencesUseCase;
-pub(crate) use rust_learn::db::schema::{courses, organizations, users};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::notifications::NotificationsState;
 pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::delegated_permissions::create_delegated_permission;
@@ -15,13 +13,15 @@ pub(crate) use rust_learn::infra::postgres::access_control::platform_role_record
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 pub(crate) use rust_learn::infra::postgres::identity::current_session_use_case::PostgresCurrentSessionUseCase;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::delegated_permission::NewDelegatedPermission;
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::notifications::notification_inbox_use_case::PostgresNotificationInboxUseCase;
 pub(crate) use rust_learn::infra::postgres::notifications::notification_preferences_use_case::PostgresNotificationPreferencesUseCase;
+pub(crate) use rust_learn::infra::postgres::schema::{courses, organizations, users};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::delegated_permission::NewDelegatedPermission;
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
-pub(crate) use rust_learn::models::user::User;
 pub(crate) use serde_json::Value;
 pub(crate) use std::sync::Arc;
 

@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn duplicate_pending_deposit_intents_are_marked_ambiguous_without_crediting() {
     let _ = dotenvy::dotenv();
@@ -14,7 +16,7 @@ async fn duplicate_pending_deposit_intents_are_marked_ambiguous_without_creditin
     .await
     .expect("failed to configure platform importer address");
 
-    let request = WalletTokenTransferRequest {
+    let request = WalletTokenTransferCommand {
         amount: BigDecimal::from(20),
         ethereum_address: "0x00000000000000000000000000000000000000aa".to_string(),
         gas_payer: "platform".to_string(),
@@ -42,7 +44,7 @@ async fn duplicate_pending_deposit_intents_are_marked_ambiguous_without_creditin
             contract_address: "0x00000000000000000000000000000000000000cc".to_string(),
             transaction_hash: tx_hash.clone(),
             log_index: 7,
-            event_type: "import".to_string(),
+            event_type: WalletDepositEventType::Import,
             from_address: "0x00000000000000000000000000000000000000aa".to_string(),
             to_address: "0x00000000000000000000000000000000000000bb".to_string(),
             amount: BigDecimal::from(20),
@@ -51,7 +53,7 @@ async fn duplicate_pending_deposit_intents_are_marked_ambiguous_without_creditin
     .await
     .expect("ambiguous observed deposit should be handled");
     assert!(!result.credited);
-    assert_eq!(result.status, "ambiguous");
+    assert_eq!(result.status, WalletDepositStatus::Ambiguous);
 
     let intent_rows = wallet_token_deposit_intents::table
         .filter(wallet_token_deposit_intents::id.eq_any([first.id, second.id]))
@@ -66,7 +68,7 @@ async fn duplicate_pending_deposit_intents_are_marked_ambiguous_without_creditin
         .expect("deposit intents should be queryable");
     assert_eq!(intent_rows.len(), 2);
     for (status, stored_hash, chain_id, log_index) in intent_rows {
-        assert_eq!(status, "ambiguous");
+        assert_eq!(status, WalletDepositStatus::Ambiguous.as_str());
         assert_eq!(
             stored_hash.as_deref(),
             Some(tx_hash.to_ascii_lowercase().as_str())

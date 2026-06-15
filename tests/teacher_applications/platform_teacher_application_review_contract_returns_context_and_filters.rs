@@ -1,3 +1,7 @@
+use crate::{
+    create_custom_platform_role::*, decision_support::*, platform_review_support::*,
+    submit_support::*, support::*,
+};
 #[actix_web::test]
 async fn platform_teacher_application_review_contract_returns_context_and_filters() {
     let mut conn = setup_conn().await;
@@ -100,11 +104,7 @@ async fn platform_teacher_application_review_contract_returns_context_and_filter
     assert!(response.operator_permissions.can_reject_applications);
     assert!(response.operator_permissions.can_request_changes);
 
-    let application = response
-        .applications
-        .as_slice()
-        .first()
-        .expect("filtered application should be returned");
+    let application = response.applications.get(0).expect("filtered application");
     assert_eq!(application.id, submitted.id);
     assert_eq!(application.applicant.id, submitted_applicant.id());
     assert_eq!(application.applicant.name, submitted_applicant.name);
@@ -129,7 +129,10 @@ async fn platform_teacher_application_review_contract_returns_context_and_filter
     );
     assert_eq!(application.audit.event_count, 1);
     assert_eq!(
-        application.audit.latest_event_type.as_deref(),
+        application
+            .audit
+            .latest_event_type
+            .map(|event_type| event_type.as_str()),
         Some("submitted")
     );
 
@@ -149,25 +152,30 @@ async fn platform_teacher_application_review_contract_returns_context_and_filter
     let app = test::init_service(
         App::new()
             .app_data(teacher_application_platform_review_data())
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::teacher_applications::configure_routes),
     )
     .await;
+    let review_uri =
+        format!("/teacher-applications/review?status=submitted&search={search_marker}");
     let http_response = test::call_service(
         &app,
         test::TestRequest::get()
-            .uri(&format!(
-                "/teacher-applications/review?status=submitted&search={search_marker}"
+            .uri(&review_uri)
+            .insert_header((
+                "Authorization",
+                format!("Bearer {}", token_for(reviewer.id())),
             ))
-            .insert_header(("Authorization", format!("Bearer {}", token_for(reviewer.id()))))
             .to_request(),
     )
     .await;
     assert_eq!(http_response.status(), StatusCode::OK);
     let body: serde_json::Value = test::read_body_json(http_response).await;
-    assert!(body["applications"]
+    let applications = body["applications"]
         .as_array()
-        .expect("applications should be an array")
+        .expect("applications should be an array");
+    assert!(applications
         .iter()
         .any(|application| application["id"].as_i64() == Some(submitted.id)));
 }

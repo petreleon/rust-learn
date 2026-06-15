@@ -5,8 +5,8 @@ use crate::application::reporting::organization_reward_dashboard::{
     teacher_application_summary_from_statuses, OrganizationRewardDashboardError,
     TeacherApplicationDashboardSummaryOutput,
 };
-use crate::db::schema::teacher_applications;
 use crate::infra::postgres::reporting::organization_reward_dashboard_mappers::map_diesel_error;
+use crate::infra::postgres::schema::teacher_applications;
 
 pub(super) async fn sponsored_teacher_application_summary(
     conn: &mut AsyncPgConnection,

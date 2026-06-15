@@ -4,6 +4,8 @@ pub const REWARD_FRAUD_BLOCK_SCOPE_TEACHER: &str = "teacher";
 pub const REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION: &str = "organization";
 pub const REWARD_FRAUD_BLOCK_SCOPE_COURSE: &str = "course";
 pub const REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY: &str = "reward_policy";
+pub const REWARD_FRAUD_BLOCK_EVENT_CREATED: &str = "created";
+pub const REWARD_FRAUD_BLOCK_EVENT_REVOKED: &str = "revoked";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RewardFraudBlockScope {
@@ -13,8 +15,19 @@ pub enum RewardFraudBlockScope {
     RewardPolicy,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RewardFraudBlockAuditEventType {
+    Created,
+    Revoked,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FraudBlockScopeParseError {
+    value: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FraudBlockAuditEventParseError {
     value: String,
 }
 
@@ -60,7 +73,32 @@ impl RewardFraudBlockScope {
     }
 }
 
+impl RewardFraudBlockAuditEventType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Created => REWARD_FRAUD_BLOCK_EVENT_CREATED,
+            Self::Revoked => REWARD_FRAUD_BLOCK_EVENT_REVOKED,
+        }
+    }
+
+    pub fn parse(value: &str) -> Result<Self, FraudBlockAuditEventParseError> {
+        match value {
+            REWARD_FRAUD_BLOCK_EVENT_CREATED => Ok(Self::Created),
+            REWARD_FRAUD_BLOCK_EVENT_REVOKED => Ok(Self::Revoked),
+            other => Err(FraudBlockAuditEventParseError {
+                value: other.to_string(),
+            }),
+        }
+    }
+}
+
 impl fmt::Display for RewardFraudBlockScope {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl fmt::Display for RewardFraudBlockAuditEventType {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(self.as_str())
     }
@@ -71,6 +109,16 @@ impl fmt::Display for FraudBlockScopeParseError {
         write!(
             formatter,
             "unknown reward fraud block scope '{}'",
+            self.value
+        )
+    }
+}
+
+impl fmt::Display for FraudBlockAuditEventParseError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "unknown reward fraud block audit event type '{}'",
             self.value
         )
     }

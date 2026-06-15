@@ -5,8 +5,8 @@ use crate::application::rewards::credit_wallet::RewardWalletCreditError;
 use crate::domain::rewards::candidate::lifecycle;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::rewards::candidate::transition;
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 use crate::infra::postgres::rewards::reward_wallet_credit_policy::reward_policy_is_off_chain;
-use crate::models::reward_candidate::RewardCandidate;
 
 pub(super) fn approved_positive_amount(
     candidate: &RewardCandidate,

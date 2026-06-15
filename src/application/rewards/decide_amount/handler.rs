@@ -5,6 +5,7 @@ use crate::application::rewards::decide_amount::{
     RewardAmountDecision, RewardAmountDecisionCommand, RewardAmountDecisionError,
     RewardAmountDecisionOutput, RewardAmountDecisionStore,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn decide_reward_amount(
     store: &mut impl RewardAmountDecisionStore,
@@ -35,7 +36,7 @@ async fn ensure_can_approve_reward_amount(
         Ok(())
     } else {
         Err(RewardAmountDecisionError::PermissionDenied(
-            "APPROVE_REWARD_AMOUNT".to_string(),
+            Permissions::APPROVE_REWARD_AMOUNT.into(),
         ))
     }
 }

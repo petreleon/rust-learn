@@ -6,8 +6,8 @@ use crate::application::learning::assign_course_role::{
     self, CourseRoleAssignmentCommand, CourseRoleAssignmentError, CourseRoleAssignmentOutput,
     CourseRoleAssignmentUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::learning::course_role_assignment_store::PostgresCourseRoleAssignmentStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresCourseRoleAssignmentUseCase {

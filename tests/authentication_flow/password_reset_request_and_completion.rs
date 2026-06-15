@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn password_reset_request_is_private_and_completion_is_one_time() {
     let _ = dotenvy::dotenv();
@@ -85,7 +87,10 @@ async fn password_reset_request_is_private_and_completion_is_one_time() {
         .uri("/api/auth/login")
         .set_json(serde_json::json!({ "email": email, "password": new_password }))
         .to_request();
-    assert_eq!(test::call_service(&app, new_login).await.status(), StatusCode::OK);
+    assert_eq!(
+        test::call_service(&app, new_login).await.status(),
+        StatusCode::OK
+    );
 
     let replay_req = test::TestRequest::post()
         .uri("/api/auth/reset-password")
@@ -145,17 +150,12 @@ async fn reset_password_rejects_missing_invalid_and_expired_tokens() {
         .await
         .expect("registered user should exist");
     let expired_token = unique_token("expired-reset-token");
-    create_password_reset_token(
-        &mut conn,
-        user.id(),
-        identity_token_hash(&expired_token),
-    )
-    .await
-    .expect("test should create reset token");
+    create_password_reset_token(&mut conn, user.id(), identity_token_hash(&expired_token))
+        .await
+        .expect("test should create reset token");
     diesel::update(
-        password_reset_tokens::table.filter(
-            password_reset_tokens::token_hash.eq(identity_token_hash(&expired_token)),
-        ),
+        password_reset_tokens::table
+            .filter(password_reset_tokens::token_hash.eq(identity_token_hash(&expired_token))),
     )
     .set(password_reset_tokens::expires_at.eq(chrono::Utc::now().naive_utc()))
     .execute(&mut conn)

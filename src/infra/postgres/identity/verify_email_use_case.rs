@@ -3,8 +3,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::verify_email::{
     self, VerifyEmailCommand, VerifyEmailError, VerifyEmailOutcome, VerifyEmailUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::identity::verify_email_store::PostgresVerifyEmailStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresVerifyEmailUseCase {

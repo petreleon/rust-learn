@@ -8,8 +8,8 @@ use crate::application::reporting::organization_reward_dashboard::{
     OrganizationCourseRewardDashboardFact, OrganizationRewardDashboardDateWindow,
     OrganizationRewardDashboardError,
 };
-use crate::db::schema::{courses, courses_organizations, reward_candidates};
 use crate::infra::postgres::reporting::organization_reward_dashboard_mappers::map_diesel_error;
+use crate::infra::postgres::schema::{courses, courses_organizations, reward_candidates};
 
 pub(super) async fn course_reward_rows(
     conn: &mut AsyncPgConnection,

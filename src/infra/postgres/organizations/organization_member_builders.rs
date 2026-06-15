@@ -7,7 +7,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::application::organizations::list_organization_members::{
     OrganizationMemberListError, OrganizationMemberListItemOutput,
 };
-use crate::db::schema::{organization_roles, user_role_organization, users};
+use crate::infra::postgres::schema::{organization_roles, user_role_organization, users};
 
 #[derive(Debug)]
 pub(super) struct OrganizationMemberBuilder {

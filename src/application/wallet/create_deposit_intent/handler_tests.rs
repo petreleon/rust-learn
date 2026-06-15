@@ -3,8 +3,8 @@ use futures::executor::block_on;
 
 use super::handler::create_deposit_intent;
 use crate::application::wallet::create_deposit_intent::{
-    test_support::FakeWalletDepositIntentStore, WalletDepositIntentError,
-    WalletDepositIntentRequest,
+    test_support::FakeWalletDepositIntentStore, WalletDepositIntentCommand,
+    WalletDepositIntentError,
 };
 
 #[test]
@@ -53,7 +53,7 @@ fn creates_platform_paid_deposit_intent_with_normalized_fields() {
         configured_platform_address: "0x00000000000000000000000000000000000000bb".to_string(),
         ..Default::default()
     };
-    let request = WalletDepositIntentRequest {
+    let request = WalletDepositIntentCommand {
         amount: BigDecimal::from(20),
         ethereum_address: " 0x00000000000000000000000000000000000000AA ".to_string(),
         gas_payer: "platform".to_string(),
@@ -92,7 +92,7 @@ fn creates_user_paid_deposit_without_loading_platform_tax() {
         configured_platform_address: "0xtreasury".to_string(),
         ..Default::default()
     };
-    let request = WalletDepositIntentRequest {
+    let request = WalletDepositIntentCommand {
         amount: BigDecimal::from(5),
         ethereum_address: "0xuser".to_string(),
         gas_payer: "user".to_string(),
@@ -132,8 +132,8 @@ fn rejects_mismatched_platform_address() {
     assert!(store.created_draft.is_none());
 }
 
-fn request_with_amount(amount: BigDecimal) -> WalletDepositIntentRequest {
-    WalletDepositIntentRequest {
+fn request_with_amount(amount: BigDecimal) -> WalletDepositIntentCommand {
+    WalletDepositIntentCommand {
         amount,
         ethereum_address: "0xuser".to_string(),
         gas_payer: "platform".to_string(),

@@ -9,12 +9,12 @@ use crate::application::teacher_applications::list_platform_review::{
     TeacherApplicationPlatformReviewDataset, TeacherApplicationPlatformReviewError,
     TeacherApplicationPlatformReviewStore,
 };
-use crate::db::schema::teacher_applications;
 use crate::infra::postgres::access_control::permission_checks;
+use crate::infra::postgres::models::teacher_application::TeacherApplication;
+use crate::infra::postgres::schema::teacher_applications;
 use crate::infra::postgres::teacher_applications::teacher_application_platform_review_audit::application_summary;
 use crate::infra::postgres::teacher_applications::teacher_application_platform_review_context::build_context;
 use crate::infra::postgres::teacher_applications::teacher_application_platform_review_mappers::platform_review_item;
-use crate::models::teacher_application::TeacherApplication;
 
 pub struct PostgresTeacherApplicationPlatformReviewStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

@@ -1,5 +1,10 @@
 use chrono::{DateTime, Utc};
 
+use crate::domain::rewards::candidate::reconciliation::RewardReconciliationStatus;
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::domain::rewards::token::RewardTokenEventType;
+use crate::domain::wallet::owner::WalletOwnerType;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletAudit {
     pub wallet: WalletAuditWallet,
@@ -12,7 +17,7 @@ pub struct WalletAudit {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletAuditWallet {
     pub id: i32,
-    pub owner_type: String,
+    pub owner_type: WalletOwnerType,
     pub user_id: Option<i32>,
     pub organization_id: Option<i32>,
     pub value: String,
@@ -38,7 +43,7 @@ pub struct WalletExternalTransactionAudit {
     pub contract_address: Option<String>,
     pub transaction_hash: Option<String>,
     pub log_index: Option<i64>,
-    pub event_type: Option<String>,
+    pub event_type: Option<RewardTokenEventType>,
     pub from_address: Option<String>,
     pub to_address: Option<String>,
 }
@@ -46,8 +51,8 @@ pub struct WalletExternalTransactionAudit {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletRewardRecordAudit {
     pub reward_candidate_id: i64,
-    pub candidate_status: String,
-    pub reconciliation_status: String,
+    pub candidate_status: RewardCandidateStatus,
+    pub reconciliation_status: RewardReconciliationStatus,
     pub approved_amount: Option<String>,
     pub wallet_credit_record_id: Option<i64>,
     pub wallet_credit_transaction_id: Option<i64>,

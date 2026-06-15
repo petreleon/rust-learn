@@ -6,8 +6,8 @@ use crate::application::wallet::index_deposit::{
     self, ObservedWalletDepositEvent, WalletDepositIndexError, WalletDepositIndexOutput,
     WalletDepositIndexUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::wallet::wallet_deposit_index_store::PostgresWalletDepositIndexStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresWalletDepositIndexUseCase {

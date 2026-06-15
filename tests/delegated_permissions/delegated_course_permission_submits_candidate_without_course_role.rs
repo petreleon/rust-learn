@@ -1,3 +1,9 @@
+use crate::{
+    delegation_helper::*, force_assign_course_role::*,
+    reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
+};
+use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
+
 #[actix_web::test]
 async fn delegated_course_permission_submits_candidate_without_course_role() {
     let mut conn = setup_conn().await;
@@ -92,5 +98,8 @@ async fn delegated_course_permission_submits_candidate_without_course_role() {
     )
     .await
     .expect("delegated operator should submit candidate");
-    assert_eq!(candidate.status, REWARD_STATUS_PENDING_TEACHER_APPROVAL);
+    assert_eq!(
+        candidate.status,
+        RewardCandidateStatus::PendingTeacherApproval
+    );
 }

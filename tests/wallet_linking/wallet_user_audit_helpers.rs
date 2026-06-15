@@ -1,16 +1,19 @@
-struct UserWalletAuditExpectation {
-    student_id: i32,
-    wallet_id: i32,
-    internal_transaction_id: i64,
-    wallet_transaction_id: i64,
-    external_transaction_id: i64,
-    payout_transaction_id: i64,
-    candidate_id: i64,
-    payout_record_id: i64,
-    credit_record_id: i64,
+use crate::http_support::{token_for, wallet_test_app};
+use crate::support::*;
+
+pub(crate) struct UserWalletAuditExpectation {
+    pub(crate) student_id: i32,
+    pub(crate) wallet_id: i32,
+    pub(crate) internal_transaction_id: i64,
+    pub(crate) wallet_transaction_id: i64,
+    pub(crate) external_transaction_id: i64,
+    pub(crate) payout_transaction_id: i64,
+    pub(crate) candidate_id: i64,
+    pub(crate) payout_record_id: i64,
+    pub(crate) credit_record_id: i64,
 }
 
-async fn assert_user_wallet_audit(pool: &DbPool, expected: UserWalletAuditExpectation) {
+pub(crate) async fn assert_user_wallet_audit(pool: &DbPool, expected: UserWalletAuditExpectation) {
     let app = test::init_service(wallet_test_app(pool.clone())).await;
     let audit_req = test::TestRequest::get()
         .uri("/api/wallets/me/audit")
@@ -56,7 +59,7 @@ async fn assert_user_wallet_audit(pool: &DbPool, expected: UserWalletAuditExpect
     );
     assert_eq!(external[0]["reward_candidate_id"], expected.candidate_id);
     assert_eq!(external[0]["chain_id"], 31337);
-    assert_eq!(external[0]["event_type"], "Transfer");
+    assert_eq!(external[0]["event_type"], "transfer");
 
     let reward_records = audit["reward_records"]
         .as_array()

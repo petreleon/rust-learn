@@ -8,6 +8,9 @@ use rust_learn::application::rewards::decide_amount::{
     RewardAmountDecisionCommand, RewardAmountDecisionError, RewardAmountDecisionOutput,
     RewardAmountDecisionUseCase,
 };
+use rust_learn::domain::rewards::candidate::event_type::RewardEventType;
+use rust_learn::domain::rewards::candidate::source::RewardCandidateSourceScope;
+use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
 use serde_json::json;
 
 struct RouteOnlyRewardAmountDecisionUseCase;
@@ -36,12 +39,12 @@ fn amount_decision_output(candidate_id: i64) -> RewardAmountDecisionOutput {
         course_id: 12,
         student_user_id: 23,
         submitter_user_id: 7,
-        source_scope: "course".to_string(),
+        source_scope: RewardCandidateSourceScope::Course,
         source_organization_id: None,
-        event_type: "manual_completion".to_string(),
+        event_type: RewardEventType::ManualCompletion,
         idempotency_key: "manual:12:23".to_string(),
         evidence: json!({}),
-        status: "amount_approved".to_string(),
+        status: RewardCandidateStatus::AmountApproved,
         teacher_approver_user_id: Some(7),
         teacher_decision_reason: Some("route smoke".to_string()),
         teacher_decided_at: Some(now),

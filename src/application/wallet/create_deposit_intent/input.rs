@@ -1,7 +1,7 @@
 use bigdecimal::BigDecimal;
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct WalletDepositIntentRequest {
+pub struct WalletDepositIntentCommand {
     pub amount: BigDecimal,
     pub ethereum_address: String,
     pub gas_payer: String,

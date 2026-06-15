@@ -3,8 +3,8 @@ use diesel::dsl::{exists, select};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::{delegated_permissions, user_role_organization};
 use crate::domain::access_control::delegation::DELEGATED_SCOPE_ORGANIZATION;
+use crate::infra::postgres::schema::{delegated_permissions, user_role_organization};
 
 pub(super) async fn has_any_organization_role(
     conn: &mut AsyncPgConnection,

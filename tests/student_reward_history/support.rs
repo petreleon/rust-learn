@@ -7,12 +7,6 @@ pub(crate) use rust_learn::application::rewards::list_reward_history::StudentRew
 pub(crate) use rust_learn::application::wallet::link_wallet::{
     link_wallet, LinkedWalletView, WalletLinkSubject,
 };
-pub(crate) use rust_learn::db::establish_connection;
-pub(crate) use rust_learn::db::schema::{
-    courses, external_transactions, internal_transactions, reward_candidates,
-    reward_payout_records, reward_wallet_credit_records, transactions,
-    transactions_external_transactions, transactions_internal_transactions, users,
-};
 pub(crate) use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
 pub(crate) use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
 pub(crate) use rust_learn::domain::rewards::candidate::status::{
@@ -20,13 +14,19 @@ pub(crate) use rust_learn::domain::rewards::candidate::status::{
 };
 pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
+pub(crate) use rust_learn::infra::postgres::establish_connection;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::reward_candidate::NewRewardCandidate;
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_history_use_case::PostgresStudentRewardHistoryUseCase;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    courses, external_transactions, internal_transactions, reward_candidates,
+    reward_payout_records, reward_wallet_credit_records, transactions,
+    transactions_external_transactions, transactions_internal_transactions, users,
+};
 pub(crate) use rust_learn::infra::postgres::wallet::wallet_link_store::PostgresWalletLinkStore;
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::reward_candidate::NewRewardCandidate;
-pub(crate) use rust_learn::models::user::User;
 pub(crate) use serde_json::{json, Value};
 pub(crate) use std::sync::Arc;
 
@@ -40,13 +40,13 @@ pub(crate) fn token_for(user_id: i32) -> String {
 }
 
 pub(crate) fn student_reward_history_use_case(
-    pool: &rust_learn::db::DbPool,
+    pool: &rust_learn::infra::postgres::DbPool,
 ) -> Arc<dyn StudentRewardHistoryUseCase> {
     Arc::new(PostgresStudentRewardHistoryUseCase::new(pool.clone()))
 }
 
 pub(crate) async fn setup_conn(
-    pool: &rust_learn::db::DbPool,
+    pool: &rust_learn::infra::postgres::DbPool,
 ) -> diesel_async::pooled_connection::deadpool::Object<AsyncPgConnection> {
     pool.get()
         .await

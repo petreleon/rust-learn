@@ -7,10 +7,12 @@ use crate::application::rewards::list_candidate_audit::{
     RewardCandidateAuditError, RewardCandidateAuditEvent,
 };
 use crate::application::rewards::ports::RewardCandidateAuditStore;
-use crate::db::schema::{reward_audit_events, reward_candidates};
+use crate::infra::postgres::models::reward_audit_event::RewardAuditEvent;
 use crate::infra::postgres::rewards::reward_authorization_access;
-use crate::infra::postgres::rewards::reward_candidate_audit_mappers::map_reward_candidate_audit_error;
-use crate::models::reward_audit_event::RewardAuditEvent;
+use crate::infra::postgres::rewards::reward_candidate_audit_mappers::{
+    map_reward_candidate_audit_error, map_reward_candidate_audit_event,
+};
+use crate::infra::postgres::schema::{reward_audit_events, reward_candidates};
 
 pub struct PostgresRewardCandidateAuditStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -63,7 +65,7 @@ async fn list_candidate_audit_events(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
 ) -> Result<Vec<RewardCandidateAuditEvent>, RewardCandidateAuditError> {
-    reward_audit_events::table
+    let events = reward_audit_events::table
         .filter(reward_audit_events::reward_candidate_id.eq(candidate_id))
         .order((
             reward_audit_events::created_at.asc(),
@@ -72,11 +74,10 @@ async fn list_candidate_audit_events(
         .select(RewardAuditEvent::as_select())
         .load::<RewardAuditEvent>(conn)
         .await
-        .map(|events| {
-            events
-                .into_iter()
-                .map(RewardCandidateAuditEvent::from)
-                .collect()
-        })
-        .map_err(map_reward_candidate_audit_error)
+        .map_err(map_reward_candidate_audit_error)?;
+
+    events
+        .into_iter()
+        .map(map_reward_candidate_audit_event)
+        .collect()
 }

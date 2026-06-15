@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn resend_verification_rotates_active_token_without_revealing_accounts() {
     let _ = dotenvy::dotenv();

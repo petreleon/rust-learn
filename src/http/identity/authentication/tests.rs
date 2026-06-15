@@ -3,7 +3,6 @@ use crate::application::identity::password_policy::{
     validate_password_strength, PASSWORD_TOO_LONG_MESSAGE,
 };
 use crate::domain::identity::UserJWT;
-use crate::infra::tokens::jwt::create_jwt;
 use actix_web::{http::StatusCode, test as actix_test, App, HttpMessage};
 
 #[test]
@@ -114,15 +113,13 @@ async fn user_id_rejects_invalid_bearer_token() {
 
 #[actix_web::test]
 async fn user_id_rejects_raw_bearer_token_without_decoded_extension() {
-    let _ = dotenvy::dotenv();
-    let token = create_jwt(42).expect("test JWT should be created");
     let app = actix_test::init_service(App::new().service(auth_scope())).await;
 
     let response = actix_test::call_service(
         &app,
         actix_test::TestRequest::get()
             .uri("/auth/user_id")
-            .insert_header(("Authorization", format!("Bearer {token}")))
+            .insert_header(("Authorization", "Bearer syntactically-valid-token"))
             .to_request(),
     )
     .await;

@@ -6,8 +6,8 @@ use crate::application::organizations::list_organization_members::{
     self, OrganizationMemberListError, OrganizationMemberListOutput, OrganizationMemberListQuery,
     OrganizationMemberListUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::organizations::organization_member_list_store::PostgresOrganizationMemberListStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresOrganizationMemberListUseCase {

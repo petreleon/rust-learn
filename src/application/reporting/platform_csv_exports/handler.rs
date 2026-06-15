@@ -43,6 +43,11 @@ mod tests {
     use super::load_platform_reward_approval_exports;
     use crate::application::reporting::platform_csv_exports::store::PlatformCsvExportStore;
     use crate::application::reporting::platform_csv_exports::*;
+    use crate::domain::rewards::candidate::event_type::RewardEventType;
+    use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
+    use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+    use crate::domain::teacher_applications::scope::TeacherApplicationScope;
+    use crate::domain::teacher_applications::status::TeacherApplicationStatus;
 
     #[test]
     fn loads_platform_csv_export_rows_through_store_port() {
@@ -66,7 +71,22 @@ mod tests {
             '_,
             Result<Vec<PlatformTeacherApplicationExportRowOutput>, PlatformCsvExportError>,
         > {
-            ready(Ok(Vec::new())).boxed()
+            ready(Ok(vec![PlatformTeacherApplicationExportRowOutput {
+                application_id: 7,
+                applicant_user_id: 8,
+                requested_scope: TeacherApplicationScope::Platform,
+                requested_organization_id: None,
+                requested_course_id: None,
+                organization_sponsor_id: None,
+                status: TeacherApplicationStatus::Submitted,
+                reviewer_id: None,
+                decision_reason: String::new(),
+                portfolio_links: "[]".to_string(),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                decided_at: None,
+            }]))
+            .boxed()
         }
 
         fn load_platform_reward_approval_exports(
@@ -79,10 +99,10 @@ mod tests {
                 course_id: 1,
                 student_user_id: 2,
                 submitter_user_id: 3,
-                source_scope: "course".to_string(),
+                source_scope: RewardCandidateSourceScope::Course,
                 source_organization_id: None,
-                event_type: "course_completion".to_string(),
-                status: "amount_approved".to_string(),
+                event_type: RewardEventType::CourseCompletion,
+                status: RewardCandidateStatus::AmountApproved,
                 teacher_approver_user_id: Some(4),
                 teacher_decision_reason: "approved".to_string(),
                 teacher_decided_at: None,

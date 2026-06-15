@@ -1,3 +1,4 @@
+mod teacher_application_audit_mappers;
 pub mod teacher_application_audit_store;
 pub mod teacher_application_audit_use_case;
 mod teacher_application_decision_roles;

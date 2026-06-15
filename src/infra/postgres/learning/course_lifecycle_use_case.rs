@@ -6,8 +6,8 @@ use crate::application::learning::update_course_lifecycle::{
     self, CourseLifecycleCommand, CourseLifecycleError, CourseLifecycleOutput,
     CourseLifecycleUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::learning::course_lifecycle_store::PostgresCourseLifecycleStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresCourseLifecycleUseCase {

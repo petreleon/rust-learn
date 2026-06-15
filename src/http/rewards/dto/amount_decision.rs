@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::application::rewards::decide_amount::{
     RewardAmountDecisionCommand, RewardAmountDecisionOutput,
 };
-use crate::shared::json::JsonValue;
+use crate::domain::rewards::candidate::evidence::RewardEvidence;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RewardAmountDecisionRequest {
@@ -24,7 +24,7 @@ pub struct RewardAmountDecisionResponse {
     pub source_organization_id: Option<i32>,
     pub event_type: String,
     pub idempotency_key: String,
-    pub evidence: JsonValue,
+    pub evidence: RewardEvidence,
     pub status: String,
     pub teacher_approver_user_id: Option<i32>,
     pub teacher_decision_reason: Option<String>,
@@ -54,12 +54,12 @@ impl From<RewardAmountDecisionOutput> for RewardAmountDecisionResponse {
             course_id: candidate.course_id,
             student_user_id: candidate.student_user_id,
             submitter_user_id: candidate.submitter_user_id,
-            source_scope: candidate.source_scope,
+            source_scope: candidate.source_scope.as_str().to_string(),
             source_organization_id: candidate.source_organization_id,
-            event_type: candidate.event_type,
+            event_type: candidate.event_type.as_str().to_string(),
             idempotency_key: candidate.idempotency_key,
             evidence: candidate.evidence,
-            status: candidate.status,
+            status: candidate.status.as_str().to_string(),
             teacher_approver_user_id: candidate.teacher_approver_user_id,
             teacher_decision_reason: candidate.teacher_decision_reason,
             teacher_decided_at: candidate.teacher_decided_at,

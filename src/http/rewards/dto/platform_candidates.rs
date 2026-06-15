@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::application::rewards::list_platform_candidates::{
     PlatformRewardCandidateCourseSummary, PlatformRewardCandidateItem,
     PlatformRewardCandidatePermissions, PlatformRewardCandidateUserSummary,
-    PlatformRewardCandidatesQuery, PlatformRewardCandidatesResponse,
+    PlatformRewardCandidatesOutput, PlatformRewardCandidatesQuery,
 };
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -73,8 +73,8 @@ impl From<PlatformRewardCandidatesRequest> for PlatformRewardCandidatesQuery {
     }
 }
 
-impl From<PlatformRewardCandidatesResponse> for PlatformRewardCandidatesResponseBody {
-    fn from(output: PlatformRewardCandidatesResponse) -> Self {
+impl From<PlatformRewardCandidatesOutput> for PlatformRewardCandidatesResponseBody {
+    fn from(output: PlatformRewardCandidatesOutput) -> Self {
         Self {
             candidates: output
                 .candidates
@@ -99,8 +99,8 @@ impl From<PlatformRewardCandidateItem> for PlatformRewardCandidateItemResponse {
             id: candidate.id,
             student: PlatformRewardCandidateUserSummaryResponse::from(candidate.student),
             course: PlatformRewardCandidateCourseSummaryResponse::from(candidate.course),
-            event_type: candidate.event_type,
-            status: candidate.status,
+            event_type: candidate.event_type.as_str().to_string(),
+            status: candidate.status.as_str().to_string(),
             teacher_approver: candidate
                 .teacher_approver
                 .map(PlatformRewardCandidateUserSummaryResponse::from),
@@ -108,7 +108,7 @@ impl From<PlatformRewardCandidateItem> for PlatformRewardCandidateItemResponse {
             approved_amount: candidate.approved_amount,
             submitter: PlatformRewardCandidateUserSummaryResponse::from(candidate.submitter),
             source_organization_id: candidate.source_organization_id,
-            source_scope: candidate.source_scope,
+            source_scope: candidate.source_scope.as_str().to_string(),
             created_at: candidate.created_at,
             updated_at: candidate.updated_at,
         }

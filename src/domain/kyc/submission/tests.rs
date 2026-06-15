@@ -5,7 +5,7 @@ fn valid_input() -> KycSubmissionInput {
         country_code: "us".to_string(),
         document_last4: Some("1234".to_string()),
         document_type: "passport".to_string(),
-        evidence_reference: Some("s3://kyc/mock".to_string()),
+        evidence_reference: Some("evidence-reference".to_string()),
         legal_name: "Learner User".to_string(),
         provider_reference: None,
     }

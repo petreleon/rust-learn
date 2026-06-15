@@ -6,7 +6,7 @@ use crate::application::access_control::check_permission::{
 use crate::application::organizations::list_organization_courses::{
     OrganizationCourseListError, OrganizationCoursePermissionSummaryOutput,
 };
-use crate::config::constants::permissions::Permissions;
+use crate::domain::access_control::permissions::Permissions;
 use crate::infra::postgres::access_control::permission_checks;
 
 pub async fn can_view_organization_courses(

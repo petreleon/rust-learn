@@ -5,8 +5,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::wallet::read_wallet::{
     self, WalletReadError, WalletReadSubject, WalletReadUseCase, WalletView,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::wallet::wallet_read_store::PostgresWalletReadStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresWalletReadUseCase {

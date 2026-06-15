@@ -3,11 +3,11 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::login::{
     self, LoginCommand, LoginError, LoginOutput, LoginUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::identity::login_security::{
     BcryptPasswordVerifier, JwtLoginTokenIssuer,
 };
 use crate::infra::postgres::identity::login_store::PostgresLoginStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresLoginUseCase {

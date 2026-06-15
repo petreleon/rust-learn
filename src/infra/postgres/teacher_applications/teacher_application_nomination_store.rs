@@ -9,9 +9,12 @@ use crate::application::teacher_applications::{
     submit_application::TeacherApplicationSubmission,
     TeacherApplicationOutput,
 };
+use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 use crate::infra::postgres::access_control::permission_checks;
+use crate::infra::postgres::models::teacher_application::{
+    NewTeacherApplication, NewTeacherApplicationAuditEvent,
+};
 use crate::infra::postgres::teacher_applications::teacher_application_records;
-use crate::models::teacher_application::{NewTeacherApplication, NewTeacherApplicationAuditEvent};
 
 pub struct PostgresTeacherApplicationNominationStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -77,7 +80,9 @@ impl TeacherApplicationNominationStore for PostgresTeacherApplicationNominationS
                             NewTeacherApplicationAuditEvent {
                                 application_id: application.id,
                                 actor_user_id: Some(actor_user_id),
-                                event_type: "organization_nominated".to_string(),
+                                event_type: TeacherApplicationAuditEventType::OrganizationNominated
+                                    .as_str()
+                                    .to_string(),
                                 from_status: None,
                                 to_status: application.status.clone(),
                                 reason: None,

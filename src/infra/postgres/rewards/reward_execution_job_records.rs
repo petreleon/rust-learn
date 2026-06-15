@@ -1,9 +1,11 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::reward_execution_jobs;
 use crate::domain::rewards::execution::RewardExecutionJobStatus;
-use crate::models::reward_execution_job::{NewRewardExecutionJob, RewardExecutionJob};
+use crate::infra::postgres::models::reward_execution_job::{
+    NewRewardExecutionJob, RewardExecutionJob,
+};
+use crate::infra::postgres::schema::reward_execution_jobs;
 
 pub async fn enqueue_reward_execution_job(
     conn: &mut AsyncPgConnection,

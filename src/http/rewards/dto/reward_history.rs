@@ -74,8 +74,8 @@ impl From<StudentRewardHistoryEntry> for StudentRewardHistoryEntryResponse {
             reward_candidate_id: entry.reward_candidate_id,
             course_id: entry.course_id,
             course_title: entry.course_title,
-            event_type: entry.event_type,
-            status: entry.status,
+            event_type: entry.event_type.as_str().to_string(),
+            status: entry.status.as_str().to_string(),
             approved_amount: entry.approved_amount,
             wallet_credit: entry
                 .wallet_credit
@@ -116,7 +116,9 @@ impl From<StudentRewardTokenTransaction> for StudentRewardTokenTransactionRespon
             contract_address: transaction.contract_address,
             transaction_hash: transaction.transaction_hash,
             log_index: transaction.log_index,
-            event_type: transaction.event_type,
+            event_type: transaction
+                .event_type
+                .map(|event_type| event_type.as_str().to_string()),
             from_address: transaction.from_address,
             to_address: transaction.to_address,
             recorded_at: transaction.recorded_at,

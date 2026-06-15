@@ -9,9 +9,10 @@ use crate::application::teacher_applications::{
     list_application_audit::{TeacherApplicationAuditError, TeacherApplicationAuditStore},
     TeacherApplicationAuditEventOutput,
 };
-use crate::db::schema::teacher_application_audit_events;
 use crate::infra::postgres::access_control::permission_checks;
-use crate::models::teacher_application::TeacherApplicationAuditEvent;
+use crate::infra::postgres::models::teacher_application::TeacherApplicationAuditEvent;
+use crate::infra::postgres::schema::teacher_application_audit_events;
+use crate::infra::postgres::teacher_applications::teacher_application_audit_mappers::audit_event_output;
 
 pub struct PostgresTeacherApplicationAuditStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -43,8 +44,11 @@ impl TeacherApplicationAuditStore for PostgresTeacherApplicationAuditStore<'_> {
         async move {
             list_teacher_application_audit_events(self.conn, application_id)
                 .await
-                .map(|events| events.into_iter().map(Into::into).collect())
-                .map_err(map_error)
+                .map_err(map_error)?
+                .into_iter()
+                .map(audit_event_output)
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(TeacherApplicationAuditError::Database)
         }
         .boxed()
     }

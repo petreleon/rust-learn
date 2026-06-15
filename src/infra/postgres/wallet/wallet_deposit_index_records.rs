@@ -5,7 +5,7 @@ use crate::application::wallet::index_deposit::{
     ObservedWalletDepositEvent, WalletDepositIndexError, WalletDepositIndexOutput,
 };
 use crate::domain::wallet::deposit::{
-    WALLET_DEPOSIT_STATUS_AMBIGUOUS, WALLET_DEPOSIT_STATUS_CREDITED, WALLET_DEPOSIT_STATUS_PENDING,
+    WalletDepositStatus, WALLET_DEPOSIT_STATUS_CREDITED, WALLET_DEPOSIT_STATUS_PENDING,
 };
 use crate::infra::postgres::wallet::wallet_deposit_index_ledger::{
     apply_deposit_ledger_entries, create_deposit_external_transaction, create_deposit_transaction,
@@ -41,7 +41,7 @@ pub(super) async fn index_observed_wallet_deposit(
                         external_transaction_id: existing_intent.external_transaction_id,
                         internal_transaction_ids: Vec::new(),
                         credited: false,
-                        status: existing_intent.status,
+                        status: deposit_status(&existing_intent.status)?,
                     });
                 }
 
@@ -57,7 +57,7 @@ pub(super) async fn index_observed_wallet_deposit(
                     return Ok(uncredited_output(
                         Some(existing_intent.id),
                         Some(existing_intent.wallet_id),
-                        "mismatched",
+                        WalletDepositStatus::Mismatched,
                     ));
                 }
             }
@@ -73,7 +73,7 @@ pub(super) async fn index_observed_wallet_deposit(
                     event.to_address,
                     event.amount
                 );
-                return Ok(uncredited_output(None, None, "unmatched"));
+                return Ok(uncredited_output(None, None, WalletDepositStatus::Unmatched));
             }
 
             if candidates.len() > 1 {
@@ -88,7 +88,7 @@ pub(super) async fn index_observed_wallet_deposit(
                 return Ok(uncredited_output(
                     None,
                     None,
-                    WALLET_DEPOSIT_STATUS_AMBIGUOUS,
+                    WalletDepositStatus::Ambiguous,
                 ));
             }
 
@@ -130,7 +130,7 @@ pub(super) async fn index_observed_wallet_deposit(
                 external_transaction_id: Some(external_transaction_id),
                 internal_transaction_ids,
                 credited: true,
-                status: credited_intent.status,
+                status: deposit_status(&credited_intent.status)?,
             })
         })
     })
@@ -140,7 +140,7 @@ pub(super) async fn index_observed_wallet_deposit(
 fn uncredited_output(
     intent_id: Option<i64>,
     wallet_id: Option<i32>,
-    status: &str,
+    status: WalletDepositStatus,
 ) -> WalletDepositIndexOutput {
     WalletDepositIndexOutput {
         intent_id,
@@ -149,6 +149,11 @@ fn uncredited_output(
         external_transaction_id: None,
         internal_transaction_ids: Vec::new(),
         credited: false,
-        status: status.to_string(),
+        status,
     }
+}
+
+fn deposit_status(status: &str) -> Result<WalletDepositStatus, WalletDepositIndexError> {
+    WalletDepositStatus::parse(status)
+        .map_err(|error| WalletDepositIndexError::Database(error.to_string()))
 }

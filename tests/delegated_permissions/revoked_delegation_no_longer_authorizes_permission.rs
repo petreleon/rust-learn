@@ -1,3 +1,5 @@
+use crate::{delegation_helper::*, force_assign_course_role::*, support::*};
+
 #[actix_web::test]
 async fn revoked_delegation_no_longer_authorizes_permission() {
     let mut conn = setup_conn().await;

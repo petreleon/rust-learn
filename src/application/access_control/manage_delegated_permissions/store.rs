@@ -4,13 +4,14 @@ use futures::future::BoxFuture;
 use crate::application::access_control::manage_delegated_permissions::{
     DelegatedPermissionError, DelegatedPermissionOutput,
 };
+use crate::domain::access_control::delegation::DelegatedScopeType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DelegatedPermissionCreate {
     pub grantor_user_id: i32,
     pub grantee_user_id: i32,
     pub permission: String,
-    pub scope_type: String,
+    pub scope_type: DelegatedScopeType,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,
     pub reason: Option<String>,
@@ -22,7 +23,7 @@ pub struct DelegatedPermissionFilter {
     pub grantor_user_id: Option<i32>,
     pub grantee_user_id: Option<i32>,
     pub permission: Option<String>,
-    pub scope_type: Option<String>,
+    pub scope_type: Option<DelegatedScopeType>,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,
     pub active: Option<bool>,
@@ -50,7 +51,7 @@ pub trait DelegatedPermissionStore {
         &mut self,
         grantee_user_id: i32,
         permission: String,
-        scope_type: String,
+        scope_type: DelegatedScopeType,
         organization_id: Option<i32>,
         course_id: Option<i32>,
     ) -> BoxFuture<'_, Result<Option<DelegatedPermissionOutput>, DelegatedPermissionError>>;

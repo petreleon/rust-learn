@@ -4,6 +4,7 @@ use super::{audit_wallet, audit_wallet_for_actor};
 use crate::application::wallet::audit_wallet::{
     test_support::FakeWalletAuditStore, WalletAuditError, WalletAuditSubject, WalletAuditTarget,
 };
+use crate::domain::wallet::owner::WalletOwnerType;
 
 #[test]
 fn delegates_to_wallet_audit_store() {
@@ -19,7 +20,7 @@ fn delegates_to_wallet_audit_store() {
 
     assert!(store.loaded);
     assert_eq!(audit.wallet.id, 10);
-    assert_eq!(audit.wallet.owner_type, "user");
+    assert_eq!(audit.wallet.owner_type, WalletOwnerType::User);
 }
 
 #[test]

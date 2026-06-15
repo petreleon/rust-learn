@@ -2,6 +2,7 @@ use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmission, RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
     RewardCandidateSubmissionStore, SubmitRewardCandidateCommand,
 };
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
 
 pub async fn submit_course_reward_candidate(
@@ -16,7 +17,7 @@ pub async fn submit_course_reward_candidate(
         .submit_reward_candidate(RewardCandidateSubmission {
             actor_user_id,
             course_id,
-            source_scope: RewardCandidateSourceScope::Course.as_str().to_string(),
+            source_scope: RewardCandidateSourceScope::Course,
             source_organization_id: None,
             command,
         })
@@ -37,9 +38,7 @@ pub async fn submit_organization_reward_candidate(
         .submit_reward_candidate(RewardCandidateSubmission {
             actor_user_id,
             course_id,
-            source_scope: RewardCandidateSourceScope::Organization
-                .as_str()
-                .to_string(),
+            source_scope: RewardCandidateSourceScope::Organization,
             source_organization_id: Some(organization_id),
             command,
         })
@@ -58,7 +57,7 @@ async fn ensure_can_submit_course_reward_event(
         Ok(())
     } else {
         Err(RewardCandidateSubmissionError::PermissionDenied(
-            "SUBMIT_COURSE_REWARD_EVENT".to_string(),
+            Permissions::SUBMIT_COURSE_REWARD_EVENT.into(),
         ))
     }
 }
@@ -92,7 +91,7 @@ async fn ensure_can_submit_organization_reward_event(
         Ok(())
     } else {
         Err(RewardCandidateSubmissionError::PermissionDenied(
-            "SUBMIT_ORG_COURSE_REWARD_EVENT".to_string(),
+            Permissions::SUBMIT_ORG_COURSE_REWARD_EVENT.into(),
         ))
     }
 }

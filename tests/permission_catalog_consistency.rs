@@ -1,4 +1,4 @@
-use rust_learn::config::constants::permissions::Permissions;
+use rust_learn::domain::access_control::permissions::Permissions;
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;

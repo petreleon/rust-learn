@@ -7,8 +7,8 @@ use std::str::FromStr;
 use crate::application::wallet::retire_tokens::{
     WalletRetirementDraft, WalletRetirementError, WalletRetirementStore, WalletRetirementView,
 };
-use crate::db::schema::users;
 use crate::infra::postgres::operations::persistent_state::get_persistent_state;
+use crate::infra::postgres::schema::users;
 use crate::infra::postgres::wallet::wallet_retirement_records::create_wallet_retirement;
 
 const TOKEN_RETIRE_TAX_KEY: &str = "wallet.retire_tax_tokens";

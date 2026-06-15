@@ -17,7 +17,8 @@ pub(crate) fn current_session_test_app(
         .app_data(current_session_use_case_data(&pool))
         .app_data(notification_inbox_use_case_data(&pool))
         .app_data(notification_preferences_use_case_data(&pool))
-        .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+        .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+        .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
         .service(
             web::scope("/api")
                 .configure(rust_learn::http::identity::configure_routes)

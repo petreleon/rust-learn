@@ -4,8 +4,6 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::application::learning::update_course_lifecycle::{
     CourseLifecycleCommand, CourseLifecycleError, CourseLifecycleUseCase,
 };
-use rust_learn::db::schema::courses;
-use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::domain::learning::course::status::{
     COURSE_STATUS_DRAFT, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
 };
@@ -13,8 +11,10 @@ use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::learning::course_lifecycle_use_case::PostgresCourseLifecycleUseCase;
-use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::user::User;
+use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+use rust_learn::infra::postgres::models::user::User;
+use rust_learn::infra::postgres::schema::courses;
+use rust_learn::infra::postgres::{establish_connection, DbPool};
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);

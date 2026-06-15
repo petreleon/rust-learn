@@ -1,12 +1,14 @@
-struct PlatformFraudDashboardExpectation {
-    admin_id: i32,
-    moderator_id: i32,
-    stranger_id: i32,
-    active_block_ids: [i64; 4],
-    expired_block_id: i64,
+use crate::{reporting_app_data::*, support::*};
+
+pub(crate) struct PlatformFraudDashboardExpectation {
+    pub(crate) admin_id: i32,
+    pub(crate) moderator_id: i32,
+    pub(crate) stranger_id: i32,
+    pub(crate) active_block_ids: [i64; 4],
+    pub(crate) expired_block_id: i64,
 }
 
-async fn assert_platform_fraud_dashboard(
+pub(crate) async fn assert_platform_fraud_dashboard(
     pool: &DbPool,
     expected: PlatformFraudDashboardExpectation,
 ) {
@@ -17,7 +19,8 @@ async fn assert_platform_fraud_dashboard(
                 rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
             })
             .app_data(platform_fraud_dashboard_use_case(pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::reporting::configure_routes),
     )
     .await;

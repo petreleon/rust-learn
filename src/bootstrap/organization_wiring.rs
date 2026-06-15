@@ -11,7 +11,6 @@ use crate::application::organizations::list_organization_members::OrganizationMe
 use crate::application::organizations::list_organization_teacher_applications::OrganizationTeacherApplicationListUseCase;
 use crate::application::organizations::manage_organizations::OrganizationManagementUseCase;
 use crate::application::organizations::remove_organization_member::OrganizationMemberRemovalUseCase;
-use crate::db::DbPool;
 use crate::infra::postgres::organizations::organization_course_list_use_case::PostgresOrganizationCourseListUseCase;
 use crate::infra::postgres::organizations::organization_dashboard_use_case::PostgresOrganizationDashboardUseCase;
 use crate::infra::postgres::organizations::organization_management_use_case::PostgresOrganizationManagementUseCase;
@@ -21,6 +20,7 @@ use crate::infra::postgres::organizations::organization_member_list_use_case::Po
 use crate::infra::postgres::organizations::organization_member_removal_use_case::PostgresOrganizationMemberRemovalUseCase;
 use crate::infra::postgres::organizations::organization_member_role_assignment_use_case::PostgresOrganizationMemberRoleAssignmentUseCase;
 use crate::infra::postgres::organizations::organization_teacher_application_use_case::PostgresOrganizationTeacherApplicationUseCase;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct OrganizationUseCases {

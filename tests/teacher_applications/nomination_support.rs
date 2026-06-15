@@ -1,14 +1,16 @@
+use crate::support::*;
+
 #[derive(Debug, Clone, serde::Serialize)]
-struct OrganizationTeacherNominationRequest {
-    applicant_user_id: i32,
-    requested_scope: Option<String>,
-    requested_course_id: Option<i32>,
-    experience_summary: String,
-    portfolio_links: Option<Vec<String>>,
-    idempotency_key: Option<String>,
+pub(crate) struct OrganizationTeacherNominationRequest {
+    pub(crate) applicant_user_id: i32,
+    pub(crate) requested_scope: Option<String>,
+    pub(crate) requested_course_id: Option<i32>,
+    pub(crate) experience_summary: String,
+    pub(crate) portfolio_links: Option<Vec<String>>,
+    pub(crate) idempotency_key: Option<String>,
 }
 
-async fn nominate_application(
+pub(crate) async fn nominate_application(
     _conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,
@@ -35,11 +37,11 @@ async fn nominate_application(
 }
 
 #[allow(dead_code)]
-fn teacher_application_nomination_data() -> web::Data<
+pub(crate) fn teacher_application_nomination_data() -> web::Data<
     Arc<
         dyn rust_learn::application::teacher_applications::nominate_application::TeacherApplicationNominationUseCase,
     >,
-> {
+>{
     web::Data::new(Arc::new(
         rust_learn::infra::postgres::teacher_applications::teacher_application_nomination_use_case::PostgresTeacherApplicationNominationUseCase::new(
             establish_connection(),

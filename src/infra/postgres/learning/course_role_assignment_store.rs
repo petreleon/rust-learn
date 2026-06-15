@@ -5,7 +5,7 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::learning::assign_course_role::{
     CourseRoleAssignmentError, CourseRoleAssignmentStore,
 };
-use crate::db::schema::{course_roles, role_course_hierarchy, user_role_course};
+use crate::infra::postgres::schema::{course_roles, role_course_hierarchy, user_role_course};
 
 pub struct PostgresCourseRoleAssignmentStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

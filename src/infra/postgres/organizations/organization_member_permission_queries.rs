@@ -10,12 +10,12 @@ use crate::application::access_control::check_permission::{
 use crate::application::organizations::list_organization_members::{
     OrganizationMemberListError, OrganizationMemberOperatorPermissionsOutput,
 };
-use crate::config::constants::permissions::Permissions;
-use crate::db::schema::{
-    delegated_permissions, role_permission_organization, user_role_organization,
-};
+use crate::domain::access_control::permissions::Permissions;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::organizations::organization_member_builders::OrganizationMemberBuilder;
+use crate::infra::postgres::schema::{
+    delegated_permissions, role_permission_organization, user_role_organization,
+};
 
 pub async fn can_view_organization_members(
     conn: &mut AsyncPgConnection,

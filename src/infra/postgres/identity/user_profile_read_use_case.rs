@@ -4,8 +4,8 @@ use crate::application::identity::get_user_profile::{
     self, GetUserProfileCommand, UserProfileReadUseCase,
 };
 use crate::application::identity::user_profile::{UserProfileError, UserProfileOutput};
-use crate::db::DbPool;
 use crate::infra::postgres::identity::user_profile_store::PostgresUserProfileStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresUserProfileReadUseCase {

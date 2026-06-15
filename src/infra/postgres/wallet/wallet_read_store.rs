@@ -3,12 +3,12 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::wallet::read_wallet::{WalletReadError, WalletReadStore, WalletView};
-use crate::db::schema::{organizations, users, wallets};
+use crate::infra::postgres::models::wallet::Wallet;
+use crate::infra::postgres::schema::{organizations, users, wallets};
 use crate::infra::postgres::wallet::wallet_access::{
     can_view_organization_wallet, can_view_user_wallet,
 };
 use crate::infra::postgres::wallet::wallet_mappers::wallet_view_output_from_record;
-use crate::models::wallet::Wallet;
 
 pub struct PostgresWalletReadStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

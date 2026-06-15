@@ -6,9 +6,12 @@ use crate::application::teacher_applications::get_my_application::{
     TeacherApplicationAuditEventOutput, TeacherApplicationOutput, TeacherApplicationSelfError,
     TeacherApplicationSelfStore,
 };
-use crate::db::schema::{teacher_application_audit_events, teacher_applications};
+use crate::infra::postgres::models::teacher_application::{
+    TeacherApplication, TeacherApplicationAuditEvent,
+};
+use crate::infra::postgres::schema::{teacher_application_audit_events, teacher_applications};
+use crate::infra::postgres::teacher_applications::teacher_application_audit_mappers::audit_event_output;
 use crate::infra::postgres::teacher_applications::teacher_application_self_mappers::map_error;
-use crate::models::teacher_application::{TeacherApplication, TeacherApplicationAuditEvent};
 
 pub struct PostgresTeacherApplicationSelfStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -45,13 +48,17 @@ impl TeacherApplicationSelfStore for PostgresTeacherApplicationSelfStore<'_> {
     ) -> BoxFuture<'_, Result<Vec<TeacherApplicationAuditEventOutput>, TeacherApplicationSelfError>>
     {
         async move {
-            teacher_application_audit_events::table
+            let events = teacher_application_audit_events::table
                 .filter(teacher_application_audit_events::application_id.eq(application_id))
                 .order(teacher_application_audit_events::created_at.asc())
                 .load::<TeacherApplicationAuditEvent>(self.conn)
                 .await
-                .map(|events| events.into_iter().map(Into::into).collect())
-                .map_err(map_error)
+                .map_err(map_error)?;
+            events
+                .into_iter()
+                .map(audit_event_output)
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(TeacherApplicationSelfError::Database)
         }
         .boxed()
     }

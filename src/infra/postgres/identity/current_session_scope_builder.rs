@@ -4,8 +4,8 @@ use crate::application::identity::current_session::{
     capabilities, CourseSessionScope, CurrentSessionUser, DelegatedPermissionSession,
     OrganizationSessionScope, PlatformSessionScope,
 };
-use crate::models::delegated_permission::DelegatedPermission;
-use crate::models::user::User;
+use crate::infra::postgres::models::delegated_permission::DelegatedPermission;
+use crate::infra::postgres::models::user::User;
 
 #[derive(Debug, Default)]
 pub(super) struct PlatformScopeBuilder {

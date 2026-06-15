@@ -1,12 +1,16 @@
 use chrono::{DateTime, Utc};
 
+use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::domain::rewards::token::RewardTokenEventType;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StudentRewardHistoryEntry {
     pub reward_candidate_id: i64,
     pub course_id: i32,
     pub course_title: String,
-    pub event_type: String,
-    pub status: String,
+    pub event_type: RewardEventType,
+    pub status: RewardCandidateStatus,
     pub approved_amount: Option<String>,
     pub wallet_credit: Option<StudentRewardWalletCredit>,
     pub token_transaction: Option<StudentRewardTokenTransaction>,
@@ -19,8 +23,8 @@ pub struct StudentRewardCandidateRecord {
     pub reward_candidate_id: i64,
     pub course_id: i32,
     pub course_title: String,
-    pub event_type: String,
-    pub status: String,
+    pub event_type: RewardEventType,
+    pub status: RewardCandidateStatus,
     pub approved_amount: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -49,7 +53,7 @@ pub struct StudentRewardTokenTransaction {
     pub contract_address: Option<String>,
     pub transaction_hash: Option<String>,
     pub log_index: Option<i64>,
-    pub event_type: Option<String>,
+    pub event_type: Option<RewardTokenEventType>,
     pub from_address: Option<String>,
     pub to_address: Option<String>,
     pub recorded_at: DateTime<Utc>,

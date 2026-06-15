@@ -1,6 +1,7 @@
 use futures::future::{BoxFuture, FutureExt};
 
 use super::*;
+use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 
 struct FakeStore {
     platform_ids: Result<Vec<i32>, TeacherApplicationNotificationError>,
@@ -96,7 +97,7 @@ fn command() -> TeacherApplicationNotificationCommand {
     TeacherApplicationNotificationCommand {
         applicant_user_id: 7,
         application_id: 101,
-        event_type: "submitted".to_string(),
+        event_type: TeacherApplicationAuditEventType::Submitted,
         organization_sponsor_id: Some(44),
         reason: None,
         requested_organization_id: Some(44),

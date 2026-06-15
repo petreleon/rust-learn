@@ -1,7 +1,9 @@
+use crate::domain::wallet::owner::WalletOwnerType;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletView {
     pub id: i32,
-    pub owner_type: &'static str,
+    pub owner_type: WalletOwnerType,
     pub user_id: Option<i32>,
     pub organization_id: Option<i32>,
     pub value: String,
@@ -24,10 +26,6 @@ pub(crate) fn wallet_view_output(fact: WalletViewFact) -> WalletView {
     }
 }
 
-fn owner_type(user_id: Option<i32>) -> &'static str {
-    if user_id.is_some() {
-        "user"
-    } else {
-        "organization"
-    }
+fn owner_type(user_id: Option<i32>) -> WalletOwnerType {
+    WalletOwnerType::from_user_id(user_id)
 }

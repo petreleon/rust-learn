@@ -3,8 +3,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::rewards::plan_payout::{
     self, RewardPayoutPlan, RewardPayoutPlanError, RewardPayoutPlanUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::reward_payout_plan_store::PostgresRewardPayoutPlanStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRewardPayoutPlanUseCase {

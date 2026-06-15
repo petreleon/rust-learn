@@ -16,6 +16,7 @@ pub use output::{
     RewardCandidateDashboardSummaryOutput, RewardExecutionFailureRowOutput,
     RewardReconciliationMismatchRowOutput, TeacherApplicationDashboardSummaryOutput,
 };
+pub use reconciliation::RewardReconciliationMismatchType;
 pub(crate) use reconciliation::{
     classify_reward_reconciliation_mismatch, reconciliation_mismatch_candidate_statuses,
     RewardReconciliationMismatchFacts,

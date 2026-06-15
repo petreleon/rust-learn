@@ -8,13 +8,14 @@ use crate::application::teacher_applications::{
     },
     TeacherApplicationOutput,
 };
+use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 
 type TeacherApplicationNotificationData = web::Data<Arc<dyn TeacherApplicationNotificationUseCase>>;
 
 pub(super) async fn notify_teacher_application_event(
     notifications: Option<&TeacherApplicationNotificationData>,
     application: &TeacherApplicationOutput,
-    event_type: &str,
+    event_type: TeacherApplicationAuditEventType,
     reason: Option<&str>,
 ) {
     let Some(notifications) = notifications else {
@@ -23,7 +24,7 @@ pub(super) async fn notify_teacher_application_event(
     let command = TeacherApplicationNotificationCommand {
         applicant_user_id: application.applicant_user_id,
         application_id: application.id,
-        event_type: event_type.to_string(),
+        event_type,
         organization_sponsor_id: application.organization_sponsor_id,
         reason: reason.map(ToOwned::to_owned),
         requested_organization_id: application.requested_organization_id,

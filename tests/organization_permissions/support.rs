@@ -1,11 +1,11 @@
 pub(crate) use chrono::NaiveDate;
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
-pub(crate) use rust_learn::db::establish_connection;
-pub(crate) use rust_learn::db::schema::organizations;
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::infra::postgres::access_control::permission_queries::has_organization_permission;
 pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_organization_role_with_hierarchy;
+pub(crate) use rust_learn::infra::postgres::establish_connection;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::schema::organizations;
 // We need to bypass the helper to setup the initial super-user/assigner
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::infra::postgres::access_control::organization_role_records;
@@ -46,7 +46,7 @@ pub(crate) async fn create_organization(conn: &mut AsyncPgConnection, name: &str
 pub(crate) async fn create_user_helper(
     conn: &mut AsyncPgConnection,
     prefix: &str,
-) -> rust_learn::models::user::User {
+) -> rust_learn::infra::postgres::models::user::User {
     let email = unique_string(prefix) + "@example.com";
     create_user(
         conn,

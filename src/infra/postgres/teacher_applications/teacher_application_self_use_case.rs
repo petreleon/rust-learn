@@ -5,8 +5,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::teacher_applications::get_my_application::{
     self, TeacherApplicationSelfError, TeacherApplicationSelfOutput, TeacherApplicationSelfUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::teacher_applications::teacher_application_self_store::PostgresTeacherApplicationSelfStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresTeacherApplicationSelfUseCase {

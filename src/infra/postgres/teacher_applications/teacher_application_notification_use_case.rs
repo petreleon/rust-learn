@@ -4,9 +4,9 @@ use crate::application::teacher_applications::notify_application_event::{
     self, TeacherApplicationNotificationCommand, TeacherApplicationNotificationError,
     TeacherApplicationNotificationOutcome, TeacherApplicationNotificationUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::notifications::NotificationsState;
 use crate::infra::postgres::teacher_applications::teacher_application_notification_store::PostgresTeacherApplicationNotificationStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresTeacherApplicationNotificationUseCase {

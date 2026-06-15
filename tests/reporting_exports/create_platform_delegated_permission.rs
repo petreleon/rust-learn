@@ -1,4 +1,6 @@
-async fn create_platform_delegated_permission(
+use crate::support::*;
+
+pub(crate) async fn create_platform_delegated_permission(
     conn: &mut AsyncPgConnection,
     grantor_user_id: i32,
     grantee_user_id: i32,
@@ -20,7 +22,7 @@ async fn create_platform_delegated_permission(
         .expect("failed to create delegated permission")
 }
 
-async fn create_course_reward_policy(
+pub(crate) async fn create_course_reward_policy(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     creator_user_id: i32,
@@ -46,18 +48,21 @@ async fn create_course_reward_policy(
         .expect("failed to create reward policy")
 }
 
-struct FraudBlockSeed<'a> {
-    created_by_user_id: i32,
-    scope_type: &'a str,
-    teacher_user_id: Option<i32>,
-    organization_id: Option<i32>,
-    course_id: Option<i32>,
-    reward_policy_id: Option<i64>,
-    reason: &'a str,
-    expires_at: Option<chrono::DateTime<Utc>>,
+pub(crate) struct FraudBlockSeed<'a> {
+    pub(crate) created_by_user_id: i32,
+    pub(crate) scope_type: &'a str,
+    pub(crate) teacher_user_id: Option<i32>,
+    pub(crate) organization_id: Option<i32>,
+    pub(crate) course_id: Option<i32>,
+    pub(crate) reward_policy_id: Option<i64>,
+    pub(crate) reason: &'a str,
+    pub(crate) expires_at: Option<chrono::DateTime<Utc>>,
 }
 
-async fn create_fraud_block(conn: &mut AsyncPgConnection, seed: FraudBlockSeed<'_>) -> i64 {
+pub(crate) async fn create_fraud_block(
+    conn: &mut AsyncPgConnection,
+    seed: FraudBlockSeed<'_>,
+) -> i64 {
     diesel::insert_into(reward_fraud_blocks::table)
         .values(NewRewardFraudBlock {
             scope_type: seed.scope_type.to_string(),
@@ -74,8 +79,4 @@ async fn create_fraud_block(conn: &mut AsyncPgConnection, seed: FraudBlockSeed<'
         .get_result(conn)
         .await
         .expect("failed to create fraud block")
-}
-
-fn token_for(user_id: i32) -> String {
-    create_jwt(user_id).expect("failed to create JWT")
 }

@@ -6,9 +6,11 @@ use crate::application::organizations::manage_organizations::{
     OrganizationCreateCommand, OrganizationManagementError, OrganizationManagementStore,
     OrganizationOutput, OrganizationUpdateCommand,
 };
-use crate::db::schema::{courses_organizations, organizations};
-use crate::models::courses_organizations::NewCourseOrganization;
-use crate::models::organization::{NewOrganization, Organization, UpdateOrganization};
+use crate::infra::postgres::models::courses_organizations::NewCourseOrganization;
+use crate::infra::postgres::models::organization::{
+    NewOrganization, Organization, UpdateOrganization,
+};
+use crate::infra::postgres::schema::{courses_organizations, organizations};
 
 pub struct PostgresOrganizationManagementStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

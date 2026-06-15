@@ -103,6 +103,11 @@ pub(in crate::http::rewards) fn reward_candidate_audit_error(
         RewardCandidateAuditError::PermissionDenied(_) => {
             super::permission_denied(CANDIDATE_PERMISSION)
         }
+        RewardCandidateAuditError::InvalidStatus(message) => super::logged_internal(
+            "reward_candidate_audit_invalid_status",
+            CANDIDATE_FAILURE,
+            message,
+        ),
         RewardCandidateAuditError::NotFound => super::candidate_not_found(),
         RewardCandidateAuditError::Connection(_) => super::db_connection_failed(),
         RewardCandidateAuditError::Database(message) => super::logged_internal(

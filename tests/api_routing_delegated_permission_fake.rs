@@ -8,6 +8,7 @@ use rust_learn::application::access_control::manage_delegated_permissions::{
     GrantDelegatedPermissionCommand, ListDelegatedPermissionsQuery,
     RevokeDelegatedPermissionCommand,
 };
+use rust_learn::domain::access_control::delegation::DelegatedScopeType;
 
 struct RouteOnlyDelegatedPermissionUseCase;
 
@@ -28,7 +29,8 @@ impl DelegatedPermissionUseCase for RouteOnlyDelegatedPermissionUseCase {
                 command.grantor_user_id,
                 command.grantee_user_id,
                 command.permission,
-                command.scope_type,
+                DelegatedScopeType::normalize(&command.scope_type)
+                    .unwrap_or(DelegatedScopeType::Platform),
                 command.organization_id,
                 command.course_id,
             ))
@@ -48,7 +50,13 @@ impl DelegatedPermissionUseCase for RouteOnlyDelegatedPermissionUseCase {
                 query
                     .permission
                     .unwrap_or_else(|| "APPROVE_REWARD_AMOUNT".to_string()),
-                query.scope_type.unwrap_or_else(|| "platform".to_string()),
+                query
+                    .scope_type
+                    .as_deref()
+                    .map(DelegatedScopeType::normalize)
+                    .transpose()
+                    .unwrap()
+                    .unwrap_or(DelegatedScopeType::Platform),
                 query.organization_id,
                 query.course_id,
             )])
@@ -66,7 +74,7 @@ impl DelegatedPermissionUseCase for RouteOnlyDelegatedPermissionUseCase {
                 command.actor_user_id,
                 20,
                 "APPROVE_REWARD_AMOUNT".to_string(),
-                "platform".to_string(),
+                DelegatedScopeType::Platform,
                 None,
                 None,
             );
@@ -84,7 +92,7 @@ fn output(
     grantor_user_id: i32,
     grantee_user_id: i32,
     permission: String,
-    scope_type: String,
+    scope_type: DelegatedScopeType,
     organization_id: Option<i32>,
     course_id: Option<i32>,
 ) -> DelegatedPermissionOutput {

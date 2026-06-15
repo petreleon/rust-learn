@@ -12,7 +12,7 @@ use crate::infra::postgres::content::content_item_records::{
 use crate::infra::postgres::content::content_item_scope::{
     ensure_chapter_belongs_to_course, ensure_content_belongs_to_chapter,
 };
-use crate::models::content::{NewContent, UpdateContent};
+use crate::infra::postgres::models::content::{NewContent, UpdateContent};
 
 pub struct PostgresContentItemStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

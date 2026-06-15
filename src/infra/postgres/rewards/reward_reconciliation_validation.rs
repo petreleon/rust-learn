@@ -1,7 +1,7 @@
 use crate::application::rewards::reconcile_candidate::RewardReconciliationError;
 use crate::domain::rewards::candidate::lifecycle;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-use crate::models::reward_candidate::RewardCandidate;
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 
 pub(super) fn ensure_candidate_reconcilable(
     candidate: &RewardCandidate,

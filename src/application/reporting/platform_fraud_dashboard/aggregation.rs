@@ -8,7 +8,7 @@ use crate::domain::rewards::fraud_block::RewardFraudBlockScope;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct FraudBlockDashboardFact {
     pub id: i64,
-    pub scope_type: String,
+    pub scope_type: RewardFraudBlockScope,
     pub teacher_user_id: Option<i32>,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,
@@ -35,12 +35,11 @@ pub(crate) fn platform_fraud_dashboard_from_facts(
 fn scope_summary(facts: &[FraudBlockDashboardFact]) -> FraudBlockScopeSummaryOutput {
     let mut summary = FraudBlockScopeSummaryOutput::default();
     for fact in facts {
-        match RewardFraudBlockScope::parse(&fact.scope_type) {
-            Ok(RewardFraudBlockScope::Teacher) => summary.teacher += 1,
-            Ok(RewardFraudBlockScope::Organization) => summary.organization += 1,
-            Ok(RewardFraudBlockScope::Course) => summary.course += 1,
-            Ok(RewardFraudBlockScope::RewardPolicy) => summary.reward_policy += 1,
-            Err(_) => {}
+        match fact.scope_type {
+            RewardFraudBlockScope::Teacher => summary.teacher += 1,
+            RewardFraudBlockScope::Organization => summary.organization += 1,
+            RewardFraudBlockScope::Course => summary.course += 1,
+            RewardFraudBlockScope::RewardPolicy => summary.reward_policy += 1,
         }
     }
     summary
@@ -66,31 +65,29 @@ fn fraud_block_row(fact: FraudBlockDashboardFact) -> FraudBlockDashboardRowOutpu
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::rewards::fraud_block::{
-        REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
-        REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
-    };
 
     #[test]
     fn builds_dashboard_summary_and_rows_from_facts() {
         let now = Utc::now();
 
         let dashboard = platform_fraud_dashboard_from_facts(vec![
-            fraud_block_fact(1, REWARD_FRAUD_BLOCK_SCOPE_TEACHER, now),
-            fraud_block_fact(2, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION, now),
-            fraud_block_fact(3, REWARD_FRAUD_BLOCK_SCOPE_COURSE, now),
-            fraud_block_fact(4, REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, now),
-            fraud_block_fact(5, "legacy_unknown", now),
+            fraud_block_fact(1, RewardFraudBlockScope::Teacher, now),
+            fraud_block_fact(2, RewardFraudBlockScope::Organization, now),
+            fraud_block_fact(3, RewardFraudBlockScope::Course, now),
+            fraud_block_fact(4, RewardFraudBlockScope::RewardPolicy, now),
         ]);
 
-        assert_eq!(dashboard.active_total, 5);
+        assert_eq!(dashboard.active_total, 4);
         assert_eq!(dashboard.active_by_scope.teacher, 1);
         assert_eq!(dashboard.active_by_scope.organization, 1);
         assert_eq!(dashboard.active_by_scope.course, 1);
         assert_eq!(dashboard.active_by_scope.reward_policy, 1);
-        assert_eq!(dashboard.active_blocks.len(), 5);
+        assert_eq!(dashboard.active_blocks.len(), 4);
         assert_eq!(dashboard.active_blocks[0].reason, "block 1");
-        assert_eq!(dashboard.active_blocks[4].scope_type, "legacy_unknown");
+        assert_eq!(
+            dashboard.active_blocks[3].scope_type,
+            RewardFraudBlockScope::RewardPolicy
+        );
     }
 
     #[test]
@@ -105,10 +102,14 @@ mod tests {
         assert!(dashboard.active_blocks.is_empty());
     }
 
-    fn fraud_block_fact(id: i64, scope_type: &str, now: DateTime<Utc>) -> FraudBlockDashboardFact {
+    fn fraud_block_fact(
+        id: i64,
+        scope_type: RewardFraudBlockScope,
+        now: DateTime<Utc>,
+    ) -> FraudBlockDashboardFact {
         FraudBlockDashboardFact {
             id,
-            scope_type: scope_type.to_string(),
+            scope_type,
             teacher_user_id: Some(10),
             organization_id: Some(20),
             course_id: Some(30),

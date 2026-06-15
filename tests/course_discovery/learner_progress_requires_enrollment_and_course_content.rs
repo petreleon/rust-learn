@@ -1,3 +1,5 @@
+use crate::{create_organization::*, support::*};
+
 #[actix_web::test]
 async fn learner_progress_requires_enrollment_and_course_content() {
     let _ = dotenvy::dotenv();
@@ -20,9 +22,14 @@ async fn learner_progress_requires_enrollment_and_course_content() {
     let second_content_id =
         create_content_with_data(&mut conn, chapter_id, "text", 1, Some("Continue here.")).await;
     let other_chapter_id = create_chapter(&mut conn, other_course.id, "Other", 0).await;
-    let other_content_id =
-        create_content_with_data(&mut conn, other_chapter_id, "text", 0, Some("Wrong course."))
-            .await;
+    let other_content_id = create_content_with_data(
+        &mut conn,
+        other_chapter_id,
+        "text",
+        0,
+        Some("Wrong course."),
+    )
+    .await;
     drop(conn);
 
     let app = test::init_service(
@@ -32,7 +39,8 @@ async fn learner_progress_requires_enrollment_and_course_content() {
                 rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
             })
             .app_data(learner_progress_use_case_data(&pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )
     .await;
@@ -52,7 +60,10 @@ async fn learner_progress_requires_enrollment_and_course_content() {
 
     let wrong_course_save = test::TestRequest::post()
         .uri(&format!("/courses/{}/progress", course.id))
-        .insert_header(("Authorization", format!("Bearer {}", token_for(learner.id()))))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(learner.id())),
+        ))
         .set_json(serde_json::json!({ "content_id": other_content_id }))
         .to_request();
     assert_eq!(
@@ -62,7 +73,10 @@ async fn learner_progress_requires_enrollment_and_course_content() {
 
     let first_save = test::TestRequest::post()
         .uri(&format!("/courses/{}/progress", course.id))
-        .insert_header(("Authorization", format!("Bearer {}", token_for(learner.id()))))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(learner.id())),
+        ))
         .set_json(serde_json::json!({ "content_id": first_content_id }))
         .to_request();
     let first_resp = test::call_service(&app, first_save).await;
@@ -75,14 +89,23 @@ async fn learner_progress_requires_enrollment_and_course_content() {
 
     let second_save = test::TestRequest::post()
         .uri(&format!("/courses/{}/progress", course.id))
-        .insert_header(("Authorization", format!("Bearer {}", token_for(learner.id()))))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(learner.id())),
+        ))
         .set_json(serde_json::json!({ "content_id": second_content_id }))
         .to_request();
-    assert_eq!(test::call_service(&app, second_save).await.status(), StatusCode::OK);
+    assert_eq!(
+        test::call_service(&app, second_save).await.status(),
+        StatusCode::OK
+    );
 
     let progress_req = test::TestRequest::get()
         .uri(&format!("/courses/{}/progress", course.id))
-        .insert_header(("Authorization", format!("Bearer {}", token_for(learner.id()))))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(learner.id())),
+        ))
         .to_request();
     let progress_resp = test::call_service(&app, progress_req).await;
     assert_eq!(progress_resp.status(), StatusCode::OK);

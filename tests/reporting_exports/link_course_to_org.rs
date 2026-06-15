@@ -1,4 +1,10 @@
-async fn link_course_to_org(conn: &mut AsyncPgConnection, course_id: i32, organization_id: i32) {
+use crate::support::*;
+
+pub(crate) async fn link_course_to_org(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    organization_id: i32,
+) {
     diesel::insert_into(courses_organizations::table)
         .values(NewCourseOrganization {
             course_id,
@@ -10,11 +16,11 @@ async fn link_course_to_org(conn: &mut AsyncPgConnection, course_id: i32, organi
         .expect("failed to link course to organization");
 }
 
-async fn create_org_wallet(conn: &mut AsyncPgConnection, organization_id: i32) {
+pub(crate) async fn create_org_wallet(conn: &mut AsyncPgConnection, organization_id: i32) {
     create_org_wallet_with_value(conn, organization_id, BigDecimal::from(0)).await;
 }
 
-async fn create_org_wallet_with_value(
+pub(crate) async fn create_org_wallet_with_value(
     conn: &mut AsyncPgConnection,
     organization_id: i32,
     value: BigDecimal,
@@ -31,7 +37,10 @@ async fn create_org_wallet_with_value(
         .expect("failed to create organization wallet")
 }
 
-async fn create_teacher_application(conn: &mut AsyncPgConnection, applicant_user_id: i32) -> i64 {
+pub(crate) async fn create_teacher_application(
+    conn: &mut AsyncPgConnection,
+    applicant_user_id: i32,
+) -> i64 {
     diesel::insert_into(teacher_applications::table)
         .values(NewTeacherApplication {
             applicant_user_id,
@@ -50,7 +59,7 @@ async fn create_teacher_application(conn: &mut AsyncPgConnection, applicant_user
         .expect("failed to create teacher application")
 }
 
-async fn create_sponsored_teacher_application(
+pub(crate) async fn create_sponsored_teacher_application(
     conn: &mut AsyncPgConnection,
     applicant_user_id: i32,
     organization_id: i32,
@@ -73,7 +82,7 @@ async fn create_sponsored_teacher_application(
         .expect("failed to create sponsored teacher application")
 }
 
-async fn create_reward_candidate_with_status(
+pub(crate) async fn create_reward_candidate_with_status(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     student_user_id: i32,

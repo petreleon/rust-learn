@@ -4,11 +4,14 @@ use futures::future::{ready, BoxFuture, FutureExt};
 use serde_json::json;
 
 use crate::application::rewards::submit_candidate::{
-    submit_course_reward_candidate, submit_organization_reward_candidate,
-    RewardCandidateSubmission, RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
+    submit_course_reward_candidate as submit_course,
+    submit_organization_reward_candidate as submit_org, RewardCandidateSubmission,
+    RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
     RewardCandidateSubmissionStore, SubmitRewardCandidateCommand,
 };
-use crate::domain::rewards::candidate::source::{REWARD_SOURCE_COURSE, REWARD_SOURCE_ORGANIZATION};
+use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 struct FakeStore {
     course_exists: bool,
@@ -79,30 +82,26 @@ impl RewardCandidateSubmissionStore for FakeStore {
 #[test]
 fn course_submission_uses_course_source_after_permission() {
     let mut store = FakeStore::allowing();
-    block_on(submit_course_reward_candidate(&mut store, 7, 11, command())).unwrap();
+    block_on(submit_course(&mut store, 7, 11, command())).unwrap();
 
     let submission = store.submission.unwrap();
     assert_eq!(submission.actor_user_id, 7);
     assert_eq!(submission.course_id, 11);
-    assert_eq!(submission.source_scope, REWARD_SOURCE_COURSE);
+    assert_eq!(submission.source_scope, RewardCandidateSourceScope::Course);
     assert_eq!(submission.source_organization_id, None);
 }
 
 #[test]
 fn organization_submission_uses_organization_source_after_attachment_and_permission() {
     let mut store = FakeStore::allowing();
-    block_on(submit_organization_reward_candidate(
-        &mut store,
-        7,
-        13,
-        11,
-        command(),
-    ))
-    .unwrap();
+    block_on(submit_org(&mut store, 7, 13, 11, command())).unwrap();
 
     let submission = store.submission.unwrap();
     assert_eq!(submission.course_id, 11);
-    assert_eq!(submission.source_scope, REWARD_SOURCE_ORGANIZATION);
+    assert_eq!(
+        submission.source_scope,
+        RewardCandidateSourceScope::Organization
+    );
     assert_eq!(submission.source_organization_id, Some(13));
 }
 
@@ -112,7 +111,7 @@ fn denies_course_submission_before_store_mutation() {
         course_permission: false,
         ..FakeStore::allowing()
     };
-    let error = block_on(submit_course_reward_candidate(&mut store, 7, 11, command())).unwrap_err();
+    let error = block_on(submit_course(&mut store, 7, 11, command())).unwrap_err();
 
     assert_eq!(
         error,
@@ -127,14 +126,7 @@ fn rejects_unattached_organization_course_before_store_mutation() {
         attached: false,
         ..FakeStore::allowing()
     };
-    let error = block_on(submit_organization_reward_candidate(
-        &mut store,
-        7,
-        13,
-        11,
-        command(),
-    ))
-    .unwrap_err();
+    let error = block_on(submit_org(&mut store, 7, 13, 11, command())).unwrap_err();
 
     assert_eq!(
         error,
@@ -148,7 +140,7 @@ fn rejects_unattached_organization_course_before_store_mutation() {
 fn command() -> SubmitRewardCandidateCommand {
     SubmitRewardCandidateCommand {
         student_user_id: 23,
-        event_type: "manual_completion".to_string(),
+        event_type: RewardEventType::ManualCompletion,
         idempotency_key: Some("manual:11:23".to_string()),
         evidence: Some(json!({})),
     }
@@ -161,12 +153,12 @@ fn output() -> RewardCandidateSubmissionOutput {
         course_id: 11,
         student_user_id: 23,
         submitter_user_id: 7,
-        source_scope: REWARD_SOURCE_COURSE.to_string(),
+        source_scope: RewardCandidateSourceScope::Course,
         source_organization_id: None,
-        event_type: "manual_completion".to_string(),
+        event_type: RewardEventType::ManualCompletion,
         idempotency_key: "manual:11:23".to_string(),
         evidence: json!({}),
-        status: "pending_teacher_approval".to_string(),
+        status: RewardCandidateStatus::PendingTeacherApproval,
         teacher_approver_user_id: None,
         teacher_decision_reason: None,
         teacher_decided_at: None,

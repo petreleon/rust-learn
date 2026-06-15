@@ -20,12 +20,13 @@ async fn platform_hierarchy_middleware_blocks_lower_actor() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .app_data(hierarchy_check_use_case_data(&pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(web::resource("/platform/users/{id}").route(
                 web::put()
                     .to(|| async { actix_web::HttpResponse::Ok().finish() })
                     .wrap(
-                        rust_learn::middlewares::platform_hierarchy_middleware::PlatformHierarchyMiddleware::new(
+                        rust_learn::http::middlewares::platform_hierarchy_middleware::PlatformHierarchyMiddleware::new(
                             rust_learn::http::request_params::ParamType::Path,
                             "id".to_string(),
                         ),
@@ -77,13 +78,14 @@ async fn organization_hierarchy_middleware_blocks_lower_actor() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .app_data(hierarchy_check_use_case_data(&pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(
                 web::resource("/organizations/{organization_id}/members/{user_id}").route(
                     web::put()
                         .to(|| async { actix_web::HttpResponse::Ok().finish() })
                         .wrap(
-                            rust_learn::middlewares::organization_hierarchy_middleware::OrganizationHierarchyMiddleware::new(
+                            rust_learn::http::middlewares::organization_hierarchy_middleware::OrganizationHierarchyMiddleware::new(
                                 rust_learn::http::request_params::ParamType::Path,
                                 "user_id".to_string(),
                                 rust_learn::http::request_params::ParamType::Path,

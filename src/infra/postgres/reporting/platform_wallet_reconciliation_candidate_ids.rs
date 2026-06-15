@@ -4,9 +4,9 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::platform_wallet_reconciliation::PlatformWalletReconciliationError;
-use crate::db::schema::{reward_candidates, reward_wallet_credit_records};
+use crate::infra::postgres::models::wallet::Wallet;
 use crate::infra::postgres::reporting::platform_wallet_reconciliation_mappers::map_diesel_error;
-use crate::models::wallet::Wallet;
+use crate::infra::postgres::schema::{reward_candidates, reward_wallet_credit_records};
 
 pub(super) async fn reward_candidate_ids(
     conn: &mut AsyncPgConnection,

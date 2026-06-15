@@ -1,10 +1,10 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::{courses_organizations, reward_policies};
 use crate::domain::rewards::policy::{
     REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
 };
+use crate::infra::postgres::schema::{courses_organizations, reward_policies};
 
 pub(super) async fn active_reward_policy_ids_for_course_event(
     conn: &mut AsyncPgConnection,

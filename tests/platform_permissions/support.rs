@@ -1,10 +1,10 @@
 pub(crate) use chrono::NaiveDate;
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
-pub(crate) use rust_learn::config::constants::roles::Roles;
-pub(crate) use rust_learn::db::establish_connection;
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
+pub(crate) use rust_learn::domain::access_control::roles::Roles;
 pub(crate) use rust_learn::infra::postgres::access_control::permission_queries::has_platform_permission;
 pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_permission_to_role;
 pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
+pub(crate) use rust_learn::infra::postgres::establish_connection;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 
 pub(crate) fn unique_email(prefix: &str) -> String {

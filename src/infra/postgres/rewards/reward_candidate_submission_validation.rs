@@ -1,14 +1,6 @@
 use crate::application::rewards::submit_candidate::RewardCandidateSubmissionError;
 use crate::domain::rewards::candidate::event_type::RewardEventType;
 
-pub(super) fn normalize_reward_event_type(
-    event_type: &str,
-) -> Result<RewardEventType, RewardCandidateSubmissionError> {
-    RewardEventType::normalize(event_type).map_err(|_| {
-        RewardCandidateSubmissionError::InvalidInput("unsupported reward event type".to_string())
-    })
-}
-
 pub(super) fn normalize_idempotency_key(
     idempotency_key: Option<String>,
     course_id: i32,
@@ -37,27 +29,8 @@ pub(super) fn normalize_idempotency_key(
 
 #[cfg(test)]
 mod tests {
-    use super::{normalize_idempotency_key, normalize_reward_event_type};
-    use crate::application::rewards::submit_candidate::RewardCandidateSubmissionError;
+    use super::normalize_idempotency_key;
     use crate::domain::rewards::candidate::event_type::RewardEventType;
-
-    #[test]
-    fn normalizes_reward_event_type_aliases() {
-        assert_eq!(
-            normalize_reward_event_type(" course-completion ").unwrap(),
-            RewardEventType::CourseCompletion
-        );
-    }
-
-    #[test]
-    fn rejects_unsupported_reward_event_type() {
-        assert_eq!(
-            normalize_reward_event_type("course_started").unwrap_err(),
-            RewardCandidateSubmissionError::InvalidInput(
-                "unsupported reward event type".to_string()
-            )
-        );
-    }
 
     #[test]
     fn trims_or_generates_idempotency_key() {

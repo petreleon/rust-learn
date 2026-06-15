@@ -2,6 +2,7 @@ use futures::future::{ready, BoxFuture, FutureExt};
 
 use crate::application::wallet::link_wallet::{LinkedWalletView, WalletLinkError, WalletLinkStore};
 use crate::application::wallet::wallet_view::WalletView;
+use crate::domain::wallet::owner::WalletOwnerType;
 
 pub(crate) struct FakeWalletLinkStore {
     pub checked_user_permission: bool,
@@ -81,7 +82,7 @@ impl WalletLinkStore for FakeWalletLinkStore {
         ready(Ok(LinkedWalletView {
             wallet: WalletView {
                 id: 10,
-                owner_type: "user",
+                owner_type: WalletOwnerType::User,
                 user_id: Some(user_id),
                 organization_id: None,
                 value: "0".to_string(),
@@ -99,7 +100,7 @@ impl WalletLinkStore for FakeWalletLinkStore {
         ready(Ok(LinkedWalletView {
             wallet: WalletView {
                 id: 11,
-                owner_type: "organization",
+                owner_type: WalletOwnerType::Organization,
                 user_id: None,
                 organization_id: Some(organization_id),
                 value: "0".to_string(),

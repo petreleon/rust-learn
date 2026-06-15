@@ -1,10 +1,12 @@
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::rewards::reconcile_candidate::RewardReconciliationError;
-use crate::db::schema::{transactions_external_transactions, transactions_internal_transactions};
-use crate::infra::postgres::rewards::reward_reconciliation_mappers::map_diesel_error;
-use crate::models::transaction::{
+use crate::infra::postgres::models::transaction::{
     NewTransactionExternalTransactionLink, NewTransactionInternalTransactionLink,
+};
+use crate::infra::postgres::rewards::reward_reconciliation_mappers::map_diesel_error;
+use crate::infra::postgres::schema::{
+    transactions_external_transactions, transactions_internal_transactions,
 };
 
 pub(super) async fn ensure_external_transaction_link(

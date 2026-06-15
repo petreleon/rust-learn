@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
 
+use crate::domain::rewards::fraud_block::RewardFraudBlockScope;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlatformFraudDashboardOutput {
     pub active_total: i64,
@@ -18,7 +20,7 @@ pub struct FraudBlockScopeSummaryOutput {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FraudBlockDashboardRowOutput {
     pub id: i64,
-    pub scope_type: String,
+    pub scope_type: RewardFraudBlockScope,
     pub teacher_user_id: Option<i32>,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,

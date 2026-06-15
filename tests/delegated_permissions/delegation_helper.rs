@@ -1,14 +1,16 @@
-struct GrantDelegatedPermissionRequest {
-    grantee_user_id: i32,
-    permission: String,
-    scope_type: String,
-    organization_id: Option<i32>,
-    course_id: Option<i32>,
-    reason: Option<String>,
-    expires_at: Option<chrono::DateTime<chrono::Utc>>,
+use crate::support::*;
+
+pub(crate) struct GrantDelegatedPermissionRequest {
+    pub(crate) grantee_user_id: i32,
+    pub(crate) permission: String,
+    pub(crate) scope_type: String,
+    pub(crate) organization_id: Option<i32>,
+    pub(crate) course_id: Option<i32>,
+    pub(crate) reason: Option<String>,
+    pub(crate) expires_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-async fn grant_delegated_permission(
+pub(crate) async fn grant_delegated_permission(
     _conn: &mut AsyncPgConnection,
     grantor_user_id: i32,
     request: GrantDelegatedPermissionRequest,
@@ -28,7 +30,7 @@ async fn grant_delegated_permission(
         .await
 }
 
-async fn revoke_delegated_permission(
+pub(crate) async fn revoke_delegated_permission(
     _conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     delegation_id: i64,

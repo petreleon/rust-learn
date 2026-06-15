@@ -114,7 +114,7 @@ impl From<DelegatedPermissionOutput> for DelegatedPermissionResponse {
             revoke_reason: delegation.revoke_reason,
             revoked_at: delegation.revoked_at,
             revoked_by_user_id: delegation.revoked_by_user_id,
-            scope_type: delegation.scope_type,
+            scope_type: delegation.scope_type.as_str().to_string(),
             updated_at: delegation.updated_at,
         }
     }

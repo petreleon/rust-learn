@@ -5,12 +5,10 @@ use crate::application::learning::learner_progress::{
     LearnerProgressError, LearnerProgressOutput, LearnerProgressStore, ProgressCourse,
     SaveLearnerProgressCommand,
 };
+use crate::domain::access_control::permissions::Permissions;
+use crate::domain::access_control::roles::Roles;
 use crate::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
 use crate::domain::learning::enrollment::status::COURSE_JOIN_STATUS_APPROVED;
-
-const COURSE_ROLE_STUDENT: &str = "STUDENT";
-const VIEW_CONTENT: &str = "VIEW_CONTENT";
-const VIEW_COURSE: &str = "VIEW_COURSE";
 
 pub async fn save_learner_progress(
     store: &mut impl LearnerProgressStore,
@@ -50,7 +48,7 @@ async fn ensure_progress_access(
     }
     if !learner_has_enrolled_course_state(store, actor_user_id, course_id).await? {
         return Err(LearnerProgressError::PermissionDenied(
-            VIEW_CONTENT.to_string(),
+            Permissions::VIEW_CONTENT.into(),
         ));
     }
     if let Some(content_id) = content_id {
@@ -70,7 +68,7 @@ async fn course_visible_to_learner(
     if store
         .can(
             AccessActor::user(actor_user_id),
-            AccessAction::permission(VIEW_COURSE),
+            AccessAction::permission(Permissions::VIEW_COURSE),
             AccessScope::course(course.id),
         )
         .await?
@@ -81,7 +79,7 @@ async fn course_visible_to_learner(
         if store
             .can(
                 AccessActor::user(actor_user_id),
-                AccessAction::permission(VIEW_COURSE),
+                AccessAction::permission(Permissions::VIEW_COURSE),
                 AccessScope::organization(organization_id),
             )
             .await?
@@ -98,7 +96,7 @@ async fn learner_has_enrolled_course_state(
     course_id: i32,
 ) -> Result<bool, LearnerProgressError> {
     let roles = store.actor_course_roles(actor_user_id, course_id).await?;
-    if roles.iter().any(|role| role == COURSE_ROLE_STUDENT) {
+    if roles.iter().any(|role| role == &Roles::STUDENT.to_string()) {
         return Ok(true);
     }
     store

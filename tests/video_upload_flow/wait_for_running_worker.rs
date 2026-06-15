@@ -1,4 +1,6 @@
-async fn wait_for_running_worker(
+use crate::support::*;
+
+pub(crate) async fn wait_for_running_worker(
     conn: &mut AsyncPgConnection,
     job_id: i64,
     timeout: StdDuration,

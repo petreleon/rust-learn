@@ -5,8 +5,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::learning::discover_courses::{
     self, CourseDiscoveryError, CourseDiscoveryOutput, CourseDiscoveryQuery, CourseDiscoveryUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::learning::course_discovery_store::PostgresCourseDiscoveryStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresCourseDiscoveryUseCase {

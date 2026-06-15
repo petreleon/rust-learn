@@ -120,7 +120,7 @@ impl From<RewardFraudBlockOutput> for RewardFraudBlockResponse {
     fn from(block: RewardFraudBlockOutput) -> Self {
         Self {
             id: block.id,
-            scope_type: block.scope_type,
+            scope_type: block.scope_type.as_str().to_string(),
             teacher_user_id: block.teacher_user_id,
             organization_id: block.organization_id,
             course_id: block.course_id,
@@ -141,9 +141,9 @@ impl From<RewardFraudBlockAuditEventOutput> for RewardFraudBlockAuditEventRespon
     fn from(event: RewardFraudBlockAuditEventOutput) -> Self {
         Self {
             fraud_block_id: event.fraud_block_id,
-            event_type: event.event_type,
+            event_type: event.event_type.as_str().to_string(),
             actor_user_id: event.actor_user_id,
-            scope_type: event.scope_type,
+            scope_type: event.scope_type.as_str().to_string(),
             teacher_user_id: event.teacher_user_id,
             organization_id: event.organization_id,
             course_id: event.course_id,

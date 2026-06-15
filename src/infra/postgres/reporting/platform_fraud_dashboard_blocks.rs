@@ -4,9 +4,10 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::application::reporting::platform_fraud_dashboard::{
     FraudBlockDashboardFact, PlatformFraudDashboardError,
 };
-use crate::db::schema::reward_fraud_blocks;
+use crate::domain::rewards::fraud_block::RewardFraudBlockScope;
+use crate::infra::postgres::models::reward_fraud_block::RewardFraudBlock;
 use crate::infra::postgres::reporting::platform_fraud_dashboard_mappers::map_diesel_error;
-use crate::models::reward_fraud_block::RewardFraudBlock;
+use crate::infra::postgres::schema::reward_fraud_blocks;
 
 pub(super) async fn active_fraud_block_facts(
     conn: &mut AsyncPgConnection,
@@ -25,13 +26,18 @@ pub(super) async fn active_fraud_block_facts(
         .await
         .map_err(map_diesel_error)?;
 
-    Ok(active_blocks.into_iter().map(fraud_block_fact).collect())
+    active_blocks.into_iter().map(fraud_block_fact).collect()
 }
 
-fn fraud_block_fact(block: RewardFraudBlock) -> FraudBlockDashboardFact {
-    FraudBlockDashboardFact {
+fn fraud_block_fact(
+    block: RewardFraudBlock,
+) -> Result<FraudBlockDashboardFact, PlatformFraudDashboardError> {
+    let scope_type = RewardFraudBlockScope::parse(&block.scope_type)
+        .map_err(|error| PlatformFraudDashboardError::Database(error.to_string()))?;
+
+    Ok(FraudBlockDashboardFact {
         id: block.id,
-        scope_type: block.scope_type,
+        scope_type,
         teacher_user_id: block.teacher_user_id,
         organization_id: block.organization_id,
         course_id: block.course_id,
@@ -42,5 +48,5 @@ fn fraud_block_fact(block: RewardFraudBlock) -> FraudBlockDashboardFact {
         expires_at: block.expires_at,
         created_at: block.created_at,
         updated_at: block.updated_at,
-    }
+    })
 }

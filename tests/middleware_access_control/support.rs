@@ -1,9 +1,9 @@
 pub(crate) use actix_web::{http::StatusCode, test, web, App};
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::models::user::User;
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::user::User;
 
 pub(crate) use actix_service::Service;
 pub(crate) use chrono::NaiveDate;
@@ -16,7 +16,6 @@ pub(crate) use rust_learn::application::identity::list_users::UserListUseCase;
 pub(crate) use rust_learn::application::learning::discover_courses::CourseDiscoveryUseCase;
 pub(crate) use rust_learn::application::learning::get_course::CourseReadUseCase;
 pub(crate) use rust_learn::application::learning::list_course_organizations::CourseOrganizationsUseCase;
-pub(crate) use rust_learn::db::schema::{courses, organizations};
 pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::organization_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
@@ -28,8 +27,9 @@ pub(crate) use rust_learn::infra::postgres::identity::user_profile_read_use_case
 pub(crate) use rust_learn::infra::postgres::learning::course_discovery_use_case::PostgresCourseDiscoveryUseCase;
 pub(crate) use rust_learn::infra::postgres::learning::course_organization_use_case::PostgresCourseOrganizationsUseCase;
 pub(crate) use rust_learn::infra::postgres::learning::course_read_use_case::PostgresCourseReadUseCase;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::schema::{courses, organizations};
 use std::sync::Arc;
 
 pub(crate) fn unique_string(prefix: &str) -> String {

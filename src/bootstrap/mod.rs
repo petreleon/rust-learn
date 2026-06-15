@@ -21,7 +21,12 @@ pub mod worker_runtime;
 
 pub fn configure_access_control_check_app_data(
     cfg: &mut actix_web::web::ServiceConfig,
-    pool: &crate::db::DbPool,
+    pool: &crate::infra::postgres::DbPool,
 ) {
     access_control_wiring::configure_access_control_check_app_data(cfg, pool);
+}
+
+pub fn auth_token_verifier_app_data(
+) -> actix_web::web::Data<crate::application::identity::auth_token::AuthTokenVerifierService> {
+    identity_wiring::auth_token_verifier_data()
 }

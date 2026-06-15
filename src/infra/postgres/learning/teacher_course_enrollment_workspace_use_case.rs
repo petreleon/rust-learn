@@ -7,8 +7,8 @@ use crate::application::learning::get_teacher_course_enrollment_workspace::{
     TeacherCourseEnrollmentWorkspaceUseCase,
 };
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError;
-use crate::db::DbPool;
 use crate::infra::postgres::learning::teacher_course_enrollment_workspace_store::PostgresTeacherCourseEnrollmentWorkspaceStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresTeacherCourseEnrollmentWorkspaceUseCase {

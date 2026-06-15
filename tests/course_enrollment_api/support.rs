@@ -7,8 +7,6 @@ pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::application::learning::assign_course_role::CourseRoleAssignmentUseCase;
 pub(crate) use rust_learn::application::learning::course_enrollment::CourseEnrollmentUseCase;
 pub(crate) use rust_learn::application::notifications::delivery::NotificationDeliveryUseCase;
-pub(crate) use rust_learn::db::schema::{courses, notifications};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::domain::learning::enrollment::status::COURSE_JOIN_STATUS_APPROVED;
 pub(crate) use rust_learn::infra::notifications::NotificationsState;
 pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
@@ -17,9 +15,11 @@ pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 pub(crate) use rust_learn::infra::postgres::learning::course_enrollment_use_case::PostgresCourseEnrollmentUseCase;
 pub(crate) use rust_learn::infra::postgres::learning::course_role_assignment_use_case::PostgresCourseRoleAssignmentUseCase;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::user::User;
+pub(crate) use rust_learn::infra::postgres::schema::{courses, notifications};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::user::User;
 pub(crate) use serde_json::Value;
 
 pub(crate) fn unique_string(prefix: &str) -> String {
@@ -108,7 +108,8 @@ pub(crate) fn course_enrollment_test_app(
         .app_data(course_enrollment_use_case_data(&pool))
         .app_data(course_role_assignment_use_case_data(&pool))
         .app_data(notification_delivery_use_case_data(&pool))
-        .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+        .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+        .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
         .service(rust_learn::http::learning::course_scope())
 }
 

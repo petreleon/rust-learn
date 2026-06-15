@@ -7,8 +7,7 @@ use crate::application::teacher_applications::{
     },
     TeacherApplicationAuditEventOutput,
 };
-
-const REVIEW_TEACHER_APPLICATIONS: &str = "REVIEW_TEACHER_APPLICATIONS";
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn list_application_audit(
     store: &mut impl TeacherApplicationAuditStore,
@@ -16,7 +15,7 @@ pub async fn list_application_audit(
 ) -> Result<Vec<TeacherApplicationAuditEventOutput>, TeacherApplicationAuditError> {
     if !can_platform_review_action(store, query.actor_user_id).await? {
         return Err(TeacherApplicationAuditError::PermissionDenied(
-            REVIEW_TEACHER_APPLICATIONS.to_string(),
+            Permissions::REVIEW_TEACHER_APPLICATIONS.into(),
         ));
     }
 
@@ -30,7 +29,7 @@ async fn can_platform_review_action(
     store
         .can(
             AccessActor::user(actor_user_id),
-            AccessAction::permission(REVIEW_TEACHER_APPLICATIONS),
+            AccessAction::permission(Permissions::REVIEW_TEACHER_APPLICATIONS),
             AccessScope::platform(),
         )
         .await
@@ -42,6 +41,8 @@ mod tests {
     use futures::future::{BoxFuture, FutureExt};
 
     use super::*;
+    use crate::domain::access_control::permissions::Permissions;
+    use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 
     #[derive(Default)]
     struct FakeStore {
@@ -58,7 +59,10 @@ mod tests {
             action: AccessAction,
             scope: AccessScope,
         ) -> BoxFuture<'_, Result<bool, TeacherApplicationAuditError>> {
-            assert_eq!(action.permission_name(), REVIEW_TEACHER_APPLICATIONS);
+            assert_eq!(
+                action.permission_name(),
+                Permissions::REVIEW_TEACHER_APPLICATIONS.to_string()
+            );
             assert!(matches!(scope, AccessScope::Platform(_)));
             async move { Ok(self.can_review) }.boxed()
         }
@@ -118,7 +122,7 @@ mod tests {
             actor_user_id: Some(7),
             application_id,
             created_at: Utc::now(),
-            event_type: "submitted".to_string(),
+            event_type: TeacherApplicationAuditEventType::Submitted,
             from_status: None,
             id: 1,
             reason: None,

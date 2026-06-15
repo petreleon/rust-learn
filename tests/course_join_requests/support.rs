@@ -7,9 +7,7 @@ pub(crate) use rust_learn::application::learning::course_enrollment::{
     CourseEnrollmentRemovalOutput, CourseJoinRequestOutput, DecideCourseJoinCommand,
     RemoveCourseEnrollmentCommand, RequestCourseJoinCommand,
 };
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
-pub(crate) use rust_learn::db::establish_connection;
-pub(crate) use rust_learn::db::schema::{courses, courses_organizations, organizations};
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::domain::learning::enrollment::status::{
     COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
 };
@@ -18,12 +16,16 @@ pub(crate) use rust_learn::infra::postgres::access_control::organization_role_re
 pub(crate) use rust_learn::infra::postgres::access_control::permission_queries::has_course_permission;
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
+pub(crate) use rust_learn::infra::postgres::establish_connection;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 pub(crate) use rust_learn::infra::postgres::learning::course_enrollment_store::PostgresCourseEnrollmentStore;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::courses_organizations::NewCourseOrganization;
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
-pub(crate) use rust_learn::models::user::User;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::courses_organizations::NewCourseOrganization;
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::user::User;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    courses, courses_organizations, organizations,
+};
 
 #[derive(Debug, Clone)]
 pub(crate) struct CourseJoinDecisionRequest {

@@ -4,7 +4,7 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::content::ports::ContentUploadScopeStore;
 use crate::application::content::request_upload_url::ContentUploadUrlError;
-use crate::db::schema::chapters;
+use crate::infra::postgres::schema::chapters;
 
 pub struct PostgresContentUploadScopeStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

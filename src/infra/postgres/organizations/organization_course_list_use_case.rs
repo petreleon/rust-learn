@@ -6,8 +6,8 @@ use crate::application::organizations::list_organization_courses::{
     self, OrganizationCourseListError, OrganizationCourseListOutput, OrganizationCourseListQuery,
     OrganizationCourseListUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::organizations::organization_course_list_store::PostgresOrganizationCourseListStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresOrganizationCourseListUseCase {

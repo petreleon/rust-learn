@@ -4,13 +4,15 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::application::rewards::list_reward_history::{
     StudentRewardHistoryError, StudentRewardTokenTransaction, StudentRewardWalletCredit,
 };
-use crate::db::schema::{
+use crate::infra::postgres::rewards::reward_history_mappers::{
+    map_reward_history_error, wallet_credit, WalletCreditRow,
+};
+use crate::infra::postgres::rewards::reward_history_token_transactions::{
+    token_transaction, TokenTransactionRow,
+};
+use crate::infra::postgres::schema::{
     external_transactions, internal_transactions, reward_payout_records,
     reward_wallet_credit_records,
-};
-use crate::infra::postgres::rewards::reward_history_mappers::{
-    map_reward_history_error, token_transaction, wallet_credit, TokenTransactionRow,
-    WalletCreditRow,
 };
 
 pub(super) async fn load_wallet_credit(
@@ -70,5 +72,5 @@ pub(super) async fn load_token_transaction(
         .optional()
         .map_err(map_reward_history_error)?;
 
-    Ok(row.map(token_transaction))
+    row.map(token_transaction).transpose()
 }

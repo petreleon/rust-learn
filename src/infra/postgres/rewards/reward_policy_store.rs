@@ -7,7 +7,6 @@ use crate::application::rewards::manage_reward_policy::{
     RewardPolicyDraft, RewardPolicyError, RewardPolicyListFilter, RewardPolicyOutput,
 };
 use crate::application::rewards::ports::RewardPolicyStore;
-use crate::db::schema::{courses, organizations};
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_policy_activation::deactivate_active_policies;
 use crate::infra::postgres::rewards::reward_policy_mappers::{
@@ -16,6 +15,7 @@ use crate::infra::postgres::rewards::reward_policy_mappers::{
 use crate::infra::postgres::rewards::reward_policy_records::{
     create_policy, list_policies, next_policy_version, RewardPolicyFilter,
 };
+use crate::infra::postgres::schema::{courses, organizations};
 
 pub struct PostgresRewardPolicyStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -81,10 +81,10 @@ impl RewardPolicyStore for PostgresRewardPolicyStore<'_> {
         filter: RewardPolicyListFilter,
     ) -> BoxFuture<'_, Result<Vec<RewardPolicyOutput>, RewardPolicyError>> {
         async move {
-            list_policies(self.conn, RewardPolicyFilter::from(filter))
+            let rows = list_policies(self.conn, RewardPolicyFilter::from(filter))
                 .await
-                .map(|rows| rows.into_iter().map(RewardPolicyOutput::from).collect())
-                .map_err(map_reward_policy_error)
+                .map_err(map_reward_policy_error)?;
+            rows.into_iter().map(RewardPolicyOutput::try_from).collect()
         }
         .boxed()
     }
@@ -94,34 +94,36 @@ async fn create_versioned_policy(
     conn: &mut AsyncPgConnection,
     draft: RewardPolicyDraft,
 ) -> Result<RewardPolicyOutput, RewardPolicyError> {
-    conn.transaction::<_, diesel::result::Error, _>(|conn| {
-        Box::pin(async move {
-            let version = next_policy_version(
-                conn,
-                &draft.scope_type,
-                draft.organization_id,
-                draft.course_id,
-                &draft.event_type,
-            )
-            .await?;
-
-            if draft.active {
-                deactivate_active_policies(
+    let policy = conn
+        .transaction::<_, diesel::result::Error, _>(|conn| {
+            Box::pin(async move {
+                let scope_type = draft.scope_type.as_str();
+                let event_type = draft.event_type.as_str();
+                let version = next_policy_version(
                     conn,
-                    &draft.scope_type,
+                    scope_type,
                     draft.organization_id,
                     draft.course_id,
-                    &draft.event_type,
-                    Utc::now(),
+                    event_type,
                 )
                 .await?;
-            }
 
-            create_policy(conn, new_reward_policy(draft, version))
-                .await
-                .map(RewardPolicyOutput::from)
+                if draft.active {
+                    deactivate_active_policies(
+                        conn,
+                        scope_type,
+                        draft.organization_id,
+                        draft.course_id,
+                        event_type,
+                        Utc::now(),
+                    )
+                    .await?;
+                }
+
+                create_policy(conn, new_reward_policy(draft, version)).await
+            })
         })
-    })
-    .await
-    .map_err(map_reward_policy_error)
+        .await
+        .map_err(map_reward_policy_error)?;
+    RewardPolicyOutput::try_from(policy)
 }

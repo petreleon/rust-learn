@@ -2,7 +2,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::wallet::audit_wallet::{WalletAuditError, WalletExternalTransactionAudit};
-use crate::db::schema::{external_transactions, reward_payout_records};
+use crate::infra::postgres::schema::{external_transactions, reward_payout_records};
 use crate::infra::postgres::wallet::wallet_audit_external_rows::{
     reward_external_transaction_audit, RewardExternalTransactionRow,
 };
@@ -40,7 +40,7 @@ pub(super) async fn load_reward_external_transactions(
         .map_err(map_wallet_audit_error)?;
 
     for row in rows {
-        let audit = reward_external_transaction_audit(row);
+        let audit = reward_external_transaction_audit(row)?;
         seen.insert((audit.transaction_id, audit.external_transaction_id));
         audits.push(audit);
     }

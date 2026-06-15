@@ -4,9 +4,8 @@ use crate::application::access_control::check_permission::{
 use crate::application::kyc::{
     KycDecisionCommand, KycError, KycReviewQueueOutput, KycStore, KycSubmissionOutput,
 };
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::kyc::submission::{ensure_can_decide, normalize_decision, KycDecisionInput};
-
-const REVIEW_KYC_SUBMISSIONS: &str = "REVIEW_KYC_SUBMISSIONS";
 
 pub async fn list_review_queue(
     store: &mut impl KycStore,
@@ -44,18 +43,17 @@ async fn ensure_review_permission(
     store: &mut impl KycStore,
     reviewer_user_id: i32,
 ) -> Result<(), KycError> {
+    let permission = Permissions::REVIEW_KYC_SUBMISSIONS.to_string();
     if store
         .can(
             AccessActor::user(reviewer_user_id),
-            AccessAction::permission(REVIEW_KYC_SUBMISSIONS),
+            AccessAction::permission(permission.clone()),
             AccessScope::platform(),
         )
         .await?
     {
         Ok(())
     } else {
-        Err(KycError::PermissionDenied(
-            REVIEW_KYC_SUBMISSIONS.to_string(),
-        ))
+        Err(KycError::PermissionDenied(permission))
     }
 }

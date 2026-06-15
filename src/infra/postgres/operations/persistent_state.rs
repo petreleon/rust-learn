@@ -2,7 +2,7 @@ use diesel::prelude::*;
 use diesel::upsert::excluded;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::persistent_states;
+use crate::infra::postgres::schema::persistent_states;
 
 pub async fn set_persistent_state(
     conn: &mut AsyncPgConnection,

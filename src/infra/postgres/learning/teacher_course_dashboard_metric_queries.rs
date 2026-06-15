@@ -5,11 +5,13 @@ use crate::application::learning::teacher_course_dashboard::{
     record_teacher_course_reward_queue_status, TeacherCourseDashboardError,
     TeacherCourseRewardQueueSummaryOutput, TeacherCourseRosterSummaryOutput,
 };
-use crate::db::schema::{course_join_requests, course_roles, reward_candidates, user_role_course};
 use crate::domain::learning::enrollment::status::{
     COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
 };
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::infra::postgres::schema::{
+    course_join_requests, course_roles, reward_candidates, user_role_course,
+};
 
 pub async fn load_course_roster_summary(
     conn: &mut AsyncPgConnection,

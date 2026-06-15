@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::upload_jobs;
+use crate::infra::postgres::schema::upload_jobs;
 
 pub async fn load_latest_content_processing(
     conn: &mut AsyncPgConnection,

@@ -33,6 +33,8 @@ pub(crate) fn platform_reward_dashboard_output(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::application::reporting::platform_reward_dashboard::RewardReconciliationMismatchType;
+    use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
     #[test]
     fn builds_dashboard_and_counts_reconciliation_mismatches() {
@@ -53,8 +55,8 @@ mod tests {
                 reward_candidate_id: 6,
                 course_id: 7,
                 student_user_id: 8,
-                status: "token_confirmed".to_string(),
-                mismatch_type: "needs_payout_record".to_string(),
+                status: RewardCandidateStatus::TokenConfirmed,
+                mismatch_type: RewardReconciliationMismatchType::NeedsPayoutRecord,
                 approved_amount: None,
                 updated_at: chrono::Utc::now(),
             }],

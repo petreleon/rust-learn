@@ -7,10 +7,12 @@ use crate::application::rewards::list_platform_candidates::{
     PlatformRewardCandidateCourseSummary, PlatformRewardCandidateRecord,
     PlatformRewardCandidateUserSummary, PlatformRewardCandidatesError,
 };
-use crate::db::schema::{courses, users};
-use crate::infra::postgres::rewards::platform_reward_candidate_mappers::map_platform_reward_candidate_error;
+use crate::infra::postgres::rewards::platform_reward_candidate_mappers::{
+    map_platform_reward_candidate_error, map_platform_reward_candidate_record,
+};
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_records::{self, RewardCandidateFilter};
+use crate::infra::postgres::schema::{courses, users};
 
 pub struct PostgresPlatformRewardCandidateStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -64,13 +66,10 @@ impl PlatformRewardCandidateStore for PostgresPlatformRewardCandidateStore<'_> {
                 },
             )
             .await
-            .map(|records| {
-                records
-                    .into_iter()
-                    .map(PlatformRewardCandidateRecord::from)
-                    .collect()
-            })
-            .map_err(map_platform_reward_candidate_error)
+            .map_err(map_platform_reward_candidate_error)?
+            .into_iter()
+            .map(map_platform_reward_candidate_record)
+            .collect()
         }
         .boxed()
     }

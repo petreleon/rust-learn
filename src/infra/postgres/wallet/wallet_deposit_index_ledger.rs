@@ -5,14 +5,14 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::application::wallet::index_deposit::{
     ObservedWalletDepositEvent, WalletDepositIndexError,
 };
-use crate::db::schema::{
-    external_transactions, internal_transactions, transactions, transactions_external_transactions,
-    transactions_internal_transactions, wallets,
-};
 use crate::domain::wallet::deposit::WALLET_DEPOSIT_TRANSACTION_TYPE;
-use crate::models::transaction::{
+use crate::infra::postgres::models::transaction::{
     NewExternalTransaction, NewInternalTransaction, NewTransaction,
     NewTransactionExternalTransactionLink, NewTransactionInternalTransactionLink,
+};
+use crate::infra::postgres::schema::{
+    external_transactions, internal_transactions, transactions, transactions_external_transactions,
+    transactions_internal_transactions, wallets,
 };
 
 pub(super) async fn create_deposit_transaction(

@@ -39,6 +39,9 @@ preflight: ## Run standard static, frontend, manifest, and runtime smoke checks
 fmt: ## Check Rust formatting
 	cargo fmt --all --check
 
+fmt-compose: ## Check Rust formatting inside the Docker Compose test runner
+	$(DOCKER_COMPOSE) --profile test run --rm --no-deps test-runner cargo fmt --all --check
+
 clippy: ## Run Rust Clippy on all targets and features
 	$(HOST_CARGO) cargo clippy --all-targets --features app-bin,worker-bin,tool-bin -- -D warnings
 
@@ -64,9 +67,29 @@ web-lint-compose: ## Run frontend lint checks inside the Docker Compose web serv
 web-build-compose: ## Build the frontend Docker image through Docker Compose
 	$(DOCKER_COMPOSE) build web
 
-# DB Migrations
-migrate: ## Run Diesel migrations
-	diesel migration run
+mock-email: ## Preview local mock email output (use: make mock-email MOCK_EMAIL=... MOCK_NAME='Demo Learner')
+	$(HOST_CARGO) cargo run --bin mock_email --features tool-bin -- "$(MOCK_EMAIL)" "$(MOCK_NAME)" "$(MOCK_TOKEN)"
 
-migrate-redo: ## Redo last migration
-	diesel migration redo
+# DB Migrations
+diesel-compose: ## Run Diesel CLI through Compose (use: make diesel-compose DIESEL_ARGS='migration list')
+	$(DOCKER_COMPOSE) up -d db
+	$(DIESEL_COMPOSE) $(DIESEL_ARGS)
+
+schema: ## Regenerate Diesel schema through Compose
+	$(DOCKER_COMPOSE) up -d db
+	$(DIESEL_COMPOSE_RUN) sh -c '/usr/local/cargo/bin/diesel print-schema > "$(DIESEL_SCHEMA_FILE)" && /usr/local/cargo/bin/rustfmt "$(DIESEL_SCHEMA_FILE)"'
+
+migration-generate: ## Generate a Diesel migration through Compose (use: make migration-generate NAME=create_table)
+	@if [ -z "$(NAME)" ]; then \
+		echo "$(YELLOW)Usage: make migration-generate NAME=create_table$(NC)"; \
+		exit 1; \
+	fi
+	$(DIESEL_COMPOSE) migration generate $(NAME)
+
+migrate: ## Run Diesel migrations through Docker Compose
+	$(MAKE) diesel-compose DIESEL_ARGS='migration run'
+	$(MAKE) schema
+
+migrate-redo: ## Redo last migration through Docker Compose
+	$(MAKE) diesel-compose DIESEL_ARGS='migration redo'
+	$(MAKE) schema

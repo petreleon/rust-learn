@@ -5,9 +5,7 @@ use crate::application::organizations::list_organization_teacher_applications::{
     OrganizationTeacherApplicationListError, OrganizationTeacherApplicationListOutput,
     OrganizationTeacherApplicationListQuery, OrganizationTeacherApplicationListStore,
 };
-
-const VIEW_ORG_TEACHER_APPLICATIONS: &str = "VIEW_ORG_TEACHER_APPLICATIONS";
-const NOMINATE_TEACHER_FOR_PLATFORM_REVIEW: &str = "NOMINATE_TEACHER_FOR_PLATFORM_REVIEW";
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn list_organization_teacher_applications(
     store: &mut impl OrganizationTeacherApplicationListStore,
@@ -18,20 +16,20 @@ pub async fn list_organization_teacher_applications(
         store,
         query.actor_user_id,
         query.organization_id,
-        VIEW_ORG_TEACHER_APPLICATIONS,
+        Permissions::VIEW_ORG_TEACHER_APPLICATIONS,
     )
     .await?;
     let can_nominate_teachers = can_platform_or_organization_action(
         store,
         query.actor_user_id,
         query.organization_id,
-        NOMINATE_TEACHER_FOR_PLATFORM_REVIEW,
+        Permissions::NOMINATE_TEACHER_FOR_PLATFORM_REVIEW,
     )
     .await?;
 
     if !can_view_applications && !can_nominate_teachers {
         return Err(OrganizationTeacherApplicationListError::PermissionDenied(
-            VIEW_ORG_TEACHER_APPLICATIONS.to_string(),
+            Permissions::VIEW_ORG_TEACHER_APPLICATIONS.into(),
         ));
     }
 
@@ -78,7 +76,7 @@ async fn can_platform_or_organization_action(
     store: &mut impl AccessDecisionStore<Error = OrganizationTeacherApplicationListError>,
     actor_user_id: i32,
     organization_id: i32,
-    permission: &'static str,
+    permission: Permissions,
 ) -> Result<bool, OrganizationTeacherApplicationListError> {
     let actor = AccessActor::user(actor_user_id);
     if store

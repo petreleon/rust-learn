@@ -2,6 +2,7 @@ use crate::application::rewards::list_candidate_audit::{
     RewardCandidateAuditError, RewardCandidateAuditEvent,
 };
 use crate::application::rewards::ports::RewardCandidateAuditStore;
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn list_reward_candidate_audit(
     store: &mut impl RewardCandidateAuditStore,
@@ -21,7 +22,7 @@ async fn ensure_can_view_reward_audit(
         Ok(())
     } else {
         Err(RewardCandidateAuditError::PermissionDenied(
-            "VIEW_REWARD_AUDIT".to_string(),
+            Permissions::VIEW_REWARD_AUDIT.into(),
         ))
     }
 }

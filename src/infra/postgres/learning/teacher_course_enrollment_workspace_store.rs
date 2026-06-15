@@ -7,13 +7,13 @@ use crate::application::learning::get_teacher_course_enrollment_workspace::{
     TeacherCourseEnrollmentWorkspaceStore,
 };
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError;
-use crate::db::schema::courses;
 use crate::infra::postgres::learning::{
     teacher_course_dashboard_permissions, teacher_course_dashboard_summary_queries,
     teacher_course_join_request_queries, teacher_course_reward_eligibility_queries,
     teacher_course_roster_queries, teacher_course_workspace_queries,
 };
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::schema::courses;
 
 pub struct PostgresTeacherCourseEnrollmentWorkspaceStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

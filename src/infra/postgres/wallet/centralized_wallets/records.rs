@@ -2,11 +2,11 @@ use anyhow::{anyhow, Result};
 use bigdecimal::BigDecimal;
 use diesel::pg::PgConnection;
 
+use crate::infra::postgres::models::wallet::NewWallet;
 use crate::infra::postgres::wallet::wallet_ledger_records::{
     create_internal_transaction, create_wallet, find_organization_wallet_id, find_user_wallet_id,
     update_wallet_balance_guarded,
 };
-use crate::models::wallet::NewWallet;
 
 /// Owner type for locating a wallet
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

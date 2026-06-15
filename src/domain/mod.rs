@@ -3,6 +3,7 @@ pub mod content;
 pub mod identity;
 pub mod kyc;
 pub mod learning;
+pub mod organizations;
 pub mod rewards;
 pub mod teacher_applications;
 pub mod wallet;

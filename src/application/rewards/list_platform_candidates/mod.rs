@@ -11,7 +11,7 @@ pub use handler::list_platform_reward_candidates;
 pub use output::{
     PlatformRewardCandidateCourseSummary, PlatformRewardCandidateItem,
     PlatformRewardCandidatePermissions, PlatformRewardCandidateRecord,
-    PlatformRewardCandidateUserSummary, PlatformRewardCandidatesResponse,
+    PlatformRewardCandidateUserSummary, PlatformRewardCandidatesOutput,
 };
 pub use query::PlatformRewardCandidatesQuery;
 pub use service::PlatformRewardCandidatesUseCase;

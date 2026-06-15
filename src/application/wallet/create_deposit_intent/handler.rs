@@ -1,14 +1,14 @@
 use bigdecimal::BigDecimal;
 
 use crate::application::wallet::create_deposit_intent::{
-    WalletDepositGasPayer, WalletDepositIntentDraft, WalletDepositIntentError,
-    WalletDepositIntentRequest, WalletDepositIntentStore, WalletDepositIntentView,
+    WalletDepositGasPayer, WalletDepositIntentCommand, WalletDepositIntentDraft,
+    WalletDepositIntentError, WalletDepositIntentStore, WalletDepositIntentView,
 };
 
 pub async fn create_deposit_intent(
     store: &mut impl WalletDepositIntentStore,
     user_id: i32,
-    request: WalletDepositIntentRequest,
+    request: WalletDepositIntentCommand,
 ) -> Result<WalletDepositIntentView, WalletDepositIntentError> {
     if !store.user_kyc_verified(user_id).await? {
         return Err(WalletDepositIntentError::KycRequired);
@@ -58,7 +58,7 @@ pub async fn create_deposit_intent(
     store.create_deposit_intent(user_id, draft).await
 }
 
-fn validate_request(request: &WalletDepositIntentRequest) -> Result<(), WalletDepositIntentError> {
+fn validate_request(request: &WalletDepositIntentCommand) -> Result<(), WalletDepositIntentError> {
     validate_positive_amount(&request.amount, "amount")?;
     if request.ethereum_address.trim().is_empty() {
         return Err(WalletDepositIntentError::InvalidInput(
@@ -105,7 +105,7 @@ fn validate_non_negative_amount(
 }
 
 fn validate_external_transaction_fields(
-    request: &WalletDepositIntentRequest,
+    request: &WalletDepositIntentCommand,
 ) -> Result<(), WalletDepositIntentError> {
     if request
         .chain_id

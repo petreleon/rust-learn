@@ -1,9 +1,9 @@
 use chrono::NaiveDate;
-use rust_learn::config::constants::permissions::Permissions;
-use rust_learn::config::constants::roles::Roles;
-use rust_learn::db::establish_connection;
+use rust_learn::domain::access_control::permissions::Permissions;
+use rust_learn::domain::access_control::roles::Roles;
 use rust_learn::infra::postgres::access_control::platform_role_records;
 use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
+use rust_learn::infra::postgres::establish_connection;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 
 fn unique_string(prefix: &str) -> String {

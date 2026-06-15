@@ -5,8 +5,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::learning::list_course_organizations::{
     CourseOrganizationOutput, CourseOrganizationReadError, CourseOrganizationStore,
 };
-use crate::db::schema::{courses_organizations, organizations};
-use crate::models::organization::Organization;
+use crate::infra::postgres::models::organization::Organization;
+use crate::infra::postgres::schema::{courses_organizations, organizations};
 
 pub struct PostgresCourseOrganizationStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

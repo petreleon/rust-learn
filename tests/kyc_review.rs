@@ -4,18 +4,18 @@ use rust_learn::application::kyc::{
     KycAuditQuery, KycAuditUseCase, KycDecisionCommand, KycError, KycReviewUseCase,
     KycSubmissionUseCase, SubmitKycCommand,
 };
-use rust_learn::config::constants::permissions::Permissions;
-use rust_learn::config::constants::roles::Roles;
-use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_PLATFORM;
-use rust_learn::domain::kyc::audit::{KYC_AUDIT_EVENT_REVIEW_DECISION, KYC_AUDIT_EVENT_SUBMITTED};
+use rust_learn::domain::access_control::permissions::Permissions;
+use rust_learn::domain::access_control::roles::Roles;
+use rust_learn::domain::kyc::audit::KycAuditEventType;
 use rust_learn::domain::kyc::submission::{KYC_STATUS_REJECTED, KYC_STATUS_SUBMITTED};
 use rust_learn::infra::postgres::access_control::delegated_permissions::create_delegated_permission;
 use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::kyc::kyc_use_case::PostgresKycUseCase;
-use rust_learn::models::delegated_permission::NewDelegatedPermission;
-use rust_learn::models::user::User;
+use rust_learn::infra::postgres::models::delegated_permission::NewDelegatedPermission;
+use rust_learn::infra::postgres::models::user::User;
+use rust_learn::infra::postgres::{establish_connection, DbPool};
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -110,7 +110,7 @@ async fn kyc_submission_and_review_write_permission_scoped_audit_events() {
         .expect("admin can read audit");
     assert_eq!(audit.len(), 1);
     assert_eq!(audit[0].actor_user_id, Some(learner.id()));
-    assert_eq!(audit[0].event_type, KYC_AUDIT_EVENT_SUBMITTED);
+    assert_eq!(audit[0].event_type, KycAuditEventType::Submitted);
     assert_eq!(audit[0].from_status, None);
     assert_eq!(audit[0].to_status, KYC_STATUS_SUBMITTED);
 
@@ -144,7 +144,7 @@ async fn kyc_submission_and_review_write_permission_scoped_audit_events() {
         .expect("admin can read decision audit");
     assert_eq!(audit.len(), 2);
     assert_eq!(audit[1].actor_user_id, Some(admin.id()));
-    assert_eq!(audit[1].event_type, KYC_AUDIT_EVENT_REVIEW_DECISION);
+    assert_eq!(audit[1].event_type, KycAuditEventType::ReviewDecision);
     assert_eq!(audit[1].from_status.as_deref(), Some(KYC_STATUS_SUBMITTED));
     assert_eq!(audit[1].to_status, KYC_STATUS_REJECTED);
     assert_eq!(audit[1].reason.as_deref(), Some("Document expired"));

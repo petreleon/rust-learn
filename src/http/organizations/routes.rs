@@ -1,9 +1,9 @@
 use actix_web::web;
 
-use crate::config::constants::permissions::Permissions;
+use crate::domain::access_control::permissions::Permissions;
+use crate::http::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
+use crate::http::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 use crate::http::request_params::ParamType;
-use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
-use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 
 use super::{
     courses, dashboard, handlers, member_audit, member_invites, member_list, member_removal,

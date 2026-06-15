@@ -8,13 +8,13 @@ use crate::application::rewards::list_reward_history::{
     StudentRewardTokenTransaction, StudentRewardWalletCredit,
 };
 use crate::application::rewards::ports::StudentRewardHistoryStore;
-use crate::db::schema::{courses, reward_candidates};
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_history_financials;
 use crate::infra::postgres::rewards::reward_history_mappers::{
     candidate_record, map_reward_history_error,
 };
-use crate::models::reward_candidate::RewardCandidate;
+use crate::infra::postgres::schema::{courses, reward_candidates};
 
 pub struct PostgresStudentRewardHistoryStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -98,8 +98,7 @@ async fn list_candidates(
         .await
         .map_err(map_reward_history_error)?;
 
-    Ok(rows
-        .into_iter()
+    rows.into_iter()
         .map(|(candidate, title)| candidate_record(candidate, title))
-        .collect())
+        .collect()
 }

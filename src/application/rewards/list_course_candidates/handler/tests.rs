@@ -9,6 +9,9 @@ use crate::application::rewards::list_course_candidates::{
     CourseRewardCandidatesQuery,
 };
 use crate::application::rewards::ports::CourseRewardCandidateStore;
+use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[test]
 fn non_manager_is_limited_to_own_candidates() {
@@ -155,12 +158,12 @@ fn candidate(course_id: i32) -> CourseRewardCandidate {
         course_id,
         student_user_id: 42,
         submitter_user_id: 9,
-        source_scope: "course".to_string(),
+        source_scope: RewardCandidateSourceScope::Course,
         source_organization_id: None,
-        event_type: "course_completion".to_string(),
+        event_type: RewardEventType::CourseCompletion,
         idempotency_key: "course_completion:7:42:manual".to_string(),
         evidence: json!({"completion_percentage": 100}),
-        status: "teacher_approved".to_string(),
+        status: RewardCandidateStatus::TeacherApproved,
         teacher_approver_user_id: Some(9),
         teacher_decision_reason: None,
         teacher_decided_at: None,

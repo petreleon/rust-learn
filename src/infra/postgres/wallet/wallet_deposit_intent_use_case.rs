@@ -3,11 +3,11 @@ use diesel_async::AsyncPgConnection;
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::wallet::create_deposit_intent::{
-    self, WalletDepositIntentError, WalletDepositIntentRequest, WalletDepositIntentUseCase,
+    self, WalletDepositIntentCommand, WalletDepositIntentError, WalletDepositIntentUseCase,
     WalletDepositIntentView,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::wallet::wallet_deposit_intent_store::PostgresWalletDepositIntentStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresWalletDepositIntentUseCase {
@@ -24,7 +24,7 @@ impl WalletDepositIntentUseCase for PostgresWalletDepositIntentUseCase {
     fn create_deposit_intent(
         &self,
         user_id: i32,
-        request: WalletDepositIntentRequest,
+        request: WalletDepositIntentCommand,
     ) -> BoxFuture<'_, Result<WalletDepositIntentView, WalletDepositIntentError>> {
         async move {
             let mut conn = self.connection().await?;

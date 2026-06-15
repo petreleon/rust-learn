@@ -1,5 +1,5 @@
 #[derive(Debug, PartialEq, Eq)]
-enum RewardCandidateError {
+pub(crate) enum RewardCandidateError {
     PermissionDenied(String),
     InvalidInput(String),
     InvalidStatus(String),

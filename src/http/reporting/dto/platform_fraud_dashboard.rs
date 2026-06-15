@@ -61,7 +61,7 @@ impl From<FraudBlockDashboardRowOutput> for FraudBlockDashboardRowResponse {
     fn from(row: FraudBlockDashboardRowOutput) -> Self {
         Self {
             id: row.id,
-            scope_type: row.scope_type,
+            scope_type: row.scope_type.as_str().to_string(),
             teacher_user_id: row.teacher_user_id,
             organization_id: row.organization_id,
             course_id: row.course_id,

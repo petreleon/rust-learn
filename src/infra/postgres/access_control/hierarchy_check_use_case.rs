@@ -6,9 +6,9 @@ use std::cmp::Ordering;
 use crate::application::access_control::compare_hierarchy::{
     HierarchyCheckError, HierarchyCheckUseCase, HierarchyScope,
 };
-use crate::db::DbPool;
 use crate::domain::access_control::hierarchy::compare_hierarchy_levels;
 use crate::infra::postgres::access_control::hierarchy_records;
+use crate::infra::postgres::DbPool;
 
 impl HierarchyCheckUseCase for DbPool {
     fn compare_users(

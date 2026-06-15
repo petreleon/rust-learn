@@ -8,8 +8,8 @@ use crate::application::reporting::platform_csv_exports::{
     PlatformTeacherApplicationExportRowOutput, PlatformTokenPayoutExportRowOutput,
     PlatformWalletCreditExportRowOutput,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::reporting::platform_csv_export_store::PostgresPlatformCsvExportStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresPlatformCsvExportsUseCase {

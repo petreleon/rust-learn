@@ -3,7 +3,9 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::wallet::audit_wallet::{WalletAuditError, WalletInternalTransactionAudit};
-use crate::db::schema::{internal_transactions, transactions, transactions_internal_transactions};
+use crate::infra::postgres::schema::{
+    internal_transactions, transactions, transactions_internal_transactions,
+};
 use crate::infra::postgres::wallet::wallet_audit_mappers::map_wallet_audit_error;
 
 pub(super) async fn load_internal_transactions(

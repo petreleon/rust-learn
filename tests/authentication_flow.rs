@@ -1,13 +1,16 @@
-include!("authentication_flow/imports.rs");
-include!(
-    "authentication_flow/login_requires_email_verification_and_returns_jwt_after_verification.rs"
-);
-include!(
-    "authentication_flow/resend_verification_rotates_active_token_without_revealing_accounts.rs"
-);
-include!(
-    "authentication_flow/verify_email_marks_user_verified_and_reports_already_verified_replay.rs"
-);
-include!("authentication_flow/verify_email_reports_expired_and_invalid_tokens.rs");
-include!("authentication_flow/register_rejects_duplicate_email_without_panicking.rs");
-include!("authentication_flow/password_reset_request_and_completion.rs");
+#[path = "authentication_flow/login_requires_email_verification_and_returns_jwt_after_verification.rs"]
+mod login_requires_email_verification_and_returns_jwt_after_verification;
+#[path = "authentication_flow/password_reset_request_and_completion.rs"]
+mod password_reset_request_and_completion;
+#[path = "authentication_flow/register_creates_unverified_user_auth_role_and_verification_token.rs"]
+mod register_creates_unverified_user_auth_role_and_verification_token;
+#[path = "authentication_flow/register_rejects_duplicate_email_without_panicking.rs"]
+mod register_rejects_duplicate_email_without_panicking;
+#[path = "authentication_flow/resend_verification_rotates_active_token_without_revealing_accounts.rs"]
+mod resend_verification_rotates_active_token_without_revealing_accounts;
+#[path = "authentication_flow/support.rs"]
+mod support;
+#[path = "authentication_flow/verify_email_marks_user_verified_and_reports_already_verified_replay.rs"]
+mod verify_email_marks_user_verified_and_reports_already_verified_replay;
+#[path = "authentication_flow/verify_email_reports_expired_and_invalid_tokens.rs"]
+mod verify_email_reports_expired_and_invalid_tokens;

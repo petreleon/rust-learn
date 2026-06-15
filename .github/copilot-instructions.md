@@ -5,16 +5,16 @@
 - Use `make setup` once to create a local `.env` and development JWT key pair,
   then edit `.env` for environment-specific values.
 - Start the local Docker Compose stack with `make dev` or selected infra with
-  `docker compose up -d db rustfs anvil`.
+  `make dev-deps`.
 
 ## Quick context for code-generating agents
 
 - Language: Rust (edition 2021). Web server: Actix Web. DB: PostgreSQL via Diesel async/deadpool.
 - Smart contracts live under `ethereum/contracts/` and are compiled/deployed via `src/utils/eth/` helpers such as `try_compile_contract`, `try_deploy_contract`, `try_get_provider`, `try_load_wallet_from_env`, and `deploy_startup`. Prefer using these fallible helpers instead of invoking solc directly.
 - On startup (`src/main.rs`) the app:
-  - loads `.env`, establishes the DB pool (`db::establish_connection()`),
-  - initializes S3 state (`utils::s3_utils::S3State::new_from_env()`),
-  - runs `version_updater` to migrate DB versioning,
+  - loads `.env`, establishes the DB pool (`infra::postgres::try_establish_connection()`),
+  - initializes object storage state (`infra::object_storage::S3State::new_from_env()`),
+  - runs `infra::postgres::operations::db_setup::version_updater`,
   - ensures the LearnToken contracts are deployed via `deploy_startup`, then launches the Actix server with DB pool and S3 in `App::data()`.
 
 ## Useful developer workflows
@@ -26,13 +26,13 @@
   - Full host test suite: `make test`
   - Narrow host test suite: `make test CARGO_TEST_ARGS='--lib'`
   - Ad hoc host Cargo command: `./scripts/run-host-tests.sh cargo test --test authentication_flow`
-  - Formatting: `cargo fmt --all --check`
+  - Formatting: `make fmt`
   - Clippy: `make clippy`
 
 - Docker Compose checks:
 
   - Start services: `make dev`
-  - Run app locally through Compose: `docker compose up -d app web worker`
+  - Run app locally through Compose: `make dev`
   - Rebuild/restart selected app or web services after code changes: `make dev-refresh`
   - Test through Compose service networking: `make test-compose`
   - Narrow Compose test suite: `make test-compose CARGO_TEST_ARGS='--lib'`
@@ -56,17 +56,18 @@
   - Open a shell manually: `docker compose exec app bash`
   - The Compose `app` service already starts the API under `PROD_MODE=TRUE`;
     use `make dev-refresh COMPOSE_REFRESH_SERVICES=app` after API image changes.
-  - Database migrations (diesel CLI is preinstalled in the image):
-    `docker compose exec app diesel migration run`
+  - Database migrations: `make migrate` runs Diesel through Docker Compose.
+  - Other Diesel CLI work: `make diesel-compose DIESEL_ARGS='migration list'`
+    or `make migration-generate NAME=create_table`; do not rely on host Diesel.
   - Export ABI/bytecode example:
     `docker compose exec app cargo run --bin abi_export -- ethereum/contracts/LearnToken.sol LearnToken ethereum/artifacts`
 
 - Logs and diagnostics:
 
-  - App logs: `docker compose logs -f app`
-  - Worker logs: `docker compose logs -f worker`
-  - Web logs: `docker compose logs -f web`
-  - Anvil logs: `docker compose logs -f anvil`
+  - App logs: `make logs SERVICE=app`
+  - Worker logs: `make logs SERVICE=worker`
+  - Web logs: `make logs SERVICE=web`
+  - Anvil logs: `make logs SERVICE=anvil`
   - Verify solc in image: `docker compose exec app solc --version`
 
 - Generate RSA keys inside the container (keys will appear in the mounted repo root):
@@ -95,7 +96,7 @@
 - src/utils/eth/ — compile/deploy helpers (use these when adding or testing contracts).
 - src/bin/abi_export.rs — shows how to export ABI/bytecode with `cargo run --bin abi_export -- ethereum/contracts/LearnToken.sol LearnToken ethereum/artifacts`.
 - src/main.rs — app startup: DB pool, S3 init, deploy_startup call, Actix server wiring.
-- src/config/db_setup.rs — DB version updater called on startup (keep migrations/`migrations/` in sync).
+- src/infra/postgres/operations/db_setup — DB version updater called on startup (keep migrations/`migrations/` in sync).
 - docker-compose.yml, Dockerfile, and docker/test-runner.Dockerfile —
   development infra, test runner, and how `solc`/Z3 are produced; heavy builds
   exist in the Dockerfile (use cautiously).

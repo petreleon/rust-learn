@@ -3,8 +3,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::reporting::platform_summary::{
     self, PlatformSummaryError, PlatformSummaryOutput, PlatformSummaryUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::reporting::platform_summary_store::PostgresPlatformSummaryStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresPlatformSummaryUseCase {

@@ -1,19 +1,21 @@
+use crate::support::*;
+
 #[derive(Debug, Clone, Default)]
-struct PlatformTeacherApplicationsRequest {
-    status: Option<String>,
-    search: Option<String>,
-    limit: Option<i64>,
-    offset: Option<i64>,
+pub(crate) struct PlatformTeacherApplicationsRequest {
+    pub(crate) status: Option<String>,
+    pub(crate) search: Option<String>,
+    pub(crate) limit: Option<i64>,
+    pub(crate) offset: Option<i64>,
 }
 
-async fn list_platform_applications(
+pub(crate) async fn list_platform_applications(
     _conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     request: PlatformTeacherApplicationsRequest,
 ) -> Result<
     rust_learn::application::teacher_applications::list_platform_review::TeacherApplicationPlatformReviewOutput,
     rust_learn::application::teacher_applications::list_platform_review::TeacherApplicationPlatformReviewError,
-> {
+>{
     let use_case = rust_learn::infra::postgres::teacher_applications::teacher_application_platform_review_use_case::PostgresTeacherApplicationPlatformReviewUseCase::new(
         establish_connection(),
     );
@@ -30,11 +32,11 @@ async fn list_platform_applications(
     .await
 }
 
-fn teacher_application_platform_review_data() -> web::Data<
+pub(crate) fn teacher_application_platform_review_data() -> web::Data<
     Arc<
         dyn rust_learn::application::teacher_applications::list_platform_review::TeacherApplicationPlatformReviewUseCase,
     >,
-> {
+>{
     web::Data::new(Arc::new(
         rust_learn::infra::postgres::teacher_applications::teacher_application_platform_review_use_case::PostgresTeacherApplicationPlatformReviewUseCase::new(
             establish_connection(),

@@ -7,11 +7,11 @@ use crate::application::learning::learner_course_catalog::LearnerCourseCatalogEr
 use crate::application::learning::list_learner_course_catalog::{
     LearnerCourseCatalogListStore, LearnerCourseCatalogOutput, LearnerCourseCatalogQuery,
 };
-use crate::db::schema::{courses, courses_organizations};
 use crate::infra::postgres::learning::{
     learner_course_access_queries, learner_course_catalog_item_queries,
 };
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::schema::{courses, courses_organizations};
 
 const LIKE_ESCAPE_CHAR: char = '\\';
 

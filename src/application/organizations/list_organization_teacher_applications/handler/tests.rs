@@ -1,9 +1,6 @@
 use futures::future::{ready, BoxFuture, FutureExt};
 
-use super::{
-    list_organization_teacher_applications, NOMINATE_TEACHER_FOR_PLATFORM_REVIEW,
-    VIEW_ORG_TEACHER_APPLICATIONS,
-};
+use super::list_organization_teacher_applications;
 use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessDecisionStore, AccessScope,
 };
@@ -14,6 +11,7 @@ use crate::application::organizations::list_organization_teacher_applications::{
     OrganizationTeacherApplicationPermissionsOutput, TeacherApplicationDashboardSummaryOutput,
     TeacherApplicationUserSummaryOutput,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 #[tokio::test]
 async fn filters_status_search_and_paginates_after_permission() {
@@ -93,15 +91,17 @@ impl AccessDecisionStore for FakeStore {
         action: AccessAction,
         scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, OrganizationTeacherApplicationListError>> {
-        let allowed = match (action.permission_name(), scope) {
-            (_, AccessScope::Platform(_)) => false,
-            (VIEW_ORG_TEACHER_APPLICATIONS, AccessScope::Organization(_)) => self.can_view,
-            (NOMINATE_TEACHER_FOR_PLATFORM_REVIEW, AccessScope::Organization(_)) => {
-                self.can_nominate
-            }
-            (permission, _) => panic!("unexpected organization teacher permission {permission}"),
-        };
-        ready(Ok(allowed)).boxed()
+        let permission = action.permission_name();
+        if matches!(scope, AccessScope::Platform(_)) {
+            return ready(Ok(false)).boxed();
+        }
+        if permission == Permissions::VIEW_ORG_TEACHER_APPLICATIONS.to_string() {
+            return ready(Ok(self.can_view)).boxed();
+        }
+        if permission == Permissions::NOMINATE_TEACHER_FOR_PLATFORM_REVIEW.to_string() {
+            return ready(Ok(self.can_nominate)).boxed();
+        }
+        panic!("unexpected organization teacher permission {permission}")
     }
 }
 

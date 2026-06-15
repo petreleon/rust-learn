@@ -9,12 +9,12 @@ use crate::application::organizations::get_organization_dashboard::{
     OrganizationDashboardStore, OrganizationDashboardTeacherApplicationSummaryOutput,
     OrganizationDashboardWalletSummaryOutput,
 };
-use crate::db::schema::organizations;
 use crate::infra::postgres::organizations::{
     organization_dashboard_course_summary, organization_dashboard_mappers,
     organization_dashboard_member_summary, organization_dashboard_permissions,
     organization_dashboard_reward_summary, organization_dashboard_teacher_summary,
 };
+use crate::infra::postgres::schema::organizations;
 
 pub struct PostgresOrganizationDashboardStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

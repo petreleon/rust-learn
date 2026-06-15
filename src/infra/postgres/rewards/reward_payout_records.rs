@@ -1,8 +1,10 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::reward_payout_records;
-use crate::models::reward_payout_record::{NewRewardPayoutRecord, RewardPayoutRecord};
+use crate::infra::postgres::models::reward_payout_record::{
+    NewRewardPayoutRecord, RewardPayoutRecord,
+};
+use crate::infra::postgres::schema::reward_payout_records;
 
 pub(super) async fn create_reward_payout_record(
     conn: &mut AsyncPgConnection,

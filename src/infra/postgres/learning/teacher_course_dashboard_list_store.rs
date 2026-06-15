@@ -8,12 +8,12 @@ use crate::application::learning::list_teacher_course_dashboard::{
     TeacherCourseDashboardListStore,
 };
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError;
-use crate::db::schema::courses;
 use crate::infra::postgres::learning::{
     teacher_course_dashboard_permissions, teacher_course_dashboard_scope,
     teacher_course_dashboard_summary_queries,
 };
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::schema::courses;
 
 const LIKE_ESCAPE_CHAR: char = '\\';
 

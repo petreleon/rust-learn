@@ -5,6 +5,7 @@ use super::handler::index_observed_deposit;
 use crate::application::wallet::index_deposit::{
     test_support::FakeWalletDepositIndexStore, ObservedWalletDepositEvent, WalletDepositIndexError,
 };
+use crate::domain::wallet::deposit::{WalletDepositEventType, WalletDepositStatus};
 
 #[test]
 fn delegates_valid_observed_deposit_to_store() {
@@ -15,7 +16,7 @@ fn delegates_valid_observed_deposit_to_store() {
         block_on(index_observed_deposit(&mut store, event)).expect("valid event should index");
 
     assert!(output.credited);
-    assert_eq!(output.status, "credited");
+    assert_eq!(output.status, WalletDepositStatus::Credited);
     assert_eq!(
         store
             .event
@@ -37,24 +38,6 @@ fn rejects_invalid_chain_id_before_store_call() {
     assert_eq!(
         error,
         WalletDepositIndexError::InvalidInput("observed chain_id must be positive".to_string())
-    );
-    assert!(store.event.is_none());
-}
-
-#[test]
-fn rejects_unsupported_event_type() {
-    let mut store = FakeWalletDepositIndexStore::default();
-    let mut event = valid_event();
-    event.event_type = "mint".to_string();
-
-    let error = block_on(index_observed_deposit(&mut store, event))
-        .expect_err("unsupported event type should fail");
-
-    assert_eq!(
-        error,
-        WalletDepositIndexError::InvalidInput(
-            "observed event_type must be 'import' or 'transfer'".to_string()
-        )
     );
     assert!(store.event.is_none());
 }
@@ -95,7 +78,7 @@ fn valid_event() -> ObservedWalletDepositEvent {
         contract_address: "0xcontract".to_string(),
         transaction_hash: "0xhash".to_string(),
         log_index: 0,
-        event_type: "transfer".to_string(),
+        event_type: WalletDepositEventType::Transfer,
         from_address: "0xuser".to_string(),
         to_address: "0xplatform".to_string(),
         amount: BigDecimal::from(100),

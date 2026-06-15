@@ -19,6 +19,7 @@ mod tests {
     use crate::application::reporting::platform_fraud_dashboard::{
         FraudBlockDashboardRowOutput, FraudBlockScopeSummaryOutput,
     };
+    use crate::domain::rewards::fraud_block::RewardFraudBlockScope;
 
     #[test]
     fn loads_platform_fraud_dashboard_through_store_port() {
@@ -52,7 +53,7 @@ mod tests {
                 },
                 active_blocks: vec![FraudBlockDashboardRowOutput {
                     id: 7,
-                    scope_type: "teacher".to_string(),
+                    scope_type: RewardFraudBlockScope::Teacher,
                     teacher_user_id: Some(42),
                     organization_id: None,
                     course_id: None,

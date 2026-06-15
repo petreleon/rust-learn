@@ -10,7 +10,7 @@ use rust_learn::application::rewards::list_course_candidates::{
     CourseRewardCandidatesUseCase,
 };
 use rust_learn::application::rewards::list_platform_candidates::{
-    PlatformRewardCandidatesError, PlatformRewardCandidatesQuery, PlatformRewardCandidatesResponse,
+    PlatformRewardCandidatesError, PlatformRewardCandidatesOutput, PlatformRewardCandidatesQuery,
     PlatformRewardCandidatesUseCase,
 };
 use rust_learn::application::rewards::list_reward_history::{
@@ -135,8 +135,7 @@ impl PlatformRewardCandidatesUseCase for RouteOnlyPlatformRewardCandidatesUseCas
         &self,
         _actor_user_id: i32,
         _query: PlatformRewardCandidatesQuery,
-    ) -> BoxFuture<'_, Result<PlatformRewardCandidatesResponse, PlatformRewardCandidatesError>>
-    {
+    ) -> BoxFuture<'_, Result<PlatformRewardCandidatesOutput, PlatformRewardCandidatesError>> {
         ready(Err(PlatformRewardCandidatesError::Database(
             "route-only use case".to_string(),
         )))

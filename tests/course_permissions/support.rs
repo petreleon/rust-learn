@@ -4,15 +4,15 @@ pub(crate) use rust_learn::application::learning::assign_course_role::{
     assign_course_role as run_course_role_assignment, CourseRoleAssignmentCommand,
     CourseRoleAssignmentError, CourseRoleAssignmentOutput,
 };
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
-pub(crate) use rust_learn::db::establish_connection;
-pub(crate) use rust_learn::db::schema::courses;
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::permission_queries::has_course_permission;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
+pub(crate) use rust_learn::infra::postgres::establish_connection;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 pub(crate) use rust_learn::infra::postgres::learning::course_role_assignment_store::PostgresCourseRoleAssignmentStore;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::schema::courses;
 
 pub(crate) fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -80,7 +80,7 @@ pub(crate) async fn assign_course_role_via_use_case(
 pub(crate) async fn create_user_helper(
     conn: &mut AsyncPgConnection,
     name_suffix: &str,
-) -> rust_learn::models::user::User {
+) -> rust_learn::infra::postgres::models::user::User {
     let suffix = unique_string(name_suffix);
     let email = format!("user_{}@example.com", suffix);
     rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user(

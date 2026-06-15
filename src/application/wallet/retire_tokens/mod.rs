@@ -16,7 +16,7 @@ pub use draft::WalletRetirementDraft;
 pub use error::WalletRetirementError;
 pub use gas_payer::WalletRetirementGasPayer;
 pub use handler::retire_tokens;
-pub use input::WalletRetirementRequest;
+pub use input::WalletRetirementCommand;
 pub use output::WalletRetirementView;
 pub use service::WalletRetirementUseCase;
 pub use store::WalletRetirementStore;

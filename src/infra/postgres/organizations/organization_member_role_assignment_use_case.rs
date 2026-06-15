@@ -6,8 +6,8 @@ use crate::application::organizations::assign_organization_member_role::{
     self, OrganizationMemberRoleAssignmentCommand, OrganizationMemberRoleAssignmentError,
     OrganizationMemberRoleAssignmentOutput, OrganizationMemberRoleAssignmentUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::organizations::organization_member_role_assignment_store::PostgresOrganizationMemberRoleAssignmentStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresOrganizationMemberRoleAssignmentUseCase {

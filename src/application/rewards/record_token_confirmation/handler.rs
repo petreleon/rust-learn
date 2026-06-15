@@ -3,6 +3,7 @@ use crate::application::rewards::record_token_confirmation::{
     RewardTokenConfirmation, RewardTokenConfirmationCommand, RewardTokenConfirmationError,
     RewardTokenConfirmationOutput, RewardTokenConfirmationStore,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn record_reward_token_confirmation(
     store: &mut impl RewardTokenConfirmationStore,
@@ -50,7 +51,7 @@ async fn ensure_can_execute_reward_payout(
         Ok(())
     } else {
         Err(RewardTokenConfirmationError::PermissionDenied(
-            "EXECUTE_REWARD_PAYOUT".to_string(),
+            Permissions::EXECUTE_REWARD_PAYOUT.into(),
         ))
     }
 }

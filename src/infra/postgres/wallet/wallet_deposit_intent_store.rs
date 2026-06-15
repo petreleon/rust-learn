@@ -8,8 +8,8 @@ use crate::application::wallet::create_deposit_intent::{
     WalletDepositGasPayer, WalletDepositIntentDraft, WalletDepositIntentError,
     WalletDepositIntentStore, WalletDepositIntentView,
 };
-use crate::db::schema::users;
 use crate::infra::postgres::operations::persistent_state::get_persistent_state;
+use crate::infra::postgres::schema::users;
 use crate::infra::postgres::wallet::wallet_deposit_intent_records::insert_deposit_intent;
 
 const TOKEN_DEPOSIT_TAX_KEY: &str = "wallet.deposit_tax_tokens";

@@ -9,7 +9,6 @@ use crate::application::reporting::platform_fraud_dashboard::PlatformFraudDashbo
 use crate::application::reporting::platform_reward_dashboard::PlatformRewardDashboardUseCase;
 use crate::application::reporting::platform_summary::PlatformSummaryUseCase;
 use crate::application::reporting::platform_wallet_reconciliation::PlatformWalletReconciliationUseCase;
-use crate::db::DbPool;
 use crate::infra::postgres::reporting::organization_reward_dashboard_use_case::PostgresOrganizationRewardDashboardUseCase;
 use crate::infra::postgres::reporting::organization_summary_use_case::PostgresOrganizationSummaryUseCase;
 use crate::infra::postgres::reporting::platform_csv_export_use_case::PostgresPlatformCsvExportsUseCase;
@@ -17,6 +16,7 @@ use crate::infra::postgres::reporting::platform_fraud_dashboard_use_case::Postgr
 use crate::infra::postgres::reporting::platform_reward_dashboard_use_case::PostgresPlatformRewardDashboardUseCase;
 use crate::infra::postgres::reporting::platform_summary_use_case::PostgresPlatformSummaryUseCase;
 use crate::infra::postgres::reporting::platform_wallet_reconciliation_use_case::PostgresPlatformWalletReconciliationUseCase;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct ReportingUseCases {

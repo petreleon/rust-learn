@@ -1,4 +1,6 @@
-async fn force_assign_course_role(
+use crate::{submission_helper::SubmitRewardCandidateRequest, support::*};
+
+pub(crate) async fn force_assign_course_role(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     course_id: i32,
@@ -12,7 +14,11 @@ async fn force_assign_course_role(
         .expect("failed to assign course role");
 }
 
-async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
+pub(crate) async fn force_assign_platform_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    role_name: &str,
+) {
     let role_id = role_catalog_store::platform_role_id_by_name(conn, role_name)
         .await
         .expect("platform role not found");
@@ -21,7 +27,10 @@ async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, 
         .expect("failed to assign platform role");
 }
 
-async fn create_active_course_reward_policy(conn: &mut AsyncPgConnection, course_id: i32) {
+pub(crate) async fn create_active_course_reward_policy(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+) {
     diesel::insert_into(reward_policies::table)
         .values(NewRewardPolicy {
             scope_type: REWARD_POLICY_SCOPE_COURSE.to_string(),
@@ -42,10 +51,13 @@ async fn create_active_course_reward_policy(conn: &mut AsyncPgConnection, course
         .expect("failed to create reward policy");
 }
 
-fn reward_request(student_user_id: i32, idempotency_key: &str) -> SubmitRewardCandidateRequest {
+pub(crate) fn reward_request(
+    student_user_id: i32,
+    idempotency_key: &str,
+) -> SubmitRewardCandidateRequest {
     SubmitRewardCandidateRequest {
         student_user_id,
-        event_type: REWARD_EVENT_COURSE_COMPLETION.to_string(),
+        event_type: RewardEventType::CourseCompletion,
         idempotency_key: Some(idempotency_key.to_string()),
         evidence: Some(json!({ "completion_percentage": 100 })),
     }

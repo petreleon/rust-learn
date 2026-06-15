@@ -93,7 +93,7 @@ impl WalletAuditStore for FakeWalletAuditStore {
         ready(Ok(WalletAudit {
             wallet: WalletAuditWallet {
                 id: target.id,
-                owner_type: target.owner_type().to_string(),
+                owner_type: target.owner_type(),
                 user_id: target.user_id,
                 organization_id: target.organization_id,
                 value: target.value,

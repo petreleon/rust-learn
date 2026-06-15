@@ -1,3 +1,5 @@
+use crate::{create_custom_platform_role::*, decision_support::*, submit_support::*, support::*};
+
 #[actix_web::test]
 async fn custom_platform_permissions_drive_teacher_application_flow() {
     let mut conn = setup_conn().await;

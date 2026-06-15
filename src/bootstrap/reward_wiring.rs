@@ -11,7 +11,6 @@ use crate::application::rewards::list_reward_history::StudentRewardHistoryUseCas
 use crate::application::rewards::manage_fraud_block::RewardFraudBlockUseCase;
 use crate::application::rewards::manage_reward_policy::RewardPolicyUseCase;
 use crate::application::rewards::submit_candidate::RewardCandidateSubmissionUseCase;
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::course_reward_candidate_use_case::PostgresCourseRewardCandidatesUseCase;
 use crate::infra::postgres::rewards::platform_reward_candidate_use_case::PostgresPlatformRewardCandidatesUseCase;
 use crate::infra::postgres::rewards::reward_amount_decision_use_case::PostgresRewardAmountDecisionUseCase;
@@ -21,6 +20,7 @@ use crate::infra::postgres::rewards::reward_fraud_block_use_case::PostgresReward
 use crate::infra::postgres::rewards::reward_history_use_case::PostgresStudentRewardHistoryUseCase;
 use crate::infra::postgres::rewards::reward_policy_use_case::PostgresRewardPolicyUseCase;
 use crate::infra::postgres::rewards::teacher_reward_candidate_decision_use_case::PostgresTeacherRewardCandidateDecisionUseCase;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct RewardUseCases {

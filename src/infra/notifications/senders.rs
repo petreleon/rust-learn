@@ -1,10 +1,10 @@
 use anyhow::Result;
 
 use crate::application::notifications::notification_inbox::NOTIFICATION_LIST_LIMIT;
+use crate::infra::postgres::models::notification::{NewNotification, Notification};
 use crate::infra::postgres::notifications::notification_records::{
     insert_notification, list_user_notifications,
 };
-use crate::models::notification::{NewNotification, Notification};
 
 use super::messages::{
     content_published_notification, enrollment_notification, reward_event_notification,

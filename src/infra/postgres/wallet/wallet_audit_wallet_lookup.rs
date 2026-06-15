@@ -2,9 +2,9 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::wallet::audit_wallet::{WalletAuditError, WalletAuditTarget};
-use crate::db::schema::{organizations, users, wallets};
+use crate::infra::postgres::models::wallet::Wallet;
+use crate::infra::postgres::schema::{organizations, users, wallets};
 use crate::infra::postgres::wallet::wallet_audit_mappers::wallet_audit_target_from_model;
-use crate::models::wallet::Wallet;
 
 pub(super) async fn user_exists(
     conn: &mut AsyncPgConnection,

@@ -24,6 +24,7 @@ use rust_learn::application::organizations::remove_organization_member::{
     OrganizationMemberRemovalCommand, OrganizationMemberRemovalError,
     OrganizationMemberRemovalUseCase,
 };
+use rust_learn::domain::organizations::member_audit::OrganizationMemberAuditEventType;
 
 struct RouteOnlyOrganizationCourseListUseCase;
 struct RouteOnlyOrganizationMemberAuditUseCase;
@@ -91,7 +92,7 @@ impl OrganizationMemberAuditUseCase for RouteOnlyOrganizationMemberAuditUseCase 
             organization_id: query.organization_id,
             actor_user_id: Some(query.actor_user_id),
             target_user_id: query.target_user_id,
-            event_type: "route_smoke".to_string(),
+            event_type: OrganizationMemberAuditEventType::MemberInvited,
             role_name: None,
             reason: None,
             created_at: Utc::now(),

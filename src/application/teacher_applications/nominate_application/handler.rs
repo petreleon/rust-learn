@@ -9,6 +9,7 @@ use crate::application::teacher_applications::{
     submit_application::TeacherApplicationSubmission,
     TeacherApplicationOutput,
 };
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::teacher_applications::{
     scope::{normalize_scope, validate_requested_scope, TEACHER_APPLICATION_SCOPE_ORGANIZATION},
     status::{TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED},
@@ -17,17 +18,17 @@ pub async fn nominate_application(
     store: &mut impl TeacherApplicationNominationStore,
     command: TeacherApplicationNominationCommand,
 ) -> Result<TeacherApplicationOutput, TeacherApplicationNominationError> {
-    let permission = "NOMINATE_TEACHER_FOR_PLATFORM_REVIEW".to_string();
+    let permission = Permissions::NOMINATE_TEACHER_FOR_PLATFORM_REVIEW;
     if !store
         .can(
             AccessActor::user(command.actor_user_id),
-            AccessAction::permission(&permission),
+            AccessAction::permission(permission),
             AccessScope::organization(command.organization_id),
         )
         .await?
     {
         return Err(TeacherApplicationNominationError::PermissionDenied(
-            permission,
+            permission.into(),
         ));
     }
     let submission = build_nomination_submission(&command)?;

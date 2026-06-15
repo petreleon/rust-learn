@@ -6,6 +6,7 @@ use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessDecisionStore, AccessScope,
 };
 use crate::application::identity::list_users::ListUsersQuery;
+use crate::domain::access_control::permissions::Permissions;
 
 #[derive(Default)]
 struct FakeUserProfileStore {
@@ -40,7 +41,7 @@ impl AccessDecisionStore for FakeUserProfileStore {
         action: AccessAction,
         scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, UserProfileError>> {
-        assert_eq!(action.permission_name(), VIEW_USER);
+        assert_eq!(action.permission_name(), Permissions::VIEW_USER.to_string());
         assert!(matches!(scope, AccessScope::Platform(_)));
         self.permission_checks.push(actor.user_id);
         ready(Ok(self.can_view)).boxed()

@@ -7,12 +7,15 @@ use crate::application::organizations::list_organization_teacher_applications::{
     OrganizationTeacherApplicationAuditSummaryOutput, OrganizationTeacherApplicationListError,
     TeacherApplicationDashboardSummaryOutput,
 };
-use crate::db::schema::teacher_application_audit_events;
+use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 use crate::domain::teacher_applications::status::{
     TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
     TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
 };
-use crate::models::teacher_application::{TeacherApplication, TeacherApplicationAuditEvent};
+use crate::infra::postgres::models::teacher_application::{
+    TeacherApplication, TeacherApplicationAuditEvent,
+};
+use crate::infra::postgres::schema::teacher_application_audit_events;
 
 pub async fn load_audits(
     conn: &mut AsyncPgConnection,
@@ -39,9 +42,13 @@ pub async fn load_audits(
 
     let mut summaries = BTreeMap::<i64, OrganizationTeacherApplicationAuditSummaryOutput>::new();
     for event in audit_events {
+        let event_type =
+            TeacherApplicationAuditEventType::parse(&event.event_type).map_err(|error| {
+                OrganizationTeacherApplicationListError::Database(error.to_string())
+            })?;
         let summary = summaries.entry(event.application_id).or_default();
         summary.event_count += 1;
-        summary.latest_event_type = Some(event.event_type);
+        summary.latest_event_type = Some(event_type);
         summary.latest_event_at = Some(event.created_at);
         summary.latest_reason = event.reason;
     }

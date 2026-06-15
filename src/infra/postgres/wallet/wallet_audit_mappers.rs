@@ -1,5 +1,5 @@
 use crate::application::wallet::audit_wallet::{WalletAuditError, WalletAuditTarget};
-use crate::models::wallet::Wallet;
+use crate::infra::postgres::models::wallet::Wallet;
 
 pub fn wallet_audit_target_from_model(wallet: &Wallet) -> WalletAuditTarget {
     WalletAuditTarget {

@@ -1,4 +1,9 @@
-async fn create_failed_reward_execution_job(conn: &mut AsyncPgConnection, candidate_id: i64) {
+use crate::support::*;
+
+pub(crate) async fn create_failed_reward_execution_job(
+    conn: &mut AsyncPgConnection,
+    candidate_id: i64,
+) {
     diesel::insert_into(reward_execution_jobs::table)
         .values((
             reward_execution_jobs::reward_candidate_id.eq(candidate_id),
@@ -11,7 +16,7 @@ async fn create_failed_reward_execution_job(conn: &mut AsyncPgConnection, candid
         .expect("failed to create failed reward execution job");
 }
 
-async fn mark_reward_approval_decisions(
+pub(crate) async fn mark_reward_approval_decisions(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
     teacher_user_id: i32,
@@ -33,7 +38,7 @@ async fn mark_reward_approval_decisions(
         .expect("failed to mark reward approval decisions");
 }
 
-async fn create_reward_payout_export_records(
+pub(crate) async fn create_reward_payout_export_records(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
     amount: BigDecimal,
@@ -75,7 +80,7 @@ async fn create_reward_payout_export_records(
     (payout_record_id, external_transaction_id, transaction_hash)
 }
 
-async fn create_reward_wallet_credit_export_record(
+pub(crate) async fn create_reward_wallet_credit_export_record(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
     wallet_id: i32,

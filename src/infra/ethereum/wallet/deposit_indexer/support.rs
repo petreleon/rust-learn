@@ -1,6 +1,6 @@
 use super::poll_logging::{should_log_indexer_poll, PollFailureLogLevel, PollFailureLogState};
 use super::run_wallet_deposit_indexer_once::run_wallet_deposit_indexer_once;
-use crate::db::DbPool;
+use crate::infra::postgres::DbPool;
 use std::env;
 use std::sync::{
     atomic::{AtomicBool, Ordering},

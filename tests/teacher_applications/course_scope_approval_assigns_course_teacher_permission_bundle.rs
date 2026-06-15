@@ -1,3 +1,5 @@
+use crate::{decision_support::*, submit_support::*, support::*};
+
 #[actix_web::test]
 async fn course_scope_approval_assigns_course_teacher_permission_bundle() {
     let mut conn = setup_conn().await;

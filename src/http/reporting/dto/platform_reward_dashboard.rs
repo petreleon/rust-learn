@@ -144,8 +144,8 @@ impl From<RewardCandidateDashboardRowOutput> for RewardCandidateDashboardRowResp
             student_user_id: row.student_user_id,
             submitter_user_id: row.submitter_user_id,
             source_organization_id: row.source_organization_id,
-            event_type: row.event_type,
-            status: row.status,
+            event_type: row.event_type.as_str().to_string(),
+            status: row.status.as_str().to_string(),
             approved_amount: row.approved_amount,
             updated_at: row.updated_at,
         }
@@ -157,7 +157,7 @@ impl From<RewardExecutionFailureRowOutput> for RewardExecutionFailureRowResponse
         Self {
             reward_execution_job_id: row.reward_execution_job_id,
             reward_candidate_id: row.reward_candidate_id,
-            status: row.status,
+            status: row.status.as_str().to_string(),
             attempts: row.attempts,
             last_error: row.last_error,
             updated_at: row.updated_at,
@@ -171,8 +171,8 @@ impl From<RewardReconciliationMismatchRowOutput> for RewardReconciliationMismatc
             reward_candidate_id: row.reward_candidate_id,
             course_id: row.course_id,
             student_user_id: row.student_user_id,
-            status: row.status,
-            mismatch_type: row.mismatch_type,
+            status: row.status.as_str().to_string(),
+            mismatch_type: row.mismatch_type.as_str().to_string(),
             approved_amount: row.approved_amount,
             updated_at: row.updated_at,
         }

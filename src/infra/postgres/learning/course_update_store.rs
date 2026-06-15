@@ -8,9 +8,9 @@ use crate::application::access_control::check_permission::{
 use crate::application::learning::update_course::{
     CourseUpdateError, CourseUpdateOutput, CourseUpdatePatch, CourseUpdateStore,
 };
-use crate::db::schema::courses;
 use crate::infra::postgres::access_control::permission_checks;
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::schema::courses;
 
 pub struct PostgresCourseUpdateStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

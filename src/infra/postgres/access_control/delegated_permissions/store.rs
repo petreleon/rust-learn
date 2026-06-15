@@ -5,6 +5,7 @@ use crate::application::access_control::manage_delegated_permissions::{
     DelegatedPermissionCreate, DelegatedPermissionError, DelegatedPermissionFilter,
     DelegatedPermissionOutput, DelegatedPermissionStore,
 };
+use crate::domain::access_control::delegation::DelegatedScopeType;
 use crate::infra::postgres::access_control::delegated_permissions::{read_queries, write_queries};
 
 pub struct PostgresDelegatedPermissionStore<'conn> {
@@ -44,7 +45,7 @@ impl DelegatedPermissionStore for PostgresDelegatedPermissionStore<'_> {
         &mut self,
         grantee_user_id: i32,
         permission: String,
-        scope_type: String,
+        scope_type: DelegatedScopeType,
         organization_id: Option<i32>,
         course_id: Option<i32>,
     ) -> BoxFuture<'_, Result<Option<DelegatedPermissionOutput>, DelegatedPermissionError>> {
@@ -53,7 +54,7 @@ impl DelegatedPermissionStore for PostgresDelegatedPermissionStore<'_> {
                 self.conn,
                 grantee_user_id,
                 &permission,
-                &scope_type,
+                scope_type.as_str(),
                 organization_id,
                 course_id,
             )

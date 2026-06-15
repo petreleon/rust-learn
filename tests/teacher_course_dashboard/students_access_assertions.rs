@@ -1,4 +1,6 @@
-async fn assert_teacher_students(fixture: &TeacherDashboardFixture) {
+use crate::{link_course_to_org::*, support::*, teacher_course_dashboard_fixture::*};
+
+pub(crate) async fn assert_teacher_students(fixture: &TeacherDashboardFixture) {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
@@ -6,7 +8,8 @@ async fn assert_teacher_students(fixture: &TeacherDashboardFixture) {
             .app_data(teacher_workspace_use_case_data(&fixture.pool))
             .app_data(teacher_students_use_case_data(&fixture.pool))
             .app_data(teacher_enrollment_workspace_use_case_data(&fixture.pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )
     .await;
@@ -93,7 +96,7 @@ async fn assert_teacher_students(fixture: &TeacherDashboardFixture) {
     );
 }
 
-async fn assert_outsider_teacher_dashboard_access(fixture: &TeacherDashboardFixture) {
+pub(crate) async fn assert_outsider_teacher_dashboard_access(fixture: &TeacherDashboardFixture) {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
@@ -101,7 +104,8 @@ async fn assert_outsider_teacher_dashboard_access(fixture: &TeacherDashboardFixt
             .app_data(teacher_workspace_use_case_data(&fixture.pool))
             .app_data(teacher_students_use_case_data(&fixture.pool))
             .app_data(teacher_enrollment_workspace_use_case_data(&fixture.pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )
     .await;

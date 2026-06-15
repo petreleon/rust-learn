@@ -1,4 +1,4 @@
-use crate::db::DbPool;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct NotificationsState {

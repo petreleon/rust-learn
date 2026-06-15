@@ -29,6 +29,7 @@ mod tests {
     use crate::application::teacher_applications::get_my_application::{
         TeacherApplicationAuditEventOutput, TeacherApplicationOutput,
     };
+    use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 
     #[derive(Default)]
     struct FakeStore {
@@ -108,7 +109,7 @@ mod tests {
             actor_user_id: Some(7),
             application_id,
             created_at: Utc::now(),
-            event_type: "submitted".to_string(),
+            event_type: TeacherApplicationAuditEventType::Submitted,
             from_status: None,
             id: 20,
             reason: None,

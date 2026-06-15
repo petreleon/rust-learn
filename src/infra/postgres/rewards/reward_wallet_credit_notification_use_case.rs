@@ -4,8 +4,8 @@ use crate::application::rewards::notify_wallet_credit::{
     self, RewardWalletCreditNotificationError, RewardWalletCreditNotificationOutput,
     RewardWalletCreditNotificationUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::reward_wallet_credit_notification_store::PostgresRewardWalletCreditNotificationStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRewardWalletCreditNotificationUseCase {

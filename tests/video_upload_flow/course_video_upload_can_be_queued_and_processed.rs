@@ -1,3 +1,8 @@
+use crate::app_support::content_test_app;
+use crate::sample_video_helpers::{create_sample_video_file, put_sample_video};
+use crate::support::*;
+use crate::wait_for_running_worker::wait_for_running_worker;
+
 #[actix_web::test]
 async fn course_video_upload_can_be_queued_and_processed() {
     let _ = dotenvy::dotenv();
@@ -21,19 +26,7 @@ async fn course_video_upload_can_be_queued_and_processed() {
     drop(conn);
 
     let teacher_token = create_jwt(teacher.id()).expect("failed to generate token");
-    let app = test::init_service(
-        App::new()
-            .app_data(web::Data::new(pool.clone()))
-            .configure(|cfg| rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool))
-            .app_data(chapter_use_cases_data(&pool))
-            .app_data(content_item_use_cases_data(&pool))
-            .app_data(upload_url_use_case_data(&pool, &s3))
-            .app_data(media_url_use_case_data(&pool, &s3))
-            .app_data(content_processing_use_case_data(&pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::http::learning::course_scope()),
-    )
-    .await;
+    let app = test::init_service(content_test_app(&pool, &s3)).await;
 
     let req = test::TestRequest::post()
         .uri(&format!("/courses/{}/chapters", course.id))

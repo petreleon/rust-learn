@@ -1,12 +1,14 @@
 use crate::application::learning::course_enrollment::{
     CourseEnrollmentError, CourseEnrollmentStore,
 };
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::learning::enrollment::status::CourseJoinRequestStatus;
 
-pub(super) const REQUEST_JOIN_COURSE: &str = "REQUEST_JOIN_COURSE";
-pub(super) const JOIN_COURSE: &str = "JOIN_COURSE";
-pub(super) const APPROVE_COURSE_JOIN_REQUESTS: &str = "APPROVE_COURSE_JOIN_REQUESTS";
-pub(super) const MANAGE_COURSE_ENROLLMENTS: &str = "MANAGE_COURSE_ENROLLMENTS";
+pub(super) const REQUEST_JOIN_COURSE: Permissions = Permissions::REQUEST_JOIN_COURSE;
+pub(super) const JOIN_COURSE: Permissions = Permissions::JOIN_COURSE;
+pub(super) const APPROVE_COURSE_JOIN_REQUESTS: Permissions =
+    Permissions::APPROVE_COURSE_JOIN_REQUESTS;
+pub(super) const MANAGE_COURSE_ENROLLMENTS: Permissions = Permissions::MANAGE_COURSE_ENROLLMENTS;
 
 pub(super) async fn ensure_course_exists(
     store: &mut impl CourseEnrollmentStore,
@@ -23,19 +25,20 @@ pub(super) async fn ensure_permission_any(
     store: &mut impl CourseEnrollmentStore,
     user_id: i32,
     course_id: i32,
-    permissions: &[&str],
-    denied_permission: &str,
+    permissions: &[Permissions],
+    denied_permission: Permissions,
 ) -> Result<(), CourseEnrollmentError> {
     for permission in permissions {
+        let permission_name = permission.to_string();
         if store
-            .has_course_context_permission(user_id, course_id, permission)
+            .has_course_context_permission(user_id, course_id, &permission_name)
             .await?
         {
             return Ok(());
         }
     }
     Err(CourseEnrollmentError::PermissionDenied(
-        denied_permission.to_string(),
+        denied_permission.into(),
     ))
 }
 

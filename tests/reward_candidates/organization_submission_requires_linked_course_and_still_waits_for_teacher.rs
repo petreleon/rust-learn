@@ -1,3 +1,11 @@
+use crate::{
+    force_assign_organization_role::*, link_course_to_organization::*,
+    reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
+    teacher_decision_helper::*,
+};
+use rust_learn::domain::rewards::candidate::source::RewardCandidateSourceScope;
+use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
+
 #[actix_web::test]
 async fn organization_submission_requires_linked_course_and_still_waits_for_teacher() {
     let mut conn = setup_conn().await;
@@ -35,16 +43,22 @@ async fn organization_submission_requires_linked_course_and_still_waits_for_teac
         course.id,
         SubmitRewardCandidateRequest {
             student_user_id: student.id(),
-            event_type: REWARD_EVENT_MANUAL_COMPLETION.to_string(),
+            event_type: RewardEventType::ManualCompletion,
             idempotency_key: Some(unique_string("org_reward")),
             evidence: Some(json!({ "source": "organization dashboard" })),
         },
     )
     .await
     .expect("organization admin should submit linked course reward candidate");
-    assert_eq!(candidate.source_scope, REWARD_SOURCE_ORGANIZATION);
+    assert_eq!(
+        candidate.source_scope,
+        RewardCandidateSourceScope::Organization
+    );
     assert_eq!(candidate.source_organization_id, Some(organization.id));
-    assert_eq!(candidate.status, REWARD_STATUS_PENDING_TEACHER_APPROVAL);
+    assert_eq!(
+        candidate.status,
+        RewardCandidateStatus::PendingTeacherApproval
+    );
 
     let approved = decide_reward_candidate_by_teacher(
         &mut conn,
@@ -58,7 +72,7 @@ async fn organization_submission_requires_linked_course_and_still_waits_for_teac
     )
     .await
     .expect("teacher approval should still be required after organization submission");
-    assert_eq!(approved.status, REWARD_STATUS_TEACHER_APPROVED);
+    assert_eq!(approved.status, RewardCandidateStatus::TeacherApproved);
 }
 
 #[actix_web::test]
@@ -77,7 +91,7 @@ async fn reward_candidate_requires_completion_evidence_threshold() {
         course.id,
         SubmitRewardCandidateRequest {
             student_user_id: student.id(),
-            event_type: REWARD_EVENT_COURSE_COMPLETION.to_string(),
+            event_type: RewardEventType::CourseCompletion,
             idempotency_key: Some(unique_string("low_completion_reward")),
             evidence: Some(json!({ "completion_percentage": 80 })),
         },

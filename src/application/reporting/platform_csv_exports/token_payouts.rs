@@ -2,6 +2,7 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 
 use crate::application::reporting::platform_csv_exports::PlatformTokenPayoutExportRowOutput;
+use crate::domain::rewards::token::RewardTokenEventType;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PlatformTokenPayoutExportFact {
@@ -17,7 +18,7 @@ pub(crate) struct PlatformTokenPayoutExportFact {
     pub contract_address: Option<String>,
     pub transaction_hash: Option<String>,
     pub log_index: Option<i64>,
-    pub event_type: Option<String>,
+    pub event_type: Option<RewardTokenEventType>,
     pub from_address: Option<String>,
     pub to_address: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -39,7 +40,7 @@ pub(crate) fn platform_token_payout_export_row(
         contract_address: fact.contract_address.unwrap_or_default(),
         transaction_hash: fact.transaction_hash.unwrap_or_default(),
         log_index: fact.log_index,
-        event_type: fact.event_type.unwrap_or_default(),
+        event_type: fact.event_type,
         from_address: fact.from_address.unwrap_or_default(),
         to_address: fact.to_address.unwrap_or_default(),
         created_at: fact.created_at,
@@ -67,7 +68,7 @@ mod tests {
             contract_address: Some("0xcontract".to_string()),
             transaction_hash: Some("0xtx".to_string()),
             log_index: Some(2),
-            event_type: Some("Transfer".to_string()),
+            event_type: Some(RewardTokenEventType::Transfer),
             from_address: Some("0xfrom".to_string()),
             to_address: Some("0xto".to_string()),
             created_at: now,
@@ -78,7 +79,7 @@ mod tests {
         assert_eq!(row.amount, "25");
         assert_eq!(row.contract_address, "0xcontract");
         assert_eq!(row.transaction_hash, "0xtx");
-        assert_eq!(row.event_type, "Transfer");
+        assert_eq!(row.event_type, Some(RewardTokenEventType::Transfer));
         assert_eq!(row.from_address, "0xfrom");
         assert_eq!(row.to_address, "0xto");
     }
@@ -108,7 +109,7 @@ mod tests {
 
         assert_eq!(row.contract_address, "");
         assert_eq!(row.transaction_hash, "");
-        assert_eq!(row.event_type, "");
+        assert_eq!(row.event_type, None);
         assert_eq!(row.from_address, "");
         assert_eq!(row.to_address, "");
     }

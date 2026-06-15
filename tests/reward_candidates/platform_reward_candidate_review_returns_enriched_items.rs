@@ -1,3 +1,8 @@
+use crate::{
+    force_assign_organization_role::*, link_course_to_organization::*, submission_helper::*,
+    support::*, teacher_decision_helper::*,
+};
+
 #[actix_web::test]
 async fn platform_reward_candidate_review_returns_enriched_items() {
     let mut conn = setup_conn().await;
@@ -49,7 +54,8 @@ async fn platform_reward_candidate_review_returns_enriched_items() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(platform_reward_candidates_use_case(&pool)))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::rewards::platform_reward_candidates_resource()),
     )
     .await;
@@ -73,8 +79,7 @@ async fn platform_reward_candidate_review_returns_enriched_items() {
     assert!(candidates
         .iter()
         .any(|candidate_json| candidate_json["id"].as_i64() == Some(candidate.id)));
-    let found = review
-        ["candidates"]
+    let found = review["candidates"]
         .as_array()
         .unwrap()
         .iter()
@@ -112,10 +117,18 @@ async fn platform_reward_candidate_review_returns_enriched_items() {
 
     let denied_req = test::TestRequest::get()
         .uri("/reward-candidates/review")
-        .insert_header(("Authorization", format!("Bearer {}", token_for(student.id()))))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(student.id())),
+        ))
         .to_request();
     let denied_resp = test::call_service(&app, denied_req).await;
     assert_eq!(denied_resp.status(), StatusCode::FORBIDDEN);
-    let body = to_bytes(denied_resp.into_body()).await.unwrap();
-    assert_eq!(body.as_ref(), b"User does not have reward candidate permission");
+    let body: Value = serde_json::from_slice(&to_bytes(denied_resp.into_body()).await.unwrap())
+        .expect("permission error should be json");
+    assert_eq!(body["error"]["code"], "permission_denied");
+    assert_eq!(
+        body["error"]["message"],
+        "User does not have reward candidate permission"
+    );
 }

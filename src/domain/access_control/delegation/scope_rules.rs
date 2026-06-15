@@ -2,11 +2,10 @@ use super::permission_rules::{
     ensure_course_permission_scope, ensure_organization_permission_scope,
     ensure_platform_permission_scope,
 };
-use super::DelegationRuleError;
-
-pub const DELEGATED_SCOPE_COURSE: &str = "course";
-pub const DELEGATED_SCOPE_ORGANIZATION: &str = "organization";
-pub const DELEGATED_SCOPE_PLATFORM: &str = "platform";
+use super::{
+    DelegatedScopeType, DelegationRuleError, DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION,
+    DELEGATED_SCOPE_PLATFORM,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DelegatedScope {
@@ -71,15 +70,7 @@ pub struct DelegationScope {
 }
 
 pub fn normalize_scope_type(scope_type: &str) -> Result<String, DelegationRuleError> {
-    let normalized = scope_type.trim().to_ascii_lowercase().replace('-', "_");
-    match normalized.as_str() {
-        DELEGATED_SCOPE_PLATFORM | DELEGATED_SCOPE_ORGANIZATION | DELEGATED_SCOPE_COURSE => {
-            Ok(normalized)
-        }
-        _ => Err(DelegationRuleError::InvalidInput(
-            "unsupported delegated permission scope".to_string(),
-        )),
-    }
+    DelegatedScopeType::normalize(scope_type).map(|scope_type| scope_type.as_str().to_string())
 }
 
 pub fn normalize_filter_scope_type(

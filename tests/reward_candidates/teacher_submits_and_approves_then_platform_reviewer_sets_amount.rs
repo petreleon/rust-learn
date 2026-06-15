@@ -1,3 +1,10 @@
+use crate::{
+    amount_decision_helper::*, force_assign_organization_role::*, link_course_to_organization::*,
+    reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
+    teacher_decision_helper::*,
+};
+use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
+
 #[actix_web::test]
 async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     let mut conn = setup_conn().await;
@@ -19,7 +26,10 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     )
     .await
     .expect("course teacher should submit reward candidate");
-    assert_eq!(candidate.status, REWARD_STATUS_PENDING_TEACHER_APPROVAL);
+    assert_eq!(
+        candidate.status,
+        RewardCandidateStatus::PendingTeacherApproval
+    );
 
     let duplicate = submit_course_reward_candidate(
         &mut conn,
@@ -60,7 +70,10 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     )
     .await
     .expect("course teacher should approve reward candidate");
-    assert_eq!(teacher_approved.status, REWARD_STATUS_TEACHER_APPROVED);
+    assert_eq!(
+        teacher_approved.status,
+        RewardCandidateStatus::TeacherApproved
+    );
     assert_eq!(
         teacher_approved.teacher_approver_user_id,
         Some(teacher.id())
@@ -80,7 +93,10 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     .await
     .expect("repeated teacher approval should be idempotent");
     assert_eq!(teacher_replay.id, teacher_approved.id);
-    assert_eq!(teacher_replay.status, REWARD_STATUS_TEACHER_APPROVED);
+    assert_eq!(
+        teacher_replay.status,
+        RewardCandidateStatus::TeacherApproved
+    );
     assert_eq!(teacher_replay.approved_amount, None);
 
     let amount = BigDecimal::from_str("25.50").expect("valid decimal");
@@ -96,7 +112,10 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     )
     .await
     .expect("platform reviewer should approve amount after teacher approval");
-    assert_eq!(amount_approved.status, REWARD_STATUS_AMOUNT_APPROVED);
+    assert_eq!(
+        amount_approved.status,
+        RewardCandidateStatus::AmountApproved
+    );
     assert_eq!(amount_approved.amount_reviewer_user_id, Some(reviewer.id()));
     assert_eq!(amount_approved.approved_amount, Some(amount.clone()));
 
@@ -119,7 +138,7 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     .await
     .expect("repeated amount approval should return the existing decision");
     assert_eq!(amount_replay.id, amount_approved.id);
-    assert_eq!(amount_replay.status, REWARD_STATUS_AMOUNT_APPROVED);
+    assert_eq!(amount_replay.status, RewardCandidateStatus::AmountApproved);
     assert_eq!(amount_replay.approved_amount, Some(amount));
 
     let execution_job_count: i64 = reward_execution_jobs::table

@@ -9,8 +9,8 @@ use crate::application::teacher_applications::{
     },
     TeacherApplicationAuditEventOutput,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::teacher_applications::teacher_application_audit_store::PostgresTeacherApplicationAuditStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresTeacherApplicationAuditUseCase {

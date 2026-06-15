@@ -6,6 +6,7 @@ use crate::application::learning::teacher_course_enrollment::{
     TeacherCourseRewardEligibilitySummaryOutput, TeacherEnrollmentUserSummaryOutput,
     TeacherStudentRewardEligibilitySummaryOutput,
 };
+use crate::domain::rewards::candidate::event_type::RewardEventType;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TeacherCourseStudentsOutput {
@@ -56,7 +57,7 @@ pub struct TeacherStudentRewardProgressSummaryOutput {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TeacherStudentRewardCandidateSummaryOutput {
     pub id: i64,
-    pub event_type: String,
+    pub event_type: RewardEventType,
     pub status: String,
     pub evidence: Value,
     pub teacher_decision_reason: Option<String>,

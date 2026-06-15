@@ -6,7 +6,7 @@ use crate::application::access_control::check_permission::{
 use crate::application::learning::teacher_course_dashboard::{
     TeacherCourseDashboardError, TeacherCoursePermissionSummaryOutput,
 };
-use crate::config::constants::permissions::Permissions;
+use crate::domain::access_control::permissions::Permissions;
 use crate::infra::postgres::access_control::permission_checks;
 
 pub fn teacher_course_dashboard_permission_names() -> Vec<String> {

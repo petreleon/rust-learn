@@ -1,7 +1,7 @@
 use crate::application::rewards::decide_amount::RewardAmountDecisionError;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::rewards::candidate::transition;
-use crate::models::reward_candidate::RewardCandidate;
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 
 pub(super) fn ensure_amount_transition(
     current_status: &str,

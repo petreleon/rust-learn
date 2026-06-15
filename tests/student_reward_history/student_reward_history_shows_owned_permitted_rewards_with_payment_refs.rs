@@ -68,7 +68,8 @@ async fn student_reward_history_shows_owned_permitted_rewards_with_payment_refs(
                 rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
             })
             .app_data(web::Data::new(student_reward_history_use_case(&pool)))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::rewards::student_reward_history_resource()),
     )
     .await;
@@ -136,7 +137,7 @@ async fn student_reward_history_shows_owned_permitted_rewards_with_payment_refs(
     );
     assert_eq!(token_transaction["amount"], "12");
     assert_eq!(token_transaction["chain_id"].as_i64(), Some(31337));
-    assert_eq!(token_transaction["event_type"], "Transfer");
+    assert_eq!(token_transaction["event_type"], "transfer");
     assert_eq!(
         token_transaction["transaction_hash"].as_str(),
         Some(financials.transaction_hash.as_str())

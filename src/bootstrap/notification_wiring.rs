@@ -5,10 +5,10 @@ use actix_web::web;
 use crate::application::notifications::delivery::NotificationDeliveryUseCase;
 use crate::application::notifications::notification_inbox::NotificationInboxUseCase;
 use crate::application::notifications::preference_service::NotificationPreferencesUseCase;
-use crate::db::DbPool;
 use crate::infra::notifications::NotificationsState;
 use crate::infra::postgres::notifications::notification_inbox_use_case::PostgresNotificationInboxUseCase;
 use crate::infra::postgres::notifications::notification_preferences_use_case::PostgresNotificationPreferencesUseCase;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct NotificationUseCases {

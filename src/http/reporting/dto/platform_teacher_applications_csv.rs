@@ -12,11 +12,11 @@ pub fn platform_teacher_applications_csv(
             "{},{},{},{},{},{},{},{},{},{},{},{},{}\n",
             row.application_id,
             row.applicant_user_id,
-            csv_value(&row.requested_scope),
+            csv_value(row.requested_scope.as_str()),
             csv_optional(row.requested_organization_id),
             csv_optional(row.requested_course_id),
             csv_optional(row.organization_sponsor_id),
-            csv_value(&row.status),
+            csv_value(row.status.as_str()),
             csv_optional(row.reviewer_id),
             csv_value(&row.decision_reason),
             csv_value(&row.portfolio_links),
@@ -34,6 +34,8 @@ mod tests {
 
     use super::platform_teacher_applications_csv;
     use crate::application::reporting::platform_csv_exports::PlatformTeacherApplicationExportRowOutput;
+    use crate::domain::teacher_applications::scope::TeacherApplicationScope;
+    use crate::domain::teacher_applications::status::TeacherApplicationStatus;
 
     #[test]
     fn keeps_legacy_teacher_applications_csv_shape() {
@@ -41,11 +43,11 @@ mod tests {
         let csv = platform_teacher_applications_csv(&[PlatformTeacherApplicationExportRowOutput {
             application_id: 7,
             applicant_user_id: 42,
-            requested_scope: "platform".to_string(),
+            requested_scope: TeacherApplicationScope::Platform,
             requested_organization_id: None,
             requested_course_id: None,
             organization_sponsor_id: None,
-            status: "submitted".to_string(),
+            status: TeacherApplicationStatus::Submitted,
             reviewer_id: None,
             decision_reason: "needs, review".to_string(),
             portfolio_links: "[\"url\"]".to_string(),

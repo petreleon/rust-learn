@@ -1,8 +1,8 @@
 use actix_web::web;
 
-use crate::config::constants::permissions::Permissions;
+use crate::domain::access_control::permissions::Permissions;
 use crate::http::access_control::handlers;
-use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
+use crate::http::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 
 pub(super) fn roles_scope() -> actix_web::Scope {
     web::scope("/roles")

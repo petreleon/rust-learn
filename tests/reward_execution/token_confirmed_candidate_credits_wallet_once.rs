@@ -1,3 +1,5 @@
+use crate::{create_course::*, support::*, use_case_helpers::*};
+
 #[actix_web::test]
 async fn token_confirmed_candidate_credits_wallet_once() {
     let mut conn = setup_conn().await;
@@ -68,7 +70,7 @@ async fn token_confirmed_candidate_credits_wallet_once() {
 
     let credit_record = reward_wallet_credit_records::table
         .find(credit_record_id)
-        .first::<rust_learn::models::reward_wallet_credit_record::RewardWalletCreditRecord>(
+        .first::<rust_learn::infra::postgres::models::reward_wallet_credit_record::RewardWalletCreditRecord>(
             &mut conn,
         )
         .await

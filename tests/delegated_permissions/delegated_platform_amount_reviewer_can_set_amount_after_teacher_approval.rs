@@ -1,3 +1,10 @@
+use crate::{
+    delegation_helper::*, force_assign_course_role::*,
+    reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
+    teacher_decision_helper::*,
+};
+use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
+
 #[actix_web::test]
 async fn delegated_platform_amount_reviewer_can_set_amount_after_teacher_approval() {
     let mut conn = setup_conn().await;
@@ -31,7 +38,7 @@ async fn delegated_platform_amount_reviewer_can_set_amount_after_teacher_approva
     )
     .await
     .expect("teacher should approve candidate");
-    assert_eq!(approved.status, REWARD_STATUS_TEACHER_APPROVED);
+    assert_eq!(approved.status, RewardCandidateStatus::TeacherApproved);
 
     let denied = decide_reward_amount(
         &mut conn,
@@ -83,5 +90,8 @@ async fn delegated_platform_amount_reviewer_can_set_amount_after_teacher_approva
     )
     .await
     .expect("delegated platform reviewer should approve amount");
-    assert_eq!(amount_approved.status, REWARD_STATUS_AMOUNT_APPROVED);
+    assert_eq!(
+        amount_approved.status,
+        RewardCandidateStatus::AmountApproved
+    );
 }

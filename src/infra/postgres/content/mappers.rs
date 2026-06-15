@@ -2,8 +2,8 @@ use crate::application::content::manage_chapter::{chapter_output, ChapterFact, C
 use crate::application::content::manage_content_item::{
     content_item_output, ContentItemFact, ContentItemOutput,
 };
-use crate::models::chapter::Chapter;
-use crate::models::content::Content;
+use crate::infra::postgres::models::chapter::Chapter;
+use crate::infra::postgres::models::content::Content;
 
 pub(super) fn chapter_output_from_record(chapter: Chapter) -> ChapterOutput {
     chapter_output(ChapterFact {

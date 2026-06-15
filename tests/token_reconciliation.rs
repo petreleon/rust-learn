@@ -1,14 +1,16 @@
 use bigdecimal::BigDecimal;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use rust_learn::db::schema::{external_transactions, transactions};
+use rust_learn::domain::rewards::token::RewardTokenEventType;
+use rust_learn::infra::postgres::schema::{external_transactions, transactions};
 use rust_learn::infra::postgres::wallet::token_reconciliation_records::{
-    record_token_event, ObservedTokenEvent, TokenEventKind,
+    record_token_event, ObservedTokenEvent,
 };
 
 fn sync_connection() -> PgConnection {
     let _ = dotenvy::dotenv();
-    let database_url = rust_learn::db::database_url_from_env().expect("DATABASE_URL must be set");
+    let database_url =
+        rust_learn::infra::postgres::database_url_from_env().expect("DATABASE_URL must be set");
     PgConnection::establish(&database_url).expect("failed to connect to database")
 }
 
@@ -27,7 +29,7 @@ fn observed_event() -> ObservedTokenEvent {
         contract_address: "0x00000000000000000000000000000000000000aa".to_string(),
         transaction_hash: unique_hash("abc"),
         log_index: 7,
-        event_type: TokenEventKind::Transfer,
+        event_type: RewardTokenEventType::Transfer,
         from_address: Some("0x00000000000000000000000000000000000000bb".to_string()),
         to_address: "0x00000000000000000000000000000000000000cc".to_string(),
         amount: BigDecimal::from(42),
@@ -53,7 +55,7 @@ fn record_token_event_inserts_external_transaction_and_is_idempotent() {
 
     let external = external_transactions::table
         .find(first.external_transaction_id)
-        .first::<rust_learn::models::transaction::ExternalTransaction>(&mut conn)
+        .first::<rust_learn::infra::postgres::models::transaction::ExternalTransaction>(&mut conn)
         .expect("external transaction should exist");
     assert_eq!(external.chain_id, Some(event.chain_id));
     assert_eq!(

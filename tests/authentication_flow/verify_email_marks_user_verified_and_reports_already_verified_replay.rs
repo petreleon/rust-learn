@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn verify_email_marks_user_verified_and_reports_already_verified_replay() {
     let _ = dotenvy::dotenv();
@@ -5,15 +7,16 @@ async fn verify_email_marks_user_verified_and_reports_already_verified_replay() 
     let app = test::init_service(auth_test_app(pool.clone())).await;
     let mut conn = setup_conn(&pool).await;
 
-    let user = rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user(
-        &mut conn,
-        "Verify Email",
-        &unique_email("auth-verify"),
-        Some(NaiveDate::from_ymd_opt(2004, 4, 4).unwrap()),
-        "ValidPass123!",
-    )
-    .await
-    .expect("failed to create user");
+    let user =
+        rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user(
+            &mut conn,
+            "Verify Email",
+            &unique_email("auth-verify"),
+            Some(NaiveDate::from_ymd_opt(2004, 4, 4).unwrap()),
+            "ValidPass123!",
+        )
+        .await
+        .expect("failed to create user");
     diesel::update(users::table.find(user.id()))
         .set(users::email_verified.eq(false))
         .execute(&mut conn)

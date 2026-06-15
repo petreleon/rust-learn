@@ -1,3 +1,6 @@
+use crate::support::*;
+use crate::wallet_user_audit_helpers::{assert_user_wallet_audit, UserWalletAuditExpectation};
+
 #[actix_web::test]
 async fn wallet_audit_view_includes_reward_transactions_and_reconciliation_status() {
     let _ = dotenvy::dotenv();

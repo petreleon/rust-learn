@@ -4,8 +4,8 @@ use crate::application::rewards::record_token_confirmation::{
     self, RewardTokenConfirmationCommand, RewardTokenConfirmationError,
     RewardTokenConfirmationOutput, RewardTokenConfirmationUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::reward_token_confirmation_store::PostgresRewardTokenConfirmationStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRewardTokenConfirmationUseCase {

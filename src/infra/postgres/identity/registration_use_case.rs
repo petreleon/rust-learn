@@ -3,12 +3,12 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::register::{
     self, RegisterCommand, RegisterError, RegisterOutcome, RegisterUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::identity::registration_delivery::{
     GeneratedRegistrationToken, MockRegistrationEmailSender,
 };
 use crate::infra::postgres::identity::registration_security::BcryptRegistrationPasswordHasher;
 use crate::infra::postgres::identity::registration_store::PostgresRegistrationStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRegisterUseCase {

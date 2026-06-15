@@ -16,7 +16,7 @@ pub use draft::WalletDepositIntentDraft;
 pub use error::WalletDepositIntentError;
 pub use gas_payer::WalletDepositGasPayer;
 pub use handler::create_deposit_intent;
-pub use input::WalletDepositIntentRequest;
+pub use input::WalletDepositIntentCommand;
 pub use output::WalletDepositIntentView;
 pub use service::WalletDepositIntentUseCase;
 pub use store::WalletDepositIntentStore;

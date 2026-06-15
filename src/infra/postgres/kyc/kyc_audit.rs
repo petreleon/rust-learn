@@ -1,10 +1,10 @@
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::kyc_audit_events;
-use crate::domain::kyc::audit::{KYC_AUDIT_EVENT_REVIEW_DECISION, KYC_AUDIT_EVENT_SUBMITTED};
+use crate::domain::kyc::audit::KycAuditEventType;
 use crate::domain::kyc::submission::NormalizedKycDecision;
-use crate::models::kyc_audit_event::{KycAuditEvent, NewKycAuditEvent};
-use crate::models::kyc_submission::KycSubmission;
+use crate::infra::postgres::models::kyc_audit_event::{KycAuditEvent, NewKycAuditEvent};
+use crate::infra::postgres::models::kyc_submission::KycSubmission;
+use crate::infra::postgres::schema::kyc_audit_events;
 
 pub(super) async fn record_submission_audit(
     conn: &mut AsyncPgConnection,
@@ -13,7 +13,7 @@ pub(super) async fn record_submission_audit(
     diesel::insert_into(kyc_audit_events::table)
         .values(NewKycAuditEvent {
             actor_user_id: Some(submission.user_id),
-            event_type: KYC_AUDIT_EVENT_SUBMITTED.to_string(),
+            event_type: KycAuditEventType::Submitted.as_str().to_string(),
             from_status: None,
             metadata: audit_metadata(submission),
             reason: None,
@@ -34,7 +34,7 @@ pub(super) async fn record_decision_audit(
     diesel::insert_into(kyc_audit_events::table)
         .values(NewKycAuditEvent {
             actor_user_id: Some(reviewer_user_id),
-            event_type: KYC_AUDIT_EVENT_REVIEW_DECISION.to_string(),
+            event_type: KycAuditEventType::ReviewDecision.as_str().to_string(),
             from_status: Some(from_status),
             metadata: audit_metadata(submission),
             reason: decision.rejection_reason,

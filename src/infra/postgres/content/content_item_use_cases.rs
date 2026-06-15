@@ -4,8 +4,8 @@ use crate::application::content::manage_content_item::{
     self, ContentItemError, ContentItemOutput, ContentItemUseCases, CreateContentItemCommand,
     CreateContentItemOutput, UpdateContentItemCommand,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::content::content_item_store::PostgresContentItemStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresContentItemUseCases {

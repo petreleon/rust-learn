@@ -2,8 +2,8 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::reward_fraud_blocks;
-use crate::models::reward_fraud_block::{NewRewardFraudBlock, RewardFraudBlock};
+use crate::infra::postgres::models::reward_fraud_block::{NewRewardFraudBlock, RewardFraudBlock};
+use crate::infra::postgres::schema::reward_fraud_blocks;
 
 #[derive(Debug, Default)]
 pub struct RewardFraudBlockFilter {

@@ -1,11 +1,11 @@
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::rewards::list_platform_candidates::{
-    self, PlatformRewardCandidatesError, PlatformRewardCandidatesQuery,
-    PlatformRewardCandidatesResponse, PlatformRewardCandidatesUseCase,
+    self, PlatformRewardCandidatesError, PlatformRewardCandidatesOutput,
+    PlatformRewardCandidatesQuery, PlatformRewardCandidatesUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::platform_reward_candidate_store::PostgresPlatformRewardCandidateStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresPlatformRewardCandidatesUseCase {
@@ -23,8 +23,7 @@ impl PlatformRewardCandidatesUseCase for PostgresPlatformRewardCandidatesUseCase
         &self,
         actor_user_id: i32,
         query: PlatformRewardCandidatesQuery,
-    ) -> BoxFuture<'_, Result<PlatformRewardCandidatesResponse, PlatformRewardCandidatesError>>
-    {
+    ) -> BoxFuture<'_, Result<PlatformRewardCandidatesOutput, PlatformRewardCandidatesError>> {
         async move {
             let mut conn = self.connection().await?;
             let mut store = PostgresPlatformRewardCandidateStore::new(&mut conn);

@@ -9,16 +9,12 @@ pub(crate) use rust_learn::application::rewards::manage_fraud_block::{
     CreateRewardFraudBlockCommand, ListRewardFraudBlocksQuery, RewardFraudBlockError,
     RewardFraudBlockUseCase,
 };
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
-pub(crate) use rust_learn::db::schema::{
-    courses, notifications, organizations, reward_fraud_blocks,
-};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::domain::access_control::delegation::{
     DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
 };
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::domain::rewards::fraud_block::{
-    REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
+    RewardFraudBlockScope, REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
     REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
 };
 pub(crate) use rust_learn::infra::postgres::access_control::delegated_permissions::use_case::PostgresDelegatedPermissionUseCase;
@@ -26,12 +22,16 @@ pub(crate) use rust_learn::infra::postgres::access_control::organization_role_re
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::notification::Notification;
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::reward_fraud_block::RewardFraudBlock;
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::notification::Notification;
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
-pub(crate) use rust_learn::models::reward_fraud_block::RewardFraudBlock;
-pub(crate) use rust_learn::models::user::User;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    courses, notifications, organizations, reward_fraud_blocks,
+};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 
 pub(crate) struct GrantDelegatedPermissionRequest {
     pub(crate) grantee_user_id: i32,

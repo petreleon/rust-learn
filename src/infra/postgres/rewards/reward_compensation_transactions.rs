@@ -2,11 +2,13 @@ use bigdecimal::BigDecimal;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::rewards::record_compensation::RewardCompensationError;
-use crate::db::schema::{internal_transactions, transactions, transactions_internal_transactions};
 use crate::domain::rewards::compensation::RewardCompensationTransactionType;
-use crate::infra::postgres::rewards::reward_compensation_mappers::map_reward_compensation_error;
-use crate::models::transaction::{
+use crate::infra::postgres::models::transaction::{
     NewInternalTransaction, NewTransaction, NewTransactionInternalTransactionLink,
+};
+use crate::infra::postgres::rewards::reward_compensation_mappers::map_reward_compensation_error;
+use crate::infra::postgres::schema::{
+    internal_transactions, transactions, transactions_internal_transactions,
 };
 
 pub(super) async fn create_internal_transaction(

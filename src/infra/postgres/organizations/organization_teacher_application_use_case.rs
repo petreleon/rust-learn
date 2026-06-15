@@ -6,8 +6,8 @@ use crate::application::organizations::list_organization_teacher_applications::{
     self, OrganizationTeacherApplicationListError, OrganizationTeacherApplicationListOutput,
     OrganizationTeacherApplicationListQuery, OrganizationTeacherApplicationListUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::organizations::organization_teacher_application_store::PostgresOrganizationTeacherApplicationStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresOrganizationTeacherApplicationUseCase {

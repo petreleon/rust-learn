@@ -4,7 +4,7 @@ use rust_learn::application::rewards::reconcile_candidate::{
 };
 use rust_learn::infra::postgres::rewards::reward_reconciliation_use_case::PostgresRewardReconciliationUseCase;
 
-async fn reconcile_reward_candidate(
+pub(crate) async fn reconcile_reward_candidate(
     _conn: &mut AsyncPgConnection,
     candidate_id: i64,
 ) -> Result<RewardReconciliationResult, RewardExecutionError> {
@@ -33,3 +33,4 @@ fn map_reward_reconciliation_error(error: RewardReconciliationError) -> RewardEx
         | RewardReconciliationError::Database(message) => RewardExecutionError::Database(message),
     }
 }
+use crate::support::*;

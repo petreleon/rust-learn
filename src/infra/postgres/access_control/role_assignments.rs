@@ -1,8 +1,8 @@
 use diesel::QueryResult;
 use diesel_async::AsyncPgConnection;
 
-use crate::config::constants::permissions::Permissions;
-use crate::config::constants::roles::Roles;
+use crate::domain::access_control::permissions::Permissions;
+use crate::domain::access_control::roles::Roles;
 use crate::infra::postgres::access_control::{
     hierarchy_records, organization_role_records, permission_assignment_records,
     platform_role_records, role_catalog_store,

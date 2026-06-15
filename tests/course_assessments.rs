@@ -6,13 +6,13 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::application::learning::list_assessment_attempts::AssessmentAttemptsUseCase;
 use rust_learn::application::learning::list_course_assessments::CourseAssessmentsUseCase;
-use rust_learn::db::schema::{assessment_attempts, assessments, courses};
-use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::learning::assessment_read_use_case::PostgresAssessmentReadUseCase;
+use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+use rust_learn::infra::postgres::models::user::User;
+use rust_learn::infra::postgres::schema::{assessment_attempts, assessments, courses};
+use rust_learn::infra::postgres::{establish_connection, DbPool};
 use rust_learn::infra::tokens::jwt::create_jwt;
-use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::user::User;
 use serde_json::Value;
 
 fn unique_string(prefix: &str) -> String {
@@ -135,7 +135,8 @@ async fn assessment_read_routes_are_published_and_user_scoped() {
             })
             .app_data(course_assessments_use_case_data(&pool))
             .app_data(assessment_attempts_use_case_data(&pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )
     .await;

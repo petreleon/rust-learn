@@ -6,9 +6,9 @@ use crate::application::access_control::manage_delegated_permissions::{
     ListDelegatedPermissionsQuery, RevokeDelegatedPermissionCommand,
 };
 use crate::domain::access_control::delegation::{
-    normalize_filter_permission, normalize_filter_scope_type, normalize_permission,
-    normalize_scope_ids, normalize_scope_type,
+    normalize_filter_permission, normalize_permission, normalize_scope_ids, DelegatedScopeType,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn grant_delegated_permission(
     store: &mut impl DelegatedPermissionStore,
@@ -16,10 +16,10 @@ pub async fn grant_delegated_permission(
 ) -> Result<DelegatedPermissionOutput, DelegatedPermissionError> {
     ensure_delegate_permission(store, command.grantor_user_id).await?;
     let permission = normalize_permission(&command.permission)?;
-    let scope_type = normalize_scope_type(&command.scope_type)?;
+    let scope_type = DelegatedScopeType::normalize(&command.scope_type)?;
     let scope = normalize_scope_ids(
         &permission,
-        &scope_type,
+        scope_type.as_str(),
         command.organization_id,
         command.course_id,
     )?;
@@ -37,7 +37,7 @@ pub async fn grant_delegated_permission(
         .find_active_delegated_permission(
             command.grantee_user_id,
             permission.clone(),
-            scope_type.clone(),
+            scope_type,
             scope.organization_id,
             scope.course_id,
         )
@@ -75,7 +75,11 @@ pub async fn list_delegated_permissions(
             offset: query.offset,
             organization_id: query.organization_id,
             permission: normalize_filter_permission(query.permission)?,
-            scope_type: normalize_filter_scope_type(query.scope_type)?,
+            scope_type: query
+                .scope_type
+                .as_deref()
+                .map(DelegatedScopeType::normalize)
+                .transpose()?,
         })
         .await
 }
@@ -98,12 +102,12 @@ async fn ensure_delegate_permission(
     store: &mut impl DelegatedPermissionStore,
     user_id: i32,
 ) -> Result<(), DelegatedPermissionError> {
-    let permission = "DELEGATE_REWARD_APPROVAL";
+    let permission = Permissions::DELEGATE_REWARD_APPROVAL;
     if store.can_delegate_reward_permissions(user_id).await? {
         Ok(())
     } else {
         Err(DelegatedPermissionError::PermissionDenied(
-            permission.to_string(),
+            permission.into(),
         ))
     }
 }

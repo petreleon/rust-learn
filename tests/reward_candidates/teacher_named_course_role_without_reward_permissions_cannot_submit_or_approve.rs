@@ -1,3 +1,9 @@
+use crate::{
+    force_assign_organization_role::*, link_course_to_organization::*,
+    reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
+    teacher_decision_helper::*,
+};
+
 #[actix_web::test]
 async fn teacher_named_course_role_without_reward_permissions_cannot_submit_or_approve() {
     let mut conn = setup_conn().await;

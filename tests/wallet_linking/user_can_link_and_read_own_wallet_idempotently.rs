@@ -1,3 +1,6 @@
+use crate::http_support::{assign_platform_permission_role, token_for, wallet_test_app};
+use crate::support::*;
+
 #[actix_web::test]
 async fn user_can_link_and_read_own_wallet_idempotently() {
     let _ = dotenvy::dotenv();
@@ -15,11 +18,13 @@ async fn user_can_link_and_read_own_wallet_idempotently() {
         .to_request();
     let blocked_resp = test::call_service(&app, blocked_req).await;
     assert_eq!(blocked_resp.status(), StatusCode::CONFLICT);
-    let blocked_body = test::read_body(blocked_resp).await;
+    let blocked_body: Value = test::read_body_json(blocked_resp).await;
+    assert_eq!(blocked_body["error"]["code"], "kyc_required");
     assert_eq!(
-        blocked_body.as_ref(),
-        b"KYC verification is required before wallet actions"
+        blocked_body["error"]["message"],
+        "KYC verification is required before wallet actions"
     );
+    assert_eq!(blocked_body["error"]["status"], 409);
 
     let mut conn = setup_conn(&pool).await;
     mark_user_kyc_verified(&mut conn, user.id()).await;

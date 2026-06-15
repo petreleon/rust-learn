@@ -1,10 +1,16 @@
+use crate::http_support::{token_for, wallet_test_app};
+use crate::platform_paid_audit_helpers::{
+    assert_platform_paid_audit, assert_wallet_balance_endpoint, assert_wallet_balance_in_db,
+};
+use crate::support::*;
+
 #[derive(Clone, Copy)]
-struct PlatformPaidDeposit {
-    wallet_id: i32,
-    deposit_transaction_id: i64,
+pub(crate) struct PlatformPaidDeposit {
+    pub(crate) wallet_id: i32,
+    pub(crate) deposit_transaction_id: i64,
 }
 
-async fn create_and_credit_platform_paid_deposit(
+pub(crate) async fn create_and_credit_platform_paid_deposit(
     pool: &DbPool,
     learner_id: i32,
 ) -> PlatformPaidDeposit {
@@ -59,7 +65,7 @@ async fn create_and_credit_platform_paid_deposit(
             contract_address: "0x00000000000000000000000000000000000000cc".to_string(),
             transaction_hash: deposit_tx_hash,
             log_index: 0,
-            event_type: "import".to_string(),
+            event_type: WalletDepositEventType::Import,
             from_address: "0x00000000000000000000000000000000000000aa".to_string(),
             to_address: "0x00000000000000000000000000000000000000bb".to_string(),
             amount: BigDecimal::from(20),
@@ -70,7 +76,7 @@ async fn create_and_credit_platform_paid_deposit(
     assert!(deposit_credit.credited);
     assert_eq!(deposit_credit.intent_id, Some(deposit_intent_id));
     assert_eq!(deposit_credit.wallet_id, Some(wallet_id));
-    assert_eq!(deposit_credit.status, "credited");
+    assert_eq!(deposit_credit.status, WalletDepositStatus::Credited);
 
     PlatformPaidDeposit {
         wallet_id,
@@ -80,7 +86,7 @@ async fn create_and_credit_platform_paid_deposit(
     }
 }
 
-async fn assert_platform_paid_retirement_and_audit(
+pub(crate) async fn assert_platform_paid_retirement_and_audit(
     pool: &DbPool,
     learner_id: i32,
     deposit: PlatformPaidDeposit,

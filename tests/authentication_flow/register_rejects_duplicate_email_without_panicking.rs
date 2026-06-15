@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn register_rejects_duplicate_email_without_panicking() {
     let _ = dotenvy::dotenv();

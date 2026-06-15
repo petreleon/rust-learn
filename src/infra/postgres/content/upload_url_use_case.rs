@@ -3,10 +3,10 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::content::request_upload_url::{
     self, ContentUploadUrlError, ContentUploadUrlUseCase, RequestUploadUrlCommand, UploadUrlOutput,
 };
-use crate::db::DbPool;
 use crate::infra::object_storage::content::upload_url_provider::S3ContentUploadUrlProvider;
 use crate::infra::object_storage::S3State;
 use crate::infra::postgres::content::upload_scope_store::PostgresContentUploadScopeStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresContentUploadUrlUseCase {

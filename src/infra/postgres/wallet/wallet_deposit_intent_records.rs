@@ -5,12 +5,12 @@ use crate::application::wallet::create_deposit_intent::{
     WalletDepositIntentDraft, WalletDepositIntentError, WalletDepositIntentView,
 };
 use crate::application::wallet::link_wallet::WalletLinkError;
-use crate::db::schema::wallet_token_deposit_intents;
-use crate::domain::wallet::deposit::WALLET_DEPOSIT_STATUS_PENDING;
-use crate::infra::postgres::wallet::wallet_link_records::link_user_wallet_record;
-use crate::models::wallet_token_deposit_intent::{
+use crate::domain::wallet::deposit::{WalletDepositStatus, WALLET_DEPOSIT_STATUS_PENDING};
+use crate::infra::postgres::models::wallet_token_deposit_intent::{
     NewWalletTokenDepositIntent, WalletTokenDepositIntent,
 };
+use crate::infra::postgres::schema::wallet_token_deposit_intents;
+use crate::infra::postgres::wallet::wallet_link_records::link_user_wallet_record;
 
 impl From<DieselError> for WalletDepositIntentError {
     fn from(error: DieselError) -> Self {
@@ -69,7 +69,7 @@ pub(super) async fn insert_deposit_intent(
         intent.metamask_required
     );
 
-    Ok(WalletDepositIntentView::from(intent))
+    wallet_deposit_intent_view_from_record(intent)
 }
 
 fn map_wallet_link_error(error: WalletLinkError) -> WalletDepositIntentError {
@@ -80,26 +80,29 @@ fn map_wallet_link_error(error: WalletLinkError) -> WalletDepositIntentError {
     }
 }
 
-impl From<WalletTokenDepositIntent> for WalletDepositIntentView {
-    fn from(intent: WalletTokenDepositIntent) -> Self {
-        Self {
-            operation: "deposit",
-            id: intent.id,
-            status: intent.status,
-            wallet_id: intent.wallet_id,
-            amount: intent.amount.to_string(),
-            tax_amount: intent.tax_amount.to_string(),
-            wallet_delta_on_confirmation: (intent.amount - intent.tax_amount).to_string(),
-            gas_payer: intent.gas_payer,
-            ethereum_address: intent.ethereum_address,
-            platform_address: intent.platform_address,
-            chain_id: intent.chain_id,
-            contract_address: intent.contract_address,
-            transaction_hash: intent.transaction_hash,
-            log_index: intent.log_index,
-            wallet_provider: intent.wallet_provider,
-            metamask_required: intent.metamask_required,
-            wallet_action: intent.wallet_action,
-        }
-    }
+fn wallet_deposit_intent_view_from_record(
+    intent: WalletTokenDepositIntent,
+) -> Result<WalletDepositIntentView, WalletDepositIntentError> {
+    let status = WalletDepositStatus::parse(&intent.status)
+        .map_err(|error| WalletDepositIntentError::DepositIntentCreate(error.to_string()))?;
+
+    Ok(WalletDepositIntentView {
+        operation: "deposit",
+        id: intent.id,
+        status,
+        wallet_id: intent.wallet_id,
+        amount: intent.amount.to_string(),
+        tax_amount: intent.tax_amount.to_string(),
+        wallet_delta_on_confirmation: (intent.amount - intent.tax_amount).to_string(),
+        gas_payer: intent.gas_payer,
+        ethereum_address: intent.ethereum_address,
+        platform_address: intent.platform_address,
+        chain_id: intent.chain_id,
+        contract_address: intent.contract_address,
+        transaction_hash: intent.transaction_hash,
+        log_index: intent.log_index,
+        wallet_provider: intent.wallet_provider,
+        metamask_required: intent.metamask_required,
+        wallet_action: intent.wallet_action,
+    })
 }

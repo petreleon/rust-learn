@@ -17,6 +17,7 @@ use crate::application::rewards::manage_fraud_block::{
 use crate::application::rewards::manage_reward_policy::{
     RewardPolicyDraft, RewardPolicyError, RewardPolicyListFilter, RewardPolicyOutput,
 };
+use crate::domain::rewards::fraud_block::{RewardFraudBlockAuditEventType, RewardFraudBlockScope};
 
 pub trait RewardPolicyStore {
     fn can_manage_reward_policies(
@@ -46,7 +47,7 @@ pub trait RewardFraudBlockStore {
     fn can_manage_fraud_block_scope<'a>(
         &'a mut self,
         actor_user_id: i32,
-        scope_type: &'a str,
+        scope_type: RewardFraudBlockScope,
     ) -> BoxFuture<'a, Result<bool, RewardFraudBlockError>>;
 
     fn can_view_fraud_blocks(
@@ -78,7 +79,7 @@ pub trait RewardFraudBlockStore {
     fn notify_fraud_block_transition<'a>(
         &'a mut self,
         block: &'a RewardFraudBlockOutput,
-        event_type: &'a str,
+        event_type: RewardFraudBlockAuditEventType,
     ) -> BoxFuture<'a, Result<(), RewardFraudBlockError>>;
 }
 
