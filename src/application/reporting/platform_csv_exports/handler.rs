@@ -43,6 +43,9 @@ mod tests {
     use super::load_platform_reward_approval_exports;
     use crate::application::reporting::platform_csv_exports::store::PlatformCsvExportStore;
     use crate::application::reporting::platform_csv_exports::*;
+    use crate::domain::rewards::candidate::event_type::RewardEventType;
+    use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
+    use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
     #[test]
     fn loads_platform_csv_export_rows_through_store_port() {
@@ -79,10 +82,10 @@ mod tests {
                 course_id: 1,
                 student_user_id: 2,
                 submitter_user_id: 3,
-                source_scope: "course".to_string(),
+                source_scope: RewardCandidateSourceScope::Course,
                 source_organization_id: None,
-                event_type: "course_completion".to_string(),
-                status: "amount_approved".to_string(),
+                event_type: RewardEventType::CourseCompletion,
+                status: RewardCandidateStatus::AmountApproved,
                 teacher_approver_user_id: Some(4),
                 teacher_decision_reason: "approved".to_string(),
                 teacher_decided_at: None,

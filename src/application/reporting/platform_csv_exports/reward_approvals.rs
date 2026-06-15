@@ -2,6 +2,9 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 
 use crate::application::reporting::platform_csv_exports::PlatformRewardApprovalExportRowOutput;
+use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct PlatformRewardApprovalExportFact {
@@ -9,10 +12,10 @@ pub(crate) struct PlatformRewardApprovalExportFact {
     pub course_id: i32,
     pub student_user_id: i32,
     pub submitter_user_id: i32,
-    pub source_scope: String,
+    pub source_scope: RewardCandidateSourceScope,
     pub source_organization_id: Option<i32>,
-    pub event_type: String,
-    pub status: String,
+    pub event_type: RewardEventType,
+    pub status: RewardCandidateStatus,
     pub teacher_approver_user_id: Option<i32>,
     pub teacher_decision_reason: Option<String>,
     pub teacher_decided_at: Option<DateTime<Utc>>,
@@ -65,10 +68,10 @@ mod tests {
             course_id: 7,
             student_user_id: 8,
             submitter_user_id: 9,
-            source_scope: "course".to_string(),
+            source_scope: RewardCandidateSourceScope::Course,
             source_organization_id: Some(10),
-            event_type: "course_completion".to_string(),
-            status: "amount_approved".to_string(),
+            event_type: RewardEventType::CourseCompletion,
+            status: RewardCandidateStatus::AmountApproved,
             teacher_approver_user_id: Some(11),
             teacher_decision_reason: Some("teacher ok".to_string()),
             teacher_decided_at: Some(now),
@@ -81,6 +84,8 @@ mod tests {
         });
 
         assert_eq!(row.reward_candidate_id, 42);
+        assert_eq!(row.source_scope, RewardCandidateSourceScope::Course);
+        assert_eq!(row.status, RewardCandidateStatus::AmountApproved);
         assert_eq!(row.teacher_decision_reason, "teacher ok");
         assert_eq!(row.approved_amount, "25");
         assert_eq!(row.amount_decision_reason, "amount ok");
@@ -96,10 +101,10 @@ mod tests {
             course_id: 2,
             student_user_id: 3,
             submitter_user_id: 4,
-            source_scope: "course".to_string(),
+            source_scope: RewardCandidateSourceScope::Course,
             source_organization_id: None,
-            event_type: "course_completion".to_string(),
-            status: "teacher_approved".to_string(),
+            event_type: RewardEventType::CourseCompletion,
+            status: RewardCandidateStatus::TeacherApproved,
             teacher_approver_user_id: None,
             teacher_decision_reason: None,
             teacher_decided_at: None,
