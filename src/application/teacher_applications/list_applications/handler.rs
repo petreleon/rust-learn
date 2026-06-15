@@ -51,7 +51,10 @@ mod tests {
     use futures::future::{BoxFuture, FutureExt};
 
     use super::*;
-    use crate::domain::access_control::permissions::Permissions;
+    use crate::domain::{
+        access_control::permissions::Permissions,
+        teacher_applications::portfolio::portfolio_links_from_urls,
+    };
 
     #[derive(Default)]
     struct FakeStore {
@@ -146,7 +149,7 @@ mod tests {
             id: 1,
             idempotency_key: None,
             organization_sponsor_id: None,
-            portfolio_links: serde_json::json!([]),
+            portfolio_links: portfolio_links_from_urls(Vec::new()),
             requested_course_id: None,
             requested_organization_id: None,
             requested_scope: "platform".to_string(),

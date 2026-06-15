@@ -1,4 +1,4 @@
-use serde_json::Value;
+use crate::domain::teacher_applications::portfolio::TeacherApplicationPortfolioLinks;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TeacherApplicationSubmission {
@@ -8,7 +8,7 @@ pub struct TeacherApplicationSubmission {
     pub requested_course_id: Option<i32>,
     pub experience_summary: String,
     pub organization_sponsor_id: Option<i32>,
-    pub portfolio_links: Value,
+    pub portfolio_links: TeacherApplicationPortfolioLinks,
     pub idempotency_key: Option<String>,
     pub status: String,
 }

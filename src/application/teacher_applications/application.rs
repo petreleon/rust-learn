@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
-use serde_json::Value;
+
+use crate::domain::teacher_applications::portfolio::TeacherApplicationPortfolioLinks;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TeacherApplicationOutput {
@@ -10,7 +11,7 @@ pub struct TeacherApplicationOutput {
     pub requested_course_id: Option<i32>,
     pub experience_summary: String,
     pub organization_sponsor_id: Option<i32>,
-    pub portfolio_links: Value,
+    pub portfolio_links: TeacherApplicationPortfolioLinks,
     pub status: String,
     pub reviewer_id: Option<i32>,
     pub decision_reason: Option<String>,

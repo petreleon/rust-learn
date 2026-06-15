@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
-use serde_json::Value;
 
-use crate::domain::kyc::audit::KycAuditEventType;
+use crate::domain::kyc::audit::{KycAuditEventType, KycAuditMetadata};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct KycSubmissionOutput {
@@ -69,7 +68,7 @@ pub struct KycAuditEventOutput {
     pub from_status: Option<String>,
     pub to_status: String,
     pub reason: Option<String>,
-    pub metadata: Value,
+    pub metadata: KycAuditMetadata,
     pub created_at: DateTime<Utc>,
 }
 
@@ -81,7 +80,7 @@ pub(crate) struct KycAuditEventFact {
     pub from_status: Option<String>,
     pub to_status: String,
     pub reason: Option<String>,
-    pub metadata: Value,
+    pub metadata: KycAuditMetadata,
     pub created_at: DateTime<Utc>,
 }
 

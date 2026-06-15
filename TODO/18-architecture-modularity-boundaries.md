@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
-Last compacted: 2026-06-15.
-Latest verified pushed base before current batch: `cc74255c`
-(`Use permission catalog for delegation rules`).
+Last compacted: 2026-06-16.
+Latest verified pushed base before current batch: `c38b13fe`
+(`Make development commands the primary workflow`).
 
 Objective: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
@@ -66,6 +66,10 @@ submodules only where a context or use case has real ownership.
 - `cc74255c`: delegated permission normalization and scope rules now use the
   canonical `Permissions` catalog; raw permission-name strings remain only at
   public/persisted boundaries and tests asserting that contract.
+- `c38b13fe`: Make targets are the primary documented development command
+  surface, Diesel development commands run through the Compose tool container,
+  `make web-dev` exists for the frontend dev loop, and active docs point at
+  `src/infra/postgres/schema.rs`.
 
 Proof for completed pushed work:
 
@@ -84,57 +88,58 @@ Proof for completed pushed work:
 
 Included problems:
 
-- Development docs still mixed Make-first guidance with raw `npm` examples and
-  stale assistant guidance.
-- `GEMINI.md` pointed at the old `src/db/schema.rs` path.
-- `make migration-generate` used the Compose Diesel command directly instead
-  of delegating through the `diesel-compose` Make entrypoint.
-- The frontend dev loop had no Make target, so docs had to show raw `npm`
-  commands.
+- Production application outputs/facts still exposed raw `serde_json::Value`
+  for KYC audit metadata, teacher-application portfolio links, and
+  teacher-student reward evidence.
+- The final JSON audit needed a firm Level 2 decision: these fields are
+  intentional opaque product payloads, not HTTP DTO leakage, but application
+  boundaries should carry domain names for them.
+- Three manual integration test files were 181 lines, violating the <=180-line
+  rule by one line each.
 
 Fixes:
 
-- Added `make web-dev` for the host frontend dev server.
-- Tightened Make target help so Diesel migration/schema work is explicitly
-  Compose-container based.
-- `make migration-generate` now delegates through `make diesel-compose`.
-- `README.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `GEMINI.md`,
-  and `diesel.toml` now state that Make is the primary development command
-  surface and Diesel development commands do not require a host Diesel CLI.
-- Assistant guidance now names the current schema path:
-  `src/infra/postgres/schema.rs`.
+- Added `TeacherApplicationPortfolioLinks` and `portfolio_links_from_urls` in
+  domain vocabulary.
+- Added `KycAuditMetadata` domain vocabulary.
+- Application outputs now use `RewardEvidence`, `KycAuditMetadata`, and
+  `TeacherApplicationPortfolioLinks` instead of raw `serde_json::Value`.
+- Public JSON shapes and PostgreSQL JSONB storage remain unchanged; HTTP and
+  infra continue owning DTO/serialization and database model details.
+- Trimmed the three oversized integration test files to 180 lines.
 
 Deferred problems:
 
-- Opaque `serde_json::Value` evidence/metadata fields remain in domain and
-  application outputs. They are not Actix DTOs, but the final audit should
-  confirm they are intentional product payloads rather than HTTP leakage.
+- No JSON-vocabulary cleanup remains from this audit; final completion still
+  requires the requirement-by-requirement TODO/18 audit against current code and
+  pushed evidence.
 
 Proof:
 
 - `cargo fmt --all --check`.
 - `./scripts/run-host-tests.sh cargo check --lib`.
-- Make dry-runs: `make -n migrate`, `make -n migrate-redo`, `make -n schema`,
-  `make -n migration-generate NAME=create_make_primary_smoke`,
-  `make -n diesel-compose DIESEL_ARGS='migration list'`, and
-  `make -n web-dev`.
-- `make help` output includes `web-dev`, `diesel-compose`, `schema`,
-  `migration-generate`, `migrate`, and `migrate-redo`.
-- `docker compose -f docker-compose.yml -f docker-compose.tools.yml config -q`.
+- Focused tests:
+  `./scripts/run-host-tests.sh cargo test --lib teacher_applications`,
+  `./scripts/run-host-tests.sh cargo test --lib kyc`,
+  `./scripts/run-host-tests.sh cargo test --lib get_teacher_course_students`,
+  `./scripts/run-host-tests.sh cargo test --test course_assessments --test
+  course_assessment_submission`, and
+  `./scripts/run-host-tests.sh cargo test --test teacher_applications
+  platform_teacher_application_review_contract_returns_context_and_filters`.
 - `./scripts/run-host-tests.sh cargo check --bin rust-learn --features
   app-bin`.
 - `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
 - `git diff --check`.
-- Scans: no active contributor docs outside this TODO point at
-  `src/db/schema.rs`; Make/help/docs expose Diesel work through Compose-backed
-  Make targets; touched non-Markdown files remain under 180 lines.
+- Scans: production application code no longer exposes raw `serde_json::Value`
+  payload fields or constructors; domain/application boundary scan found no
+  concrete dependency leaks, only the domain vocabulary variant
+  `MANAGE_S3_OBJECTS`; no HTTP infra imports; no Rust files over 180 lines
+  outside generated schema.
 
 ## Remaining Work
 
 - Audit TODO/18 requirement-by-requirement against current code and pushed
   evidence before calling Level 2 complete.
-- Decide whether opaque JSON evidence/metadata should remain a documented Level
-  2 exception or need one final typed-vocabulary cleanup.
 - Keep public API DTOs HTTP-owned and separate from application commands and
   outputs.
 - Keep use cases as the real authorization guard; middleware remains early

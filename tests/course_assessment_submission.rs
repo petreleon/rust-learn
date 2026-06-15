@@ -121,7 +121,6 @@ async fn assessment_submit_attempt_scores_persists_and_enforces_max_attempts() {
     let yes_question_id = create_question(&mut conn, assessment_id, 1, "yes", 2).await;
     let no_question_id = create_question(&mut conn, assessment_id, 2, "no", 3).await;
     drop(conn);
-
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))

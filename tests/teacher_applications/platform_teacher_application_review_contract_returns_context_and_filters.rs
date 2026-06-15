@@ -135,7 +135,6 @@ async fn platform_teacher_application_review_contract_returns_context_and_filter
             .map(|event_type| event_type.as_str()),
         Some("submitted")
     );
-
     let denied = list_platform_applications(
         &mut conn,
         outsider.id(),

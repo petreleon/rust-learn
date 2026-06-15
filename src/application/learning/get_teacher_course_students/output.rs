@@ -1,12 +1,11 @@
 use chrono::{DateTime, Utc};
-use serde_json::Value;
 
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardItemOutput;
 use crate::application::learning::teacher_course_enrollment::{
     TeacherCourseRewardEligibilitySummaryOutput, TeacherEnrollmentUserSummaryOutput,
     TeacherStudentRewardEligibilitySummaryOutput,
 };
-use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::{event_type::RewardEventType, evidence::RewardEvidence};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TeacherCourseStudentsOutput {
@@ -59,7 +58,7 @@ pub struct TeacherStudentRewardCandidateSummaryOutput {
     pub id: i64,
     pub event_type: RewardEventType,
     pub status: String,
-    pub evidence: Value,
+    pub evidence: RewardEvidence,
     pub teacher_decision_reason: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

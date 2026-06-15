@@ -3,6 +3,8 @@ use std::fmt;
 pub const KYC_AUDIT_EVENT_REVIEW_DECISION: &str = "review_decision";
 pub const KYC_AUDIT_EVENT_SUBMITTED: &str = "submitted";
 
+pub type KycAuditMetadata = serde_json::Value;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KycAuditEventType {
     Submitted,

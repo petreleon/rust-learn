@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
-use serde_json::Value;
 
 use crate::application::reporting::platform_csv_exports::PlatformTeacherApplicationExportRowOutput;
+use crate::domain::teacher_applications::portfolio::TeacherApplicationPortfolioLinks;
 use crate::domain::teacher_applications::scope::TeacherApplicationScope;
 use crate::domain::teacher_applications::status::TeacherApplicationStatus;
 
@@ -16,7 +16,7 @@ pub(crate) struct PlatformTeacherApplicationExportFact {
     pub status: TeacherApplicationStatus,
     pub reviewer_id: Option<i32>,
     pub decision_reason: Option<String>,
-    pub portfolio_links: Value,
+    pub portfolio_links: TeacherApplicationPortfolioLinks,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub decided_at: Option<DateTime<Utc>>,

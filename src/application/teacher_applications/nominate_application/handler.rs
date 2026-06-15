@@ -11,6 +11,7 @@ use crate::application::teacher_applications::{
 };
 use crate::domain::access_control::permissions::Permissions;
 use crate::domain::teacher_applications::{
+    portfolio::portfolio_links_from_urls,
     scope::{normalize_scope, validate_requested_scope, TEACHER_APPLICATION_SCOPE_ORGANIZATION},
     status::{TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED},
 };
@@ -90,7 +91,9 @@ fn build_nomination_submission(
         requested_course_id: command.requested_course_id,
         experience_summary,
         organization_sponsor_id: Some(command.organization_id),
-        portfolio_links: serde_json::json!(clean_portfolio_links(command.portfolio_links.clone())),
+        portfolio_links: portfolio_links_from_urls(clean_portfolio_links(
+            command.portfolio_links.clone(),
+        )),
         idempotency_key: normalize_idempotency_key(command.idempotency_key.clone())?,
         status: TEACHER_APPLICATION_STATUS_SUBMITTED.to_string(),
     })

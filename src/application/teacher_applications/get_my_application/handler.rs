@@ -29,7 +29,9 @@ mod tests {
     use crate::application::teacher_applications::get_my_application::{
         TeacherApplicationAuditEventOutput, TeacherApplicationOutput,
     };
-    use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
+    use crate::domain::teacher_applications::{
+        audit::TeacherApplicationAuditEventType, portfolio::portfolio_links_from_urls,
+    };
 
     #[derive(Default)]
     struct FakeStore {
@@ -94,7 +96,7 @@ mod tests {
             id,
             idempotency_key: None,
             organization_sponsor_id: None,
-            portfolio_links: serde_json::json!([]),
+            portfolio_links: portfolio_links_from_urls(Vec::new()),
             requested_course_id: None,
             requested_organization_id: None,
             requested_scope: "platform".to_string(),

@@ -124,7 +124,6 @@ async fn assessment_read_routes_are_published_and_user_scoped() {
     let older_attempt_id = create_attempt(&mut conn, published_id, learner.id(), 30).await;
     let newer_attempt_id = create_attempt(&mut conn, published_id, learner.id(), 10).await;
     create_attempt(&mut conn, published_id, other_user.id(), 5).await;
-
     drop(conn);
 
     let app = test::init_service(
