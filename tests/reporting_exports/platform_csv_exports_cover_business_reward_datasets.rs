@@ -1,3 +1,8 @@
+use crate::{
+    create_failed_reward_execution_job::*, create_platform_delegated_permission::*,
+    link_course_to_org::*, reporting_app_data::*, support::*,
+};
+
 #[actix_web::test]
 async fn platform_csv_exports_cover_business_reward_datasets() {
     let _ = dotenvy::dotenv();
@@ -36,27 +41,36 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
     let delegation_id =
         create_platform_delegated_permission(&mut conn, platform_admin.id(), submitter.id()).await;
     drop(conn);
-    use rust_learn::application::reporting::platform_csv_exports::PlatformCsvExportsUseCase;
-    use rust_learn::application::reporting::platform_wallet_reconciliation::PlatformWalletReconciliationUseCase;
-    use rust_learn::infra::postgres::reporting::platform_csv_export_use_case::PostgresPlatformCsvExportsUseCase;
-    use rust_learn::infra::postgres::reporting::platform_wallet_reconciliation_use_case::PostgresPlatformWalletReconciliationUseCase;
-    let csv_exports_use_case = web::Data::new(
-        Arc::new(PostgresPlatformCsvExportsUseCase::new(pool.clone()))
-            as Arc<dyn PlatformCsvExportsUseCase>,
-    );
-    let wallet_reconciliation_use_case = web::Data::new(Arc::new(
-        PostgresPlatformWalletReconciliationUseCase::new(pool.clone()),
-    ) as Arc<dyn PlatformWalletReconciliationUseCase>);
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
-            .configure(|cfg| rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool))
-            .app_data(csv_exports_use_case)
-            .app_data(wallet_reconciliation_use_case)
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
+            .app_data(platform_csv_exports_use_case(&pool))
+            .app_data(platform_wallet_reconciliation_use_case(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::reporting::configure_routes),
     )
     .await;
+    let moderator_request = |path: &str| {
+        test::TestRequest::get()
+            .uri(path)
+            .insert_header((
+                "Authorization",
+                format!("Bearer {}", token_for(platform_moderator.id())),
+            ))
+            .to_request()
+    };
+    let admin_request = |path: &str| {
+        test::TestRequest::get()
+            .uri(path)
+            .insert_header((
+                "Authorization",
+                format!("Bearer {}", token_for(platform_admin.id())),
+            ))
+            .to_request()
+    };
     for path in [
         "/reports/platform/teacher-applications.csv",
         "/reports/platform/reward-approvals.csv",
@@ -65,13 +79,7 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
         "/reports/platform/delegated-permissions.csv",
         "/reports/platform/wallet-reconciliation",
     ] {
-        let denied_req = test::TestRequest::get()
-            .uri(path)
-            .insert_header((
-                "Authorization",
-                format!("Bearer {}", token_for(platform_moderator.id())),
-            ))
-            .to_request();
+        let denied_req = moderator_request(path);
         let denied_status = match app.call(denied_req).await {
             Ok(resp) => resp.status(),
             Err(err) => err.error_response().status(),
@@ -79,13 +87,7 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
         assert_eq!(denied_status, StatusCode::FORBIDDEN);
     }
 
-    let teacher_applications_req = test::TestRequest::get()
-        .uri("/reports/platform/teacher-applications.csv")
-        .insert_header((
-            "Authorization",
-            format!("Bearer {}", token_for(platform_admin.id())),
-        ))
-        .to_request();
+    let teacher_applications_req = admin_request("/reports/platform/teacher-applications.csv");
     let teacher_applications_resp = test::call_service(&app, teacher_applications_req).await;
     assert_eq!(teacher_applications_resp.status(), StatusCode::OK);
     let teacher_applications_csv =
@@ -94,13 +96,7 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
     assert!(teacher_applications_csv.starts_with("application_id,applicant_user_id"));
     assert!(teacher_applications_csv.contains(&format!("{application_id},")));
 
-    let reward_approvals_req = test::TestRequest::get()
-        .uri("/reports/platform/reward-approvals.csv")
-        .insert_header((
-            "Authorization",
-            format!("Bearer {}", token_for(platform_admin.id())),
-        ))
-        .to_request();
+    let reward_approvals_req = admin_request("/reports/platform/reward-approvals.csv");
     let reward_approvals_resp = test::call_service(&app, reward_approvals_req).await;
     assert_eq!(reward_approvals_resp.status(), StatusCode::OK);
     let reward_approvals_csv =
@@ -111,13 +107,7 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
     assert!(reward_approvals_csv.contains("course reward approved"));
     assert!(reward_approvals_csv.contains("platform amount approved"));
 
-    let token_payouts_req = test::TestRequest::get()
-        .uri("/reports/platform/token-payouts.csv")
-        .insert_header((
-            "Authorization",
-            format!("Bearer {}", token_for(platform_admin.id())),
-        ))
-        .to_request();
+    let token_payouts_req = admin_request("/reports/platform/token-payouts.csv");
     let token_payouts_resp = test::call_service(&app, token_payouts_req).await;
     assert_eq!(token_payouts_resp.status(), StatusCode::OK);
     let token_payouts_csv = String::from_utf8(test::read_body(token_payouts_resp).await.to_vec())
@@ -127,13 +117,7 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
     assert!(token_payouts_csv.contains(&external_transaction_id.to_string()));
     assert!(token_payouts_csv.contains(&transaction_hash));
 
-    let wallet_credits_req = test::TestRequest::get()
-        .uri("/reports/platform/wallet-credits.csv")
-        .insert_header((
-            "Authorization",
-            format!("Bearer {}", token_for(platform_admin.id())),
-        ))
-        .to_request();
+    let wallet_credits_req = admin_request("/reports/platform/wallet-credits.csv");
     let wallet_credits_resp = test::call_service(&app, wallet_credits_req).await;
     assert_eq!(wallet_credits_resp.status(), StatusCode::OK);
     let wallet_credits_csv = String::from_utf8(test::read_body(wallet_credits_resp).await.to_vec())
@@ -142,13 +126,7 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
     assert!(wallet_credits_csv.contains(&format!("{wallet_credit_record_id},{candidate_id},")));
     assert!(wallet_credits_csv.contains(&format!(",{wallet_id},")));
 
-    let delegated_permissions_req = test::TestRequest::get()
-        .uri("/reports/platform/delegated-permissions.csv")
-        .insert_header((
-            "Authorization",
-            format!("Bearer {}", token_for(platform_admin.id())),
-        ))
-        .to_request();
+    let delegated_permissions_req = admin_request("/reports/platform/delegated-permissions.csv");
     let delegated_permissions_resp = test::call_service(&app, delegated_permissions_req).await;
     assert_eq!(delegated_permissions_resp.status(), StatusCode::OK);
     let delegated_permissions_csv =
@@ -158,23 +136,25 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
     assert!(delegated_permissions_csv.contains(&format!("{delegation_id},")));
     assert!(delegated_permissions_csv.contains("APPROVE_REWARD_AMOUNT"));
     assert!(delegated_permissions_csv.contains(",active,"));
-    let wallet_reconciliation_req = test::TestRequest::get()
-        .uri("/reports/platform/wallet-reconciliation")
-        .insert_header((
-            "Authorization",
-            format!("Bearer {}", token_for(platform_admin.id())),
-        ))
-        .to_request();
+    let wallet_reconciliation_req = admin_request("/reports/platform/wallet-reconciliation");
     let wallet_reconciliation_resp = test::call_service(&app, wallet_reconciliation_req).await;
     assert_eq!(wallet_reconciliation_resp.status(), StatusCode::OK);
     let wallet_reconciliation: Value = test::read_body_json(wallet_reconciliation_resp).await;
-    assert!(wallet_reconciliation["total_wallets"].as_i64().unwrap_or_default() >= 1);
-    assert!(wallet_reconciliation["total_reward_records"].as_i64().unwrap_or_default() >= 1);
     assert!(
-        wallet_reconciliation["wallets"]
-            .as_array()
-            .expect("wallet rows")
-            .iter()
-            .any(|wallet| wallet["wallet_id"].as_i64() == Some(i64::from(wallet_id)))
+        wallet_reconciliation["total_wallets"]
+            .as_i64()
+            .unwrap_or_default()
+            >= 1
     );
+    assert!(
+        wallet_reconciliation["total_reward_records"]
+            .as_i64()
+            .unwrap_or_default()
+            >= 1
+    );
+    assert!(wallet_reconciliation["wallets"]
+        .as_array()
+        .expect("wallet rows")
+        .iter()
+        .any(|wallet| wallet["wallet_id"].as_i64() == Some(i64::from(wallet_id))));
 }
