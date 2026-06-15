@@ -47,7 +47,7 @@ handler, Diesel query, permission rule, and domain workflow to change together.
 - [x] Give cross-cutting utilities a home based on responsibility. Some
       `utils::*` modules are infrastructure adapters, some are domain helpers,
       and some are application services.
-- [ ] Make frontend capability checks consume backend-derived session
+- [x] Make frontend capability checks consume backend-derived session
       capabilities instead of duplicating backend permission constants.
 
 ## Decisions After Self-Criticism
@@ -1968,6 +1968,34 @@ Batch 314: make organization permission gates honor backend capability contracts
       the ops/debug workflow stops deriving action readiness from local raw
       permission selections.
 
+Batch 315: finish frontend capability gates on backend-derived session facts.
+
+- [x] Added shared `sessionPermissionEnabled` and
+      `sessionScopePermissionEnabled` frontend helpers so UI action gates
+      require both effective permissions and enabled backend-declared
+      current-session capabilities.
+- [x] Added read-only session permission groups for the ops console and deleted
+      the old local permission/default tables; ops action readiness now follows
+      `/api/me` instead of a browser-side permission toggle.
+- [x] Expanded the backend current-session capability contract for organization
+      reporting and course reward status, then repointed teacher application,
+      learner, organization, and ops surfaces through backend-derived access or
+      capability facts.
+- [x] Proved behavior and boundaries with `npm run test -- session-permissions`,
+      `npm run test -- session-permissions access`, `npx tsc --noEmit`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api current_session_returns_backend_capabilities`,
+      `./scripts/run-host-tests.sh cargo test --lib current_session`,
+      `cargo fmt --all --check`, `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      frontend direct-permission scans, ring import-boundary scans,
+      `git diff --check`, and touched-file size checks.
+- [x] Self-critique: frontend capability gates now consume backend-derived
+      session facts. Delegation/member filter option lists still name
+      permissions as form/filter data, but they no longer decide whether a
+      capability is enabled; middleware/application same-service consolidation
+      remains the main open authorization boundary.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -2176,6 +2204,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Platform-admin frontend permission gates now require backend-declared
       current-session capabilities in addition to effective platform
       permissions.
+- [x] Ops, teacher-application, learner, and organization frontend gates now
+      consume backend-derived current-session access/capability facts instead
+      of local permission selector state or raw effective-permission checks.
 - [ ] Make middleware call the same access-control service as application use
       cases.
 - [ ] Keep middleware as an early rejection optimization; do not make it the

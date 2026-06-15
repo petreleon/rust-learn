@@ -11,6 +11,13 @@ export type { FetchCurrentSessionOptions } from "./session/FetchCurrentSessionOp
 export { readStoredSessionToken } from "./session/readStoredSessionToken";
 export { storeSessionToken } from "./session/storeSessionToken";
 export { clearStoredSessionToken } from "./session/clearStoredSessionToken";
+export {
+  countSessionCapabilityPermissions,
+  sessionCapabilityPermissionGroups,
+  sessionPermissionEnabled,
+  sessionScopePermissionEnabled,
+  type SessionPermissionGroup,
+} from "./session/sessionPermissionEnabled";
 export { fetchCurrentSession } from "./session/fetchCurrentSession";
 export type { NotificationPreferences } from "./session/NotificationPreferences";
 export { fetchNotificationPreferences } from "./session/fetchNotificationPreferences";

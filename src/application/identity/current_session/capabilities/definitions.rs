@@ -64,7 +64,11 @@ pub(super) const PLATFORM: &[CapabilityDefinition] = &[
 pub(super) const ORGANIZATION: &[CapabilityDefinition] = &[
     capability("courses", "Courses", &["VIEW_ORGANIZATION"]),
     capability("members", "Members", &["VIEW_ORGANIZATION"]),
-    capability("reports", "Reports", &["VIEW_ORG_REWARD_REPORTS"]),
+    capability(
+        "reports",
+        "Reports",
+        &["VIEW_REPORT", "GENERATE_REPORT", "VIEW_ORG_REWARD_REPORTS"],
+    ),
     capability(
         "member_management",
         "Member management",
@@ -103,23 +107,30 @@ pub(super) const ORGANIZATION: &[CapabilityDefinition] = &[
     ),
 ];
 
-pub(super) const COURSE: &[CapabilityDefinition] = &[capability(
-    "teaching",
-    "Teaching",
-    &[
-        "APPROVE_COURSE_CONTENT",
-        "APPROVE_COURSE_JOIN_REQUESTS",
-        "APPROVE_STUDENT_REWARD_CANDIDATE",
-        "CREATE_CONTENT",
-        "DELETE_CONTENT",
-        "MANAGE_ASSESSMENT_TEMPLATES",
-        "MANAGE_COURSE_ENROLLMENTS",
-        "MANAGE_COURSE_REWARD_RULES",
-        "MANAGE_COURSE_SETTINGS",
-        "MODIFY_CONTENT",
-        "SUBMIT_COURSE_REWARD_EVENT",
-    ],
-)];
+pub(super) const COURSE: &[CapabilityDefinition] = &[
+    capability(
+        "teaching",
+        "Teaching",
+        &[
+            "APPROVE_COURSE_CONTENT",
+            "APPROVE_COURSE_JOIN_REQUESTS",
+            "APPROVE_STUDENT_REWARD_CANDIDATE",
+            "CREATE_CONTENT",
+            "DELETE_CONTENT",
+            "MANAGE_ASSESSMENT_TEMPLATES",
+            "MANAGE_COURSE_ENROLLMENTS",
+            "MANAGE_COURSE_REWARD_RULES",
+            "MANAGE_COURSE_SETTINGS",
+            "MODIFY_CONTENT",
+            "SUBMIT_COURSE_REWARD_EVENT",
+        ],
+    ),
+    capability(
+        "reward_status",
+        "Reward status",
+        &["VIEW_COURSE_REWARD_STATUS"],
+    ),
+];
 
 const fn capability(
     key: &'static str,

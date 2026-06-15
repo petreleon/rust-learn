@@ -70,6 +70,11 @@ async fn current_session_returns_backend_capabilities() {
         .find(|item| item["id"].as_i64() == Some(organization.id as i64))
         .expect("session should include organization scope");
     assert!(capability_enabled(&session_org["capabilities"], "settings"));
+    assert!(capability_contains_permission(
+        session_org,
+        "reports",
+        "GENERATE_REPORT"
+    ));
 
     let session_course = body["courses"]
         .as_array()
@@ -78,6 +83,11 @@ async fn current_session_returns_backend_capabilities() {
         .find(|item| item["id"].as_i64() == Some(course.id as i64))
         .expect("session should include course scope");
     assert!(capability_enabled(&session_course["capabilities"], "teaching"));
+    assert!(capability_contains_permission(
+        session_course,
+        "reward_status",
+        "VIEW_COURSE_REWARD_STATUS"
+    ));
 }
 
 fn capability_enabled(value: &Value, key: &str) -> bool {
