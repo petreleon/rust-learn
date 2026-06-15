@@ -1671,6 +1671,37 @@ Batch 305: type access-control decision scopes.
       permission ports and the final middleware/application single-service
       consolidation remain separate follow-up work.
 
+Batch 306: consolidate Postgres access-decision adapters.
+
+- [x] Added a shared `PostgresAccessDecisionStore` for transactional
+      reward/wallet authorization and deleted the separate
+      `PostgresRewardAuthorizationStore` and `PostgresWalletAuthorizationStore`
+      adapter modules.
+- [x] Added `permission_checks::can(conn, actor, action, scope)` as the single
+      Postgres access-decision helper used by both the pool-backed middleware
+      `AccessDecisionService` and the connection-backed reward/wallet
+      application authorization paths.
+- [x] Repointed middleware/bootstrap app data from the legacy
+      `PermissionCheckService` name to `AccessDecisionService`; the old alias
+      remains only as a compatibility bridge.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::check_permission`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::authorize_reward`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::authorize_wallet`,
+      `./scripts/run-host-tests.sh cargo test --lib wallet::manage_token_tax`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale reward/wallet store scans, shared `permission_checks::can` scans,
+      ring import-boundary scans, `git diff --check`, and touched file-size
+      checks.
+- [x] Self-critique: this makes middleware and the moved reward/wallet
+      application authorization paths share the same Postgres decision core,
+      but it does not finish all application authorization consolidation.
+      Older learning, teacher-application, identity, KYC, and organization
+      ports still call lower-level permission helpers directly.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1851,6 +1882,8 @@ boundary checks from the matrix above to every canonical context.
       `AccessAction`, and `AccessScope` vocabulary as route middleware.
 - [x] Encode scope as types instead of loose strings where practical:
       `PlatformScope`, `OrganizationScope`, `CourseScope`, `DelegatedScope`.
+- [x] Middleware, reward authorization, and wallet authorization now share the
+      same Postgres `can(actor, action, scope)` decision helper.
 - [ ] Make middleware call the same access-control service as application use
       cases.
 - [ ] Keep middleware as an early rejection optimization; do not make it the

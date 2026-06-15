@@ -2,6 +2,9 @@ use diesel::dsl::{exists, select};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::db::schema::{
     role_permission_course, role_permission_organization, role_permission_platform,
     user_role_course, user_role_organization, user_role_platform,
@@ -10,6 +13,25 @@ use crate::infra::postgres::access_control::permission_delegations::{
     has_active_course_delegation, has_active_organization_delegation,
     has_active_platform_delegation,
 };
+
+pub(crate) async fn can(
+    conn: &mut AsyncPgConnection,
+    actor: AccessActor,
+    action: AccessAction,
+    scope: AccessScope,
+) -> QueryResult<bool> {
+    let permission = action.permission_name();
+    match scope {
+        AccessScope::Platform(_) => has_platform_permission(conn, actor.user_id, permission).await,
+        AccessScope::Course(scope) => {
+            has_course_permission(conn, actor.user_id, scope.course_id(), permission).await
+        }
+        AccessScope::Organization(scope) => {
+            has_organization_permission(conn, actor.user_id, scope.organization_id(), permission)
+                .await
+        }
+    }
+}
 
 pub(crate) async fn has_platform_permission(
     conn: &mut AsyncPgConnection,

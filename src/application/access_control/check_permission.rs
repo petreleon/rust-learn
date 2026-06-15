@@ -1,7 +1,8 @@
 use futures::future::BoxFuture;
 use std::sync::Arc;
 
-pub type PermissionCheckService = Arc<dyn PermissionCheckUseCase + Send + Sync>;
+pub type AccessDecisionService = Arc<dyn AccessDecisionUseCase + Send + Sync>;
+pub type PermissionCheckService = AccessDecisionService;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AccessActor {

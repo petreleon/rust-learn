@@ -19,32 +19,9 @@ impl AccessDecisionUseCase for DbPool {
                 .await
                 .map_err(|error| AccessDecisionError::Connection(error.to_string()))?;
 
-            let permission = action.permission_name();
-            match scope {
-                AccessScope::Platform(_) => {
-                    permission_checks::has_platform_permission(&mut conn, actor.user_id, permission)
-                        .await
-                }
-                AccessScope::Course(scope) => {
-                    permission_checks::has_course_permission(
-                        &mut conn,
-                        actor.user_id,
-                        scope.course_id(),
-                        permission,
-                    )
-                    .await
-                }
-                AccessScope::Organization(scope) => {
-                    permission_checks::has_organization_permission(
-                        &mut conn,
-                        actor.user_id,
-                        scope.organization_id(),
-                        permission,
-                    )
-                    .await
-                }
-            }
-            .map_err(|error| AccessDecisionError::Query(error.to_string()))
+            permission_checks::can(&mut conn, actor, action, scope)
+                .await
+                .map_err(|error| AccessDecisionError::Query(error.to_string()))
         }
         .boxed()
     }

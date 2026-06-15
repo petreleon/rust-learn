@@ -1,3 +1,4 @@
+pub mod access_decision_store;
 pub mod course_role_records;
 pub mod delegated_permissions;
 pub mod hierarchy_check_use_case;
@@ -11,8 +12,6 @@ pub(crate) mod permission_delegations;
 pub mod permission_queries;
 pub mod permission_recipient_records;
 pub mod platform_role_records;
-pub mod reward_authorization_store;
 pub mod role_assignments;
 pub mod role_catalog_store;
 pub mod role_catalog_use_case;
-pub mod wallet_authorization_store;

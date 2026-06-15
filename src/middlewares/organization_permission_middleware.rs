@@ -2,7 +2,7 @@ use actix_web::{dev::ServiceRequest, web, HttpMessage};
 use futures::FutureExt;
 
 use crate::application::access_control::check_permission::{
-    AccessAction, AccessActor, AccessDecisionError, AccessScope, PermissionCheckService,
+    AccessAction, AccessActor, AccessDecisionError, AccessDecisionService, AccessScope,
 };
 use crate::domain::identity::UserJWT;
 use crate::http::request_params::extract_param;
@@ -23,16 +23,16 @@ impl OrganizationPermissionMiddleware {
                 let type_param_of_organization = type_param_of_organization;
                 let name_param_of_organization = name_param_of_organization.clone();
 
-                let permission_check = match req.app_data::<web::Data<PermissionCheckService>>() {
+                let access_decision = match req.app_data::<web::Data<AccessDecisionService>>() {
                     Some(pool) => pool.get_ref().clone(),
                     None => {
                         log::error!(
-                            "event=permission_check_failed scope=organization reason=missing_permission_check_use_case permission={}",
+                            "event=permission_check_failed scope=organization reason=missing_access_decision_service permission={}",
                             permission_name
                         );
                         return Box::pin(futures::future::ready(Err(
                             actix_web::error::ErrorInternalServerError(
-                                "Failed to access permission check use case",
+                                "Failed to access permission decision service",
                             ),
                         )));
                     }
@@ -79,7 +79,7 @@ impl OrganizationPermissionMiddleware {
                 };
 
                 async move {
-                    match permission_check
+                    match access_decision
                         .can(
                             AccessActor::user(user_jwt.user_id),
                             AccessAction::permission(permission_name.clone()),

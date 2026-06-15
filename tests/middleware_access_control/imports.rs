@@ -7,7 +7,7 @@ use rust_learn::infra::tokens::jwt::create_jwt;
 
 use actix_service::Service;
 use chrono::NaiveDate;
-use rust_learn::application::access_control::check_permission::PermissionCheckService;
+use rust_learn::application::access_control::check_permission::AccessDecisionService;
 use rust_learn::application::access_control::compare_hierarchy::HierarchyCheckService;
 use rust_learn::application::access_control::list_roles::RoleCatalogUseCase;
 use rust_learn::application::identity::assign_platform_role::PlatformRoleAssignmentUseCase;
@@ -62,7 +62,7 @@ fn generate_token(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to generate token")
 }
 
-fn permission_check_use_case_data(pool: &DbPool) -> web::Data<PermissionCheckService> {
+fn permission_check_use_case_data(pool: &DbPool) -> web::Data<AccessDecisionService> {
     web::Data::new(Arc::new(pool.clone()))
 }
 

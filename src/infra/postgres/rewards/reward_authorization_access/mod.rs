@@ -7,7 +7,7 @@ use diesel_async::AsyncPgConnection;
 use crate::application::access_control::authorize_reward::{
     authorize_reward_action, RewardAuthorizationAction, RewardAuthorizationError,
 };
-use crate::infra::postgres::access_control::reward_authorization_store::PostgresRewardAuthorizationStore;
+use crate::infra::postgres::access_control::access_decision_store::PostgresAccessDecisionStore;
 
 pub(super) use course::{
     can_approve_student_reward_candidate, can_manage_course_reward_rules,
@@ -28,6 +28,6 @@ async fn authorize(
     actor_user_id: i32,
     action: RewardAuthorizationAction,
 ) -> Result<bool, RewardAuthorizationError> {
-    let mut store = PostgresRewardAuthorizationStore::new(conn);
+    let mut store = PostgresAccessDecisionStore::new(conn);
     authorize_reward_action(&mut store, actor_user_id, action).await
 }

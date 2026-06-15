@@ -2,7 +2,7 @@ use actix_web::{dev::ServiceRequest, web, HttpMessage};
 use futures::FutureExt;
 
 use crate::application::access_control::check_permission::{
-    AccessAction, AccessActor, AccessDecisionError, AccessScope, PermissionCheckService,
+    AccessAction, AccessActor, AccessDecisionError, AccessDecisionService, AccessScope,
 };
 use crate::domain::identity::UserJWT;
 use crate::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
@@ -15,16 +15,16 @@ impl PlatformPermissionMiddleware {
             move |req: &ServiceRequest| {
                 let permission_name = permission_name.clone();
 
-                let permission_check = match req.app_data::<web::Data<PermissionCheckService>>() {
+                let access_decision = match req.app_data::<web::Data<AccessDecisionService>>() {
                     Some(pool) => pool.get_ref().clone(),
                     None => {
                         log::error!(
-                            "event=permission_check_failed scope=platform reason=missing_permission_check_use_case permission={}",
+                            "event=permission_check_failed scope=platform reason=missing_access_decision_service permission={}",
                             permission_name
                         );
                         return Box::pin(futures::future::ready(Err(
                             actix_web::error::ErrorInternalServerError(
-                                "Failed to access permission check use case",
+                                "Failed to access permission decision service",
                             ),
                         )));
                     }
@@ -44,7 +44,7 @@ impl PlatformPermissionMiddleware {
                 };
 
                 async move {
-                    match permission_check
+                    match access_decision
                         .can(
                             AccessActor::user(user_jwt.user_id),
                             AccessAction::permission(permission_name.clone()),
