@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn schedule_retry_sets_queued_state_attempts_error_and_future_availability() {
     let _guard = lock_worker_upload_job_tests().await;

@@ -1,3 +1,6 @@
+use crate::assign_organization_role::*;
+use crate::support::*;
+
 #[actix_web::test]
 async fn organization_dashboard_returns_scoped_operational_summary() {
     let _ = dotenvy::dotenv();

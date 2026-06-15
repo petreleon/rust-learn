@@ -1,3 +1,6 @@
+use crate::force_assign_course_role::*;
+use crate::support::*;
+
 #[actix_web::test]
 async fn organization_admin_can_remove_course_enrollment() {
     let mut conn = setup_conn().await;

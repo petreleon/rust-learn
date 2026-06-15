@@ -999,6 +999,7 @@ completed entries.
 | 317 | `6868fe74` | Converted reward/repository reward test harnesses to explicit modules/support; refreshed stale reward API error-envelope assertions. |
 | 318 | `7415aebb` | Converted small permission/management harnesses: `model_permission_tests`, `repository_core_tests`, `repository_delegation_tests`, `platform_permissions`, `organization_management`, `course_enrollment_api`. |
 | 319 | `dc6b11ea` | Converted `course_content_management` and `student_reward_history` harnesses; kept touched files under the 180-line cap. |
+| 320 | this batch | Converted `course_join_requests`, `organization_dashboard`, and `worker_upload_jobs` harnesses to explicit modules/support; proved with focused tests, Cargo gates, boundary scans, and touched-file size checks. |
 
 ### Repeated Verification Already Used
 
@@ -1024,7 +1025,7 @@ and boundary scans.
 
 - Finish global integration-test harness cleanup: remaining test crates still
   using `include!`/`imports.rs` need explicit modules and `support.rs` files.
-  Current scan after Batch 319: 17 `tests/*/imports.rs` files and 135 test
+  Current scan after Batch 320: 14 `tests/*/imports.rs` files and 125 test
   `include!` occurrences remain.
 - Finish authorization hardening: middleware should stay an early rejection
   optimization, while application use cases remain the real business guard.

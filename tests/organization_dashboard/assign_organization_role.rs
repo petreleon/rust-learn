@@ -1,4 +1,6 @@
-async fn assign_organization_role(
+use crate::support::*;
+
+pub(crate) async fn assign_organization_role(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     organization_id: i32,
@@ -7,12 +9,17 @@ async fn assign_organization_role(
     let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
         .await
         .expect("organization role should exist");
-    organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)
-        .await
-        .expect("failed to assign organization role");
+    organization_role_records::assign_organization_role_to_user(
+        conn,
+        user_id,
+        organization_id,
+        role_id,
+    )
+    .await
+    .expect("failed to assign organization role");
 }
 
-async fn create_sponsored_teacher_application(
+pub(crate) async fn create_sponsored_teacher_application(
     conn: &mut AsyncPgConnection,
     applicant_user_id: i32,
     organization_id: i32,
@@ -34,7 +41,11 @@ async fn create_sponsored_teacher_application(
         .expect("failed to create sponsored teacher application");
 }
 
-async fn create_org_wallet(conn: &mut AsyncPgConnection, organization_id: i32, value: BigDecimal) {
+pub(crate) async fn create_org_wallet(
+    conn: &mut AsyncPgConnection,
+    organization_id: i32,
+    value: BigDecimal,
+) {
     diesel::insert_into(wallets::table)
         .values(NewWallet {
             user_id: None,
@@ -46,7 +57,7 @@ async fn create_org_wallet(conn: &mut AsyncPgConnection, organization_id: i32, v
         .expect("failed to create organization wallet");
 }
 
-async fn create_reward_candidate(
+pub(crate) async fn create_reward_candidate(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     organization_id: i32,
@@ -81,11 +92,11 @@ async fn create_reward_candidate(
     }
 }
 
-fn token_for(user_id: i32) -> String {
+pub(crate) fn token_for(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to create JWT")
 }
 
-fn alert_kind_exists(body: &Value, expected: &str) -> bool {
+pub(crate) fn alert_kind_exists(body: &Value, expected: &str) -> bool {
     body["alerts"]
         .as_array()
         .map(|alerts| {
@@ -96,7 +107,7 @@ fn alert_kind_exists(body: &Value, expected: &str) -> bool {
         .unwrap_or(false)
 }
 
-fn missing_permission_exists(body: &Value, section: &str, expected: &str) -> bool {
+pub(crate) fn missing_permission_exists(body: &Value, section: &str, expected: &str) -> bool {
     body[section]["missing_permissions"]
         .as_array()
         .map(|permissions| {

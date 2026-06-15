@@ -1,3 +1,6 @@
+use crate::assign_organization_role::*;
+use crate::support::*;
+
 #[actix_web::test]
 async fn organization_dashboard_gates_sensitive_sections_for_basic_member() {
     let _ = dotenvy::dotenv();

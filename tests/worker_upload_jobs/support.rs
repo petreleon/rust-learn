@@ -1,25 +1,25 @@
-use chrono::{Duration, Utc};
-use diesel::prelude::*;
-use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
-use rust_learn::db::schema::upload_jobs;
-use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::infra::postgres::content::upload_job_queue;
-use rust_learn::models::upload_job::{NewUploadJob, UploadJob};
-use std::sync::LazyLock;
-use tokio::sync::{Mutex, MutexGuard};
+pub(crate) use chrono::{Duration, Utc};
+pub(crate) use diesel::prelude::*;
+pub(crate) use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+pub(crate) use rust_learn::db::schema::upload_jobs;
+pub(crate) use rust_learn::db::{establish_connection, DbPool};
+pub(crate) use rust_learn::infra::postgres::content::upload_job_queue;
+pub(crate) use rust_learn::models::upload_job::{NewUploadJob, UploadJob};
+pub(crate) use std::sync::LazyLock;
+pub(crate) use tokio::sync::{Mutex, MutexGuard};
 
 static WORKER_UPLOAD_JOB_TEST_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
-async fn lock_worker_upload_job_tests() -> MutexGuard<'static, ()> {
+pub(crate) async fn lock_worker_upload_job_tests() -> MutexGuard<'static, ()> {
     WORKER_UPLOAD_JOB_TEST_LOCK.lock().await
 }
 
-fn unique_object(prefix: &str) -> String {
+pub(crate) fn unique_object(prefix: &str) -> String {
     let ts = Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("tests/worker/{}-{}-{}.mp4", prefix, std::process::id(), ts)
 }
 
-async fn setup_conn(
+pub(crate) async fn setup_conn(
     pool: &DbPool,
 ) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
     pool.get()
@@ -27,7 +27,7 @@ async fn setup_conn(
         .expect("failed to get DB connection from pool")
 }
 
-async fn insert_upload_job(conn: &mut AsyncPgConnection, object: &str) -> UploadJob {
+pub(crate) async fn insert_upload_job(conn: &mut AsyncPgConnection, object: &str) -> UploadJob {
     let new_job = NewUploadJob {
         bucket: "worker-test-bucket",
         object,
@@ -41,7 +41,7 @@ async fn insert_upload_job(conn: &mut AsyncPgConnection, object: &str) -> Upload
         .expect("upload job insert should succeed")
 }
 
-async fn fetch_upload_job(conn: &mut AsyncPgConnection, id: i64) -> UploadJob {
+pub(crate) async fn fetch_upload_job(conn: &mut AsyncPgConnection, id: i64) -> UploadJob {
     upload_jobs::table
         .find(id)
         .first(conn)
@@ -50,7 +50,7 @@ async fn fetch_upload_job(conn: &mut AsyncPgConnection, id: i64) -> UploadJob {
 }
 
 #[actix_web::test]
-async fn queue_metrics_counts_ready_delayed_processing_and_failed_jobs() {
+pub(crate) async fn queue_metrics_counts_ready_delayed_processing_and_failed_jobs() {
     let _guard = lock_worker_upload_job_tests().await;
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
