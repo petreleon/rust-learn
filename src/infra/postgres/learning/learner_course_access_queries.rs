@@ -7,7 +7,7 @@ use crate::application::access_control::check_permission::{
 use crate::application::learning::learner_course_catalog::{
     LearnerCourseAccessSummaryOutput, LearnerCourseCatalogError,
 };
-use crate::config::constants::permissions::Permissions;
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::models::course::Course;

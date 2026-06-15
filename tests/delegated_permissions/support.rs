@@ -12,10 +12,10 @@ pub(crate) use rust_learn::application::rewards::decide_amount::{
     RewardAmountDecisionCommand as RewardAmountDecisionRequest, RewardAmountDecisionError,
     RewardAmountDecisionOutput, RewardAmountDecisionUseCase,
 };
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
 pub(crate) use rust_learn::domain::access_control::delegation::{
     DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
 };
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::domain::rewards::candidate::event_type::{
     RewardEventType, REWARD_EVENT_COURSE_COMPLETION,
 };

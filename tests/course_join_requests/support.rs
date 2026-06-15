@@ -7,7 +7,7 @@ pub(crate) use rust_learn::application::learning::course_enrollment::{
     CourseEnrollmentRemovalOutput, CourseJoinRequestOutput, DecideCourseJoinCommand,
     RemoveCourseEnrollmentCommand, RequestCourseJoinCommand,
 };
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::domain::learning::enrollment::status::{
     COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
 };

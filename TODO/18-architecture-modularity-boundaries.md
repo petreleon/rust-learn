@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified pushed base before current batch: `0dcd66e5`
-(`Make development commands primary for Diesel workflow`).
+Latest verified pushed base before current batch: `f02bfd1b`
+(`Move Actix middleware under HTTP ring`).
 
 Objective: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
@@ -53,6 +53,9 @@ submodules only where a context or use case has real ownership.
   workflow; `make diesel-compose`, `make migration-generate`, `make
   fmt-compose`, and `make mock-email` added; README/agent guidance no longer
   requires host Diesel for schema generation.
+- `f02bfd1b`: Actix middleware moved from top-level `src/middlewares` to
+  `src/http/middlewares`; root exports removed; routes/tests now import through
+  `http::middlewares`.
 
 Proof for recent pushed batches:
 
@@ -70,47 +73,54 @@ Proof for recent pushed batches:
 
 Included problems:
 
-- `src/middlewares` was a top-level module even though all contents are Actix
-  HTTP middleware.
-- `src/lib.rs` and `src/main.rs` exposed `middlewares` as a non-ring root API.
-- HTTP routes and integration tests imported middleware through
-  `crate::middlewares` / `rust_learn::middlewares`.
-- README/AGENTS still documented middleware as top-level instead of HTTP-owned.
+- `src/config` was still a top-level non-ring module.
+- The only remaining config-owned data was pure role/permission vocabulary,
+  which belongs in domain access-control vocabulary.
+- `src/lib.rs` and `src/main.rs` exposed `config` as a root API.
+- HTTP routes, Postgres adapters, setup updates, and tests imported role and
+  permission names through `config::constants`.
+- `PERMISSIONS.md` missed `REVIEW_KYC_SUBMISSIONS` even though the enum and
+  migrations include it.
 
 Fixes:
 
-- Moved all middleware files to `src/http/middlewares`.
-- Exported middleware through `src/http/mod.rs`.
-- Removed root `middlewares` exports from `src/lib.rs` and `src/main.rs`.
-- Updated HTTP route imports, middleware-internal imports, and test app imports
-  to use `http::middlewares`.
-- Updated README/AGENTS repository maps to show middleware as HTTP-owned.
+- Moved `Permissions` and `Roles` to
+  `src/domain/access_control/{permissions,roles}.rs`.
+- Exported the moved vocabulary through `src/domain/access_control/mod.rs`.
+- Removed `src/config` and root `config` exports.
+- Updated HTTP, infra, setup, and test imports to use
+  `domain::access_control::{permissions,roles}`.
+- Updated README/AGENTS repository maps.
+- Added `REVIEW_KYC_SUBMISSIONS` to `PERMISSIONS.md` for platform ADMIN and
+  SUPER_ADMIN to match the seeded migration.
 
 Deferred problems:
 
-- Middleware still performs early rejection using application access-decision
-  services; deeper authorization must remain in use cases and should be audited
-  per product flow, not changed in this mechanical module move.
-- Top-level `src/config` still owns role/permission constants; moving constants
-  needs a separate policy-placement audit because seed migrations,
-  permissions docs, and middleware route wiring share those names.
+- Raw permission literals still exist across application use cases and current
+  session capability definitions. Consolidating those behind typed domain
+  vocabulary spans multiple product flows and should be a separate vocabulary
+  batch or final-audit item, not mixed into this mechanical module move.
+- The newer `domain::access_control::Permission` enum still overlaps with the
+  moved `Permissions` catalog. Unifying those types would be a broader API
+  cleanup because existing authorization use cases intentionally use the smaller
+  typed subset.
 
 Proof:
 
 - `cargo fmt --all --check`.
 - `./scripts/run-host-tests.sh cargo check --lib`.
-- `./scripts/run-host-tests.sh cargo test --lib http::middlewares`.
-- `./scripts/run-host-tests.sh cargo test --test middleware_access_control`.
-- `./scripts/run-host-tests.sh cargo test --test api_routing`.
+- `./scripts/run-host-tests.sh cargo test --test
+  permission_catalog_consistency`.
+- `./scripts/run-host-tests.sh cargo test --test platform_permissions_unit`.
 - `./scripts/run-host-tests.sh cargo check --bin rust-learn --features
   app-bin`.
 - `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
 - `git diff --check`.
-- Scans: no `src/middlewares` directory, no `crate::middlewares` /
-  `rust_learn::middlewares` / `src/middlewares` references in source/tests/docs,
-  root `pub mod middlewares` removed from `src/lib.rs` and `src/main.rs`, no
-  domain/application Actix/DB/HTTP leaks, no HTTP DB imports outside existing
-  middleware-excluded scan, and no maintained Rust file over 180 lines.
+- Scans: no `src/config` directory, no `crate::config` /
+  `rust_learn::config` / `config::constants` references in source/tests/docs,
+  root `pub mod config` removed from `src/lib.rs` and `src/main.rs`, no
+  domain/application Actix/DB/HTTP leaks, and no maintained Rust file over 180
+  lines.
 
 ## Remaining Work
 
@@ -124,4 +134,5 @@ Proof:
   rejection.
 - Do not jump to Level 3 crates/microservices or abstractions that only move
   files around.
-- Rough remaining effort: 1-2 focused batches plus the final requirement audit.
+- Rough remaining effort: 0-1 focused vocabulary batch plus the final
+  requirement audit.

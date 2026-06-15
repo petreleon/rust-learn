@@ -7,7 +7,7 @@ use crate::application::organizations::list_organization_courses::{
     OrganizationCourseListError, OrganizationCourseListOutput, OrganizationCourseListQuery,
     OrganizationCourseListStore, OrganizationCourseSummaryOutput,
 };
-use crate::config::constants::permissions::Permissions;
+use crate::domain::access_control::permissions::Permissions;
 use crate::infra::postgres::models::course::Course;
 use crate::infra::postgres::organizations::{
     organization_course_permission_queries, organization_course_summary_queries,

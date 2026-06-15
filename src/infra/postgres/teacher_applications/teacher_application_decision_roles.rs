@@ -1,7 +1,7 @@
 use diesel_async::AsyncPgConnection;
 
 use crate::application::teacher_applications::TeacherApplicationOutput;
-use crate::config::constants::roles::Roles;
+use crate::domain::access_control::roles::Roles;
 use crate::domain::teacher_applications::scope::{
     TEACHER_APPLICATION_SCOPE_COURSE, TEACHER_APPLICATION_SCOPE_ORGANIZATION,
     TEACHER_APPLICATION_SCOPE_PLATFORM,

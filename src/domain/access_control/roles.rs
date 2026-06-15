@@ -1,4 +1,4 @@
-// src/config/constants/roles.rs
+// src/domain/access_control/roles.rs
 use strum_macros::{Display, EnumString};
 
 #[derive(Display, EnumString, Debug, PartialEq)]

@@ -13,7 +13,7 @@ pub(crate) use rust_learn::application::wallet::index_deposit::{
 pub(crate) use rust_learn::application::wallet::link_wallet::{
     link_wallet, LinkedWalletView, WalletLinkSubject,
 };
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
 pub(crate) use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
 pub(crate) use rust_learn::domain::rewards::candidate::status::{

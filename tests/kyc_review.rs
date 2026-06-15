@@ -4,9 +4,9 @@ use rust_learn::application::kyc::{
     KycAuditQuery, KycAuditUseCase, KycDecisionCommand, KycError, KycReviewUseCase,
     KycSubmissionUseCase, SubmitKycCommand,
 };
-use rust_learn::config::constants::permissions::Permissions;
-use rust_learn::config::constants::roles::Roles;
 use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_PLATFORM;
+use rust_learn::domain::access_control::permissions::Permissions;
+use rust_learn::domain::access_control::roles::Roles;
 use rust_learn::domain::kyc::audit::KycAuditEventType;
 use rust_learn::domain::kyc::submission::{KYC_STATUS_REJECTED, KYC_STATUS_SUBMITTED};
 use rust_learn::infra::postgres::access_control::delegated_permissions::create_delegated_permission;

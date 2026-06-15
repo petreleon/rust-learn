@@ -3,7 +3,7 @@ pub(crate) use chrono::{NaiveDate, Utc};
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::application::rewards::record_token_confirmation::RewardTokenConfirmationCommand as RewardTokenConfirmationRequest;
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::domain::rewards::audit::{
     REWARD_AUDIT_EVENT_TOKEN_CONFIRMED, REWARD_AUDIT_EVENT_WALLET_CREDITED,
     REWARD_AUDIT_EVENT_WALLET_CREDIT_NOTIFIED,

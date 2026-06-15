@@ -1,7 +1,7 @@
 pub(crate) use chrono::NaiveDate;
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::hierarchy_records;
 pub(crate) use rust_learn::infra::postgres::access_control::organization_role_records;

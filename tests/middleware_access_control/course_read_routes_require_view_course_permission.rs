@@ -104,7 +104,7 @@ async fn organization_read_routes_require_view_organization_permission() {
                     .to(|| async { actix_web::HttpResponse::Ok().finish() })
                     .wrap(
                         rust_learn::http::middlewares::platform_permission_middleware::PlatformPermissionMiddleware::require(
-                            rust_learn::config::constants::permissions::Permissions::VIEW_ORGANIZATION.to_string(),
+                            rust_learn::domain::access_control::permissions::Permissions::VIEW_ORGANIZATION.to_string(),
                         ),
                     ),
             ))
@@ -113,7 +113,7 @@ async fn organization_read_routes_require_view_organization_permission() {
                     .to(|| async { actix_web::HttpResponse::Ok().finish() })
                     .wrap(
                         rust_learn::http::middlewares::platform_permission_middleware::PlatformPermissionMiddleware::require(
-                            rust_learn::config::constants::permissions::Permissions::VIEW_ORGANIZATION.to_string(),
+                            rust_learn::domain::access_control::permissions::Permissions::VIEW_ORGANIZATION.to_string(),
                         ),
                     ),
             )),

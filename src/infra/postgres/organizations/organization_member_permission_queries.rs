@@ -10,7 +10,7 @@ use crate::application::access_control::check_permission::{
 use crate::application::organizations::list_organization_members::{
     OrganizationMemberListError, OrganizationMemberOperatorPermissionsOutput,
 };
-use crate::config::constants::permissions::Permissions;
+use crate::domain::access_control::permissions::Permissions;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::organizations::organization_member_builders::OrganizationMemberBuilder;
 use crate::infra::postgres::schema::{

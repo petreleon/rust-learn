@@ -10,8 +10,8 @@ pub(crate) use rust_learn::application::teacher_applications::list_application_a
 pub(crate) use rust_learn::application::teacher_applications::list_applications::{
     TeacherApplicationListQuery, TeacherApplicationListUseCase,
 };
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
-pub(crate) use rust_learn::config::constants::roles::Roles;
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
+pub(crate) use rust_learn::domain::access_control::roles::Roles;
 pub(crate) use rust_learn::infra::postgres::establish_connection;
 pub(crate) use rust_learn::infra::postgres::schema::{
     courses, organizations, platform_roles, role_permission_platform,

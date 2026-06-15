@@ -4,7 +4,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::application::learning::update_course::{
     CourseUpdateCommand, CourseUpdateError, CourseUpdateUseCase,
 };
-use rust_learn::config::constants::roles::Roles;
+use rust_learn::domain::access_control::roles::Roles;
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
 use rust_learn::infra::postgres::access_control::role_catalog_store;

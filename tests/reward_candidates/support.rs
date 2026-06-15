@@ -8,7 +8,7 @@ pub(crate) use rust_learn::application::rewards::manage_fraud_block::{
     CreateRewardFraudBlockCommand, RewardFraudBlockError, RewardFraudBlockOutput,
     RewardFraudBlockUseCase,
 };
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::domain::rewards::audit::{
     REWARD_AUDIT_EVENT_AMOUNT_DECISION, REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED,
     REWARD_AUDIT_EVENT_TEACHER_DECISION,

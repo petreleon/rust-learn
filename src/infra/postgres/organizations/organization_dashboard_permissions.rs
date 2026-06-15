@@ -6,7 +6,7 @@ use crate::application::access_control::check_permission::{
 use crate::application::organizations::get_organization_dashboard::{
     OrganizationDashboardError, OrganizationDashboardOperatorPermissionsOutput,
 };
-use crate::config::constants::permissions::Permissions;
+use crate::domain::access_control::permissions::Permissions;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::organizations::organization_dashboard_mappers::map_dashboard_error;
 use crate::infra::postgres::organizations::organization_permission_checks::{

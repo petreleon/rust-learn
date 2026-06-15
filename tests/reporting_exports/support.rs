@@ -4,8 +4,8 @@ pub(crate) use bigdecimal::BigDecimal;
 pub(crate) use chrono::{Duration, NaiveDate, Utc};
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
 pub(crate) use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_PLATFORM;
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
 pub(crate) use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
 pub(crate) use rust_learn::domain::rewards::candidate::status::{

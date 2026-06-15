@@ -8,7 +8,7 @@ use crate::application::access_control::check_permission::{
 use crate::application::access_control::manage_delegated_permissions::{
     DelegatedPermissionError, DelegatedPermissionFilter, DelegatedPermissionOutput,
 };
-use crate::config::constants::permissions::Permissions;
+use crate::domain::access_control::permissions::Permissions;
 use crate::infra::postgres::access_control::delegated_permissions::mappers::{
     delegated_permission_output_from_record, map_error,
 };

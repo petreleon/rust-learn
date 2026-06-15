@@ -1,6 +1,6 @@
 use actix_web::web;
 
-use crate::config::constants::permissions::Permissions;
+use crate::domain::access_control::permissions::Permissions;
 use crate::http::middlewares::course_permission_middleware::CoursePermissionMiddleware;
 use crate::http::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 use crate::http::request_params::ParamType;

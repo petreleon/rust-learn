@@ -3,7 +3,7 @@ pub(crate) use chrono::NaiveDate;
 pub(crate) use diesel_async::AsyncPgConnection;
 pub(crate) use rust_learn::application::access_control::manage_delegated_permissions::DelegatedPermissionUseCase;
 pub(crate) use rust_learn::application::rewards::manage_fraud_block::RewardFraudBlockUseCase;
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::infra::postgres::access_control::delegated_permissions::use_case::PostgresDelegatedPermissionUseCase;
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;

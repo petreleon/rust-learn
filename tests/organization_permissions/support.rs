@@ -1,5 +1,5 @@
 pub(crate) use chrono::NaiveDate;
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::infra::postgres::access_control::permission_queries::has_organization_permission;
 pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_organization_role_with_hierarchy;
 pub(crate) use rust_learn::infra::postgres::establish_connection;

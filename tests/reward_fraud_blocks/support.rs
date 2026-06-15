@@ -9,10 +9,10 @@ pub(crate) use rust_learn::application::rewards::manage_fraud_block::{
     CreateRewardFraudBlockCommand, ListRewardFraudBlocksQuery, RewardFraudBlockError,
     RewardFraudBlockUseCase,
 };
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
 pub(crate) use rust_learn::domain::access_control::delegation::{
     DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
 };
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::domain::rewards::fraud_block::{
     RewardFraudBlockScope, REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
     REWARD_FRAUD_BLOCK_SCOPE_TEACHER,

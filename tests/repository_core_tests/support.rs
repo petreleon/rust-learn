@@ -5,7 +5,7 @@ pub(crate) use rust_learn::application::learning::assign_course_role::{
     assign_course_role as run_course_role_assignment, CourseRoleAssignmentCommand,
     CourseRoleAssignmentError, CourseRoleAssignmentOutput,
 };
-pub(crate) use rust_learn::config::constants::permissions::Permissions;
+pub(crate) use rust_learn::domain::access_control::permissions::Permissions;
 pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::hierarchy_queries::compare_organization_users;
 pub(crate) use rust_learn::infra::postgres::access_control::organization_role_records;

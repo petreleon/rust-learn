@@ -1,5 +1,5 @@
 use crate::application::identity::password_policy::validate_password_strength;
-use crate::config::constants::roles::Roles;
+use crate::domain::access_control::roles::Roles;
 use crate::infra::postgres::access_control::{platform_role_records, role_catalog_store};
 use crate::infra::postgres::identity::bootstrap_accounts::{
     create_verified_password_account, BootstrapPasswordAccount,

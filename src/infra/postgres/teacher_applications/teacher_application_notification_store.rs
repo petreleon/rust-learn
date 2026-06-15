@@ -4,7 +4,7 @@ use crate::application::teacher_applications::notify_application_event::{
     TeacherApplicationNotificationCommand, TeacherApplicationNotificationError,
     TeacherApplicationNotificationStore,
 };
-use crate::config::constants::permissions::Permissions;
+use crate::domain::access_control::permissions::Permissions;
 use crate::infra::notifications::NotificationsState;
 use crate::infra::postgres::access_control::permission_recipient_records::{
     list_organization_user_ids_with_permission, list_platform_user_ids_with_permission,

@@ -1,6 +1,6 @@
 use actix_web::web;
 
-use crate::config::constants::permissions::Permissions;
+use crate::domain::access_control::permissions::Permissions;
 use crate::http::identity::{platform_role_assignment, user_handlers, user_list};
 use crate::http::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 

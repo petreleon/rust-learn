@@ -14,13 +14,13 @@ RustLearn is an incentivized learning platform. The backend is a Rust/Actix Web 
 - `src/http/` — Actix route handlers, route scopes, extractors, and HTTP DTOs.
 - `src/application/` — use-case handlers, ports, commands, outputs, and
   orchestration for migrated contexts.
-- `src/domain/` — pure domain vocabulary, invariants, and transition helpers.
+- `src/domain/` — pure domain vocabulary, role/permission names, invariants,
+  and transition helpers.
 - `src/infra/` — concrete adapters such as PostgreSQL, object storage, and
   Ethereum integrations for migrated contexts.
 - `src/bootstrap/` — process wiring, app state, app data registration, startup,
   and top-level routes.
 - `src/http/middlewares/` — JWT, conditional access, hierarchy, and permission middleware.
-- `src/config/` — role/permission constants and configuration helpers.
 - `src/bin/worker.rs` — background upload/video processing worker.
 - `ethereum/contracts/` — Solidity contracts; generated ABI/bin artifacts live in `ethereum/artifacts/`.
 - `migrations/` — Diesel migrations. Keep `up.sql` and `down.sql` reversible when possible.

@@ -1,4 +1,4 @@
-// src/config/constants/permissions.rs
+// src/domain/access_control/permissions.rs
 use strum_macros::{Display, EnumIter, EnumString};
 
 #[derive(Display, EnumIter, EnumString, Debug, PartialEq)]

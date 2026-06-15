@@ -28,8 +28,7 @@ The target LearnToken reward flow is defined in
 │   ├── domain/             # Pure domain vocabulary and rules
 │   ├── infra/              # PostgreSQL schema/models, storage, Ethereum, adapters
 │   ├── bootstrap/          # App state, app data, route wiring, startup
-│   ├── bin/worker.rs       # Background upload/video-processing worker
-│   └── config/             # Role/permission constants and configuration helpers
+│   └── bin/worker.rs       # Background upload/video-processing worker
 ├── ethereum/               # Solidity contracts and generated ABI/bin artifacts
 ├── migrations/             # Diesel migrations
 ├── tests/                  # Integration and permission tests

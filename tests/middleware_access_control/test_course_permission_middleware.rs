@@ -38,7 +38,7 @@ async fn test_course_permission_middleware() {
                     .to(|| async { actix_web::HttpResponse::Ok().finish() })
                     .wrap(
                         rust_learn::http::middlewares::course_permission_middleware::CoursePermissionMiddleware::require(
-                            rust_learn::config::constants::permissions::Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                            rust_learn::domain::access_control::permissions::Permissions::MANAGE_COURSE_SETTINGS.to_string(),
                             rust_learn::http::request_params::ParamType::Path,
                             "id".to_string(),
                         ),

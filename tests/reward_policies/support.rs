@@ -4,7 +4,7 @@ pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::application::rewards::manage_reward_policy::{
     CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyError, RewardPolicyUseCase,
 };
-pub(crate) use rust_learn::config::constants::roles::Roles;
+pub(crate) use rust_learn::domain::access_control::roles::Roles;
 pub(crate) use rust_learn::domain::rewards::policy::{
     RewardPaymentStrategy, RewardPolicyEventType, RewardPolicyScope,
 };
