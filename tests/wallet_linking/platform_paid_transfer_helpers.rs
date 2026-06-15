@@ -65,7 +65,7 @@ pub(crate) async fn create_and_credit_platform_paid_deposit(
             contract_address: "0x00000000000000000000000000000000000000cc".to_string(),
             transaction_hash: deposit_tx_hash,
             log_index: 0,
-            event_type: "import".to_string(),
+            event_type: WalletDepositEventType::Import,
             from_address: "0x00000000000000000000000000000000000000aa".to_string(),
             to_address: "0x00000000000000000000000000000000000000bb".to_string(),
             amount: BigDecimal::from(20),

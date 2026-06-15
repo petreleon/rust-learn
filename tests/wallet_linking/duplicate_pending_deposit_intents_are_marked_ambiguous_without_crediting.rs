@@ -44,7 +44,7 @@ async fn duplicate_pending_deposit_intents_are_marked_ambiguous_without_creditin
             contract_address: "0x00000000000000000000000000000000000000cc".to_string(),
             transaction_hash: tx_hash.clone(),
             log_index: 7,
-            event_type: "import".to_string(),
+            event_type: WalletDepositEventType::Import,
             from_address: "0x00000000000000000000000000000000000000aa".to_string(),
             to_address: "0x00000000000000000000000000000000000000bb".to_string(),
             amount: BigDecimal::from(20),

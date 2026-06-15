@@ -26,6 +26,7 @@ pub(crate) use rust_learn::domain::rewards::policy::{
     RewardPaymentStrategy, REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN,
     REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
+pub(crate) use rust_learn::domain::rewards::token::RewardTokenEventType;
 pub(crate) use rust_learn::domain::rewards::wallet_credit::REWARD_TRANSACTION_TYPE_WALLET_CREDIT;
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;

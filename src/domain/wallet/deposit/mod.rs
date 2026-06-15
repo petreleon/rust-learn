@@ -12,6 +12,12 @@ pub const WALLET_GAS_PAYER_PLATFORM: &str = "platform";
 pub const WALLET_GAS_PAYER_USER: &str = "user";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WalletDepositEventType {
+    Import,
+    Transfer,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WalletDepositStatus {
     Ambiguous,
     Credited,
@@ -21,8 +27,32 @@ pub enum WalletDepositStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WalletDepositEventTypeParseError {
+    value: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletDepositStatusParseError {
     value: String,
+}
+
+impl WalletDepositEventType {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Import => WALLET_DEPOSIT_EVENT_IMPORT,
+            Self::Transfer => WALLET_DEPOSIT_EVENT_TRANSFER,
+        }
+    }
+
+    pub fn parse(value: &str) -> Result<Self, WalletDepositEventTypeParseError> {
+        match value {
+            WALLET_DEPOSIT_EVENT_IMPORT => Ok(Self::Import),
+            WALLET_DEPOSIT_EVENT_TRANSFER => Ok(Self::Transfer),
+            other => Err(WalletDepositEventTypeParseError {
+                value: other.to_string(),
+            }),
+        }
+    }
 }
 
 impl WalletDepositStatus {
@@ -50,6 +80,22 @@ impl WalletDepositStatus {
     }
 }
 
+impl fmt::Display for WalletDepositEventType {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(self.as_str())
+    }
+}
+
+impl fmt::Display for WalletDepositEventTypeParseError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            formatter,
+            "unknown wallet deposit event type '{}'",
+            self.value
+        )
+    }
+}
+
 impl fmt::Display for WalletDepositStatus {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(self.as_str())
@@ -63,10 +109,7 @@ impl fmt::Display for WalletDepositStatusParseError {
 }
 
 pub fn wallet_deposit_event_type_is_supported(value: &str) -> bool {
-    matches!(
-        value,
-        WALLET_DEPOSIT_EVENT_IMPORT | WALLET_DEPOSIT_EVENT_TRANSFER
-    )
+    WalletDepositEventType::parse(value).is_ok()
 }
 
 #[cfg(test)]
@@ -80,6 +123,24 @@ mod tests {
             WalletDepositStatus::PendingChainConfirmation.as_str(),
             WALLET_DEPOSIT_STATUS_PENDING
         );
+    }
+
+    #[test]
+    fn parses_known_event_types() {
+        assert_eq!(
+            WalletDepositEventType::parse("import").unwrap(),
+            WalletDepositEventType::Import
+        );
+        assert_eq!(
+            WalletDepositEventType::Transfer.as_str(),
+            WALLET_DEPOSIT_EVENT_TRANSFER
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_event_types() {
+        assert!(WalletDepositEventType::parse("mint").is_err());
+        assert!(!wallet_deposit_event_type_is_supported("burn"));
     }
 
     #[test]

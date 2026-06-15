@@ -2,8 +2,9 @@ use bigdecimal::BigDecimal;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use rust_learn::db::schema::{external_transactions, transactions};
+use rust_learn::domain::rewards::token::RewardTokenEventType;
 use rust_learn::infra::postgres::wallet::token_reconciliation_records::{
-    record_token_event, ObservedTokenEvent, TokenEventKind,
+    record_token_event, ObservedTokenEvent,
 };
 
 fn sync_connection() -> PgConnection {
@@ -27,7 +28,7 @@ fn observed_event() -> ObservedTokenEvent {
         contract_address: "0x00000000000000000000000000000000000000aa".to_string(),
         transaction_hash: unique_hash("abc"),
         log_index: 7,
-        event_type: TokenEventKind::Transfer,
+        event_type: RewardTokenEventType::Transfer,
         from_address: Some("0x00000000000000000000000000000000000000bb".to_string()),
         to_address: "0x00000000000000000000000000000000000000cc".to_string(),
         amount: BigDecimal::from(42),

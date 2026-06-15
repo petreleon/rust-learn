@@ -1,4 +1,5 @@
 use crate::application::wallet::index_deposit::ObservedWalletDepositEvent;
+use crate::domain::wallet::deposit::WalletDepositEventType;
 use bigdecimal::BigDecimal;
 use ethers::types::{Address, Log, U256};
 use std::str::FromStr;
@@ -6,7 +7,7 @@ use std::str::FromStr;
 pub(super) fn build_observed_event(
     log: Log,
     contract_address: Address,
-    event_type: &str,
+    event_type: WalletDepositEventType,
     from_address: Address,
     to_address: Address,
     chain_id: i64,
@@ -26,7 +27,7 @@ pub(super) fn build_observed_event(
         contract_address: format!("{:#x}", contract_address),
         transaction_hash: format!("{:#x}", transaction_hash),
         log_index,
-        event_type: event_type.to_string(),
+        event_type,
         from_address: format!("{:#x}", from_address),
         to_address: format!("{:#x}", to_address),
         amount,

@@ -31,7 +31,7 @@ async fn execute_reward_payout_permission_gates_token_confirmation_and_wallet_cr
         contract_address: "0x0000000000000000000000000000000000000101".to_string(),
         transaction_hash: unique_hash("permission"),
         log_index: 5,
-        event_type: "transfer".to_string(),
+        event_type: RewardTokenEventType::Transfer,
         from_address: Some("0x0000000000000000000000000000000000000102".to_string()),
         to_address: "0x0000000000000000000000000000000000000103".to_string(),
         amount: BigDecimal::from(19),

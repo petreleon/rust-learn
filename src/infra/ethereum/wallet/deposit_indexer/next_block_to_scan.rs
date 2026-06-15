@@ -2,7 +2,7 @@ use super::build_observed_event::build_observed_event;
 use super::ethereum_log_helpers::{address_from_topic, event_signature};
 use super::support::{WalletDepositIndexerConfig, NEXT_BLOCK_STATE_KEY};
 use crate::application::wallet::index_deposit::ObservedWalletDepositEvent;
-use crate::domain::wallet::deposit::{WALLET_DEPOSIT_EVENT_IMPORT, WALLET_DEPOSIT_EVENT_TRANSFER};
+use crate::domain::wallet::deposit::WalletDepositEventType;
 use crate::infra::postgres::operations::persistent_state::get_persistent_state;
 use ethers::providers::Middleware;
 use ethers::types::{Address, BlockNumber, Filter, Log, U64};
@@ -111,7 +111,7 @@ fn parse_transfer_log(
     Some(build_observed_event(
         log,
         contract_address,
-        WALLET_DEPOSIT_EVENT_TRANSFER,
+        WalletDepositEventType::Transfer,
         from_address,
         to_address,
         chain_id,
@@ -138,7 +138,7 @@ fn parse_imported_log(
     Some(build_observed_event(
         log,
         token_address,
-        WALLET_DEPOSIT_EVENT_IMPORT,
+        WalletDepositEventType::Import,
         user_address,
         importer_address,
         chain_id,

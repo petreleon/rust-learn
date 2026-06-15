@@ -23,7 +23,7 @@ async fn token_confirmation_records_external_transaction_and_candidate_link() {
         contract_address: "0x00000000000000000000000000000000000000cc".to_string(),
         transaction_hash: unique_hash("reward"),
         log_index: 3,
-        event_type: "transfer".to_string(),
+        event_type: RewardTokenEventType::Transfer,
         from_address: Some("0x00000000000000000000000000000000000000dd".to_string()),
         to_address: "0x00000000000000000000000000000000000000ee".to_string(),
         amount: BigDecimal::from(17),

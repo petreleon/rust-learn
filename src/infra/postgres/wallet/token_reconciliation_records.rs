@@ -3,36 +3,12 @@ use bigdecimal::BigDecimal;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
+use crate::domain::rewards::token::RewardTokenEventType;
 use crate::infra::postgres::wallet::wallet_ledger_records::{
     create_external_transaction, create_transaction, find_external_transaction_by_chain_tx_log,
     find_transaction_for_external, link_external_transaction,
 };
 use crate::models::transaction::NewExternalTransaction;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TokenEventKind {
-    Mint,
-    Transfer,
-    Import,
-}
-
-impl TokenEventKind {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            TokenEventKind::Mint => "mint",
-            TokenEventKind::Transfer => "transfer",
-            TokenEventKind::Import => "import",
-        }
-    }
-
-    pub fn transaction_type(self) -> &'static str {
-        match self {
-            TokenEventKind::Mint => "token_mint",
-            TokenEventKind::Transfer => "token_transfer",
-            TokenEventKind::Import => "token_import",
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct ObservedTokenEvent {
@@ -40,7 +16,7 @@ pub struct ObservedTokenEvent {
     pub contract_address: String,
     pub transaction_hash: String,
     pub log_index: i64,
-    pub event_type: TokenEventKind,
+    pub event_type: RewardTokenEventType,
     pub from_address: Option<String>,
     pub to_address: String,
     pub amount: BigDecimal,
@@ -93,7 +69,7 @@ pub fn record_token_event(
                 Some(transaction_id) => transaction_id,
                 None => {
                     let transaction_id =
-                        create_transaction(event.event_type.transaction_type(), tx)?;
+                        create_transaction(event.event_type.transaction_type().as_str(), tx)?;
                     link_external_transaction(transaction_id, existing.id, tx)?;
                     transaction_id
                 }
@@ -106,7 +82,7 @@ pub fn record_token_event(
             });
         }
 
-        let transaction_id = create_transaction(event.event_type.transaction_type(), tx)?;
+        let transaction_id = create_transaction(event.event_type.transaction_type().as_str(), tx)?;
         let external_transaction_id = create_external_transaction(
             NewExternalTransaction {
                 amount: event.amount.clone(),

@@ -3,7 +3,7 @@ use bigdecimal::BigDecimal;
 use crate::application::rewards::record_token_confirmation::{
     RewardTokenConfirmationCommand, RewardTokenConfirmationError,
 };
-use crate::domain::rewards::token::{RewardTokenEventType, RewardTokenTransactionType};
+use crate::domain::rewards::token::RewardTokenTransactionType;
 
 pub fn validate_token_confirmation_command(
     command: &RewardTokenConfirmationCommand,
@@ -38,11 +38,7 @@ pub fn validate_token_confirmation_command(
             "amount must be positive".to_string(),
         ));
     }
-    RewardTokenEventType::parse(&command.event_type)
-        .map(|event| event.transaction_type())
-        .map_err(|_| {
-            RewardTokenConfirmationError::InvalidInput("unsupported token event type".to_string())
-        })
+    Ok(command.event_type.transaction_type())
 }
 
 #[cfg(test)]
@@ -50,10 +46,8 @@ mod tests {
     use bigdecimal::BigDecimal;
 
     use super::validate_token_confirmation_command;
-    use crate::application::rewards::record_token_confirmation::{
-        RewardTokenConfirmationCommand, RewardTokenConfirmationError,
-    };
-    use crate::domain::rewards::token::RewardTokenTransactionType;
+    use crate::application::rewards::record_token_confirmation::RewardTokenConfirmationCommand;
+    use crate::domain::rewards::token::{RewardTokenEventType, RewardTokenTransactionType};
 
     fn valid_command() -> RewardTokenConfirmationCommand {
         RewardTokenConfirmationCommand {
@@ -61,7 +55,7 @@ mod tests {
             contract_address: "0x1234".into(),
             transaction_hash: "0xabc".into(),
             log_index: 0,
-            event_type: "transfer".into(),
+            event_type: RewardTokenEventType::Transfer,
             from_address: Some("0xfrom".into()),
             to_address: "0xto".into(),
             amount: BigDecimal::from(50),
@@ -104,15 +98,5 @@ mod tests {
         command = valid_command();
         command.to_address = "".into();
         assert!(validate_token_confirmation_command(&command).is_err());
-    }
-
-    #[test]
-    fn rejects_unsupported_token_event() {
-        let mut command = valid_command();
-        command.event_type = "burn".into();
-        assert_eq!(
-            validate_token_confirmation_command(&command).unwrap_err(),
-            RewardTokenConfirmationError::InvalidInput("unsupported token event type".to_string())
-        );
     }
 }

@@ -25,7 +25,7 @@ async fn reconciliation_repairs_reward_side_effects_without_duplicate_payouts() 
         contract_address: "0x00000000000000000000000000000000000000ff".to_string(),
         transaction_hash: unique_hash("reconcile"),
         log_index: 4,
-        event_type: "transfer".to_string(),
+        event_type: RewardTokenEventType::Transfer,
         from_address: Some("0x00000000000000000000000000000000000000ab".to_string()),
         to_address: "0x00000000000000000000000000000000000000ac".to_string(),
         amount: BigDecimal::from(17),

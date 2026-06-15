@@ -1,73 +1,94 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified commit before this changeset: `e4ff6767`.
-Current verified changeset: wallet reward-audit status vocabulary
-(commit pending).
+Latest verified base before this changeset: `782a5a3c`
+(`Type wallet reward audit statuses`).
+Current changeset: token/deposit event vocabulary in this commit, verified
+locally.
 
-Goal: make RustLearn a Level 2 modular monolith with firm boundaries.
-Ownership matters more than folder count; preserve behavior unless another TODO
-owns the behavior change.
+Goal: finish RustLearn as a Level 2 modular monolith. Keep the main rings:
+`domain`, `application`, `infra`, `http`, `bootstrap`. Use granular modules
+inside those rings when a context or use case has real ownership.
 
-## Boundary Rules
+## Boundary Contract
 
-- `http -> application -> domain`; `infra` implements ports; `bootstrap` wires.
+- `http -> application -> domain`; `infra` implements application ports;
+  `bootstrap` wires concrete state.
 - `domain`: pure vocabulary, invariants, transitions.
-- `application`: commands, use cases, outputs, errors, ports.
+- `application`: commands, use cases, outputs, errors, ports, authorization
+  decisions, orchestration.
 - `infra`: Postgres, object storage, Ethereum, email, workers, dispatchers.
-- `http`: Actix routes, extractors, DTOs, response mapping.
-- `shared`: tiny cross-context primitives only.
+- `http`: Actix routes, extractors, DTOs, request/response mapping.
 - Forbidden in `domain`/`application`: Actix, Diesel, S3, Ethereum, env vars,
   HTTP responses, request extractors, concrete pools, and web state.
 
-## Done / Checked
+## Done
 
-- Checked contexts: `access_control`, `content`, `identity`, `kyc`,
+- Migrated contexts checked: `access_control`, `content`, `identity`, `kyc`,
   `learning`, `notifications`, `operations`, `organizations`, `reporting`,
   `rewards`, `teacher_applications`, `wallet`.
-- Bootstrap is thin; migrated HTTP uses typed extractors, DTOs, errors, and
-  use cases.
-- Migrated workflows use commands, outputs, ports, fake-port tests, access
+- Bootstrap is thin; migrated HTTP owns DTOs/extractors/errors and delegates to
+  application use cases.
+- Migrated use cases use commands, outputs, ports, fake-port tests, typed access
   decisions, domain vocabulary, invariants, and transition helpers.
-- Infra owns concrete adapters; Diesel is kept out of route handlers and
+- Infra owns concrete adapters; Diesel stays out of migrated route handlers and
   migrated application/domain code.
-- Shared access-control vocabulary, typed auth extractors, frontend capability
-  gates, and `/api/me` unauthorized JSON contract are checked.
-- Boundary scans checked: no legacy `src/{api,services,repositories,utils}`, no
-  `include!`, no `tests/*/imports.rs`, no direct auth/pool access in `http`,
-  and no forbidden ring imports in `domain`/`application`.
+- Shared auth/access-control vocabulary, typed auth extractors, frontend
+  capability gates, and `/api/me` unauthorized JSON contract are checked.
+- Manual Rust file cap is currently clean except generated/exempt files.
 
-## Verified Commit Groups
+## Verified Commits
 
 - `581f1be3`..`57215a3c`: auth helper removal, JSON extractor errors, typed
   HTTP results/errors, access decisions, frontend gates, test harness cleanup.
 - `5a1643fa`..`b1413b5d`: reward payout/read/audit/reconciliation/source/event,
   payment, policy, fraud, and token-confirmation vocabulary.
-- `53a3fd67`..`d1ca7530`: platform reward dashboard rows, reward approval CSV,
-  teacher application CSV, delegated-permission CSV, fraud dashboard scope, and
-  wallet owner-type outputs.
-- `0db0000c`: delegated-permission management uses typed scope vocabulary across
-  application outputs/store/filter, Postgres adapters, HTTP DTO mapping, and
-  routing fakes.
-- `e4ff6767`: wallet deposit status vocabulary is typed across domain,
-  application deposit intent/index outputs, Postgres deposit adapters, HTTP DTO
-  mapping, and wallet integration helpers.
-- Commit pending: wallet reward-audit candidate and reconciliation status
-  vocabulary is typed across domain, application outputs, Postgres reward audit
-  loading, and HTTP DTO mapping.
+- `53a3fd67`..`d1ca7530`: platform reward dashboards/exports, teacher and
+  delegated-permission CSV vocabulary, fraud dashboard scope, wallet owner
+  outputs.
+- `0db0000c`: delegated-permission management scope vocabulary across
+  application, Postgres, HTTP, and routing fakes.
+- `e4ff6767`: wallet deposit status vocabulary across domain, application,
+  Postgres, HTTP, and integration helpers.
+- `782a5a3c`: wallet reward-audit candidate and reconciliation status
+  vocabulary across domain, application, Postgres, HTTP, and `wallet_audit`.
 
-Proof set used across verified batches: focused host tests, `cargo fmt`,
-Cargo lib/bin checks, integration no-run compile, `git diff --check`, line
-counts, string-field scans, and boundary scans. This changeset additionally
-passed reconciliation unit tests and `cargo test wallet_audit`.
+## Current Verified Changeset
+
+- Added typed `WalletDepositEventType` in `domain::wallet::deposit`.
+- `ObservedWalletDepositEvent` now carries typed deposit event vocabulary through
+  application, Ethereum indexer adapters, Postgres matching/ledger/records, and
+  wallet-linking tests.
+- `RewardTokenConfirmationCommand` now carries `RewardTokenEventType`; token
+  confirmation validation no longer reparses raw event strings.
+- Token reconciliation uses `RewardTokenEventType`; the infra-local duplicate
+  `TokenEventKind` was removed.
+- `submit_candidate` handler tests were compacted under the manual file line
+  cap without behavior changes.
+
+Proof for this changeset:
+
+- Passed focused host tests for wallet deposit domain parsing, wallet deposit
+  indexing, reward token confirmation, token reconciliation, reward execution,
+  wallet linking, and compacted submit-candidate tests.
+- Passed `cargo fmt --all --check`.
+- Passed `./scripts/run-host-tests.sh cargo check --lib`.
+- Passed `./scripts/run-host-tests.sh cargo check --bin rust-learn --features
+  app-bin`.
+- Passed `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
+- Passed `git diff --check`, dependency boundary scans, no `include!`, no
+  `tests/*/imports.rs`, targeted raw event leak scans, and manual line-count
+  scan.
 
 ## Still Open
 
-- Continue replacing raw app/infra string vocabulary at remaining
-  reward/reporting/wallet/audit surfaces.
+- Replace remaining raw application `event_type: String` pockets:
+  teacher-application notifications/audit, reward policy/candidate submit,
+  learning teacher-student output, KYC output, reporting platform CSV exports,
+  and organization member audit output.
 - Keep Diesel schema/model leakage inside infra records.
 - Keep public API DTOs HTTP-owned and separate from application outputs.
-- Keep use cases as the real authorization guard; middleware is early
+- Keep use cases as the real authorization guard; middleware remains early
   rejection.
-- No Level 3 crates/microservices, all-at-once rewrite, or abstractions that
-  only move files around.
+- Do not jump to Level 3 crates/microservices or abstractions that only move
+  files around.

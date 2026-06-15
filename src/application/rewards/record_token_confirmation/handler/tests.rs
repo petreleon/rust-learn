@@ -6,7 +6,7 @@ use crate::application::rewards::record_token_confirmation::{
     RewardTokenConfirmation, RewardTokenConfirmationCommand, RewardTokenConfirmationError,
     RewardTokenConfirmationOutput, RewardTokenConfirmationStore,
 };
-use crate::domain::rewards::token::RewardTokenTransactionType;
+use crate::domain::rewards::token::{RewardTokenEventType, RewardTokenTransactionType};
 
 #[tokio::test]
 async fn records_valid_confirmation_with_transaction_type() {
@@ -55,10 +55,10 @@ async fn actor_records_confirmation_after_permission() {
 }
 
 #[tokio::test]
-async fn invalid_non_actor_command_does_not_call_store() {
+async fn invalid_non_actor_scalar_does_not_call_store() {
     let mut store = FakeStore::new(true);
     let mut command = valid_command();
-    command.event_type = "burn".to_string();
+    command.amount = BigDecimal::from(0);
 
     let error = record_reward_token_confirmation(&mut store, 42, command)
         .await
@@ -77,7 +77,7 @@ fn valid_command() -> RewardTokenConfirmationCommand {
         contract_address: "0x1234".into(),
         transaction_hash: "0xabc".into(),
         log_index: 0,
-        event_type: "transfer".into(),
+        event_type: RewardTokenEventType::Transfer,
         from_address: Some("0xfrom".into()),
         to_address: "0xto".into(),
         amount: BigDecimal::from(50),
