@@ -1,6 +1,9 @@
 use diesel_async::{AsyncConnection, AsyncPgConnection};
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::teacher_applications::{
     nominate_application::{TeacherApplicationNominationError, TeacherApplicationNominationStore},
     submit_application::TeacherApplicationSubmission,
@@ -21,25 +24,6 @@ impl<'conn> PostgresTeacherApplicationNominationStore<'conn> {
 }
 
 impl TeacherApplicationNominationStore for PostgresTeacherApplicationNominationStore<'_> {
-    fn has_organization_permission(
-        &mut self,
-        actor_user_id: i32,
-        organization_id: i32,
-        permission: String,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationNominationError>> {
-        async move {
-            permission_checks::can_organization_permission(
-                self.conn,
-                actor_user_id,
-                organization_id,
-                &permission,
-            )
-            .await
-            .map_err(map_error)
-        }
-        .boxed()
-    }
-
     fn find_application_by_idempotency_key(
         &mut self,
         idempotency_key: String,
@@ -105,6 +89,24 @@ impl TeacherApplicationNominationStore for PostgresTeacherApplicationNominationS
                 })
                 .await
                 .map(Into::into)
+                .map_err(map_error)
+        }
+        .boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresTeacherApplicationNominationStore<'_> {
+    type Error = TeacherApplicationNominationError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, TeacherApplicationNominationError>> {
+        async move {
+            permission_checks::can(self.conn, actor, action, scope)
+                .await
                 .map_err(map_error)
         }
         .boxed()

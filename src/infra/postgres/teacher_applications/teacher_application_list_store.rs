@@ -2,13 +2,15 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::teacher_applications::{
     list_applications::{
         TeacherApplicationListError, TeacherApplicationListFilter, TeacherApplicationListStore,
     },
     TeacherApplicationOutput,
 };
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::teacher_applications;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::models::teacher_application::TeacherApplication;
@@ -24,24 +26,29 @@ impl<'conn> PostgresTeacherApplicationListStore<'conn> {
 }
 
 impl TeacherApplicationListStore for PostgresTeacherApplicationListStore<'_> {
-    fn can_review_teacher_applications(
-        &mut self,
-        actor_user_id: i32,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationListError>> {
-        async move {
-            let permission = Permissions::REVIEW_TEACHER_APPLICATIONS.to_string();
-            permission_checks::can_platform_permission(self.conn, actor_user_id, &permission)
-                .await
-                .map_err(map_error)
-        }
-        .boxed()
-    }
-
     fn list_applications(
         &mut self,
         filter: TeacherApplicationListFilter,
     ) -> BoxFuture<'_, Result<Vec<TeacherApplicationOutput>, TeacherApplicationListError>> {
         async move { list_applications(self.conn, filter).await }.boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresTeacherApplicationListStore<'_> {
+    type Error = TeacherApplicationListError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, TeacherApplicationListError>> {
+        async move {
+            permission_checks::can(self.conn, actor, action, scope)
+                .await
+                .map_err(map_error)
+        }
+        .boxed()
     }
 }
 

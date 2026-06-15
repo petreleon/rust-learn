@@ -1,3 +1,6 @@
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::teacher_applications::{
     nominate_application::{
         TeacherApplicationNominationCommand, TeacherApplicationNominationError,
@@ -16,10 +19,10 @@ pub async fn nominate_application(
 ) -> Result<TeacherApplicationOutput, TeacherApplicationNominationError> {
     let permission = "NOMINATE_TEACHER_FOR_PLATFORM_REVIEW".to_string();
     if !store
-        .has_organization_permission(
-            command.actor_user_id,
-            command.organization_id,
-            permission.clone(),
+        .can(
+            AccessActor::user(command.actor_user_id),
+            AccessAction::permission(&permission),
+            AccessScope::organization(command.organization_id),
         )
         .await?
     {

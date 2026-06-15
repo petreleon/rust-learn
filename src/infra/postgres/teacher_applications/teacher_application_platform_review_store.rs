@@ -2,11 +2,13 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::teacher_applications::list_platform_review::{
     TeacherApplicationPlatformReviewDataset, TeacherApplicationPlatformReviewError,
     TeacherApplicationPlatformReviewStore,
 };
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::teacher_applications;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::teacher_applications::teacher_application_platform_review_audit::application_summary;
@@ -25,27 +27,6 @@ impl<'conn> PostgresTeacherApplicationPlatformReviewStore<'conn> {
 }
 
 impl TeacherApplicationPlatformReviewStore for PostgresTeacherApplicationPlatformReviewStore<'_> {
-    fn can_review_teacher_applications(
-        &mut self,
-        actor_user_id: i32,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationPlatformReviewError>> {
-        self.has_permission(actor_user_id, Permissions::REVIEW_TEACHER_APPLICATIONS)
-    }
-
-    fn can_approve_teacher_application(
-        &mut self,
-        actor_user_id: i32,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationPlatformReviewError>> {
-        self.has_permission(actor_user_id, Permissions::APPROVE_TEACHER_APPLICATION)
-    }
-
-    fn can_reject_teacher_application(
-        &mut self,
-        actor_user_id: i32,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationPlatformReviewError>> {
-        self.has_permission(actor_user_id, Permissions::REJECT_TEACHER_APPLICATION)
-    }
-
     fn list_applications(
         &mut self,
     ) -> BoxFuture<
@@ -56,15 +37,17 @@ impl TeacherApplicationPlatformReviewStore for PostgresTeacherApplicationPlatfor
     }
 }
 
-impl PostgresTeacherApplicationPlatformReviewStore<'_> {
-    fn has_permission(
+impl AccessDecisionStore for PostgresTeacherApplicationPlatformReviewStore<'_> {
+    type Error = TeacherApplicationPlatformReviewError;
+
+    fn can(
         &mut self,
-        actor_user_id: i32,
-        permission: Permissions,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationPlatformReviewError>> {
         async move {
-            let permission = permission.to_string();
-            permission_checks::can_platform_permission(self.conn, actor_user_id, &permission)
+            permission_checks::can(self.conn, actor, action, scope)
                 .await
                 .map_err(map_error)
         }

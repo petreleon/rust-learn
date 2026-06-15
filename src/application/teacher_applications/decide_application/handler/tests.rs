@@ -1,6 +1,10 @@
 use chrono::Utc;
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
+
 use super::*;
 
 #[derive(Default)]
@@ -11,16 +15,22 @@ struct FakeStore {
     applied: Option<(String, Option<String>)>,
 }
 
-impl TeacherApplicationDecisionStore for FakeStore {
-    fn has_platform_permission(
+impl AccessDecisionStore for FakeStore {
+    type Error = TeacherApplicationDecisionError;
+
+    fn can(
         &mut self,
-        _: i32,
-        permission: String,
+        _: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationDecisionError>> {
-        self.permission_checked = Some(permission);
+        assert!(matches!(scope, AccessScope::Platform(_)));
+        self.permission_checked = Some(action.permission_name().to_string());
         async move { Ok(self.has_permission) }.boxed()
     }
+}
 
+impl TeacherApplicationDecisionStore for FakeStore {
     fn application(
         &mut self,
         _: i64,

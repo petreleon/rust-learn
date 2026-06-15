@@ -1783,6 +1783,42 @@ Batch 308: move learning authorization ports to access decisions.
       the final middleware/application same-service cleanup still need their
       own contract cleanup before central authorization is complete.
 
+Batch 309: move teacher-application authorization ports to access decisions.
+
+- [x] Repointed teacher-application submit, nominate, list, audit, platform
+      review, and decision store ports to extend the shared mutable
+      `AccessDecisionStore` contract instead of exposing context-specific
+      permission methods such as `can_submit_teacher_application`,
+      `can_review_teacher_applications`, `can_approve_teacher_application`,
+      `can_reject_teacher_application`, `has_platform_permission`, or
+      `has_organization_permission`.
+- [x] Repointed the matching application handlers and fake stores to build
+      typed `AccessActor`, `AccessAction`, and `AccessScope` decisions at the
+      application boundary while preserving each use case's existing error
+      type and output contract.
+- [x] Repointed the matching Postgres teacher-application adapters to
+      implement `AccessDecisionStore` through `permission_checks::can`, so
+      submit, nominate, list, audit, platform-review, and decision
+      authorization no longer call scoped `can_*_permission` helpers directly.
+- [x] Kept route/use-case contracts stable: API routing fakes still compile
+      through the existing use-case traits, and the teacher-application API
+      flows still preserve the legacy route behavior.
+- [x] Proved behavior and boundaries with `cargo fmt --all`,
+      `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib teacher_applications`,
+      `./scripts/run-host-tests.sh cargo test --test teacher_applications --test organization_teacher_applications`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale teacher-application permission-port scans, scoped Postgres
+      permission-helper scans, direct `permission_checks::can` adapter scans,
+      ring import-boundary scans, `git diff --check`, and
+      teacher-application file-size checks.
+- [x] Self-critique: this closes the teacher-application application-facing
+      authorization contract cleanup. Organization, identity, KYC, and the
+      final middleware/application same-service cleanup still need follow-up
+      batches before central authorization is complete.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1970,6 +2006,10 @@ boundary checks from the matrix above to every canonical context.
       decision wrappers instead of direct low-level permission helpers.
 - [x] Learning course creation, course update, course lifecycle, and learner
       progress application store ports now use the shared mutable
+      access-decision store contract instead of context-specific permission
+      methods.
+- [x] Teacher-application submit, nominate, list, audit, platform-review, and
+      decision application store ports now use the shared mutable
       access-decision store contract instead of context-specific permission
       methods.
 - [ ] Make middleware call the same access-control service as application use

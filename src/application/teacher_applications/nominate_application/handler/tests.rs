@@ -1,6 +1,11 @@
 use super::*;
 use chrono::Utc;
 use futures::future::{BoxFuture, FutureExt};
+
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
+
 #[derive(Default)]
 struct FakeStore {
     can_nominate: bool,
@@ -9,16 +14,25 @@ struct FakeStore {
     created: Option<TeacherApplicationSubmission>,
     permission_checked: Option<(i32, String)>,
 }
-impl TeacherApplicationNominationStore for FakeStore {
-    fn has_organization_permission(
+impl AccessDecisionStore for FakeStore {
+    type Error = TeacherApplicationNominationError;
+
+    fn can(
         &mut self,
-        _: i32,
-        organization_id: i32,
-        permission: String,
+        _: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationNominationError>> {
-        self.permission_checked = Some((organization_id, permission));
+        let organization_id = match scope {
+            AccessScope::Organization(scope) => scope.organization_id(),
+            _ => panic!("nomination permission must use organization scope"),
+        };
+        self.permission_checked = Some((organization_id, action.permission_name().to_string()));
         async move { Ok(self.can_nominate) }.boxed()
     }
+}
+
+impl TeacherApplicationNominationStore for FakeStore {
     fn find_application_by_idempotency_key(
         &mut self,
         _: String,

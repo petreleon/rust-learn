@@ -1,16 +1,13 @@
 use futures::future::BoxFuture;
 
+use crate::application::access_control::check_permission::AccessDecisionStore;
 use crate::application::teacher_applications::{
     decide_application::TeacherApplicationDecisionError, TeacherApplicationOutput,
 };
 
-pub trait TeacherApplicationDecisionStore {
-    fn has_platform_permission(
-        &mut self,
-        actor_user_id: i32,
-        permission: String,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationDecisionError>>;
-
+pub trait TeacherApplicationDecisionStore:
+    AccessDecisionStore<Error = TeacherApplicationDecisionError>
+{
     fn application(
         &mut self,
         application_id: i64,

@@ -1,3 +1,6 @@
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::teacher_applications::{
     decide_application::{
         TeacherApplicationDecisionCommand, TeacherApplicationDecisionError,
@@ -17,7 +20,11 @@ pub async fn decide_application(
     let target_status = normalize_decision_status(&command.status)?;
     let permission = required_permission(&target_status)?;
     if !store
-        .has_platform_permission(command.actor_user_id, permission.to_string())
+        .can(
+            AccessActor::user(command.actor_user_id),
+            AccessAction::permission(permission),
+            AccessScope::platform(),
+        )
         .await?
     {
         return Err(TeacherApplicationDecisionError::PermissionDenied(

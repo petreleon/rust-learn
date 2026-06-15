@@ -2,11 +2,13 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::teacher_applications::{
     list_application_audit::{TeacherApplicationAuditError, TeacherApplicationAuditStore},
     TeacherApplicationAuditEventOutput,
 };
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::teacher_application_audit_events;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::models::teacher_application::TeacherApplicationAuditEvent;
@@ -33,19 +35,6 @@ pub async fn list_teacher_application_audit_events(
 }
 
 impl TeacherApplicationAuditStore for PostgresTeacherApplicationAuditStore<'_> {
-    fn can_review_teacher_applications(
-        &mut self,
-        actor_user_id: i32,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationAuditError>> {
-        async move {
-            let permission = Permissions::REVIEW_TEACHER_APPLICATIONS.to_string();
-            permission_checks::can_platform_permission(self.conn, actor_user_id, &permission)
-                .await
-                .map_err(map_error)
-        }
-        .boxed()
-    }
-
     fn list_audit_events(
         &mut self,
         application_id: i64,
@@ -55,6 +44,24 @@ impl TeacherApplicationAuditStore for PostgresTeacherApplicationAuditStore<'_> {
             list_teacher_application_audit_events(self.conn, application_id)
                 .await
                 .map(|events| events.into_iter().map(Into::into).collect())
+                .map_err(map_error)
+        }
+        .boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresTeacherApplicationAuditStore<'_> {
+    type Error = TeacherApplicationAuditError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, TeacherApplicationAuditError>> {
+        async move {
+            permission_checks::can(self.conn, actor, action, scope)
+                .await
                 .map_err(map_error)
         }
         .boxed()

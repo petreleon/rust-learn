@@ -2,6 +2,9 @@ use chrono::Utc;
 use diesel_async::{AsyncConnection, AsyncPgConnection};
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::teacher_applications::{
     decide_application::{TeacherApplicationDecisionError, TeacherApplicationDecisionStore},
     TeacherApplicationOutput,
@@ -24,19 +27,6 @@ impl<'conn> PostgresTeacherApplicationDecisionStore<'conn> {
 }
 
 impl TeacherApplicationDecisionStore for PostgresTeacherApplicationDecisionStore<'_> {
-    fn has_platform_permission(
-        &mut self,
-        actor_user_id: i32,
-        permission: String,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationDecisionError>> {
-        async move {
-            permission_checks::can_platform_permission(self.conn, actor_user_id, &permission)
-                .await
-                .map_err(map_error)
-        }
-        .boxed()
-    }
-
     fn application(
         &mut self,
         application_id: i64,
@@ -90,6 +80,24 @@ impl TeacherApplicationDecisionStore for PostgresTeacherApplicationDecisionStore
                         Ok(updated_output)
                     })
                 })
+                .await
+                .map_err(map_error)
+        }
+        .boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresTeacherApplicationDecisionStore<'_> {
+    type Error = TeacherApplicationDecisionError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, TeacherApplicationDecisionError>> {
+        async move {
+            permission_checks::can(self.conn, actor, action, scope)
                 .await
                 .map_err(map_error)
         }
