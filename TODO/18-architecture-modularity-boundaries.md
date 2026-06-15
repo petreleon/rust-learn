@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-16.
-Latest verified pushed base before current batch: `c38b13fe`
-(`Make development commands the primary workflow`).
+Latest verified pushed base before current batch: `0fa7a359`
+(`Name opaque JSON payload boundaries`).
 
 Objective: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
@@ -70,6 +70,10 @@ submodules only where a context or use case has real ownership.
   surface, Diesel development commands run through the Compose tool container,
   `make web-dev` exists for the frontend dev loop, and active docs point at
   `src/infra/postgres/schema.rs`.
+- `0fa7a359`: opaque JSON product payloads are named at application boundaries
+  with domain vocabulary (`RewardEvidence`, `KycAuditMetadata`,
+  `TeacherApplicationPortfolioLinks`), public/DB JSON shapes are preserved, and
+  the remaining oversized integration tests were trimmed to 180 lines.
 
 Proof for completed pushed work:
 
@@ -84,67 +88,56 @@ Proof for completed pushed work:
   `imports.rs`, no application DTO/Actix leaks, and no maintained Rust file over
   180 lines.
 
-## Current Verified Batch
+## Completion Audit
 
-Included problems:
+Audit questions:
 
-- Production application outputs/facts still exposed raw `serde_json::Value`
-  for KYC audit metadata, teacher-application portfolio links, and
-  teacher-student reward evidence.
-- The final JSON audit needed a firm Level 2 decision: these fields are
-  intentional opaque product payloads, not HTTP DTO leakage, but application
-  boundaries should carry domain names for them.
-- Three manual integration test files were 181 lines, violating the <=180-line
-  rule by one line each.
+- Do the main rings match Level 2 ownership?
+- Are `domain` and `application` free of Actix, Diesel/Postgres, concrete infra,
+  env, filesystem, network, and web-state leaks?
+- Does `http` own Actix routes, DTOs, and HTTP error mapping without importing
+  infra directly?
+- Are public API DTOs separate from application commands/outputs?
+- Do use cases remain the real authorization guard?
+- Are old root-level DB/model/config/middleware modules gone?
+- Are opaque JSON payloads intentional domain-named product payloads rather than
+  HTTP DTO leakage?
+- Are manually maintained non-Markdown files within the 180-line rule?
+- Did the migration avoid Level 3 crates/microservices or abstraction churn?
 
-Fixes:
+Conclusion:
 
-- Added `TeacherApplicationPortfolioLinks` and `portfolio_links_from_urls` in
-  domain vocabulary.
-- Added `KycAuditMetadata` domain vocabulary.
-- Application outputs now use `RewardEvidence`, `KycAuditMetadata`, and
-  `TeacherApplicationPortfolioLinks` instead of raw `serde_json::Value`.
-- Public JSON shapes and PostgreSQL JSONB storage remain unchanged; HTTP and
-  infra continue owning DTO/serialization and database model details.
-- Trimmed the three oversized integration test files to 180 lines.
+- Level 2 is complete in the current code. No remaining code or documentation
+  changes are required by this TODO.
 
 Deferred problems:
 
-- No JSON-vocabulary cleanup remains from this audit; final completion still
-  requires the requirement-by-requirement TODO/18 audit against current code and
-  pushed evidence.
+- None.
 
 Proof:
 
-- `cargo fmt --all --check`.
-- `./scripts/run-host-tests.sh cargo check --lib`.
-- Focused tests:
-  `./scripts/run-host-tests.sh cargo test --lib teacher_applications`,
-  `./scripts/run-host-tests.sh cargo test --lib kyc`,
-  `./scripts/run-host-tests.sh cargo test --lib get_teacher_course_students`,
-  `./scripts/run-host-tests.sh cargo test --test course_assessments --test
-  course_assessment_submission`, and
-  `./scripts/run-host-tests.sh cargo test --test teacher_applications
-  platform_teacher_application_review_contract_returns_context_and_filters`.
-- `./scripts/run-host-tests.sh cargo check --bin rust-learn --features
-  app-bin`.
-- `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
-- `git diff --check`.
-- Scans: production application code no longer exposes raw `serde_json::Value`
-  payload fields or constructors; domain/application boundary scan found no
-  concrete dependency leaks, only the domain vocabulary variant
-  `MANAGE_S3_OBJECTS`; no HTTP infra imports; no Rust files over 180 lines
-  outside generated schema.
+- `git status --short --branch` was clean at pushed base `0fa7a359`.
+- Ring layout is present under `src/domain`, `src/application`, `src/infra`,
+  `src/http`, and `src/bootstrap`; `Cargo.toml` remains a single crate with
+  binaries, not a Level 3 workspace split.
+- `src/db`, `src/models`, `src/config`, and `src/middlewares` are absent.
+- Source scans find no old root imports such as `crate::db`,
+  `rust_learn::models`, `crate::config`, or `crate::middlewares`.
+- Domain/application forbidden-dependency scan finds no concrete dependency
+  leaks; the only hit is the permission vocabulary variant `MANAGE_S3_OBJECTS`.
+- HTTP infra scan finds no `crate::infra`, Diesel/Postgres, S3, Ethereum, env,
+  or reqwest imports in `src/http`.
+- DTO/Actix scan finds no Actix/HTTP DTO ownership in `src/application` or
+  `src/domain`; the only serde derive in domain is `UserJWT`, the token-claim
+  vocabulary used by the infra token verifier.
+- Production application JSON scan finds no raw `serde_json::Value` payload
+  fields or constructors; opaque JSON remains only as domain-named payload
+  aliases and HTTP/infra serialization details.
+- Line-count scan over maintained source, test, Make, script, Docker, and K8s
+  files finds no non-generated file above 180 lines.
+- Current pushed verification includes formatting, focused tests for touched
+  contexts, library check, app binary check, and `cargo test --tests --no-run`.
 
 ## Remaining Work
 
-- Audit TODO/18 requirement-by-requirement against current code and pushed
-  evidence before calling Level 2 complete.
-- Keep public API DTOs HTTP-owned and separate from application commands and
-  outputs.
-- Keep use cases as the real authorization guard; middleware remains early
-  rejection.
-- Do not jump to Level 3 crates/microservices or abstractions that only move
-  files around.
-- Rough remaining effort: final requirement audit, plus a small cleanup only if
-  the audit proves one of the remaining exception candidates is a real leak.
+- None for TODO/18.
