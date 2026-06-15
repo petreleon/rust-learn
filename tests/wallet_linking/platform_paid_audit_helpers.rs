@@ -1,4 +1,8 @@
-async fn assert_wallet_balance_endpoint(pool: &DbPool, learner_id: i32, wallet_id: i32) {
+use crate::http_support::{token_for, wallet_test_app};
+use crate::platform_paid_transfer_helpers::PlatformPaidDeposit;
+use crate::support::*;
+
+pub(crate) async fn assert_wallet_balance_endpoint(pool: &DbPool, learner_id: i32, wallet_id: i32) {
     let app = test::init_service(wallet_test_app(pool.clone())).await;
     let wallet_req = test::TestRequest::get()
         .uri("/api/wallets/me")
@@ -11,7 +15,7 @@ async fn assert_wallet_balance_endpoint(pool: &DbPool, learner_id: i32, wallet_i
     assert_eq!(wallet["value"], "12");
 }
 
-async fn assert_platform_paid_audit(
+pub(crate) async fn assert_platform_paid_audit(
     pool: &DbPool,
     learner_id: i32,
     deposit: PlatformPaidDeposit,
@@ -67,7 +71,7 @@ async fn assert_platform_paid_audit(
     }));
 }
 
-async fn assert_wallet_balance_in_db(pool: &DbPool, wallet_id: i32) {
+pub(crate) async fn assert_wallet_balance_in_db(pool: &DbPool, wallet_id: i32) {
     let mut conn = setup_conn(pool).await;
     let balance: BigDecimal = wallets::table
         .find(wallet_id)

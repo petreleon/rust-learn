@@ -1,17 +1,20 @@
-struct OrganizationWalletAuditExpectation {
-    org_id: i32,
-    wallet_id: i32,
-    stranger_id: i32,
-    reporter_id: i32,
-    internal_transaction_id: i64,
-    wallet_transaction_id: i64,
-    external_transaction_id: i64,
-    payout_transaction_id: i64,
-    candidate_id: i64,
-    payout_record_id: i64,
+use crate::http_support::{token_for, wallet_test_app};
+use crate::support::*;
+
+pub(crate) struct OrganizationWalletAuditExpectation {
+    pub(crate) org_id: i32,
+    pub(crate) wallet_id: i32,
+    pub(crate) stranger_id: i32,
+    pub(crate) reporter_id: i32,
+    pub(crate) internal_transaction_id: i64,
+    pub(crate) wallet_transaction_id: i64,
+    pub(crate) external_transaction_id: i64,
+    pub(crate) payout_transaction_id: i64,
+    pub(crate) candidate_id: i64,
+    pub(crate) payout_record_id: i64,
 }
 
-async fn assert_organization_wallet_audit(
+pub(crate) async fn assert_organization_wallet_audit(
     pool: &DbPool,
     expected: OrganizationWalletAuditExpectation,
 ) {

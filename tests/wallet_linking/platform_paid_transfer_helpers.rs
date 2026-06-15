@@ -1,10 +1,16 @@
+use crate::http_support::{token_for, wallet_test_app};
+use crate::platform_paid_audit_helpers::{
+    assert_platform_paid_audit, assert_wallet_balance_endpoint, assert_wallet_balance_in_db,
+};
+use crate::support::*;
+
 #[derive(Clone, Copy)]
-struct PlatformPaidDeposit {
-    wallet_id: i32,
-    deposit_transaction_id: i64,
+pub(crate) struct PlatformPaidDeposit {
+    pub(crate) wallet_id: i32,
+    pub(crate) deposit_transaction_id: i64,
 }
 
-async fn create_and_credit_platform_paid_deposit(
+pub(crate) async fn create_and_credit_platform_paid_deposit(
     pool: &DbPool,
     learner_id: i32,
 ) -> PlatformPaidDeposit {
@@ -80,7 +86,7 @@ async fn create_and_credit_platform_paid_deposit(
     }
 }
 
-async fn assert_platform_paid_retirement_and_audit(
+pub(crate) async fn assert_platform_paid_retirement_and_audit(
     pool: &DbPool,
     learner_id: i32,
     deposit: PlatformPaidDeposit,

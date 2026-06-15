@@ -1,4 +1,7 @@
-async fn assert_wallet_tax_permissions_and_update(
+use crate::http_support::{token_for, wallet_test_app};
+use crate::support::*;
+
+pub(crate) async fn assert_wallet_tax_permissions_and_update(
     pool: &DbPool,
     tax_admin_id: i32,
     deposit_tax_only_id: i32,

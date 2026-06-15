@@ -1,3 +1,10 @@
+use crate::http_support::assign_platform_permission_role;
+use crate::platform_paid_tax_helpers::assert_wallet_tax_permissions_and_update;
+use crate::platform_paid_transfer_helpers::{
+    assert_platform_paid_retirement_and_audit, create_and_credit_platform_paid_deposit,
+};
+use crate::support::*;
+
 #[actix_web::test]
 async fn wallet_token_deposit_and_retire_apply_platform_paid_tax() {
     let _ = dotenvy::dotenv();

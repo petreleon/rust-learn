@@ -1,4 +1,24 @@
-async fn assign_platform_permission_role(
+use crate::support::*;
+use actix_web::{web, App};
+use rust_learn::application::wallet::audit_wallet::WalletAuditUseCase;
+use rust_learn::application::wallet::create_deposit_intent::WalletDepositIntentUseCase;
+use rust_learn::application::wallet::link_wallet::WalletLinkUseCase;
+use rust_learn::application::wallet::manage_token_tax::WalletTokenTaxUseCase;
+use rust_learn::application::wallet::read_wallet::WalletReadUseCase;
+use rust_learn::application::wallet::retire_tokens::WalletRetirementUseCase;
+use rust_learn::infra::postgres::access_control::{
+    organization_role_records, platform_role_records, role_catalog_store,
+};
+use rust_learn::infra::postgres::wallet::wallet_audit_use_case::PostgresWalletAuditUseCase;
+use rust_learn::infra::postgres::wallet::wallet_deposit_intent_use_case::PostgresWalletDepositIntentUseCase;
+use rust_learn::infra::postgres::wallet::wallet_link_use_case::PostgresWalletLinkUseCase;
+use rust_learn::infra::postgres::wallet::wallet_read_use_case::PostgresWalletReadUseCase;
+use rust_learn::infra::postgres::wallet::wallet_retirement_use_case::PostgresWalletRetirementUseCase;
+use rust_learn::infra::postgres::wallet::wallet_token_tax_use_case::PostgresWalletTokenTaxUseCase;
+use rust_learn::infra::tokens::jwt::create_jwt;
+use std::sync::Arc;
+
+pub(crate) async fn assign_platform_permission_role(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     permission: Permissions,
@@ -27,7 +47,7 @@ async fn assign_platform_permission_role(
         .expect("failed to assign platform permission test role");
 }
 
-async fn assign_organization_role(
+pub(crate) async fn assign_organization_role(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     organization_id: i32,
@@ -36,12 +56,17 @@ async fn assign_organization_role(
     let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
         .await
         .expect("organization role should exist");
-    organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)
-        .await
-        .expect("failed to assign organization role");
+    organization_role_records::assign_organization_role_to_user(
+        conn,
+        user_id,
+        organization_id,
+        role_id,
+    )
+    .await
+    .expect("failed to assign organization role");
 }
 
-async fn assign_organization_permission_role(
+pub(crate) async fn assign_organization_permission_role(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     organization_id: i32,
@@ -67,16 +92,21 @@ async fn assign_organization_permission_role(
         .await
         .expect("failed to assign organization permission to test role");
 
-    organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)
-        .await
-        .expect("failed to assign organization permission test role");
+    organization_role_records::assign_organization_role_to_user(
+        conn,
+        user_id,
+        organization_id,
+        role_id,
+    )
+    .await
+    .expect("failed to assign organization permission test role");
 }
 
-fn token_for(user_id: i32) -> String {
+pub(crate) fn token_for(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to create JWT")
 }
 
-fn wallet_test_app(
+pub(crate) fn wallet_test_app(
     pool: DbPool,
 ) -> App<
     impl actix_service::ServiceFactory<

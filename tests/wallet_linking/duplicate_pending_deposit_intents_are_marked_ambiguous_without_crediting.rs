@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn duplicate_pending_deposit_intents_are_marked_ambiguous_without_crediting() {
     let _ = dotenvy::dotenv();
