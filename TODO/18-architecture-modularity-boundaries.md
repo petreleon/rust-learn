@@ -1177,40 +1177,40 @@ remaining gaps.
 | 279 | Moved access-control middleware app-state dependencies off concrete `DbPool` and onto application-owned permission/hierarchy check service app data, with bootstrap wiring registering the Postgres-backed implementations for production and route tests. |
 | 280 | Added backend-derived session access/capability facts for platform, organization, and course scopes, exposed them through `/api/me`, and removed frontend `web/src/lib` permission-group tables for admin, organization, and workspace capability checks. |
 | 281 | Added an application-level notification delivery contract, implemented it with the existing infra notification sender, registered it through notification app-data wiring, removed raw `NotificationsState` exposure from `AppState`, and repointed content, learning enrollment, course-role assignment, and organization-role assignment HTTP handlers away from notification infra imports. |
+| 282 | Added an application-owned JWKS contract, mapped env-backed token infra into that contract through identity wiring, moved JWKS JSON serialization into HTTP, and made HTTP auth extractors rely on middleware-inserted identity claims instead of decoding JWTs directly. |
 
 ## Recent Slice Evidence
 
-Batch 281: make HTTP notification delivery depend on an application contract.
+Batch 282: make HTTP JWKS/auth extraction stop reaching into token infra.
 
-- [x] Added `application/notifications/delivery.rs` with typed notification
-      commands and a `NotificationDeliveryUseCase` port for content-published,
-      enrollment, and role-assignment notification delivery.
-- [x] Implemented the delivery port for the existing infra-backed
-      `NotificationsState` in `infra/notifications/delivery.rs`, keeping DB
-      writes and message persistence inside the infra ring.
-- [x] Registered the notification delivery port through
-      `bootstrap/notification_wiring.rs` and removed raw `NotificationsState`
-      from `AppState` plus global app-data registration, so HTTP cannot obtain
-      the concrete sender from production app state.
-- [x] Repointed content item creation, course enrollment decisions, course role
-      assignment, and organization role assignment handlers to consume
-      `Arc<dyn NotificationDeliveryUseCase>` instead of importing
-      `infra::notifications::NotificationsState`.
-- [x] Updated the course enrollment API fixture to register the same
-      application-level delivery contract, preserving enrollment and
-      role-assignment notification behavior through the public route.
-- [x] Self-critique: this closes the notification-delivery HTTP-to-infra leak,
-      but JWT/JWKS helpers still reach from HTTP into `infra/tokens/jwt`, so
-      the wider HTTP cross-cutting adapter cleanup remains open.
+- [x] Added `application/identity/jwks.rs` with `JwksUseCase`, application
+      output types, and a narrow error value for identity-owned JWKS retrieval.
+- [x] Repointed env-backed token infra to return the application JWKS output
+      and implemented the application contract with `EnvJwksUseCase`.
+- [x] Registered the JWKS use case through `bootstrap/identity_wiring.rs` so
+      both root and `/api` JWKS routes receive application app data.
+- [x] Moved JWKS JSON response structs and the reserved `use` field rename into
+      `http/identity/authentication/jwks.rs`, keeping the public response
+      contract at the HTTP boundary.
+- [x] Removed direct JWT decoding from `http/extractors/auth_user.rs` and
+      `http/extractors/request_auth.rs`; successful authentication now comes
+      from the `UserJWT` extension inserted by `JwtMiddleware`, while missing,
+      malformed, and invalid-token responses preserve existing wording.
+- [x] Added a focused JWKS HTTP route test with a fake application use case.
+- [x] Self-critique: production HTTP no longer imports token infra, but
+      `JwtMiddleware` still verifies tokens through `infra/tokens/jwt`; moving
+      that middleware to an injected application verifier is left open because
+      many integration fixtures currently construct `JwtMiddleware` directly.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
-      `./scripts/run-host-tests.sh cargo test --test course_enrollment_api`,
-      `./scripts/run-host-tests.sh cargo test --test course_content_management`,
-      `./scripts/run-host-tests.sh cargo test --test organization_members`,
-      `./scripts/run-host-tests.sh cargo test --test notification_events`,
+      `./scripts/run-host-tests.sh cargo test --lib jwks`,
+      `./scripts/run-host-tests.sh cargo test --lib extractors`,
+      `./scripts/run-host-tests.sh cargo test --lib jwt_middleware`,
+      `./scripts/run-host-tests.sh cargo test --test authentication_flow`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, HTTP notification-infra boundary scans,
+      `git diff --check`, production HTTP token-infra boundary scans,
       application-ring import scans, and file-size checks.
 
 ## Legacy Transition Rules

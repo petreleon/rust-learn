@@ -2,6 +2,7 @@ pub mod assign_platform_role;
 pub mod current_session;
 pub mod email;
 pub mod get_user_profile;
+pub mod jwks;
 pub mod list_users;
 pub mod login;
 pub mod password_policy;

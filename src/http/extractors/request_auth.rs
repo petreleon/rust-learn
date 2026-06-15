@@ -1,7 +1,6 @@
 use actix_web::{HttpMessage, HttpRequest, HttpResponse};
 
 use crate::domain::identity::UserJWT;
-use crate::infra::tokens::jwt::decode_jwt;
 
 pub(crate) fn authenticated_user(req: &HttpRequest) -> Result<UserJWT, HttpResponse> {
     if let Some(user_jwt) = req.extensions().get::<UserJWT>() {
@@ -16,13 +15,11 @@ pub(crate) fn authenticated_user(req: &HttpRequest) -> Result<UserJWT, HttpRespo
         return Err(HttpResponse::Unauthorized().body("Invalid Authorization header format"));
     };
 
-    let Some(token) = auth_str.strip_prefix("Bearer ") else {
+    let Some(_token) = auth_str.strip_prefix("Bearer ") else {
         return Err(HttpResponse::Unauthorized().body("Invalid Authorization header format"));
     };
 
-    decode_jwt(token)
-        .map(|token_data| token_data.claims)
-        .map_err(|_| HttpResponse::Unauthorized().body("Invalid token"))
+    Err(HttpResponse::Unauthorized().body("Invalid token"))
 }
 
 pub(crate) fn authenticated_user_id(req: &HttpRequest) -> Result<i32, HttpResponse> {

@@ -4,7 +4,6 @@ use futures::future::{ready, Ready};
 
 use crate::domain::identity::UserJWT;
 use crate::http::errors::ApiError;
-use crate::infra::tokens::jwt::decode_jwt;
 
 #[derive(Clone)]
 pub struct AuthUser(pub UserJWT);
@@ -40,13 +39,11 @@ fn auth_user_from_request(req: &HttpRequest) -> Result<AuthUser, ApiError> {
     let auth_str = auth_header
         .to_str()
         .map_err(|_| ApiError::unauthorized("Invalid Authorization header format"))?;
-    let token = auth_str
+    let _token = auth_str
         .strip_prefix("Bearer ")
         .ok_or_else(|| ApiError::unauthorized("Invalid Authorization header format"))?;
 
-    decode_jwt(token)
-        .map(|token_data| AuthUser(token_data.claims))
-        .map_err(|_| ApiError::unauthorized("Invalid token"))
+    Err(ApiError::unauthorized("Invalid token"))
 }
 
 #[cfg(test)]
