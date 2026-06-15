@@ -937,7 +937,7 @@ Wiring rule:
       cross-cutting middleware.
 - [x] Build an `AppState` or context-specific state structs once outside the
       `HttpServer::new` closure, then pass them with `web::Data`.
-- [ ] Prefer typed extractors over manual `HttpRequest` parsing where possible:
+- [x] Prefer typed extractors over manual `HttpRequest` parsing where possible:
       `AuthUser`, `DbConn`, `Json<T>`, `Path<T>`, and `Query<T>`.
 - [ ] API handlers return `Result<web::Json<T>, ApiError>` or equivalent,
       instead of manually matching every service error to `HttpResponse`.
@@ -953,7 +953,7 @@ Wiring rule:
       implementation with consistent JSON error bodies.
 - [x] Add an `http/extractors/auth_user.rs` extractor that reads the `UserJWT`
       extension once and removes repeated `authenticated_user(&req)` boilerplate.
-- [ ] Add a DB connection extractor or helper so handlers do not repeat
+- [x] Add a DB connection extractor or helper so handlers do not repeat
       `pool.get().await` and 500 mapping.
 - [x] Add `bootstrap/app_state.rs` to group `DbPool`, `S3State`,
       `NotificationsState`, and future infra handles.
@@ -1182,40 +1182,37 @@ remaining gaps.
 | 284 | Made `AuthUser` preserve the old plain-text unauthorized failures and migrated wallet read/link/audit/deposit/retirement/token-tax routes away from manual `authenticated_user(&req)` parsing. |
 | 285 | Migrated reward policy, fraud-block, candidate submission/list/review/audit/history, teacher decision, and amount decision routes to `AuthUser`, removing manual full-claims request auth from `http/rewards`. |
 | 286 | Migrated identity user lookup, learning management/catalog/teaching/lifecycle routes, and organization dashboard/course/member/audit/teacher-application read routes to `AuthUser`, leaving only current-session's custom JSON unauthorized path on the legacy request-auth helper. |
+| 287 | Replaced the final legacy request-auth helper with a current-session-specific typed extractor that preserves `/api/me` JSON unauthorized responses, removed `http/extractors/request_auth.rs`, and proved HTTP has no direct DB pool acquisition. |
 
 ## Recent Slice Evidence
 
-Batch 286: migrate the remaining standard full-claims request auth to typed extractors.
+Batch 287: remove the final legacy request-auth helper.
 
-- [x] Repointed identity user lookup to receive `AuthUser` directly while
-      keeping the existing `GetUserProfileCommand` and error mapping.
-- [x] Repointed learning course creation/update/lifecycle, learner catalog and
-      learning-detail routes, and teacher dashboard/workspace/student routes to
-      receive `AuthUser` directly.
-- [x] Repointed organization dashboard, organization courses, member list,
-      member audit, and organization teacher-application read routes to receive
-      `AuthUser` directly.
-- [x] Proved the only remaining `HttpRequest` auth parsing under `src/http` is
-      the extractor internals plus `identity/handlers.rs` current-session,
-      which intentionally preserves its custom JSON unauthorized response.
-- [x] Self-critique: the broad typed-extractor checkbox remains open because
-      DB connection extraction, JSON configuration, and the current-session
-      custom unauthorized path still need separate decisions.
+- [x] Added a current-session-specific typed extractor beside the `/api/me`
+      handler so missing bearer claims still return the existing JSON
+      `unauthorized` envelope.
+- [x] Repointed current-session away from `HttpRequest` and deleted
+      `src/http/extractors/request_auth.rs`; `http/extractors/mod.rs` now only
+      exposes the typed auth extractors.
+- [x] Proved `src/http` no longer imports `HttpRequest` outside typed extractor
+      implementations and no code calls `authenticated_user*`.
+- [x] Proved `src/http` has no direct `pool.get().await`; DB connection
+      acquisition lives behind application use cases and infra adapters instead
+      of route handlers, so a `DbConn` extractor is not needed for current HTTP
+      routes.
+- [x] Self-critique: API handlers still manually map many application errors to
+      `HttpResponse`, and centralized JSON parse/limit configuration remains
+      open.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
-      `./scripts/run-host-tests.sh cargo test --test course_creation_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test course_editing_permissions`,
-      `./scripts/run-host-tests.sh cargo test --test course_lifecycle`,
-      `./scripts/run-host-tests.sh cargo test --test course_discovery`,
-      `./scripts/run-host-tests.sh cargo test --test teacher_course_dashboard`,
-      `./scripts/run-host-tests.sh cargo test --test organization_dashboard`,
-      `./scripts/run-host-tests.sh cargo test --test organization_members`,
-      `./scripts/run-host-tests.sh cargo test --test organization_teacher_applications`,
-      `./scripts/run-host-tests.sh cargo test --test middleware_access_control test_course_permission_middleware`,
+      `./scripts/run-host-tests.sh cargo test --lib extractors`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api`,
       `./scripts/run-host-tests.sh cargo test --test api_routing`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, remaining manual-auth scans, and file-size checks.
+      `request_auth`/`authenticated_user*` scans, `HttpRequest` scans,
+      `src/http` `pool.get().await` scans, `git diff --check`, and file-size
+      checks.
 
 ## Legacy Transition Rules
 
