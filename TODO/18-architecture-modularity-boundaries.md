@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified pushed base before current batch: `216b9529`
-(`Run Diesel migrations through Compose`).
+Latest verified pushed base before current batch: `2574c1c6`
+(`Move DB setup updates under Postgres infra`).
 
 Objective: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
@@ -46,6 +46,9 @@ submodules only where a context or use case has real ownership.
   to `src/infra/postgres`; root `db` exports removed.
 - `216b9529`: `make migrate` and `make migrate-redo` now run Diesel through a
   Compose tool container; Dockerfile/Compose/docs updated and verified.
+- `2574c1c6`: DB setup/version updates moved from `src/config/db_setup` to
+  `src/infra/postgres/operations/db_setup`; startup and docs now import DB
+  versioning through Postgres infra.
 
 Proof for recent pushed batches:
 
@@ -63,39 +66,50 @@ Proof for recent pushed batches:
 
 Included problems:
 
-- `src/config/db_setup` owned DB version updates while depending on
-  `diesel_async::AsyncPgConnection` and Postgres adapters.
-- Startup imported concrete DB setup through `config`, which blurred the
-  config/infra boundary.
-- Contributor and testing notes pointed at the old config path.
+- Development docs still mixed Make targets with raw Docker Compose/host Cargo
+  examples as primary commands.
+- Migration guidance implied host Diesel was still an option, even though
+  schema generation should be driven by Compose Diesel.
+- The Makefile had `migrate`/`migrate-redo`, but no discoverable Make target for
+  arbitrary Diesel CLI work or migration generation.
+- Agent guidance still referenced old DB paths such as `src/db/schema.rs` and
+  `db::establish_connection()`.
 
 Fixes:
 
-- Moved DB setup/version updates to
-  `src/infra/postgres/operations/db_setup`.
-- Removed the `db_setup` export from `src/config`.
-- Updated startup, Postgres operations exports, contributor notes, and testing
-  TODO references to the new infra path.
+- Added `make diesel-compose DIESEL_ARGS='...'` as the Make-owned Diesel CLI
+  passthrough through the Compose tool container.
+- Added `make migration-generate NAME=...`, `make fmt-compose`, and
+  `make mock-email` helper targets.
+- Rewired `make migrate` and `make migrate-redo` to delegate to
+  `make diesel-compose`.
+- Fixed `make help` so targets from included `mk/*.mk` files display by target
+  name instead of include filename.
+- Updated README, AGENTS, and Copilot guidance so Make targets are primary,
+  host Diesel is not required, and schema generation writes
+  `src/infra/postgres/schema.rs`.
 
 Deferred problems:
 
-- `config/constants` still owns role/permission strings; it has no concrete DB
-  dependency and needs a broader policy/constants placement audit before moving.
-- Bootstrap still receives concrete startup connections; that belongs to a
-  separate startup/deployment audit because bootstrap is allowed to wire
-  concrete dependencies.
+- `make fmt`, `make dev-run`, and `make dev-worker` still use host toolchains by
+  design, but they are Make-owned entrypoints.
+- Runtime container migrations still use the Diesel binary inside the runtime
+  image with an empty runtime config; this is a deployment concern, not the
+  development schema-generation path.
 
 Proof:
 
-- `cargo fmt --all --check`.
-- `./scripts/run-host-tests.sh cargo check --lib`.
-- Focused tests: `--lib operations::db_setup` and `--test db_version_control`.
-- `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`.
-- `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
+- Make dry-runs: `migrate`, `migrate-redo`, `diesel-compose
+  DIESEL_ARGS='print-schema'`, `migration-generate NAME=create_learning_paths`,
+  `fmt-compose`, and `mock-email`.
+- `make help` shows the new included targets by name.
+- `docker compose -f docker-compose.yml -f docker-compose.tools.yml config
+  --services` includes the `diesel` tool service.
 - `git diff --check`.
-- Scans: no old `config/db_setup` path, no `config::db_setup`, no concrete
-  Postgres/Diesel imports in `config`, `application`, or `domain`, and no
-  maintained Rust file over 180 lines.
+- Scans over README, AGENTS, Copilot guidance, Makefile, and `mk/`: no docs
+  still requiring host Diesel, no old `src/db/schema.rs`, no
+  `db::establish_connection()` guidance, and no raw Compose test/log commands
+  presented as the primary workflow.
 
 ## Remaining Work
 

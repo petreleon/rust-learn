@@ -22,18 +22,15 @@ The target LearnToken reward flow is defined in
 
 ```text
 .
-├── src/                    # Rust API, Level 2 rings, bootstrap, and shared types
+├── src/                    # Rust API, Level 2 rings, and bootstrap
 │   ├── http/               # Actix route handlers, route scopes, extractors, DTOs
 │   ├── application/        # Use cases, ports, commands, outputs
 │   ├── domain/             # Pure domain vocabulary and rules
-│   ├── infra/              # PostgreSQL, storage, Ethereum, and provider adapters
+│   ├── infra/              # PostgreSQL schema/models, storage, Ethereum, adapters
 │   ├── bootstrap/          # App state, app data, route wiring, startup
 │   ├── bin/worker.rs       # Background upload/video-processing worker
-│   ├── config/             # DB setup and role/permission constants
-│   ├── db/                 # Diesel schema and connection setup
-│   ├── middlewares/        # JWT, hierarchy, and permission middleware
-│   ├── models/             # Diesel row shapes and compatibility DTOs
-│   └── shared/             # Cross-cutting shared types and helpers
+│   ├── config/             # Role/permission constants and configuration helpers
+│   └── middlewares/        # JWT, hierarchy, and permission middleware
 ├── ethereum/               # Solidity contracts and generated ABI/bin artifacts
 ├── migrations/             # Diesel migrations
 ├── tests/                  # Integration and permission tests
@@ -125,8 +122,7 @@ Recommended local tools:
 
 - Rust stable toolchain and Cargo
 - Docker and Docker Compose
-- PostgreSQL client tooling if running migrations outside containers
-- Diesel CLI if using local migration commands
+- PostgreSQL client tooling only for manual database inspection
 - Node.js/npm for frontend development
 - ffmpeg for local worker/media-processing scenarios
 - OpenSSL for RSA key generation
@@ -209,13 +205,13 @@ to control the browser-facing base URL used in that reset link.
 Preview the mock email without registering a user:
 
 ```bash
-cargo run --bin mock_email --features tool-bin -- learner@example.com "Demo Learner" mock-preview-token
+make mock-email
 ```
 
-Or through Docker Compose:
+Override the preview values when needed:
 
 ```bash
-docker compose --profile test run --rm --no-deps test-runner cargo run --bin mock_email --features tool-bin -- learner@example.com "Demo Learner" mock-preview-token
+make mock-email MOCK_EMAIL=learner@example.com MOCK_NAME='Demo Learner' MOCK_TOKEN=mock-preview-token
 ```
 
 ### Wallet linking API
@@ -410,16 +406,16 @@ characters.
 
 ## Running with Docker Compose
 
-Start the complete local stack:
-
-```bash
-docker compose up
-```
-
-Or use the Makefile:
+Start the complete local stack through Make:
 
 ```bash
 make dev
+```
+
+For foreground Compose logs, use the raw Compose command as an escape hatch:
+
+```bash
+docker compose up
 ```
 
 `make dev` starts the current Compose images. After changing Rust API code,
@@ -451,32 +447,26 @@ Default local service ports:
 
 The API container runs `scripts/app-entrypoint.sh`, which initializes submodules, waits/retries migrations, and starts the app when `PROD_MODE=TRUE`.
 
-## Running locally without containers
+## Host-run backend and frontend
 
-Start only the API dependencies with Docker Compose:
+The primary local stack is `make dev`. For a host-run API or worker, start only
+the shared dependencies first:
 
 ```bash
 make dev-deps
 ```
 
 This starts PostgreSQL, RustFS, and Anvil without starting the API, web app, or
-worker containers. It is the quickest path when you want to run the Rust API on
-the host with Cargo:
+worker containers. Run the Rust API through the Make target:
 
 ```bash
-cargo run --bin rust-learn --features app-bin
+make dev-run
 ```
 
-The equivalent raw Docker Compose command is:
+Run the worker on the host:
 
 ```bash
-docker compose up -d db rustfs anvil
-```
-
-Run the worker locally:
-
-```bash
-cargo run --bin worker --features worker-bin
+make dev-worker
 ```
 
 Run the frontend locally:
@@ -520,26 +510,26 @@ interval has elapsed, and emit a recovery notice when polling succeeds again.
 Recommended worker build/start flow:
 
 ```bash
-make worker-build
-docker compose up -d db rustfs anvil worker
+make dev-deps
+make dev-refresh COMPOSE_REFRESH_SERVICES=worker
 ```
 
 If the worker build fails with an out-of-memory linker error, increase Docker VM memory and rebuild. With Colima, for example:
 
 ```bash
 colima start --memory 8192
-docker compose build worker
+make worker-build
 ```
 
 Inspect worker logs:
 
 ```bash
-docker compose logs -f worker
+make logs SERVICE=worker
 ```
 
 The worker writes `/tmp/worker_alive`; Docker Compose and Kubernetes run
 `/usr/local/bin/worker-healthcheck` against this heartbeat for health checks.
-Use `docker compose logs -f worker` to watch heartbeat-adjacent metric events
+Use `make logs SERVICE=worker` to watch heartbeat-adjacent metric events
 for queue depth, attempts, processing duration, retries, and failed jobs.
 
 ## Testing and quality checks
@@ -547,17 +537,23 @@ for queue depth, attempts, processing duration, retries, and failed jobs.
 Hosted GitHub Actions CI is intentionally disabled. Run the quality gates
 locally, preferably through Docker Compose, to avoid spending hosted CI minutes.
 
-Run all Rust tests on the host:
+Run Rust tests through Docker Compose service networking:
+
+```bash
+make test-compose
+```
+
+To pass a narrower Compose test filter through the Make target:
+
+```bash
+make test-compose CARGO_TEST_ARGS='--lib'
+make test-compose CARGO_TEST_ARGS='--test authentication_flow'
+```
+
+Host tests are still available when you specifically want the host toolchain:
 
 ```bash
 make test
-```
-
-To pass a narrower host Cargo test filter through the Make target:
-
-```bash
-make test CARGO_TEST_ARGS='--lib'
-make test CARGO_TEST_ARGS='--test authentication_flow'
 ```
 
 For ad hoc host Cargo commands, use the host wrapper so Compose-only service
@@ -568,67 +564,50 @@ are configured consistently:
 ./scripts/run-host-tests.sh cargo test --test authentication_flow
 ```
 
-Docker Compose equivalent:
-
-```bash
-make test-compose
-docker compose --profile test run --rm test-runner cargo test
-```
-
 Business-flow verification through Docker Compose:
 
 ```bash
-docker compose up -d db rustfs anvil
-
 # Teacher application and central review queue.
-docker compose --profile test run --rm test-runner cargo test --test teacher_applications
+make test-compose CARGO_TEST_ARGS='--test teacher_applications'
 
 # Course enrollment and join-request reward prerequisites.
-docker compose --profile test run --rm test-runner cargo test --test course_enrollment_api
-docker compose --profile test run --rm test-runner cargo test --test course_join_requests
+make test-compose CARGO_TEST_ARGS='--test course_enrollment_api'
+make test-compose CARGO_TEST_ARGS='--test course_join_requests'
 
 # Reward candidate submission, teacher approval, amount approval, fraud blocks,
 # delegated permissions, student history, and reporting.
-docker compose --profile test run --rm test-runner cargo test --test reward_candidates
-docker compose --profile test run --rm test-runner cargo test --test reward_fraud_blocks
-docker compose --profile test run --rm test-runner cargo test --test reward_management_api
-docker compose --profile test run --rm test-runner cargo test --test delegated_permissions
-docker compose --profile test run --rm test-runner cargo test --test student_reward_history
-docker compose --profile test run --rm test-runner cargo test --test reporting_exports
+make test-compose CARGO_TEST_ARGS='--test reward_candidates'
+make test-compose CARGO_TEST_ARGS='--test reward_fraud_blocks'
+make test-compose CARGO_TEST_ARGS='--test reward_management_api'
+make test-compose CARGO_TEST_ARGS='--test delegated_permissions'
+make test-compose CARGO_TEST_ARGS='--test student_reward_history'
+make test-compose CARGO_TEST_ARGS='--test reporting_exports'
 
 # Wallet credit, notification idempotency, reconciliation, and transaction links.
-docker compose --profile test run --rm test-runner cargo test --test reward_execution
-docker compose --profile test run --rm test-runner cargo test --test wallet_linking
-docker compose --profile test run --rm test-runner cargo test --test notification_events
+make test-compose CARGO_TEST_ARGS='--test reward_execution'
+make test-compose CARGO_TEST_ARGS='--test wallet_linking'
+make test-compose CARGO_TEST_ARGS='--test notification_events'
 
 # Anvil-backed token contract behavior.
-docker compose --profile test run --rm test-runner cargo test --test blockchain_integration_tests -- --ignored
-```
-
-To pass a narrower test filter through the Make target:
-
-```bash
-make test-compose CARGO_TEST_ARGS='--lib'
-make test-compose CARGO_TEST_ARGS='--test authentication_flow'
+make test-integration
 ```
 
 Run blockchain integration tests:
 
 ```bash
 make test-integration
-./scripts/run-host-tests.sh cargo test --test blockchain_integration_tests -- --ignored
 ```
 
 Check formatting:
 
 ```bash
-cargo fmt --all --check
+make fmt
 ```
 
-Docker Compose equivalent:
+If you need a one-off formatting check inside the test-runner container:
 
 ```bash
-docker compose --profile test run --rm --no-deps test-runner cargo fmt --all --check
+make fmt-compose
 ```
 
 Frontend checks:
@@ -709,21 +688,35 @@ make dev-deps
 
 ## Database migrations
 
-Run migrations through the Docker Compose Diesel tool container:
+Run migrations through the Make target. It starts the Compose PostgreSQL
+service, then runs Diesel inside the Compose tool container:
 
 ```bash
 make migrate
 ```
 
-This starts the Compose PostgreSQL service and runs Diesel inside the Compose
-tool container, so a host Diesel CLI install is not required. The generated
-schema is written through the mounted workspace to
+No host Diesel CLI install is required. Because `diesel.toml` points
+`print_schema.file` at `src/infra/postgres/schema.rs`, the generated schema is
+written through the mounted workspace to
 `src/infra/postgres/schema.rs`.
 
 Redo the latest migration:
 
 ```bash
 make migrate-redo
+```
+
+Generate a new migration directory through the same Compose Diesel image:
+
+```bash
+make migration-generate NAME=create_learning_paths
+```
+
+For less common Diesel commands, keep the Makefile as the entrypoint:
+
+```bash
+make diesel-compose DIESEL_ARGS='migration list'
+make diesel-compose DIESEL_ARGS='print-schema'
 ```
 
 When adding migrations, include reversible `up.sql` and `down.sql` files whenever possible and update/check `src/infra/postgres/schema.rs` when schema changes require it.
@@ -735,8 +728,8 @@ database credentials in `.env` do not match the Compose container, or a migratio
 failed partway through. Check the database service first:
 
 ```bash
-docker compose ps db
-docker compose logs -f db
+make ps
+make logs SERVICE=db
 ```
 
 When running the API on the host, `DATABASE_URL` should point at
@@ -752,8 +745,8 @@ from the host, mismatched credentials, or RustFS not being ready. Check the
 service and console:
 
 ```bash
-docker compose ps rustfs
-docker compose logs -f rustfs
+make ps
+make logs SERVICE=rustfs
 ```
 
 Containers should use `S3_INTERNAL_DOMAIN=rustfs`. A host-run API or worker
@@ -765,8 +758,8 @@ name is configured, or an old local state volume is being reused. Check Anvil an
 query the chain ID:
 
 ```bash
-docker compose ps anvil
-docker compose logs -f anvil
+make ps
+make logs SERVICE=anvil
 curl -s -X POST -H 'Content-Type: application/json' \
   --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
   http://localhost:8545
@@ -780,9 +773,9 @@ Worker builds and ffmpeg processing can be memory-heavy. Keep
 release builds fail, and inspect worker logs before raising concurrency:
 
 ```bash
-docker compose logs -f worker
+make logs SERVICE=worker
 colima start --memory 8192
-docker compose build worker
+make worker-build
 ```
 
 Docker and Minikube can also run out of disk after repeated local image builds.
@@ -829,7 +822,7 @@ make k8s-delete
 Before opening a pull request:
 
 1. Keep patches focused and documented.
-2. Run `cargo fmt --all --check` and relevant tests.
+2. Run `make fmt` and relevant tests.
 3. Update README/TODO/PERMISSIONS/environment docs when behavior, setup, or permissions change.
 4. Do not commit `.env`, private keys, `target/`, or `web/node_modules/`.
 
