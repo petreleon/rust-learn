@@ -941,6 +941,9 @@ Wiring rule:
       `AuthUser`, `DbConn`, `Json<T>`, `Path<T>`, and `Query<T>`.
 - [ ] API handlers return `Result<web::Json<T>, ApiError>` or equivalent,
       instead of manually matching every service error to `HttpResponse`.
+      Progress: `http/access_control` role catalog and delegated-permission
+      handlers now use typed `Result<web::Json<_>, ApiError>` style returns;
+      other HTTP contexts still need the same treatment before this is done.
 - [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
 - [x] Configure JSON limits and JSON parse errors centrally so every route has
@@ -1238,6 +1241,32 @@ Batch 290: move coarse frontend admin gates to backend-derived capabilities.
       (`approve` vs `review`, `grant` vs `view`, `revoke` vs `view`). The
       frontend capability item remains open until those contracts become
       backend-owned action capabilities.
+
+Batch 291: move access-control HTTP handlers to typed `ApiError` results.
+
+- [x] Repointed role-catalog and delegated-permission handlers away from
+      manual `HttpResponse`/`impl Responder` branches and into typed
+      `Result<web::Json<_>, ApiError>` responses.
+- [x] Added `http/access_control/errors.rs` as the access-control HTTP
+      boundary's local application-error-to-HTTP-envelope mapper, keeping
+      application errors Actix-free and preserving status/code/message
+      ownership in HTTP.
+- [x] Covered role-catalog connection, delegated-permission invalid-input, and
+      delegated-permission not-found mappings with focused unit tests that
+      render and assert the shared `ApiError` JSON envelope.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::access_control::errors`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control role_read_routes_require_view_role_assignments_permission`,
+      `./scripts/run-host-tests.sh cargo test --test reward_management_api delegated_permission_api_grants_lists_and_revokes_reward_permissions`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      access-control `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and
+      touched file-size checks.
+- [x] Self-critique: this completes the access-control HTTP slice only. The
+      global handler-return refactor remains open until the remaining HTTP
+      contexts stop hand-building response branches.
 
 Batch 287: remove the final legacy request-auth helper.
 
