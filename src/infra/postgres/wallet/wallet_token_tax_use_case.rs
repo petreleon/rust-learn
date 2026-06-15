@@ -7,8 +7,8 @@ use crate::application::wallet::manage_token_tax::{
     self, WalletTokenTaxError, WalletTokenTaxOperation, WalletTokenTaxSettings,
     WalletTokenTaxUseCase, WalletTokenTaxView,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::wallet::wallet_token_tax_store::PostgresWalletTokenTaxStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresWalletTokenTaxUseCase {

@@ -1,4 +1,4 @@
-use crate::db::schema::kyc_audit_events;
+use crate::infra::postgres::schema::kyc_audit_events;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;

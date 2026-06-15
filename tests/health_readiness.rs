@@ -1,8 +1,8 @@
 use actix_web::{http::StatusCode, test, web, App};
 use rust_learn::application::operations::readiness_check::ReadinessUseCase;
 use rust_learn::bootstrap::readiness::RuntimeReadinessUseCase;
-use rust_learn::db::establish_connection;
 use rust_learn::infra::object_storage::S3State;
+use rust_learn::infra::postgres::establish_connection;
 use serde_json::Value;
 use std::sync::Arc;
 
@@ -80,7 +80,7 @@ async fn readiness_checks_runtime_dependencies() {
 }
 
 fn readiness_use_case_data(
-    pool: rust_learn::db::DbPool,
+    pool: rust_learn::infra::postgres::DbPool,
     s3: S3State,
 ) -> web::Data<Arc<dyn ReadinessUseCase>> {
     web::Data::new(Arc::new(RuntimeReadinessUseCase::new(pool, s3)))

@@ -5,8 +5,6 @@ use rust_learn::application::learning::update_course::{
     CourseUpdateCommand, CourseUpdateError, CourseUpdateUseCase,
 };
 use rust_learn::config::constants::roles::Roles;
-use rust_learn::db::schema::courses;
-use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
 use rust_learn::infra::postgres::access_control::role_catalog_store;
@@ -14,6 +12,8 @@ use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_p
 use rust_learn::infra::postgres::learning::course_update_use_case::PostgresCourseUpdateUseCase;
 use rust_learn::infra::postgres::models::course::{Course, NewCourse};
 use rust_learn::infra::postgres::models::user::User;
+use rust_learn::infra::postgres::schema::courses;
+use rust_learn::infra::postgres::{establish_connection, DbPool};
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);

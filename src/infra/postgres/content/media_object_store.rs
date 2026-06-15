@@ -4,7 +4,7 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::content::ports::ContentMediaStore;
 use crate::application::content::request_media_url::ContentMediaUrlError;
-use crate::db::schema::{chapters, contents};
+use crate::infra::postgres::schema::{chapters, contents};
 
 pub struct PostgresContentMediaStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

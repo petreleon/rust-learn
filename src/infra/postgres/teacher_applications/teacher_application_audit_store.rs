@@ -9,9 +9,9 @@ use crate::application::teacher_applications::{
     list_application_audit::{TeacherApplicationAuditError, TeacherApplicationAuditStore},
     TeacherApplicationAuditEventOutput,
 };
-use crate::db::schema::teacher_application_audit_events;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::models::teacher_application::TeacherApplicationAuditEvent;
+use crate::infra::postgres::schema::teacher_application_audit_events;
 use crate::infra::postgres::teacher_applications::teacher_application_audit_mappers::audit_event_output;
 
 pub struct PostgresTeacherApplicationAuditStore<'conn> {

@@ -4,7 +4,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::learning::get_teacher_course_students::TeacherStudentProgressSummaryOutput;
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError;
-use crate::db::schema::{chapters, contents, course_progress};
+use crate::infra::postgres::schema::{chapters, contents, course_progress};
 
 pub async fn load_course_content_count(
     conn: &mut AsyncPgConnection,

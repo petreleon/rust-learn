@@ -5,7 +5,7 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::learning::delete_course::{
     CourseDeletionError, CourseDeletionOutcome, CourseDeletionStore,
 };
-use crate::db::schema::courses;
+use crate::infra::postgres::schema::courses;
 
 pub struct PostgresCourseDeletionStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

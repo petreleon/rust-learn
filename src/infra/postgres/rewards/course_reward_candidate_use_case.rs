@@ -4,8 +4,8 @@ use crate::application::rewards::list_course_candidates::{
     self, CourseRewardCandidate, CourseRewardCandidatesError, CourseRewardCandidatesQuery,
     CourseRewardCandidatesUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::course_reward_candidate_store::PostgresCourseRewardCandidateStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresCourseRewardCandidatesUseCase {

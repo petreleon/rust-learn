@@ -7,7 +7,6 @@ use crate::application::rewards::manage_reward_policy::{
     RewardPolicyDraft, RewardPolicyError, RewardPolicyListFilter, RewardPolicyOutput,
 };
 use crate::application::rewards::ports::RewardPolicyStore;
-use crate::db::schema::{courses, organizations};
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_policy_activation::deactivate_active_policies;
 use crate::infra::postgres::rewards::reward_policy_mappers::{
@@ -16,6 +15,7 @@ use crate::infra::postgres::rewards::reward_policy_mappers::{
 use crate::infra::postgres::rewards::reward_policy_records::{
     create_policy, list_policies, next_policy_version, RewardPolicyFilter,
 };
+use crate::infra::postgres::schema::{courses, organizations};
 
 pub struct PostgresRewardPolicyStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

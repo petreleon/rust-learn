@@ -3,7 +3,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::wallet::link_wallet::{LinkedWalletView, WalletLinkError, WalletLinkStore};
-use crate::db::schema::{organizations, users};
+use crate::infra::postgres::schema::{organizations, users};
 use crate::infra::postgres::wallet::wallet_access::{
     can_link_organization_wallet, can_link_user_wallet,
 };

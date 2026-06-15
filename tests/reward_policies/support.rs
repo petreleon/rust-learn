@@ -5,8 +5,6 @@ pub(crate) use rust_learn::application::rewards::manage_reward_policy::{
     CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyError, RewardPolicyUseCase,
 };
 pub(crate) use rust_learn::config::constants::roles::Roles;
-pub(crate) use rust_learn::db::schema::{courses, organizations};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::domain::rewards::policy::{
     RewardPaymentStrategy, RewardPolicyEventType, RewardPolicyScope,
 };
@@ -16,6 +14,8 @@ pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
 pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
 pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_policy_use_case::PostgresRewardPolicyUseCase;
+pub(crate) use rust_learn::infra::postgres::schema::{courses, organizations};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use std::str::FromStr;
 
 pub(crate) fn unique_string(prefix: &str) -> String {

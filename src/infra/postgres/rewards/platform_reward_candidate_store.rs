@@ -7,12 +7,12 @@ use crate::application::rewards::list_platform_candidates::{
     PlatformRewardCandidateCourseSummary, PlatformRewardCandidateRecord,
     PlatformRewardCandidateUserSummary, PlatformRewardCandidatesError,
 };
-use crate::db::schema::{courses, users};
 use crate::infra::postgres::rewards::platform_reward_candidate_mappers::{
     map_platform_reward_candidate_error, map_platform_reward_candidate_record,
 };
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_records::{self, RewardCandidateFilter};
+use crate::infra::postgres::schema::{courses, users};
 
 pub struct PostgresPlatformRewardCandidateStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

@@ -8,13 +8,13 @@ use crate::application::wallet::link_wallet::WalletLinkUseCase;
 use crate::application::wallet::manage_token_tax::WalletTokenTaxUseCase;
 use crate::application::wallet::read_wallet::WalletReadUseCase;
 use crate::application::wallet::retire_tokens::WalletRetirementUseCase;
-use crate::db::DbPool;
 use crate::infra::postgres::wallet::wallet_audit_use_case::PostgresWalletAuditUseCase;
 use crate::infra::postgres::wallet::wallet_deposit_intent_use_case::PostgresWalletDepositIntentUseCase;
 use crate::infra::postgres::wallet::wallet_link_use_case::PostgresWalletLinkUseCase;
 use crate::infra::postgres::wallet::wallet_read_use_case::PostgresWalletReadUseCase;
 use crate::infra::postgres::wallet::wallet_retirement_use_case::PostgresWalletRetirementUseCase;
 use crate::infra::postgres::wallet::wallet_token_tax_use_case::PostgresWalletTokenTaxUseCase;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct WalletUseCases {

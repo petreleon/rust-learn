@@ -1,7 +1,6 @@
 pub mod application;
 pub mod bootstrap;
 pub mod config;
-pub mod db;
 pub mod domain;
 pub mod http;
 pub mod infra;

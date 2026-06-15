@@ -10,11 +10,11 @@ use crate::application::organizations::list_organization_teacher_applications::{
     OrganizationTeacherApplicationListStore, OrganizationTeacherApplicationOrganizationOutput,
     OrganizationTeacherApplicationPermissionsOutput,
 };
-use crate::db::schema::{organizations, teacher_applications};
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::organizations::organization_teacher_application_audit_context::teacher_application_summary;
 use crate::infra::postgres::organizations::organization_teacher_application_context::build_context;
 use crate::infra::postgres::organizations::organization_teacher_application_mappers::organization_teacher_application_item;
+use crate::infra::postgres::schema::{organizations, teacher_applications};
 
 pub struct PostgresOrganizationTeacherApplicationStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

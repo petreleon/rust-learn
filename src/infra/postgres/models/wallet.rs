@@ -1,4 +1,4 @@
-use crate::db::schema::wallets;
+use crate::infra::postgres::schema::wallets;
 use bigdecimal::BigDecimal;
 use diesel::prelude::*;
 

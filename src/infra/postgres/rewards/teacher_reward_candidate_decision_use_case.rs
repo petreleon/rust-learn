@@ -4,8 +4,8 @@ use crate::application::rewards::decide_teacher_candidate::{
     self, TeacherRewardCandidateDecisionCommand, TeacherRewardCandidateDecisionError,
     TeacherRewardCandidateDecisionOutput, TeacherRewardCandidateDecisionUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::teacher_reward_candidate_decision_store::PostgresTeacherRewardCandidateDecisionStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresTeacherRewardCandidateDecisionUseCase {

@@ -1,15 +1,16 @@
 use bigdecimal::BigDecimal;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use rust_learn::db::schema::{external_transactions, transactions};
 use rust_learn::domain::rewards::token::RewardTokenEventType;
+use rust_learn::infra::postgres::schema::{external_transactions, transactions};
 use rust_learn::infra::postgres::wallet::token_reconciliation_records::{
     record_token_event, ObservedTokenEvent,
 };
 
 fn sync_connection() -> PgConnection {
     let _ = dotenvy::dotenv();
-    let database_url = rust_learn::db::database_url_from_env().expect("DATABASE_URL must be set");
+    let database_url =
+        rust_learn::infra::postgres::database_url_from_env().expect("DATABASE_URL must be set");
     PgConnection::establish(&database_url).expect("failed to connect to database")
 }
 

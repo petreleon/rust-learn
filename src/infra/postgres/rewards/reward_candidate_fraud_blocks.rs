@@ -3,12 +3,12 @@ use diesel::dsl::exists;
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::{courses_organizations, reward_fraud_blocks};
 use crate::domain::rewards::fraud_block::{
     REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
     REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
 };
 use crate::infra::postgres::rewards::reward_candidate_policy_lookup::active_reward_policy_ids_for_course_event;
+use crate::infra::postgres::schema::{courses_organizations, reward_fraud_blocks};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RewardCandidateFraudBlockError {

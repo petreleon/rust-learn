@@ -8,10 +8,12 @@ use crate::application::reporting::platform_reward_dashboard::{
     PlatformRewardDashboardError, RewardReconciliationMismatchRowFact,
     RewardReconciliationMismatchRowOutput,
 };
-use crate::db::schema::{reward_candidates, reward_payout_records, reward_wallet_credit_records};
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 use crate::infra::postgres::reporting::platform_reward_dashboard_summaries::map_diesel_error;
+use crate::infra::postgres::schema::{
+    reward_candidates, reward_payout_records, reward_wallet_credit_records,
+};
 
 pub(super) async fn reward_reconciliation_mismatches(
     conn: &mut AsyncPgConnection,

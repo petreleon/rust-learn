@@ -1,4 +1,4 @@
-use crate::db::schema::reward_wallet_credit_records;
+use crate::infra::postgres::schema::reward_wallet_credit_records;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;

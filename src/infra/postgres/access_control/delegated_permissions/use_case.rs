@@ -7,8 +7,8 @@ use crate::application::access_control::manage_delegated_permissions::{
     GrantDelegatedPermissionCommand, ListDelegatedPermissionsQuery,
     RevokeDelegatedPermissionCommand,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::access_control::delegated_permissions::store::PostgresDelegatedPermissionStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresDelegatedPermissionUseCase {

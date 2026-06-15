@@ -3,8 +3,8 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::reward_candidates;
 use crate::infra::postgres::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
+use crate::infra::postgres::schema::reward_candidates;
 
 const DEFAULT_REWARD_CANDIDATE_LIMIT: i64 = 25;
 const MAX_REWARD_CANDIDATE_LIMIT: i64 = 100;

@@ -4,8 +4,8 @@ use crate::application::rewards::submit_candidate::{
     self, RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
     RewardCandidateSubmissionUseCase, SubmitRewardCandidateCommand,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::reward_candidate_submission_store::PostgresRewardCandidateSubmissionStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRewardCandidateSubmissionUseCase {

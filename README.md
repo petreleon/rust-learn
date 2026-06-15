@@ -721,7 +721,7 @@ Redo the latest migration:
 diesel migration redo
 ```
 
-When adding migrations, include reversible `up.sql` and `down.sql` files whenever possible and update/check `src/db/schema.rs` when schema changes require it.
+When adding migrations, include reversible `up.sql` and `down.sql` files whenever possible and update/check `src/infra/postgres/schema.rs` when schema changes require it.
 
 ## Troubleshooting
 

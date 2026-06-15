@@ -7,11 +7,11 @@ pub(crate) use rust_learn::application::learning::get_teacher_course_enrollment_
 pub(crate) use rust_learn::application::learning::get_teacher_course_students::TeacherCourseStudentsUseCase;
 pub(crate) use rust_learn::application::learning::get_teacher_course_workspace::TeacherCourseWorkspaceUseCase;
 pub(crate) use rust_learn::application::learning::list_teacher_course_dashboard::TeacherCourseDashboardListUseCase;
-pub(crate) use rust_learn::db::schema::{
+pub(crate) use rust_learn::infra::postgres::schema::{
     chapters, contents, course_join_requests, course_progress, courses, courses_organizations,
     organizations, reward_candidates, reward_policies,
 };
-pub(crate) use rust_learn::db::{DbPool, establish_connection};
+pub(crate) use rust_learn::infra::postgres::{DbPool, establish_connection};
 pub(crate) use rust_learn::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
 pub(crate) use rust_learn::domain::learning::enrollment::status::{
     COURSE_JOIN_STATUS_APPROVED, COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,

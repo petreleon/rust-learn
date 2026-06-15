@@ -2,8 +2,6 @@ pub(crate) use actix_web::{http::StatusCode, test, web, App};
 pub(crate) use chrono::NaiveDate;
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::application::rewards::list_candidate_audit::RewardCandidateAuditUseCase;
-pub(crate) use rust_learn::db::schema::{courses, reward_audit_events, reward_candidates};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::domain::rewards::audit::REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED;
 pub(crate) use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
 pub(crate) use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
@@ -18,6 +16,10 @@ pub(crate) use rust_learn::infra::postgres::models::reward_candidate::{
 };
 pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_candidate_audit_use_case::PostgresRewardCandidateAuditUseCase;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    courses, reward_audit_events, reward_candidates,
+};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
 pub(crate) use serde_json::{json, Value};
 pub(crate) use std::sync::Arc;

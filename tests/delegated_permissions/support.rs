@@ -13,10 +13,6 @@ pub(crate) use rust_learn::application::rewards::decide_amount::{
     RewardAmountDecisionOutput, RewardAmountDecisionUseCase,
 };
 pub(crate) use rust_learn::config::constants::permissions::Permissions;
-pub(crate) use rust_learn::db::establish_connection;
-pub(crate) use rust_learn::db::schema::{
-    courses, courses_organizations, delegated_permissions, organizations, reward_policies, users,
-};
 pub(crate) use rust_learn::domain::access_control::delegation::{
     DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
 };
@@ -35,6 +31,7 @@ pub(crate) use rust_learn::infra::postgres::access_control::permission_queries::
 };
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
+pub(crate) use rust_learn::infra::postgres::establish_connection;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
 pub(crate) use rust_learn::infra::postgres::models::courses_organizations::NewCourseOrganization;
@@ -42,6 +39,9 @@ pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganizati
 pub(crate) use rust_learn::infra::postgres::models::reward_policy::NewRewardPolicy;
 pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_amount_decision_use_case::PostgresRewardAmountDecisionUseCase;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    courses, courses_organizations, delegated_permissions, organizations, reward_policies, users,
+};
 pub(crate) use serde_json::json;
 
 pub(crate) fn unique_string(prefix: &str) -> String {

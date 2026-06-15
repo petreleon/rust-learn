@@ -9,14 +9,14 @@ use crate::application::learning::learner_course_catalog::{
     LearnerCourseCatalogOrganizationOutput, LearnerCourseCatalogTeacherOutput,
     LearnerCourseContentSummaryOutput, LearnerCourseRewardSummaryOutput,
 };
-use crate::db::schema::{
-    chapters, contents, course_roles, courses_organizations, organizations, reward_policies,
-    user_role_course, users,
-};
 use crate::infra::postgres::learning::{
     learner_course_access_queries, learner_course_enrollment_summary_queries,
 };
 use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::schema::{
+    chapters, contents, course_roles, courses_organizations, organizations, reward_policies,
+    user_role_course, users,
+};
 
 pub async fn build_learner_course_catalog_item(
     conn: &mut AsyncPgConnection,

@@ -39,7 +39,7 @@ impl ResetPasswordStore for PostgresResetPasswordStore<'_> {
                             return Ok(map_outcome(outcome));
                         };
 
-                        use crate::db::schema::authentications::dsl as auths;
+                        use crate::infra::postgres::schema::authentications::dsl as auths;
                         let updated = diesel::update(
                             auths::authentications
                                 .filter(auths::user_id.eq(user_id))

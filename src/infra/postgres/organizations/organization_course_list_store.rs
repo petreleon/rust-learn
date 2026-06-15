@@ -8,11 +8,11 @@ use crate::application::organizations::list_organization_courses::{
     OrganizationCourseListStore, OrganizationCourseSummaryOutput,
 };
 use crate::config::constants::permissions::Permissions;
-use crate::db::schema::{courses, courses_organizations, organizations};
 use crate::infra::postgres::models::course::Course;
 use crate::infra::postgres::organizations::{
     organization_course_permission_queries, organization_course_summary_queries,
 };
+use crate::infra::postgres::schema::{courses, courses_organizations, organizations};
 
 const LIKE_ESCAPE_CHAR: char = '\\';
 

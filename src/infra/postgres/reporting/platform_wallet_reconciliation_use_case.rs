@@ -4,8 +4,8 @@ use crate::application::reporting::platform_wallet_reconciliation::{
     self, PlatformWalletReconciliationError, PlatformWalletReconciliationOutput,
     PlatformWalletReconciliationUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::reporting::platform_wallet_reconciliation_store::PostgresPlatformWalletReconciliationStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresPlatformWalletReconciliationUseCase {

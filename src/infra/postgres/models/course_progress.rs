@@ -1,4 +1,4 @@
-use crate::db::schema::course_progress;
+use crate::infra::postgres::schema::course_progress;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;

@@ -4,11 +4,11 @@ use super::next_block_to_scan::{
 };
 use super::support::{WalletDepositIndexerConfig, NEXT_BLOCK_STATE_KEY};
 use crate::application::wallet::index_deposit::index_observed_deposit;
-use crate::db::DbPool;
 use crate::infra::postgres::operations::persistent_state::{
     get_persistent_state, set_persistent_state,
 };
 use crate::infra::postgres::wallet::wallet_deposit_index_store::PostgresWalletDepositIndexStore;
+use crate::infra::postgres::DbPool;
 use ethers::providers::Middleware;
 use ethers::types::Address;
 use std::collections::HashSet;

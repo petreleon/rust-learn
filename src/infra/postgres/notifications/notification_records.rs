@@ -1,8 +1,8 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::notifications;
 use crate::infra::postgres::models::notification::{NewNotification, Notification};
+use crate::infra::postgres::schema::notifications;
 
 pub async fn insert_notification(
     conn: &mut AsyncPgConnection,

@@ -1,4 +1,4 @@
-use crate::db::schema::notifications;
+use crate::infra::postgres::schema::notifications;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;

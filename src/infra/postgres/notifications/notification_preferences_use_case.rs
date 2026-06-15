@@ -6,8 +6,8 @@ use crate::application::notifications::preferences::{
 };
 use crate::application::notifications::save_preferences::SaveNotificationPreferencesCommand;
 use crate::application::notifications::{get_preferences, save_preferences};
-use crate::db::DbPool;
 use crate::infra::postgres::notifications::notification_preference_store::PostgresNotificationPreferenceStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresNotificationPreferencesUseCase {

@@ -4,10 +4,6 @@ pub(crate) use diesel::prelude::*;
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::application::organizations::manage_organizations::OrganizationManagementUseCase;
 pub(crate) use rust_learn::config::constants::{permissions::Permissions, roles::Roles};
-pub(crate) use rust_learn::db::schema::{
-    courses, courses_organizations, delegated_permissions, organizations,
-};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_ORGANIZATION;
 pub(crate) use rust_learn::infra::postgres::access_control::organization_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
@@ -18,6 +14,10 @@ pub(crate) use rust_learn::infra::postgres::models::delegated_permission::NewDel
 pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
 pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::organizations::organization_management_use_case::PostgresOrganizationManagementUseCase;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    courses, courses_organizations, delegated_permissions, organizations,
+};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
 pub(crate) use serde_json::Value;
 pub(crate) use std::sync::{

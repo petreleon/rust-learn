@@ -10,10 +10,6 @@ pub(crate) use rust_learn::application::rewards::manage_fraud_block::{
     RewardFraudBlockUseCase,
 };
 pub(crate) use rust_learn::config::constants::permissions::Permissions;
-pub(crate) use rust_learn::db::schema::{
-    courses, notifications, organizations, reward_fraud_blocks,
-};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::domain::access_control::delegation::{
     DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
 };
@@ -32,6 +28,10 @@ pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganizati
 pub(crate) use rust_learn::infra::postgres::models::reward_fraud_block::RewardFraudBlock;
 pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    courses, notifications, organizations, reward_fraud_blocks,
+};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 
 pub(crate) struct GrantDelegatedPermissionRequest {
     pub(crate) grantee_user_id: i32,

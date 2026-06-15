@@ -5,8 +5,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::learning::delete_course::{
     self, CourseDeletionError, CourseDeletionOutcome, CourseDeletionUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::learning::course_deletion_store::PostgresCourseDeletionStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresCourseDeletionUseCase {

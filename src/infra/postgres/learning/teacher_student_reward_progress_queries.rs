@@ -8,9 +8,9 @@ use crate::application::learning::get_teacher_course_students::{
     TeacherStudentRewardProgressSummaryOutput,
 };
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError;
-use crate::db::schema::reward_candidates;
 use crate::domain::rewards::candidate::event_type::RewardEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::infra::postgres::schema::reward_candidates;
 
 type LatestRewardCandidateRow = (
     i64,

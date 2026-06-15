@@ -6,8 +6,8 @@ use crate::application::organizations::manage_organizations::{
     self, OrganizationCreateCommand, OrganizationManagementError, OrganizationManagementUseCase,
     OrganizationOutput, OrganizationUpdateCommand,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::organizations::organization_management_store::PostgresOrganizationManagementStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresOrganizationManagementUseCase {

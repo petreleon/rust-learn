@@ -11,15 +11,15 @@ use crate::application::access_control::reward_fraud_block_notifications::{
 use crate::application::rewards::manage_fraud_block::{
     RewardFraudBlockError, RewardFraudBlockOutput,
 };
-use crate::db::schema::{
-    courses_organizations, delegated_permissions, reward_policies, role_permission_organization,
-    role_permission_platform, user_role_organization, user_role_platform,
-};
 use crate::domain::access_control::delegation::{
     DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
 };
 use crate::domain::access_control::permission::Permission;
 use crate::infra::postgres::rewards::reward_fraud_block_mappers::map_reward_fraud_block_error;
+use crate::infra::postgres::schema::{
+    courses_organizations, delegated_permissions, reward_policies, role_permission_organization,
+    role_permission_platform, user_role_organization, user_role_platform,
+};
 
 pub(super) async fn reward_fraud_block_notification_recipients(
     conn: &mut AsyncPgConnection,

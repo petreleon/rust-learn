@@ -6,7 +6,7 @@ use crate::application::reporting::platform_summary::store::PlatformSummaryStore
 use crate::application::reporting::platform_summary::{
     platform_summary_output, PlatformSummaryError, PlatformSummaryFact, PlatformSummaryOutput,
 };
-use crate::db::schema::{courses, notifications, organizations, users, wallets};
+use crate::infra::postgres::schema::{courses, notifications, organizations, users, wallets};
 
 pub struct PostgresPlatformSummaryStore<'a> {
     conn: &'a mut AsyncPgConnection,

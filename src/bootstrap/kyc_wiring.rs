@@ -5,8 +5,8 @@ use actix_web::web;
 use crate::application::kyc::{
     KycAuditUseCase, KycReviewUseCase, KycStatusUseCase, KycSubmissionUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::kyc::kyc_use_case::PostgresKycUseCase;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct KycUseCases {

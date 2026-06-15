@@ -1,4 +1,4 @@
-use crate::db::schema::delegated_permissions;
+use crate::infra::postgres::schema::delegated_permissions;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;

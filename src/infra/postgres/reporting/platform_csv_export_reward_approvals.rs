@@ -5,12 +5,12 @@ use crate::application::reporting::platform_csv_exports::{
     platform_reward_approval_export_row, PlatformCsvExportError, PlatformRewardApprovalExportFact,
     PlatformRewardApprovalExportRowOutput,
 };
-use crate::db::schema::reward_candidates;
 use crate::domain::rewards::candidate::event_type::RewardEventType;
 use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 use crate::infra::postgres::reporting::platform_csv_export_mappers::map_diesel_error;
+use crate::infra::postgres::schema::reward_candidates;
 
 pub(super) async fn load_reward_approval_export_rows(
     conn: &mut AsyncPgConnection,

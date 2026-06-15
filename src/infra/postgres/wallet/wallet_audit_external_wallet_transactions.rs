@@ -2,7 +2,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::wallet::audit_wallet::{WalletAuditError, WalletExternalTransactionAudit};
-use crate::db::schema::{external_transactions, transactions_external_transactions};
+use crate::infra::postgres::schema::{external_transactions, transactions_external_transactions};
 use crate::infra::postgres::wallet::wallet_audit_external_rows::{
     wallet_external_transaction_audit, WalletExternalTransactionRow,
 };

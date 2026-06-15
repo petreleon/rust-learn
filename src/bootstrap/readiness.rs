@@ -4,11 +4,11 @@ use crate::application::operations::ports::ReadinessDependency;
 use crate::application::operations::readiness_check::{
     check_readiness, ReadinessOutput, ReadinessUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::ethereum::operations::readiness_check::EthereumReadinessCheck;
 use crate::infra::object_storage::operations::readiness_check::S3ReadinessCheck;
 use crate::infra::object_storage::S3State;
 use crate::infra::postgres::operations::readiness_check::PostgresReadinessCheck;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct RuntimeReadinessUseCase {

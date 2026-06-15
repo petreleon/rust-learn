@@ -5,8 +5,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::wallet::link_wallet::{
     self, LinkedWalletView, WalletLinkError, WalletLinkSubject, WalletLinkUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::wallet::wallet_link_store::PostgresWalletLinkStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresWalletLinkUseCase {

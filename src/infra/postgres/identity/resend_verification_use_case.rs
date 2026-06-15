@@ -4,11 +4,11 @@ use crate::application::identity::resend_verification::{
     self, ResendVerificationCommand, ResendVerificationError, ResendVerificationOutcome,
     ResendVerificationUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::identity::resend_verification_delivery::{
     GeneratedVerificationToken, MockVerificationEmailSender,
 };
 use crate::infra::postgres::identity::resend_verification_store::PostgresResendVerificationStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresResendVerificationUseCase {

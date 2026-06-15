@@ -5,12 +5,12 @@ use crate::application::reporting::platform_reward_dashboard::{
     record_reward_candidate_status_count, PlatformRewardDashboardError,
     RewardCandidateDashboardSummaryOutput, TeacherApplicationDashboardSummaryOutput,
 };
-use crate::db::schema::{reward_candidates, teacher_applications};
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::teacher_applications::status::{
     TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
     TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
 };
+use crate::infra::postgres::schema::{reward_candidates, teacher_applications};
 
 pub(super) async fn teacher_application_dashboard_summary(
     conn: &mut AsyncPgConnection,

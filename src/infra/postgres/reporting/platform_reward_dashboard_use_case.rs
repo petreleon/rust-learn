@@ -4,8 +4,8 @@ use crate::application::reporting::platform_reward_dashboard::{
     self, PlatformRewardDashboardError, PlatformRewardDashboardOutput,
     PlatformRewardDashboardUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::reporting::platform_reward_dashboard_store::PostgresPlatformRewardDashboardStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresPlatformRewardDashboardUseCase {

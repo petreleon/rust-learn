@@ -4,8 +4,8 @@ use crate::application::rewards::record_compensation::{
     self, RecordRewardCompensationCommand, RewardCompensationError, RewardCompensationOutput,
     RewardCompensationUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::reward_compensation_store::PostgresRewardCompensationStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRewardCompensationUseCase {

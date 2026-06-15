@@ -7,14 +7,14 @@ use diesel::BoolExpressionMethods;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError;
-use crate::db::schema::{
-    courses_organizations, delegated_permissions, role_permission_course,
-    role_permission_organization, role_permission_platform, user_role_course,
-    user_role_organization, user_role_platform,
-};
 use crate::domain::access_control::delegation::DELEGATED_SCOPE_PLATFORM;
 use crate::infra::postgres::learning::{
     teacher_course_dashboard_delegated_scope, teacher_course_dashboard_permissions,
+};
+use crate::infra::postgres::schema::{
+    courses_organizations, delegated_permissions, role_permission_course,
+    role_permission_organization, role_permission_platform, user_role_course,
+    user_role_organization, user_role_platform,
 };
 
 pub enum TeacherCourseCandidateScope {

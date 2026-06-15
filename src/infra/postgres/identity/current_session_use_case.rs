@@ -3,8 +3,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::identity::current_session::{
     self, CurrentSessionError, CurrentSessionOutput, CurrentSessionUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::identity::current_session_store::PostgresCurrentSessionStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresCurrentSessionUseCase {

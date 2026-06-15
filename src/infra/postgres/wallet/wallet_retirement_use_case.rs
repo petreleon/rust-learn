@@ -6,8 +6,8 @@ use crate::application::wallet::retire_tokens::{
     self, WalletRetirementCommand, WalletRetirementError, WalletRetirementUseCase,
     WalletRetirementView,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::wallet::wallet_retirement_store::PostgresWalletRetirementStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresWalletRetirementUseCase {

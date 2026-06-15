@@ -1,4 +1,4 @@
-use crate::db::schema::{teacher_application_audit_events, teacher_applications};
+use crate::infra::postgres::schema::{teacher_application_audit_events, teacher_applications};
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;

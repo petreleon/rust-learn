@@ -14,14 +14,6 @@ pub(crate) use rust_learn::application::wallet::link_wallet::{
     link_wallet, LinkedWalletView, WalletLinkSubject,
 };
 pub(crate) use rust_learn::config::constants::permissions::Permissions;
-pub(crate) use rust_learn::db::schema::{
-    courses, external_transactions, internal_transactions, organization_roles, organizations,
-    platform_roles, reward_candidates, reward_payout_records, reward_wallet_credit_records,
-    role_permission_organization, role_permission_platform, transactions,
-    transactions_external_transactions, transactions_internal_transactions, users,
-    wallet_token_deposit_intents, wallets,
-};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
 pub(crate) use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
 pub(crate) use rust_learn::domain::rewards::candidate::status::{
@@ -35,9 +27,17 @@ pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganizati
 pub(crate) use rust_learn::infra::postgres::models::reward_candidate::NewRewardCandidate;
 use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::operations::persistent_state::set_persistent_state;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    courses, external_transactions, internal_transactions, organization_roles, organizations,
+    platform_roles, reward_candidates, reward_payout_records, reward_wallet_credit_records,
+    role_permission_organization, role_permission_platform, transactions,
+    transactions_external_transactions, transactions_internal_transactions, users,
+    wallet_token_deposit_intents, wallets,
+};
 use rust_learn::infra::postgres::wallet::wallet_deposit_index_store::PostgresWalletDepositIndexStore;
 use rust_learn::infra::postgres::wallet::wallet_deposit_intent_store::PostgresWalletDepositIntentStore;
 use rust_learn::infra::postgres::wallet::wallet_link_store::PostgresWalletLinkStore;
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use serde_json::{json, Value};
 use std::sync::atomic::{AtomicU64, Ordering};
 

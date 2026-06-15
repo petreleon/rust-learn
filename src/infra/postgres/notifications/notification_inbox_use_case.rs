@@ -3,8 +3,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::notifications::notification_inbox::{
     self, NotificationInboxError, NotificationInboxUseCase, NotificationOutput,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::notifications::notification_inbox_store::PostgresNotificationInboxStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresNotificationInboxUseCase {

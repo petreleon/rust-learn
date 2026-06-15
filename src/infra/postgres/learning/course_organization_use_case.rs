@@ -5,8 +5,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::learning::list_course_organizations::{
     self, CourseOrganizationOutput, CourseOrganizationReadError, CourseOrganizationsUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::learning::course_organization_store::PostgresCourseOrganizationStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresCourseOrganizationsUseCase {

@@ -6,12 +6,12 @@ use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboa
 use crate::application::learning::teacher_course_enrollment::{
     TeacherCourseJoinRequestItemOutput, TeacherCourseJoinRequestPageOutput,
 };
-use crate::db::schema::course_join_requests;
 use crate::domain::learning::enrollment::status::{
     COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
 };
 use crate::infra::postgres::learning::teacher_course_roster_queries;
 use crate::infra::postgres::models::course_join_request::CourseJoinRequest;
+use crate::infra::postgres::schema::course_join_requests;
 
 pub async fn load_teacher_course_join_request_page(
     conn: &mut AsyncPgConnection,

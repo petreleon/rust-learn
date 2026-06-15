@@ -1,4 +1,4 @@
-use crate::db::schema::{course_roles, organization_roles, platform_roles};
+use crate::infra::postgres::schema::{course_roles, organization_roles, platform_roles};
 use diesel::prelude::*;
 use serde::Serialize;
 

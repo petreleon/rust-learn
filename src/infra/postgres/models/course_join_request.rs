@@ -1,4 +1,4 @@
-use crate::db::schema::course_join_requests;
+use crate::infra::postgres::schema::course_join_requests;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;

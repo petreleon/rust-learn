@@ -6,12 +6,12 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::application::learning::list_assessment_attempts::AssessmentAttemptsUseCase;
 use rust_learn::application::learning::list_course_assessments::CourseAssessmentsUseCase;
-use rust_learn::db::schema::{assessment_attempts, assessments, courses};
-use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::learning::assessment_read_use_case::PostgresAssessmentReadUseCase;
 use rust_learn::infra::postgres::models::course::{Course, NewCourse};
 use rust_learn::infra::postgres::models::user::User;
+use rust_learn::infra::postgres::schema::{assessment_attempts, assessments, courses};
+use rust_learn::infra::postgres::{establish_connection, DbPool};
 use rust_learn::infra::tokens::jwt::create_jwt;
 use serde_json::Value;
 

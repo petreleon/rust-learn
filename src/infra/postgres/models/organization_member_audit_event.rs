@@ -1,4 +1,4 @@
-use crate::db::schema::organization_member_audit_events;
+use crate::infra::postgres::schema::organization_member_audit_events;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 

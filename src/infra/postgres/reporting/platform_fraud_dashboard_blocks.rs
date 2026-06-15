@@ -4,10 +4,10 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::application::reporting::platform_fraud_dashboard::{
     FraudBlockDashboardFact, PlatformFraudDashboardError,
 };
-use crate::db::schema::reward_fraud_blocks;
 use crate::domain::rewards::fraud_block::RewardFraudBlockScope;
 use crate::infra::postgres::models::reward_fraud_block::RewardFraudBlock;
 use crate::infra::postgres::reporting::platform_fraud_dashboard_mappers::map_diesel_error;
+use crate::infra::postgres::schema::reward_fraud_blocks;
 
 pub(super) async fn active_fraud_block_facts(
     conn: &mut AsyncPgConnection,

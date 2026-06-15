@@ -6,8 +6,8 @@ use crate::application::wallet::create_deposit_intent::{
     self, WalletDepositIntentCommand, WalletDepositIntentError, WalletDepositIntentUseCase,
     WalletDepositIntentView,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::wallet::wallet_deposit_intent_store::PostgresWalletDepositIntentStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresWalletDepositIntentUseCase {

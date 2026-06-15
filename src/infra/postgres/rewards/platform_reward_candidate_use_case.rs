@@ -4,8 +4,8 @@ use crate::application::rewards::list_platform_candidates::{
     self, PlatformRewardCandidatesError, PlatformRewardCandidatesOutput,
     PlatformRewardCandidatesQuery, PlatformRewardCandidatesUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::platform_reward_candidate_store::PostgresPlatformRewardCandidateStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresPlatformRewardCandidatesUseCase {

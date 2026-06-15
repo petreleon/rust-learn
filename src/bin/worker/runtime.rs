@@ -10,8 +10,8 @@ use tokio::sync::Semaphore;
 use tokio::task::JoinHandle;
 
 use rust_learn::bootstrap::worker_runtime as worker_utils;
-use rust_learn::db::DbPool;
 use rust_learn::infra::object_storage::S3State;
+use rust_learn::infra::postgres::DbPool;
 
 pub fn init_environment() {
     dotenv().ok();
@@ -19,7 +19,7 @@ pub fn init_environment() {
 }
 
 pub fn init_pool() -> Result<DbPool> {
-    rust_learn::db::try_establish_connection().map_err(|error| {
+    rust_learn::infra::postgres::try_establish_connection().map_err(|error| {
         log::error!("event=worker_db_pool_init_failed error={}", error);
         anyhow!(error)
     })

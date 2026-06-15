@@ -1,5 +1,5 @@
-use crate::db::schema::email_verification_tokens;
 use crate::infra::postgres::models::user::User;
+use crate::infra::postgres::schema::email_verification_tokens;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 

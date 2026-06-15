@@ -7,12 +7,12 @@ use crate::application::learning::get_learner_course_learning::{
     LearnerCourseLearningStore,
 };
 use crate::config::constants::permissions::Permissions;
-use crate::db::schema::courses;
 use crate::infra::postgres::learning::{
     learner_course_access_queries, learner_course_catalog_item_queries,
     learner_course_learning_content_queries,
 };
 use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::schema::courses;
 
 pub struct PostgresLearnerCourseLearningStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

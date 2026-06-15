@@ -3,8 +3,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessDecisionError, AccessDecisionUseCase, AccessScope,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::access_control::permission_checks;
+use crate::infra::postgres::DbPool;
 
 impl AccessDecisionUseCase for DbPool {
     fn can(

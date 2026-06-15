@@ -1,13 +1,14 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified pushed base: `87c4ca4b` (`Move reward JSON vocabulary into domain`).
+Latest verified pushed base before current batch: `18c1796c`
+(`Move Diesel models under postgres infra`).
 
-Goal: finish RustLearn as a Level 2 modular monolith. Keep the main rings
+Objective: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
 submodules only where a context or use case has real ownership.
 
-## Rules
+## Boundary Rules
 
 - Flow: `http -> application -> domain`; `infra` implements application ports;
   `bootstrap` wires concrete state.
@@ -19,8 +20,7 @@ submodules only where a context or use case has real ownership.
 - Forbidden in `domain`/`application`: Actix, Diesel, S3, Ethereum, env vars,
   HTTP responses, request extractors, concrete pools, and web state.
 - Keep manual non-Markdown files <=180 lines.
-- Batch ready non-conflicting fixes by architectural concern; defer ambiguous,
-  risky, behavior-changing, or unrelated items.
+- Batch only safe, reviewable architectural concerns.
 
 ## Completed / Verified
 
@@ -36,82 +36,67 @@ submodules only where a context or use case has real ownership.
   vocabulary, and external token event outputs.
 - `004d1037`: KYC audit event vocabulary and organization member audit event
   read/write/output vocabulary.
-- `7693fb71`: abstract readiness dependency labels plus wallet/platform reward
-  application command/output names separated from HTTP DTO names.
-- `87c4ca4b`: reward candidate evidence and reward audit metadata moved into
-  domain reward vocabulary; unused top-level `shared` module removed.
-
-Latest pushed proof for `87c4ca4b`:
-
-- `cargo fmt --all --check`.
-- Focused tests: `evidence`, `--test reward_candidates`,
-  `--test reward_candidate_audit`, `--test reward_course_candidates`, and
-  `--test api_routing`.
-- `./scripts/run-host-tests.sh cargo check --lib`.
-- `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`.
-- `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
-- `git diff --check`, no `shared`/`JsonValue` references, no top-level
-  `src/shared`, domain/application/http boundary scans, no `include!`, no
-  `imports.rs`, and maintained Rust line-count scan.
+- `7693fb71`: readiness dependency labels are abstract; wallet/platform reward
+  application command/output names are separated from HTTP DTO names.
+- `87c4ca4b`: reward evidence and reward audit metadata moved into domain
+  reward vocabulary; unused top-level `shared` module removed.
+- `18c1796c`: all Diesel model records moved from top-level `src/models` to
+  `src/infra/postgres/models`; root `models` exports removed; infra, worker,
+  Diesel associations, and DB-backed tests use `infra::postgres::models`.
 
 ## Current Verified Batch
 
-Status: verified locally, pending commit/push.
+Included problems:
 
-Included problem:
-
-- Diesel records lived in top-level `src/models`, outside the Level 2 rings,
-  while every real consumer was infra, worker/runtime code, model-internal
-  association metadata, or DB-backed tests.
+- Top-level `src/db` owned Diesel schema and pool construction outside the
+  Level 2 rings.
+- Runtime wiring, worker code, infra adapters, and DB-backed tests imported the
+  root `db` namespace.
+- Diesel CLI and README still pointed schema maintenance at `src/db/schema.rs`.
 
 Fixes:
 
-- Moved the 47 Diesel record files to `src/infra/postgres/models`.
-- Exposed records through `infra::postgres::models`.
-- Removed root `models` modules from `src/lib.rs` and `src/main.rs`.
-- Updated infra, worker, model-internal Diesel associations, and DB-backed tests
-  from `crate::models` / `rust_learn::models` to the Postgres infra path.
+- Moved pool construction to `src/infra/postgres/connection.rs`.
+- Moved generated Diesel schema to `src/infra/postgres/schema.rs`.
+- Re-exported `DbPool`, `database_url_from_env`, `establish_connection`, and
+  `try_establish_connection` from `infra::postgres`.
+- Removed root `db` modules from `src/lib.rs` and `src/main.rs`.
+- Updated bootstrap, worker, infra adapters, DB-backed tests, `diesel.toml`, and
+  `README.md` to the Postgres infra path.
 
 Deferred problems:
 
-- Top-level `src/db` still owns the Diesel schema and `DbPool`. Moving schema
-  and pool construction touches generated Diesel schema, bootstrap wiring, and
-  test setup, so it should be audited separately instead of mixed with the
-  record-location move.
-- Remaining application `Request` strings are business concepts or verbs
-  (`RequestPasswordResetCommand`, `RequestUploadUrlCommand`,
-  `RequestMediaUrlCommand`, course join-request outputs). They remain deferred
-  to a broader product-language audit.
+- DB-backed test fixtures still use Diesel directly; that is a test-fixture
+  ergonomics concern, not the production Postgres ownership boundary moved here.
+- Remaining application `Request` wording is deferred to a product-language
+  audit because the current batch is only DB/Postgres ownership.
 
-Current batch proof:
+Proof:
 
-- Discovery scans: no domain/application/http/bootstrap imports of
-  `models`; consumers were infra, one worker module, model-internal references,
-  and DB-backed tests.
 - `cargo fmt --all --check`.
-- Focused tests: `--test repository_core_tests`,
-  `--test repository_reward_tests`, `--test worker_upload_jobs`,
-  `--test current_session_api`, and `--test api_routing`.
 - `./scripts/run-host-tests.sh cargo check --lib`.
 - `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`.
 - `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
+- Focused tests: `--lib connection::tests`, `--test db_version_control`,
+  `--test repository_core_tests`, `--test worker_upload_jobs`,
+  `--test health_readiness`, and `--test api_routing`.
 - `git diff --check`.
-- Scans: no code references to the old root model path, no top-level
-  `src/models`, `src/infra/postgres/models` present, no domain/application
-  infra/HTTP/DB leaks, no HTTP DB leaks, no application DTO types, no
-  `include!`, no `imports.rs`, and no maintained Rust file over 180 lines.
+- Scans: no old `crate::db` / `rust_learn::db` / `src/db` source references, no
+  root `src/db`, Postgres schema and connection files present, no
+  domain/application infra/HTTP/DB leaks, no HTTP DB leaks, no `include!`, no
+  `imports.rs`, no application DTO/Actix leaks, and no maintained Rust file over
+  180 lines.
 
-## Remaining Actionable Checklist
+## Remaining Work
 
 - Audit TODO/18 requirement-by-requirement against current code and pushed
   evidence before calling Level 2 complete.
-- Audit top-level `src/db` schema/pool ownership and decide whether a focused
-  `infra/postgres` move is safe or whether generated schema should remain a
-  documented exception.
-- Continue raw-vocabulary scans for migrated contexts and only batch fixes that
-  share a reviewable architectural concern.
-- Keep public API DTOs HTTP-owned and separate from application outputs.
+- Continue raw vocabulary scans for migrated contexts; batch only one
+  architectural concern at a time.
+- Keep public API DTOs HTTP-owned and separate from application commands and
+  outputs.
 - Keep use cases as the real authorization guard; middleware remains early
   rejection.
 - Do not jump to Level 3 crates/microservices or abstractions that only move
   files around.
+- Rough remaining effort: 2-4 focused batches plus the final requirement audit.

@@ -4,11 +4,11 @@ use crate::application::identity::request_password_reset::{
     self, RequestPasswordResetCommand, RequestPasswordResetError, RequestPasswordResetOutcome,
     RequestPasswordResetUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::identity::request_password_reset_delivery::{
     GeneratedPasswordResetToken, MockPasswordResetEmailSender,
 };
 use crate::infra::postgres::identity::request_password_reset_store::PostgresRequestPasswordResetStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRequestPasswordResetUseCase {

@@ -2,12 +2,12 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::rewards::plan_payout::{RewardPayoutPlanError, RewardPayoutPolicy};
-use crate::db::schema::{courses_organizations, reward_policies};
 use crate::domain::rewards::policy::{
     REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
 };
 use crate::infra::postgres::models::reward_policy::RewardPolicy;
 use crate::infra::postgres::rewards::reward_payout_plan_mappers::map_reward_payout_plan_error;
+use crate::infra::postgres::schema::{courses_organizations, reward_policies};
 
 pub(super) async fn active_reward_payout_policy(
     conn: &mut AsyncPgConnection,

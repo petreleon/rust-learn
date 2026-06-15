@@ -6,10 +6,12 @@ use crate::application::reporting::platform_csv_exports::{
     platform_wallet_credit_export_row, PlatformCsvExportError, PlatformWalletCreditExportFact,
     PlatformWalletCreditExportRowOutput,
 };
-use crate::db::schema::{internal_transactions, reward_candidates, reward_wallet_credit_records};
 use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 use crate::infra::postgres::models::reward_wallet_credit_record::RewardWalletCreditRecord;
 use crate::infra::postgres::reporting::platform_csv_export_mappers::map_diesel_error;
+use crate::infra::postgres::schema::{
+    internal_transactions, reward_candidates, reward_wallet_credit_records,
+};
 
 pub(super) async fn load_wallet_credit_export_rows(
     conn: &mut AsyncPgConnection,

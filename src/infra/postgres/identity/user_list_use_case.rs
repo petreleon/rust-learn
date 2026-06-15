@@ -2,8 +2,8 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::identity::list_users::{self, ListUsersQuery, UserListUseCase};
 use crate::application::identity::user_profile::{UserProfileError, UserProfileOutput};
-use crate::db::DbPool;
 use crate::infra::postgres::identity::user_profile_store::PostgresUserProfileStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresUserListUseCase {

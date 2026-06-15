@@ -1,10 +1,10 @@
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::kyc_audit_events;
 use crate::domain::kyc::audit::KycAuditEventType;
 use crate::domain::kyc::submission::NormalizedKycDecision;
 use crate::infra::postgres::models::kyc_audit_event::{KycAuditEvent, NewKycAuditEvent};
 use crate::infra::postgres::models::kyc_submission::KycSubmission;
+use crate::infra::postgres::schema::kyc_audit_events;
 
 pub(super) async fn record_submission_audit(
     conn: &mut AsyncPgConnection,

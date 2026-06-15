@@ -1,4 +1,4 @@
-use crate::db::schema::users;
+use crate::infra::postgres::schema::users;
 use chrono::NaiveDate;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;

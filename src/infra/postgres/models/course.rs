@@ -1,4 +1,4 @@
-use crate::db::schema::courses;
+use crate::infra::postgres::schema::courses;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 

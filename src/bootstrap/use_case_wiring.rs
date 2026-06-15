@@ -13,8 +13,8 @@ use crate::bootstrap::reporting_wiring::build_reporting_use_cases;
 use crate::bootstrap::reward_wiring::build_reward_use_cases;
 use crate::bootstrap::teacher_application_wiring::build_teacher_application_use_cases;
 use crate::bootstrap::wallet_wiring::build_wallet_use_cases;
-use crate::db::DbPool;
 use crate::infra::object_storage::S3State;
+use crate::infra::postgres::DbPool;
 
 pub fn build_app_state(pool: DbPool, s3: S3State) -> AppState {
     AppState {

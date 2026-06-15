@@ -1,4 +1,4 @@
-use crate::db::schema::persistent_states;
+use crate::infra::postgres::schema::persistent_states;
 use diesel::prelude::*;
 
 #[derive(Queryable, Insertable)]

@@ -5,12 +5,12 @@ use crate::application::reporting::platform_wallet_reconciliation::{
     platform_wallet_reconciliation_output, PlatformWalletReconciliationError,
     PlatformWalletReconciliationOutput, PlatformWalletReconciliationRowFact,
 };
-use crate::db::schema::wallets;
 use crate::infra::postgres::models::wallet::Wallet;
 use crate::infra::postgres::reporting::platform_wallet_reconciliation_counts::{
     wallet_reconciliation_counts, WalletReconciliationCounts,
 };
 use crate::infra::postgres::reporting::platform_wallet_reconciliation_mappers::map_diesel_error;
+use crate::infra::postgres::schema::wallets;
 
 pub(super) async fn load_platform_wallet_reconciliation(
     conn: &mut AsyncPgConnection,

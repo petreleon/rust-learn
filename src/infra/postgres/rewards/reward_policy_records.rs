@@ -1,8 +1,8 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::reward_policies;
 use crate::infra::postgres::models::reward_policy::{NewRewardPolicy, RewardPolicy};
+use crate::infra::postgres::schema::reward_policies;
 
 const DEFAULT_REWARD_POLICY_LIMIT: i64 = 25;
 const MAX_REWARD_POLICY_LIMIT: i64 = 100;

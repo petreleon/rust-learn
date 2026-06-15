@@ -6,7 +6,6 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::application::learning::course_enrollment::{
     CourseEnrollmentError, CourseJoinRequestOutput,
 };
-use crate::db::schema::{course_join_requests, courses, user_role_course};
 use crate::domain::learning::enrollment::status::{
     COURSE_JOIN_STATUS_PENDING, COURSE_JOIN_STATUS_WAITLISTED,
 };
@@ -16,6 +15,7 @@ use crate::infra::postgres::learning::course_enrollment_queries::{
 use crate::infra::postgres::models::course_join_request::{
     CourseJoinRequest, NewCourseJoinRequest,
 };
+use crate::infra::postgres::schema::{course_join_requests, courses, user_role_course};
 
 pub async fn course_exists(
     conn: &mut AsyncPgConnection,

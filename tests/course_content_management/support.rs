@@ -6,8 +6,6 @@ pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::application::content::manage_chapter::ChapterUseCases;
 pub(crate) use rust_learn::application::content::manage_content_item::ContentItemUseCases;
 pub(crate) use rust_learn::application::content::process_upload_job::ContentProcessingUseCase;
-pub(crate) use rust_learn::db::schema::{chapters, courses, upload_jobs};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
 pub(crate) use rust_learn::infra::postgres::content::chapter_use_cases::PostgresChapterUseCases;
@@ -18,6 +16,8 @@ pub(crate) use rust_learn::infra::postgres::models::chapter::{Chapter, NewChapte
 pub(crate) use rust_learn::infra::postgres::models::content::Content;
 pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
 pub(crate) use rust_learn::infra::postgres::models::user::User;
+pub(crate) use rust_learn::infra::postgres::schema::{chapters, courses, upload_jobs};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
 pub(crate) use std::sync::Arc;
 

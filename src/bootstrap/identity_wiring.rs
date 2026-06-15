@@ -13,7 +13,6 @@ use crate::application::identity::request_password_reset::RequestPasswordResetUs
 use crate::application::identity::resend_verification::ResendVerificationUseCase;
 use crate::application::identity::reset_password::ResetPasswordUseCase;
 use crate::application::identity::verify_email::VerifyEmailUseCase;
-use crate::db::DbPool;
 use crate::infra::postgres::identity::current_session_use_case::PostgresCurrentSessionUseCase;
 use crate::infra::postgres::identity::login_use_case::PostgresLoginUseCase;
 use crate::infra::postgres::identity::platform_role_assignment_use_case::PostgresPlatformRoleAssignmentUseCase;
@@ -24,6 +23,7 @@ use crate::infra::postgres::identity::reset_password_use_case::PostgresResetPass
 use crate::infra::postgres::identity::user_list_use_case::PostgresUserListUseCase;
 use crate::infra::postgres::identity::user_profile_read_use_case::PostgresUserProfileReadUseCase;
 use crate::infra::postgres::identity::verify_email_use_case::PostgresVerifyEmailUseCase;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct IdentityUseCases {

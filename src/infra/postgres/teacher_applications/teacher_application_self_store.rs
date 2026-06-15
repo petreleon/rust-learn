@@ -6,10 +6,10 @@ use crate::application::teacher_applications::get_my_application::{
     TeacherApplicationAuditEventOutput, TeacherApplicationOutput, TeacherApplicationSelfError,
     TeacherApplicationSelfStore,
 };
-use crate::db::schema::{teacher_application_audit_events, teacher_applications};
 use crate::infra::postgres::models::teacher_application::{
     TeacherApplication, TeacherApplicationAuditEvent,
 };
+use crate::infra::postgres::schema::{teacher_application_audit_events, teacher_applications};
 use crate::infra::postgres::teacher_applications::teacher_application_audit_mappers::audit_event_output;
 use crate::infra::postgres::teacher_applications::teacher_application_self_mappers::map_error;
 

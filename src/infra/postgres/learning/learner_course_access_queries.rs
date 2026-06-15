@@ -8,10 +8,10 @@ use crate::application::learning::learner_course_catalog::{
     LearnerCourseAccessSummaryOutput, LearnerCourseCatalogError,
 };
 use crate::config::constants::permissions::Permissions;
-use crate::db::schema::courses_organizations;
 use crate::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::schema::courses_organizations;
 
 pub async fn course_visible_to_learner(
     conn: &mut AsyncPgConnection,

@@ -5,15 +5,15 @@ use crate::application::reporting::platform_wallet_reconciliation::PlatformWalle
 use crate::application::reporting::platform_wallet_reconciliation::{
     missing_credit_record_candidate_statuses, needs_reconciliation_candidate_statuses,
 };
-use crate::db::schema::{
-    internal_transactions, reward_candidates, reward_payout_records, reward_wallet_credit_records,
-};
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::models::wallet::Wallet;
 use crate::infra::postgres::reporting::platform_wallet_reconciliation_candidate_ids::reward_candidate_ids;
 use crate::infra::postgres::reporting::platform_wallet_reconciliation_mappers::map_diesel_error;
 use crate::infra::postgres::reporting::platform_wallet_reconciliation_missing::{
     count_missing_notifications, count_missing_payouts,
+};
+use crate::infra::postgres::schema::{
+    internal_transactions, reward_candidates, reward_payout_records, reward_wallet_credit_records,
 };
 
 pub(super) struct WalletReconciliationCounts {

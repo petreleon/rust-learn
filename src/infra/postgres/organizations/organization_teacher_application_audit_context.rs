@@ -7,7 +7,6 @@ use crate::application::organizations::list_organization_teacher_applications::{
     OrganizationTeacherApplicationAuditSummaryOutput, OrganizationTeacherApplicationListError,
     TeacherApplicationDashboardSummaryOutput,
 };
-use crate::db::schema::teacher_application_audit_events;
 use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 use crate::domain::teacher_applications::status::{
     TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
@@ -16,6 +15,7 @@ use crate::domain::teacher_applications::status::{
 use crate::infra::postgres::models::teacher_application::{
     TeacherApplication, TeacherApplicationAuditEvent,
 };
+use crate::infra::postgres::schema::teacher_application_audit_events;
 
 pub async fn load_audits(
     conn: &mut AsyncPgConnection,

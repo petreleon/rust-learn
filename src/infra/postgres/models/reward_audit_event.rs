@@ -1,4 +1,4 @@
-use crate::db::schema::reward_audit_events;
+use crate::infra::postgres::schema::reward_audit_events;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;

@@ -4,7 +4,6 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::application::rewards::record_compensation::{
     RewardCompensation, RewardCompensationError, RewardCompensationOutput,
 };
-use crate::db::schema::wallets;
 use crate::infra::postgres::models::reward_compensation_record::NewRewardCompensationRecord;
 use crate::infra::postgres::models::wallet::Wallet;
 use crate::infra::postgres::rewards::reward_candidate_records::find_candidate;
@@ -18,6 +17,7 @@ use crate::infra::postgres::rewards::reward_compensation_transactions::{
 use crate::infra::postgres::rewards::reward_compensation_wallets::{
     apply_wallet_adjustment, link_user_wallet,
 };
+use crate::infra::postgres::schema::wallets;
 
 pub(super) async fn record_reward_compensation(
     conn: &mut AsyncPgConnection,

@@ -2,13 +2,15 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::rewards::record_token_confirmation::RewardTokenConfirmationCommand;
-use crate::db::schema::{external_transactions, transactions, transactions_external_transactions};
 use crate::domain::rewards::token::RewardTokenTransactionType;
 use crate::infra::postgres::models::transaction::{
     ExternalTransaction, NewExternalTransaction, NewTransaction,
     NewTransactionExternalTransactionLink,
 };
 use crate::infra::postgres::rewards::reward_token_confirmation_mappers::RewardTokenConfirmationTransactionError;
+use crate::infra::postgres::schema::{
+    external_transactions, transactions, transactions_external_transactions,
+};
 
 pub(super) struct RecordedExternalRewardTransaction {
     pub transaction_id: i64,

@@ -1,4 +1,4 @@
-use crate::db::schema::upload_jobs;
+use crate::infra::postgres::schema::upload_jobs;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Int4, Nullable, Text, Timestamptz, Varchar};

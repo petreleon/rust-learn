@@ -3,7 +3,7 @@ use diesel_async::RunQueryDsl;
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::operations::ports::{ReadinessDependency, READINESS_DEPENDENCY_DATABASE};
-use crate::db::DbPool;
+use crate::infra::postgres::DbPool;
 
 pub struct PostgresReadinessCheck {
     pool: DbPool,

@@ -6,8 +6,8 @@ use crate::application::organizations::list_organization_member_audit::{
     self, OrganizationMemberAuditError, OrganizationMemberAuditEventOutput,
     OrganizationMemberAuditQuery, OrganizationMemberAuditUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::organizations::organization_member_audit_store::PostgresOrganizationMemberAuditStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresOrganizationMemberAuditUseCase {

@@ -1,4 +1,4 @@
-use crate::db::schema::wallet_token_deposit_intents;
+use crate::infra::postgres::schema::wallet_token_deposit_intents;
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;

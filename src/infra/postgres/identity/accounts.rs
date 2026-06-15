@@ -2,8 +2,8 @@ use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::{authentications, platform_roles, user_role_platform, users};
 use crate::infra::postgres::models::user::User;
+use crate::infra::postgres::schema::{authentications, platform_roles, user_role_platform, users};
 
 const DEFAULT_REGISTRATION_ROLE: &str = "STUDENT";
 const PASSWORD_AUTH_TYPE: &str = "password";

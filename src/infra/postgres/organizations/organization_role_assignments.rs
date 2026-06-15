@@ -1,7 +1,9 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::{organization_roles, role_organization_hierarchy, user_role_organization};
+use crate::infra::postgres::schema::{
+    organization_roles, role_organization_hierarchy, user_role_organization,
+};
 
 pub(super) async fn assign_role_with_hierarchy(
     conn: &mut AsyncPgConnection,

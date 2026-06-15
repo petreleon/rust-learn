@@ -3,8 +3,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::reporting::organization_summary::{
     self, OrganizationSummaryError, OrganizationSummaryOutput, OrganizationSummaryUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::reporting::organization_summary_store::PostgresOrganizationSummaryStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresOrganizationSummaryUseCase {

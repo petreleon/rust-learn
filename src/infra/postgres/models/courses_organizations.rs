@@ -1,6 +1,6 @@
-use crate::db::schema::courses_organizations;
 use crate::infra::postgres::models::course::Course;
 use crate::infra::postgres::models::organization::Organization;
+use crate::infra::postgres::schema::courses_organizations;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 

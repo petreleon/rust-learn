@@ -7,10 +7,10 @@ use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmission, RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
     RewardCandidateSubmissionStore,
 };
-use crate::db::schema::{courses, courses_organizations};
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_submission_mappers::map_reward_candidate_submission_error;
 use crate::infra::postgres::rewards::reward_candidate_submission_mutation::submit_reward_candidate;
+use crate::infra::postgres::schema::{courses, courses_organizations};
 
 pub struct PostgresRewardCandidateSubmissionStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

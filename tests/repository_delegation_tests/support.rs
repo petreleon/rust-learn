@@ -1,15 +1,15 @@
 pub(crate) use chrono::NaiveDate;
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
-pub(crate) use rust_learn::db::establish_connection;
-pub(crate) use rust_learn::db::schema::users;
 pub(crate) use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_COURSE;
 pub(crate) use rust_learn::infra::postgres::access_control::delegated_permissions::{
     self as delegated_permissions, DelegatedPermissionFilter,
 };
+pub(crate) use rust_learn::infra::postgres::establish_connection;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 pub(crate) use rust_learn::infra::postgres::models::delegated_permission::NewDelegatedPermission;
 pub(crate) use rust_learn::infra::postgres::models::user::User;
+pub(crate) use rust_learn::infra::postgres::schema::users;
 
 pub(crate) fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);

@@ -2,13 +2,13 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::kyc::{KycAuditEventOutput, KycError, KycSubmissionOutput};
-use crate::db::schema::{kyc_audit_events, kyc_submissions, users};
 use crate::domain::kyc::submission::{KYC_STATUS_SUBMITTED, KYC_STATUS_UNDER_REVIEW};
 use crate::infra::postgres::kyc::kyc_mappers::{
     kyc_audit_event_output_from_record, kyc_submission_output_from_record, map_error,
 };
 use crate::infra::postgres::models::kyc_audit_event::KycAuditEvent;
 use crate::infra::postgres::models::kyc_submission::KycSubmission;
+use crate::infra::postgres::schema::{kyc_audit_events, kyc_submissions, users};
 
 pub(super) async fn get_user_kyc_verified(
     conn: &mut AsyncPgConnection,

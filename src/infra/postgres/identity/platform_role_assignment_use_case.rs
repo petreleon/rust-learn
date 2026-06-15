@@ -4,9 +4,9 @@ use crate::application::identity::assign_platform_role::{
     self, AssignPlatformRoleCommand, AssignPlatformRoleError, AssignPlatformRoleOutcome,
     PlatformRoleAssignmentUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::notifications::NotificationsState;
 use crate::infra::postgres::identity::platform_role_assignment_store::PostgresPlatformRoleAssignmentStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresPlatformRoleAssignmentUseCase {

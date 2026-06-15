@@ -9,12 +9,12 @@ use crate::application::organizations::list_organization_member_audit::{
     OrganizationMemberAuditError, OrganizationMemberAuditEventOutput, OrganizationMemberAuditQuery,
     OrganizationMemberAuditStore,
 };
-use crate::db::schema::organization_member_audit_events;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::models::organization_member_audit_event::OrganizationMemberAuditEvent;
 use crate::infra::postgres::organizations::organization_member_audit_mappers::{
     map_member_audit_error, organization_member_audit_output_from_model,
 };
+use crate::infra::postgres::schema::organization_member_audit_events;
 
 pub struct PostgresOrganizationMemberAuditStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

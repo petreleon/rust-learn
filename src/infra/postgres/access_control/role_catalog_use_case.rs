@@ -2,8 +2,8 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::access_control::list_roles::{self, RoleCatalogUseCase};
 use crate::application::access_control::role_catalog::{RoleCatalogEntry, RoleCatalogError};
-use crate::db::DbPool;
 use crate::infra::postgres::access_control::role_catalog_store::PostgresRoleCatalogStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRoleCatalogUseCase {

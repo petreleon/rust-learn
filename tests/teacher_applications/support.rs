@@ -12,8 +12,8 @@ pub(crate) use rust_learn::application::teacher_applications::list_applications:
 };
 pub(crate) use rust_learn::config::constants::permissions::Permissions;
 pub(crate) use rust_learn::config::constants::roles::Roles;
-pub(crate) use rust_learn::db::establish_connection;
-pub(crate) use rust_learn::db::schema::{
+pub(crate) use rust_learn::infra::postgres::establish_connection;
+pub(crate) use rust_learn::infra::postgres::schema::{
     courses, organizations, platform_roles, role_permission_platform,
 };
 pub(crate) use rust_learn::domain::teacher_applications::status::{

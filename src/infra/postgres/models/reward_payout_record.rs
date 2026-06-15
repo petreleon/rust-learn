@@ -1,4 +1,4 @@
-use crate::db::schema::reward_payout_records;
+use crate::infra::postgres::schema::reward_payout_records;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;

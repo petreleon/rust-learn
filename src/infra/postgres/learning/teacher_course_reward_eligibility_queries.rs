@@ -7,10 +7,10 @@ use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboa
 use crate::application::learning::teacher_course_enrollment::{
     TeacherCourseRewardEligibilitySummaryOutput, TeacherStudentRewardEligibilitySummaryOutput,
 };
-use crate::db::schema::{courses_organizations, reward_candidates, reward_policies};
 use crate::domain::rewards::policy::{
     REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
 };
+use crate::infra::postgres::schema::{courses_organizations, reward_candidates, reward_policies};
 
 pub async fn load_teacher_course_reward_eligibility_summary(
     conn: &mut AsyncPgConnection,

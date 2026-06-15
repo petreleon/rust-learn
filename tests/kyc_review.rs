@@ -6,7 +6,6 @@ use rust_learn::application::kyc::{
 };
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
-use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_PLATFORM;
 use rust_learn::domain::kyc::audit::KycAuditEventType;
 use rust_learn::domain::kyc::submission::{KYC_STATUS_REJECTED, KYC_STATUS_SUBMITTED};
@@ -16,6 +15,7 @@ use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_p
 use rust_learn::infra::postgres::kyc::kyc_use_case::PostgresKycUseCase;
 use rust_learn::infra::postgres::models::delegated_permission::NewDelegatedPermission;
 use rust_learn::infra::postgres::models::user::User;
+use rust_learn::infra::postgres::{establish_connection, DbPool};
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);

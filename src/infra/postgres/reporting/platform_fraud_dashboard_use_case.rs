@@ -3,8 +3,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::reporting::platform_fraud_dashboard::{
     self, PlatformFraudDashboardError, PlatformFraudDashboardOutput, PlatformFraudDashboardUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::reporting::platform_fraud_dashboard_store::PostgresPlatformFraudDashboardStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresPlatformFraudDashboardUseCase {

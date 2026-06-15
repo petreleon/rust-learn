@@ -5,8 +5,8 @@ use crate::application::learning::get_learner_course_learning::{
     LearnerCourseLearningChapterOutput, LearnerCourseLearningContentOutput,
     LearnerCourseLearningError,
 };
-use crate::db::schema::{chapters, contents};
 use crate::infra::postgres::learning::content_processing_queries;
+use crate::infra::postgres::schema::{chapters, contents};
 
 pub async fn load_learner_course_learning_chapters(
     conn: &mut AsyncPgConnection,

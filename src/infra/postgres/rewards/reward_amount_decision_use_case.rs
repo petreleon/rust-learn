@@ -4,8 +4,8 @@ use crate::application::rewards::decide_amount::{
     self, RewardAmountDecisionCommand, RewardAmountDecisionError, RewardAmountDecisionOutput,
     RewardAmountDecisionUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::reward_amount_decision_store::PostgresRewardAmountDecisionStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRewardAmountDecisionUseCase {

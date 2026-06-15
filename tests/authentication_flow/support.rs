@@ -9,10 +9,6 @@ pub(crate) use rust_learn::application::identity::request_password_reset::Reques
 pub(crate) use rust_learn::application::identity::resend_verification::ResendVerificationUseCase;
 pub(crate) use rust_learn::application::identity::reset_password::ResetPasswordUseCase;
 pub(crate) use rust_learn::application::identity::verify_email::VerifyEmailUseCase;
-pub(crate) use rust_learn::db::schema::{
-    authentications, email_verification_tokens, password_reset_tokens, user_role_platform, users,
-};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
 pub(crate) use rust_learn::infra::postgres::identity::accounts::{
     find_user_by_email, find_user_by_id,
@@ -25,6 +21,10 @@ pub(crate) use rust_learn::infra::postgres::identity::request_password_reset_use
 pub(crate) use rust_learn::infra::postgres::identity::resend_verification_use_case::PostgresResendVerificationUseCase;
 pub(crate) use rust_learn::infra::postgres::identity::reset_password_use_case::PostgresResetPasswordUseCase;
 pub(crate) use rust_learn::infra::postgres::identity::verify_email_use_case::PostgresVerifyEmailUseCase;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    authentications, email_verification_tokens, password_reset_tokens, user_role_platform, users,
+};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::tokens::identity::identity_token_hash;
 pub(crate) use rust_learn::infra::tokens::jwt::decode_jwt;
 pub(crate) use std::sync::Arc;

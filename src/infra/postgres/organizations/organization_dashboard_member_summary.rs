@@ -5,11 +5,11 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::application::organizations::get_organization_dashboard::{
     OrganizationDashboardError, OrganizationDashboardMemberSummaryOutput,
 };
-use crate::db::schema::delegated_permissions;
 use crate::infra::postgres::organizations::organization_dashboard_mappers::{
     map_dashboard_error, map_member_list_error,
 };
 use crate::infra::postgres::organizations::organization_member_builders;
+use crate::infra::postgres::schema::delegated_permissions;
 
 pub async fn load_member_summary(
     conn: &mut AsyncPgConnection,

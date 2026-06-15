@@ -1,4 +1,4 @@
-use crate::db::schema::reward_fraud_blocks;
+use crate::infra::postgres::schema::reward_fraud_blocks;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;

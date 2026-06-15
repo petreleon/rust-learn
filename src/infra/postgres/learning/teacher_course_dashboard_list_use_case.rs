@@ -7,8 +7,8 @@ use crate::application::learning::list_teacher_course_dashboard::{
     TeacherCourseDashboardListUseCase,
 };
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError;
-use crate::db::DbPool;
 use crate::infra::postgres::learning::teacher_course_dashboard_list_store::PostgresTeacherCourseDashboardListStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresTeacherCourseDashboardListUseCase {

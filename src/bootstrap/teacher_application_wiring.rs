@@ -10,7 +10,6 @@ use crate::application::teacher_applications::list_platform_review::TeacherAppli
 use crate::application::teacher_applications::nominate_application::TeacherApplicationNominationUseCase;
 use crate::application::teacher_applications::notify_application_event::TeacherApplicationNotificationUseCase;
 use crate::application::teacher_applications::submit_application::TeacherApplicationSubmitUseCase;
-use crate::db::DbPool;
 use crate::infra::postgres::teacher_applications::teacher_application_audit_use_case::PostgresTeacherApplicationAuditUseCase;
 use crate::infra::postgres::teacher_applications::teacher_application_decision_use_case::PostgresTeacherApplicationDecisionUseCase;
 use crate::infra::postgres::teacher_applications::teacher_application_list_use_case::PostgresTeacherApplicationListUseCase;
@@ -19,6 +18,7 @@ use crate::infra::postgres::teacher_applications::teacher_application_notificati
 use crate::infra::postgres::teacher_applications::teacher_application_platform_review_use_case::PostgresTeacherApplicationPlatformReviewUseCase;
 use crate::infra::postgres::teacher_applications::teacher_application_self_use_case::PostgresTeacherApplicationSelfUseCase;
 use crate::infra::postgres::teacher_applications::teacher_application_submit_use_case::PostgresTeacherApplicationSubmitUseCase;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct TeacherApplicationUseCases {

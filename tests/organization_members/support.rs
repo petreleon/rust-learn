@@ -7,10 +7,10 @@ pub(crate) use rust_learn::application::organizations::invite_organization_membe
 pub(crate) use rust_learn::application::organizations::list_organization_member_audit::OrganizationMemberAuditUseCase;
 pub(crate) use rust_learn::application::organizations::list_organization_members::OrganizationMemberListUseCase;
 pub(crate) use rust_learn::application::organizations::remove_organization_member::OrganizationMemberRemovalUseCase;
-pub(crate) use rust_learn::db::schema::{
+pub(crate) use rust_learn::infra::postgres::schema::{
     organization_member_audit_events, organizations, user_role_organization,
 };
-pub(crate) use rust_learn::db::{DbPool, establish_connection};
+pub(crate) use rust_learn::infra::postgres::{DbPool, establish_connection};
 pub(crate) use rust_learn::infra::postgres::access_control::delegated_permissions::create_delegated_permission;
 pub(crate) use rust_learn::infra::postgres::access_control::organization_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;

@@ -3,11 +3,11 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::rewards::submit_candidate::RewardCandidateSubmissionError;
-use crate::db::schema::{reward_candidates, users};
 use crate::domain::rewards::candidate::lifecycle;
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_policy_lookup::active_reward_policy_ids_for_course_event;
 use crate::infra::postgres::rewards::reward_candidate_submission_mappers::map_reward_candidate_submission_error;
+use crate::infra::postgres::schema::{reward_candidates, users};
 
 pub(super) async fn ensure_reward_target_eligible(
     conn: &mut AsyncPgConnection,

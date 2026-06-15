@@ -22,7 +22,6 @@ use crate::application::learning::list_teacher_course_dashboard::TeacherCourseDa
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionUseCase;
 use crate::application::learning::update_course::CourseUpdateUseCase;
 use crate::application::learning::update_course_lifecycle::CourseLifecycleUseCase;
-use crate::db::DbPool;
 use crate::infra::postgres::learning::assessment_read_use_case::PostgresAssessmentReadUseCase;
 use crate::infra::postgres::learning::assessment_submission_use_case::PostgresAssessmentSubmissionUseCase;
 use crate::infra::postgres::learning::course_creation_use_case::PostgresCourseCreationUseCase;
@@ -42,6 +41,7 @@ use crate::infra::postgres::learning::teacher_course_dashboard_list_use_case::Po
 use crate::infra::postgres::learning::teacher_course_enrollment_workspace_use_case::PostgresTeacherCourseEnrollmentWorkspaceUseCase;
 use crate::infra::postgres::learning::teacher_course_students_use_case::PostgresTeacherCourseStudentsUseCase;
 use crate::infra::postgres::learning::teacher_course_workspace_use_case::PostgresTeacherCourseWorkspaceUseCase;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct LearningUseCases {

@@ -3,8 +3,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::rewards::list_candidate_audit::{
     self, RewardCandidateAuditError, RewardCandidateAuditEvent, RewardCandidateAuditUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::reward_candidate_audit_store::PostgresRewardCandidateAuditStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRewardCandidateAuditUseCase {

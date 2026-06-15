@@ -4,10 +4,6 @@ pub(crate) use chrono::NaiveDate;
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::application::organizations::get_organization_dashboard::OrganizationDashboardUseCase;
-pub(crate) use rust_learn::db::schema::{
-    courses, courses_organizations, organizations, reward_candidates, teacher_applications, wallets,
-};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::domain::learning::course::status::{
     COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED,
 };
@@ -29,6 +25,10 @@ pub(crate) use rust_learn::infra::postgres::models::teacher_application::NewTeac
 pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::models::wallet::NewWallet;
 pub(crate) use rust_learn::infra::postgres::organizations::organization_dashboard_use_case::PostgresOrganizationDashboardUseCase;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    courses, courses_organizations, organizations, reward_candidates, teacher_applications, wallets,
+};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
 pub(crate) use serde_json::{json, Value};
 pub(crate) use std::sync::{

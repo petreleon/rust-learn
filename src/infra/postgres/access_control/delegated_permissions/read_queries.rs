@@ -9,7 +9,6 @@ use crate::application::access_control::manage_delegated_permissions::{
     DelegatedPermissionError, DelegatedPermissionFilter, DelegatedPermissionOutput,
 };
 use crate::config::constants::permissions::Permissions;
-use crate::db::schema::{courses, organizations};
 use crate::infra::postgres::access_control::delegated_permissions::mappers::{
     delegated_permission_output_from_record, map_error,
 };
@@ -17,6 +16,7 @@ use crate::infra::postgres::access_control::delegated_permissions::records::{
     self, DelegatedPermissionRecordFilter,
 };
 use crate::infra::postgres::access_control::permission_checks;
+use crate::infra::postgres::schema::{courses, organizations};
 
 pub(super) async fn can_delegate_reward_permissions(
     conn: &mut AsyncPgConnection,

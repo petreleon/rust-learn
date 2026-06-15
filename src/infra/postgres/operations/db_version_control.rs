@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::db_version_control;
+use crate::infra::postgres::schema::db_version_control;
 
 pub async fn get_current_version(conn: &mut AsyncPgConnection) -> QueryResult<i32> {
     let current_version_opt: Option<i32> = db_version_control::table

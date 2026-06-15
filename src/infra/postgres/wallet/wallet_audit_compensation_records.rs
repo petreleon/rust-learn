@@ -2,8 +2,8 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::wallet::audit_wallet::{WalletAuditError, WalletCompensationRecordAudit};
-use crate::db::schema::reward_compensation_records;
 use crate::infra::postgres::models::reward_compensation_record::RewardCompensationRecord;
+use crate::infra::postgres::schema::reward_compensation_records;
 use crate::infra::postgres::wallet::wallet_audit_mappers::map_wallet_audit_error;
 
 pub(super) async fn load_compensation_records(

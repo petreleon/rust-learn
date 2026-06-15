@@ -1,4 +1,4 @@
-use crate::db::schema::{
+use crate::infra::postgres::schema::{
     external_transactions, internal_transactions, transactions, transactions_external_transactions,
     transactions_internal_transactions,
 };

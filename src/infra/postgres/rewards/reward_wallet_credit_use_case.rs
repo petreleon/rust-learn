@@ -3,8 +3,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::rewards::credit_wallet::{
     self, RewardWalletCreditError, RewardWalletCreditOutput, RewardWalletCreditUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::reward_wallet_credit_store::PostgresRewardWalletCreditStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRewardWalletCreditUseCase {

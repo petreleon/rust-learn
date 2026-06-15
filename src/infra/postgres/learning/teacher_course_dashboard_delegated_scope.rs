@@ -4,10 +4,10 @@ use diesel::BoolExpressionMethods;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError;
-use crate::db::schema::delegated_permissions;
 use crate::domain::access_control::delegation::{
     DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION,
 };
+use crate::infra::postgres::schema::delegated_permissions;
 
 pub async fn delegated_teacher_course_ids(
     conn: &mut AsyncPgConnection,

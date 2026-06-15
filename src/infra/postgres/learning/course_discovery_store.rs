@@ -7,8 +7,8 @@ use crate::application::learning::discover_courses::{
     CourseDiscoveryCourseOutput, CourseDiscoveryError, CourseDiscoveryOutput, CourseDiscoveryQuery,
     CourseDiscoveryStore,
 };
-use crate::db::schema::{courses, courses_organizations};
 use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::schema::{courses, courses_organizations};
 
 const LIKE_ESCAPE_CHAR: char = '\\';
 

@@ -2,11 +2,11 @@ use chrono::{Duration, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::{email_verification_tokens, users};
 use crate::infra::postgres::models::email_verification_token::{
     EmailVerificationToken, NewEmailVerificationToken,
 };
 use crate::infra::postgres::models::user::User;
+use crate::infra::postgres::schema::{email_verification_tokens, users};
 
 const EMAIL_VERIFICATION_TOKEN_TTL_HOURS: i64 = 24;
 
@@ -23,7 +23,7 @@ pub async fn create_email_verification_token(
     user_id: i32,
     token_hash: String,
 ) -> QueryResult<usize> {
-    use crate::db::schema::email_verification_tokens::dsl as tokens;
+    use crate::infra::postgres::schema::email_verification_tokens::dsl as tokens;
 
     let now = Utc::now().naive_utc();
 
@@ -52,7 +52,7 @@ pub async fn verify_email_verification_token(
     conn: &mut AsyncPgConnection,
     token_hash: &str,
 ) -> QueryResult<EmailVerificationTokenStatus> {
-    use crate::db::schema::email_verification_tokens::dsl as tokens;
+    use crate::infra::postgres::schema::email_verification_tokens::dsl as tokens;
 
     let now = Utc::now().naive_utc();
     let token = tokens::email_verification_tokens

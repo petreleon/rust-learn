@@ -2,10 +2,10 @@ use chrono::{Duration, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::password_reset_tokens;
 use crate::infra::postgres::models::password_reset_token::{
     NewPasswordResetToken, PasswordResetToken,
 };
+use crate::infra::postgres::schema::password_reset_tokens;
 
 const PASSWORD_RESET_TOKEN_TTL_HOURS: i64 = 1;
 
@@ -21,7 +21,7 @@ pub async fn create_password_reset_token(
     user_id: i32,
     token_hash: String,
 ) -> QueryResult<usize> {
-    use crate::db::schema::password_reset_tokens::dsl as tokens;
+    use crate::infra::postgres::schema::password_reset_tokens::dsl as tokens;
 
     let now = Utc::now().naive_utc();
 
@@ -50,7 +50,7 @@ pub async fn consume_password_reset_token(
     conn: &mut AsyncPgConnection,
     token_hash: &str,
 ) -> QueryResult<PasswordResetTokenStatus> {
-    use crate::db::schema::password_reset_tokens::dsl as tokens;
+    use crate::infra::postgres::schema::password_reset_tokens::dsl as tokens;
 
     let now = Utc::now().naive_utc();
     let token = tokens::password_reset_tokens

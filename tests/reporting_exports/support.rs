@@ -5,13 +5,6 @@ pub(crate) use chrono::{Duration, NaiveDate, Utc};
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::config::constants::permissions::Permissions;
-pub(crate) use rust_learn::db::schema::{
-    courses, courses_organizations, delegated_permissions, external_transactions,
-    internal_transactions, organizations, reward_candidates, reward_execution_jobs,
-    reward_fraud_blocks, reward_payout_records, reward_policies, reward_wallet_credit_records,
-    teacher_applications, transactions, wallets,
-};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_PLATFORM;
 pub(crate) use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
 pub(crate) use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
@@ -42,6 +35,13 @@ pub(crate) use rust_learn::infra::postgres::models::reward_policy::NewRewardPoli
 pub(crate) use rust_learn::infra::postgres::models::teacher_application::NewTeacherApplication;
 pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::models::wallet::NewWallet;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    courses, courses_organizations, delegated_permissions, external_transactions,
+    internal_transactions, organizations, reward_candidates, reward_execution_jobs,
+    reward_fraud_blocks, reward_payout_records, reward_policies, reward_wallet_credit_records,
+    teacher_applications, transactions, wallets,
+};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
 pub(crate) use serde_json::{json, Value};
 

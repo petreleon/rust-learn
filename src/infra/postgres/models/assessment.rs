@@ -1,4 +1,4 @@
-use crate::db::schema::{assessment_attempts, assessment_questions, assessments};
+use crate::infra::postgres::schema::{assessment_attempts, assessment_questions, assessments};
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;

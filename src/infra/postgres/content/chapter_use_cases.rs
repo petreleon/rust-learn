@@ -3,8 +3,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::content::manage_chapter::{
     self, ChapterError, ChapterOutput, ChapterUseCases, CreateChapterCommand, UpdateChapterCommand,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::content::chapter_store::PostgresChapterStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresChapterUseCases {

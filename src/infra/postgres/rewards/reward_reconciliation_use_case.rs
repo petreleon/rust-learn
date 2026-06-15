@@ -3,8 +3,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::rewards::reconcile_candidate::{
     self, RewardReconciliationError, RewardReconciliationOutput, RewardReconciliationUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::rewards::reward_reconciliation_store::PostgresRewardReconciliationStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresRewardReconciliationUseCase {

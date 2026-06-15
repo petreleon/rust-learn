@@ -6,8 +6,8 @@ use crate::application::teacher_applications::list_platform_review::{
     self, TeacherApplicationPlatformReviewError, TeacherApplicationPlatformReviewOutput,
     TeacherApplicationPlatformReviewQuery, TeacherApplicationPlatformReviewUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::teacher_applications::teacher_application_platform_review_store::PostgresTeacherApplicationPlatformReviewStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresTeacherApplicationPlatformReviewUseCase {

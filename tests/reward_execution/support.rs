@@ -4,13 +4,6 @@ pub(crate) use diesel::prelude::*;
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::application::rewards::record_token_confirmation::RewardTokenConfirmationCommand as RewardTokenConfirmationRequest;
 pub(crate) use rust_learn::config::constants::permissions::Permissions;
-pub(crate) use rust_learn::db::establish_connection;
-pub(crate) use rust_learn::db::schema::{
-    courses, external_transactions, internal_transactions, notifications, platform_roles,
-    reward_candidates, reward_payout_records, reward_policies, reward_wallet_credit_records,
-    role_permission_platform, transactions, transactions_external_transactions,
-    transactions_internal_transactions, wallets,
-};
 pub(crate) use rust_learn::domain::rewards::audit::{
     REWARD_AUDIT_EVENT_TOKEN_CONFIRMED, REWARD_AUDIT_EVENT_WALLET_CREDITED,
     REWARD_AUDIT_EVENT_WALLET_CREDIT_NOTIFIED,
@@ -29,6 +22,7 @@ pub(crate) use rust_learn::domain::rewards::policy::{
 pub(crate) use rust_learn::domain::rewards::token::RewardTokenEventType;
 pub(crate) use rust_learn::domain::rewards::wallet_credit::REWARD_TRANSACTION_TYPE_WALLET_CREDIT;
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
+pub(crate) use rust_learn::infra::postgres::establish_connection;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
 pub(crate) use rust_learn::infra::postgres::models::reward_candidate::{
@@ -38,6 +32,12 @@ pub(crate) use rust_learn::infra::postgres::models::reward_policy::NewRewardPoli
 pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::operations::persistent_state::set_persistent_state;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_audit_records::list_reward_audit_events;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    courses, external_transactions, internal_transactions, notifications, platform_roles,
+    reward_candidates, reward_payout_records, reward_policies, reward_wallet_credit_records,
+    role_permission_platform, transactions, transactions_external_transactions,
+    transactions_internal_transactions, wallets,
+};
 pub(crate) use serde_json::json;
 
 use std::sync::atomic::{AtomicU64, Ordering};

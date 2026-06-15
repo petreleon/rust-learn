@@ -12,8 +12,8 @@ use crate::bootstrap::reporting_wiring::ReportingUseCases;
 use crate::bootstrap::reward_wiring::RewardUseCases;
 use crate::bootstrap::teacher_application_wiring::TeacherApplicationUseCases;
 use crate::bootstrap::wallet_wiring::WalletUseCases;
-use crate::db::DbPool;
 use crate::infra::object_storage::S3State;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct AppState {

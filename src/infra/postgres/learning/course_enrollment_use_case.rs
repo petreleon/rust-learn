@@ -7,8 +7,8 @@ use crate::application::learning::course_enrollment::{
     CourseJoinDecisionOutput, CourseJoinRequestOutput, DecideCourseJoinCommand,
     RemoveCourseEnrollmentCommand, RequestCourseJoinCommand,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::learning::course_enrollment_store::PostgresCourseEnrollmentStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresCourseEnrollmentUseCase {

@@ -6,20 +6,22 @@ pub(crate) use rust_learn::application::rewards::record_compensation::{
     RecordRewardCompensationCommand as RewardCompensationRequest, RewardCompensationError,
     RewardCompensationOutput, RewardCompensationUseCase,
 };
-pub(crate) use rust_learn::db::establish_connection;
-pub(crate) use rust_learn::db::schema::{courses, reward_candidates, transactions, wallets};
 pub(crate) use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
 pub(crate) use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
 pub(crate) use rust_learn::domain::rewards::candidate::status::REWARD_STATUS_COMPLETED;
 pub(crate) use rust_learn::domain::rewards::compensation::REWARD_TRANSACTION_TYPE_COMPENSATION;
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
+pub(crate) use rust_learn::infra::postgres::establish_connection;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
 pub(crate) use rust_learn::infra::postgres::models::reward_candidate::NewRewardCandidate;
 pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_candidate_records::find_candidate;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_compensation_use_case::PostgresRewardCompensationUseCase;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    courses, reward_candidates, transactions, wallets,
+};
 pub(crate) use serde_json::json;
 
 pub(crate) fn unique_string(prefix: &str) -> String {

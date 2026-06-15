@@ -2,8 +2,8 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::organization_summary::OrganizationSummaryError;
-use crate::db::schema::user_role_organization;
 use crate::infra::postgres::reporting::organization_summary_mappers::map_diesel_error;
+use crate::infra::postgres::schema::user_role_organization;
 
 pub(super) async fn organization_member_user_ids(
     conn: &mut AsyncPgConnection,

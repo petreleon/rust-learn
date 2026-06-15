@@ -6,8 +6,8 @@ use crate::application::learning::assessment::{
     AssessmentAttemptOutput, AssessmentOutput, AssessmentReadError,
 };
 use crate::application::learning::ports::AssessmentReadStore;
-use crate::db::schema::{assessment_attempts, assessments};
 use crate::infra::postgres::models::assessment::{Assessment, AssessmentAttempt};
+use crate::infra::postgres::schema::{assessment_attempts, assessments};
 
 pub struct PostgresAssessmentReadStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

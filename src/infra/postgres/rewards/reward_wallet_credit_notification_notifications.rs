@@ -3,10 +3,10 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::rewards::notify_wallet_credit::RewardWalletCreditNotificationError;
-use crate::db::schema::{courses, notifications};
 use crate::domain::rewards::wallet_credit::reward_wallet_credit_notification_message;
 use crate::infra::postgres::models::notification::NewNotification;
 use crate::infra::postgres::rewards::reward_wallet_credit_notification_mappers::map_diesel_error;
+use crate::infra::postgres::schema::{courses, notifications};
 
 pub(super) async fn create_wallet_credit_notification(
     conn: &mut AsyncPgConnection,

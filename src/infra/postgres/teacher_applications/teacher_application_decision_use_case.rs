@@ -9,8 +9,8 @@ use crate::application::teacher_applications::{
     },
     TeacherApplicationOutput,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::teacher_applications::teacher_application_decision_store::PostgresTeacherApplicationDecisionStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresTeacherApplicationDecisionUseCase {

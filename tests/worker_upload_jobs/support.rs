@@ -1,10 +1,10 @@
 pub(crate) use chrono::{Duration, Utc};
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
-pub(crate) use rust_learn::db::schema::upload_jobs;
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::postgres::content::upload_job_queue;
 pub(crate) use rust_learn::infra::postgres::models::upload_job::{NewUploadJob, UploadJob};
+pub(crate) use rust_learn::infra::postgres::schema::upload_jobs;
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use std::sync::LazyLock;
 pub(crate) use tokio::sync::{Mutex, MutexGuard};
 

@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::{
+use crate::infra::postgres::schema::{
     role_permission_organization, role_permission_platform, user_role_organization,
     user_role_platform,
 };

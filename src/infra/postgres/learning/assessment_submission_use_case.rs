@@ -6,8 +6,8 @@ use crate::application::learning::submit_assessment_attempt::{
     self, AssessmentSubmissionError, AssessmentSubmissionUseCase, SubmitAssessmentAttemptCommand,
     SubmitAssessmentAttemptOutput,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::learning::assessment_submission_store::PostgresAssessmentSubmissionStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresAssessmentSubmissionUseCase {

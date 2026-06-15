@@ -6,8 +6,8 @@ use crate::application::learning::learner_progress::{
     self, LearnerProgressError, LearnerProgressOutput, LearnerProgressUseCase,
     SaveLearnerProgressCommand,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::learning::learner_progress_store::PostgresLearnerProgressStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresLearnerProgressUseCase {

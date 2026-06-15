@@ -1,4 +1,4 @@
-use crate::db::schema::reward_candidates;
+use crate::infra::postgres::schema::reward_candidates;
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;

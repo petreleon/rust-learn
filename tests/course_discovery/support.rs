@@ -9,11 +9,6 @@ pub(crate) use rust_learn::application::learning::get_learner_course_learning::L
 pub(crate) use rust_learn::application::learning::learner_progress::LearnerProgressUseCase;
 pub(crate) use rust_learn::application::learning::list_learner_course_catalog::LearnerCourseCatalogListUseCase;
 pub(crate) use rust_learn::application::organizations::list_organization_courses::OrganizationCourseListUseCase;
-pub(crate) use rust_learn::db::schema::{
-    chapters, contents, course_join_requests, courses, courses_organizations, organizations,
-    reward_policies, upload_jobs,
-};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::domain::learning::course::status::COURSE_STATUS_PUBLISHED;
 pub(crate) use rust_learn::domain::learning::enrollment::status::COURSE_JOIN_STATUS_PENDING;
 pub(crate) use rust_learn::domain::rewards::policy::{
@@ -39,6 +34,11 @@ pub(crate) use rust_learn::infra::postgres::models::reward_policy::NewRewardPoli
 pub(crate) use rust_learn::infra::postgres::models::upload_job::NewUploadJob;
 pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::organizations::organization_course_list_use_case::PostgresOrganizationCourseListUseCase;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    chapters, contents, course_join_requests, courses, courses_organizations, organizations,
+    reward_policies, upload_jobs,
+};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
 pub(crate) use serde_json::Value;
 pub(crate) use std::sync::{

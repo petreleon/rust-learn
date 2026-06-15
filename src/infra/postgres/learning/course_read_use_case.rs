@@ -5,8 +5,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::learning::get_course::{
     self, CourseOutput, CourseReadError, CourseReadUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::learning::course_read_store::PostgresCourseReadStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresCourseReadUseCase {

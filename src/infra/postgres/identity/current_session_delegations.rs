@@ -6,12 +6,12 @@ use diesel::result::Error as DieselError;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::identity::current_session::CurrentSessionError;
-use crate::db::schema::{courses, delegated_permissions, organizations};
 use crate::infra::postgres::identity::current_session_scope_builder::{
     course_builder, organization_builder, CourseScopeBuilder, OrganizationScopeBuilder,
     PlatformScopeBuilder,
 };
 use crate::infra::postgres::models::delegated_permission::DelegatedPermission;
+use crate::infra::postgres::schema::{courses, delegated_permissions, organizations};
 
 pub(super) async fn active_delegations_for_user(
     conn: &mut AsyncPgConnection,

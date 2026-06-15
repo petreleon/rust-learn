@@ -1,4 +1,4 @@
-use crate::db::schema::reward_compensation_records;
+use crate::infra::postgres::schema::reward_compensation_records;
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;

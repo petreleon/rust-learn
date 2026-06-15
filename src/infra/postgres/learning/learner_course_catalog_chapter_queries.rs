@@ -4,7 +4,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::application::learning::learner_course_catalog::{
     LearnerCourseCatalogChapterOutput, LearnerCourseCatalogContentOutput, LearnerCourseCatalogError,
 };
-use crate::db::schema::{chapters, contents};
+use crate::infra::postgres::schema::{chapters, contents};
 
 pub async fn load_learner_course_catalog_chapters(
     conn: &mut AsyncPgConnection,

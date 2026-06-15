@@ -6,9 +6,9 @@ use crate::application::access_control::check_permission::AccessDecisionService;
 use crate::application::access_control::compare_hierarchy::HierarchyCheckService;
 use crate::application::access_control::list_roles::RoleCatalogUseCase;
 use crate::application::access_control::manage_delegated_permissions::DelegatedPermissionUseCase;
-use crate::db::DbPool;
 use crate::infra::postgres::access_control::delegated_permissions::use_case::PostgresDelegatedPermissionUseCase;
 use crate::infra::postgres::access_control::role_catalog_use_case::PostgresRoleCatalogUseCase;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct AccessControlUseCases {

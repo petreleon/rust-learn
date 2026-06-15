@@ -7,12 +7,12 @@ use crate::application::access_control::check_permission::{
 use crate::application::organizations::invite_organization_member::{
     OrganizationMemberInviteError, OrganizationMemberInviteStore, OrganizationMemberInviteTarget,
 };
-use crate::db::schema::organization_member_audit_events;
 use crate::domain::organizations::member_audit::OrganizationMemberAuditEventType;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::identity::accounts::find_user_by_email;
 use crate::infra::postgres::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
 use crate::infra::postgres::organizations::organization_role_assignments::assign_role_with_hierarchy;
+use crate::infra::postgres::schema::organization_member_audit_events;
 
 pub struct PostgresOrganizationMemberInviteStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

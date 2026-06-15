@@ -9,7 +9,6 @@ use crate::application::learning::get_teacher_course_students::{
 use crate::application::learning::teacher_course_dashboard::{
     TeacherCourseDashboardError, TeacherCoursePermissionSummaryOutput,
 };
-use crate::db::schema::courses;
 use crate::infra::postgres::learning::{
     teacher_course_dashboard_permissions, teacher_course_dashboard_summary_queries,
     teacher_course_reward_eligibility_queries, teacher_course_roster_queries,
@@ -17,6 +16,7 @@ use crate::infra::postgres::learning::{
     teacher_student_reward_progress_queries,
 };
 use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::schema::courses;
 
 pub struct PostgresTeacherCourseStudentsStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

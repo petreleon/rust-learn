@@ -1,7 +1,9 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::{course_roles, courses, role_permission_course, user_role_course};
+use crate::infra::postgres::schema::{
+    course_roles, courses, role_permission_course, user_role_course,
+};
 
 #[derive(Debug)]
 pub(super) struct CourseRoleRow {

@@ -2,9 +2,9 @@ use diesel_async::{
     pooled_connection::deadpool::Object as PooledConnection, AsyncConnection, AsyncPgConnection,
     RunQueryDsl,
 };
-use rust_learn::db::establish_connection;
-use rust_learn::db::schema::db_version_control;
+use rust_learn::infra::postgres::establish_connection;
 use rust_learn::infra::postgres::operations::db_version_control as db_version_control_records;
+use rust_learn::infra::postgres::schema::db_version_control;
 
 async fn setup_conn() -> PooledConnection<AsyncPgConnection> {
     let _ = dotenvy::dotenv();

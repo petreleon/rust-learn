@@ -1,4 +1,4 @@
-use crate::db::schema::paths;
+use crate::infra::postgres::schema::paths;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, PartialEq, Debug)]

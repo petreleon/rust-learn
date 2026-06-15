@@ -1,6 +1,6 @@
-use crate::db::schema::user_role_platform;
 use crate::infra::postgres::models::role::PlatformRole;
 use crate::infra::postgres::models::user::User;
+use crate::infra::postgres::schema::user_role_platform;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Associations)]

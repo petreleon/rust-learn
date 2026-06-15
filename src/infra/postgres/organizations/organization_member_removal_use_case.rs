@@ -6,8 +6,8 @@ use crate::application::organizations::remove_organization_member::{
     self, OrganizationMemberRemovalCommand, OrganizationMemberRemovalError,
     OrganizationMemberRemovalUseCase,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::organizations::organization_member_removal_store::PostgresOrganizationMemberRemovalStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresOrganizationMemberRemovalUseCase {

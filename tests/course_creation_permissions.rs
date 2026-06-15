@@ -5,16 +5,16 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::application::learning::create_course::{
     CourseCreationCommand, CourseCreationError, CourseCreationUseCase,
 };
-use rust_learn::db::schema::{
-    courses_organizations, organizations, pending_course_organization_invites,
-};
-use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::learning::course_creation_use_case::PostgresCourseCreationUseCase;
 use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
 use rust_learn::infra::postgres::models::user::User;
+use rust_learn::infra::postgres::schema::{
+    courses_organizations, organizations, pending_course_organization_invites,
+};
+use rust_learn::infra::postgres::{establish_connection, DbPool};
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);

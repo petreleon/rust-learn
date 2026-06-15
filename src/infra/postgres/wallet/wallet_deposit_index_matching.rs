@@ -2,12 +2,12 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::wallet::index_deposit::ObservedWalletDepositEvent;
-use crate::db::schema::wallet_token_deposit_intents;
 use crate::domain::wallet::deposit::{
     WalletDepositEventType, WALLET_DEPOSIT_STATUS_AMBIGUOUS, WALLET_DEPOSIT_STATUS_CREDITED,
     WALLET_DEPOSIT_STATUS_PENDING, WALLET_GAS_PAYER_PLATFORM, WALLET_GAS_PAYER_USER,
 };
 use crate::infra::postgres::models::wallet_token_deposit_intent::WalletTokenDepositIntent;
+use crate::infra::postgres::schema::wallet_token_deposit_intents;
 use crate::infra::postgres::wallet::wallet_deposit_index_ledger::normalize_address;
 
 pub(super) async fn load_matching_pending_deposit_intents(

@@ -6,8 +6,8 @@ use crate::application::learning::learner_course_catalog::LearnerCourseCatalogEr
 use crate::application::learning::list_learner_course_catalog::{
     self, LearnerCourseCatalogListUseCase, LearnerCourseCatalogOutput, LearnerCourseCatalogQuery,
 };
-use crate::db::DbPool;
 use crate::infra::postgres::learning::learner_course_catalog_list_store::PostgresLearnerCourseCatalogListStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresLearnerCourseCatalogListUseCase {

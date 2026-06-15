@@ -6,8 +6,8 @@ use crate::application::learning::get_learner_course_detail::{
     self, LearnerCourseDetailOutput, LearnerCourseDetailQuery, LearnerCourseDetailUseCase,
 };
 use crate::application::learning::learner_course_catalog::LearnerCourseCatalogError;
-use crate::db::DbPool;
 use crate::infra::postgres::learning::learner_course_detail_store::PostgresLearnerCourseDetailStore;
+use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct PostgresLearnerCourseDetailUseCase {

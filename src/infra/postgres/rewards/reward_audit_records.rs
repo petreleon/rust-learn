@@ -1,8 +1,8 @@
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::reward_audit_events;
 use crate::infra::postgres::models::reward_audit_event::{NewRewardAuditEvent, RewardAuditEvent};
+use crate::infra::postgres::schema::reward_audit_events;
 
 pub async fn create_reward_audit_event(
     conn: &mut AsyncPgConnection,

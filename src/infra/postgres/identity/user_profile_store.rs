@@ -8,9 +8,9 @@ use crate::application::access_control::check_permission::{
 use crate::application::identity::list_users::ListUsersQuery;
 use crate::application::identity::ports::UserProfileStore;
 use crate::application::identity::user_profile::{UserProfileError, UserProfileOutput};
-use crate::db::schema::users;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::models::user::User;
+use crate::infra::postgres::schema::users;
 
 pub struct PostgresUserProfileStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

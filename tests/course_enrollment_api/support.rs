@@ -7,8 +7,6 @@ pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::application::learning::assign_course_role::CourseRoleAssignmentUseCase;
 pub(crate) use rust_learn::application::learning::course_enrollment::CourseEnrollmentUseCase;
 pub(crate) use rust_learn::application::notifications::delivery::NotificationDeliveryUseCase;
-pub(crate) use rust_learn::db::schema::{courses, notifications};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::domain::learning::enrollment::status::COURSE_JOIN_STATUS_APPROVED;
 pub(crate) use rust_learn::infra::notifications::NotificationsState;
 pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
@@ -19,6 +17,8 @@ pub(crate) use rust_learn::infra::postgres::learning::course_enrollment_use_case
 pub(crate) use rust_learn::infra::postgres::learning::course_role_assignment_use_case::PostgresCourseRoleAssignmentUseCase;
 pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
 pub(crate) use rust_learn::infra::postgres::models::user::User;
+pub(crate) use rust_learn::infra::postgres::schema::{courses, notifications};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
 pub(crate) use serde_json::Value;
 

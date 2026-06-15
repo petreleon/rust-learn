@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::db::schema::reward_policies;
+use crate::infra::postgres::schema::reward_policies;
 
 pub async fn deactivate_active_policies(
     conn: &mut AsyncPgConnection,

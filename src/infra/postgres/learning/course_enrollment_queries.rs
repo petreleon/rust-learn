@@ -8,9 +8,9 @@ use crate::application::access_control::check_permission::{
 use crate::application::learning::course_enrollment::{
     CourseEnrollmentError, CourseJoinRequestOutput,
 };
-use crate::db::schema::{course_roles, courses_organizations, user_role_course};
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::models::course_join_request::CourseJoinRequest;
+use crate::infra::postgres::schema::{course_roles, courses_organizations, user_role_course};
 
 const COURSE_ROLE_STUDENT: &str = "STUDENT";
 

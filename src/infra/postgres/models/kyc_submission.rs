@@ -1,4 +1,4 @@
-use crate::db::schema::kyc_submissions;
+use crate::infra::postgres::schema::kyc_submissions;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Serialize;

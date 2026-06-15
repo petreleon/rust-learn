@@ -9,12 +9,6 @@ pub(crate) use rust_learn::application::rewards::manage_fraud_block::{
     RewardFraudBlockUseCase,
 };
 pub(crate) use rust_learn::config::constants::permissions::Permissions;
-pub(crate) use rust_learn::db::schema::{
-    course_roles, courses, courses_organizations, organizations, platform_roles,
-    reward_execution_jobs, reward_policies, role_permission_course, role_permission_platform,
-    users,
-};
-pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::domain::rewards::audit::{
     REWARD_AUDIT_EVENT_AMOUNT_DECISION, REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED,
     REWARD_AUDIT_EVENT_TEACHER_DECISION,
@@ -49,6 +43,12 @@ pub(crate) use rust_learn::infra::postgres::rewards::reward_audit_records::list_
 pub(crate) use rust_learn::infra::postgres::rewards::reward_candidate_records::find_candidate;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_execution_job_records::find_job_by_candidate;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_fraud_block_use_case::PostgresRewardFraudBlockUseCase;
+pub(crate) use rust_learn::infra::postgres::schema::{
+    course_roles, courses, courses_organizations, organizations, platform_roles,
+    reward_execution_jobs, reward_policies, role_permission_course, role_permission_platform,
+    users,
+};
+pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
 pub(crate) use serde_json::{json, Value};
 
