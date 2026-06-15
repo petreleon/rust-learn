@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Verified base before this changeset: `285bdfcb`.
-Latest verified changeset: delegated-permission CSV export vocabulary.
+Verified base before this changeset: `e5e3a578`.
+Latest verified changeset: platform fraud-dashboard scope vocabulary.
 
 Goal: move RustLearn to a Level 2 modular monolith with firm business
 boundaries. Ownership matters more than folder count; preserve behavior unless
@@ -50,12 +50,13 @@ Checked contexts: `access_control`, `content`, `identity`, `kyc`, `learning`,
 - `53a3fd67`: platform reward dashboard rows are typed across app/infra/http.
 - `74811b12`: platform reward-approval CSV export vocabulary.
 - `285bdfcb`: platform teacher-application CSV export vocabulary.
-- This changeset: platform delegated-permission CSV export vocabulary.
+- `e5e3a578`: platform delegated-permission CSV export vocabulary.
+- This changeset: platform fraud-dashboard scope vocabulary.
 
 Proof set for verified batches: focused host tests, fmt, Cargo lib/bin checks,
 integration no-run compile, `git diff --check`, line counts, string-field scans,
-and boundary scans. This changeset additionally passed the reporting export
-integration test and delegated-permission focused tests.
+and boundary scans. This changeset additionally passed fraud-dashboard focused
+tests and the reporting export integration path.
 
 ## Still Open
 
