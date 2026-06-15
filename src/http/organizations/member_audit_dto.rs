@@ -22,7 +22,7 @@ impl From<OrganizationMemberAuditEventOutput> for OrganizationMemberAuditEventRe
             organization_id: event.organization_id,
             actor_user_id: event.actor_user_id,
             target_user_id: event.target_user_id,
-            event_type: event.event_type,
+            event_type: event.event_type.as_str().to_string(),
             role_name: event.role_name,
             reason: event.reason,
             created_at: event.created_at,

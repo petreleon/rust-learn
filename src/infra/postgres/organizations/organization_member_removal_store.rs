@@ -10,6 +10,7 @@ use crate::application::organizations::remove_organization_member::{
     OrganizationMemberRemovalStore,
 };
 use crate::db::schema::{organization_member_audit_events, user_role_organization};
+use crate::domain::organizations::member_audit::OrganizationMemberAuditEventType;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::organizations::organization_member_removal_mappers::map_member_removal_error;
 use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
@@ -81,7 +82,9 @@ async fn log_member_removed_event(
             organization_id: command.organization_id,
             actor_user_id: None,
             target_user_id: command.target_user_id,
-            event_type: "member_removed".to_string(),
+            event_type: OrganizationMemberAuditEventType::MemberRemoved
+                .as_str()
+                .to_string(),
             role_name: None,
             reason: None,
         })

@@ -9,6 +9,7 @@ use crate::application::organizations::assign_organization_member_role::{
     OrganizationMemberRoleAssignmentStore,
 };
 use crate::db::schema::organization_member_audit_events;
+use crate::domain::organizations::member_audit::OrganizationMemberAuditEventType;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::organizations::organization_role_assignments;
 use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
@@ -114,7 +115,9 @@ impl OrganizationMemberRoleAssignmentStore for PostgresOrganizationMemberRoleAss
                     organization_id: command.organization_id,
                     actor_user_id: Some(command.actor_user_id),
                     target_user_id: command.target_user_id,
-                    event_type: "role_assigned".to_string(),
+                    event_type: OrganizationMemberAuditEventType::RoleAssigned
+                        .as_str()
+                        .to_string(),
                     role_name: Some(command.role_name),
                     reason: None,
                 })

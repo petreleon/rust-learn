@@ -101,7 +101,7 @@ impl From<KycAuditEventOutput> for KycAuditEventResponse {
         Self {
             actor_user_id: event.actor_user_id,
             created_at: event.created_at,
-            event_type: event.event_type,
+            event_type: event.event_type.as_str().to_string(),
             from_status: event.from_status,
             id: event.id,
             metadata: event.metadata,

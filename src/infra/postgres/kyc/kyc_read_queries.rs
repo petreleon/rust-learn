@@ -72,17 +72,15 @@ pub(super) async fn list_submission_audit(
     conn: &mut AsyncPgConnection,
     submission_id: i64,
 ) -> Result<Vec<KycAuditEventOutput>, KycError> {
-    kyc_audit_events::table
+    let events = kyc_audit_events::table
         .filter(kyc_audit_events::submission_id.eq(submission_id))
         .order(kyc_audit_events::created_at.asc())
         .then_order_by(kyc_audit_events::id.asc())
         .load::<KycAuditEvent>(conn)
         .await
-        .map(|items| {
-            items
-                .into_iter()
-                .map(kyc_audit_event_output_from_record)
-                .collect()
-        })
-        .map_err(map_error)
+        .map_err(map_error)?;
+    events
+        .into_iter()
+        .map(kyc_audit_event_output_from_record)
+        .collect()
 }

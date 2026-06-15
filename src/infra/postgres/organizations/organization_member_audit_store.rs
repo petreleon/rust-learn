@@ -58,17 +58,15 @@ async fn list_member_audit_events(
     conn: &mut AsyncPgConnection,
     query: OrganizationMemberAuditQuery,
 ) -> Result<Vec<OrganizationMemberAuditEventOutput>, OrganizationMemberAuditError> {
-    organization_member_audit_events::table
+    let events = organization_member_audit_events::table
         .filter(organization_member_audit_events::organization_id.eq(query.organization_id))
         .filter(organization_member_audit_events::target_user_id.eq(query.target_user_id))
         .order(organization_member_audit_events::created_at.desc())
         .load::<OrganizationMemberAuditEvent>(conn)
         .await
-        .map(|events| {
-            events
-                .into_iter()
-                .map(organization_member_audit_output_from_model)
-                .collect()
-        })
-        .map_err(map_member_audit_error)
+        .map_err(map_member_audit_error)?;
+    events
+        .into_iter()
+        .map(organization_member_audit_output_from_model)
+        .collect()
 }

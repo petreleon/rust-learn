@@ -104,11 +104,7 @@ async fn platform_teacher_application_review_contract_returns_context_and_filter
     assert!(response.operator_permissions.can_reject_applications);
     assert!(response.operator_permissions.can_request_changes);
 
-    let application = response
-        .applications
-        .as_slice()
-        .first()
-        .expect("filtered application should be returned");
+    let application = response.applications.get(0).expect("filtered application");
     assert_eq!(application.id, submitted.id);
     assert_eq!(application.applicant.id, submitted_applicant.id());
     assert_eq!(application.applicant.name, submitted_applicant.name);
@@ -160,12 +156,12 @@ async fn platform_teacher_application_review_contract_returns_context_and_filter
             .configure(rust_learn::http::teacher_applications::configure_routes),
     )
     .await;
+    let review_uri =
+        format!("/teacher-applications/review?status=submitted&search={search_marker}");
     let http_response = test::call_service(
         &app,
         test::TestRequest::get()
-            .uri(&format!(
-                "/teacher-applications/review?status=submitted&search={search_marker}"
-            ))
+            .uri(&review_uri)
             .insert_header((
                 "Authorization",
                 format!("Bearer {}", token_for(reviewer.id())),
@@ -175,9 +171,10 @@ async fn platform_teacher_application_review_contract_returns_context_and_filter
     .await;
     assert_eq!(http_response.status(), StatusCode::OK);
     let body: serde_json::Value = test::read_body_json(http_response).await;
-    assert!(body["applications"]
+    let applications = body["applications"]
         .as_array()
-        .expect("applications should be an array")
+        .expect("applications should be an array");
+    assert!(applications
         .iter()
         .any(|application| application["id"].as_i64() == Some(submitted.id)));
 }

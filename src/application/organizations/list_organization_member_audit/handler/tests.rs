@@ -10,6 +10,7 @@ use crate::application::organizations::list_organization_member_audit::{
     OrganizationMemberAuditError, OrganizationMemberAuditEventOutput, OrganizationMemberAuditQuery,
     OrganizationMemberAuditStore,
 };
+use crate::domain::organizations::member_audit::OrganizationMemberAuditEventType;
 
 #[test]
 fn lists_events_after_permission_check() {
@@ -101,7 +102,7 @@ impl OrganizationMemberAuditStore for FakeOrganizationMemberAuditStore {
             organization_id: query.organization_id,
             actor_user_id: Some(query.actor_user_id),
             target_user_id: query.target_user_id,
-            event_type: "role_assigned".to_string(),
+            event_type: OrganizationMemberAuditEventType::RoleAssigned,
             role_name: Some("STUDENT".to_string()),
             reason: Some("test fixture".to_string()),
             created_at: Utc::now(),

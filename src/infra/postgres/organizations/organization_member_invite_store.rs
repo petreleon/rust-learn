@@ -8,6 +8,7 @@ use crate::application::organizations::invite_organization_member::{
     OrganizationMemberInviteError, OrganizationMemberInviteStore, OrganizationMemberInviteTarget,
 };
 use crate::db::schema::organization_member_audit_events;
+use crate::domain::organizations::member_audit::OrganizationMemberAuditEventType;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::identity::accounts::find_user_by_email;
 use crate::infra::postgres::organizations::organization_role_assignments::assign_role_with_hierarchy;
@@ -126,7 +127,9 @@ async fn log_role_assigned_event(
             organization_id,
             actor_user_id: Some(actor_user_id),
             target_user_id,
-            event_type: "role_assigned".to_string(),
+            event_type: OrganizationMemberAuditEventType::RoleAssigned
+                .as_str()
+                .to_string(),
             role_name: Some(role_name.to_string()),
             reason: None,
         })
