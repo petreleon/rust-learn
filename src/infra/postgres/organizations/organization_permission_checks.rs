@@ -11,21 +11,6 @@ use crate::infra::postgres::access_control::permission_checks::{
     can_platform_permission,
 };
 
-pub(super) async fn can_organization_permission(
-    conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-    organization_id: i32,
-    permission: Permissions,
-) -> QueryResult<bool> {
-    access_control_can_organization_permission(
-        conn,
-        actor_user_id,
-        organization_id,
-        &permission.to_string(),
-    )
-    .await
-}
-
 pub(super) async fn can_platform_or_organization_permission(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,

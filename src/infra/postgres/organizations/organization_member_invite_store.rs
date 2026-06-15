@@ -1,13 +1,15 @@
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::organizations::invite_organization_member::{
     OrganizationMemberInviteError, OrganizationMemberInviteStore, OrganizationMemberInviteTarget,
 };
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::organization_member_audit_events;
+use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::identity::accounts::find_user_by_email;
-use crate::infra::postgres::organizations::organization_permission_checks::can_organization_permission;
 use crate::infra::postgres::organizations::organization_role_assignments::assign_role_with_hierarchy;
 use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
 
@@ -22,24 +24,6 @@ impl<'conn> PostgresOrganizationMemberInviteStore<'conn> {
 }
 
 impl OrganizationMemberInviteStore for PostgresOrganizationMemberInviteStore<'_> {
-    fn can_invite_member(
-        &mut self,
-        actor_user_id: i32,
-        organization_id: i32,
-    ) -> BoxFuture<'_, Result<bool, OrganizationMemberInviteError>> {
-        async move {
-            can_organization_permission(
-                self.conn,
-                actor_user_id,
-                organization_id,
-                Permissions::INVITE_USER_TO_ORGANIZATION,
-            )
-            .await
-            .map_err(map_member_invite_error)
-        }
-        .boxed()
-    }
-
     fn find_user_by_email(
         &mut self,
         email: String,
@@ -86,6 +70,24 @@ impl OrganizationMemberInviteStore for PostgresOrganizationMemberInviteStore<'_>
             .ok();
 
             Ok(())
+        }
+        .boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresOrganizationMemberInviteStore<'_> {
+    type Error = OrganizationMemberInviteError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, OrganizationMemberInviteError>> {
+        async move {
+            permission_checks::can(self.conn, actor, action, scope)
+                .await
+                .map_err(map_member_invite_error)
         }
         .boxed()
     }

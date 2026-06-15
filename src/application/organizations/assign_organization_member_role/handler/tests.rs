@@ -1,6 +1,9 @@
 use futures::future::{BoxFuture, FutureExt};
 
-use super::assign_organization_member_role;
+use super::{assign_organization_member_role, ASSIGN_ROLES_TO_ORG_USERS};
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::organizations::assign_organization_member_role::{
     OrganizationMemberRoleAssignmentCommand, OrganizationMemberRoleAssignmentError,
     OrganizationMemberRoleAssignmentStore,
@@ -17,16 +20,23 @@ struct FakeOrganizationMemberRoleAssignmentStore {
     recorded: Option<(i32, i32, i32, String)>,
 }
 
-impl OrganizationMemberRoleAssignmentStore for FakeOrganizationMemberRoleAssignmentStore {
-    fn can_assign_role(
+impl AccessDecisionStore for FakeOrganizationMemberRoleAssignmentStore {
+    type Error = OrganizationMemberRoleAssignmentError;
+
+    fn can(
         &mut self,
-        _actor_user_id: i32,
-        _organization_id: i32,
+        _actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, OrganizationMemberRoleAssignmentError>> {
+        assert_eq!(action.permission_name(), ASSIGN_ROLES_TO_ORG_USERS);
+        assert!(matches!(scope, AccessScope::Organization(_)));
         let can_assign = self.can_assign;
         async move { Ok(can_assign) }.boxed()
     }
+}
 
+impl OrganizationMemberRoleAssignmentStore for FakeOrganizationMemberRoleAssignmentStore {
     fn actor_min_level(
         &mut self,
         _actor_user_id: i32,

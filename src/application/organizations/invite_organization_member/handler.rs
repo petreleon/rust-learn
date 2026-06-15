@@ -1,14 +1,23 @@
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::organizations::invite_organization_member::{
     OrganizationMemberInviteCommand, OrganizationMemberInviteError, OrganizationMemberInviteOutput,
     OrganizationMemberInviteStore,
 };
+
+const INVITE_USER_TO_ORGANIZATION: &str = "INVITE_USER_TO_ORGANIZATION";
 
 pub async fn invite_organization_member(
     store: &mut impl OrganizationMemberInviteStore,
     command: OrganizationMemberInviteCommand,
 ) -> Result<OrganizationMemberInviteOutput, OrganizationMemberInviteError> {
     if !store
-        .can_invite_member(command.actor_user_id, command.organization_id)
+        .can(
+            AccessActor::user(command.actor_user_id),
+            AccessAction::permission(INVITE_USER_TO_ORGANIZATION),
+            AccessScope::organization(command.organization_id),
+        )
         .await?
     {
         return Err(OrganizationMemberInviteError::PermissionDenied);

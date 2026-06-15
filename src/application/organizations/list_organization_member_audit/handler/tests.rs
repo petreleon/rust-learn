@@ -2,7 +2,10 @@ use chrono::Utc;
 use futures::executor::block_on;
 use futures::future::{ready, BoxFuture, FutureExt};
 
-use super::list_organization_member_audit;
+use super::{list_organization_member_audit, VIEW_ORGANIZATION};
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::organizations::list_organization_member_audit::{
     OrganizationMemberAuditError, OrganizationMemberAuditEventOutput, OrganizationMemberAuditQuery,
     OrganizationMemberAuditStore,
@@ -70,16 +73,23 @@ impl FakeOrganizationMemberAuditStore {
     }
 }
 
-impl OrganizationMemberAuditStore for FakeOrganizationMemberAuditStore {
-    fn can_view_member_audit(
+impl AccessDecisionStore for FakeOrganizationMemberAuditStore {
+    type Error = OrganizationMemberAuditError;
+
+    fn can(
         &mut self,
-        _actor_user_id: i32,
-        _organization_id: i32,
+        _actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, OrganizationMemberAuditError>> {
+        assert_eq!(action.permission_name(), VIEW_ORGANIZATION);
+        assert!(matches!(scope, AccessScope::Organization(_)));
         self.checked_permission = true;
         ready(Ok(self.can_view)).boxed()
     }
+}
 
+impl OrganizationMemberAuditStore for FakeOrganizationMemberAuditStore {
     fn list_member_audit_events(
         &mut self,
         query: OrganizationMemberAuditQuery,

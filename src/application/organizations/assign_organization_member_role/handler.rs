@@ -1,14 +1,23 @@
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::organizations::assign_organization_member_role::{
     OrganizationMemberRoleAssignmentCommand, OrganizationMemberRoleAssignmentError,
     OrganizationMemberRoleAssignmentOutput, OrganizationMemberRoleAssignmentStore,
 };
+
+const ASSIGN_ROLES_TO_ORG_USERS: &str = "ASSIGN_ROLES_TO_ORG_USERS";
 
 pub async fn assign_organization_member_role(
     store: &mut impl OrganizationMemberRoleAssignmentStore,
     command: OrganizationMemberRoleAssignmentCommand,
 ) -> Result<OrganizationMemberRoleAssignmentOutput, OrganizationMemberRoleAssignmentError> {
     if !store
-        .can_assign_role(command.actor_user_id, command.organization_id)
+        .can(
+            AccessActor::user(command.actor_user_id),
+            AccessAction::permission(ASSIGN_ROLES_TO_ORG_USERS),
+            AccessScope::organization(command.organization_id),
+        )
         .await?
     {
         return Err(OrganizationMemberRoleAssignmentError::PermissionDenied);

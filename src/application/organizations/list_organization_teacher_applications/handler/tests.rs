@@ -1,6 +1,12 @@
 use futures::future::{ready, BoxFuture, FutureExt};
 
-use super::list_organization_teacher_applications;
+use super::{
+    list_organization_teacher_applications, NOMINATE_TEACHER_FOR_PLATFORM_REVIEW,
+    VIEW_ORG_TEACHER_APPLICATIONS,
+};
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::organizations::list_organization_teacher_applications::{
     OrganizationTeacherApplicationDataset, OrganizationTeacherApplicationItemOutput,
     OrganizationTeacherApplicationListError, OrganizationTeacherApplicationListQuery,
@@ -78,6 +84,27 @@ impl FakeStore {
     }
 }
 
+impl AccessDecisionStore for FakeStore {
+    type Error = OrganizationTeacherApplicationListError;
+
+    fn can(
+        &mut self,
+        _actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, OrganizationTeacherApplicationListError>> {
+        let allowed = match (action.permission_name(), scope) {
+            (_, AccessScope::Platform(_)) => false,
+            (VIEW_ORG_TEACHER_APPLICATIONS, AccessScope::Organization(_)) => self.can_view,
+            (NOMINATE_TEACHER_FOR_PLATFORM_REVIEW, AccessScope::Organization(_)) => {
+                self.can_nominate
+            }
+            (permission, _) => panic!("unexpected organization teacher permission {permission}"),
+        };
+        ready(Ok(allowed)).boxed()
+    }
+}
+
 impl OrganizationTeacherApplicationListStore for FakeStore {
     fn organization(
         &mut self,
@@ -94,22 +121,6 @@ impl OrganizationTeacherApplicationListStore for FakeStore {
             name: "Org".to_string(),
         }))
         .boxed()
-    }
-
-    fn can_view_applications(
-        &mut self,
-        _actor_user_id: i32,
-        _organization_id: i32,
-    ) -> BoxFuture<'_, Result<bool, OrganizationTeacherApplicationListError>> {
-        ready(Ok(self.can_view)).boxed()
-    }
-
-    fn can_nominate_teachers(
-        &mut self,
-        _actor_user_id: i32,
-        _organization_id: i32,
-    ) -> BoxFuture<'_, Result<bool, OrganizationTeacherApplicationListError>> {
-        ready(Ok(self.can_nominate)).boxed()
     }
 
     fn list_teacher_applications(

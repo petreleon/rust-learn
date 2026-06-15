@@ -1854,6 +1854,36 @@ Batch 310: move identity and KYC platform authorization to access decisions.
       cleanup still need follow-up batches before central authorization is
       complete.
 
+Batch 311: move organization action authorization ports to access decisions.
+
+- [x] Repointed organization invite, removal, role-assignment, member-audit,
+      and teacher-application list store ports to extend
+      `AccessDecisionStore` instead of exposing context-specific permission
+      methods.
+- [x] Updated the organization application handlers to build `AccessActor`,
+      `AccessAction`, and `AccessScope` decisions directly; organization
+      teacher-application listing preserves the previous platform-or-organization
+      behavior by checking platform scope first, then organization scope.
+- [x] Updated the matching Postgres adapters to implement `AccessDecisionStore`
+      through the shared `permission_checks::can` adapter and removed the dead
+      organization-only permission wrapper.
+- [x] Proved behavior and boundaries with `cargo fmt --all`,
+      `./scripts/run-host-tests.sh cargo test --lib organizations`,
+      `./scripts/run-host-tests.sh cargo test --test organization_members --test organization_teacher_applications --test organization_permissions`,
+      `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale custom organization permission-port scans, scoped Postgres
+      permission-helper scans, direct `permission_checks::can` adapter scans,
+      ring import-boundary scans, `git diff --check`, and organization
+      file-size checks.
+- [x] Self-critique: this closes the direct organization application-facing
+      action authorization ports. Dashboard visibility and infra-only
+      organization permission summary/read-model helpers still use richer
+      organization permission helper modules and need a separate batch before
+      the final middleware/application single-service cleanup.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -2050,6 +2080,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Identity profile reads and KYC review/audit application paths now use the
       shared mutable access-decision store contract instead of context-specific
       platform permission methods.
+- [x] Organization invite, removal, role assignment, member-audit, and
+      teacher-application list action gates now use the shared mutable
+      access-decision store contract.
 - [ ] Make middleware call the same access-control service as application use
       cases.
 - [ ] Keep middleware as an early rejection optimization; do not make it the

@@ -2,14 +2,16 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::organizations::remove_organization_member::{
     OrganizationMemberRemovalCommand, OrganizationMemberRemovalError,
     OrganizationMemberRemovalStore,
 };
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{organization_member_audit_events, user_role_organization};
+use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::organizations::organization_member_removal_mappers::map_member_removal_error;
-use crate::infra::postgres::organizations::organization_permission_checks::can_organization_permission;
 use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
 
 pub struct PostgresOrganizationMemberRemovalStore<'conn> {
@@ -23,29 +25,29 @@ impl<'conn> PostgresOrganizationMemberRemovalStore<'conn> {
 }
 
 impl OrganizationMemberRemovalStore for PostgresOrganizationMemberRemovalStore<'_> {
-    fn can_remove_member(
-        &mut self,
-        actor_user_id: i32,
-        organization_id: i32,
-    ) -> BoxFuture<'_, Result<bool, OrganizationMemberRemovalError>> {
-        async move {
-            can_organization_permission(
-                self.conn,
-                actor_user_id,
-                organization_id,
-                Permissions::MANAGE_ORG_MEMBERS,
-            )
-            .await
-            .map_err(map_member_removal_error)
-        }
-        .boxed()
-    }
-
     fn remove_member(
         &mut self,
         command: OrganizationMemberRemovalCommand,
     ) -> BoxFuture<'_, Result<(), OrganizationMemberRemovalError>> {
         async move { remove_member(self.conn, command).await }.boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresOrganizationMemberRemovalStore<'_> {
+    type Error = OrganizationMemberRemovalError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, OrganizationMemberRemovalError>> {
+        async move {
+            permission_checks::can(self.conn, actor, action, scope)
+                .await
+                .map_err(map_member_removal_error)
+        }
+        .boxed()
     }
 }
 
