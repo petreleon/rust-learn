@@ -27,6 +27,7 @@ pub(crate) use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COU
 pub(crate) use rust_learn::domain::rewards::candidate::status::{
     REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_WALLET_CREDITED,
 };
+pub(crate) use rust_learn::domain::wallet::deposit::WalletDepositStatus;
 use rust_learn::infra::postgres::access_control::{platform_role_records, role_catalog_store};
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 pub(crate) use rust_learn::infra::postgres::operations::persistent_state::set_persistent_state;

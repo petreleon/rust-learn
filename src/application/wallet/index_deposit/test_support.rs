@@ -4,6 +4,7 @@ use crate::application::wallet::index_deposit::{
     ObservedWalletDepositEvent, WalletDepositIndexError, WalletDepositIndexOutput,
     WalletDepositIndexStore,
 };
+use crate::domain::wallet::deposit::WalletDepositStatus;
 
 pub(crate) struct FakeWalletDepositIndexStore {
     pub event: Option<ObservedWalletDepositEvent>,
@@ -21,7 +22,7 @@ impl Default for FakeWalletDepositIndexStore {
                 external_transaction_id: Some(40),
                 internal_transaction_ids: vec![50, 60],
                 credited: true,
-                status: "credited".to_string(),
+                status: WalletDepositStatus::Credited,
             },
         }
     }

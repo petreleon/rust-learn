@@ -76,7 +76,7 @@ pub(crate) async fn create_and_credit_platform_paid_deposit(
     assert!(deposit_credit.credited);
     assert_eq!(deposit_credit.intent_id, Some(deposit_intent_id));
     assert_eq!(deposit_credit.wallet_id, Some(wallet_id));
-    assert_eq!(deposit_credit.status, "credited");
+    assert_eq!(deposit_credit.status, WalletDepositStatus::Credited);
 
     PlatformPaidDeposit {
         wallet_id,

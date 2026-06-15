@@ -5,6 +5,7 @@ use super::handler::index_observed_deposit;
 use crate::application::wallet::index_deposit::{
     test_support::FakeWalletDepositIndexStore, ObservedWalletDepositEvent, WalletDepositIndexError,
 };
+use crate::domain::wallet::deposit::WalletDepositStatus;
 
 #[test]
 fn delegates_valid_observed_deposit_to_store() {
@@ -15,7 +16,7 @@ fn delegates_valid_observed_deposit_to_store() {
         block_on(index_observed_deposit(&mut store, event)).expect("valid event should index");
 
     assert!(output.credited);
-    assert_eq!(output.status, "credited");
+    assert_eq!(output.status, WalletDepositStatus::Credited);
     assert_eq!(
         store
             .event

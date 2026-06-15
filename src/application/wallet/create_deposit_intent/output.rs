@@ -1,8 +1,10 @@
+use crate::domain::wallet::deposit::WalletDepositStatus;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletDepositIntentView {
     pub operation: &'static str,
     pub id: i64,
-    pub status: String,
+    pub status: WalletDepositStatus,
     pub wallet_id: i32,
     pub amount: String,
     pub tax_amount: String,

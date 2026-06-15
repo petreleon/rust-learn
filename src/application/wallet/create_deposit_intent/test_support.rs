@@ -5,6 +5,7 @@ use crate::application::wallet::create_deposit_intent::{
     WalletDepositGasPayer, WalletDepositIntentDraft, WalletDepositIntentError,
     WalletDepositIntentStore, WalletDepositIntentView,
 };
+use crate::domain::wallet::deposit::WalletDepositStatus;
 
 pub(crate) struct FakeWalletDepositIntentStore {
     pub user_kyc_verified: bool,
@@ -63,7 +64,7 @@ impl WalletDepositIntentStore for FakeWalletDepositIntentStore {
         ready(Ok(WalletDepositIntentView {
             operation: "deposit",
             id: 7,
-            status: "pending_chain_confirmation".to_string(),
+            status: WalletDepositStatus::PendingChainConfirmation,
             wallet_id: 11,
             amount: draft.amount.to_string(),
             tax_amount: draft.tax_amount.to_string(),

@@ -53,7 +53,7 @@ async fn duplicate_pending_deposit_intents_are_marked_ambiguous_without_creditin
     .await
     .expect("ambiguous observed deposit should be handled");
     assert!(!result.credited);
-    assert_eq!(result.status, "ambiguous");
+    assert_eq!(result.status, WalletDepositStatus::Ambiguous);
 
     let intent_rows = wallet_token_deposit_intents::table
         .filter(wallet_token_deposit_intents::id.eq_any([first.id, second.id]))
@@ -68,7 +68,7 @@ async fn duplicate_pending_deposit_intents_are_marked_ambiguous_without_creditin
         .expect("deposit intents should be queryable");
     assert_eq!(intent_rows.len(), 2);
     for (status, stored_hash, chain_id, log_index) in intent_rows {
-        assert_eq!(status, "ambiguous");
+        assert_eq!(status, WalletDepositStatus::Ambiguous.as_str());
         assert_eq!(
             stored_hash.as_deref(),
             Some(tx_hash.to_ascii_lowercase().as_str())

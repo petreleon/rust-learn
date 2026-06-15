@@ -58,7 +58,7 @@ impl From<WalletDepositIntentView> for WalletDepositIntentResponse {
         Self {
             operation: view.operation.to_string(),
             id: view.id,
-            status: view.status,
+            status: view.status.as_str().to_string(),
             wallet_id: view.wallet_id,
             amount: view.amount,
             tax_amount: view.tax_amount,
