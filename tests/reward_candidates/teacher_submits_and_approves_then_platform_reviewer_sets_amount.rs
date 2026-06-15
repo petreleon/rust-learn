@@ -3,6 +3,7 @@ use crate::{
     reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
     teacher_decision_helper::*,
 };
+use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[actix_web::test]
 async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
@@ -66,7 +67,10 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     )
     .await
     .expect("course teacher should approve reward candidate");
-    assert_eq!(teacher_approved.status, REWARD_STATUS_TEACHER_APPROVED);
+    assert_eq!(
+        teacher_approved.status,
+        RewardCandidateStatus::TeacherApproved
+    );
     assert_eq!(
         teacher_approved.teacher_approver_user_id,
         Some(teacher.id())
@@ -86,7 +90,10 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     .await
     .expect("repeated teacher approval should be idempotent");
     assert_eq!(teacher_replay.id, teacher_approved.id);
-    assert_eq!(teacher_replay.status, REWARD_STATUS_TEACHER_APPROVED);
+    assert_eq!(
+        teacher_replay.status,
+        RewardCandidateStatus::TeacherApproved
+    );
     assert_eq!(teacher_replay.approved_amount, None);
 
     let amount = BigDecimal::from_str("25.50").expect("valid decimal");

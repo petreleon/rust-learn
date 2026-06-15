@@ -3,6 +3,7 @@ use crate::{
     reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
     teacher_decision_helper::*,
 };
+use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[actix_web::test]
 async fn organization_submission_requires_linked_course_and_still_waits_for_teacher() {
@@ -64,7 +65,7 @@ async fn organization_submission_requires_linked_course_and_still_waits_for_teac
     )
     .await
     .expect("teacher approval should still be required after organization submission");
-    assert_eq!(approved.status, REWARD_STATUS_TEACHER_APPROVED);
+    assert_eq!(approved.status, RewardCandidateStatus::TeacherApproved);
 }
 
 #[actix_web::test]

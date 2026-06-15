@@ -1,26 +1,28 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
+Last verified commit: `5a1643fa`.
 
-Objective: keep moving RustLearn from a technically layered monolith to a
-Level 2 modular monolith with firm business boundaries. The goal is not more
-folders; the goal is that HTTP, use cases, domain rules, adapters, permissions,
-DTOs, and tests have clear owners.
+Objective: move RustLearn from a technically layered monolith to a Level 2
+modular monolith with firm business boundaries. The goal is ownership, not
+folder volume: HTTP, use cases, domain rules, adapters, permissions, DTOs, and
+tests should have clear owners.
 
 ## Target Shape
 
-Use top-level architectural rings plus stable bounded-context folders. Do not
-repeat `domain/application/infra/http` inside every context, and do not split
-into multiple crates until Level 2 imports are clean enough to justify Level 3.
+Top-level architectural rings stay stable; bounded contexts live inside those
+rings as needed. Do not repeat `domain/application/infra/http` as top-level
+folders inside every context, and do not split crates until Level 2 imports are
+clean enough for Level 3.
 
 ```text
 src/
-  bootstrap/       process wiring, app state, startup, route composition
-  shared/          tiny cross-context primitives only
-  domain/          pure business vocabulary, invariants, transitions
-  application/     use cases, commands, outputs, errors, ports
-  infra/           Postgres, object storage, Ethereum, email, dispatchers
-  http/            Actix routes, extractors, DTOs, response mapping
+  bootstrap/    process wiring, app state, startup, route composition
+  shared/       tiny cross-context primitives only
+  domain/       pure business vocabulary, invariants, transitions
+  application/  use cases, commands, outputs, errors, ports
+  infra/        Postgres, object storage, Ethereum, email, dispatchers
+  http/         Actix routes, extractors, DTOs, response mapping
 ```
 
 Canonical contexts:
@@ -36,43 +38,62 @@ Dependency rule:
 ```text
 http -> application -> domain
 infra -> application/domain ports
+bootstrap -> concrete wiring
 domain -> no Actix, Diesel, S3, Ethereum, env vars, or HTTP responses
-bootstrap -> may know concrete wiring
 ```
 
-`infra/postgres/<context>` should exist for every DB-owning context. Rewards is
-only the deepest current extraction; it is not the only Postgres owner.
+`infra/postgres/<context>` should exist for every DB-owning context. `rewards`
+is only the deepest current extraction; it is not the only Postgres owner.
 
-## Checked Facts
-
-Live checks on 2026-06-15:
-
-- No `src/api`, `src/services`, `src/repositories`, or `src/utils` files remain.
-- No production `include!` calls remain under `src`.
-- No `authenticated_user*` helper usage or direct `pool.get().await` remains in
-  `src/http`.
-- No `tests/*/imports.rs` files remain.
-- No test `include!` calls remain.
-
-## Done Or Checked
+## Already Done
 
 | Area | Compact status |
 | --- | --- |
-| Bootstrap | `main.rs` is thin; app state, app data, startup checks, and route composition live under `bootstrap`. |
-| Routes | Legacy `src/api` route wrappers are gone; `/api` is composed from context route configurators under `http`. |
-| HTTP boundary | Migrated handlers mostly extract, call use cases, map DTOs, and return typed HTTP errors. JSON config/errors are centralized. |
-| Application boundary | Migrated business workflows sit behind use-case commands, outputs, errors, and ports. |
-| Domain boundary | Migrated domain code owns vocabulary, invariants, and transition helpers without Actix/Diesel/provider coupling. |
-| Infra boundary | PostgreSQL, object storage, Ethereum, email, workers, and dispatchers are concrete adapters, not route owners. |
-| Persistence | Async DB behavior was moved out of `models::*`; Diesel logic lives in `infra/postgres/<context>` or test fixtures. |
-| Access control | Shared `AccessActor`, `AccessAction`, `AccessScope`, `can(...)`, and `can_any(...)` are used across middleware and migrated use cases. |
-| Typed auth | Route handlers use typed auth extractors; `/api/me` keeps its JSON unauthorized response contract. |
-| Frontend gates | Platform, organization, learner, teacher-application, and ops UI gates consume backend-derived current-session capabilities. |
-| Test harnesses | Production and integration-test source no longer use `include!` or `imports.rs`; harnesses use explicit modules plus support helpers. |
+| Bootstrap | `main.rs` is thin; state setup, route composition, startup checks, DB/S3 wiring, and app data registration live under `bootstrap`. |
+| Routing | Legacy `src/api` wrappers are gone; `/api` is composed from context route configurators under `http`. |
+| HTTP | Migrated handlers extract typed inputs, call use cases, map DTOs, and return typed HTTP errors. JSON config/errors are centralized. |
+| Application | Migrated workflows use commands, outputs, errors, ports, fake-port tests, and explicit access decisions. |
+| Domain | Migrated domain code owns vocabulary, invariants, status transitions, and business validation without framework/provider coupling. |
+| Infra | PostgreSQL, object storage, Ethereum, email, workers, and dispatchers are concrete adapters rather than route owners. |
+| Persistence | Async DB behavior moved out of `models::*`; Diesel logic lives in `infra/postgres/<context>` or test fixtures. |
+| Access control | Shared `AccessActor`, `AccessAction`, `AccessScope`, `can(...)`, and `can_any(...)` are used by middleware and migrated use cases. |
+| Typed auth | Route handlers use typed auth extractors; `/api/me` preserves its JSON unauthorized response contract. |
+| Frontend gates | Platform, organization, learner, teacher-application, and ops gates consume backend-derived current-session capabilities. |
+| Tests | Integration harnesses use explicit modules/support helpers instead of `include!` and `imports.rs`. |
+
+Checked Level 2 contexts:
+
+```text
+access_control, content, identity, kyc, learning, notifications,
+operations, organizations, reporting, rewards, teacher_applications, wallet
+```
+
+## Already Checked
+
+Live checks recorded on 2026-06-15:
+
+- No `src/api`, `src/services`, `src/repositories`, or `src/utils` files remain.
+- No production `include!` calls remain under `src`.
+- No `authenticated_user*` helper usage remains in `src/http`.
+- No direct `pool.get().await` remains in `src/http`.
+- No `tests/*/imports.rs` files remain.
+- No test `include!` calls remain.
+
+Recent proof set:
+
+- `cargo fmt --all --check`
+- focused host tests for touched contexts
+- `./scripts/run-host-tests.sh cargo check --lib`
+- `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`
+- `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`
+- `git diff --check`
+- touched-file line checks for manually maintained non-Markdown files
+- boundary scans for legacy folders, `include!`, HTTP DB-pool access,
+  request-auth helper usage, and ring import leaks
 
 ## Verified Batches
 
-Detailed history belongs in git; keep only proof that matters here.
+Detailed history belongs in git; this table keeps only the architectural proof.
 
 | Batch | Commit | Proof |
 | --- | --- | --- |
@@ -84,63 +105,31 @@ Detailed history belongs in git; keep only proof that matters here.
 | 326 | `4102c76a` | Converted `delegated_permissions`; focused tests, Cargo gates, boundary scans, and line checks passed. |
 | 327 | `641ddd50` | Converted `reporting_exports`; fixed fixture idempotency keys and proved with focused tests plus standard gates. |
 | 328 | `930d6586` | Converted `reward_candidates`; fixed idempotency keys and refreshed permission-envelope assertion. |
-| 329 | `fc018ef7` | Converted `reward_execution`; focused reward-execution tests, Cargo gates, scans, and line checks passed. |
-| 330 | `6b0092a2` | Converted `wallet_linking`; refreshed the stale KYC conflict assertion to the typed HTTP error envelope and proved with focused wallet tests, Cargo gates, scans, and line checks. |
-| 331 | `57215a3c` | Converted `video_upload_flow`; moved content app wiring and sample-video helpers behind explicit modules and proved with the focused video upload flow, Cargo gates, scans, and line checks. |
-| 332 | this batch | Tightened reward payout planning so infra parses persisted reward candidate status into `RewardCandidateStatus` before application validation; proved with payout fake-port tests, mapper tests, Cargo gates, scans, and line checks. |
-
-Standard proof set used for recent batches:
-
-- `cargo fmt --all --check`
-- focused host tests for touched contexts
-- `./scripts/run-host-tests.sh cargo check --lib`
-- `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`
-- `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`
-- `git diff --check`
-- touched-file size checks for manually maintained non-Markdown files
-- boundary scans for legacy folders, production `include!`, HTTP DB-pool
-  access, request-auth helper usage, and ring import leaks
-
-## Current Context Snapshot
-
-| Context | Checked Level 2 status |
-| --- | --- |
-| Access control | Role/delegation routes, delegated use cases, typed scopes/actions, shared decisions, middleware wiring, and session capabilities are in place. |
-| Content | Chapter/content/upload/media/processing handlers use content use cases, Postgres adapters, typed errors, and one route configurator. |
-| Identity | Session, profile/list, platform roles, login, verification, registration, reset, JWKS, and auth helper routes have ring ownership. |
-| KYC | Status, submission, review, and audit flows have domain/application/Postgres/HTTP ownership. |
-| Learning | Catalog, management, lifecycle, progress, roles, enrollment, assessment, and teaching routes use learning contracts/adapters/DTOs. |
-| Notifications | Preferences and inbox flows live behind notification application/infra/http ownership; dispatch remains infra-owned. |
-| Operations | Health/readiness route composition lives in `http/operations`; startup/readiness concerns live under operations/bootstrap/infra. |
-| Organizations | CRUD, courses, members, audit, dashboard, invitations, roles, removal, and teacher tracking use organization contracts/adapters/DTOs. |
-| Reporting | Platform summary, fraud/reward dashboards, wallet reconciliation, CSV exports, and organization reports have reporting ownership. |
-| Rewards | Policy, fraud-block, history, audit, candidate, decision, compensation, payout, token, wallet-credit, notification, and reconciliation flows are migrated. |
-| Teacher applications | Self-read, audit, list, platform review, submission, decision, nomination, and notification fan-out are migrated. |
-| Wallet | Read/link/audit/token-tax/deposit/retirement/observed-deposit flows have application, Postgres, HTTP/worker ownership and access checks. |
+| 329 | `fc018ef7` | Converted `reward_execution`; focused tests, Cargo gates, scans, and line checks passed. |
+| 330 | `6b0092a2` | Converted `wallet_linking`; refreshed stale KYC conflict assertion and proved with focused wallet tests, Cargo gates, scans, and line checks. |
+| 331 | `57215a3c` | Converted `video_upload_flow`; moved content app wiring and sample-video helpers behind explicit modules and proved with focused tests, gates, scans, and line checks. |
+| 332 | `5a1643fa` | Typed reward payout candidate status at the infra/application boundary and proved with fake-port tests, mapper tests, Cargo gates, scans, and line checks. |
+| 333 | this batch | Typed teacher reward decision output status at the infra/application boundary; infra parses persisted candidate status before returning use-case output, HTTP maps it back to the public string, and proof covered teacher-decision filters, mapper status tests, reward/delegation integration crates, Cargo gates, scans, and line checks. |
 
 ## Remaining Work
 
-- Keep hardening authorization so middleware is an early rejection optimization
-  and application use cases remain the real business guard.
-- Keep hardening rewards around remaining events/newtypes, candidate
+- Keep application use cases as the real authorization guard; middleware should
+  remain an early rejection optimization.
+- Continue rewards hardening around remaining events/newtypes, candidate
   transitions, DTO leaks, Diesel adapter leaks, and fake-port use-case tests.
-- Continue auditing data boundaries so Diesel schema/model leaks stay in infra
-  or persistence records and public API DTOs stay HTTP-owned.
+- Keep Diesel schema/model leakage inside infra or persistence records.
+- Keep public API DTOs HTTP-owned and separate from Diesel records.
 - Preserve route URLs and response semantics unless a migration note explicitly
   records a behavior change.
-
-Suggested next batch: audit remaining authorization/reward/data-boundary items
-against code evidence, then extract the next smallest verified slice.
 
 ## Acceptance Criteria
 
 - New routes can be added by touching one context plus shared contracts.
-- Domain tests can run without Actix, Diesel, S3, Ethereum, env vars, or a DB
-  pool.
-- Use-case tests can run with fake ports for auth, persistence, notifications,
-  and time.
+- Domain tests run without Actix, Diesel, S3, Ethereum, env vars, or a DB pool.
+- Use-case tests run with fake ports for auth, persistence, notifications, and
+  time.
 - Permission behavior has one backend source of truth.
-- New ring modules pass the import guardrails above.
+- Ring modules pass the import guardrails above.
 - Public API DTOs and Diesel records are separate types unless a migration note
   accepts a temporary leak.
 - No new module uses `include!` or `imports.rs`.

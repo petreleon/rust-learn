@@ -7,6 +7,7 @@ use rust_learn::application::rewards::decide_teacher_candidate::{
     TeacherRewardCandidateDecisionCommand, TeacherRewardCandidateDecisionError,
     TeacherRewardCandidateDecisionOutput, TeacherRewardCandidateDecisionUseCase,
 };
+use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
 use serde_json::json;
 
 struct RouteOnlyTeacherRewardCandidateDecisionUseCase;
@@ -44,7 +45,7 @@ fn teacher_decision_output(candidate_id: i64) -> TeacherRewardCandidateDecisionO
         event_type: "manual_completion".to_string(),
         idempotency_key: "manual:12:23".to_string(),
         evidence: json!({}),
-        status: "teacher_approved".to_string(),
+        status: RewardCandidateStatus::TeacherApproved,
         teacher_approver_user_id: Some(7),
         teacher_decision_reason: Some("route smoke".to_string()),
         teacher_decided_at: Some(now),

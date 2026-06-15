@@ -2,6 +2,7 @@ use crate::{
     force_assign_organization_role::*, link_course_to_organization::*, submission_helper::*,
     support::*, teacher_decision_helper::*,
 };
+use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[actix_web::test]
 async fn custom_course_roles_with_reward_permissions_can_submit_and_approve_candidates() {
@@ -64,6 +65,6 @@ async fn custom_course_roles_with_reward_permissions_can_submit_and_approve_cand
     )
     .await
     .expect("custom role with approval permission should approve reward candidate");
-    assert_eq!(approved.status, REWARD_STATUS_TEACHER_APPROVED);
+    assert_eq!(approved.status, RewardCandidateStatus::TeacherApproved);
     assert_eq!(approved.teacher_approver_user_id, Some(approver.id()));
 }

@@ -3,6 +3,7 @@ use crate::{
     reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
     teacher_decision_helper::*,
 };
+use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[actix_web::test]
 async fn teacher_fraud_block_pauses_submission_teacher_approval_and_amount_approval() {
@@ -93,7 +94,10 @@ async fn teacher_fraud_block_pauses_submission_teacher_approval_and_amount_appro
     )
     .await
     .expect("teacher approval should resume after revocation");
-    assert_eq!(teacher_approved.status, REWARD_STATUS_TEACHER_APPROVED);
+    assert_eq!(
+        teacher_approved.status,
+        RewardCandidateStatus::TeacherApproved
+    );
 
     create_reward_fraud_block(
         &mut conn,

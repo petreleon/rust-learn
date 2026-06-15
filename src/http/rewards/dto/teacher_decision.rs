@@ -56,7 +56,7 @@ impl From<TeacherRewardCandidateDecisionOutput> for TeacherRewardCandidateDecisi
             event_type: candidate.event_type,
             idempotency_key: candidate.idempotency_key,
             evidence: candidate.evidence,
-            status: candidate.status,
+            status: candidate.status.as_str().to_string(),
             teacher_approver_user_id: candidate.teacher_approver_user_id,
             teacher_decision_reason: candidate.teacher_decision_reason,
             teacher_decided_at: candidate.teacher_decided_at,

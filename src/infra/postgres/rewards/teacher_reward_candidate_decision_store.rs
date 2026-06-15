@@ -14,7 +14,9 @@ use crate::infra::postgres::rewards::reward_audit_records::create_reward_audit_e
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::ensure_no_active_reward_fraud_block;
 use crate::infra::postgres::rewards::reward_candidate_records;
-use crate::infra::postgres::rewards::teacher_reward_candidate_decision_mappers::map_teacher_decision_error;
+use crate::infra::postgres::rewards::teacher_reward_candidate_decision_mappers::{
+    map_teacher_decision_candidate, map_teacher_decision_error,
+};
 use crate::models::reward_audit_event::NewRewardAuditEvent;
 
 pub struct PostgresTeacherRewardCandidateDecisionStore<'conn> {
@@ -116,7 +118,7 @@ async fn apply_teacher_decision(
     }
 
     if existing.status == decision.target_status.as_str() {
-        return Ok(existing.into());
+        return map_teacher_decision_candidate(existing);
     }
 
     ensure_teacher_transition(&existing.status, decision.target_status)?;
@@ -157,7 +159,7 @@ async fn apply_teacher_decision(
     .await
     .map_err(map_teacher_decision_error)?;
 
-    Ok(updated.into())
+    map_teacher_decision_candidate(updated)
 }
 
 fn ensure_teacher_transition(
