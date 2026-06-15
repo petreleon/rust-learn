@@ -3,12 +3,12 @@ use futures::executor::block_on;
 use crate::application::access_control::authorize_wallet::{
     authorize_wallet_action, test_support::FakeWalletAuthorizationStore, WalletAuthorizationAction,
 };
-use crate::domain::access_control::permission::Permission;
+use crate::domain::access_control::permissions::Permissions;
 
 #[test]
 fn view_user_wallet_accepts_any_platform_wallet_view_permission() {
     let mut store = FakeWalletAuthorizationStore {
-        platform_permissions: vec![Permission::ReconcileWallets],
+        platform_permissions: vec![Permissions::RECONCILE_WALLETS],
         ..Default::default()
     };
 
@@ -23,9 +23,9 @@ fn view_user_wallet_accepts_any_platform_wallet_view_permission() {
     assert_eq!(
         store.platform_checks,
         vec![
-            Permission::ViewWallet,
-            Permission::ViewTransactions,
-            Permission::ReconcileWallets
+            Permissions::VIEW_WALLET,
+            Permissions::VIEW_TRANSACTIONS,
+            Permissions::RECONCILE_WALLETS
         ]
     );
 }
@@ -33,7 +33,7 @@ fn view_user_wallet_accepts_any_platform_wallet_view_permission() {
 #[test]
 fn view_organization_wallet_falls_back_to_organization_permissions() {
     let mut store = FakeWalletAuthorizationStore {
-        organization_permissions: vec![(42, Permission::ViewOrgRewardReports)],
+        organization_permissions: vec![(42, Permissions::VIEW_ORG_REWARD_REPORTS)],
         ..Default::default()
     };
 
@@ -50,8 +50,8 @@ fn view_organization_wallet_falls_back_to_organization_permissions() {
     assert_eq!(
         store.organization_checks,
         vec![
-            (42, Permission::ManageOrgWallets),
-            (42, Permission::ViewOrgRewardReports)
+            (42, Permissions::MANAGE_ORG_WALLETS),
+            (42, Permissions::VIEW_ORG_REWARD_REPORTS)
         ]
     );
 }
@@ -59,7 +59,7 @@ fn view_organization_wallet_falls_back_to_organization_permissions() {
 #[test]
 fn link_organization_wallet_accepts_platform_override() {
     let mut store = FakeWalletAuthorizationStore {
-        platform_permissions: vec![Permission::CreateWallet],
+        platform_permissions: vec![Permissions::CREATE_WALLET],
         ..Default::default()
     };
 
@@ -79,7 +79,7 @@ fn link_organization_wallet_accepts_platform_override() {
 #[test]
 fn set_retire_tax_checks_exact_platform_permission() {
     let mut store = FakeWalletAuthorizationStore {
-        platform_permissions: vec![Permission::SetRetireTax],
+        platform_permissions: vec![Permissions::SET_RETIRE_TAX],
         ..Default::default()
     };
 
@@ -91,7 +91,7 @@ fn set_retire_tax_checks_exact_platform_permission() {
     .unwrap();
 
     assert!(allowed);
-    assert_eq!(store.platform_checks, vec![Permission::SetRetireTax]);
+    assert_eq!(store.platform_checks, vec![Permissions::SET_RETIRE_TAX]);
 }
 
 #[test]

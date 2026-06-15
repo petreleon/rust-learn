@@ -4,7 +4,7 @@ use crate::application::access_control::authorize_wallet::{
 use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessScope,
 };
-use crate::domain::access_control::permission::Permission;
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn authorize_wallet_action(
     store: &mut impl WalletAuthorizationStore,
@@ -44,10 +44,10 @@ pub async fn authorize_wallet_action(
             .await
         }
         WalletAuthorizationAction::SetDepositTax => {
-            can_platform(store, actor, Permission::SetDepositTax).await
+            can_platform(store, actor, Permissions::SET_DEPOSIT_TAX).await
         }
         WalletAuthorizationAction::SetRetireTax => {
-            can_platform(store, actor, Permission::SetRetireTax).await
+            can_platform(store, actor, Permissions::SET_RETIRE_TAX).await
         }
     }
 }
@@ -55,12 +55,12 @@ pub async fn authorize_wallet_action(
 async fn can_platform(
     store: &mut impl WalletAuthorizationStore,
     actor: AccessActor,
-    permission: Permission,
+    permission: Permissions,
 ) -> Result<bool, WalletAuthorizationError> {
     store
         .can(
             actor,
-            AccessAction::permission(permission.as_str()),
+            AccessAction::permission(permission),
             AccessScope::platform(),
         )
         .await
@@ -70,12 +70,12 @@ async fn can_organization(
     store: &mut impl WalletAuthorizationStore,
     actor: AccessActor,
     organization_id: i32,
-    permission: Permission,
+    permission: Permissions,
 ) -> Result<bool, WalletAuthorizationError> {
     store
         .can(
             actor,
-            AccessAction::permission(permission.as_str()),
+            AccessAction::permission(permission),
             AccessScope::organization(organization_id),
         )
         .await
@@ -84,7 +84,7 @@ async fn can_organization(
 async fn has_any_platform_permission(
     store: &mut impl WalletAuthorizationStore,
     actor: AccessActor,
-    permissions: &[Permission],
+    permissions: &[Permissions],
 ) -> Result<bool, WalletAuthorizationError> {
     for &permission in permissions {
         if can_platform(store, actor, permission).await? {
@@ -98,7 +98,7 @@ async fn has_any_organization_permission(
     store: &mut impl WalletAuthorizationStore,
     actor: AccessActor,
     organization_id: i32,
-    permissions: &[Permission],
+    permissions: &[Permissions],
 ) -> Result<bool, WalletAuthorizationError> {
     for &permission in permissions {
         if can_organization(store, actor, organization_id, permission).await? {
@@ -108,27 +108,27 @@ async fn has_any_organization_permission(
     Ok(false)
 }
 
-fn user_wallet_view_permissions() -> &'static [Permission] {
+fn user_wallet_view_permissions() -> &'static [Permissions] {
     &[
-        Permission::ViewWallet,
-        Permission::ViewTransactions,
-        Permission::ReconcileWallets,
-        Permission::ManageWallets,
+        Permissions::VIEW_WALLET,
+        Permissions::VIEW_TRANSACTIONS,
+        Permissions::RECONCILE_WALLETS,
+        Permissions::MANAGE_WALLETS,
     ]
 }
 
-fn organization_wallet_view_permissions() -> &'static [Permission] {
+fn organization_wallet_view_permissions() -> &'static [Permissions] {
     &[
-        Permission::ManageOrgWallets,
-        Permission::ViewOrgRewardReports,
-        Permission::ManageOrgRewardBudget,
+        Permissions::MANAGE_ORG_WALLETS,
+        Permissions::VIEW_ORG_REWARD_REPORTS,
+        Permissions::MANAGE_ORG_REWARD_BUDGET,
     ]
 }
 
-fn user_wallet_link_permissions() -> &'static [Permission] {
-    &[Permission::CreateWallet, Permission::ManageWallets]
+fn user_wallet_link_permissions() -> &'static [Permissions] {
+    &[Permissions::CREATE_WALLET, Permissions::MANAGE_WALLETS]
 }
 
-fn organization_wallet_link_permissions() -> &'static [Permission] {
-    &[Permission::ManageOrgWallets]
+fn organization_wallet_link_permissions() -> &'static [Permissions] {
+    &[Permissions::MANAGE_ORG_WALLETS]
 }

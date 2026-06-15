@@ -3,12 +3,12 @@ use futures::executor::block_on;
 use crate::application::access_control::authorize_reward::{
     authorize_reward_action, test_support::FakeRewardAuthorizationStore, RewardAuthorizationAction,
 };
-use crate::domain::access_control::permission::Permission;
+use crate::domain::access_control::permissions::Permissions;
 
 #[test]
 fn approve_student_reward_candidate_checks_exact_course_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        course_permissions: vec![(42, Permission::ApproveStudentRewardCandidate)],
+        course_permissions: vec![(42, Permissions::APPROVE_STUDENT_REWARD_CANDIDATE)],
         ..Default::default()
     };
 
@@ -22,14 +22,14 @@ fn approve_student_reward_candidate_checks_exact_course_permission() {
     assert!(allowed);
     assert_eq!(
         store.course_checks,
-        vec![(42, Permission::ApproveStudentRewardCandidate)]
+        vec![(42, Permissions::APPROVE_STUDENT_REWARD_CANDIDATE)]
     );
 }
 
 #[test]
 fn manage_course_reward_rules_checks_exact_course_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        course_permissions: vec![(42, Permission::ManageCourseRewardRules)],
+        course_permissions: vec![(42, Permissions::MANAGE_COURSE_REWARD_RULES)],
         ..Default::default()
     };
 
@@ -43,14 +43,14 @@ fn manage_course_reward_rules_checks_exact_course_permission() {
     assert!(allowed);
     assert_eq!(
         store.course_checks,
-        vec![(42, Permission::ManageCourseRewardRules)]
+        vec![(42, Permissions::MANAGE_COURSE_REWARD_RULES)]
     );
 }
 
 #[test]
 fn submit_course_reward_event_accepts_submit_or_create_course_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        course_permissions: vec![(42, Permission::CreateRewardableCourseEvent)],
+        course_permissions: vec![(42, Permissions::CREATE_REWARDABLE_COURSE_EVENT)],
         ..Default::default()
     };
 
@@ -65,8 +65,8 @@ fn submit_course_reward_event_accepts_submit_or_create_course_permission() {
     assert_eq!(
         store.course_checks,
         vec![
-            (42, Permission::SubmitCourseRewardEvent),
-            (42, Permission::CreateRewardableCourseEvent)
+            (42, Permissions::SUBMIT_COURSE_REWARD_EVENT),
+            (42, Permissions::CREATE_REWARDABLE_COURSE_EVENT)
         ]
     );
 }
@@ -74,7 +74,7 @@ fn submit_course_reward_event_accepts_submit_or_create_course_permission() {
 #[test]
 fn submit_organization_course_reward_event_checks_exact_organization_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        organization_permissions: vec![(9, Permission::SubmitOrgCourseRewardEvent)],
+        organization_permissions: vec![(9, Permissions::SUBMIT_ORG_COURSE_REWARD_EVENT)],
         ..Default::default()
     };
 
@@ -88,14 +88,14 @@ fn submit_organization_course_reward_event_checks_exact_organization_permission(
     assert!(allowed);
     assert_eq!(
         store.organization_checks,
-        vec![(9, Permission::SubmitOrgCourseRewardEvent)]
+        vec![(9, Permissions::SUBMIT_ORG_COURSE_REWARD_EVENT)]
     );
 }
 
 #[test]
 fn view_course_reward_status_checks_exact_course_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        course_permissions: vec![(42, Permission::ViewCourseRewardStatus)],
+        course_permissions: vec![(42, Permissions::VIEW_COURSE_REWARD_STATUS)],
         ..Default::default()
     };
 
@@ -109,6 +109,6 @@ fn view_course_reward_status_checks_exact_course_permission() {
     assert!(allowed);
     assert_eq!(
         store.course_checks,
-        vec![(42, Permission::ViewCourseRewardStatus)]
+        vec![(42, Permissions::VIEW_COURSE_REWARD_STATUS)]
     );
 }

@@ -14,7 +14,7 @@ use crate::application::rewards::manage_fraud_block::{
 use crate::domain::access_control::delegation::{
     DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
 };
-use crate::domain::access_control::permission::Permission;
+use crate::domain::access_control::permissions::Permissions;
 use crate::infra::postgres::rewards::reward_fraud_block_mappers::map_reward_fraud_block_error;
 use crate::infra::postgres::schema::{
     courses_organizations, delegated_permissions, reward_policies, role_permission_organization,
@@ -170,6 +170,6 @@ async fn reward_policy_operator_user_ids(
     Ok(recipients)
 }
 
-fn permission_keys<const N: usize>(permissions: [Permission; N]) -> [&'static str; N] {
-    permissions.map(Permission::as_str)
+fn permission_keys<const N: usize>(permissions: [Permissions; N]) -> [String; N] {
+    permissions.map(String::from)
 }

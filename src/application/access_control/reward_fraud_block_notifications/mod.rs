@@ -1,16 +1,16 @@
-use crate::domain::access_control::permission::Permission;
+use crate::domain::access_control::permissions::Permissions;
 
-pub fn platform_reward_fraud_block_notification_permissions() -> [Permission; 2] {
+pub fn platform_reward_fraud_block_notification_permissions() -> [Permissions; 2] {
     [
-        Permission::ViewRewardAudit,
-        Permission::ManageRewardFraudBlocks,
+        Permissions::VIEW_REWARD_AUDIT,
+        Permissions::MANAGE_REWARD_FRAUD_BLOCKS,
     ]
 }
 
-pub fn organization_reward_fraud_block_notification_permissions() -> [Permission; 2] {
+pub fn organization_reward_fraud_block_notification_permissions() -> [Permissions; 2] {
     [
-        Permission::ViewOrgRewardReports,
-        Permission::ManageOrgRewardBudget,
+        Permissions::VIEW_ORG_REWARD_REPORTS,
+        Permissions::MANAGE_ORG_REWARD_BUDGET,
     ]
 }
 

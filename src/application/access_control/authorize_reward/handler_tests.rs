@@ -3,12 +3,12 @@ use futures::executor::block_on;
 use crate::application::access_control::authorize_reward::{
     authorize_reward_action, test_support::FakeRewardAuthorizationStore, RewardAuthorizationAction,
 };
-use crate::domain::access_control::permission::Permission;
+use crate::domain::access_control::permissions::Permissions;
 
 #[test]
 fn execute_reward_payout_checks_exact_platform_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        platform_permissions: vec![Permission::ExecuteRewardPayout],
+        platform_permissions: vec![Permissions::EXECUTE_REWARD_PAYOUT],
         ..Default::default()
     };
 
@@ -20,13 +20,16 @@ fn execute_reward_payout_checks_exact_platform_permission() {
     .unwrap();
 
     assert!(allowed);
-    assert_eq!(store.platform_checks, vec![Permission::ExecuteRewardPayout]);
+    assert_eq!(
+        store.platform_checks,
+        vec![Permissions::EXECUTE_REWARD_PAYOUT]
+    );
 }
 
 #[test]
 fn approve_reward_amount_checks_exact_platform_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        platform_permissions: vec![Permission::ApproveRewardAmount],
+        platform_permissions: vec![Permissions::APPROVE_REWARD_AMOUNT],
         ..Default::default()
     };
 
@@ -38,13 +41,16 @@ fn approve_reward_amount_checks_exact_platform_permission() {
     .unwrap();
 
     assert!(allowed);
-    assert_eq!(store.platform_checks, vec![Permission::ApproveRewardAmount]);
+    assert_eq!(
+        store.platform_checks,
+        vec![Permissions::APPROVE_REWARD_AMOUNT]
+    );
 }
 
 #[test]
 fn manage_reward_policy_checks_exact_platform_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        platform_permissions: vec![Permission::SetRewardPolicy],
+        platform_permissions: vec![Permissions::SET_REWARD_POLICY],
         ..Default::default()
     };
 
@@ -56,13 +62,13 @@ fn manage_reward_policy_checks_exact_platform_permission() {
     .unwrap();
 
     assert!(allowed);
-    assert_eq!(store.platform_checks, vec![Permission::SetRewardPolicy]);
+    assert_eq!(store.platform_checks, vec![Permissions::SET_REWARD_POLICY]);
 }
 
 #[test]
 fn record_reward_compensation_accepts_any_wallet_reconciliation_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        platform_permissions: vec![Permission::ManageWallets],
+        platform_permissions: vec![Permissions::MANAGE_WALLETS],
         ..Default::default()
     };
 
@@ -76,14 +82,14 @@ fn record_reward_compensation_accepts_any_wallet_reconciliation_permission() {
     assert!(allowed);
     assert_eq!(
         store.platform_checks,
-        vec![Permission::ReconcileWallets, Permission::ManageWallets]
+        vec![Permissions::RECONCILE_WALLETS, Permissions::MANAGE_WALLETS]
     );
 }
 
 #[test]
 fn view_reward_audit_checks_exact_platform_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        platform_permissions: vec![Permission::ViewRewardAudit],
+        platform_permissions: vec![Permissions::VIEW_REWARD_AUDIT],
         ..Default::default()
     };
 
@@ -95,7 +101,7 @@ fn view_reward_audit_checks_exact_platform_permission() {
     .unwrap();
 
     assert!(allowed);
-    assert_eq!(store.platform_checks, vec![Permission::ViewRewardAudit]);
+    assert_eq!(store.platform_checks, vec![Permissions::VIEW_REWARD_AUDIT]);
 }
 
 #[test]

@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified pushed base before current batch: `380f9424`
-(`Use catalog permissions across application handlers`).
+Latest verified pushed base before current batch: `42278e6b`
+(`Merge pull request #20 from petreleon/master`).
 
 Objective: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
@@ -55,6 +55,11 @@ submodules only where a context or use case has real ownership.
 - `380f9424`: production application permission checks and denied-permission
   payloads now use `Permissions` catalog values across delegated permissions,
   identity, learning, organization, teacher-application, and reward use cases.
+- `4e8fd741`: HTTP JWT middleware now verifies bearer tokens through an
+  application `AuthTokenVerifier` port wired by bootstrap, not by importing
+  infra directly. Diesel development commands also use Make/Compose as the
+  primary path, with `make schema` regenerating and formatting
+  `src/infra/postgres/schema.rs` inside the tool container.
 
 Proof for completed pushed work:
 
@@ -73,80 +78,70 @@ Proof for completed pushed work:
 
 Included problems:
 
-- `src/http/middlewares/jwt_middleware.rs` imported
-  `infra::tokens::jwt::decode_jwt` directly, so HTTP knew the concrete token
-  adapter and JWT error source.
-- Direct JWT middleware test apps could wrap middleware without registering an
-  auth verifier because the middleware reached into infra itself.
-- Diesel development already used Compose, but schema refresh was not a
-  first-class Make target and migration targets relied on implicit schema
-  behavior instead of an explicit `make schema` step.
+- `domain::access_control::permission::Permission` duplicated a reward/wallet
+  subset of the full `Permissions` catalog.
+- Reward and wallet authorization helpers used the duplicate enum while other
+  application handlers used `Permissions`.
+- Fraud-block notification recipient code accepted the duplicate enum and then
+  converted it back to DB permission keys.
+- Test fakes maintained string-to-duplicate-enum mappings that could drift from
+  the canonical catalog.
 
 Fixes:
 
-- Added `application::identity::auth_token` with `AuthTokenVerifier`,
-  `AuthTokenVerifierService`, and `AuthTokenVerificationError`.
-- Added `infra::tokens::jwt::EnvAuthTokenVerifier`, which implements the
-  application port using the existing environment-backed JWT decode logic.
-- Bootstrap now owns/registers the auth verifier app data; direct test apps use
-  `auth_token_verifier_app_data()`.
-- HTTP JWT middleware now parses the header, resolves the application verifier,
-  maps application token errors to 401 responses, and inserts `UserJWT` without
-  importing infra.
-- Added `make schema`, `DIESEL_COMPOSE_RUN`, and `DIESEL_SCHEMA_FILE`; `make
-  migrate` and `make migrate-redo` now run Compose Diesel migrations and then
-  refresh `src/infra/postgres/schema.rs` explicitly through Compose.
-- The Diesel CLI Docker stage now installs `rustfmt`, so `make schema` formats
-  generated schema output inside the tool container.
-- README and AGENTS now state that Make is the primary development interface for
-  Diesel work; host Diesel is not required.
+- Reward/wallet authorization and fraud-block notification helpers now use the
+  canonical `Permissions` catalog directly.
+- Removed `src/domain/access_control/permission.rs` and its module export.
+- Test fakes parse `AccessAction` permission names into `Permissions` instead
+  of maintaining local duplicate match tables.
+- Infra recipient queries map `Permissions` to strings at the SQL boundary,
+  where persisted permission names are required.
+- Kept `AccessAction::Permission(String)` as the existing application boundary
+  type because public/API and DB contracts still carry permission names as
+  strings.
 
 Deferred problems:
 
-- Integration tests still use infra JWT helpers where they mint or assert real
-  token contracts. That is test fixture/support code, not a production
-  `http -> infra` boundary leak.
 - Domain delegation permission rules still normalize a scoped raw string policy
-  list; audit separately if more vocabulary cleanup is needed.
-- The smaller `domain::access_control::Permission` enum still overlaps with the
-  full `Permissions` catalog; unification would be a deliberate authorization
-  API cleanup.
+  list. This may be deliberate because delegated permissions are persisted and
+  filtered as public permission-name strings, but the final audit must confirm.
+- Opaque `serde_json::Value` evidence/metadata fields remain in domain and
+  application outputs. They are not Actix DTOs, but the final audit should
+  confirm they are intentional product payloads rather than HTTP leakage.
 
 Proof:
 
 - `cargo fmt --all --check`.
-- `docker compose -f docker-compose.yml -f docker-compose.tools.yml config
-  --quiet`.
-- `make -n schema`; `make -n migrate`; `make -n migrate-redo`; `make -n
-  diesel-compose DIESEL_ARGS='migration list'`.
-- `make diesel-compose DIESEL_ARGS='--version'`.
-- `make schema` regenerated and formatted `src/infra/postgres/schema.rs`
-  without leaving a schema diff.
 - `./scripts/run-host-tests.sh cargo check --lib`.
-- `./scripts/run-host-tests.sh cargo test --lib`.
+- `./scripts/run-host-tests.sh cargo test --lib authorize_reward`.
+- `./scripts/run-host-tests.sh cargo test --lib authorize_wallet`.
+- `./scripts/run-host-tests.sh cargo test --lib
+  reward_fraud_block_notifications`.
+- `./scripts/run-host-tests.sh cargo test --test reward_fraud_blocks --test
+  reward_management_api`.
 - `./scripts/run-host-tests.sh cargo check --bin rust-learn --features
   app-bin`.
 - `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
-- `./scripts/run-host-tests.sh cargo test --test current_session_api --test
-  middleware_access_control --test authentication_flow`.
 - `git diff --check`.
-- Scans: no `crate::infra` / `rust_learn::infra` imports remain in `src/http`;
-  domain/application boundary scan found no concrete dependency leaks, only the
-  domain vocabulary variant `MANAGE_S3_OBJECTS`; no maintained Rust file over
-  180 lines.
+- Scans: no `domain::access_control::permission` module references,
+  `Permission::...` variants, or duplicate `enum Permission`; no
+  `crate::infra` / `rust_learn::infra` imports in `src/http`;
+  domain/application boundary scan found no concrete dependency leaks, only
+  the domain vocabulary variant `MANAGE_S3_OBJECTS`; no maintained Rust file
+  over 180 lines.
 
 ## Remaining Work
 
 - Audit TODO/18 requirement-by-requirement against current code and pushed
   evidence before calling Level 2 complete.
-- Decide whether the overlapping `Permission` and `Permissions` domain enums
-  should stay separate or be unified through a deliberate authorization API
-  cleanup.
+- Decide whether delegated-permission raw string normalization and opaque JSON
+  evidence/metadata should remain documented Level 2 exceptions or need one
+  final typed-vocabulary cleanup.
 - Keep public API DTOs HTTP-owned and separate from application commands and
   outputs.
 - Keep use cases as the real authorization guard; middleware remains early
   rejection.
 - Do not jump to Level 3 crates/microservices or abstractions that only move
   files around.
-- Rough remaining effort: final requirement audit, plus one small authorization
-  vocabulary decision only if the audit requires it.
+- Rough remaining effort: final requirement audit, plus a small cleanup only if
+  the audit proves one of the remaining exception candidates is a real leak.

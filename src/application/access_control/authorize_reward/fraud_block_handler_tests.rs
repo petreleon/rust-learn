@@ -3,12 +3,12 @@ use futures::executor::block_on;
 use crate::application::access_control::authorize_reward::{
     authorize_reward_action, test_support::FakeRewardAuthorizationStore, RewardAuthorizationAction,
 };
-use crate::domain::access_control::permission::Permission;
+use crate::domain::access_control::permissions::Permissions;
 
 #[test]
 fn manage_teacher_fraud_block_accepts_teacher_or_general_fraud_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        platform_permissions: vec![Permission::ManageRewardFraudBlocks],
+        platform_permissions: vec![Permissions::MANAGE_REWARD_FRAUD_BLOCKS],
         ..Default::default()
     };
 
@@ -23,8 +23,8 @@ fn manage_teacher_fraud_block_accepts_teacher_or_general_fraud_permission() {
     assert_eq!(
         store.platform_checks,
         vec![
-            Permission::BlockRewardTeacher,
-            Permission::ManageRewardFraudBlocks
+            Permissions::BLOCK_REWARD_TEACHER,
+            Permissions::MANAGE_REWARD_FRAUD_BLOCKS
         ]
     );
 }
@@ -32,7 +32,7 @@ fn manage_teacher_fraud_block_accepts_teacher_or_general_fraud_permission() {
 #[test]
 fn manage_organization_fraud_block_accepts_org_or_general_fraud_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        platform_permissions: vec![Permission::BlockRewardOrganization],
+        platform_permissions: vec![Permissions::BLOCK_REWARD_ORGANIZATION],
         ..Default::default()
     };
 
@@ -46,14 +46,14 @@ fn manage_organization_fraud_block_accepts_org_or_general_fraud_permission() {
     assert!(allowed);
     assert_eq!(
         store.platform_checks,
-        vec![Permission::BlockRewardOrganization]
+        vec![Permissions::BLOCK_REWARD_ORGANIZATION]
     );
 }
 
 #[test]
 fn manage_general_fraud_block_checks_exact_general_fraud_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        platform_permissions: vec![Permission::ManageRewardFraudBlocks],
+        platform_permissions: vec![Permissions::MANAGE_REWARD_FRAUD_BLOCKS],
         ..Default::default()
     };
 
@@ -67,14 +67,14 @@ fn manage_general_fraud_block_checks_exact_general_fraud_permission() {
     assert!(allowed);
     assert_eq!(
         store.platform_checks,
-        vec![Permission::ManageRewardFraudBlocks]
+        vec![Permissions::MANAGE_REWARD_FRAUD_BLOCKS]
     );
 }
 
 #[test]
 fn view_fraud_blocks_accepts_audit_or_general_fraud_permission() {
     let mut store = FakeRewardAuthorizationStore {
-        platform_permissions: vec![Permission::ManageRewardFraudBlocks],
+        platform_permissions: vec![Permissions::MANAGE_REWARD_FRAUD_BLOCKS],
         ..Default::default()
     };
 
@@ -89,8 +89,8 @@ fn view_fraud_blocks_accepts_audit_or_general_fraud_permission() {
     assert_eq!(
         store.platform_checks,
         vec![
-            Permission::ViewRewardAudit,
-            Permission::ManageRewardFraudBlocks
+            Permissions::VIEW_REWARD_AUDIT,
+            Permissions::MANAGE_REWARD_FRAUD_BLOCKS
         ]
     );
 }

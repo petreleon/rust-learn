@@ -6,16 +6,16 @@ use crate::application::access_control::authorize_reward::{
 use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessScope,
 };
-use crate::domain::access_control::permission::Permission;
+use crate::domain::access_control::permissions::Permissions;
 
 #[derive(Default)]
 pub(crate) struct FakeRewardAuthorizationStore {
-    pub platform_permissions: Vec<Permission>,
-    pub course_permissions: Vec<(i32, Permission)>,
-    pub organization_permissions: Vec<(i32, Permission)>,
-    pub platform_checks: Vec<Permission>,
-    pub course_checks: Vec<(i32, Permission)>,
-    pub organization_checks: Vec<(i32, Permission)>,
+    pub platform_permissions: Vec<Permissions>,
+    pub course_permissions: Vec<(i32, Permissions)>,
+    pub organization_permissions: Vec<(i32, Permissions)>,
+    pub platform_checks: Vec<Permissions>,
+    pub course_checks: Vec<(i32, Permissions)>,
+    pub organization_checks: Vec<(i32, Permissions)>,
 }
 
 impl RewardAuthorizationStore for FakeRewardAuthorizationStore {
@@ -48,23 +48,11 @@ impl RewardAuthorizationStore for FakeRewardAuthorizationStore {
     }
 }
 
-fn permission_from_action(action: &AccessAction) -> Permission {
-    match action.permission_name() {
-        "APPROVE_REWARD_AMOUNT" => Permission::ApproveRewardAmount,
-        "APPROVE_STUDENT_REWARD_CANDIDATE" => Permission::ApproveStudentRewardCandidate,
-        "BLOCK_REWARD_ORGANIZATION" => Permission::BlockRewardOrganization,
-        "BLOCK_REWARD_TEACHER" => Permission::BlockRewardTeacher,
-        "CREATE_REWARDABLE_COURSE_EVENT" => Permission::CreateRewardableCourseEvent,
-        "EXECUTE_REWARD_PAYOUT" => Permission::ExecuteRewardPayout,
-        "MANAGE_COURSE_REWARD_RULES" => Permission::ManageCourseRewardRules,
-        "MANAGE_REWARD_FRAUD_BLOCKS" => Permission::ManageRewardFraudBlocks,
-        "MANAGE_WALLETS" => Permission::ManageWallets,
-        "RECONCILE_WALLETS" => Permission::ReconcileWallets,
-        "SET_REWARD_POLICY" => Permission::SetRewardPolicy,
-        "SUBMIT_COURSE_REWARD_EVENT" => Permission::SubmitCourseRewardEvent,
-        "SUBMIT_ORG_COURSE_REWARD_EVENT" => Permission::SubmitOrgCourseRewardEvent,
-        "VIEW_COURSE_REWARD_STATUS" => Permission::ViewCourseRewardStatus,
-        "VIEW_REWARD_AUDIT" => Permission::ViewRewardAudit,
-        permission => panic!("unsupported fake reward permission: {permission}"),
-    }
+fn permission_from_action(action: &AccessAction) -> Permissions {
+    action.permission_name().parse().unwrap_or_else(|_| {
+        panic!(
+            "unsupported fake reward permission: {}",
+            action.permission_name()
+        )
+    })
 }

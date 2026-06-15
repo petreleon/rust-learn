@@ -6,14 +6,14 @@ use crate::application::access_control::authorize_wallet::{
 use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessScope,
 };
-use crate::domain::access_control::permission::Permission;
+use crate::domain::access_control::permissions::Permissions;
 
 #[derive(Default)]
 pub(crate) struct FakeWalletAuthorizationStore {
-    pub platform_permissions: Vec<Permission>,
-    pub organization_permissions: Vec<(i32, Permission)>,
-    pub platform_checks: Vec<Permission>,
-    pub organization_checks: Vec<(i32, Permission)>,
+    pub platform_permissions: Vec<Permissions>,
+    pub organization_permissions: Vec<(i32, Permissions)>,
+    pub platform_checks: Vec<Permissions>,
+    pub organization_checks: Vec<(i32, Permissions)>,
 }
 
 impl WalletAuthorizationStore for FakeWalletAuthorizationStore {
@@ -42,18 +42,11 @@ impl WalletAuthorizationStore for FakeWalletAuthorizationStore {
     }
 }
 
-fn permission_from_action(action: &AccessAction) -> Permission {
-    match action.permission_name() {
-        "CREATE_WALLET" => Permission::CreateWallet,
-        "MANAGE_ORG_REWARD_BUDGET" => Permission::ManageOrgRewardBudget,
-        "MANAGE_ORG_WALLETS" => Permission::ManageOrgWallets,
-        "MANAGE_WALLETS" => Permission::ManageWallets,
-        "RECONCILE_WALLETS" => Permission::ReconcileWallets,
-        "SET_DEPOSIT_TAX" => Permission::SetDepositTax,
-        "SET_RETIRE_TAX" => Permission::SetRetireTax,
-        "VIEW_ORG_REWARD_REPORTS" => Permission::ViewOrgRewardReports,
-        "VIEW_TRANSACTIONS" => Permission::ViewTransactions,
-        "VIEW_WALLET" => Permission::ViewWallet,
-        permission => panic!("unsupported fake wallet permission: {permission}"),
-    }
+fn permission_from_action(action: &AccessAction) -> Permissions {
+    action.permission_name().parse().unwrap_or_else(|_| {
+        panic!(
+            "unsupported fake wallet permission: {}",
+            action.permission_name()
+        )
+    })
 }
