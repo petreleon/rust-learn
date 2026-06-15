@@ -1944,6 +1944,30 @@ Batch 313: make admin permission gates honor backend capability contracts.
       item stays open until organization routes and the ops/debug workflow stop
       owning raw permission groupings.
 
+Batch 314: make organization permission gates honor backend capability contracts.
+
+- [x] Added `organizationPermissionEnabled` under `web/src/lib/organization`
+      so organization UI checks require both the effective permission and an
+      enabled backend-declared session capability containing that permission.
+- [x] Repointed organization settings and wallet routes through the helper;
+      settings fetch/save/delete guards now require the settings capability,
+      and wallet relinking now refuses sessions without the wallet-management
+      capability even when the wallet page is visible through budget/report
+      permissions.
+- [x] Added frontend helper coverage proving enabled declarations pass while
+      missing, disabled, or absent capability contracts fail.
+- [x] Proved behavior and boundaries with `npm test -- organization`,
+      `npx tsc --noEmit`, `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      frontend direct-permission scans, ring import-boundary scans,
+      `git diff --check`, and touched-file size checks.
+- [x] Self-critique: this closes the product organization settings/wallet
+      frontend leak, but the broad frontend capability item remains open until
+      the ops/debug workflow stops deriving action readiness from local raw
+      permission selections.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -2143,6 +2167,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Organization invite, removal, role assignment, member-audit, and
       teacher-application list action gates now use the shared mutable
       access-decision store contract.
+- [x] Organization frontend settings and wallet gates now require
+      backend-declared current-session organization capabilities in addition to
+      effective organization permissions.
 - [x] Scope-specific Postgres permission wrapper functions have been removed;
       remaining backend infra callers build typed access decisions against
       `permission_checks::can` or `permission_checks::can_any`.

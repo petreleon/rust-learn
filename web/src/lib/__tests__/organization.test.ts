@@ -4,7 +4,9 @@ import {
   organizationMatchesCapability,
   filterOrganizationWorkspace,
   enabledOrganizationCapabilities,
+  organizationPermissionEnabled,
 } from "@/lib/organization";
+import type { OrganizationWorkspaceItem } from "@/lib/organization";
 import type { CurrentSession } from "@/lib/session";
 
 function makeSession(orgs: Array<{
@@ -91,5 +93,54 @@ describe("enabledOrganizationCapabilities", () => {
     ])).organizations[0];
     const caps = enabledOrganizationCapabilities(org);
     caps.forEach((c) => expect(c.enabled).toBe(true));
+  });
+});
+
+function makeOrganizationItem(
+  effectivePermissions: string[],
+  capability: OrganizationWorkspaceItem["capabilities"][number],
+): OrganizationWorkspaceItem {
+  return {
+    capabilities: [capability],
+    delegatedPermissionCount: 0,
+    directPermissionCount: effectivePermissions.length,
+    effectivePermissionCount: effectivePermissions.length,
+    effectivePermissions,
+    id: 1,
+    name: "O",
+    permissionPreview: effectivePermissions,
+    roles: [],
+  };
+}
+
+describe("organizationPermissionEnabled", () => {
+  it("requires an enabled capability declaring the permission", () => {
+    const org = makeOrganizationItem(["MANAGE_ORG_SETTINGS"], {
+      enabled: true,
+      key: "settings",
+      label: "Settings",
+      permissions: ["MANAGE_ORG_SETTINGS"],
+    });
+
+    expect(organizationPermissionEnabled(org, "MANAGE_ORG_SETTINGS")).toBe(true);
+  });
+
+  it("rejects undeclared or disabled capability permissions", () => {
+    const missingDeclaration = makeOrganizationItem(["MANAGE_ORG_SETTINGS"], {
+      enabled: true,
+      key: "settings",
+      label: "Settings",
+      permissions: [],
+    });
+    const disabledCapability = makeOrganizationItem(["MANAGE_ORG_SETTINGS"], {
+      enabled: false,
+      key: "settings",
+      label: "Settings",
+      permissions: ["MANAGE_ORG_SETTINGS"],
+    });
+
+    expect(organizationPermissionEnabled(missingDeclaration, "MANAGE_ORG_SETTINGS")).toBe(false);
+    expect(organizationPermissionEnabled(disabledCapability, "MANAGE_ORG_SETTINGS")).toBe(false);
+    expect(organizationPermissionEnabled(null, "MANAGE_ORG_SETTINGS")).toBe(false);
   });
 });

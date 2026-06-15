@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProductShell } from "@/components/product-shell";
-import { buildOrganizationWorkspace, fetchOrganizationWalletAudit, findOrganizationWorkspaceItem, linkOrganizationWallet, type OrganizationWalletAudit } from "@/lib/organization";
+import { buildOrganizationWorkspace, fetchOrganizationWalletAudit, findOrganizationWorkspaceItem, linkOrganizationWallet, organizationPermissionEnabled, type OrganizationWalletAudit } from "@/lib/organization";
 import { clearStoredSessionToken, readStoredSessionToken } from "@/lib/session";
 import { ErrorState } from "./ErrorState";
 import { LoadingState } from "./LoadingState";
@@ -34,9 +34,9 @@ export function OrganizationWalletRoute({ organizationId }: { organizationId: st
     () => (route.session ? buildOrganizationWorkspace(route.session) : emptyWorkspace),
     [route.session],
   );
-  const canManageWallets = Boolean(organization?.effectivePermissions.includes("MANAGE_ORG_WALLETS"));
-  const canManageBudget = Boolean(organization?.effectivePermissions.includes("MANAGE_ORG_REWARD_BUDGET"));
-  const canViewReports = Boolean(organization?.effectivePermissions.includes("VIEW_ORG_REWARD_REPORTS"));
+  const canManageWallets = organizationPermissionEnabled(organization, "MANAGE_ORG_WALLETS");
+  const canManageBudget = organizationPermissionEnabled(organization, "MANAGE_ORG_REWARD_BUDGET");
+  const canViewReports = organizationPermissionEnabled(organization, "VIEW_ORG_REWARD_REPORTS");
   const canViewWallet = canManageWallets || canManageBudget || canViewReports;
   const walletCapability = organization?.capabilities.find((capability) => capability.key === "wallet");
   const [audit, setAudit] = useState<OrganizationWalletAudit | null>(null);
@@ -101,6 +101,15 @@ export function OrganizationWalletRoute({ organizationId }: { organizationId: st
     const token = readStoredSessionToken();
     if (!token || !organization) {
       setLinkError({ code: "missing_token", message: "Sign in again before linking this wallet.", status: 401 });
+      setLinkState("error");
+      return;
+    }
+    if (!canManageWallets) {
+      setLinkError({
+        code: "permission_denied",
+        message: "Wallet management is not enabled for this organization session.",
+        status: 403,
+      });
       setLinkState("error");
       return;
     }

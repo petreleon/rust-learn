@@ -57,6 +57,7 @@ export { findOrganizationWorkspaceItem } from "./organization/findOrganizationWo
 export { organizationMatchesCapability } from "./organization/organizationMatchesCapability";
 export { filterOrganizationWorkspace } from "./organization/filterOrganizationWorkspace";
 export { enabledOrganizationCapabilities } from "./organization/enabledOrganizationCapabilities";
+export { organizationPermissionEnabled } from "./organization/organizationPermissionEnabled";
 export { missingOrganizationPermissions } from "./organization/missingOrganizationPermissions";
 export { fetchOrganizationRewardDashboard } from "./organization/fetchOrganizationRewardDashboard";
 export { fetchOrganizationDashboard } from "./organization/fetchOrganizationDashboard";
