@@ -1,20 +1,22 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::web;
 
 use crate::application::organizations::list_organization_member_audit::{
-    OrganizationMemberAuditError, OrganizationMemberAuditEventOutput, OrganizationMemberAuditQuery,
+    OrganizationMemberAuditEventOutput, OrganizationMemberAuditQuery,
     OrganizationMemberAuditUseCase,
 };
+use crate::http::errors::ApiError;
 use crate::http::extractors::auth_user::AuthUser;
 
+use super::errors::organization_member_audit_error;
 use super::member_audit_dto::OrganizationMemberAuditEventResponse;
 
 pub(super) async fn get_member_audit_route(
     requester: AuthUser,
     path: web::Path<(i32, i32)>,
     use_case: web::Data<Arc<dyn OrganizationMemberAuditUseCase>>,
-) -> impl Responder {
+) -> Result<web::Json<Vec<OrganizationMemberAuditEventResponse>>, ApiError> {
     let (organization_id, target_user_id) = path.into_inner();
 
     let query = OrganizationMemberAuditQuery {
@@ -23,36 +25,12 @@ pub(super) async fn get_member_audit_route(
         target_user_id,
     };
 
-    match use_case.list_member_audit(query).await {
-        Ok(events) => HttpResponse::Ok().json(audit_event_responses(events)),
-        Err(error) => organization_member_audit_error_response(error, organization_id),
-    }
-}
-
-fn organization_member_audit_error_response(
-    error: OrganizationMemberAuditError,
-    organization_id: i32,
-) -> HttpResponse {
-    match error {
-        OrganizationMemberAuditError::PermissionDenied(_) => HttpResponse::Forbidden()
-            .body("User does not have permission to view organization member audit"),
-        OrganizationMemberAuditError::Connection(error) => {
-            log::error!(
-                "event=member_audit_connection_failed organization_id={} error={}",
-                organization_id,
-                error
-            );
-            HttpResponse::InternalServerError().body("Failed to get DB connection")
-        }
-        OrganizationMemberAuditError::Database(error) => {
-            log::error!(
-                "event=member_audit_fetch_failed organization_id={} error={}",
-                organization_id,
-                error
-            );
-            HttpResponse::InternalServerError().body("Failed to load audit events")
-        }
-    }
+    use_case
+        .list_member_audit(query)
+        .await
+        .map(audit_event_responses)
+        .map(web::Json)
+        .map_err(|error| organization_member_audit_error(organization_id, error))
 }
 
 fn audit_event_responses(

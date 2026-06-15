@@ -954,8 +954,11 @@ Wiring rule:
       now use typed JSON/status results with a teacher-application HTTP error
       mapper. Content chapter/content-item/upload/media/processing handlers now
       use typed JSON/text/status results with content HTTP error mappers.
-      Reporting, wallet, rewards, learning, and organizations contexts still
-      need the same treatment before this is done.
+      Organization CRUD, dashboard, course/member/teacher-application lists,
+      member invite/removal/role, and member audit handlers now use typed
+      JSON/text/status results with organization HTTP error mappers. Reporting,
+      wallet, rewards, and learning contexts still need the same treatment
+      before this is done.
 - [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
 - [x] Configure JSON limits and JSON parse errors centrally so every route has
@@ -1446,6 +1449,33 @@ Batch 297: move content handlers to typed HTTP results.
       Reporting, wallet, rewards, learning, and organizations still contain
       manual response branches.
 
+Batch 298: move organization handlers to typed HTTP results.
+
+- [x] Added `http/organizations/errors.rs`,
+      `http/organizations/errors/read_models.rs`, and
+      `http/organizations/errors/members.rs` as the local HTTP boundary mappers
+      from organization application errors into the shared `ApiError` envelope.
+- [x] Repointed organization CRUD, dashboard, course list, member list, member
+      audit, member invite, member removal, member role assignment, and
+      organization teacher-application list handlers away from handler-local
+      `HttpResponse`/`impl Responder` branches and into typed JSON/text/status
+      results.
+- [x] Kept legacy success text bodies for organization deletion, member
+      removal, and member role assignment while moving service-error responses
+      through the shared error envelope.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::organizations::errors`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing api_scope_and_following_routes_are_reachable`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      organization handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes the organization HTTP typed-result slice
+      only. Reporting, wallet, rewards, and learning still contain manual
+      response branches.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1742,6 +1772,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Organization CRUD routes now have application command/output/error and
       store-port contracts, a Postgres management adapter/use case, HTTP DTO
       mapping, bootstrap wiring, and organization management/API route tests.
+- [x] Organization HTTP handlers return typed JSON/text/status results and map
+      application errors through `http/organizations/errors`, keeping Actix
+      response construction out of route functions.
 
 ## KYC Context
 
