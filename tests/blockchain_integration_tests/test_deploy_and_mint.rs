@@ -1,3 +1,5 @@
+use crate::support::*;
+
 // This test requires a running Anvil node accessible via the .env configuration.
 // It is ignored by default.
 // Run it explicitly when your dev environment is up:

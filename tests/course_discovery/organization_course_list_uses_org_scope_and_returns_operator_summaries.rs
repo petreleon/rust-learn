@@ -1,3 +1,5 @@
+use crate::{create_course_reward_policy::*, create_organization::*, support::*};
+
 #[actix_web::test]
 async fn organization_course_list_uses_org_scope_and_returns_operator_summaries() {
     let _ = dotenvy::dotenv();

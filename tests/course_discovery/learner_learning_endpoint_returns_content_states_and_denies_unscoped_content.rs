@@ -1,3 +1,5 @@
+use crate::{create_organization::*, support::*};
+
 #[actix_web::test]
 async fn learner_learning_endpoint_returns_content_states_and_denies_unscoped_content() {
     let _ = dotenvy::dotenv();
@@ -70,7 +72,10 @@ async fn learner_learning_endpoint_returns_content_states_and_denies_unscoped_co
         body["active_content_id"].as_i64(),
         Some(i64::from(text_content_id))
     );
-    assert_eq!(body["course"]["enrollment"]["state"].as_str(), Some("enrolled"));
+    assert_eq!(
+        body["course"]["enrollment"]["state"].as_str(),
+        Some("enrolled")
+    );
     assert_eq!(body["progress_supported"].as_bool(), Some(true));
 
     let chapters = body["chapters"]

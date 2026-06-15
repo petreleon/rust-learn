@@ -1,3 +1,5 @@
+use crate::support::*;
+
 fn pad_u256(value: U256) -> [u8; 32] {
     let mut b = [0u8; 32];
     value.to_big_endian(&mut b);
@@ -11,7 +13,7 @@ fn pad_address(addr: Address) -> [u8; 32] {
     b
 }
 
-fn eip2612_permit_digest(
+pub(crate) fn eip2612_permit_digest(
     domain_separator: ethers::core::types::H256,
     owner: Address,
     spender: Address,
@@ -41,6 +43,6 @@ fn eip2612_permit_digest(
     ethers::core::types::H256::from_slice(&ethers::utils::keccak256(&digest_input))
 }
 
-fn permit_signature_parts(sig: ethers::types::Signature) -> (u8, [u8; 32], [u8; 32]) {
+pub(crate) fn permit_signature_parts(sig: ethers::types::Signature) -> (u8, [u8; 32], [u8; 32]) {
     (sig.v as u8, pad_u256(sig.r), pad_u256(sig.s))
 }

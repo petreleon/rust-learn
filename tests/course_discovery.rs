@@ -1,13 +1,20 @@
-include!("course_discovery/imports.rs");
-include!("course_discovery/create_organization.rs");
-include!("course_discovery/create_course_reward_policy.rs");
-include!("course_discovery/course_search_treats_like_wildcards_as_literal_text.rs");
-include!(
-    "course_discovery/organization_course_list_uses_org_scope_and_returns_operator_summaries.rs"
-);
-include!(
-    "course_discovery/learner_catalog_returns_published_course_summaries_and_pending_state.rs"
-);
-include!("course_discovery/learner_catalog_includes_own_draft_but_hides_unscoped_draft_detail.rs");
-include!("course_discovery/learner_learning_endpoint_returns_content_states_and_denies_unscoped_content.rs");
-include!("course_discovery/learner_progress_requires_enrollment_and_course_content.rs");
+#[path = "course_discovery/course_list_supports_search_org_filter_and_pagination.rs"]
+mod course_list_supports_search_org_filter_and_pagination;
+#[path = "course_discovery/course_search_treats_like_wildcards_as_literal_text.rs"]
+mod course_search_treats_like_wildcards_as_literal_text;
+#[path = "course_discovery/create_course_reward_policy.rs"]
+mod create_course_reward_policy;
+#[path = "course_discovery/create_organization.rs"]
+mod create_organization;
+#[path = "course_discovery/learner_catalog_includes_own_draft_but_hides_unscoped_draft_detail.rs"]
+mod learner_catalog_includes_own_draft_but_hides_unscoped_draft_detail;
+#[path = "course_discovery/learner_catalog_returns_published_course_summaries_and_pending_state.rs"]
+mod learner_catalog_returns_published_course_summaries_and_pending_state;
+#[path = "course_discovery/learner_learning_endpoint_returns_content_states_and_denies_unscoped_content.rs"]
+mod learner_learning_endpoint_returns_content_states_and_denies_unscoped_content;
+#[path = "course_discovery/learner_progress_requires_enrollment_and_course_content.rs"]
+mod learner_progress_requires_enrollment_and_course_content;
+#[path = "course_discovery/organization_course_list_uses_org_scope_and_returns_operator_summaries.rs"]
+mod organization_course_list_uses_org_scope_and_returns_operator_summaries;
+#[path = "course_discovery/support.rs"]
+mod support;
