@@ -2070,6 +2070,26 @@ Batch 318: normalize small permission and management test harness modules.
       execution, wallet linking, reporting exports, teacher applications, and
       current session still need the same explicit-module cleanup.
 
+Batch 319: normalize content lifecycle and student reward-history test modules.
+
+- [x] Replaced the `course_content_management` and `student_reward_history`
+      integration-test `include!` shells with explicit modules and crate-local
+      `support` modules.
+- [x] Renamed the selected `imports.rs` files to `support.rs`, made lifecycle
+      and reward-history helper structs/functions crate-visible, and removed
+      non-functional section comments from the content lifecycle test so the
+      explicit imports still keep the file under the 180-line cap.
+- [x] Proved behavior and boundaries with `cargo fmt --all`,
+      `./scripts/run-host-tests.sh cargo test --test student_reward_history --test course_content_management`,
+      `cargo fmt --all --check`, `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      selected harness `include!`/`imports.rs` scans, ring import-boundary
+      scans, `git diff --check`, and touched-file size checks.
+- [x] Self-critique: this makes content and reward-history test dependencies
+      reviewable, but the larger include-based suites still remain and should
+      be converted in risk-sized batches.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
