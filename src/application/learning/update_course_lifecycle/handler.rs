@@ -4,12 +4,8 @@ use crate::application::access_control::check_permission::{
 use crate::application::learning::update_course_lifecycle::{
     CourseLifecycleCommand, CourseLifecycleError, CourseLifecycleOutput, CourseLifecycleStore,
 };
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::learning::course::status::CourseLifecycleStatus;
-
-const MANAGE_COURSE_SETTINGS: &str = "MANAGE_COURSE_SETTINGS";
-const APPROVE_COURSE_CONTENT: &str = "APPROVE_COURSE_CONTENT";
-const PUBLISH_CONTENT: &str = "PUBLISH_CONTENT";
-const MODIFY_COURSE: &str = "MODIFY_COURSE";
 
 pub async fn update_course_lifecycle(
     store: &mut impl CourseLifecycleStore,
@@ -30,13 +26,13 @@ pub async fn update_course_lifecycle(
         && !store
             .can(
                 actor,
-                AccessAction::permission(MODIFY_COURSE),
+                AccessAction::permission(Permissions::MODIFY_COURSE),
                 AccessScope::platform(),
             )
             .await?
     {
         return Err(CourseLifecycleError::PermissionDenied(
-            course_permission.to_string(),
+            course_permission.into(),
         ));
     }
 
@@ -45,16 +41,16 @@ pub async fn update_course_lifecycle(
         .await
 }
 
-fn required_course_permission(status: CourseLifecycleStatus) -> &'static str {
+fn required_course_permission(status: CourseLifecycleStatus) -> Permissions {
     match status {
         CourseLifecycleStatus::Draft
         | CourseLifecycleStatus::Submitted
         | CourseLifecycleStatus::Archived
-        | CourseLifecycleStatus::Suspended => MANAGE_COURSE_SETTINGS,
+        | CourseLifecycleStatus::Suspended => Permissions::MANAGE_COURSE_SETTINGS,
         CourseLifecycleStatus::NeedsChanges | CourseLifecycleStatus::Approved => {
-            APPROVE_COURSE_CONTENT
+            Permissions::APPROVE_COURSE_CONTENT
         }
-        CourseLifecycleStatus::Published => PUBLISH_CONTENT,
+        CourseLifecycleStatus::Published => Permissions::PUBLISH_CONTENT,
     }
 }
 

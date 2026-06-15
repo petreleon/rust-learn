@@ -1,7 +1,7 @@
 use futures::executor::block_on;
 use futures::future::{ready, BoxFuture, FutureExt};
 
-use super::{invite_organization_member, INVITE_USER_TO_ORGANIZATION};
+use super::invite_organization_member;
 use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessDecisionStore, AccessScope,
 };
@@ -9,6 +9,7 @@ use crate::application::organizations::invite_organization_member::{
     OrganizationMemberInviteCommand, OrganizationMemberInviteError, OrganizationMemberInviteStore,
     OrganizationMemberInviteTarget,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 #[test]
 fn invites_member_after_permission_and_lookup() {
@@ -82,7 +83,10 @@ impl AccessDecisionStore for FakeOrganizationMemberInviteStore {
         action: AccessAction,
         scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, OrganizationMemberInviteError>> {
-        assert_eq!(action.permission_name(), INVITE_USER_TO_ORGANIZATION);
+        assert_eq!(
+            action.permission_name(),
+            Permissions::INVITE_USER_TO_ORGANIZATION.to_string()
+        );
         let organization_id = match scope {
             AccessScope::Organization(scope) => scope.organization_id(),
             _ => panic!("member invite must use organization scope"),

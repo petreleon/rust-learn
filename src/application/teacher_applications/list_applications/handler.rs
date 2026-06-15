@@ -8,9 +8,8 @@ use crate::application::teacher_applications::{
     },
     TeacherApplicationOutput,
 };
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::teacher_applications::status::normalize_optional_status;
-
-const REVIEW_TEACHER_APPLICATIONS: &str = "REVIEW_TEACHER_APPLICATIONS";
 
 pub async fn list_applications(
     store: &mut impl TeacherApplicationListStore,
@@ -18,7 +17,7 @@ pub async fn list_applications(
 ) -> Result<Vec<TeacherApplicationOutput>, TeacherApplicationListError> {
     if !can_platform_review_action(store, query.actor_user_id).await? {
         return Err(TeacherApplicationListError::PermissionDenied(
-            REVIEW_TEACHER_APPLICATIONS.to_string(),
+            Permissions::REVIEW_TEACHER_APPLICATIONS.into(),
         ));
     }
 
@@ -40,7 +39,7 @@ async fn can_platform_review_action(
     store
         .can(
             AccessActor::user(actor_user_id),
-            AccessAction::permission(REVIEW_TEACHER_APPLICATIONS),
+            AccessAction::permission(Permissions::REVIEW_TEACHER_APPLICATIONS),
             AccessScope::platform(),
         )
         .await
@@ -52,6 +51,7 @@ mod tests {
     use futures::future::{BoxFuture, FutureExt};
 
     use super::*;
+    use crate::domain::access_control::permissions::Permissions;
 
     #[derive(Default)]
     struct FakeStore {
@@ -68,7 +68,10 @@ mod tests {
             action: AccessAction,
             scope: AccessScope,
         ) -> BoxFuture<'_, Result<bool, TeacherApplicationListError>> {
-            assert_eq!(action.permission_name(), REVIEW_TEACHER_APPLICATIONS);
+            assert_eq!(
+                action.permission_name(),
+                Permissions::REVIEW_TEACHER_APPLICATIONS.to_string()
+            );
             assert!(matches!(scope, AccessScope::Platform(_)));
             async move { Ok(self.can_review) }.boxed()
         }

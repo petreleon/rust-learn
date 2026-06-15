@@ -3,6 +3,7 @@ use crate::application::rewards::list_course_candidates::{
     CourseRewardCandidatesQuery,
 };
 use crate::application::rewards::ports::CourseRewardCandidateStore;
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 pub async fn list_course_reward_candidates(
@@ -57,7 +58,7 @@ async fn ensure_can_view_own_reward_status(
         Ok(())
     } else {
         Err(CourseRewardCandidatesError::PermissionDenied(
-            "VIEW_COURSE_REWARD_STATUS".to_string(),
+            Permissions::VIEW_COURSE_REWARD_STATUS.into(),
         ))
     }
 }

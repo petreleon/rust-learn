@@ -4,6 +4,7 @@ use super::*;
 use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessDecisionStore, AccessScope,
 };
+use crate::domain::access_control::permissions::Permissions;
 use fixtures::{application, application_from_submission, command};
 
 mod fixtures;
@@ -25,7 +26,10 @@ impl AccessDecisionStore for FakeStore {
         action: AccessAction,
         scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationSubmitError>> {
-        assert_eq!(action.permission_name(), SUBMIT_TEACHER_APPLICATION);
+        assert_eq!(
+            action.permission_name(),
+            Permissions::SUBMIT_TEACHER_APPLICATION.to_string()
+        );
         assert!(matches!(scope, AccessScope::Platform(_)));
         async move { Ok(self.can_submit) }.boxed()
     }

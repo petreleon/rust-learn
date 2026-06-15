@@ -2,6 +2,7 @@ use crate::application::rewards::notify_wallet_credit::{
     RewardWalletCreditNotification, RewardWalletCreditNotificationError,
     RewardWalletCreditNotificationOutput, RewardWalletCreditNotificationStore,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn notify_reward_wallet_credit(
     store: &mut impl RewardWalletCreditNotificationStore,
@@ -43,7 +44,7 @@ async fn ensure_can_execute_reward_payout(
         Ok(())
     } else {
         Err(RewardWalletCreditNotificationError::PermissionDenied(
-            "EXECUTE_REWARD_PAYOUT".to_string(),
+            Permissions::EXECUTE_REWARD_PAYOUT.into(),
         ))
     }
 }

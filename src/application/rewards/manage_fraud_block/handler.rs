@@ -6,6 +6,7 @@ use crate::application::rewards::manage_fraud_block::{
     RewardFraudBlockAuditEventOutput, RewardFraudBlockError, RewardFraudBlockOutput,
 };
 use crate::application::rewards::ports::RewardFraudBlockStore;
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::rewards::fraud_block::{RewardFraudBlockAuditEventType, RewardFraudBlockScope};
 
 pub async fn create_reward_fraud_block(
@@ -92,9 +93,11 @@ async fn ensure_can_view(
     if store.can_view_fraud_blocks(actor_user_id).await? {
         Ok(())
     } else {
-        Err(RewardFraudBlockError::PermissionDenied(
-            "VIEW_REWARD_AUDIT or MANAGE_REWARD_FRAUD_BLOCKS".to_string(),
-        ))
+        Err(RewardFraudBlockError::PermissionDenied(format!(
+            "{} or {}",
+            Permissions::VIEW_REWARD_AUDIT,
+            Permissions::MANAGE_REWARD_FRAUD_BLOCKS
+        )))
     }
 }
 

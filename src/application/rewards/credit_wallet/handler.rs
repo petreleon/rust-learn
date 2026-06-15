@@ -1,6 +1,7 @@
 use crate::application::rewards::credit_wallet::{
     RewardWalletCredit, RewardWalletCreditError, RewardWalletCreditOutput, RewardWalletCreditStore,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn credit_reward_wallet(
     store: &mut impl RewardWalletCreditStore,
@@ -42,7 +43,7 @@ async fn ensure_can_execute_reward_payout(
         Ok(())
     } else {
         Err(RewardWalletCreditError::PermissionDenied(
-            "EXECUTE_REWARD_PAYOUT".to_string(),
+            Permissions::EXECUTE_REWARD_PAYOUT.into(),
         ))
     }
 }

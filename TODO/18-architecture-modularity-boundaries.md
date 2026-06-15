@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified pushed base before current batch: `ae518ea0`
-(`Move permission catalog into domain`).
+Latest verified pushed base before current batch: `58749d50`
+(`Use catalog permissions for session capabilities`).
 
 Objective: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
@@ -50,6 +50,8 @@ submodules only where a context or use case has real ownership.
   `src/domain/access_control`; root `config` exports removed; HTTP, infra, and
   tests import through domain vocabulary; `PERMISSIONS.md` includes
   `REVIEW_KYC_SUBMISSIONS`.
+- `58749d50`: current-session capabilities and KYC review/audit authorization
+  now use `Permissions` catalog values while preserving string API output.
 
 Proof for completed pushed work:
 
@@ -68,56 +70,66 @@ Proof for completed pushed work:
 
 Included problems:
 
-- Current-session backend capability definitions duplicated permission catalog
-  strings in `src/application/identity/current_session/capabilities`.
-- Current-session access summary hardcoded `SUBMIT_TEACHER_APPLICATION`.
-- KYC review and audit handlers hardcoded `REVIEW_KYC_SUBMISSIONS`.
-- The domain role/permission catalog was value-like but not `Copy`/`Eq`, making
-  catalog-backed static metadata awkward.
+- Production application handlers still duplicated permission catalog strings
+  across delegated-permission management, user profile reads, learning, course
+  enrollment, organization membership/audit/teacher-application views, teacher
+  applications, and reward operations.
+- `AccessAction::permission(...)` accepted strings only, so application code had
+  to hand-roll string conversion at each authorization call.
+- Organization dashboard gating emitted duplicated permission names in
+  application output builders.
 
 Fixes:
 
-- `CapabilityDefinition.permissions` now stores
-  `domain::access_control::permissions::Permissions` variants.
-- Current-session capability output still exposes `Vec<String>`, preserving the
-  API contract while deriving names from the domain catalog.
-- KYC review queue, decision, and audit authorization use
-  `Permissions::REVIEW_KYC_SUBMISSIONS`.
-- `Permissions` and `Roles` derive `Clone`, `Copy`, and `Eq` for safe static
-  catalog use.
+- Added `From<Permissions> for String`, allowing catalog permissions to cross
+  the existing string-based authorization/API boundary intentionally.
+- Converted production application permission checks and denied-permission
+  payloads to `Permissions::*` values in the affected learning, organization,
+  teacher-application, reward, identity, and delegated-permission use cases.
+- Kept serialized API/test assertions string-based where they verify public
+  contract output.
 
 Deferred problems:
 
 - Domain delegation permission rules still normalize a scoped raw string policy
   list. That is a separate domain policy surface and should be audited as its
   own batch if more vocabulary work is needed.
-- Some tests intentionally assert serialized permission strings. Those remain as
-  API-contract checks rather than production vocabulary duplication.
 - The smaller `domain::access_control::Permission` enum still overlaps with the
   full `Permissions` catalog. Unifying them would be a broader authorization API
   cleanup, not a safe side effect of this batch.
+- `src/http/middlewares/jwt_middleware.rs` still imports
+  `infra::tokens::jwt::decode_jwt` directly. Fixing that requires an injected
+  token-verifier application port plus a coordinated test app-data/harness
+  update, so it should be a separate HTTP-auth boundary batch.
 
 Proof:
 
 - `cargo fmt --all --check`.
 - `./scripts/run-host-tests.sh cargo check --lib`.
-- `./scripts/run-host-tests.sh cargo test --test current_session_api`.
-- `./scripts/run-host-tests.sh cargo test --test kyc_review`.
+- `./scripts/run-host-tests.sh cargo test --lib`.
+- `./scripts/run-host-tests.sh cargo test --test course_enrollment_api --test
+  course_join_requests --test organization_members --test
+  organization_teacher_applications --test teacher_applications --test
+  reward_candidates --test reward_candidate_audit --test reward_management_api
+  --test reward_execution --test reward_policies --test reward_compensations`.
 - `./scripts/run-host-tests.sh cargo check --bin rust-learn --features
   app-bin`.
 - `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
 - `git diff --check`.
-- Scans: no raw permission string literals remain in current-session/KYC
-  application code; no maintained Rust file over 180 lines; domain/application
-  boundary scan found no concrete dependency leaks, only the domain vocabulary
-  variant `MANAGE_S3_OBJECTS`.
+- Scans: no production `AccessAction::permission("...")`, uppercase permission
+  constants, or gated-output permission literals remain in `src/application`;
+  no maintained Rust file over 180 lines; domain/application boundary scan found
+  no concrete dependency leaks, only the domain vocabulary variant
+  `MANAGE_S3_OBJECTS`; HTTP-to-infra scan identifies the remaining JWT
+  middleware boundary item.
 
 ## Remaining Work
 
+- Move JWT verification out of HTTP's direct infra dependency by introducing an
+  application token-verifier port, wiring the infra verifier in bootstrap, and
+  updating direct JWT-middleware test apps to register the verifier.
 - Audit TODO/18 requirement-by-requirement against current code and pushed
   evidence before calling Level 2 complete.
-- Re-scan raw vocabulary across remaining migrated contexts; only batch more
-  cleanup if it is cohesive, behavior-preserving, and reviewable.
 - Decide whether the overlapping `Permission` and `Permissions` domain enums
   should stay separate or be unified through a deliberate authorization API
   cleanup.
@@ -127,5 +139,5 @@ Proof:
   rejection.
 - Do not jump to Level 3 crates/microservices or abstractions that only move
   files around.
-- Rough remaining effort: final requirement audit, plus at most one focused
-  vocabulary/API cleanup if the audit proves it necessary.
+- Rough remaining effort: one HTTP-auth boundary batch plus the final
+  requirement audit.

@@ -6,6 +6,7 @@ use crate::application::rewards::list_platform_candidates::{
     PlatformRewardCandidatePermissions, PlatformRewardCandidatesError,
     PlatformRewardCandidatesOutput, PlatformRewardCandidatesQuery,
 };
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 pub async fn list_platform_reward_candidates(
@@ -56,7 +57,7 @@ async fn ensure_can_view_candidates(
         Ok(())
     } else {
         Err(PlatformRewardCandidatesError::PermissionDenied(
-            "VIEW_REWARD_AUDIT".to_string(),
+            Permissions::VIEW_REWARD_AUDIT.into(),
         ))
     }
 }

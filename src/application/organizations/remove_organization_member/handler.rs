@@ -5,8 +5,7 @@ use crate::application::organizations::remove_organization_member::{
     OrganizationMemberRemovalCommand, OrganizationMemberRemovalError,
     OrganizationMemberRemovalStore,
 };
-
-const MANAGE_ORG_MEMBERS: &str = "MANAGE_ORG_MEMBERS";
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn remove_organization_member(
     store: &mut impl OrganizationMemberRemovalStore,
@@ -15,7 +14,7 @@ pub async fn remove_organization_member(
     if !store
         .can(
             AccessActor::user(command.actor_user_id),
-            AccessAction::permission(MANAGE_ORG_MEMBERS),
+            AccessAction::permission(Permissions::MANAGE_ORG_MEMBERS),
             AccessScope::organization(command.organization_id),
         )
         .await?

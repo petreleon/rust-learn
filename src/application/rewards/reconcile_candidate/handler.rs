@@ -2,6 +2,7 @@ use crate::application::rewards::reconcile_candidate::{
     RewardReconciliation, RewardReconciliationError, RewardReconciliationOutput,
     RewardReconciliationStore,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn reconcile_reward_candidate(
     store: &mut impl RewardReconciliationStore,
@@ -41,7 +42,7 @@ async fn ensure_can_execute_reward_payout(
         Ok(())
     } else {
         Err(RewardReconciliationError::PermissionDenied(
-            "EXECUTE_REWARD_PAYOUT".to_string(),
+            Permissions::EXECUTE_REWARD_PAYOUT.into(),
         ))
     }
 }

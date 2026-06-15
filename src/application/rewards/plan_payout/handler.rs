@@ -4,6 +4,7 @@ use crate::application::rewards::plan_payout::validation::{
 use crate::application::rewards::plan_payout::{
     RewardPayoutPlan, RewardPayoutPlanError, RewardPayoutPlanStore, RewardPayoutPolicy,
 };
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::rewards::payout::RewardPayoutMethod;
 use crate::domain::rewards::policy::RewardPaymentStrategy;
 
@@ -60,7 +61,7 @@ async fn ensure_can_execute_reward_payout(
         Ok(())
     } else {
         Err(RewardPayoutPlanError::PermissionDenied(
-            "EXECUTE_REWARD_PAYOUT".to_string(),
+            Permissions::EXECUTE_REWARD_PAYOUT.into(),
         ))
     }
 }

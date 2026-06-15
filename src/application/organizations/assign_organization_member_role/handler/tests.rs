@@ -1,6 +1,6 @@
 use futures::future::{BoxFuture, FutureExt};
 
-use super::{assign_organization_member_role, ASSIGN_ROLES_TO_ORG_USERS};
+use super::assign_organization_member_role;
 use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessDecisionStore, AccessScope,
 };
@@ -8,6 +8,7 @@ use crate::application::organizations::assign_organization_member_role::{
     OrganizationMemberRoleAssignmentCommand, OrganizationMemberRoleAssignmentError,
     OrganizationMemberRoleAssignmentStore,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 #[derive(Default)]
 struct FakeOrganizationMemberRoleAssignmentStore {
@@ -29,7 +30,10 @@ impl AccessDecisionStore for FakeOrganizationMemberRoleAssignmentStore {
         action: AccessAction,
         scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, OrganizationMemberRoleAssignmentError>> {
-        assert_eq!(action.permission_name(), ASSIGN_ROLES_TO_ORG_USERS);
+        assert_eq!(
+            action.permission_name(),
+            Permissions::ASSIGN_ROLES_TO_ORG_USERS.to_string()
+        );
         assert!(matches!(scope, AccessScope::Organization(_)));
         let can_assign = self.can_assign;
         async move { Ok(can_assign) }.boxed()

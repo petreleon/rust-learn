@@ -8,6 +8,7 @@ use crate::application::access_control::manage_delegated_permissions::{
 use crate::domain::access_control::delegation::{
     normalize_filter_permission, normalize_permission, normalize_scope_ids, DelegatedScopeType,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn grant_delegated_permission(
     store: &mut impl DelegatedPermissionStore,
@@ -101,12 +102,12 @@ async fn ensure_delegate_permission(
     store: &mut impl DelegatedPermissionStore,
     user_id: i32,
 ) -> Result<(), DelegatedPermissionError> {
-    let permission = "DELEGATE_REWARD_APPROVAL";
+    let permission = Permissions::DELEGATE_REWARD_APPROVAL;
     if store.can_delegate_reward_permissions(user_id).await? {
         Ok(())
     } else {
         Err(DelegatedPermissionError::PermissionDenied(
-            permission.to_string(),
+            permission.into(),
         ))
     }
 }

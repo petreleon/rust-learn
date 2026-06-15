@@ -8,6 +8,7 @@ use crate::application::teacher_applications::list_platform_review::{
     TeacherApplicationPlatformReviewOrganizationOutput,
     TeacherApplicationPlatformReviewSummaryOutput, TeacherApplicationPlatformReviewUserOutput,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 #[derive(Default)]
 struct FakeStore {
@@ -27,11 +28,15 @@ impl AccessDecisionStore for FakeStore {
         scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationPlatformReviewError>> {
         assert!(matches!(scope, AccessScope::Platform(_)));
-        let allowed = match action.permission_name() {
-            REVIEW_TEACHER_APPLICATIONS => self.can_review,
-            APPROVE_TEACHER_APPLICATION => self.can_approve,
-            REJECT_TEACHER_APPLICATION => self.can_reject,
-            permission => panic!("unexpected platform-review permission {permission}"),
+        let permission = action.permission_name();
+        let allowed = if permission == Permissions::REVIEW_TEACHER_APPLICATIONS.to_string() {
+            self.can_review
+        } else if permission == Permissions::APPROVE_TEACHER_APPLICATION.to_string() {
+            self.can_approve
+        } else if permission == Permissions::REJECT_TEACHER_APPLICATION.to_string() {
+            self.can_reject
+        } else {
+            panic!("unexpected platform-review permission {permission}");
         };
         async move { Ok(allowed) }.boxed()
     }

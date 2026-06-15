@@ -5,8 +5,7 @@ use crate::application::organizations::invite_organization_member::{
     OrganizationMemberInviteCommand, OrganizationMemberInviteError, OrganizationMemberInviteOutput,
     OrganizationMemberInviteStore,
 };
-
-const INVITE_USER_TO_ORGANIZATION: &str = "INVITE_USER_TO_ORGANIZATION";
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn invite_organization_member(
     store: &mut impl OrganizationMemberInviteStore,
@@ -15,7 +14,7 @@ pub async fn invite_organization_member(
     if !store
         .can(
             AccessActor::user(command.actor_user_id),
-            AccessAction::permission(INVITE_USER_TO_ORGANIZATION),
+            AccessAction::permission(Permissions::INVITE_USER_TO_ORGANIZATION),
             AccessScope::organization(command.organization_id),
         )
         .await?

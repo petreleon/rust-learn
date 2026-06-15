@@ -163,3 +163,9 @@ pub enum Permissions {
     GRADE_REWARDABLE_ASSESSMENT,
     MANAGE_COURSE_REWARD_RULES,
 }
+
+impl From<Permissions> for String {
+    fn from(permission: Permissions) -> Self {
+        permission.to_string()
+    }
+}

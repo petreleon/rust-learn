@@ -5,8 +5,7 @@ use crate::application::organizations::list_organization_member_audit::{
     OrganizationMemberAuditError, OrganizationMemberAuditEventOutput, OrganizationMemberAuditQuery,
     OrganizationMemberAuditStore,
 };
-
-const VIEW_ORGANIZATION: &str = "VIEW_ORGANIZATION";
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn list_organization_member_audit(
     store: &mut impl OrganizationMemberAuditStore,
@@ -23,7 +22,7 @@ async fn ensure_can_view_member_audit(
     if store
         .can(
             AccessActor::user(query.actor_user_id),
-            AccessAction::permission(VIEW_ORGANIZATION),
+            AccessAction::permission(Permissions::VIEW_ORGANIZATION),
             AccessScope::organization(query.organization_id),
         )
         .await?
@@ -31,7 +30,7 @@ async fn ensure_can_view_member_audit(
         Ok(())
     } else {
         Err(OrganizationMemberAuditError::PermissionDenied(
-            VIEW_ORGANIZATION.to_string(),
+            Permissions::VIEW_ORGANIZATION.into(),
         ))
     }
 }

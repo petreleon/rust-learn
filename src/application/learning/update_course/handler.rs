@@ -4,9 +4,7 @@ use crate::application::access_control::check_permission::{
 use crate::application::learning::update_course::{
     CourseUpdateCommand, CourseUpdateError, CourseUpdateOutput, CourseUpdateStore,
 };
-
-const MANAGE_COURSE_SETTINGS: &str = "MANAGE_COURSE_SETTINGS";
-const MODIFY_COURSE: &str = "MODIFY_COURSE";
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn update_course(
     store: &mut impl CourseUpdateStore,
@@ -16,20 +14,20 @@ pub async fn update_course(
     if !store
         .can(
             actor,
-            AccessAction::permission(MANAGE_COURSE_SETTINGS),
+            AccessAction::permission(Permissions::MANAGE_COURSE_SETTINGS),
             AccessScope::course(command.course_id),
         )
         .await?
         && !store
             .can(
                 actor,
-                AccessAction::permission(MODIFY_COURSE),
+                AccessAction::permission(Permissions::MODIFY_COURSE),
                 AccessScope::platform(),
             )
             .await?
     {
         return Err(CourseUpdateError::PermissionDenied(
-            MANAGE_COURSE_SETTINGS.to_string(),
+            Permissions::MANAGE_COURSE_SETTINGS.into(),
         ));
     }
 

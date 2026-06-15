@@ -8,12 +8,11 @@ use crate::application::teacher_applications::{
     },
     TeacherApplicationOutput,
 };
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::teacher_applications::{
     scope::{normalize_scope, validate_requested_scope},
     status::{TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED},
 };
-
-const SUBMIT_TEACHER_APPLICATION: &str = "SUBMIT_TEACHER_APPLICATION";
 
 pub async fn submit_application(
     store: &mut impl TeacherApplicationSubmitStore,
@@ -22,13 +21,13 @@ pub async fn submit_application(
     if !store
         .can(
             AccessActor::user(command.actor_user_id),
-            AccessAction::permission(SUBMIT_TEACHER_APPLICATION),
+            AccessAction::permission(Permissions::SUBMIT_TEACHER_APPLICATION),
             AccessScope::platform(),
         )
         .await?
     {
         return Err(TeacherApplicationSubmitError::PermissionDenied(
-            SUBMIT_TEACHER_APPLICATION.to_string(),
+            Permissions::SUBMIT_TEACHER_APPLICATION.into(),
         ));
     }
 

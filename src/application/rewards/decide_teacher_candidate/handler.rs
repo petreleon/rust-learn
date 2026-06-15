@@ -4,6 +4,7 @@ use crate::application::rewards::decide_teacher_candidate::{
     TeacherRewardCandidateDecisionError, TeacherRewardCandidateDecisionOutput,
     TeacherRewardCandidateDecisionStore,
 };
+use crate::domain::access_control::permissions::Permissions;
 
 pub async fn decide_teacher_reward_candidate(
     store: &mut impl TeacherRewardCandidateDecisionStore,
@@ -38,7 +39,7 @@ async fn ensure_can_approve_reward_candidate(
         Ok(())
     } else {
         Err(TeacherRewardCandidateDecisionError::PermissionDenied(
-            "APPROVE_STUDENT_REWARD_CANDIDATE".to_string(),
+            Permissions::APPROVE_STUDENT_REWARD_CANDIDATE.into(),
         ))
     }
 }
