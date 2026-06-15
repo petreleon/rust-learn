@@ -1178,40 +1178,47 @@ remaining gaps.
 | 280 | Added backend-derived session access/capability facts for platform, organization, and course scopes, exposed them through `/api/me`, and removed frontend `web/src/lib` permission-group tables for admin, organization, and workspace capability checks. |
 | 281 | Added an application-level notification delivery contract, implemented it with the existing infra notification sender, registered it through notification app-data wiring, removed raw `NotificationsState` exposure from `AppState`, and repointed content, learning enrollment, course-role assignment, and organization-role assignment HTTP handlers away from notification infra imports. |
 | 282 | Added an application-owned JWKS contract, mapped env-backed token infra into that contract through identity wiring, moved JWKS JSON serialization into HTTP, and made HTTP auth extractors rely on middleware-inserted identity claims instead of decoding JWTs directly. |
+| 283 | Added an `AuthUserId` typed extractor and migrated id-only handlers in notifications, content processing, learning enrollment/progress/assessment/course-role routes, organization member invite/removal/role routes, and identity platform/session-id routes away from manual `authenticated_user_id(&req)` parsing. |
 
 ## Recent Slice Evidence
 
-Batch 282: make HTTP JWKS/auth extraction stop reaching into token infra.
+Batch 283: migrate id-only request auth to a typed extractor.
 
-- [x] Added `application/identity/jwks.rs` with `JwksUseCase`, application
-      output types, and a narrow error value for identity-owned JWKS retrieval.
-- [x] Repointed env-backed token infra to return the application JWKS output
-      and implemented the application contract with `EnvJwksUseCase`.
-- [x] Registered the JWKS use case through `bootstrap/identity_wiring.rs` so
-      both root and `/api` JWKS routes receive application app data.
-- [x] Moved JWKS JSON response structs and the reserved `use` field rename into
-      `http/identity/authentication/jwks.rs`, keeping the public response
-      contract at the HTTP boundary.
-- [x] Removed direct JWT decoding from `http/extractors/auth_user.rs` and
-      `http/extractors/request_auth.rs`; successful authentication now comes
-      from the `UserJWT` extension inserted by `JwtMiddleware`, while missing,
-      malformed, and invalid-token responses preserve existing wording.
-- [x] Added a focused JWKS HTTP route test with a fake application use case.
-- [x] Self-critique: production HTTP no longer imports token infra, but
-      `JwtMiddleware` still verifies tokens through `infra/tokens/jwt`; moving
-      that middleware to an injected application verifier is left open because
-      many integration fixtures currently construct `JwtMiddleware` directly.
+- [x] Added `AuthUserId` to `http/extractors/auth_user.rs`, reading the
+      middleware-inserted `UserJWT` extension and preserving the old plain-text
+      unauthorized messages for missing, malformed, or invalid bearer headers.
+- [x] Repointed notification preference/inbox handlers to `AuthUserId`, so
+      `/me/notifications*` and `/me/notification-preferences` no longer accept
+      `HttpRequest` just to extract the actor id.
+- [x] Repointed content processing, learner progress, assessment submission
+      and attempt listing, course enrollment, course role assignment,
+      organization member invite/removal/role assignment, platform role
+      assignment, and `/auth/user_id` handlers to typed user-id extraction.
+- [x] Changed enrollment, course-role, and organization-role notification
+      delivery handlers to receive optional notification app data directly
+      instead of retrieving it through `HttpRequest::app_data`.
+- [x] Left current-session on `authenticated_user_id(&req)` intentionally
+      because that handler owns a custom JSON unauthorized response contract.
+- [x] Self-critique: this substantially reduces id-only manual auth parsing,
+      but the broader typed-extractor checkbox remains open because many
+      handlers still call `authenticated_user(&req)` when they need the full
+      claims object.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
-      `./scripts/run-host-tests.sh cargo test --lib jwks`,
       `./scripts/run-host-tests.sh cargo test --lib extractors`,
-      `./scripts/run-host-tests.sh cargo test --lib jwt_middleware`,
-      `./scripts/run-host-tests.sh cargo test --test authentication_flow`,
       `./scripts/run-host-tests.sh cargo test --test current_session_api`,
+      `./scripts/run-host-tests.sh cargo test --test course_enrollment_api`,
+      `./scripts/run-host-tests.sh cargo test --test course_assessments`,
+      `./scripts/run-host-tests.sh cargo test --test course_assessment_submission`,
+      `./scripts/run-host-tests.sh cargo test --test course_discovery learner_progress_requires_enrollment_and_course_content`,
+      `./scripts/run-host-tests.sh cargo test --test video_upload_flow`,
+      `./scripts/run-host-tests.sh cargo test --test organization_members`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control test_platform_permission_middleware`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, production HTTP token-infra boundary scans,
-      application-ring import scans, and file-size checks.
+      `git diff --check`, `authenticated_user_id` usage scans, touched-route
+      `HttpRequest` scans, and file-size checks.
 
 ## Legacy Transition Rules
 

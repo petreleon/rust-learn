@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::notifications::delivery::{
     NotificationDeliveryUseCase, RoleAssignmentNotification, RoleAssignmentScope,
@@ -9,21 +9,19 @@ use crate::application::organizations::assign_organization_member_role::{
     OrganizationMemberRoleAssignmentCommand, OrganizationMemberRoleAssignmentError,
     OrganizationMemberRoleAssignmentUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user_id;
+use crate::http::extractors::auth_user::AuthUserId;
 
 use super::dto::AssignRoleRequest;
 
 pub(super) async fn assign_role(
-    req: HttpRequest,
+    actor: AuthUserId,
     path: web::Path<(i32, i32)>,
     body: web::Json<AssignRoleRequest>,
     use_case: web::Data<Arc<dyn OrganizationMemberRoleAssignmentUseCase>>,
+    notifications: Option<web::Data<Arc<dyn NotificationDeliveryUseCase>>>,
 ) -> impl Responder {
     let (organization_id, target_user_id) = path.into_inner();
-    let actor_user_id = match authenticated_user_id(&req) {
-        Ok(user_id) => user_id,
-        Err(response) => return response,
-    };
+    let actor_user_id = actor.into_inner();
 
     let command = OrganizationMemberRoleAssignmentCommand {
         actor_user_id,
@@ -34,9 +32,7 @@ pub(super) async fn assign_role(
 
     match use_case.assign_organization_member_role(command).await {
         Ok(output) => {
-            if let Some(notifications) =
-                req.app_data::<web::Data<Arc<dyn NotificationDeliveryUseCase>>>()
-            {
+            if let Some(notifications) = notifications {
                 if let Err(err) = notifications
                     .send_role_assignment(RoleAssignmentNotification {
                         target_user_id: output.target_user_id,

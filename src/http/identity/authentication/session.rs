@@ -1,11 +1,8 @@
-use actix_web::{get, HttpRequest, HttpResponse, Responder};
+use actix_web::{get, HttpResponse, Responder};
 
-use crate::http::extractors::request_auth::authenticated_user_id;
+use crate::http::extractors::auth_user::AuthUserId;
 
 #[get("/user_id")]
-pub(super) async fn user_id(req: HttpRequest) -> impl Responder {
-    match authenticated_user_id(&req) {
-        Ok(user_id) => HttpResponse::Ok().body(format!("Hello! Your ID is {}", user_id)),
-        Err(response) => response,
-    }
+pub(super) async fn user_id(user: AuthUserId) -> impl Responder {
+    HttpResponse::Ok().body(format!("Hello! Your ID is {}", user.into_inner()))
 }

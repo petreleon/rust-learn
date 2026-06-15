@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::learning::assign_course_role::{
     CourseRoleAssignmentError, CourseRoleAssignmentUseCase,
@@ -8,29 +8,25 @@ use crate::application::learning::assign_course_role::{
 use crate::application::notifications::delivery::{
     NotificationDeliveryUseCase, RoleAssignmentNotification, RoleAssignmentScope,
 };
-use crate::http::extractors::request_auth::authenticated_user_id;
+use crate::http::extractors::auth_user::AuthUserId;
 use crate::http::learning::dto::AssignCourseRoleRequest;
 
 pub(super) async fn assign_role(
-    req: HttpRequest,
+    requester: AuthUserId,
     path: web::Path<(i32, i32)>,
     body: web::Json<AssignCourseRoleRequest>,
     use_case: web::Data<Arc<dyn CourseRoleAssignmentUseCase>>,
+    notifications: Option<web::Data<Arc<dyn NotificationDeliveryUseCase>>>,
 ) -> impl Responder {
     let (course_id, target_user_id) = path.into_inner();
-    let requester_id = match authenticated_user_id(&req) {
-        Ok(user_id) => user_id,
-        Err(response) => return response,
-    };
+    let requester_id = requester.into_inner();
     let command = body
         .into_inner()
         .into_command(requester_id, course_id, target_user_id);
 
     match use_case.assign_course_role(command).await {
         Ok(output) => {
-            if let Some(notifications) =
-                req.app_data::<web::Data<Arc<dyn NotificationDeliveryUseCase>>>()
-            {
+            if let Some(notifications) = notifications {
                 if let Err(err) = notifications
                     .send_role_assignment(RoleAssignmentNotification {
                         target_user_id: output.target_user_id,

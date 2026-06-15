@@ -1,22 +1,19 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::content::process_upload_job::{
     ContentProcessingUseCase, ProcessUploadJobCommand, ProcessUploadJobError,
 };
-use crate::http::extractors::request_auth::authenticated_user_id;
+use crate::http::extractors::auth_user::AuthUserId;
 
 pub(in crate::http::content) async fn process_content(
-    req: HttpRequest,
+    user: AuthUserId,
     path: web::Path<(i32, i32, i32)>, // course_id, chapter_id, content_id
     processing_use_case: web::Data<Arc<dyn ContentProcessingUseCase>>,
 ) -> impl Responder {
     let (course_id, chapter_id, content_id) = path.into_inner();
-    let user_id = match authenticated_user_id(&req) {
-        Ok(user_id) => user_id,
-        Err(response) => return response,
-    };
+    let user_id = user.into_inner();
 
     match processing_use_case
         .process_upload_job(ProcessUploadJobCommand {

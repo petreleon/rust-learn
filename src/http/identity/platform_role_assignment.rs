@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 use serde::Deserialize;
 
 use crate::application::identity::assign_platform_role::{
     AssignPlatformRoleCommand, AssignPlatformRoleError, PlatformRoleAssignmentUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user_id;
+use crate::http::extractors::auth_user::AuthUserId;
 
 #[derive(Deserialize)]
 pub(super) struct AssignRoleRequest {
@@ -14,7 +14,7 @@ pub(super) struct AssignRoleRequest {
 }
 
 pub(super) async fn assign_role(
-    req: HttpRequest,
+    requester: AuthUserId,
     path: web::Path<i32>,
     body: web::Json<AssignRoleRequest>,
     use_case: web::Data<Arc<dyn PlatformRoleAssignmentUseCase>>,
@@ -22,10 +22,7 @@ pub(super) async fn assign_role(
     let target_user_id = path.into_inner();
     let role_name = body.into_inner().role_name;
 
-    let requester_id = match authenticated_user_id(&req) {
-        Ok(user_id) => user_id,
-        Err(response) => return response,
-    };
+    let requester_id = requester.into_inner();
 
     let command = AssignPlatformRoleCommand {
         requester_user_id: requester_id,

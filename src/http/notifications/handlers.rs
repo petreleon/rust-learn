@@ -1,25 +1,22 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::notifications::notification_inbox::{
     NotificationInboxError, NotificationInboxUseCase, NotificationOutput,
 };
 use crate::application::notifications::preference_service::NotificationPreferencesUseCase;
 use crate::application::notifications::preferences::NotificationPreferencesError;
-use crate::http::extractors::request_auth::authenticated_user_id;
+use crate::http::extractors::auth_user::AuthUserId;
 use crate::http::notifications::dto::{
     NotificationPreferencesRequest, NotificationPreferencesResponse, NotificationResponse,
 };
 
 pub async fn get_notification_preferences(
     preferences: web::Data<Arc<dyn NotificationPreferencesUseCase>>,
-    req: HttpRequest,
+    user: AuthUserId,
 ) -> impl Responder {
-    let user_id = match authenticated_user_id(&req) {
-        Ok(id) => id,
-        Err(response) => return response,
-    };
+    let user_id = user.into_inner();
 
     match preferences.get_preferences(user_id).await {
         Ok(preferences) => {
@@ -41,13 +38,10 @@ pub async fn get_notification_preferences(
 
 pub async fn save_notification_preferences(
     preferences: web::Data<Arc<dyn NotificationPreferencesUseCase>>,
-    req: HttpRequest,
+    user: AuthUserId,
     body: web::Json<NotificationPreferencesRequest>,
 ) -> impl Responder {
-    let user_id = match authenticated_user_id(&req) {
-        Ok(id) => id,
-        Err(response) => return response,
-    };
+    let user_id = user.into_inner();
     let command = body.into_inner().into_command(user_id);
 
     match preferences.save_preferences(command).await {
@@ -70,12 +64,9 @@ pub async fn save_notification_preferences(
 
 pub async fn list_notifications(
     inbox: web::Data<Arc<dyn NotificationInboxUseCase>>,
-    req: HttpRequest,
+    user: AuthUserId,
 ) -> impl Responder {
-    let user_id = match authenticated_user_id(&req) {
-        Ok(id) => id,
-        Err(response) => return response,
-    };
+    let user_id = user.into_inner();
 
     match inbox.list_notifications(user_id).await {
         Ok(list) => HttpResponse::Ok().json(notification_responses(list)),
@@ -92,13 +83,10 @@ pub async fn list_notifications(
 
 pub async fn mark_notification_read(
     inbox: web::Data<Arc<dyn NotificationInboxUseCase>>,
-    req: HttpRequest,
+    user: AuthUserId,
     path: web::Path<i64>,
 ) -> impl Responder {
-    let user_id = match authenticated_user_id(&req) {
-        Ok(id) => id,
-        Err(response) => return response,
-    };
+    let user_id = user.into_inner();
     let notification_id = path.into_inner();
 
     match inbox.mark_notification_read(user_id, notification_id).await {
@@ -117,12 +105,9 @@ pub async fn mark_notification_read(
 
 pub async fn clear_notifications(
     inbox: web::Data<Arc<dyn NotificationInboxUseCase>>,
-    req: HttpRequest,
+    user: AuthUserId,
 ) -> impl Responder {
-    let user_id = match authenticated_user_id(&req) {
-        Ok(id) => id,
-        Err(response) => return response,
-    };
+    let user_id = user.into_inner();
 
     match inbox.clear_notifications(user_id).await {
         Ok(()) => HttpResponse::Ok().body("Notifications cleared"),

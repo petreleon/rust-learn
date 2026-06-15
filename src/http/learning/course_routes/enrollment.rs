@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::learning::course_enrollment::{
     CourseEnrollmentUseCase, RemoveCourseEnrollmentCommand, RequestCourseJoinCommand,
@@ -8,7 +8,7 @@ use crate::application::learning::course_enrollment::{
 use crate::application::notifications::delivery::{
     EnrollmentNotificationCommand, NotificationDeliveryUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user_id;
+use crate::http::extractors::auth_user::AuthUserId;
 use crate::http::learning::dto::{
     CourseEnrollmentRemovalResponse, CourseJoinDecisionRequest, CourseJoinRequestResponse,
 };
@@ -37,14 +37,11 @@ async fn send_enrollment_notification(
 }
 
 pub(super) async fn request_course_join(
-    req: HttpRequest,
+    requester: AuthUserId,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn CourseEnrollmentUseCase>>,
 ) -> impl Responder {
-    let requester_user_id = match authenticated_user_id(&req) {
-        Ok(user_id) => user_id,
-        Err(response) => return response,
-    };
+    let requester_user_id = requester.into_inner();
 
     match use_case
         .request_course_join(RequestCourseJoinCommand {
@@ -61,15 +58,13 @@ pub(super) async fn request_course_join(
 }
 
 pub(super) async fn decide_course_join_request(
-    req: HttpRequest,
+    reviewer: AuthUserId,
     path: web::Path<(i32, i64)>,
     use_case: web::Data<Arc<dyn CourseEnrollmentUseCase>>,
+    notifications: Option<web::Data<Arc<dyn NotificationDeliveryUseCase>>>,
     body: web::Json<CourseJoinDecisionRequest>,
 ) -> impl Responder {
-    let reviewer_user_id = match authenticated_user_id(&req) {
-        Ok(user_id) => user_id,
-        Err(response) => return response,
-    };
+    let reviewer_user_id = reviewer.into_inner();
     let (course_id, request_id) = path.into_inner();
 
     match use_case
@@ -82,10 +77,8 @@ pub(super) async fn decide_course_join_request(
     {
         Ok(output) => {
             if let Some(notification) = output.enrollment_notification {
-                if let Some(notifications) =
-                    req.app_data::<web::Data<Arc<dyn NotificationDeliveryUseCase>>>()
-                {
-                    send_enrollment_notification(notifications, notification).await;
+                if let Some(notifications) = notifications {
+                    send_enrollment_notification(&notifications, notification).await;
                 }
             }
             HttpResponse::Ok().json(CourseJoinRequestResponse::from(output.join_request))
@@ -95,14 +88,11 @@ pub(super) async fn decide_course_join_request(
 }
 
 pub(super) async fn remove_course_enrollment(
-    req: HttpRequest,
+    actor: AuthUserId,
     path: web::Path<(i32, i32)>,
     use_case: web::Data<Arc<dyn CourseEnrollmentUseCase>>,
 ) -> impl Responder {
-    let actor_user_id = match authenticated_user_id(&req) {
-        Ok(user_id) => user_id,
-        Err(response) => return response,
-    };
+    let actor_user_id = actor.into_inner();
     let (course_id, target_user_id) = path.into_inner();
 
     match use_case

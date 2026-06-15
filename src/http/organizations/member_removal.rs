@@ -1,23 +1,20 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::organizations::remove_organization_member::{
     OrganizationMemberRemovalCommand, OrganizationMemberRemovalError,
     OrganizationMemberRemovalUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user_id;
+use crate::http::extractors::auth_user::AuthUserId;
 
 pub(super) async fn remove_organization_member_route(
-    req: HttpRequest,
+    actor: AuthUserId,
     path: web::Path<(i32, i32)>,
     use_case: web::Data<Arc<dyn OrganizationMemberRemovalUseCase>>,
 ) -> impl Responder {
     let (organization_id, target_user_id) = path.into_inner();
-    let actor_user_id = match authenticated_user_id(&req) {
-        Ok(user_id) => user_id,
-        Err(response) => return response,
-    };
+    let actor_user_id = actor.into_inner();
 
     let command = OrganizationMemberRemovalCommand {
         actor_user_id,

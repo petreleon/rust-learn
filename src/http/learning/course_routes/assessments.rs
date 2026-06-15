@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::learning::assessment::AssessmentReadError;
 use crate::application::learning::list_assessment_attempts::AssessmentAttemptsUseCase;
@@ -8,7 +8,7 @@ use crate::application::learning::list_course_assessments::CourseAssessmentsUseC
 use crate::application::learning::submit_assessment_attempt::{
     AssessmentSubmissionError, AssessmentSubmissionUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user_id;
+use crate::http::extractors::auth_user::AuthUserId;
 use crate::http::learning::dto::{
     AssessmentAttemptResponse, AssessmentResponse, SubmitAssessmentAttemptRequest,
     SubmitAssessmentAttemptResponse,
@@ -48,15 +48,12 @@ pub(super) async fn list_course_assessments(
 }
 
 pub(super) async fn submit_assessment_attempt(
-    req: HttpRequest,
+    user: AuthUserId,
     path: web::Path<(i32, i32)>,
     body: web::Json<SubmitAssessmentAttemptRequest>,
     use_case: web::Data<Arc<dyn AssessmentSubmissionUseCase>>,
 ) -> impl Responder {
-    let user_id = match authenticated_user_id(&req) {
-        Ok(id) => id,
-        Err(response) => return response,
-    };
+    let user_id = user.into_inner();
     let (course_id, assessment_id) = path.into_inner();
     let command = body
         .into_inner()
@@ -98,14 +95,11 @@ pub(super) async fn submit_assessment_attempt(
 }
 
 pub(super) async fn list_assessment_attempts(
-    req: HttpRequest,
+    user: AuthUserId,
     path: web::Path<(i32, i32)>,
     use_case: web::Data<Arc<dyn AssessmentAttemptsUseCase>>,
 ) -> impl Responder {
-    let user_id = match authenticated_user_id(&req) {
-        Ok(id) => id,
-        Err(response) => return response,
-    };
+    let user_id = user.into_inner();
     let (_course_id, assessment_id) = path.into_inner();
 
     match use_case
