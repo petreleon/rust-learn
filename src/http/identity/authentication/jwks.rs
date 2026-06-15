@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::web;
 use serde::Serialize;
 
 use crate::application::identity::jwks::{JsonWebKeyOutput, JwksOutput, JwksUseCase};
+use crate::http::identity::authentication::errors::jwks_error;
+use crate::http::identity::authentication::text_error::AuthTextError;
 
 #[derive(Serialize)]
-struct JwksResponse {
+pub(crate) struct JwksResponse {
     keys: Vec<JsonWebKeyResponse>,
 }
 
@@ -42,14 +44,15 @@ impl From<JsonWebKeyOutput> for JsonWebKeyResponse {
     }
 }
 
-pub async fn jwks(use_case: web::Data<Arc<dyn JwksUseCase>>) -> impl Responder {
-    match use_case.jwks().await {
-        Ok(jwks) => HttpResponse::Ok().json(JwksResponse::from(jwks)),
-        Err(err) => {
-            log::error!("event=jwks_build_failed error={}", err.message());
-            HttpResponse::InternalServerError().body("Failed to build JWKS response")
-        }
-    }
+pub(crate) async fn jwks(
+    use_case: web::Data<Arc<dyn JwksUseCase>>,
+) -> Result<web::Json<JwksResponse>, AuthTextError> {
+    use_case
+        .jwks()
+        .await
+        .map(JwksResponse::from)
+        .map(web::Json)
+        .map_err(jwks_error)
 }
 
 #[cfg(test)]

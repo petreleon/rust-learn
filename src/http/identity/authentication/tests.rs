@@ -113,7 +113,7 @@ async fn user_id_rejects_invalid_bearer_token() {
 }
 
 #[actix_web::test]
-async fn user_id_returns_id_for_valid_bearer_token() {
+async fn user_id_rejects_raw_bearer_token_without_decoded_extension() {
     let _ = dotenvy::dotenv();
     let token = create_jwt(42).expect("test JWT should be created");
     let app = actix_test::init_service(App::new().service(auth_scope())).await;
@@ -127,9 +127,9 @@ async fn user_id_returns_id_for_valid_bearer_token() {
     )
     .await;
 
-    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     let body = actix_test::read_body(response).await;
-    assert_eq!(body.as_ref(), b"Hello! Your ID is 42");
+    assert_eq!(body.as_ref(), b"Invalid token");
 }
 
 #[actix_web::test]

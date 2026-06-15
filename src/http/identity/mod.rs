@@ -8,6 +8,7 @@ mod user_handlers;
 mod user_list;
 mod user_routes;
 
-pub use authentication::{auth_scope, jwks};
+pub use authentication::auth_scope;
+pub(crate) use authentication::jwks;
 pub use handlers::get_current_session;
 pub use routes::configure_routes;

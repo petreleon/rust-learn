@@ -945,8 +945,10 @@ Wiring rule:
       handlers, `http/notifications` handlers, and `http/operations` handlers
       now use typed JSON/text/status responders with `ApiError` where errors
       are possible. Identity session, user profile/list, and platform role
-      assignment handlers also use typed results. Other HTTP contexts still
-      need the same treatment before this is done.
+      assignment handlers also use typed results. Legacy identity
+      authentication handlers now use typed results with a local text
+      `ResponseError` to preserve their tested plain-text contract. Other HTTP
+      contexts still need the same treatment before this is done.
 - [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
 - [x] Configure JSON limits and JSON parse errors centrally so every route has
@@ -1330,9 +1332,41 @@ Batch 293: move identity session and user handlers to typed HTTP results.
       domain/application Actix-boundary scans, `git diff --check`, and touched
       file-size checks.
 - [x] Self-critique: this completes identity session/read/admin-role handlers
-      only. Legacy identity authentication flows such as resend verification,
-      forgot password, login, registration, password reset, verify email, JWKS,
-      and `/auth/user_id` still contain manual response branches.
+      only. Legacy identity authentication flows were left for a follow-up
+      slice because they have tested plain-text response bodies.
+
+Batch 294: move identity authentication handlers to typed HTTP results.
+
+- [x] Added `http/identity/authentication/text_error.rs` as the local typed
+      `ResponseError` for legacy auth routes whose plain-text response bodies
+      are part of the current tested contract.
+- [x] Added `http/identity/authentication/errors.rs` as the authentication HTTP
+      boundary mapper for login, registration, reset, resend-verification,
+      verify-email, and JWKS application errors.
+- [x] Repointed login, registration, forgot-password, reset-password,
+      resend-verification, verify-email, JWKS, and `/auth/user_id` handlers
+      away from handler-local `HttpResponse`/`impl Responder` branches and into
+      typed JSON/text results.
+- [x] Updated the `/auth/user_id` unit test to document the Level 2 boundary:
+      raw bearer tokens are not decoded inside the extractor; decoded claims
+      must be supplied through request extensions by middleware.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib identity::authentication`,
+      focused `authentication_flow` tests for login verification/JWT,
+      weak-password/bad-login, duplicate and normalized registration,
+      password-reset request/completion, resend verification, successful and
+      invalid/expired email verification, missing/invalid/expired reset tokens,
+      blank-email registration, and registration side effects,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      authentication handler `HttpResponse`/`impl Responder` scans showing the
+      only remaining `HttpResponse` is the local text `ResponseError`,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes identity HTTP typed-result cleanup, while
+      reporting, wallet, rewards, learning, organizations, content, KYC, and
+      teacher-application contexts still contain manual response branches.
 
 Batch 287: remove the final legacy request-auth helper.
 

@@ -1,10 +1,12 @@
 mod email_verification;
+mod errors;
 mod forgot_password;
 mod jwks;
 mod login;
 mod password_reset;
 mod registration;
 mod session;
+mod text_error;
 mod verify_email;
 
 #[cfg(test)]
@@ -12,7 +14,7 @@ mod tests;
 
 use actix_web::web;
 
-pub use jwks::jwks;
+pub(crate) use jwks::jwks;
 
 pub fn auth_scope() -> actix_web::Scope {
     web::scope("/auth")
