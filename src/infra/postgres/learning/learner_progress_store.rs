@@ -50,7 +50,7 @@ impl LearnerProgressStore for PostgresLearnerProgressStore<'_> {
     ) -> BoxFuture<'_, Result<bool, LearnerProgressError>> {
         let permission = permission.to_string();
         async move {
-            permission_checks::has_course_permission(
+            permission_checks::can_course_permission(
                 self.conn,
                 actor_user_id,
                 course_id,
@@ -70,7 +70,7 @@ impl LearnerProgressStore for PostgresLearnerProgressStore<'_> {
     ) -> BoxFuture<'_, Result<bool, LearnerProgressError>> {
         let permission = permission.to_string();
         async move {
-            permission_checks::has_organization_permission(
+            permission_checks::can_organization_permission(
                 self.conn,
                 actor_user_id,
                 organization_id,

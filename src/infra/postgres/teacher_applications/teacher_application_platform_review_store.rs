@@ -64,7 +64,7 @@ impl PostgresTeacherApplicationPlatformReviewStore<'_> {
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationPlatformReviewError>> {
         async move {
             let permission = permission.to_string();
-            permission_checks::has_platform_permission(self.conn, actor_user_id, &permission)
+            permission_checks::can_platform_permission(self.conn, actor_user_id, &permission)
                 .await
                 .map_err(map_error)
         }

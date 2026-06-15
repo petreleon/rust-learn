@@ -1702,6 +1702,48 @@ Batch 306: consolidate Postgres access-decision adapters.
       Older learning, teacher-application, identity, KYC, and organization
       ports still call lower-level permission helpers directly.
 
+Batch 307: route remaining Postgres permission adapters through `can(...)`.
+
+- [x] Added scoped `can_platform_permission`, `can_course_permission`, and
+      `can_organization_permission` wrappers around
+      `permission_checks::can(conn, actor, action, scope)`, then made the raw
+      role/delegation helper functions private implementation details.
+- [x] Moved raw role-table existence queries into private
+      `permission_role_queries`, keeping `permission_checks` under the
+      180-line cap and focused on access-decision composition.
+- [x] Repointed learning, teacher-application, identity, KYC,
+      delegated-permission, and organization Postgres adapters away from
+      direct lower-level permission helper calls and onto the shared
+      `can_*_permission` decision wrappers.
+- [x] Kept public `access_control/permission_queries` compatibility functions
+      for existing tests and callers, but their implementation now goes through
+      the shared decision wrappers.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::check_permission`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::manage_delegated_permissions`,
+      `./scripts/run-host-tests.sh cargo test --lib learning::create_course`,
+      `./scripts/run-host-tests.sh cargo test --lib learning::update_course`,
+      `./scripts/run-host-tests.sh cargo test --lib learning::learner_progress`,
+      `./scripts/run-host-tests.sh cargo test --lib teacher_applications`,
+      `./scripts/run-host-tests.sh cargo test --lib identity::get_user_profile`,
+      `./scripts/run-host-tests.sh cargo test --lib kyc`,
+      `./scripts/run-host-tests.sh cargo test --lib organizations`,
+      `./scripts/run-host-tests.sh cargo test --test delegated_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test course_discovery`,
+      `./scripts/run-host-tests.sh cargo test --test course_lifecycle`,
+      `./scripts/run-host-tests.sh cargo test --test teacher_applications`,
+      `./scripts/run-host-tests.sh cargo test --test organization_members`,
+      `./scripts/run-host-tests.sh cargo test --test platform_permissions --test organization_permissions --test course_permissions`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale direct `permission_checks::has_*` scans, ring import-boundary
+      scans, `git diff --check`, and touched file-size checks.
+- [x] Self-critique: this removes the remaining known direct low-level
+      Postgres permission helper calls from migrated infra adapters. The
+      application ports themselves still have context-specific method names, so
+      the final service-contract cleanup remains open.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1884,6 +1926,9 @@ boundary checks from the matrix above to every canonical context.
       `PlatformScope`, `OrganizationScope`, `CourseScope`, `DelegatedScope`.
 - [x] Middleware, reward authorization, and wallet authorization now share the
       same Postgres `can(actor, action, scope)` decision helper.
+- [x] Migrated learning, teacher-application, identity, KYC, organization, and
+      delegated-permission Postgres adapters to shared `can_*_permission`
+      decision wrappers instead of direct low-level permission helpers.
 - [ ] Make middleware call the same access-control service as application use
       cases.
 - [ ] Keep middleware as an early rejection optimization; do not make it the

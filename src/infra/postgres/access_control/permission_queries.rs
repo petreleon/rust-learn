@@ -8,7 +8,7 @@ pub async fn has_platform_permission(
     user_id: i32,
     permission: &str,
 ) -> QueryResult<bool> {
-    permission_checks::has_platform_permission(conn, user_id, permission).await
+    permission_checks::can_platform_permission(conn, user_id, permission).await
 }
 
 pub async fn has_course_permission(
@@ -17,7 +17,7 @@ pub async fn has_course_permission(
     course_id: i32,
     permission: &str,
 ) -> QueryResult<bool> {
-    permission_checks::has_course_permission(conn, user_id, course_id, permission).await
+    permission_checks::can_course_permission(conn, user_id, course_id, permission).await
 }
 
 pub async fn has_organization_permission(
@@ -26,5 +26,5 @@ pub async fn has_organization_permission(
     organization_id: i32,
     permission: &str,
 ) -> QueryResult<bool> {
-    permission_checks::has_organization_permission(conn, user_id, organization_id, permission).await
+    permission_checks::can_organization_permission(conn, user_id, organization_id, permission).await
 }

@@ -11,6 +11,7 @@ pub(crate) mod permission_checks;
 pub(crate) mod permission_delegations;
 pub mod permission_queries;
 pub mod permission_recipient_records;
+pub(crate) mod permission_role_queries;
 pub mod platform_role_records;
 pub mod role_assignments;
 pub mod role_catalog_store;

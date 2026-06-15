@@ -95,7 +95,7 @@ async fn teacher_has_course_permission(
     course_id: i32,
     permission: Permissions,
 ) -> Result<bool, TeacherCourseDashboardError> {
-    permission_checks::has_course_permission(
+    permission_checks::can_course_permission(
         conn,
         actor_user_id,
         course_id,

@@ -29,7 +29,7 @@ impl CourseCreationStore for PostgresCourseCreationStore<'_> {
     ) -> BoxFuture<'_, Result<bool, CourseCreationError>> {
         let permission = permission.to_string();
         async move {
-            permission_checks::has_platform_permission(self.conn, actor_user_id, &permission)
+            permission_checks::can_platform_permission(self.conn, actor_user_id, &permission)
                 .await
                 .map_err(map_course_creation_error)
         }
@@ -44,7 +44,7 @@ impl CourseCreationStore for PostgresCourseCreationStore<'_> {
     ) -> BoxFuture<'_, Result<bool, CourseCreationError>> {
         let permission = permission.to_string();
         async move {
-            permission_checks::has_organization_permission(
+            permission_checks::can_organization_permission(
                 self.conn,
                 actor_user_id,
                 organization_id,

@@ -13,13 +13,13 @@ use crate::infra::postgres::access_control::delegated_permissions::mappers::{
 use crate::infra::postgres::access_control::delegated_permissions::records::{
     self, DelegatedPermissionRecordFilter,
 };
-use crate::infra::postgres::access_control::permission_checks::has_platform_permission;
+use crate::infra::postgres::access_control::permission_checks::can_platform_permission;
 
 pub(super) async fn can_delegate_reward_permissions(
     conn: &mut AsyncPgConnection,
     user_id: i32,
 ) -> Result<bool, DelegatedPermissionError> {
-    has_platform_permission(
+    can_platform_permission(
         conn,
         user_id,
         &Permissions::DELEGATE_REWARD_APPROVAL.to_string(),

@@ -7,7 +7,7 @@ use crate::application::organizations::invite_organization_member::{
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::organization_member_audit_events;
 use crate::infra::postgres::identity::accounts::find_user_by_email;
-use crate::infra::postgres::organizations::organization_permission_checks::has_organization_permission;
+use crate::infra::postgres::organizations::organization_permission_checks::can_organization_permission;
 use crate::infra::postgres::organizations::organization_role_assignments::assign_role_with_hierarchy;
 use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
 
@@ -28,7 +28,7 @@ impl OrganizationMemberInviteStore for PostgresOrganizationMemberInviteStore<'_>
         organization_id: i32,
     ) -> BoxFuture<'_, Result<bool, OrganizationMemberInviteError>> {
         async move {
-            has_organization_permission(
+            can_organization_permission(
                 self.conn,
                 actor_user_id,
                 organization_id,

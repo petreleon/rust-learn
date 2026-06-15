@@ -63,7 +63,7 @@ impl UserProfileAccessStore for PostgresUserProfileStore<'_> {
     fn can_view_any_user(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, UserProfileError>> {
         async move {
             let permission = Permissions::VIEW_USER.to_string();
-            permission_checks::has_platform_permission(self.conn, user_id, &permission)
+            permission_checks::can_platform_permission(self.conn, user_id, &permission)
                 .await
                 .map_err(map_user_profile_error)
         }

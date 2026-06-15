@@ -39,7 +39,7 @@ impl TeacherApplicationAuditStore for PostgresTeacherApplicationAuditStore<'_> {
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationAuditError>> {
         async move {
             let permission = Permissions::REVIEW_TEACHER_APPLICATIONS.to_string();
-            permission_checks::has_platform_permission(self.conn, actor_user_id, &permission)
+            permission_checks::can_platform_permission(self.conn, actor_user_id, &permission)
                 .await
                 .map_err(map_error)
         }

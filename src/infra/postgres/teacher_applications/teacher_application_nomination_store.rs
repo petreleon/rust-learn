@@ -28,7 +28,7 @@ impl TeacherApplicationNominationStore for PostgresTeacherApplicationNominationS
         permission: String,
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationNominationError>> {
         async move {
-            permission_checks::has_organization_permission(
+            permission_checks::can_organization_permission(
                 self.conn,
                 actor_user_id,
                 organization_id,

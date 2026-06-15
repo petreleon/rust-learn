@@ -9,7 +9,7 @@ use crate::application::organizations::list_organization_teacher_applications::{
 };
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{organizations, teacher_applications};
-use crate::infra::postgres::organizations::organization_permission_checks::has_platform_or_organization_permission;
+use crate::infra::postgres::organizations::organization_permission_checks::can_platform_or_organization_permission;
 use crate::infra::postgres::organizations::organization_teacher_application_audit_context::teacher_application_summary;
 use crate::infra::postgres::organizations::organization_teacher_application_context::build_context;
 use crate::infra::postgres::organizations::organization_teacher_application_mappers::organization_teacher_application_item;
@@ -126,7 +126,7 @@ async fn can_organization_operator(
     organization_id: i32,
     permission: Permissions,
 ) -> Result<bool, OrganizationTeacherApplicationListError> {
-    has_platform_or_organization_permission(conn, user_id, organization_id, permission)
+    can_platform_or_organization_permission(conn, user_id, organization_id, permission)
         .await
         .map_err(map_error)
 }

@@ -4,14 +4,14 @@ use crate::application::organizations::list_organization_courses::{
     OrganizationCourseListError, OrganizationCoursePermissionSummaryOutput,
 };
 use crate::config::constants::permissions::Permissions;
-use crate::infra::postgres::organizations::organization_permission_checks::has_platform_or_organization_permission;
+use crate::infra::postgres::organizations::organization_permission_checks::can_platform_or_organization_permission;
 
 pub async fn can_view_organization_courses(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,
 ) -> Result<bool, OrganizationCourseListError> {
-    has_platform_or_organization_permission(
+    can_platform_or_organization_permission(
         conn,
         actor_user_id,
         organization_id,
@@ -27,7 +27,7 @@ async fn can_organization_operator(
     organization_id: i32,
     permission: Permissions,
 ) -> Result<bool, OrganizationCourseListError> {
-    has_platform_or_organization_permission(conn, actor_user_id, organization_id, permission)
+    can_platform_or_organization_permission(conn, actor_user_id, organization_id, permission)
         .await
         .map_err(map_organization_error)
 }

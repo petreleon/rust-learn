@@ -20,7 +20,7 @@ pub async fn course_visible_to_learner(
     }
 
     let permission = Permissions::VIEW_COURSE.to_string();
-    if permission_checks::has_course_permission(conn, actor_user_id, course.id, &permission)
+    if permission_checks::can_course_permission(conn, actor_user_id, course.id, &permission)
         .await
         .map_err(map_learning_error)?
     {
@@ -28,7 +28,7 @@ pub async fn course_visible_to_learner(
     }
 
     for organization_id in course_organization_ids(conn, course.id).await? {
-        if permission_checks::has_organization_permission(
+        if permission_checks::can_organization_permission(
             conn,
             actor_user_id,
             organization_id,
@@ -108,14 +108,14 @@ async fn has_permission_for_course_context(
     permission: &Permissions,
 ) -> Result<bool, LearnerCourseCatalogError> {
     let permission_name = permission.to_string();
-    if permission_checks::has_course_permission(conn, actor_user_id, course_id, &permission_name)
+    if permission_checks::can_course_permission(conn, actor_user_id, course_id, &permission_name)
         .await
         .map_err(map_learning_error)?
     {
         return Ok(true);
     }
 
-    if permission_checks::has_platform_permission(conn, actor_user_id, &permission_name)
+    if permission_checks::can_platform_permission(conn, actor_user_id, &permission_name)
         .await
         .map_err(map_learning_error)?
     {
@@ -123,7 +123,7 @@ async fn has_permission_for_course_context(
     }
 
     for organization_id in course_organization_ids(conn, course_id).await? {
-        if permission_checks::has_organization_permission(
+        if permission_checks::can_organization_permission(
             conn,
             actor_user_id,
             organization_id,

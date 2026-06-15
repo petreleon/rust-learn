@@ -7,7 +7,7 @@ use crate::application::organizations::assign_organization_member_role::{
 };
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::organization_member_audit_events;
-use crate::infra::postgres::organizations::organization_permission_checks::has_organization_permission;
+use crate::infra::postgres::organizations::organization_permission_checks::can_organization_permission;
 use crate::infra::postgres::organizations::organization_role_assignments;
 use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
 
@@ -28,7 +28,7 @@ impl OrganizationMemberRoleAssignmentStore for PostgresOrganizationMemberRoleAss
         organization_id: i32,
     ) -> BoxFuture<'_, Result<bool, OrganizationMemberRoleAssignmentError>> {
         async move {
-            has_organization_permission(
+            can_organization_permission(
                 self.conn,
                 actor_user_id,
                 organization_id,

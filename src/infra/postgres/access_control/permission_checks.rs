@@ -1,17 +1,15 @@
-use diesel::dsl::{exists, select};
-use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel::QueryResult;
+use diesel_async::AsyncPgConnection;
 
 use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessScope,
 };
-use crate::db::schema::{
-    role_permission_course, role_permission_organization, role_permission_platform,
-    user_role_course, user_role_organization, user_role_platform,
-};
 use crate::infra::postgres::access_control::permission_delegations::{
     has_active_course_delegation, has_active_organization_delegation,
     has_active_platform_delegation,
+};
+use crate::infra::postgres::access_control::permission_role_queries::{
+    has_course_role_permission, has_organization_role_permission, has_platform_role_permission,
 };
 
 pub(crate) async fn can(
@@ -33,7 +31,51 @@ pub(crate) async fn can(
     }
 }
 
-pub(crate) async fn has_platform_permission(
+pub(crate) async fn can_platform_permission(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    permission: &str,
+) -> QueryResult<bool> {
+    can(
+        conn,
+        AccessActor::user(actor_user_id),
+        AccessAction::permission(permission),
+        AccessScope::platform(),
+    )
+    .await
+}
+
+pub(crate) async fn can_course_permission(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    course_id: i32,
+    permission: &str,
+) -> QueryResult<bool> {
+    can(
+        conn,
+        AccessActor::user(actor_user_id),
+        AccessAction::permission(permission),
+        AccessScope::course(course_id),
+    )
+    .await
+}
+
+pub(crate) async fn can_organization_permission(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    organization_id: i32,
+    permission: &str,
+) -> QueryResult<bool> {
+    can(
+        conn,
+        AccessActor::user(actor_user_id),
+        AccessAction::permission(permission),
+        AccessScope::organization(organization_id),
+    )
+    .await
+}
+
+async fn has_platform_permission(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     permission: &str,
@@ -54,7 +96,7 @@ pub(crate) async fn has_platform_permission(
     Ok(has_delegation)
 }
 
-pub(crate) async fn has_course_permission(
+async fn has_course_permission(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     course_id: i32,
@@ -78,7 +120,7 @@ pub(crate) async fn has_course_permission(
     Ok(has_delegation)
 }
 
-pub(crate) async fn has_organization_permission(
+async fn has_organization_permission(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,
@@ -101,63 +143,4 @@ pub(crate) async fn has_organization_permission(
     }
 
     Ok(has_delegation)
-}
-
-async fn has_platform_role_permission(
-    conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-    permission: &str,
-) -> QueryResult<bool> {
-    select(exists(
-        user_role_platform::table
-            .inner_join(role_permission_platform::table.on(
-                user_role_platform::platform_role_id.eq(role_permission_platform::platform_role_id),
-            ))
-            .filter(user_role_platform::user_id.eq(actor_user_id))
-            .filter(role_permission_platform::permission.eq(permission)),
-    ))
-    .get_result(conn)
-    .await
-}
-
-async fn has_course_role_permission(
-    conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-    course_id: i32,
-    permission: &str,
-) -> QueryResult<bool> {
-    select(
-        exists(
-            user_role_course::table
-                .inner_join(role_permission_course::table.on(
-                    user_role_course::course_role_id.eq(role_permission_course::course_role_id),
-                ))
-                .filter(user_role_course::user_id.eq(actor_user_id))
-                .filter(user_role_course::course_id.eq(course_id))
-                .filter(role_permission_course::permission.eq(permission)),
-        ),
-    )
-    .get_result(conn)
-    .await
-}
-
-async fn has_organization_role_permission(
-    conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-    organization_id: i32,
-    permission: &str,
-) -> QueryResult<bool> {
-    select(exists(
-        user_role_organization::table
-            .inner_join(
-                role_permission_organization::table
-                    .on(user_role_organization::organization_role_id
-                        .eq(role_permission_organization::organization_role_id)),
-            )
-            .filter(user_role_organization::user_id.eq(actor_user_id))
-            .filter(user_role_organization::organization_id.eq(organization_id))
-            .filter(role_permission_organization::permission.eq(permission)),
-    ))
-    .get_result(conn)
-    .await
 }

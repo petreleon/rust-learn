@@ -10,7 +10,7 @@ pub(super) async fn can_review_kyc(
     user_id: i32,
 ) -> Result<bool, KycError> {
     let permission = Permissions::REVIEW_KYC_SUBMISSIONS.to_string();
-    permission_checks::has_platform_permission(conn, user_id, &permission)
+    permission_checks::can_platform_permission(conn, user_id, &permission)
         .await
         .map_err(map_error)
 }
