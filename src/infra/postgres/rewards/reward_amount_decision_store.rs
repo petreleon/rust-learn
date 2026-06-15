@@ -9,7 +9,9 @@ use crate::application::rewards::decide_amount::{
 };
 use crate::domain::rewards::audit::RewardAuditEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-use crate::infra::postgres::rewards::reward_amount_decision_mappers::map_reward_amount_decision_error;
+use crate::infra::postgres::rewards::reward_amount_decision_mappers::{
+    map_reward_amount_decision_candidate, map_reward_amount_decision_error,
+};
 use crate::infra::postgres::rewards::reward_amount_decision_transition::{
     candidate_teacher_user_ids, ensure_amount_transition,
 };
@@ -115,7 +117,7 @@ async fn apply_amount_decision(
         .await
         .map_err(map_reward_amount_decision_error)?;
     if existing.status == decision.target_status.as_str() {
-        return Ok(existing.into());
+        return map_reward_amount_decision_candidate(existing);
     }
 
     ensure_amount_transition(&existing.status, decision.target_status)?;
@@ -166,5 +168,5 @@ async fn apply_amount_decision(
             .map_err(map_reward_amount_decision_error)?;
     }
 
-    Ok(updated.into())
+    map_reward_amount_decision_candidate(updated)
 }

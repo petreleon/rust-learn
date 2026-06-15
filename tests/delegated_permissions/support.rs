@@ -21,9 +21,7 @@ pub(crate) use rust_learn::domain::access_control::delegation::{
     DELEGATED_SCOPE_COURSE, DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
 };
 pub(crate) use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
-pub(crate) use rust_learn::domain::rewards::candidate::status::{
-    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
-};
+pub(crate) use rust_learn::domain::rewards::candidate::status::REWARD_STATUS_PENDING_TEACHER_APPROVAL;
 pub(crate) use rust_learn::domain::rewards::policy::{
     REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };

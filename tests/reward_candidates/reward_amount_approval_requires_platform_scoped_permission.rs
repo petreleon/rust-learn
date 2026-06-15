@@ -3,6 +3,7 @@ use crate::{
     reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
     teacher_decision_helper::*,
 };
+use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[actix_web::test]
 async fn reward_amount_approval_requires_platform_scoped_permission() {
@@ -88,7 +89,7 @@ async fn reward_amount_approval_requires_platform_scoped_permission() {
     )
     .await
     .expect("platform-scoped amount permission should approve reward amount");
-    assert_eq!(approved.status, REWARD_STATUS_AMOUNT_APPROVED);
+    assert_eq!(approved.status, RewardCandidateStatus::AmountApproved);
     assert_eq!(
         approved.amount_reviewer_user_id,
         Some(platform_reviewer.id())

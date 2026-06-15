@@ -1,7 +1,7 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Last verified commit: `5a1643fa`.
+Last verified commit before current batch: `247a5096`.
 
 Objective: move RustLearn from a technically layered monolith to a Level 2
 modular monolith with firm business boundaries. The goal is ownership, not
@@ -109,7 +109,8 @@ Detailed history belongs in git; this table keeps only the architectural proof.
 | 330 | `6b0092a2` | Converted `wallet_linking`; refreshed stale KYC conflict assertion and proved with focused wallet tests, Cargo gates, scans, and line checks. |
 | 331 | `57215a3c` | Converted `video_upload_flow`; moved content app wiring and sample-video helpers behind explicit modules and proved with focused tests, gates, scans, and line checks. |
 | 332 | `5a1643fa` | Typed reward payout candidate status at the infra/application boundary and proved with fake-port tests, mapper tests, Cargo gates, scans, and line checks. |
-| 333 | this batch | Typed teacher reward decision output status at the infra/application boundary; infra parses persisted candidate status before returning use-case output, HTTP maps it back to the public string, and proof covered teacher-decision filters, mapper status tests, reward/delegation integration crates, Cargo gates, scans, and line checks. |
+| 333 | `247a5096` | Typed teacher reward decision output status at the infra/application boundary; infra parses persisted candidate status before returning use-case output, HTTP maps it back to the public string, and proof covered teacher-decision filters, mapper status tests, reward/delegation integration crates, Cargo gates, scans, and line checks. |
+| 334 | this batch | Typed reward amount decision output status at the infra/application boundary; infra parses persisted candidate status before returning use-case output, HTTP maps it back to the public string, route smoke accepts the current permission-decision middleware error wording, and proof covered amount-decision filters, reward/delegation/API routing integration crates, Cargo gates, scans, and line checks. |
 
 ## Remaining Work
 

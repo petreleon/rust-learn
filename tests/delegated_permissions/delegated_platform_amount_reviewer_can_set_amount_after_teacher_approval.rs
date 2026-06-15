@@ -90,5 +90,8 @@ async fn delegated_platform_amount_reviewer_can_set_amount_after_teacher_approva
     )
     .await
     .expect("delegated platform reviewer should approve amount");
-    assert_eq!(amount_approved.status, REWARD_STATUS_AMOUNT_APPROVED);
+    assert_eq!(
+        amount_approved.status,
+        RewardCandidateStatus::AmountApproved
+    );
 }

@@ -109,7 +109,10 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     )
     .await
     .expect("platform reviewer should approve amount after teacher approval");
-    assert_eq!(amount_approved.status, REWARD_STATUS_AMOUNT_APPROVED);
+    assert_eq!(
+        amount_approved.status,
+        RewardCandidateStatus::AmountApproved
+    );
     assert_eq!(amount_approved.amount_reviewer_user_id, Some(reviewer.id()));
     assert_eq!(amount_approved.approved_amount, Some(amount.clone()));
 
@@ -132,7 +135,7 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     .await
     .expect("repeated amount approval should return the existing decision");
     assert_eq!(amount_replay.id, amount_approved.id);
-    assert_eq!(amount_replay.status, REWARD_STATUS_AMOUNT_APPROVED);
+    assert_eq!(amount_replay.status, RewardCandidateStatus::AmountApproved);
     assert_eq!(amount_replay.approved_amount, Some(amount));
 
     let execution_job_count: i64 = reward_execution_jobs::table

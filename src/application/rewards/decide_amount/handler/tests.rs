@@ -44,11 +44,7 @@ impl RewardAmountDecisionStore for FakeStore {
         decision: RewardAmountDecision,
     ) -> BoxFuture<'_, Result<RewardAmountDecisionOutput, RewardAmountDecisionError>> {
         self.decision = Some(decision.clone());
-        ready(Ok(output(
-            decision.target_status.as_str(),
-            decision.approved_amount,
-        )))
-        .boxed()
+        ready(Ok(output(decision.target_status, decision.approved_amount))).boxed()
     }
 }
 
@@ -67,7 +63,7 @@ fn delegates_normalized_amount_approval() {
     ))
     .unwrap();
 
-    assert_eq!(result.status, "amount_approved");
+    assert_eq!(result.status, RewardCandidateStatus::AmountApproved);
     assert_eq!(result.approved_amount, Some(BigDecimal::from(25)));
     let decision = store.decision.unwrap();
     assert_eq!(decision.actor_user_id, 7);
@@ -123,7 +119,10 @@ fn rejects_invalid_amount_before_store_mutation() {
     assert!(store.decision.is_none());
 }
 
-fn output(status: &str, approved_amount: Option<BigDecimal>) -> RewardAmountDecisionOutput {
+fn output(
+    status: RewardCandidateStatus,
+    approved_amount: Option<BigDecimal>,
+) -> RewardAmountDecisionOutput {
     let now = Utc::now();
     RewardAmountDecisionOutput {
         id: 19,
@@ -135,7 +134,7 @@ fn output(status: &str, approved_amount: Option<BigDecimal>) -> RewardAmountDeci
         event_type: "manual_completion".to_string(),
         idempotency_key: "manual:11:23".to_string(),
         evidence: json!({}),
-        status: status.to_string(),
+        status,
         teacher_approver_user_id: Some(7),
         teacher_decision_reason: Some("complete".to_string()),
         teacher_decided_at: Some(now),
