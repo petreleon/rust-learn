@@ -952,8 +952,10 @@ Wiring rule:
       with a KYC HTTP error mapper. Teacher-application submission, listing,
       self-read, review, decision, audit, and organization nomination handlers
       now use typed JSON/status results with a teacher-application HTTP error
-      mapper. Reporting, wallet, rewards, learning, organizations, and content
-      contexts still need the same treatment before this is done.
+      mapper. Content chapter/content-item/upload/media/processing handlers now
+      use typed JSON/text/status results with content HTTP error mappers.
+      Reporting, wallet, rewards, learning, and organizations contexts still
+      need the same treatment before this is done.
 - [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
 - [x] Configure JSON limits and JSON parse errors centrally so every route has
@@ -1420,6 +1422,30 @@ Batch 296: move teacher-application handlers to typed HTTP results.
       slice only. Reporting, wallet, rewards, learning, organizations, and
       content contexts still contain manual response branches.
 
+Batch 297: move content handlers to typed HTTP results.
+
+- [x] Added `http/content/errors.rs` and `http/content/errors/transfer.rs` as
+      the local HTTP boundary mappers from content application errors into the
+      shared `ApiError` envelope.
+- [x] Repointed chapter, content-item, upload-url, media-url, and video
+      processing handlers away from handler-local `HttpResponse`/`impl Responder`
+      branches and into typed JSON/text/status results.
+- [x] Kept legacy success text bodies for chapter/content deletes and video
+      processing queue responses while moving service-error responses through
+      the shared error envelope.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib application::content`,
+      `./scripts/run-host-tests.sh cargo test --lib http::content::errors`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      content handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes the content HTTP typed-result slice only.
+      Reporting, wallet, rewards, learning, and organizations still contain
+      manual response branches.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1567,6 +1593,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] `http/content` exposes one context-level route configurator for chapter
       and content-item routes; the legacy `api/chapters` and `api/contents`
       wrappers have been deleted.
+- [x] Content HTTP handlers return typed JSON/text/status results and map
+      application errors through `http/content/errors`, keeping Actix response
+      construction out of route functions.
 
 ## Access Control Context
 
