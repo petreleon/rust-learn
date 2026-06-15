@@ -1,30 +1,26 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::organizations::list_organization_teacher_applications::{
     OrganizationTeacherApplicationListError, OrganizationTeacherApplicationListQuery,
     OrganizationTeacherApplicationListUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 
 use super::dto::OrganizationTeacherApplicationsParams;
 use super::teacher_application_dto::OrganizationTeacherApplicationsResponse;
 
 pub(super) async fn get_organization_teacher_applications(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn OrganizationTeacherApplicationListUseCase>>,
     query: web::Query<OrganizationTeacherApplicationsParams>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
     let organization_id = path.into_inner();
 
     let list_query = OrganizationTeacherApplicationListQuery {
-        actor_user_id: requester.user_id,
+        actor_user_id: requester.user_id(),
         organization_id,
         status: query.status.clone(),
         search: query.search.clone(),

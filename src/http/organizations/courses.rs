@@ -1,29 +1,25 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::organizations::list_organization_courses::{
     OrganizationCourseListError, OrganizationCourseListQuery, OrganizationCourseListUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 
 use super::course_dto::OrganizationCourseListResponse;
 use super::dto::OrganizationCourseListParams;
 
 pub(super) async fn get_organization_courses(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn OrganizationCourseListUseCase>>,
     query: web::Query<OrganizationCourseListParams>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
     let organization_id = path.into_inner();
 
     let list_query = OrganizationCourseListQuery::new(
-        requester.user_id,
+        requester.user_id(),
         organization_id,
         query.search.clone(),
         query.lifecycle_status.clone(),

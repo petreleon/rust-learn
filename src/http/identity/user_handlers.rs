@@ -1,26 +1,21 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::identity::get_user_profile::{
     GetUserProfileCommand, UserProfileReadUseCase,
 };
 use crate::application::identity::user_profile::UserProfileError;
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::identity::dto::UserProfileResponse;
 
 pub(super) async fn get_user(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn UserProfileReadUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     let command = GetUserProfileCommand {
-        requester_user_id: requester.user_id,
+        requester_user_id: requester.user_id(),
         target_user_id: path.into_inner(),
     };
     match use_case.get_user_profile(command).await {

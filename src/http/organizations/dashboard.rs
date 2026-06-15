@@ -1,26 +1,22 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::organizations::get_organization_dashboard::{
     OrganizationDashboardError, OrganizationDashboardQuery, OrganizationDashboardUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 
 use super::dashboard_dto::OrganizationDashboardResponse;
 
 pub(super) async fn get_organization_dashboard(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn OrganizationDashboardUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
     let organization_id = path.into_inner();
     let query = OrganizationDashboardQuery {
-        actor_user_id: requester.user_id,
+        actor_user_id: requester.user_id(),
         organization_id,
     };
 

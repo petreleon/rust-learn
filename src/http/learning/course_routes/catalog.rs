@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::learning::discover_courses::{
     CourseDiscoveryError, CourseDiscoveryQuery, CourseDiscoveryUseCase,
@@ -15,7 +15,7 @@ use crate::application::learning::get_learner_course_learning::{
 use crate::application::learning::list_learner_course_catalog::{
     LearnerCourseCatalogListUseCase, LearnerCourseCatalogQuery,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::learning::dto::{
     CourseDiscoveryResponse, CourseResponse, LearnerCourseCatalogResponse,
     LearnerCourseDetailResponse, LearnerCourseLearningResponse,
@@ -25,17 +25,12 @@ use super::dto::{CourseDiscoveryParams, LearnerCourseCatalogParams};
 use super::support::learner_course_read_error_response;
 
 pub(super) async fn list_learner_course_catalog(
-    req: HttpRequest,
+    requester: AuthUser,
     use_case: web::Data<Arc<dyn LearnerCourseCatalogListUseCase>>,
     query: web::Query<LearnerCourseCatalogParams>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     let catalog_query = LearnerCourseCatalogQuery::new(
-        requester.user_id,
+        requester.user_id(),
         query.search.clone(),
         query.organization_id,
         query.lifecycle_status.clone(),
@@ -52,16 +47,11 @@ pub(super) async fn list_learner_course_catalog(
 }
 
 pub(super) async fn get_learner_course_learning_route(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn LearnerCourseLearningUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
-    let query = LearnerCourseLearningQuery::new(requester.user_id, path.into_inner());
+    let query = LearnerCourseLearningQuery::new(requester.user_id(), path.into_inner());
     match use_case.get_learner_course_learning(query).await {
         Ok(learning) => HttpResponse::Ok().json(LearnerCourseLearningResponse::from(learning)),
         Err(error) => learner_course_read_error_response(error),
@@ -69,16 +59,11 @@ pub(super) async fn get_learner_course_learning_route(
 }
 
 pub(super) async fn get_learner_course_catalog_detail(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn LearnerCourseDetailUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
-    let query = LearnerCourseDetailQuery::new(requester.user_id, path.into_inner());
+    let query = LearnerCourseDetailQuery::new(requester.user_id(), path.into_inner());
     match use_case.get_learner_course_detail(query).await {
         Ok(detail) => HttpResponse::Ok().json(LearnerCourseDetailResponse::from(detail)),
         Err(error) => learner_course_read_error_response(error),

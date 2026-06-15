@@ -1,28 +1,23 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::learning::create_course::CourseCreationUseCase;
 use crate::application::learning::delete_course::{
     CourseDeletionError, CourseDeletionOutcome, CourseDeletionUseCase,
 };
 use crate::application::learning::update_course::CourseUpdateUseCase;
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::learning::dto::{CourseResponse, CourseUpdateRequest, CreateCourseRequest};
 
 use super::support::{course_creation_error_response, course_update_error_response};
 
 pub(super) async fn create_course(
-    req: HttpRequest,
+    requester: AuthUser,
     use_case: web::Data<Arc<dyn CourseCreationUseCase>>,
     body: web::Json<CreateCourseRequest>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
-    let command = body.into_inner().into_command(requester.user_id);
+    let command = body.into_inner().into_command(requester.user_id());
 
     match use_case.create_course(command).await {
         Ok(course) => HttpResponse::Created().json(CourseResponse::from(course)),
@@ -31,18 +26,16 @@ pub(super) async fn create_course(
 }
 
 pub(super) async fn update_course(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn CourseUpdateUseCase>>,
     body: web::Json<CourseUpdateRequest>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
     let course_id = path.into_inner();
 
-    let command = body.into_inner().into_command(requester.user_id, course_id);
+    let command = body
+        .into_inner()
+        .into_command(requester.user_id(), course_id);
 
     match use_case.update_course(command).await {
         Ok(course) => HttpResponse::Ok().json(CourseResponse::from(course)),
