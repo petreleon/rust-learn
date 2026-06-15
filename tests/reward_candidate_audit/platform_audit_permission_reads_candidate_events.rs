@@ -31,6 +31,7 @@ async fn platform_audit_permission_reads_candidate_events() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(reward_candidate_audit_use_case(&pool)))
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
             .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::rewards::reward_candidate_audit_resource()),
     )

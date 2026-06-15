@@ -9,6 +9,7 @@ use jsonwebtoken::{
 use openssl::pkey::PKey;
 use std::env;
 
+use crate::application::identity::auth_token::{AuthTokenVerificationError, AuthTokenVerifier};
 use crate::application::identity::jwks::{JsonWebKeyOutput, JwksError, JwksOutput, JwksUseCase};
 use crate::domain::identity::UserJWT;
 
@@ -17,6 +18,17 @@ const DEFAULT_JWT_KEY_ID: &str = "rust-learn-local";
 
 #[derive(Clone)]
 pub struct EnvJwksUseCase;
+
+#[derive(Clone)]
+pub struct EnvAuthTokenVerifier;
+
+impl AuthTokenVerifier for EnvAuthTokenVerifier {
+    fn verify_token(&self, token: &str) -> Result<UserJWT, AuthTokenVerificationError> {
+        decode_jwt(token)
+            .map(|token_data| token_data.claims)
+            .map_err(auth_token_error)
+    }
+}
 
 impl JwksUseCase for EnvJwksUseCase {
     fn jwks(&self) -> BoxFuture<'_, Result<JwksOutput, JwksError>> {
@@ -66,6 +78,13 @@ pub fn decode_jwt(token: &str) -> Result<TokenData<UserJWT>, JwtError> {
     let decoding_key = DecodingKey::from_rsa_pem(public_key.as_bytes())?;
     let validation = Validation::new(Algorithm::RS256);
     decode::<UserJWT>(token, &decoding_key, &validation)
+}
+
+fn auth_token_error(error: JwtError) -> AuthTokenVerificationError {
+    match error.kind() {
+        ErrorKind::ExpiredSignature => AuthTokenVerificationError::Expired,
+        _ => AuthTokenVerificationError::Invalid,
+    }
 }
 
 pub fn public_jwks_from_pem(

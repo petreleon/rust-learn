@@ -66,6 +66,7 @@ pub(crate) fn content_test_app(
         .app_data(upload_url_use_case_data(pool, s3))
         .app_data(media_url_use_case_data(pool, s3))
         .app_data(content_processing_use_case_data(pool))
+        .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
         .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
         .service(rust_learn::http::learning::course_scope())
 }

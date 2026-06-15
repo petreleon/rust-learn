@@ -5,6 +5,7 @@ pub(crate) async fn assert_teacher_workspace(fixture: &TeacherDashboardFixture) 
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
             .app_data(teacher_workspace_use_case_data(&fixture.pool))
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
             .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )
@@ -64,6 +65,7 @@ pub(crate) async fn assert_teacher_enrollments(fixture: &TeacherDashboardFixture
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
             .app_data(teacher_enrollment_workspace_use_case_data(&fixture.pool))
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
             .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )
@@ -147,6 +149,7 @@ pub(crate) async fn assert_teacher_pending_filter(fixture: &TeacherDashboardFixt
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
             .app_data(teacher_enrollment_workspace_use_case_data(&fixture.pool))
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
             .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )

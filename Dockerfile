@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev pkg-config libssl-dev build-essential git ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
+RUN rustup component add rustfmt
+
 RUN --mount=type=cache,id=rust-learn-cargo-registry,target=/usr/local/cargo/registry \
     --mount=type=cache,id=rust-learn-cargo-git,target=/usr/local/cargo/git \
     cargo install diesel_cli --version "${DIESEL_CLI_VERSION}" --locked --no-default-features --features postgres

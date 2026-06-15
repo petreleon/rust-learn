@@ -135,6 +135,7 @@ async fn assessment_read_routes_are_published_and_user_scoped() {
             })
             .app_data(course_assessments_use_case_data(&pool))
             .app_data(assessment_attempts_use_case_data(&pool))
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
             .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )

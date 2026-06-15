@@ -75,6 +75,10 @@ diesel-compose: ## Run Diesel CLI through Compose (use: make diesel-compose DIES
 	$(DOCKER_COMPOSE) up -d db
 	$(DIESEL_COMPOSE) $(DIESEL_ARGS)
 
+schema: ## Regenerate Diesel schema through Compose
+	$(DOCKER_COMPOSE) up -d db
+	$(DIESEL_COMPOSE_RUN) sh -c '/usr/local/cargo/bin/diesel print-schema > "$(DIESEL_SCHEMA_FILE)" && /usr/local/cargo/bin/rustfmt "$(DIESEL_SCHEMA_FILE)"'
+
 migration-generate: ## Generate a Diesel migration through Compose (use: make migration-generate NAME=create_table)
 	@if [ -z "$(NAME)" ]; then \
 		echo "$(YELLOW)Usage: make migration-generate NAME=create_table$(NC)"; \
@@ -84,6 +88,8 @@ migration-generate: ## Generate a Diesel migration through Compose (use: make mi
 
 migrate: ## Run Diesel migrations through Docker Compose
 	$(MAKE) diesel-compose DIESEL_ARGS='migration run'
+	$(MAKE) schema
 
 migrate-redo: ## Redo last migration through Docker Compose
 	$(MAKE) diesel-compose DIESEL_ARGS='migration redo'
+	$(MAKE) schema

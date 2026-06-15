@@ -27,6 +27,7 @@ async fn course_search_treats_like_wildcards_as_literal_text() {
                 rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
             })
             .app_data(course_discovery_use_case_data(&pool))
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
             .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )

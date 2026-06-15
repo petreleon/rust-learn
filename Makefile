@@ -1,6 +1,6 @@
 .PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health runtime-verify runtime-log-scan runtime-disk docker-prune-build-cache \
   k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-refresh-app k8s-dev-refresh-web k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
-  k8s-validate k8s-dev-validate dev-build dev-deps dev-run dev-worker worker-build diesel-compose migration-generate migrate migrate-redo \
+  k8s-validate k8s-dev-validate dev-build dev-deps dev-run dev-worker worker-build diesel-compose schema migration-generate migrate migrate-redo \
   dev-refresh test-integration preflight fmt fmt-compose clippy web-lint web-build web-api-helper-tests web-lint-compose web-build-compose mock-email logs ps shell
 
 # Variables
@@ -16,8 +16,10 @@ K8S_WORKER_IMAGE := rust-worker:$(K8S_IMAGE_TAG)
 K8S_WEB_IMAGE := web:$(K8S_IMAGE_TAG)
 DOCKER ?= $(shell command -v docker 2>/dev/null || printf /opt/homebrew/bin/docker)
 DOCKER_COMPOSE ?= $(DOCKER) compose
-DIESEL_COMPOSE ?= $(DOCKER_COMPOSE) -f docker-compose.yml -f docker-compose.tools.yml run --rm --no-deps --build diesel diesel
+DIESEL_COMPOSE_RUN ?= $(DOCKER_COMPOSE) -f docker-compose.yml -f docker-compose.tools.yml run --rm --no-deps --build diesel
+DIESEL_COMPOSE ?= $(DIESEL_COMPOSE_RUN) diesel
 DIESEL_ARGS ?= --help
+DIESEL_SCHEMA_FILE ?= src/infra/postgres/schema.rs
 COMPOSE_REFRESH_SERVICES ?= app web
 KUBECTL ?= $(shell command -v kubectl 2>/dev/null || printf /opt/homebrew/bin/kubectl)
 MINIKUBE ?= $(shell command -v minikube 2>/dev/null || printf /opt/homebrew/bin/minikube)

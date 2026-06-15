@@ -108,6 +108,7 @@ pub(crate) fn course_enrollment_test_app(
         .app_data(course_enrollment_use_case_data(&pool))
         .app_data(course_role_assignment_use_case_data(&pool))
         .app_data(notification_delivery_use_case_data(&pool))
+        .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
         .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
         .service(rust_learn::http::learning::course_scope())
 }

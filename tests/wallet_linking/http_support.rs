@@ -138,6 +138,7 @@ pub(crate) fn wallet_test_app(
         .app_data(web::Data::new(wallet_read_use_case))
         .app_data(web::Data::new(wallet_retirement_use_case))
         .app_data(web::Data::new(wallet_token_tax_use_case))
+        .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
         .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
         .service(web::scope("/api").configure(rust_learn::http::wallet::configure_routes))
 }

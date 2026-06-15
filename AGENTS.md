@@ -41,7 +41,7 @@ RustLearn is an incentivized learning platform. The backend is a Rust/Actix Web 
   workflows/database logic instead of embedding complex queries directly in
   route handlers.
 - When adding or changing permissions, update the matching constants, seed migrations, middleware usage, and `PERMISSIONS.md` if the documented matrix changes.
-- When adding migrations, include both `up.sql` and `down.sql`, and regenerate/check `src/infra/postgres/schema.rs` with `make migrate` or `make diesel-compose DIESEL_ARGS='print-schema'` when schema changes require it.
+- When adding migrations, include both `up.sql` and `down.sql`, and regenerate/check `src/infra/postgres/schema.rs` with `make migrate`, `make migrate-redo`, or `make schema` when schema changes require it. Diesel development commands should run through Make/Compose, not a required host Diesel CLI.
 - When changing Ethereum contracts, update artifacts using the existing tooling/tests and run blockchain integration tests when feasible.
 - When changing worker behavior, document any new environment variables in `.env.example`, `README.md`, and `TODO/` if they affect operations.
 
@@ -56,6 +56,7 @@ make test-integration
 make dev
 make dev-worker
 make migrate
+make schema
 ```
 
 Prefer Make targets for development workflows. Use `make test` for host Rust
@@ -64,8 +65,9 @@ library paths such as Homebrew `libpq`, and keeps host artifacts in
 `target/host-tests`. For direct Cargo-style host test filters, use
 `./scripts/run-host-tests.sh cargo test ...` instead of bare `cargo test`.
 Diesel development commands must go through the Compose tool container via
-`make migrate`, `make migrate-redo`, `make migration-generate NAME=...`, or
-`make diesel-compose DIESEL_ARGS='...'`; do not require a host Diesel CLI.
+`make migrate`, `make migrate-redo`, `make schema`,
+`make migration-generate NAME=...`, or `make diesel-compose DIESEL_ARGS='...'`;
+do not require a host Diesel CLI.
 The worker binary can require a large Docker VM memory allocation during release
 builds.
 

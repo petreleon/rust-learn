@@ -31,6 +31,7 @@ async fn test_organization_permission_middleware() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .app_data(permission_check_use_case_data(&pool))
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
             .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(web::resource("/organizations/{id}").route(
                 web::put()

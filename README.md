@@ -686,22 +686,32 @@ make dev-deps
 
 ## Database migrations
 
-Run migrations through the Make target. It starts the Compose PostgreSQL
-service, then runs Diesel inside the Compose tool container:
+Run migrations through the Make target. Make is the primary development
+interface: it starts the Compose PostgreSQL service, runs Diesel inside the
+Compose tool container, then refreshes the source-controlled schema file:
 
 ```bash
 make migrate
 ```
 
-No host Diesel CLI install is required. Because `diesel.toml` points
-`print_schema.file` at `src/infra/postgres/schema.rs`, the generated schema is
-written through the mounted workspace to
-`src/infra/postgres/schema.rs`.
+No host Diesel CLI install is required. `make migrate` runs
+`diesel migration run` in the Compose tool container and then runs
+`make schema`, which executes `diesel print-schema` in the same tool container.
+The schema target writes that output to `DIESEL_SCHEMA_FILE`, formats it with
+the tool container's `rustfmt`, and defaults to `src/infra/postgres/schema.rs`,
+matching the `diesel.toml` `print_schema.file` setting. The generated schema is
+written through the mounted workspace.
 
 Redo the latest migration:
 
 ```bash
 make migrate-redo
+```
+
+Refresh only the generated schema file:
+
+```bash
+make schema
 ```
 
 Generate a new migration directory through the same Compose Diesel image:
@@ -714,10 +724,10 @@ For less common Diesel commands, keep the Makefile as the entrypoint:
 
 ```bash
 make diesel-compose DIESEL_ARGS='migration list'
-make diesel-compose DIESEL_ARGS='print-schema'
+make schema
 ```
 
-When adding migrations, include reversible `up.sql` and `down.sql` files whenever possible and update/check `src/infra/postgres/schema.rs` when schema changes require it.
+When adding migrations, include reversible `up.sql` and `down.sql` files whenever possible and update/check `src/infra/postgres/schema.rs` through `make migrate`, `make migrate-redo`, or `make schema` when schema changes require it.
 
 ## Troubleshooting
 

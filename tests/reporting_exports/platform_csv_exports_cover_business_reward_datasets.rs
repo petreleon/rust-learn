@@ -49,6 +49,7 @@ async fn platform_csv_exports_cover_business_reward_datasets() {
             })
             .app_data(platform_csv_exports_use_case(&pool))
             .app_data(platform_wallet_reconciliation_use_case(&pool))
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
             .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::reporting::configure_routes),
     )

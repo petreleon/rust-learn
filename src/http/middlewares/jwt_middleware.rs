@@ -3,14 +3,14 @@ use actix_service::Service;
 use actix_web::{
     dev::{ServiceRequest, ServiceResponse, Transform},
     error::ErrorUnauthorized,
-    Error, HttpMessage,
+    web, Error, HttpMessage,
 };
 use futures::future::{ok, ready, Either, Ready};
-use jsonwebtoken::errors::ErrorKind;
 use std::task::{Context, Poll};
 
-use crate::domain::identity::UserJWT;
-use crate::infra::tokens::jwt::decode_jwt;
+use crate::application::identity::auth_token::{
+    AuthTokenVerificationError, AuthTokenVerifierService,
+};
 
 pub struct JwtMiddleware;
 
@@ -61,24 +61,23 @@ where
                     "Invalid Authorization header format",
                 ))));
             };
+            let Some(verifier) = req
+                .app_data::<web::Data<AuthTokenVerifierService>>()
+                .map(|data| data.get_ref().clone())
+            else {
+                return Either::Right(ready(Err(ErrorUnauthorized("Invalid token"))));
+            };
 
-            let token_data = match decode_jwt(token) {
-                Ok(token_data) => token_data,
-                Err(error) => {
-                    let message = match error.kind() {
-                        ErrorKind::ExpiredSignature => "Token expired",
-                        _ => "Invalid token",
-                    };
-                    return Either::Right(ready(Err(ErrorUnauthorized(message))));
+            let user_jwt = match verifier.verify_token(token) {
+                Ok(claims) => claims,
+                Err(AuthTokenVerificationError::Expired) => {
+                    return Either::Right(ready(Err(ErrorUnauthorized("Token expired"))));
+                }
+                Err(AuthTokenVerificationError::Invalid) => {
+                    return Either::Right(ready(Err(ErrorUnauthorized("Invalid token"))));
                 }
             };
 
-            let user_jwt: UserJWT = token_data.claims;
-            let exp = user_jwt.exp;
-            let now = chrono::Utc::now().timestamp() as usize;
-            if exp < now {
-                return Either::Right(ready(Err(ErrorUnauthorized("Token expired"))));
-            }
             req.extensions_mut().insert(user_jwt);
         }
 

@@ -52,6 +52,7 @@ async fn learner_learning_endpoint_returns_content_states_and_denies_unscoped_co
                 rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
             })
             .app_data(learner_course_learning_use_case_data(&pool))
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
             .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )

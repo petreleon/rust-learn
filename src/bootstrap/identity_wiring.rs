@@ -3,6 +3,7 @@ use std::sync::Arc;
 use actix_web::web;
 
 use crate::application::identity::assign_platform_role::PlatformRoleAssignmentUseCase;
+use crate::application::identity::auth_token::AuthTokenVerifierService;
 use crate::application::identity::current_session::CurrentSessionUseCase;
 use crate::application::identity::get_user_profile::UserProfileReadUseCase;
 use crate::application::identity::jwks::JwksUseCase;
@@ -27,6 +28,7 @@ use crate::infra::postgres::DbPool;
 
 #[derive(Clone)]
 pub struct IdentityUseCases {
+    pub auth_token_verifier: AuthTokenVerifierService,
     pub current_session: Arc<dyn CurrentSessionUseCase>,
     pub jwks: Arc<dyn JwksUseCase>,
     pub login: Arc<dyn LoginUseCase>,
@@ -42,6 +44,7 @@ pub struct IdentityUseCases {
 
 pub fn build_identity_use_cases(pool: &DbPool) -> IdentityUseCases {
     IdentityUseCases {
+        auth_token_verifier: auth_token_verifier(),
         current_session: Arc::new(PostgresCurrentSessionUseCase::new(pool.clone())),
         jwks: Arc::new(crate::infra::tokens::jwt::EnvJwksUseCase),
         login: Arc::new(PostgresLoginUseCase::new(pool.clone())),
@@ -60,7 +63,8 @@ pub fn build_identity_use_cases(pool: &DbPool) -> IdentityUseCases {
 }
 
 pub fn configure_identity_app_data(cfg: &mut web::ServiceConfig, identity: &IdentityUseCases) {
-    cfg.app_data(web::Data::new(identity.current_session.clone()))
+    cfg.app_data(web::Data::new(identity.auth_token_verifier.clone()))
+        .app_data(web::Data::new(identity.current_session.clone()))
         .app_data(web::Data::new(identity.jwks.clone()))
         .app_data(web::Data::new(identity.login.clone()))
         .app_data(web::Data::new(identity.platform_role_assignment.clone()))
@@ -71,4 +75,12 @@ pub fn configure_identity_app_data(cfg: &mut web::ServiceConfig, identity: &Iden
         .app_data(web::Data::new(identity.user_list.clone()))
         .app_data(web::Data::new(identity.user_profile.clone()))
         .app_data(web::Data::new(identity.verify_email.clone()));
+}
+
+pub fn auth_token_verifier_data() -> web::Data<AuthTokenVerifierService> {
+    web::Data::new(auth_token_verifier())
+}
+
+fn auth_token_verifier() -> AuthTokenVerifierService {
+    Arc::new(crate::infra::tokens::jwt::EnvAuthTokenVerifier)
 }

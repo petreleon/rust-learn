@@ -50,6 +50,7 @@ async fn platform_reward_dashboard_reports_actionable_reward_audit_work() {
                 rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
             })
             .app_data(platform_reward_dashboard_use_case(&pool))
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
             .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::reporting::configure_routes),
     )

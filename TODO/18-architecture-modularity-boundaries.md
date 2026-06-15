@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified pushed base before current batch: `58749d50`
-(`Use catalog permissions for session capabilities`).
+Latest verified pushed base before current batch: `380f9424`
+(`Use catalog permissions across application handlers`).
 
 Objective: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
@@ -52,6 +52,9 @@ submodules only where a context or use case has real ownership.
   `REVIEW_KYC_SUBMISSIONS`.
 - `58749d50`: current-session capabilities and KYC review/audit authorization
   now use `Permissions` catalog values while preserving string API output.
+- `380f9424`: production application permission checks and denied-permission
+  payloads now use `Permissions` catalog values across delegated permissions,
+  identity, learning, organization, teacher-application, and reward use cases.
 
 Proof for completed pushed work:
 
@@ -70,64 +73,70 @@ Proof for completed pushed work:
 
 Included problems:
 
-- Production application handlers still duplicated permission catalog strings
-  across delegated-permission management, user profile reads, learning, course
-  enrollment, organization membership/audit/teacher-application views, teacher
-  applications, and reward operations.
-- `AccessAction::permission(...)` accepted strings only, so application code had
-  to hand-roll string conversion at each authorization call.
-- Organization dashboard gating emitted duplicated permission names in
-  application output builders.
+- `src/http/middlewares/jwt_middleware.rs` imported
+  `infra::tokens::jwt::decode_jwt` directly, so HTTP knew the concrete token
+  adapter and JWT error source.
+- Direct JWT middleware test apps could wrap middleware without registering an
+  auth verifier because the middleware reached into infra itself.
+- Diesel development already used Compose, but schema refresh was not a
+  first-class Make target and migration targets relied on implicit schema
+  behavior instead of an explicit `make schema` step.
 
 Fixes:
 
-- Added `From<Permissions> for String`, allowing catalog permissions to cross
-  the existing string-based authorization/API boundary intentionally.
-- Converted production application permission checks and denied-permission
-  payloads to `Permissions::*` values in the affected learning, organization,
-  teacher-application, reward, identity, and delegated-permission use cases.
-- Kept serialized API/test assertions string-based where they verify public
-  contract output.
+- Added `application::identity::auth_token` with `AuthTokenVerifier`,
+  `AuthTokenVerifierService`, and `AuthTokenVerificationError`.
+- Added `infra::tokens::jwt::EnvAuthTokenVerifier`, which implements the
+  application port using the existing environment-backed JWT decode logic.
+- Bootstrap now owns/registers the auth verifier app data; direct test apps use
+  `auth_token_verifier_app_data()`.
+- HTTP JWT middleware now parses the header, resolves the application verifier,
+  maps application token errors to 401 responses, and inserts `UserJWT` without
+  importing infra.
+- Added `make schema`, `DIESEL_COMPOSE_RUN`, and `DIESEL_SCHEMA_FILE`; `make
+  migrate` and `make migrate-redo` now run Compose Diesel migrations and then
+  refresh `src/infra/postgres/schema.rs` explicitly through Compose.
+- The Diesel CLI Docker stage now installs `rustfmt`, so `make schema` formats
+  generated schema output inside the tool container.
+- README and AGENTS now state that Make is the primary development interface for
+  Diesel work; host Diesel is not required.
 
 Deferred problems:
 
+- Integration tests still use infra JWT helpers where they mint or assert real
+  token contracts. That is test fixture/support code, not a production
+  `http -> infra` boundary leak.
 - Domain delegation permission rules still normalize a scoped raw string policy
-  list. That is a separate domain policy surface and should be audited as its
-  own batch if more vocabulary work is needed.
+  list; audit separately if more vocabulary cleanup is needed.
 - The smaller `domain::access_control::Permission` enum still overlaps with the
-  full `Permissions` catalog. Unifying them would be a broader authorization API
-  cleanup, not a safe side effect of this batch.
-- `src/http/middlewares/jwt_middleware.rs` still imports
-  `infra::tokens::jwt::decode_jwt` directly. Fixing that requires an injected
-  token-verifier application port plus a coordinated test app-data/harness
-  update, so it should be a separate HTTP-auth boundary batch.
+  full `Permissions` catalog; unification would be a deliberate authorization
+  API cleanup.
 
 Proof:
 
 - `cargo fmt --all --check`.
+- `docker compose -f docker-compose.yml -f docker-compose.tools.yml config
+  --quiet`.
+- `make -n schema`; `make -n migrate`; `make -n migrate-redo`; `make -n
+  diesel-compose DIESEL_ARGS='migration list'`.
+- `make diesel-compose DIESEL_ARGS='--version'`.
+- `make schema` regenerated and formatted `src/infra/postgres/schema.rs`
+  without leaving a schema diff.
 - `./scripts/run-host-tests.sh cargo check --lib`.
 - `./scripts/run-host-tests.sh cargo test --lib`.
-- `./scripts/run-host-tests.sh cargo test --test course_enrollment_api --test
-  course_join_requests --test organization_members --test
-  organization_teacher_applications --test teacher_applications --test
-  reward_candidates --test reward_candidate_audit --test reward_management_api
-  --test reward_execution --test reward_policies --test reward_compensations`.
 - `./scripts/run-host-tests.sh cargo check --bin rust-learn --features
   app-bin`.
 - `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
+- `./scripts/run-host-tests.sh cargo test --test current_session_api --test
+  middleware_access_control --test authentication_flow`.
 - `git diff --check`.
-- Scans: no production `AccessAction::permission("...")`, uppercase permission
-  constants, or gated-output permission literals remain in `src/application`;
-  no maintained Rust file over 180 lines; domain/application boundary scan found
-  no concrete dependency leaks, only the domain vocabulary variant
-  `MANAGE_S3_OBJECTS`; HTTP-to-infra scan identifies the remaining JWT
-  middleware boundary item.
+- Scans: no `crate::infra` / `rust_learn::infra` imports remain in `src/http`;
+  domain/application boundary scan found no concrete dependency leaks, only the
+  domain vocabulary variant `MANAGE_S3_OBJECTS`; no maintained Rust file over
+  180 lines.
 
 ## Remaining Work
 
-- Move JWT verification out of HTTP's direct infra dependency by introducing an
-  application token-verifier port, wiring the infra verifier in bootstrap, and
-  updating direct JWT-middleware test apps to register the verifier.
 - Audit TODO/18 requirement-by-requirement against current code and pushed
   evidence before calling Level 2 complete.
 - Decide whether the overlapping `Permission` and `Permissions` domain enums
@@ -139,5 +148,5 @@ Proof:
   rejection.
 - Do not jump to Level 3 crates/microservices or abstractions that only move
   files around.
-- Rough remaining effort: one HTTP-auth boundary batch plus the final
-  requirement audit.
+- Rough remaining effort: final requirement audit, plus one small authorization
+  vocabulary decision only if the audit requires it.

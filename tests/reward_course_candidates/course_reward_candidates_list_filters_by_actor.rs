@@ -21,6 +21,7 @@ async fn course_reward_candidates_list_filters_by_actor() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(course_reward_candidates_use_case(&pool)))
+            .app_data(rust_learn::bootstrap::auth_token_verifier_app_data())
             .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::rewards::course_reward_candidates_resource()),
     )
