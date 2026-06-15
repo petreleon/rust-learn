@@ -1,5 +1,6 @@
 mod authentication;
 pub mod dto;
+mod errors;
 mod handlers;
 mod platform_role_assignment;
 mod routes;

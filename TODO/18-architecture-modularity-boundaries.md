@@ -944,8 +944,9 @@ Wiring rule:
       Progress: `http/access_control` role catalog and delegated-permission
       handlers, `http/notifications` handlers, and `http/operations` handlers
       now use typed JSON/text/status responders with `ApiError` where errors
-      are possible; other HTTP contexts still need the same treatment before
-      this is done.
+      are possible. Identity session, user profile/list, and platform role
+      assignment handlers also use typed results. Other HTTP contexts still
+      need the same treatment before this is done.
 - [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
 - [x] Configure JSON limits and JSON parse errors centrally so every route has
@@ -1301,6 +1302,37 @@ Batch 292: move notifications and operations handlers to typed HTTP results.
       return cleanup only. Reporting, wallet, rewards, learning, identity,
       organizations, content, and teacher-application handlers still contain
       manual response branches.
+
+Batch 293: move identity session and user handlers to typed HTTP results.
+
+- [x] Repointed `/api/me`, `/user`, `/user/{id}`, and `/user/{id}/role`
+      handlers away from manual `HttpResponse`/`impl Responder` branches and
+      into typed JSON/text results with `ApiError` where errors are possible.
+- [x] Added `http/identity/errors.rs` as the identity HTTP boundary's local
+      mapper for current-session, user-profile, user-list, and platform-role
+      assignment errors, keeping application errors Actix-free.
+- [x] Kept the current-session extractor local to the HTTP boundary while
+      returning the shared `ApiError` envelope for missing authenticated claims.
+- [x] Covered user-profile forbidden and platform-role-not-found mappings with
+      focused unit tests that render and assert the shared `ApiError` JSON
+      envelope.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::identity::errors`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api current_session_rejects_unverified_email`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api current_session_reports_missing_user`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control read_user_routes_require_view_user_or_self`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control test_platform_permission_middleware`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control platform_role_assignment_enforces_hierarchy`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      touched identity handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes identity session/read/admin-role handlers
+      only. Legacy identity authentication flows such as resend verification,
+      forgot password, login, registration, password reset, verify email, JWKS,
+      and `/auth/user_id` still contain manual response branches.
 
 Batch 287: remove the final legacy request-auth helper.
 
