@@ -1,3 +1,6 @@
+use crate::assertions::*;
+use crate::support::*;
+
 #[actix_web::test]
 async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
     let pool = setup_pool();
@@ -62,7 +65,10 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
     assert_eq!(teacher_block.teacher_user_id, Some(teacher.id()));
     assert_eq!(teacher_block.created_by_user_id, admin.id());
     assert_eq!(teacher_block.reason, "suspicious reward approvals");
-    assert_eq!(teacher_block.evidence_reference.as_deref(), Some("case://teacher-block"));
+    assert_eq!(
+        teacher_block.evidence_reference.as_deref(),
+        Some("case://teacher-block")
+    );
     assert!(teacher_block.revoked_at.is_none());
     assert_active_teacher_block_listed(&fraud_blocks, admin.id(), teacher.id(), teacher_block.id)
         .await;
@@ -109,19 +115,7 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
     drop(conn);
 
     let organization_block = fraud_blocks
-        .create_reward_fraud_block(
-            admin.id(),
-            CreateRewardFraudBlockCommand {
-            scope_type: REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION.to_string(),
-            teacher_user_id: None,
-            organization_id: Some(organization.id),
-            course_id: None,
-            reward_policy_id: None,
-            reason: "organization reward submissions paused".to_string(),
-            evidence_reference: None,
-            expires_at: None,
-        },
-        )
+        .create_reward_fraud_block(admin.id(), organization_block_request(organization.id))
         .await
         .expect("admin should block organization reward activity");
     assert_eq!(
@@ -154,15 +148,15 @@ async fn platform_permissions_create_and_revoke_reward_fraud_blocks() {
         .create_reward_fraud_block(
             admin.id(),
             CreateRewardFraudBlockCommand {
-            scope_type: REWARD_FRAUD_BLOCK_SCOPE_COURSE.to_string(),
-            teacher_user_id: None,
-            organization_id: None,
-            course_id: Some(course.id),
-            reward_policy_id: None,
-            reason: "course reward rules under review".to_string(),
-            evidence_reference: Some("case://course-block".to_string()),
-            expires_at: None,
-        },
+                scope_type: REWARD_FRAUD_BLOCK_SCOPE_COURSE.to_string(),
+                teacher_user_id: None,
+                organization_id: None,
+                course_id: Some(course.id),
+                reward_policy_id: None,
+                reason: "course reward rules under review".to_string(),
+                evidence_reference: Some("case://course-block".to_string()),
+                expires_at: None,
+            },
         )
         .await
         .expect("admin should block course reward activity through fraud management permission");

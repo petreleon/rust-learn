@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn course_reward_candidates_list_filters_by_actor() {
     let _ = dotenvy::dotenv();
@@ -30,7 +32,10 @@ async fn course_reward_candidates_list_filters_by_actor() {
             course.id,
             other_student.id()
         ))
-        .insert_header(("Authorization", format!("Bearer {}", token_for(student.id()))))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(student.id())),
+        ))
         .to_request();
     let student_resp = test::call_service(&app, student_req).await;
     assert_eq!(student_resp.status(), StatusCode::OK);
@@ -48,7 +53,10 @@ async fn course_reward_candidates_list_filters_by_actor() {
             course.id,
             other_student.id()
         ))
-        .insert_header(("Authorization", format!("Bearer {}", token_for(teacher.id()))))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(teacher.id())),
+        ))
         .to_request();
     let teacher_resp = test::call_service(&app, teacher_req).await;
     assert_eq!(teacher_resp.status(), StatusCode::OK);
@@ -65,10 +73,18 @@ async fn course_reward_candidates_list_filters_by_actor() {
             "/courses/{}/reward-candidates?status=not-a-real-status",
             course.id
         ))
-        .insert_header(("Authorization", format!("Bearer {}", token_for(teacher.id()))))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(teacher.id())),
+        ))
         .to_request();
     let invalid_resp = test::call_service(&app, invalid_req).await;
     assert_eq!(invalid_resp.status(), StatusCode::CONFLICT);
-    let body = to_bytes(invalid_resp.into_body()).await.unwrap();
-    assert_eq!(body.as_ref(), b"unsupported reward candidate status");
+    let body: Value = test::read_body_json(invalid_resp).await;
+    assert_eq!(body["error"]["code"], "invalid_reward_status");
+    assert_eq!(
+        body["error"]["message"],
+        "unsupported reward candidate status"
+    );
+    assert_eq!(body["error"]["status"].as_u64(), Some(409));
 }

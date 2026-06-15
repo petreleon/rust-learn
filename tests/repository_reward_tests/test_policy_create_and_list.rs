@@ -1,3 +1,5 @@
+use crate::support::*;
+
 // ── reward_policy_repository ──
 
 #[actix_web::test]

@@ -1,3 +1,5 @@
+use crate::support::*;
+
 // ── reward_fraud_block_repository ──
 
 #[actix_web::test]

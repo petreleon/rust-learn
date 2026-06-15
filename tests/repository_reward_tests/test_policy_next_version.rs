@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn test_policy_next_version() {
     let mut conn = setup_conn().await;
@@ -44,20 +46,4 @@ async fn test_policy_next_version() {
     .await
     .unwrap();
     assert_eq!(v2, 2);
-}
-
-// ── Helpers ──
-
-fn new_candidate(course_id: i32, student_user_id: i32, key: &str) -> NewRewardCandidate {
-    NewRewardCandidate {
-        course_id,
-        student_user_id,
-        submitter_user_id: student_user_id,
-        source_scope: REWARD_SOURCE_COURSE.to_string(),
-        source_organization_id: None,
-        event_type: REWARD_EVENT_COURSE_COMPLETION.to_string(),
-        idempotency_key: key.to_string(),
-        evidence: json!({"completion_percentage": 100.0}),
-        status: REWARD_STATUS_PENDING_TEACHER_APPROVAL.to_string(),
-    }
 }

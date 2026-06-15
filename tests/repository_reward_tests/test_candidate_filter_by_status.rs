@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn test_candidate_filter_by_status() {
     let mut conn = setup_conn().await;

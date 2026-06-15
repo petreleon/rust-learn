@@ -2022,6 +2022,31 @@ Batch 316: remove access-control test include shells and unify check wiring.
       integration-test crates still use `include!`/`imports.rs`; the global
       no-include test cleanup remains open.
 
+Batch 317: normalize reward integration-test harness modules.
+
+- [x] Replaced the `repository_reward_tests`, `reward_candidate_audit`,
+      `reward_compensations`, `reward_course_candidates`,
+      `reward_fraud_blocks`, `reward_management_api`, and `reward_policies`
+      integration-test `include!` shells with explicit crate-local modules.
+- [x] Renamed each selected reward test `imports.rs` file to `support.rs`,
+      made shared helpers/re-exports crate-visible, and moved reward fraud-block
+      request builders into the assertion helper module instead of relying on
+      textual include scope.
+- [x] Updated stale reward API error assertions to match the current JSON error
+      envelope for candidate audit permission/not-found errors and unsupported
+      reward-candidate status errors.
+- [x] Proved behavior and boundaries with `cargo fmt --all`,
+      `./scripts/run-host-tests.sh cargo test --test reward_candidate_audit --test reward_course_candidates --test reward_compensations --test reward_fraud_blocks --test reward_management_api --test reward_policies --test repository_reward_tests`,
+      `cargo fmt --all --check`, `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      selected reward-harness `include!`/`imports.rs` scans, ring
+      import-boundary scans, `git diff --check`, and touched-file size checks.
+- [x] Self-critique: this batch removes reward-harness include coupling and
+      catches API-envelope drift in the tests, but the global no-include test
+      cleanup remains open until every remaining integration-test crate has the
+      same explicit-module shape.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
