@@ -48,7 +48,7 @@ impl PlatformPermissionMiddleware {
                         .can(
                             AccessActor::user(user_jwt.user_id),
                             AccessAction::permission(permission_name.clone()),
-                            AccessScope::Platform,
+                            AccessScope::platform(),
                         )
                         .await
                     {

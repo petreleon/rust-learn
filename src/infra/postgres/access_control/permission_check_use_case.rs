@@ -21,24 +21,24 @@ impl AccessDecisionUseCase for DbPool {
 
             let permission = action.permission_name();
             match scope {
-                AccessScope::Platform => {
+                AccessScope::Platform(_) => {
                     permission_checks::has_platform_permission(&mut conn, actor.user_id, permission)
                         .await
                 }
-                AccessScope::Course { course_id } => {
+                AccessScope::Course(scope) => {
                     permission_checks::has_course_permission(
                         &mut conn,
                         actor.user_id,
-                        course_id,
+                        scope.course_id(),
                         permission,
                     )
                     .await
                 }
-                AccessScope::Organization { organization_id } => {
+                AccessScope::Organization(scope) => {
                     permission_checks::has_organization_permission(
                         &mut conn,
                         actor.user_id,
-                        organization_id,
+                        scope.organization_id(),
                         permission,
                     )
                     .await

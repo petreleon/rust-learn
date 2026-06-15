@@ -61,7 +61,7 @@ async fn can_platform(
         .can(
             actor,
             AccessAction::permission(permission.as_str()),
-            AccessScope::Platform,
+            AccessScope::platform(),
         )
         .await
 }
@@ -76,7 +76,7 @@ async fn can_organization(
         .can(
             actor,
             AccessAction::permission(permission.as_str()),
-            AccessScope::Organization { organization_id },
+            AccessScope::organization(organization_id),
         )
         .await
 }

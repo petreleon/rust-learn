@@ -27,18 +27,20 @@ impl RewardAuthorizationStore for FakeRewardAuthorizationStore {
     ) -> BoxFuture<'_, Result<bool, RewardAuthorizationError>> {
         let permission = permission_from_action(&action);
         let allowed = match scope {
-            AccessScope::Platform => {
+            AccessScope::Platform(_) => {
                 self.platform_checks.push(permission);
                 self.platform_permissions.contains(&permission)
             }
-            AccessScope::Course { course_id } => {
-                self.course_checks.push((course_id, permission));
-                self.course_permissions.contains(&(course_id, permission))
+            AccessScope::Course(scope) => {
+                self.course_checks.push((scope.course_id(), permission));
+                self.course_permissions
+                    .contains(&(scope.course_id(), permission))
             }
-            AccessScope::Organization { organization_id } => {
-                self.organization_checks.push((organization_id, permission));
+            AccessScope::Organization(scope) => {
+                self.organization_checks
+                    .push((scope.organization_id(), permission));
                 self.organization_permissions
-                    .contains(&(organization_id, permission))
+                    .contains(&(scope.organization_id(), permission))
             }
         };
 

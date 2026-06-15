@@ -25,16 +25,17 @@ impl WalletAuthorizationStore for FakeWalletAuthorizationStore {
     ) -> BoxFuture<'_, Result<bool, WalletAuthorizationError>> {
         let permission = permission_from_action(&action);
         let allowed = match scope {
-            AccessScope::Platform => {
+            AccessScope::Platform(_) => {
                 self.platform_checks.push(permission);
                 self.platform_permissions.contains(&permission)
             }
-            AccessScope::Organization { organization_id } => {
-                self.organization_checks.push((organization_id, permission));
+            AccessScope::Organization(scope) => {
+                self.organization_checks
+                    .push((scope.organization_id(), permission));
                 self.organization_permissions
-                    .contains(&(organization_id, permission))
+                    .contains(&(scope.organization_id(), permission))
             }
-            AccessScope::Course { .. } => false,
+            AccessScope::Course(_) => false,
         };
 
         ready(Ok(allowed)).boxed()

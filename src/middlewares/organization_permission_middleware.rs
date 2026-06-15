@@ -83,7 +83,7 @@ impl OrganizationPermissionMiddleware {
                         .can(
                             AccessActor::user(user_jwt.user_id),
                             AccessAction::permission(permission_name.clone()),
-                            AccessScope::Organization { organization_id },
+                            AccessScope::organization(organization_id),
                         )
                         .await
                     {

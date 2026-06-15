@@ -1642,6 +1642,35 @@ Batch 304: move reward and wallet authorization stores onto `can(...)`.
       the final middleware/application single-service consolidation, for later
       batches.
 
+Batch 305: type access-control decision scopes.
+
+- [x] Replaced loose `AccessScope` variants with explicit `PlatformScope`,
+      `CourseScope`, and `OrganizationScope` value objects plus constructor
+      methods, so middleware and application authorization callers no longer
+      construct scope internals by hand.
+- [x] Repointed platform/course/organization middleware, reward authorization,
+      wallet authorization, Postgres access-control adapters, and fake stores
+      to the typed scope constructors and match wrappers.
+- [x] Added a domain `DelegatedScope` value type to delegated-permission scope
+      normalization while preserving existing `scope_type`, `organization_id`,
+      and `course_id` fields for HTTP/DB compatibility.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::check_permission`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::authorize_reward`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::authorize_wallet`,
+      `./scripts/run-host-tests.sh cargo test --lib domain::access_control::delegation`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale `AccessScope` constructor scans, ring import-boundary scans,
+      `git diff --check`, and touched access-control file-size checks.
+- [x] Self-critique: this closes the practical scope-typing item for the shared
+      access decision API and delegated-permission normalization. It does not
+      complete central authorization: older learning/teacher-application
+      permission ports and the final middleware/application single-service
+      consolidation remain separate follow-up work.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1820,7 +1849,7 @@ boundary checks from the matrix above to every canonical context.
       decisions.
 - [x] Reward and wallet authorization stores use the same `AccessActor`,
       `AccessAction`, and `AccessScope` vocabulary as route middleware.
-- [ ] Encode scope as types instead of loose strings where practical:
+- [x] Encode scope as types instead of loose strings where practical:
       `PlatformScope`, `OrganizationScope`, `CourseScope`, `DelegatedScope`.
 - [ ] Make middleware call the same access-control service as application use
       cases.

@@ -31,17 +31,18 @@ impl RewardAuthorizationStore for PostgresRewardAuthorizationStore<'_> {
         async move {
             let permission = action.permission_name();
             match scope {
-                AccessScope::Platform => {
+                AccessScope::Platform(_) => {
                     has_platform_permission(self.conn, actor.user_id, permission).await
                 }
-                AccessScope::Course { course_id } => {
-                    has_course_permission(self.conn, actor.user_id, course_id, permission).await
+                AccessScope::Course(scope) => {
+                    has_course_permission(self.conn, actor.user_id, scope.course_id(), permission)
+                        .await
                 }
-                AccessScope::Organization { organization_id } => {
+                AccessScope::Organization(scope) => {
                     has_organization_permission(
                         self.conn,
                         actor.user_id,
-                        organization_id,
+                        scope.organization_id(),
                         permission,
                     )
                     .await

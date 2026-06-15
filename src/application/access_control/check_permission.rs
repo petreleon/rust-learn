@@ -15,10 +15,63 @@ impl AccessActor {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PlatformScope(());
+
+impl PlatformScope {
+    pub fn new() -> Self {
+        Self(())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CourseScope {
+    course_id: i32,
+}
+
+impl CourseScope {
+    pub fn new(course_id: i32) -> Self {
+        Self { course_id }
+    }
+
+    pub fn course_id(&self) -> i32 {
+        self.course_id
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct OrganizationScope {
+    organization_id: i32,
+}
+
+impl OrganizationScope {
+    pub fn new(organization_id: i32) -> Self {
+        Self { organization_id }
+    }
+
+    pub fn organization_id(&self) -> i32 {
+        self.organization_id
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccessScope {
-    Platform,
-    Course { course_id: i32 },
-    Organization { organization_id: i32 },
+    Platform(PlatformScope),
+    Course(CourseScope),
+    Organization(OrganizationScope),
+}
+
+impl AccessScope {
+    pub fn platform() -> Self {
+        Self::Platform(PlatformScope::new())
+    }
+
+    pub fn course(course_id: i32) -> Self {
+        Self::Course(CourseScope::new(course_id))
+    }
+
+    pub fn organization(organization_id: i32) -> Self {
+        Self::Organization(OrganizationScope::new(organization_id))
+    }
 }
 
 pub type PermissionScope = AccessScope;
@@ -110,7 +163,7 @@ mod tests {
 
         let allowed = futures::executor::block_on(use_case.has_permission(
             7,
-            AccessScope::Platform,
+            AccessScope::platform(),
             "VIEW_REPORT".to_string(),
         ))
         .unwrap();
@@ -118,7 +171,7 @@ mod tests {
         assert!(allowed);
         assert_eq!(
             use_case.calls.into_inner().unwrap(),
-            vec![(7, "VIEW_REPORT".to_string(), AccessScope::Platform)]
+            vec![(7, "VIEW_REPORT".to_string(), AccessScope::platform())]
         );
     }
 }

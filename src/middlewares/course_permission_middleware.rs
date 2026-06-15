@@ -88,7 +88,7 @@ impl CoursePermissionMiddleware {
                         .can(
                             AccessActor::user(user_jwt.user_id),
                             AccessAction::permission(permission_name.clone()),
-                            AccessScope::Course { course_id },
+                            AccessScope::course(course_id),
                         )
                         .await
                     {
