@@ -1,24 +1,26 @@
 use diesel_async::AsyncPgConnection;
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::organizations::list_organization_courses::{
     OrganizationCourseListError, OrganizationCoursePermissionSummaryOutput,
 };
 use crate::config::constants::permissions::Permissions;
-use crate::infra::postgres::organizations::organization_permission_checks::can_platform_or_organization_permission;
+use crate::infra::postgres::access_control::permission_checks;
 
 pub async fn can_view_organization_courses(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,
 ) -> Result<bool, OrganizationCourseListError> {
-    can_platform_or_organization_permission(
+    can_organization_operator(
         conn,
         actor_user_id,
         organization_id,
         Permissions::VIEW_ORGANIZATION,
     )
     .await
-    .map_err(map_organization_error)
 }
 
 async fn can_organization_operator(
@@ -27,9 +29,17 @@ async fn can_organization_operator(
     organization_id: i32,
     permission: Permissions,
 ) -> Result<bool, OrganizationCourseListError> {
-    can_platform_or_organization_permission(conn, actor_user_id, organization_id, permission)
-        .await
-        .map_err(map_organization_error)
+    permission_checks::can_any(
+        conn,
+        AccessActor::user(actor_user_id),
+        AccessAction::permission(permission.to_string()),
+        &[
+            AccessScope::platform(),
+            AccessScope::organization(organization_id),
+        ],
+    )
+    .await
+    .map_err(map_organization_error)
 }
 
 pub async fn build_organization_course_permissions(

@@ -4,6 +4,9 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::organizations::list_organization_members::{
     OrganizationMemberListError, OrganizationMemberOperatorPermissionsOutput,
 };
@@ -11,8 +14,8 @@ use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{
     delegated_permissions, role_permission_organization, user_role_organization,
 };
+use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::organizations::organization_member_builders::OrganizationMemberBuilder;
-use crate::infra::postgres::organizations::organization_permission_checks::can_platform_or_organization_permission;
 
 pub async fn can_view_organization_members(
     conn: &mut AsyncPgConnection,
@@ -147,9 +150,17 @@ async fn can_organization_operator(
     organization_id: i32,
     permission: Permissions,
 ) -> Result<bool, OrganizationMemberListError> {
-    can_platform_or_organization_permission(conn, actor_user_id, organization_id, permission)
-        .await
-        .map_err(map_member_error)
+    permission_checks::can_any(
+        conn,
+        AccessActor::user(actor_user_id),
+        AccessAction::permission(permission.to_string()),
+        &[
+            AccessScope::platform(),
+            AccessScope::organization(organization_id),
+        ],
+    )
+    .await
+    .map_err(map_member_error)
 }
 
 fn map_member_error(error: diesel::result::Error) -> OrganizationMemberListError {

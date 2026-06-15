@@ -31,48 +31,19 @@ pub(crate) async fn can(
     }
 }
 
-pub(crate) async fn can_platform_permission(
+pub(crate) async fn can_any(
     conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-    permission: &str,
+    actor: AccessActor,
+    action: AccessAction,
+    scopes: &[AccessScope],
 ) -> QueryResult<bool> {
-    can(
-        conn,
-        AccessActor::user(actor_user_id),
-        AccessAction::permission(permission),
-        AccessScope::platform(),
-    )
-    .await
-}
+    for scope in scopes {
+        if can(conn, actor, action.clone(), *scope).await? {
+            return Ok(true);
+        }
+    }
 
-pub(crate) async fn can_course_permission(
-    conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-    course_id: i32,
-    permission: &str,
-) -> QueryResult<bool> {
-    can(
-        conn,
-        AccessActor::user(actor_user_id),
-        AccessAction::permission(permission),
-        AccessScope::course(course_id),
-    )
-    .await
-}
-
-pub(crate) async fn can_organization_permission(
-    conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-    organization_id: i32,
-    permission: &str,
-) -> QueryResult<bool> {
-    can(
-        conn,
-        AccessActor::user(actor_user_id),
-        AccessAction::permission(permission),
-        AccessScope::organization(organization_id),
-    )
-    .await
+    Ok(false)
 }
 
 async fn has_platform_permission(

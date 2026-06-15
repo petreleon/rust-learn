@@ -2,6 +2,9 @@ use diesel::dsl::{exists, select};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::learning::course_enrollment::{
     CourseEnrollmentError, CourseJoinRequestOutput,
 };
@@ -39,18 +42,30 @@ pub async fn has_course_context_permission(
     course_id: i32,
     permission: &str,
 ) -> Result<bool, CourseEnrollmentError> {
-    if permission_checks::can_course_permission(conn, user_id, course_id, permission).await?
-        || permission_checks::can_platform_permission(conn, user_id, permission).await?
+    if permission_checks::can(
+        conn,
+        AccessActor::user(user_id),
+        AccessAction::permission(permission),
+        AccessScope::course(course_id),
+    )
+    .await?
+        || permission_checks::can(
+            conn,
+            AccessActor::user(user_id),
+            AccessAction::permission(permission),
+            AccessScope::platform(),
+        )
+        .await?
     {
         return Ok(true);
     }
 
     for organization_id in course_organization_ids(conn, course_id).await? {
-        if permission_checks::can_organization_permission(
+        if permission_checks::can(
             conn,
-            user_id,
-            organization_id,
-            permission,
+            AccessActor::user(user_id),
+            AccessAction::permission(permission),
+            AccessScope::organization(organization_id),
         )
         .await?
         {

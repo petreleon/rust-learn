@@ -1,13 +1,16 @@
 use diesel_async::AsyncPgConnection;
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::organizations::get_organization_dashboard::{
     OrganizationDashboardError, OrganizationDashboardOperatorPermissionsOutput,
 };
 use crate::config::constants::permissions::Permissions;
+use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::organizations::organization_dashboard_mappers::map_dashboard_error;
 use crate::infra::postgres::organizations::organization_permission_checks::{
-    can_platform_or_organization_permission, has_any_active_organization_delegation,
-    has_any_organization_role,
+    has_any_active_organization_delegation, has_any_organization_role,
 };
 
 pub async fn can_view_dashboard(
@@ -99,7 +102,15 @@ async fn can_organization_operator(
     organization_id: i32,
     permission: Permissions,
 ) -> Result<bool, OrganizationDashboardError> {
-    can_platform_or_organization_permission(conn, actor_user_id, organization_id, permission)
-        .await
-        .map_err(map_dashboard_error)
+    permission_checks::can_any(
+        conn,
+        AccessActor::user(actor_user_id),
+        AccessAction::permission(permission.to_string()),
+        &[
+            AccessScope::platform(),
+            AccessScope::organization(organization_id),
+        ],
+    )
+    .await
+    .map_err(map_dashboard_error)
 }

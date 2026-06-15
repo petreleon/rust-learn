@@ -1884,6 +1884,40 @@ Batch 311: move organization action authorization ports to access decisions.
       organization permission helper modules and need a separate batch before
       the final middleware/application single-service cleanup.
 
+Batch 312: remove scope-specific Postgres permission wrappers.
+
+- [x] Removed `can_platform_permission`, `can_course_permission`, and
+      `can_organization_permission` from
+      `infra/postgres/access_control/permission_checks`; remaining backend
+      permission decisions now go through typed `can(actor, action, scope)` or
+      the typed ordered `can_any(actor, action, scopes)` helper.
+- [x] Migrated delegated-permission grant authorization, learner course access,
+      course enrollment, teacher-course dashboard permissions, organization
+      member/course capability summaries, organization dashboard capability
+      summaries, and public permission query helpers to build `AccessActor`,
+      `AccessAction`, and `AccessScope` directly.
+- [x] Deleted the organization-specific
+      `can_platform_or_organization_permission` helper. The organization
+      permission helper module now only owns the dashboard-specific
+      any-organization-role / active-organization-delegation visibility checks.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control`,
+      `./scripts/run-host-tests.sh cargo test --lib learning`,
+      `./scripts/run-host-tests.sh cargo test --lib organizations`,
+      `./scripts/run-host-tests.sh cargo test --test course_discovery --test course_join_requests --test course_enrollment_api --test teacher_course_dashboard --test organization_members --test organization_dashboard --test organization_permissions --test delegated_permissions --test course_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test platform_permissions --test repository_core_tests --test middleware_access_control`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale scope-specific permission-wrapper scans, ring import-boundary
+      scans, `git diff --check`, and touched-file size checks.
+- [x] Self-critique: this removes the remaining backend scope-specific
+      permission-check wrappers and the organization platform-or-organization
+      read-model helper. The public `permission_queries` test/compatibility
+      surface still exists, application use cases still consume store-oriented
+      `AccessDecisionStore` adapters, and the final middleware/application
+      same-service cleanup remains open until those contracts are consolidated.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -2067,8 +2101,8 @@ boundary checks from the matrix above to every canonical context.
 - [x] Middleware, reward authorization, and wallet authorization now share the
       same Postgres `can(actor, action, scope)` decision helper.
 - [x] Migrated learning, teacher-application, identity, KYC, organization, and
-      delegated-permission Postgres adapters to shared `can_*_permission`
-      decision wrappers instead of direct low-level permission helpers.
+      delegated-permission Postgres adapters to shared typed access decisions
+      instead of direct low-level permission helpers.
 - [x] Learning course creation, course update, course lifecycle, and learner
       progress application store ports now use the shared mutable
       access-decision store contract instead of context-specific permission
@@ -2083,6 +2117,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Organization invite, removal, role assignment, member-audit, and
       teacher-application list action gates now use the shared mutable
       access-decision store contract.
+- [x] Scope-specific Postgres permission wrapper functions have been removed;
+      remaining backend infra callers build typed access decisions against
+      `permission_checks::can` or `permission_checks::can_any`.
 - [ ] Make middleware call the same access-control service as application use
       cases.
 - [ ] Keep middleware as an early rejection optimization; do not make it the

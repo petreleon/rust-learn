@@ -2,6 +2,9 @@ use diesel::dsl::{exists, select};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::access_control::manage_delegated_permissions::{
     DelegatedPermissionError, DelegatedPermissionFilter, DelegatedPermissionOutput,
 };
@@ -13,16 +16,17 @@ use crate::infra::postgres::access_control::delegated_permissions::mappers::{
 use crate::infra::postgres::access_control::delegated_permissions::records::{
     self, DelegatedPermissionRecordFilter,
 };
-use crate::infra::postgres::access_control::permission_checks::can_platform_permission;
+use crate::infra::postgres::access_control::permission_checks;
 
 pub(super) async fn can_delegate_reward_permissions(
     conn: &mut AsyncPgConnection,
     user_id: i32,
 ) -> Result<bool, DelegatedPermissionError> {
-    can_platform_permission(
+    permission_checks::can(
         conn,
-        user_id,
-        &Permissions::DELEGATE_REWARD_APPROVAL.to_string(),
+        AccessActor::user(user_id),
+        AccessAction::permission(Permissions::DELEGATE_REWARD_APPROVAL.to_string()),
+        AccessScope::platform(),
     )
     .await
     .map_err(map_error)
