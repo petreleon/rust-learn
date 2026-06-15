@@ -939,7 +939,7 @@ Wiring rule:
       `HttpServer::new` closure, then pass them with `web::Data`.
 - [x] Prefer typed extractors over manual `HttpRequest` parsing where possible:
       `AuthUser`, `DbConn`, `Json<T>`, `Path<T>`, and `Query<T>`.
-- [ ] API handlers return `Result<web::Json<T>, ApiError>` or equivalent,
+- [x] API handlers return `Result<web::Json<T>, ApiError>` or equivalent,
       instead of manually matching every service error to `HttpResponse`.
       Progress: `http/access_control` role catalog and delegated-permission
       handlers, `http/notifications` handlers, and `http/operations` handlers
@@ -962,8 +962,13 @@ Wiring rule:
       and CSV export handlers now use typed JSON/CSV download results with
       reporting HTTP error mappers. Rewards candidate, policy, fraud-block,
       audit, history, and review handlers now use typed JSON/status results
-      with rewards HTTP error mappers. Learning is the remaining context that
-      still needs the same treatment before this is done.
+      with rewards HTTP error mappers. Learning course catalog, management,
+      lifecycle, organizations, roles, enrollment, progress, assessment, and
+      teaching handlers now use typed JSON/text/status results with granular
+      learning HTTP error mappers. Repository-wide HTTP scans now find manual
+      `HttpResponse` construction only in the shared JSON `ApiError`
+      `ResponseError` and the intentional identity-auth plain-text
+      `ResponseError`.
 - [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
 - [x] Configure JSON limits and JSON parse errors centrally so every route has
@@ -1553,6 +1558,34 @@ Batch 301: move rewards handlers to typed HTTP results.
 - [x] Self-critique: this completes the rewards HTTP typed-result slice only.
       Learning still contains manual response branches.
 
+Batch 302: move learning handlers to typed HTTP results.
+
+- [x] Added granular `http/learning/course_routes/errors` modules for learning
+      management, catalog, enrollment, teaching, assessment, and shared
+      learning HTTP mapper helpers, all returning the shared `ApiError`
+      envelope from the HTTP boundary.
+- [x] Repointed course catalog/read/discovery, management, lifecycle,
+      organizations, role assignment, enrollment, progress, assessment, and
+      teacher-course handlers away from handler-local `HttpResponse`/`impl
+      Responder` branches and into typed JSON/text/status results.
+- [x] Removed the old learning `support.rs` response helpers now that route
+      functions delegate application-error mapping to context-owned HTTP error
+      modules.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::learning::course_routes::errors`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing api_scope_and_following_routes_are_reachable`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      learning and repository-wide handler `HttpResponse`/`impl Responder`
+      scans, learning DB/Diesel/service dependency scans, domain/application
+      Actix-boundary scans, `include!`/`imports.rs` scans, `git diff --check`,
+      and touched learning file-size checks.
+- [x] Self-critique: this completes the final known HTTP typed-result cleanup
+      context. The remaining Level 2 work is deeper boundary hardening such as
+      central authorization, capability-contract cleanup, and residual legacy
+      model/repository ownership, not handler-local response construction.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1815,7 +1848,10 @@ boundary checks from the matrix above to every canonical context.
       receive injected application use cases with Postgres adapters/use cases,
       bootstrap wiring, and route tests; the HTTP assessment handler no longer
       owns DB pool access or concrete Postgres store construction.
-- [ ] Move remaining learning service/DB-heavy handlers into application use
+- [x] Learning HTTP handlers return typed JSON/text/status results and map
+      application errors through granular `http/learning/course_routes/errors`
+      modules; the old route-local response helpers were deleted.
+- [x] Move remaining learning service/DB-heavy handlers into application use
       cases with Postgres adapters.
 
 ## Organizations Context
@@ -1957,7 +1993,7 @@ boundary checks from the matrix above to every canonical context.
       database pool.
 - [ ] A use-case test can run with fake ports for authorization, persistence,
       notifications, and time.
-- [ ] API handlers mostly contain extraction, use-case call, and response
+- [x] API handlers mostly contain extraction, use-case call, and response
       mapping; no complex Diesel query builders.
 - [ ] Permission behavior has one backend source of truth.
 - [x] `main.rs` is mostly logging/env setup, bootstrap calls, and server start.

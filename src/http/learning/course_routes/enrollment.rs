@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{http::StatusCode, web};
 
 use crate::application::learning::course_enrollment::{
     CourseEnrollmentUseCase, RemoveCourseEnrollmentCommand, RequestCourseJoinCommand,
@@ -8,12 +8,13 @@ use crate::application::learning::course_enrollment::{
 use crate::application::notifications::delivery::{
     EnrollmentNotificationCommand, NotificationDeliveryUseCase,
 };
+use crate::http::errors::ApiError;
 use crate::http::extractors::auth_user::AuthUserId;
 use crate::http::learning::dto::{
     CourseEnrollmentRemovalResponse, CourseJoinDecisionRequest, CourseJoinRequestResponse,
 };
 
-use super::support::course_enrollment_error_response;
+use super::errors::course_enrollment_error;
 
 async fn send_enrollment_notification(
     notifications: &Arc<dyn NotificationDeliveryUseCase>,
@@ -40,21 +41,19 @@ pub(super) async fn request_course_join(
     requester: AuthUserId,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn CourseEnrollmentUseCase>>,
-) -> impl Responder {
+) -> Result<(web::Json<CourseJoinRequestResponse>, StatusCode), ApiError> {
     let requester_user_id = requester.into_inner();
 
-    match use_case
+    use_case
         .request_course_join(RequestCourseJoinCommand {
             actor_user_id: requester_user_id,
             course_id: path.into_inner(),
         })
         .await
-    {
-        Ok(join_request) => {
-            HttpResponse::Created().json(CourseJoinRequestResponse::from(join_request))
-        }
-        Err(error) => course_enrollment_error_response(error),
-    }
+        .map(CourseJoinRequestResponse::from)
+        .map(web::Json)
+        .map(|response| (response, StatusCode::CREATED))
+        .map_err(course_enrollment_error)
 }
 
 pub(super) async fn decide_course_join_request(
@@ -63,47 +62,46 @@ pub(super) async fn decide_course_join_request(
     use_case: web::Data<Arc<dyn CourseEnrollmentUseCase>>,
     notifications: Option<web::Data<Arc<dyn NotificationDeliveryUseCase>>>,
     body: web::Json<CourseJoinDecisionRequest>,
-) -> impl Responder {
+) -> Result<web::Json<CourseJoinRequestResponse>, ApiError> {
     let reviewer_user_id = reviewer.into_inner();
     let (course_id, request_id) = path.into_inner();
 
-    match use_case
+    let output = use_case
         .decide_course_join_request(body.into_inner().into_command(
             reviewer_user_id,
             course_id,
             request_id,
         ))
         .await
-    {
-        Ok(output) => {
-            if let Some(notification) = output.enrollment_notification {
-                if let Some(notifications) = notifications {
-                    send_enrollment_notification(&notifications, notification).await;
-                }
-            }
-            HttpResponse::Ok().json(CourseJoinRequestResponse::from(output.join_request))
+        .map_err(course_enrollment_error)?;
+
+    if let Some(notification) = output.enrollment_notification {
+        if let Some(notifications) = notifications {
+            send_enrollment_notification(&notifications, notification).await;
         }
-        Err(error) => course_enrollment_error_response(error),
     }
+
+    Ok(web::Json(CourseJoinRequestResponse::from(
+        output.join_request,
+    )))
 }
 
 pub(super) async fn remove_course_enrollment(
     actor: AuthUserId,
     path: web::Path<(i32, i32)>,
     use_case: web::Data<Arc<dyn CourseEnrollmentUseCase>>,
-) -> impl Responder {
+) -> Result<web::Json<CourseEnrollmentRemovalResponse>, ApiError> {
     let actor_user_id = actor.into_inner();
     let (course_id, target_user_id) = path.into_inner();
 
-    match use_case
+    use_case
         .remove_course_enrollment(RemoveCourseEnrollmentCommand {
             actor_user_id,
             course_id,
             target_user_id,
         })
         .await
-    {
-        Ok(removal) => HttpResponse::Ok().json(CourseEnrollmentRemovalResponse::from(removal)),
-        Err(error) => course_enrollment_error_response(error),
-    }
+        .map(CourseEnrollmentRemovalResponse::from)
+        .map(web::Json)
+        .map_err(course_enrollment_error)
 }
