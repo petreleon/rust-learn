@@ -1,10 +1,12 @@
+use crate::{reward_candidate_error::RewardCandidateError, support::*};
+
+pub(crate) use rust_learn::application::rewards::decide_amount::RewardAmountDecisionCommand as RewardAmountDecisionRequest;
 use rust_learn::application::rewards::decide_amount::{
-    RewardAmountDecisionCommand as RewardAmountDecisionRequest, RewardAmountDecisionError,
-    RewardAmountDecisionOutput, RewardAmountDecisionUseCase,
+    RewardAmountDecisionError, RewardAmountDecisionOutput, RewardAmountDecisionUseCase,
 };
 use rust_learn::infra::postgres::rewards::reward_amount_decision_use_case::PostgresRewardAmountDecisionUseCase;
 
-async fn decide_reward_amount(
+pub(crate) async fn decide_reward_amount(
     _conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     candidate_id: i64,

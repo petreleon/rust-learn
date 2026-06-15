@@ -1,3 +1,9 @@
+use crate::{
+    amount_decision_helper::*, force_assign_organization_role::*, link_course_to_organization::*,
+    reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
+    teacher_decision_helper::*,
+};
+
 async fn assert_scoped_fraud_block_pauses_reward_activity(scope: FraudBlockScopeUnderTest) {
     let mut conn = setup_conn().await;
     let organization = create_organization(&mut conn, &unique_string("ScopedBlockOrg")).await;

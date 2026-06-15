@@ -1,3 +1,9 @@
+use crate::{
+    force_assign_organization_role::*, link_course_to_organization::*,
+    reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
+    teacher_decision_helper::*,
+};
+
 #[actix_web::test]
 async fn organization_submission_requires_linked_course_and_still_waits_for_teacher() {
     let mut conn = setup_conn().await;

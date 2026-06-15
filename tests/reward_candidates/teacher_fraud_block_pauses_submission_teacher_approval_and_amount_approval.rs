@@ -1,3 +1,9 @@
+use crate::{
+    amount_decision_helper::*, force_assign_organization_role::*, link_course_to_organization::*,
+    reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
+    teacher_decision_helper::*,
+};
+
 #[actix_web::test]
 async fn teacher_fraud_block_pauses_submission_teacher_approval_and_amount_approval() {
     let mut conn = setup_conn().await;

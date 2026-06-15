@@ -1,4 +1,6 @@
-async fn force_assign_organization_role(
+use crate::{submission_helper::SubmitRewardCandidateRequest, support::*};
+
+pub(crate) async fn force_assign_organization_role(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     organization_id: i32,
@@ -7,12 +9,17 @@ async fn force_assign_organization_role(
     let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
         .await
         .expect("organization role not found");
-    organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)
-        .await
-        .expect("failed to assign organization role");
+    organization_role_records::assign_organization_role_to_user(
+        conn,
+        user_id,
+        organization_id,
+        role_id,
+    )
+    .await
+    .expect("failed to assign organization role");
 }
 
-async fn create_active_course_reward_policy(
+pub(crate) async fn create_active_course_reward_policy(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     event_type: &str,
@@ -38,7 +45,10 @@ async fn create_active_course_reward_policy(
         .expect("failed to create reward policy")
 }
 
-fn reward_request(student_user_id: i32, idempotency_key: &str) -> SubmitRewardCandidateRequest {
+pub(crate) fn reward_request(
+    student_user_id: i32,
+    idempotency_key: &str,
+) -> SubmitRewardCandidateRequest {
     SubmitRewardCandidateRequest {
         student_user_id,
         event_type: REWARD_EVENT_COURSE_COMPLETION.to_string(),
@@ -47,7 +57,7 @@ fn reward_request(student_user_id: i32, idempotency_key: &str) -> SubmitRewardCa
     }
 }
 
-fn teacher_fraud_block_request(teacher_user_id: i32) -> RewardFraudBlockRequest {
+pub(crate) fn teacher_fraud_block_request(teacher_user_id: i32) -> RewardFraudBlockRequest {
     RewardFraudBlockRequest {
         scope_type: REWARD_FRAUD_BLOCK_SCOPE_TEACHER.to_string(),
         teacher_user_id: Some(teacher_user_id),
@@ -61,13 +71,13 @@ fn teacher_fraud_block_request(teacher_user_id: i32) -> RewardFraudBlockRequest 
 }
 
 #[derive(Clone, Copy)]
-enum FraudBlockScopeUnderTest {
+pub(crate) enum FraudBlockScopeUnderTest {
     Organization,
     Course,
     RewardPolicy,
 }
 
-fn scoped_fraud_block_request(
+pub(crate) fn scoped_fraud_block_request(
     scope: FraudBlockScopeUnderTest,
     organization_id: i32,
     course_id: i32,
@@ -107,7 +117,7 @@ fn scoped_fraud_block_request(
     }
 }
 
-fn expected_block_message(scope: FraudBlockScopeUnderTest) -> &'static str {
+pub(crate) fn expected_block_message(scope: FraudBlockScopeUnderTest) -> &'static str {
     match scope {
         FraudBlockScopeUnderTest::Organization => "organization reward activity is blocked",
         FraudBlockScopeUnderTest::Course => "course reward activity is blocked",

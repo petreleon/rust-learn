@@ -1,3 +1,8 @@
+use crate::{
+    force_assign_organization_role::*, link_course_to_organization::*, submission_helper::*,
+    support::*, teacher_decision_helper::*,
+};
+
 #[actix_web::test]
 async fn custom_course_roles_with_reward_permissions_can_submit_and_approve_candidates() {
     let mut conn = setup_conn().await;

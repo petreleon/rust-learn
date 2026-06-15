@@ -1,3 +1,9 @@
+use crate::{
+    amount_decision_helper::*, force_assign_organization_role::*, link_course_to_organization::*,
+    reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
+    teacher_decision_helper::*,
+};
+
 #[actix_web::test]
 async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     let mut conn = setup_conn().await;
