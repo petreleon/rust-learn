@@ -1,142 +1,130 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::web;
 
 use crate::application::notifications::notification_inbox::{
-    NotificationInboxError, NotificationInboxUseCase, NotificationOutput,
+    NotificationInboxUseCase, NotificationOutput,
 };
 use crate::application::notifications::preference_service::NotificationPreferencesUseCase;
-use crate::application::notifications::preferences::NotificationPreferencesError;
+use crate::http::errors::ApiError;
 use crate::http::extractors::auth_user::AuthUserId;
 use crate::http::notifications::dto::{
     NotificationPreferencesRequest, NotificationPreferencesResponse, NotificationResponse,
+};
+use crate::http::notifications::errors::{
+    notification_inbox_error, notification_preferences_error,
 };
 
 pub async fn get_notification_preferences(
     preferences: web::Data<Arc<dyn NotificationPreferencesUseCase>>,
     user: AuthUserId,
-) -> impl Responder {
+) -> Result<web::Json<NotificationPreferencesResponse>, ApiError> {
     let user_id = user.into_inner();
 
-    match preferences.get_preferences(user_id).await {
-        Ok(preferences) => {
-            HttpResponse::Ok().json(NotificationPreferencesResponse::from(preferences))
-        }
-        Err(NotificationPreferencesError::Connection(_)) => {
-            HttpResponse::InternalServerError().body("DB unavailable")
-        }
-        Err(error) => {
-            log::error!(
-                "event=prefs_fetch_failed user_id={} error={}",
+    preferences
+        .get_preferences(user_id)
+        .await
+        .map(NotificationPreferencesResponse::from)
+        .map(web::Json)
+        .map_err(|error| {
+            notification_preferences_error(
+                "prefs_fetch_failed",
                 user_id,
-                notification_preferences_error_log(&error)
-            );
-            HttpResponse::InternalServerError().body("Failed to load preferences")
-        }
-    }
+                "Failed to load preferences",
+                error,
+            )
+        })
 }
 
 pub async fn save_notification_preferences(
     preferences: web::Data<Arc<dyn NotificationPreferencesUseCase>>,
     user: AuthUserId,
     body: web::Json<NotificationPreferencesRequest>,
-) -> impl Responder {
+) -> Result<web::Json<NotificationPreferencesResponse>, ApiError> {
     let user_id = user.into_inner();
     let command = body.into_inner().into_command(user_id);
 
-    match preferences.save_preferences(command).await {
-        Ok(preferences) => {
-            HttpResponse::Ok().json(NotificationPreferencesResponse::from(preferences))
-        }
-        Err(NotificationPreferencesError::Connection(_)) => {
-            HttpResponse::InternalServerError().body("DB unavailable")
-        }
-        Err(error) => {
-            log::error!(
-                "event=prefs_save_failed user_id={} error={}",
+    preferences
+        .save_preferences(command)
+        .await
+        .map(NotificationPreferencesResponse::from)
+        .map(web::Json)
+        .map_err(|error| {
+            notification_preferences_error(
+                "prefs_save_failed",
                 user_id,
-                notification_preferences_error_log(&error)
-            );
-            HttpResponse::InternalServerError().body("Failed to save preferences")
-        }
-    }
+                "Failed to save preferences",
+                error,
+            )
+        })
 }
 
 pub async fn list_notifications(
     inbox: web::Data<Arc<dyn NotificationInboxUseCase>>,
     user: AuthUserId,
-) -> impl Responder {
+) -> Result<web::Json<Vec<NotificationResponse>>, ApiError> {
     let user_id = user.into_inner();
 
-    match inbox.list_notifications(user_id).await {
-        Ok(list) => HttpResponse::Ok().json(notification_responses(list)),
-        Err(error) => {
-            log::error!(
-                "event=notifications_list_failed user_id={} error={}",
+    inbox
+        .list_notifications(user_id)
+        .await
+        .map(notification_responses)
+        .map(web::Json)
+        .map_err(|error| {
+            notification_inbox_error(
+                "notifications_list_failed",
                 user_id,
-                notification_inbox_error_log(&error)
-            );
-            HttpResponse::InternalServerError().body("Failed to load notifications")
-        }
-    }
+                None,
+                "Failed to load notifications",
+                error,
+            )
+        })
 }
 
 pub async fn mark_notification_read(
     inbox: web::Data<Arc<dyn NotificationInboxUseCase>>,
     user: AuthUserId,
     path: web::Path<i64>,
-) -> impl Responder {
+) -> Result<&'static str, ApiError> {
     let user_id = user.into_inner();
     let notification_id = path.into_inner();
 
-    match inbox.mark_notification_read(user_id, notification_id).await {
-        Ok(()) => HttpResponse::Ok().body("Notification marked as read"),
-        Err(error) => {
-            log::error!(
-                "event=notification_mark_read_failed user_id={} notification_id={} error={}",
+    inbox
+        .mark_notification_read(user_id, notification_id)
+        .await
+        .map(|()| "Notification marked as read")
+        .map_err(|error| {
+            notification_inbox_error(
+                "notification_mark_read_failed",
                 user_id,
-                notification_id,
-                notification_inbox_error_log(&error)
-            );
-            HttpResponse::InternalServerError().body("Failed to mark notification as read")
-        }
-    }
+                Some(notification_id),
+                "Failed to mark notification as read",
+                error,
+            )
+        })
 }
 
 pub async fn clear_notifications(
     inbox: web::Data<Arc<dyn NotificationInboxUseCase>>,
     user: AuthUserId,
-) -> impl Responder {
+) -> Result<&'static str, ApiError> {
     let user_id = user.into_inner();
 
-    match inbox.clear_notifications(user_id).await {
-        Ok(()) => HttpResponse::Ok().body("Notifications cleared"),
-        Err(error) => {
-            log::error!(
-                "event=notifications_clear_failed user_id={} error={}",
+    inbox
+        .clear_notifications(user_id)
+        .await
+        .map(|()| "Notifications cleared")
+        .map_err(|error| {
+            notification_inbox_error(
+                "notifications_clear_failed",
                 user_id,
-                notification_inbox_error_log(&error)
-            );
-            HttpResponse::InternalServerError().body("Failed to clear notifications")
-        }
-    }
-}
-
-fn notification_preferences_error_log(error: &NotificationPreferencesError) -> String {
-    match error {
-        NotificationPreferencesError::Connection(message)
-        | NotificationPreferencesError::Database(message) => message.clone(),
-    }
+                None,
+                "Failed to clear notifications",
+                error,
+            )
+        })
 }
 
 fn notification_responses(list: Vec<NotificationOutput>) -> Vec<NotificationResponse> {
     list.into_iter().map(NotificationResponse::from).collect()
-}
-
-fn notification_inbox_error_log(error: &NotificationInboxError) -> String {
-    match error {
-        NotificationInboxError::Connection(message) | NotificationInboxError::Database(message) => {
-            message.clone()
-        }
-    }
 }

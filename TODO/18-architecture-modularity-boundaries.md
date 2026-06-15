@@ -942,8 +942,10 @@ Wiring rule:
 - [ ] API handlers return `Result<web::Json<T>, ApiError>` or equivalent,
       instead of manually matching every service error to `HttpResponse`.
       Progress: `http/access_control` role catalog and delegated-permission
-      handlers now use typed `Result<web::Json<_>, ApiError>` style returns;
-      other HTTP contexts still need the same treatment before this is done.
+      handlers, `http/notifications` handlers, and `http/operations` handlers
+      now use typed JSON/text/status responders with `ApiError` where errors
+      are possible; other HTTP contexts still need the same treatment before
+      this is done.
 - [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
 - [x] Configure JSON limits and JSON parse errors centrally so every route has
@@ -1267,6 +1269,38 @@ Batch 291: move access-control HTTP handlers to typed `ApiError` results.
 - [x] Self-critique: this completes the access-control HTTP slice only. The
       global handler-return refactor remains open until the remaining HTTP
       contexts stop hand-building response branches.
+
+Batch 292: move notifications and operations handlers to typed HTTP results.
+
+- [x] Repointed notification preferences and inbox handlers away from manual
+      `HttpResponse`/`impl Responder` branches and into typed
+      `Result<web::Json<_>, ApiError>` or typed text results for stable
+      existing text-body routes.
+- [x] Added `http/notifications/errors.rs` as the notifications HTTP
+      boundary's local mapper from application errors to the shared
+      `ApiError` envelope, preserving Actix-free application errors and
+      per-operation failure messages.
+- [x] Repointed operations health/readiness handlers to typed JSON/status
+      responders without manual `HttpResponse` builders.
+- [x] Covered notification preference and inbox failure mappings with focused
+      unit tests that render and assert the shared `ApiError` JSON envelope.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::notifications::errors`,
+      `./scripts/run-host-tests.sh cargo test --test health_readiness health_returns_ok_without_dependencies`,
+      `./scripts/run-host-tests.sh cargo test --test health_readiness readiness_reports_not_ready_without_configured_use_case`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api notification_preferences_default_and_save_round_trip`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api notification_inbox_routes_list_mark_read_and_clear`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing bootstrap_routes_expose_index_and_health`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      notifications/operations `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes notifications and operations handler
+      return cleanup only. Reporting, wallet, rewards, learning, identity,
+      organizations, content, and teacher-application handlers still contain
+      manual response branches.
 
 Batch 287: remove the final legacy request-auth helper.
 

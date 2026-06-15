@@ -1,4 +1,5 @@
 pub mod dto;
+mod errors;
 mod handlers;
 mod routes;
 
