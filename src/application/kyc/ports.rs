@@ -1,9 +1,10 @@
 use futures::future::BoxFuture;
 
+use crate::application::access_control::check_permission::AccessDecisionStore;
 use crate::application::kyc::{KycAuditEventOutput, KycError, KycSubmissionOutput};
 use crate::domain::kyc::submission::{NormalizedKycDecision, NormalizedKycSubmission};
 
-pub trait KycStore {
+pub trait KycStore: AccessDecisionStore<Error = KycError> {
     fn get_user_kyc_verified(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, KycError>>;
 
     fn latest_submission_for_user(
@@ -15,8 +16,6 @@ pub trait KycStore {
         &mut self,
         submission: NormalizedKycSubmission,
     ) -> BoxFuture<'_, Result<KycSubmissionOutput, KycError>>;
-
-    fn can_review_kyc(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, KycError>>;
 
     fn list_review_queue(&mut self) -> BoxFuture<'_, Result<Vec<KycSubmissionOutput>, KycError>>;
 

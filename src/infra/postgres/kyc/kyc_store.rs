@@ -1,9 +1,13 @@
 use diesel_async::AsyncPgConnection;
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::kyc::{KycAuditEventOutput, KycError, KycStore, KycSubmissionOutput};
 use crate::domain::kyc::submission::{NormalizedKycDecision, NormalizedKycSubmission};
-use crate::infra::postgres::kyc::kyc_permission_queries;
+use crate::infra::postgres::access_control::permission_checks;
+use crate::infra::postgres::kyc::kyc_mappers::map_error;
 use crate::infra::postgres::kyc::kyc_read_queries;
 use crate::infra::postgres::kyc::kyc_transactions::{create_submission, decide_submission};
 
@@ -35,10 +39,6 @@ impl KycStore for PostgresKycStore<'_> {
         submission: NormalizedKycSubmission,
     ) -> BoxFuture<'_, Result<KycSubmissionOutput, KycError>> {
         async move { create_submission(self.conn, submission).await }.boxed()
-    }
-
-    fn can_review_kyc(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, KycError>> {
-        async move { kyc_permission_queries::can_review_kyc(self.conn, user_id).await }.boxed()
     }
 
     fn list_review_queue(&mut self) -> BoxFuture<'_, Result<Vec<KycSubmissionOutput>, KycError>> {
@@ -78,5 +78,23 @@ impl KycStore for PostgresKycStore<'_> {
     ) -> BoxFuture<'_, Result<Vec<KycAuditEventOutput>, KycError>> {
         async move { kyc_read_queries::list_submission_audit(self.conn, submission_id).await }
             .boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresKycStore<'_> {
+    type Error = KycError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, KycError>> {
+        async move {
+            permission_checks::can(self.conn, actor, action, scope)
+                .await
+                .map_err(map_error)
+        }
+        .boxed()
     }
 }

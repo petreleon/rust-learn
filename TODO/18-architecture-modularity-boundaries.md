@@ -1819,6 +1819,41 @@ Batch 309: move teacher-application authorization ports to access decisions.
       final middleware/application same-service cleanup still need follow-up
       batches before central authorization is complete.
 
+Batch 310: move identity and KYC platform authorization to access decisions.
+
+- [x] Removed the identity profile `UserProfileAccessStore` marker and made
+      `get_user_profile` depend directly on
+      `AccessDecisionStore<Error = UserProfileError>` plus the user profile
+      read store; cross-user reads now build a typed `VIEW_USER` platform
+      decision in the application handler.
+- [x] Repointed the Postgres user-profile adapter and identity profile fake to
+      implement `AccessDecisionStore` through `permission_checks::can`,
+      deleting the old `can_view_any_user` store method.
+- [x] Repointed KYC review queue, decision, and audit authorization from the
+      context-specific `can_review_kyc` store method to typed
+      `REVIEW_KYC_SUBMISSIONS` platform decisions built in the application
+      handlers.
+- [x] Repointed the Postgres KYC adapter to implement `AccessDecisionStore`
+      through `permission_checks::can` and deleted the KYC-specific
+      `kyc_permission_queries` module.
+- [x] Proved behavior and boundaries with `cargo fmt --all`,
+      `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib identity::get_user_profile`,
+      `./scripts/run-host-tests.sh cargo test --lib kyc`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api --test kyc_review`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control test_course_permission_middleware`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale identity/KYC permission-port scans, direct
+      `permission_checks::can` adapter scans, ring import-boundary scans,
+      `git diff --check`, and identity/KYC file-size checks.
+- [x] Self-critique: this closes the identity profile and KYC application-facing
+      platform authorization contract cleanup. Organization application-facing
+      permission ports and the final middleware/application same-service
+      cleanup still need follow-up batches before central authorization is
+      complete.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -2012,6 +2047,9 @@ boundary checks from the matrix above to every canonical context.
       decision application store ports now use the shared mutable
       access-decision store contract instead of context-specific permission
       methods.
+- [x] Identity profile reads and KYC review/audit application paths now use the
+      shared mutable access-decision store contract instead of context-specific
+      platform permission methods.
 - [ ] Make middleware call the same access-control service as application use
       cases.
 - [ ] Keep middleware as an early rejection optimization; do not make it the

@@ -2,6 +2,9 @@ use chrono::NaiveDate;
 use futures::future::{ready, BoxFuture, FutureExt};
 
 use super::*;
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::identity::list_users::ListUsersQuery;
 
 #[derive(Default)]
@@ -28,9 +31,18 @@ impl UserProfileStore for FakeUserProfileStore {
     }
 }
 
-impl UserProfileAccessStore for FakeUserProfileStore {
-    fn can_view_any_user(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, UserProfileError>> {
-        self.permission_checks.push(user_id);
+impl AccessDecisionStore for FakeUserProfileStore {
+    type Error = UserProfileError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, UserProfileError>> {
+        assert_eq!(action.permission_name(), VIEW_USER);
+        assert!(matches!(scope, AccessScope::Platform(_)));
+        self.permission_checks.push(actor.user_id);
         ready(Ok(self.can_view)).boxed()
     }
 }
