@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn organization_member_role_assignment_assigns_role_and_logs_audit() {
     let _ = dotenvy::dotenv();
@@ -38,7 +40,11 @@ async fn organization_member_role_assignment_assigns_role_and_logs_audit() {
     .await;
 
     let req = test::TestRequest::post()
-        .uri(&format!("/organizations/{}/users/{}/roles", org.id, target.id()))
+        .uri(&format!(
+            "/organizations/{}/users/{}/roles",
+            org.id,
+            target.id()
+        ))
         .insert_header(("Authorization", format!("Bearer {}", token_for(admin.id()))))
         .set_json(serde_json::json!({ "role_name": "STUDENT" }))
         .to_request();
@@ -82,7 +88,11 @@ async fn organization_member_role_assignment_denies_users_without_assign_scope()
     .await;
 
     let req = test::TestRequest::post()
-        .uri(&format!("/organizations/{}/users/{}/roles", org.id, target.id()))
+        .uri(&format!(
+            "/organizations/{}/users/{}/roles",
+            org.id,
+            target.id()
+        ))
         .insert_header((
             "Authorization",
             format!("Bearer {}", token_for(outsider.id())),

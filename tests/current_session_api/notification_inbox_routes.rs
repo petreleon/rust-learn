@@ -1,3 +1,5 @@
+use crate::{current_session_test_app::*, support::*};
+
 #[actix_web::test]
 async fn notification_inbox_routes_list_mark_read_and_clear() {
     let _ = dotenvy::dotenv();
@@ -53,10 +55,7 @@ async fn notification_inbox_routes_list_mark_read_and_clear() {
     assert_eq!(response.status(), StatusCode::OK);
     let body = String::from_utf8(test::read_body(response).await.to_vec())
         .expect("mark-read body should be valid utf8");
-    assert_eq!(
-        body,
-        "Notification marked as read"
-    );
+    assert_eq!(body, "Notification marked as read");
 
     let response = test::call_service(
         &app,

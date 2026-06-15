@@ -1,3 +1,5 @@
+use crate::{current_session_test_app::*, support::*};
+
 #[actix_web::test]
 async fn notification_preferences_default_and_save_round_trip() {
     let _ = dotenvy::dotenv();

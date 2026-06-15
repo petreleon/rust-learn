@@ -1,3 +1,5 @@
+use crate::{current_session_test_app::*, support::*};
+
 #[actix_web::test]
 async fn current_session_rejects_unverified_email() {
     let _ = dotenvy::dotenv();

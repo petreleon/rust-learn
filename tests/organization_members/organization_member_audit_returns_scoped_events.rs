@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn organization_member_audit_returns_scoped_events() {
     let _ = dotenvy::dotenv();
