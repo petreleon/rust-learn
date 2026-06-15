@@ -5,7 +5,9 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::wallet::audit_wallet::{WalletAuditError, WalletRewardRecordAudit};
 use crate::db::schema::{reward_candidates, reward_payout_records, reward_wallet_credit_records};
-use crate::domain::wallet::audit::{reward_reconciliation_status, RewardReconciliationFacts};
+use crate::domain::rewards::candidate::reconciliation::{
+    reward_reconciliation_status, RewardReconciliationFacts,
+};
 use crate::infra::postgres::wallet::wallet_audit_mappers::map_wallet_audit_error;
 use crate::models::reward_candidate::RewardCandidate;
 use crate::models::reward_payout_record::RewardPayoutRecord;

@@ -21,6 +21,7 @@ pub mod wallet_deposit_index_use_case;
 pub mod wallet_deposit_intent_records;
 pub mod wallet_deposit_intent_store;
 pub mod wallet_deposit_intent_use_case;
+mod wallet_ledger_records;
 pub mod wallet_link_records;
 pub mod wallet_link_store;
 pub mod wallet_link_use_case;

@@ -2,10 +2,12 @@ use diesel::{BoolExpressionMethods, PgTextExpressionMethods, QueryDsl};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::identity::list_users::ListUsersQuery;
-use crate::application::identity::ports::{UserProfileAccessStore, UserProfileStore};
+use crate::application::identity::ports::UserProfileStore;
 use crate::application::identity::user_profile::{UserProfileError, UserProfileOutput};
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::users;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::models::user::User;
@@ -59,11 +61,17 @@ impl UserProfileStore for PostgresUserProfileStore<'_> {
     }
 }
 
-impl UserProfileAccessStore for PostgresUserProfileStore<'_> {
-    fn can_view_any_user(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, UserProfileError>> {
+impl AccessDecisionStore for PostgresUserProfileStore<'_> {
+    type Error = UserProfileError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, UserProfileError>> {
         async move {
-            let permission = Permissions::VIEW_USER.to_string();
-            permission_checks::has_platform_permission(self.conn, user_id, &permission)
+            permission_checks::can(self.conn, actor, action, scope)
                 .await
                 .map_err(map_user_profile_error)
         }

@@ -3,10 +3,10 @@ async fn duplicate_open_teacher_application_submission_conflicts_without_retry_k
     let mut conn = setup_conn().await;
     let applicant = create_user_helper(&mut conn, "teacher_apply_duplicate").await;
     let admin = create_user_helper(&mut conn, "teacher_apply_duplicate_admin").await;
-    assign_role_to_user(&mut conn, applicant.id(), Roles::USER)
+    assign_platform_role_to_user(&mut conn, applicant.id(), Roles::USER)
         .await
         .expect("failed to assign USER role");
-    assign_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
+    assign_platform_role_to_user(&mut conn, admin.id(), Roles::ADMIN)
         .await
         .expect("failed to assign ADMIN role");
 
@@ -48,7 +48,7 @@ async fn user_with_submit_permission_can_apply_and_without_permission_cannot() {
     let applicant = create_user_helper(&mut conn, "teacher_apply_user").await;
     let no_permission_user = create_user_helper(&mut conn, "teacher_apply_denied").await;
 
-    assign_role_to_user(&mut conn, applicant.id(), Roles::USER)
+    assign_platform_role_to_user(&mut conn, applicant.id(), Roles::USER)
         .await
         .expect("failed to assign USER role");
 

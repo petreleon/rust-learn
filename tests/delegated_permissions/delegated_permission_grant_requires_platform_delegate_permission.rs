@@ -59,7 +59,7 @@ async fn delegated_organization_permission_submits_for_attached_course_only() {
     .await
     .expect("admin should delegate organization reward submission");
 
-    assert!(user_permission_organization_request(
+    assert!(has_organization_permission(
         &mut conn,
         operator.id(),
         organization.id,
@@ -67,7 +67,7 @@ async fn delegated_organization_permission_submits_for_attached_course_only() {
     )
     .await
     .expect("organization permission lookup should succeed"));
-    assert!(!user_permission_organization_request(
+    assert!(!has_organization_permission(
         &mut conn,
         operator.id(),
         other_organization.id,

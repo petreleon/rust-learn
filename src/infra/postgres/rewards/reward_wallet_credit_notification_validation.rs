@@ -1,6 +1,7 @@
 use bigdecimal::BigDecimal;
 
 use crate::application::rewards::notify_wallet_credit::RewardWalletCreditNotificationError;
+use crate::domain::rewards::candidate::lifecycle;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::models::reward_candidate::RewardCandidate;
 
@@ -33,50 +34,30 @@ pub(super) fn ensure_notification_can_be_inspected(
     }
 }
 
-pub(super) fn ensure_missing_notification_can_be_created(
+pub(super) fn missing_notification_target_status(
     candidate: &RewardCandidate,
     allow_reconciliation_repair: bool,
-) -> Result<(), RewardWalletCreditNotificationError> {
-    if can_create_missing_notification(candidate, allow_reconciliation_repair) {
-        Ok(())
-    } else {
-        Err(RewardWalletCreditNotificationError::InvalidStatus(
+) -> Result<RewardCandidateStatus, RewardWalletCreditNotificationError> {
+    let status = RewardCandidateStatus::parse(&candidate.status).map_err(|_| {
+        RewardWalletCreditNotificationError::InvalidStatus(
             "notified candidate is missing its notification reference".to_string(),
-        ))
-    }
+        )
+    })?;
+    lifecycle::wallet_credit_notification_target_status(status, allow_reconciliation_repair)
+        .ok_or_else(|| {
+            RewardWalletCreditNotificationError::InvalidStatus(
+                "notified candidate is missing its notification reference".to_string(),
+            )
+        })
 }
 
 fn can_inspect_notification(
     candidate: &RewardCandidate,
     allow_reconciliation_repair: bool,
 ) -> bool {
-    matches!(
-        RewardCandidateStatus::parse(&candidate.status),
-        Ok(RewardCandidateStatus::WalletCredited)
-            | Ok(RewardCandidateStatus::Notified)
-            | Ok(RewardCandidateStatus::Completed)
-            | Ok(RewardCandidateStatus::NeedsReconciliation)
-    ) || (allow_reconciliation_repair
-        && matches!(
-            RewardCandidateStatus::parse(&candidate.status),
-            Ok(RewardCandidateStatus::AmountApproved)
-                | Ok(RewardCandidateStatus::TokenConfirmed)
-                | Ok(RewardCandidateStatus::NeedsReconciliation)
-        ))
-}
-
-fn can_create_missing_notification(
-    candidate: &RewardCandidate,
-    allow_reconciliation_repair: bool,
-) -> bool {
-    matches!(
-        RewardCandidateStatus::parse(&candidate.status),
-        Ok(RewardCandidateStatus::WalletCredited)
-    ) || (allow_reconciliation_repair
-        && matches!(
-            RewardCandidateStatus::parse(&candidate.status),
-            Ok(RewardCandidateStatus::AmountApproved)
-                | Ok(RewardCandidateStatus::TokenConfirmed)
-                | Ok(RewardCandidateStatus::NeedsReconciliation)
-        ))
+    RewardCandidateStatus::parse(&candidate.status)
+        .map(|status| {
+            lifecycle::can_inspect_wallet_credit_notification(status, allow_reconciliation_repair)
+        })
+        .unwrap_or(false)
 }

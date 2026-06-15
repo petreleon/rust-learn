@@ -21,10 +21,9 @@ RustLearn is an incentivized learning platform. The backend is a Rust/Actix Web 
   and top-level routes.
 - `src/middlewares/` — JWT, conditional access, hierarchy, and permission middleware.
 - `src/models/` — Diesel models and request/response domain types.
-- `src/repositories/` — database access helpers.
-- `src/services/` — higher-level business workflows.
 - `src/config/` — database setup/versioning and role/permission constants.
-- `src/utils/` — JWT, S3, notifications, wallet, and Ethereum helpers.
+- `src/shared/` — cross-cutting shared types and helpers that do not own
+  framework, storage, or business workflow boundaries.
 - `src/bin/worker.rs` — background upload/video processing worker.
 - `ethereum/contracts/` — Solidity contracts; generated ABI/bin artifacts live in `ethereum/artifacts/`.
 - `migrations/` — Diesel migrations. Keep `up.sql` and `down.sql` reversible when possible.
@@ -41,7 +40,9 @@ RustLearn is an incentivized learning platform. The backend is a Rust/Actix Web 
 - Do not add generated dependency directories such as `target/` or `web/node_modules/`.
 - Keep manually maintained non-Markdown files at or below 180 lines. Generated files, lockfiles, binary assets, and tool-owned artifacts are exempt.
 - Keep Rust code formatted with `cargo fmt` before committing.
-- Prefer repository/service layers for database logic instead of embedding complex queries directly in route handlers.
+- Prefer application use cases and context-owned infra adapters for business
+  workflows/database logic instead of embedding complex queries directly in
+  route handlers.
 - When adding or changing permissions, update the matching constants, seed migrations, middleware usage, and `PERMISSIONS.md` if the documented matrix changes.
 - When adding migrations, include both `up.sql` and `down.sql`, and regenerate/check `src/db/schema.rs` when schema changes require it.
 - When changing Ethereum contracts, update artifacts using the existing tooling/tests and run blockchain integration tests when feasible.

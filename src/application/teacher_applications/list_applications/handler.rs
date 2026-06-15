@@ -1,3 +1,6 @@
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::teacher_applications::{
     list_applications::{
         TeacherApplicationListError, TeacherApplicationListFilter, TeacherApplicationListQuery,
@@ -7,16 +10,15 @@ use crate::application::teacher_applications::{
 };
 use crate::domain::teacher_applications::status::normalize_optional_status;
 
+const REVIEW_TEACHER_APPLICATIONS: &str = "REVIEW_TEACHER_APPLICATIONS";
+
 pub async fn list_applications(
     store: &mut impl TeacherApplicationListStore,
     query: TeacherApplicationListQuery,
 ) -> Result<Vec<TeacherApplicationOutput>, TeacherApplicationListError> {
-    if !store
-        .can_review_teacher_applications(query.actor_user_id)
-        .await?
-    {
+    if !can_platform_review_action(store, query.actor_user_id).await? {
         return Err(TeacherApplicationListError::PermissionDenied(
-            "REVIEW_TEACHER_APPLICATIONS".to_string(),
+            REVIEW_TEACHER_APPLICATIONS.to_string(),
         ));
     }
 
@@ -28,6 +30,19 @@ pub async fn list_applications(
             organization_sponsor_id: query.organization_sponsor_id,
             status: normalize_optional_status(query.status)?,
         })
+        .await
+}
+
+async fn can_platform_review_action(
+    store: &mut impl AccessDecisionStore<Error = TeacherApplicationListError>,
+    actor_user_id: i32,
+) -> Result<bool, TeacherApplicationListError> {
+    store
+        .can(
+            AccessActor::user(actor_user_id),
+            AccessAction::permission(REVIEW_TEACHER_APPLICATIONS),
+            AccessScope::platform(),
+        )
         .await
 }
 
@@ -44,14 +59,22 @@ mod tests {
         filter: Option<TeacherApplicationListFilter>,
     }
 
-    impl TeacherApplicationListStore for FakeStore {
-        fn can_review_teacher_applications(
+    impl AccessDecisionStore for FakeStore {
+        type Error = TeacherApplicationListError;
+
+        fn can(
             &mut self,
-            _: i32,
+            _: AccessActor,
+            action: AccessAction,
+            scope: AccessScope,
         ) -> BoxFuture<'_, Result<bool, TeacherApplicationListError>> {
+            assert_eq!(action.permission_name(), REVIEW_TEACHER_APPLICATIONS);
+            assert!(matches!(scope, AccessScope::Platform(_)));
             async move { Ok(self.can_review) }.boxed()
         }
+    }
 
+    impl TeacherApplicationListStore for FakeStore {
         fn list_applications(
             &mut self,
             filter: TeacherApplicationListFilter,

@@ -5,7 +5,6 @@ use crate::application::rewards::notify_wallet_credit::{
     RewardWalletCreditNotificationOutput,
 };
 use crate::domain::rewards::audit::RewardAuditEventType;
-use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::rewards::reward_audit_records::create_reward_audit_event;
 use crate::infra::postgres::rewards::reward_candidate_records::{
     find_candidate, update_candidate_status,
@@ -15,8 +14,8 @@ use crate::infra::postgres::rewards::reward_wallet_credit_notification_mappers::
 };
 use crate::infra::postgres::rewards::reward_wallet_credit_notification_notifications::create_wallet_credit_notification;
 use crate::infra::postgres::rewards::reward_wallet_credit_notification_validation::{
-    approved_positive_amount, ensure_missing_notification_can_be_created,
-    ensure_notification_can_be_inspected,
+    approved_positive_amount, ensure_notification_can_be_inspected,
+    missing_notification_target_status,
 };
 use crate::infra::postgres::rewards::reward_wallet_credit_records::{
     find_reward_wallet_credit_record_by_candidate, mark_reward_wallet_credit_record_notified,
@@ -67,7 +66,7 @@ pub(crate) async fn notify_reward_wallet_credit_for_candidate(
         });
     }
 
-    ensure_missing_notification_can_be_created(candidate, allow_reconciliation_repair)?;
+    let target_status = missing_notification_target_status(candidate, allow_reconciliation_repair)?;
     let notification_id = create_wallet_credit_notification(
         conn,
         candidate.student_user_id,
@@ -83,7 +82,7 @@ pub(crate) async fn notify_reward_wallet_credit_for_candidate(
     let updated = update_candidate_status(
         conn,
         candidate.id,
-        RewardCandidateStatus::Notified.as_str(),
+        target_status.as_str(),
         chrono::Utc::now(),
     )
     .await

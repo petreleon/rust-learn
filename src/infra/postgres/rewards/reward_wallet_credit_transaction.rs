@@ -4,7 +4,6 @@ use crate::application::rewards::credit_wallet::{
     RewardWalletCredit, RewardWalletCreditError, RewardWalletCreditOutput,
 };
 use crate::domain::rewards::audit::RewardAuditEventType;
-use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::rewards::reward_audit_records::create_reward_audit_event;
 use crate::infra::postgres::rewards::reward_candidate_records::{
     find_candidate, update_candidate_status,
@@ -19,7 +18,7 @@ use crate::infra::postgres::rewards::reward_wallet_credit_transactions::{
     create_internal_transaction, create_wallet_credit_transaction,
 };
 use crate::infra::postgres::rewards::reward_wallet_credit_validation::{
-    approved_positive_amount, ensure_wallet_credit_allowed, reject_already_credited_without_record,
+    approved_positive_amount, reject_already_credited_without_record, wallet_credit_target_status,
 };
 use crate::infra::postgres::rewards::reward_wallet_credit_wallets::{
     credit_wallet_balance, link_user_wallet,
@@ -67,7 +66,8 @@ pub(crate) async fn credit_reward_wallet_for_candidate(
     }
 
     reject_already_credited_without_record(candidate)?;
-    ensure_wallet_credit_allowed(conn, candidate, allow_reconciliation_credit).await?;
+    let target_status =
+        wallet_credit_target_status(conn, candidate, allow_reconciliation_credit).await?;
 
     let wallet = link_user_wallet(conn, candidate.student_user_id).await?;
     let wallet = credit_wallet_balance(conn, wallet.id, amount.clone()).await?;
@@ -88,7 +88,7 @@ pub(crate) async fn credit_reward_wallet_for_candidate(
     let updated = update_candidate_status(
         conn,
         candidate.id,
-        RewardCandidateStatus::WalletCredited.as_str(),
+        target_status.as_str(),
         chrono::Utc::now(),
     )
     .await

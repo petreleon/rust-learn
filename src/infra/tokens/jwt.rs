@@ -1,33 +1,27 @@
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chrono::{self, Duration};
+use futures::future::{BoxFuture, FutureExt};
 use jsonwebtoken::{
     decode, encode,
     errors::{Error as JwtError, ErrorKind},
     Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation,
 };
 use openssl::pkey::PKey;
-use serde::Serialize;
 use std::env;
 
-use crate::models::user_jwt::UserJWT;
+use crate::application::identity::jwks::{JsonWebKeyOutput, JwksError, JwksOutput, JwksUseCase};
+use crate::domain::identity::UserJWT;
 
 const DEFAULT_JWT_EXPIRATION_SECONDS: i64 = 24 * 60 * 60;
 const DEFAULT_JWT_KEY_ID: &str = "rust-learn-local";
 
-#[derive(Clone, Debug, Serialize)]
-pub struct JwksResponse {
-    pub keys: Vec<JsonWebKey>,
-}
+#[derive(Clone)]
+pub struct EnvJwksUseCase;
 
-#[derive(Clone, Debug, Serialize)]
-pub struct JsonWebKey {
-    pub kty: String,
-    #[serde(rename = "use")]
-    pub public_key_use: String,
-    pub kid: String,
-    pub alg: String,
-    pub n: String,
-    pub e: String,
+impl JwksUseCase for EnvJwksUseCase {
+    fn jwks(&self) -> BoxFuture<'_, Result<JwksOutput, JwksError>> {
+        async { public_jwks_from_env().map_err(JwksError::new) }.boxed()
+    }
 }
 
 fn jwt_expiration_seconds_from_env_value(value: Option<&str>) -> i64 {
@@ -77,12 +71,12 @@ pub fn decode_jwt(token: &str) -> Result<TokenData<UserJWT>, JwtError> {
 pub fn public_jwks_from_pem(
     public_key: &str,
     key_id: &str,
-) -> Result<JwksResponse, openssl::error::ErrorStack> {
+) -> Result<JwksOutput, openssl::error::ErrorStack> {
     let public_key = PKey::public_key_from_pem(public_key.as_bytes())?;
     let rsa = public_key.rsa()?;
 
-    Ok(JwksResponse {
-        keys: vec![JsonWebKey {
+    Ok(JwksOutput {
+        keys: vec![JsonWebKeyOutput {
             kty: "RSA".to_string(),
             public_key_use: "sig".to_string(),
             kid: key_id.to_string(),
@@ -93,7 +87,7 @@ pub fn public_jwks_from_pem(
     })
 }
 
-pub fn public_jwks_from_env() -> Result<JwksResponse, String> {
+pub fn public_jwks_from_env() -> Result<JwksOutput, String> {
     let public_key = env::var("PUBLIC_KEY").map_err(|_| "PUBLIC_KEY must be set".to_string())?;
     public_jwks_from_pem(&public_key, &jwt_key_id()).map_err(|err| err.to_string())
 }

@@ -1,5 +1,6 @@
 use futures::future::BoxFuture;
 
+use crate::application::access_control::check_permission::AccessDecisionStore;
 use crate::application::learning::learner_progress::{LearnerProgressError, LearnerProgressOutput};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -8,7 +9,7 @@ pub struct ProgressCourse {
     pub lifecycle_status: String,
 }
 
-pub trait LearnerProgressStore {
+pub trait LearnerProgressStore: AccessDecisionStore<Error = LearnerProgressError> {
     fn course(
         &mut self,
         course_id: i32,
@@ -18,20 +19,6 @@ pub trait LearnerProgressStore {
         &mut self,
         course_id: i32,
     ) -> BoxFuture<'_, Result<Vec<i32>, LearnerProgressError>>;
-
-    fn has_course_permission(
-        &mut self,
-        actor_user_id: i32,
-        course_id: i32,
-        permission: &str,
-    ) -> BoxFuture<'_, Result<bool, LearnerProgressError>>;
-
-    fn has_organization_permission(
-        &mut self,
-        actor_user_id: i32,
-        organization_id: i32,
-        permission: &str,
-    ) -> BoxFuture<'_, Result<bool, LearnerProgressError>>;
 
     fn actor_course_roles(
         &mut self,

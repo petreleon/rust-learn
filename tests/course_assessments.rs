@@ -8,11 +8,11 @@ use rust_learn::application::learning::list_assessment_attempts::AssessmentAttem
 use rust_learn::application::learning::list_course_assessments::CourseAssessmentsUseCase;
 use rust_learn::db::schema::{assessment_attempts, assessments, courses};
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::learning::assessment_read_use_case::PostgresAssessmentReadUseCase;
 use rust_learn::infra::tokens::jwt::create_jwt;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::user::User;
-use rust_learn::repositories::user_repository::create_user;
 use serde_json::Value;
 
 fn unique_string(prefix: &str) -> String {
@@ -130,6 +130,9 @@ async fn assessment_read_routes_are_published_and_user_scoped() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
             .app_data(course_assessments_use_case_data(&pool))
             .app_data(assessment_attempts_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)

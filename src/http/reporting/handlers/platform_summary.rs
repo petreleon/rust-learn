@@ -1,64 +1,32 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::web;
 
-use crate::application::reporting::platform_summary::{
-    PlatformSummaryError, PlatformSummaryUseCase,
+use crate::application::reporting::platform_summary::PlatformSummaryUseCase;
+use crate::http::errors::ApiError;
+use crate::http::reporting::dto::{
+    csv_download, platform_summary_csv, CsvDownload, PlatformSummaryResponse,
 };
-use crate::http::reporting::dto::{platform_summary_csv, PlatformSummaryResponse};
+use crate::http::reporting::errors::{platform_summary_error, ReportOperation};
 
 pub async fn get_platform_summary(
     summary: web::Data<Arc<dyn PlatformSummaryUseCase>>,
-) -> impl Responder {
-    match summary.load_platform_summary().await {
-        Ok(output) => HttpResponse::Ok().json(PlatformSummaryResponse::from(output)),
-        Err(error) => platform_summary_error_response(error, "load"),
-    }
+) -> Result<web::Json<PlatformSummaryResponse>, ApiError> {
+    summary
+        .load_platform_summary()
+        .await
+        .map(PlatformSummaryResponse::from)
+        .map(web::Json)
+        .map_err(|error| platform_summary_error(error, ReportOperation::Load))
 }
 
 pub async fn export_platform_summary(
     summary: web::Data<Arc<dyn PlatformSummaryUseCase>>,
-) -> impl Responder {
-    match summary.load_platform_summary().await {
-        Ok(output) => {
-            let response = PlatformSummaryResponse::from(output);
-            csv_response("platform-summary.csv", platform_summary_csv(&response))
-        }
-        Err(error) => platform_summary_error_response(error, "export"),
-    }
-}
-
-fn platform_summary_error_response(
-    error: PlatformSummaryError,
-    operation: &'static str,
-) -> HttpResponse {
-    match error {
-        PlatformSummaryError::Connection(_) => {
-            HttpResponse::InternalServerError().body("Failed to get DB connection")
-        }
-        PlatformSummaryError::Database(message) => {
-            log::error!(
-                "event=report_{}_failed scope=platform error={}",
-                operation,
-                message
-            );
-            let action = if operation == "export" {
-                "export"
-            } else {
-                "load"
-            };
-            HttpResponse::InternalServerError()
-                .body(format!("Failed to {} platform report", action))
-        }
-    }
-}
-
-fn csv_response(filename: &str, body: String) -> HttpResponse {
-    HttpResponse::Ok()
-        .content_type("text/csv; charset=utf-8")
-        .insert_header((
-            "Content-Disposition",
-            format!("attachment; filename=\"{}\"", filename),
-        ))
-        .body(body)
+) -> Result<CsvDownload, ApiError> {
+    summary
+        .load_platform_summary()
+        .await
+        .map(PlatformSummaryResponse::from)
+        .map(|response| csv_download("platform-summary.csv", platform_summary_csv(&response)))
+        .map_err(|error| platform_summary_error(error, ReportOperation::Export))
 }

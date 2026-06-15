@@ -1,123 +1,34 @@
 use std::sync::Arc;
 
-use crate::application::content::manage_chapter::ChapterUseCases;
-use crate::application::content::manage_content_item::ContentItemUseCases;
-use crate::application::content::process_upload_job::ContentProcessingUseCase;
-use crate::application::content::request_media_url::ContentMediaUrlUseCase;
-use crate::application::content::request_upload_url::ContentUploadUrlUseCase;
-use crate::application::learning::assign_course_role::CourseRoleAssignmentUseCase;
-use crate::application::learning::course_enrollment::CourseEnrollmentUseCase;
-use crate::application::learning::create_course::CourseCreationUseCase;
-use crate::application::learning::delete_course::CourseDeletionUseCase;
-use crate::application::learning::discover_courses::CourseDiscoveryUseCase;
-use crate::application::learning::get_course::CourseReadUseCase;
-use crate::application::learning::get_learner_course_detail::LearnerCourseDetailUseCase;
-use crate::application::learning::get_learner_course_learning::LearnerCourseLearningUseCase;
-use crate::application::learning::get_teacher_course_enrollment_workspace::TeacherCourseEnrollmentWorkspaceUseCase;
-use crate::application::learning::get_teacher_course_students::TeacherCourseStudentsUseCase;
-use crate::application::learning::get_teacher_course_workspace::TeacherCourseWorkspaceUseCase;
-use crate::application::learning::learner_progress::LearnerProgressUseCase;
-use crate::application::learning::list_assessment_attempts::AssessmentAttemptsUseCase;
-use crate::application::learning::list_course_assessments::CourseAssessmentsUseCase;
-use crate::application::learning::list_course_organizations::CourseOrganizationsUseCase;
-use crate::application::learning::list_learner_course_catalog::LearnerCourseCatalogListUseCase;
-use crate::application::learning::list_teacher_course_dashboard::TeacherCourseDashboardListUseCase;
-use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionUseCase;
-use crate::application::learning::update_course::CourseUpdateUseCase;
-use crate::application::learning::update_course_lifecycle::CourseLifecycleUseCase;
-use crate::application::notifications::notification_inbox::NotificationInboxUseCase;
-use crate::application::notifications::preference_service::NotificationPreferencesUseCase;
 use crate::application::operations::readiness_check::ReadinessUseCase;
-use crate::application::reporting::organization_reward_dashboard::OrganizationRewardDashboardUseCase;
-use crate::application::reporting::organization_summary::OrganizationSummaryUseCase;
-use crate::application::reporting::platform_csv_exports::PlatformCsvExportsUseCase;
-use crate::application::reporting::platform_fraud_dashboard::PlatformFraudDashboardUseCase;
-use crate::application::reporting::platform_reward_dashboard::PlatformRewardDashboardUseCase;
-use crate::application::reporting::platform_summary::PlatformSummaryUseCase;
-use crate::application::reporting::platform_wallet_reconciliation::PlatformWalletReconciliationUseCase;
-use crate::application::rewards::decide_amount::RewardAmountDecisionUseCase;
-use crate::application::rewards::decide_teacher_candidate::TeacherRewardCandidateDecisionUseCase;
-use crate::application::rewards::list_candidate_audit::RewardCandidateAuditUseCase;
-use crate::application::rewards::list_course_candidates::CourseRewardCandidatesUseCase;
-use crate::application::rewards::list_platform_candidates::PlatformRewardCandidatesUseCase;
-use crate::application::rewards::list_reward_history::StudentRewardHistoryUseCase;
-use crate::application::rewards::manage_fraud_block::RewardFraudBlockUseCase;
-use crate::application::rewards::manage_reward_policy::RewardPolicyUseCase;
-use crate::application::rewards::submit_candidate::RewardCandidateSubmissionUseCase;
-use crate::application::wallet::audit_wallet::WalletAuditUseCase;
-use crate::application::wallet::create_deposit_intent::WalletDepositIntentUseCase;
-use crate::application::wallet::link_wallet::WalletLinkUseCase;
-use crate::application::wallet::manage_token_tax::WalletTokenTaxUseCase;
-use crate::application::wallet::read_wallet::WalletReadUseCase;
-use crate::application::wallet::retire_tokens::WalletRetirementUseCase;
 use crate::bootstrap::access_control_wiring::AccessControlUseCases;
+use crate::bootstrap::content_wiring::ContentUseCases;
 use crate::bootstrap::identity_wiring::IdentityUseCases;
 use crate::bootstrap::kyc_wiring::KycUseCases;
+use crate::bootstrap::learning_wiring::LearningUseCases;
+use crate::bootstrap::notification_wiring::NotificationUseCases;
 use crate::bootstrap::organization_wiring::OrganizationUseCases;
+use crate::bootstrap::reporting_wiring::ReportingUseCases;
+use crate::bootstrap::reward_wiring::RewardUseCases;
 use crate::bootstrap::teacher_application_wiring::TeacherApplicationUseCases;
+use crate::bootstrap::wallet_wiring::WalletUseCases;
 use crate::db::DbPool;
-use crate::infra::notifications::NotificationsState;
 use crate::infra::object_storage::S3State;
 
 #[derive(Clone)]
 pub struct AppState {
     pub pool: DbPool,
     pub s3: S3State,
-    pub notifications: NotificationsState,
     pub(crate) access_control_use_cases: AccessControlUseCases,
+    pub(crate) content_use_cases: ContentUseCases,
     pub(crate) identity_use_cases: IdentityUseCases,
     pub(crate) kyc_use_cases: KycUseCases,
-    pub course_creation_use_case: Arc<dyn CourseCreationUseCase>,
-    pub course_deletion_use_case: Arc<dyn CourseDeletionUseCase>,
-    pub course_discovery_use_case: Arc<dyn CourseDiscoveryUseCase>,
-    pub course_read_use_case: Arc<dyn CourseReadUseCase>,
-    pub learner_course_catalog_use_case: Arc<dyn LearnerCourseCatalogListUseCase>,
-    pub learner_course_detail_use_case: Arc<dyn LearnerCourseDetailUseCase>,
-    pub learner_course_learning_use_case: Arc<dyn LearnerCourseLearningUseCase>,
-    pub teacher_course_dashboard_use_case: Arc<dyn TeacherCourseDashboardListUseCase>,
-    pub teacher_course_workspace_use_case: Arc<dyn TeacherCourseWorkspaceUseCase>,
-    pub teacher_course_students_use_case: Arc<dyn TeacherCourseStudentsUseCase>,
-    pub teacher_course_enrollment_workspace_use_case:
-        Arc<dyn TeacherCourseEnrollmentWorkspaceUseCase>,
-    pub course_organizations_use_case: Arc<dyn CourseOrganizationsUseCase>,
-    pub course_role_assignment_use_case: Arc<dyn CourseRoleAssignmentUseCase>,
-    pub course_enrollment_use_case: Arc<dyn CourseEnrollmentUseCase>,
-    pub course_update_use_case: Arc<dyn CourseUpdateUseCase>,
-    pub course_lifecycle_use_case: Arc<dyn CourseLifecycleUseCase>,
-    pub learner_progress_use_case: Arc<dyn LearnerProgressUseCase>,
-    pub course_assessments_use_case: Arc<dyn CourseAssessmentsUseCase>,
-    pub assessment_attempts_use_case: Arc<dyn AssessmentAttemptsUseCase>,
-    pub assessment_submission_use_case: Arc<dyn AssessmentSubmissionUseCase>,
-    pub notification_inbox_use_case: Arc<dyn NotificationInboxUseCase>,
-    pub notification_preferences_use_case: Arc<dyn NotificationPreferencesUseCase>,
+    pub(crate) learning_use_cases: LearningUseCases,
+    pub(crate) notification_use_cases: NotificationUseCases,
     pub(crate) organization_use_cases: OrganizationUseCases,
-    pub chapter_use_cases: Arc<dyn ChapterUseCases>,
-    pub content_item_use_cases: Arc<dyn ContentItemUseCases>,
-    pub content_upload_url_use_case: Arc<dyn ContentUploadUrlUseCase>,
-    pub content_media_url_use_case: Arc<dyn ContentMediaUrlUseCase>,
-    pub content_processing_use_case: Arc<dyn ContentProcessingUseCase>,
-    pub reward_fraud_block_use_case: Arc<dyn RewardFraudBlockUseCase>,
-    pub reward_candidate_audit_use_case: Arc<dyn RewardCandidateAuditUseCase>,
-    pub reward_amount_decision_use_case: Arc<dyn RewardAmountDecisionUseCase>,
-    pub reward_candidate_submission_use_case: Arc<dyn RewardCandidateSubmissionUseCase>,
-    pub course_reward_candidates_use_case: Arc<dyn CourseRewardCandidatesUseCase>,
-    pub platform_reward_candidates_use_case: Arc<dyn PlatformRewardCandidatesUseCase>,
-    pub teacher_reward_candidate_decision_use_case: Arc<dyn TeacherRewardCandidateDecisionUseCase>,
-    pub student_reward_history_use_case: Arc<dyn StudentRewardHistoryUseCase>,
-    pub reward_policy_use_case: Arc<dyn RewardPolicyUseCase>,
-    pub wallet_audit_use_case: Arc<dyn WalletAuditUseCase>,
-    pub wallet_deposit_intent_use_case: Arc<dyn WalletDepositIntentUseCase>,
-    pub wallet_link_use_case: Arc<dyn WalletLinkUseCase>,
-    pub wallet_read_use_case: Arc<dyn WalletReadUseCase>,
-    pub wallet_retirement_use_case: Arc<dyn WalletRetirementUseCase>,
-    pub wallet_token_tax_use_case: Arc<dyn WalletTokenTaxUseCase>,
-    pub organization_reward_dashboard_use_case: Arc<dyn OrganizationRewardDashboardUseCase>,
-    pub organization_summary_use_case: Arc<dyn OrganizationSummaryUseCase>,
-    pub platform_csv_exports_use_case: Arc<dyn PlatformCsvExportsUseCase>,
-    pub platform_fraud_dashboard_use_case: Arc<dyn PlatformFraudDashboardUseCase>,
-    pub platform_reward_dashboard_use_case: Arc<dyn PlatformRewardDashboardUseCase>,
-    pub platform_summary_use_case: Arc<dyn PlatformSummaryUseCase>,
-    pub platform_wallet_reconciliation_use_case: Arc<dyn PlatformWalletReconciliationUseCase>,
+    pub(crate) reporting_use_cases: ReportingUseCases,
+    pub(crate) reward_use_cases: RewardUseCases,
     pub(crate) teacher_application_use_cases: TeacherApplicationUseCases,
+    pub(crate) wallet_use_cases: WalletUseCases,
     pub readiness_use_case: Arc<dyn ReadinessUseCase>,
 }

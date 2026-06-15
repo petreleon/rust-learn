@@ -9,10 +9,11 @@ use futures::FutureExt;
 use std::cmp::Ordering;
 use std::marker::PhantomData;
 
-use crate::db::DbPool;
+use crate::application::access_control::compare_hierarchy::{
+    HierarchyCheckError, HierarchyCheckService, HierarchyScope,
+};
+use crate::domain::identity::UserJWT;
 use crate::http::request_params::{extract_param, ParamType};
-use crate::models::user_jwt::UserJWT;
-use crate::repositories::platform_repository::user_hierarchy_compare_platform;
 
 pub struct PlatformHierarchyMiddleware<S> {
     _service: PhantomData<S>,
@@ -70,11 +71,12 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let db_pool = match req.app_data::<web::Data<DbPool>>() {
-            Some(pool) => pool.clone(),
+        let hierarchy_check = match req.app_data::<web::Data<HierarchyCheckService>>() {
+            Some(pool) => pool.get_ref().clone(),
             None => {
-                let error =
-                    actix_web::error::ErrorInternalServerError("Failed to access database pool");
+                let error = actix_web::error::ErrorInternalServerError(
+                    "Failed to access hierarchy check use case",
+                );
                 return future::ready(Err(error)).boxed_local();
             }
         };
@@ -111,20 +113,14 @@ where
                 }
             };
 
-            let mut conn = match db_pool.get().await {
-                Ok(conn) => conn,
-                Err(_) => {
-                    return Err(actix_web::error::ErrorInternalServerError(
-                        "Failed to get database connection",
-                    ))
-                }
-            };
             let user_jwt = match user_jwt_opt {
                 Some(u) => u,
                 None => return Err(actix_web::error::ErrorUnauthorized("Unauthorized access")),
             };
 
-            match user_hierarchy_compare_platform(&mut conn, user_jwt.user_id, second_user_id).await
+            match hierarchy_check
+                .compare_users(HierarchyScope::Platform, user_jwt.user_id, second_user_id)
+                .await
             {
                 Ok(ordering) => {
                     if ordering == Ordering::Less {
@@ -133,7 +129,12 @@ where
                         ));
                     }
                 }
-                Err(_) => {
+                Err(HierarchyCheckError::Connection(_)) => {
+                    return Err(actix_web::error::ErrorInternalServerError(
+                        "Failed to get database connection",
+                    ))
+                }
+                Err(HierarchyCheckError::Query(_)) => {
                     return Err(actix_web::error::ErrorInternalServerError(
                         "Failed to compare user hierarchy",
                     ))

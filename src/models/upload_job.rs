@@ -3,8 +3,6 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Int4, Nullable, Text, Timestamptz, Varchar};
 
-mod queue;
-
 #[derive(QueryableByName, Queryable, Identifiable, Selectable, Debug, Clone)]
 #[diesel(table_name = upload_jobs)]
 pub struct UploadJob {
@@ -34,6 +32,12 @@ pub struct UploadJob {
 
     #[diesel(sql_type = Nullable<Timestamptz>)]
     pub updated_at: Option<DateTime<Utc>>,
+}
+
+impl UploadJob {
+    pub fn id(&self) -> i64 {
+        self.id
+    }
 }
 
 #[derive(Insertable, Debug)]

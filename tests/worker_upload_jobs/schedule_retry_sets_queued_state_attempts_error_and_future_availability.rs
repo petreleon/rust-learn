@@ -13,7 +13,7 @@ async fn schedule_retry_sets_queued_state_attempts_error_and_future_availability
         .expect("test should mark job processing");
 
     let retry_at = Utc::now() + Duration::minutes(5);
-    UploadJob::schedule_retry(
+    upload_job_queue::schedule_retry(
         job.id(),
         1,
         "transient ffmpeg failure".to_string(),
@@ -34,7 +34,7 @@ async fn schedule_retry_sets_queued_state_attempts_error_and_future_availability
     assert!(updated_at > Utc::now());
     assert!(updated_at <= retry_at + Duration::seconds(1));
 
-    UploadJob::mark_done(job.id(), &mut conn)
+    upload_job_queue::mark_done(job.id(), &mut conn)
         .await
         .expect("test should clean up retry job");
 }
@@ -47,7 +47,7 @@ async fn mark_failed_sets_terminal_failure_state() {
     let mut conn = setup_conn(&pool).await;
     let job = insert_upload_job(&mut conn, &unique_object("failed")).await;
 
-    UploadJob::mark_failed(
+    upload_job_queue::mark_failed(
         job.id(),
         5,
         "permanent processing failure".to_string(),
@@ -65,7 +65,7 @@ async fn mark_failed_sets_terminal_failure_state() {
     );
     assert!(updated.updated_at.is_some());
 
-    UploadJob::mark_done(job.id(), &mut conn)
+    upload_job_queue::mark_done(job.id(), &mut conn)
         .await
         .expect("test should clean up failed job");
 }
@@ -84,7 +84,7 @@ async fn mark_done_sets_terminal_success_state_without_changing_attempts() {
         .await
         .expect("test should seed attempts");
 
-    UploadJob::mark_done(job.id(), &mut conn)
+    upload_job_queue::mark_done(job.id(), &mut conn)
         .await
         .expect("mark_done should succeed");
 

@@ -60,6 +60,9 @@ async fn student_reward_history_shows_owned_permitted_rewards_with_payment_refs(
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
             .app_data(web::Data::new(student_reward_history_use_case(&pool)))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::rewards::student_reward_history_resource()),

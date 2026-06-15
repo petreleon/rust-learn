@@ -24,6 +24,7 @@ fn validates_platform_permission_scope() {
     )
     .unwrap();
     assert_eq!(scope.scope_type, DELEGATED_SCOPE_PLATFORM);
+    assert_eq!(scope.delegated_scope, DelegatedScope::platform());
 
     assert!(normalize_scope_ids(
         "SUBMIT_COURSE_REWARD_EVENT",
@@ -44,6 +45,7 @@ fn validates_organization_permission_scope() {
     )
     .unwrap();
     assert_eq!(scope.organization_id, Some(9));
+    assert_eq!(scope.delegated_scope, DelegatedScope::organization(9));
 
     assert!(normalize_scope_ids(
         "APPROVE_REWARD_AMOUNT",
@@ -64,6 +66,7 @@ fn validates_course_permission_scope() {
     )
     .unwrap();
     assert_eq!(scope.course_id, Some(7));
+    assert_eq!(scope.delegated_scope, DelegatedScope::course(7));
 
     assert!(normalize_scope_ids(
         "VIEW_ORG_REWARD_REPORTS",

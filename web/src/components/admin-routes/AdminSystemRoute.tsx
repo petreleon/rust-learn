@@ -15,7 +15,7 @@ import { SystemPanel } from "./SystemPanel";
 import { emptyWorkspace } from "./emptyWorkspace";
 import { formatUnderscoreLabel } from "./formatUnderscoreLabel";
 import { getCapability } from "./getCapability";
-import { hasAnyPlatformPermission } from "./hasAnyPlatformPermission";
+import { hasPlatformCapability } from "./hasPlatformCapability";
 import { normalizeRouteError } from "./normalizeRouteError";
 import { useAdminSession } from "./useAdminSession";
 import { type RouteError } from "./RouteError";
@@ -28,7 +28,7 @@ export function AdminSystemRoute() {
     [route.session],
   );
   const allowed = route.session ? hasPlatformAdminAccess(route.session) : false;
-  const canView = hasAnyPlatformPermission(workspace, ["VIEW_REPORT", "VIEW_AUDIT_LOGS", "VIEW_ANALYTICS_DASHBOARD"]);
+  const canView = hasPlatformCapability(workspace, "system");
 
   const [status, setStatus] = useState<PlatformSystemStatus | null>(null);
   const [error, setError] = useState<RouteError | null>(null);

@@ -5,7 +5,7 @@ use crate::application::rewards::record_token_confirmation::{
 };
 use crate::domain::rewards::audit::RewardAuditEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-use crate::domain::rewards::candidate::transition::{apply_transition, TransitionAction};
+use crate::domain::rewards::candidate::transition;
 use crate::infra::postgres::rewards::reward_audit_records::create_reward_audit_event;
 use crate::infra::postgres::rewards::reward_candidate_records::{
     find_candidate, update_candidate_status,
@@ -90,7 +90,7 @@ fn confirmed_token_status(
             "reward candidate must be token pending before token confirmation".to_string(),
         )
     })?;
-    apply_transition(from_status, TransitionAction::ConfirmToken).map_err(|_| {
+    transition::confirm_token(from_status).map_err(|_| {
         RewardTokenConfirmationError::InvalidStatus(
             "reward candidate must be token pending before token confirmation".to_string(),
         )

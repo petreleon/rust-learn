@@ -7,37 +7,22 @@ use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{delegated_permissions, user_role_organization};
 use crate::domain::access_control::delegation::DELEGATED_SCOPE_ORGANIZATION;
 use crate::infra::postgres::access_control::permission_checks::{
-    has_organization_permission as access_control_has_organization_permission,
-    has_platform_permission,
+    can_organization_permission as access_control_can_organization_permission,
+    can_platform_permission,
 };
 
-pub(super) async fn has_organization_permission(
-    conn: &mut AsyncPgConnection,
-    actor_user_id: i32,
-    organization_id: i32,
-    permission: Permissions,
-) -> QueryResult<bool> {
-    access_control_has_organization_permission(
-        conn,
-        actor_user_id,
-        organization_id,
-        &permission.to_string(),
-    )
-    .await
-}
-
-pub(super) async fn has_platform_or_organization_permission(
+pub(super) async fn can_platform_or_organization_permission(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     organization_id: i32,
     permission: Permissions,
 ) -> QueryResult<bool> {
     let permission_name = permission.to_string();
-    if has_platform_permission(conn, actor_user_id, &permission_name).await? {
+    if can_platform_permission(conn, actor_user_id, &permission_name).await? {
         return Ok(true);
     }
 
-    access_control_has_organization_permission(
+    access_control_can_organization_permission(
         conn,
         actor_user_id,
         organization_id,

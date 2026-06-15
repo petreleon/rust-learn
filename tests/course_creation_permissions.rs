@@ -11,10 +11,10 @@ use rust_learn::db::schema::{
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::infra::postgres::access_control::role_catalog_store;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::learning::course_creation_use_case::PostgresCourseCreationUseCase;
 use rust_learn::models::organization::{NewOrganization, Organization};
 use rust_learn::models::user::User;
-use rust_learn::repositories::user_repository::create_user;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);

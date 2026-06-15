@@ -63,7 +63,7 @@ async fn delegated_platform_amount_reviewer_can_set_amount_after_teacher_approva
     .await
     .expect("admin should delegate platform amount review");
 
-    assert!(user_permission_platform_request(
+    assert!(has_platform_permission(
         &mut conn,
         operator.id(),
         &Permissions::APPROVE_REWARD_AMOUNT.to_string(),

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::web;
 
 use crate::application::learning::get_teacher_course_enrollment_workspace::{
     TeacherCourseEnrollmentWorkspaceQuery, TeacherCourseEnrollmentWorkspaceUseCase,
@@ -14,101 +14,82 @@ use crate::application::learning::get_teacher_course_workspace::{
 use crate::application::learning::list_teacher_course_dashboard::{
     TeacherCourseDashboardListQuery, TeacherCourseDashboardListUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::errors::ApiError;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::learning::dto::{
     TeacherCourseDashboardResponse, TeacherCourseEnrollmentWorkspaceResponse,
     TeacherCourseStudentsResponse, TeacherCourseWorkspaceResponse,
 };
 
 use super::dto::{TeacherCourseDashboardParams, TeacherCourseEnrollmentParams};
-use super::support::teacher_course_dashboard_read_error_response;
+use super::errors::teacher_course_dashboard_read_error;
 
 pub(super) async fn list_teacher_course_dashboard(
-    req: HttpRequest,
+    requester: AuthUser,
     use_case: web::Data<Arc<dyn TeacherCourseDashboardListUseCase>>,
     query: web::Query<TeacherCourseDashboardParams>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
+) -> Result<web::Json<TeacherCourseDashboardResponse>, ApiError> {
     let dashboard_query = TeacherCourseDashboardListQuery::new(
-        requester.user_id,
+        requester.user_id(),
         query.search.clone(),
         query.lifecycle_status.clone(),
         query.limit,
         query.offset,
     );
 
-    match use_case
+    use_case
         .list_teacher_course_dashboard(dashboard_query)
         .await
-    {
-        Ok(catalog) => HttpResponse::Ok().json(TeacherCourseDashboardResponse::from(catalog)),
-        Err(error) => teacher_course_dashboard_read_error_response(error),
-    }
+        .map(TeacherCourseDashboardResponse::from)
+        .map(web::Json)
+        .map_err(teacher_course_dashboard_read_error)
 }
 
 pub(super) async fn get_teacher_course_workspace_route(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn TeacherCourseWorkspaceUseCase>>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
-    let query = TeacherCourseWorkspaceQuery::new(requester.user_id, path.into_inner());
-    match use_case.get_teacher_course_workspace(query).await {
-        Ok(workspace) => HttpResponse::Ok().json(TeacherCourseWorkspaceResponse::from(workspace)),
-        Err(error) => teacher_course_dashboard_read_error_response(error),
-    }
+) -> Result<web::Json<TeacherCourseWorkspaceResponse>, ApiError> {
+    let query = TeacherCourseWorkspaceQuery::new(requester.user_id(), path.into_inner());
+    use_case
+        .get_teacher_course_workspace(query)
+        .await
+        .map(TeacherCourseWorkspaceResponse::from)
+        .map(web::Json)
+        .map_err(teacher_course_dashboard_read_error)
 }
 
 pub(super) async fn get_teacher_course_enrollment_workspace_route(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn TeacherCourseEnrollmentWorkspaceUseCase>>,
     query: web::Query<TeacherCourseEnrollmentParams>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
+) -> Result<web::Json<TeacherCourseEnrollmentWorkspaceResponse>, ApiError> {
     let enrollment_query = TeacherCourseEnrollmentWorkspaceQuery::new(
-        requester.user_id,
+        requester.user_id(),
         path.into_inner(),
         query.status.clone(),
         query.limit,
         query.offset,
     );
-    match use_case
+    use_case
         .get_teacher_course_enrollment_workspace(enrollment_query)
         .await
-    {
-        Ok(workspace) => {
-            HttpResponse::Ok().json(TeacherCourseEnrollmentWorkspaceResponse::from(workspace))
-        }
-        Err(error) => teacher_course_dashboard_read_error_response(error),
-    }
+        .map(TeacherCourseEnrollmentWorkspaceResponse::from)
+        .map(web::Json)
+        .map_err(teacher_course_dashboard_read_error)
 }
 
 pub(super) async fn get_teacher_course_students_route(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn TeacherCourseStudentsUseCase>>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
-    let query = TeacherCourseStudentsQuery::new(requester.user_id, path.into_inner());
-    match use_case.get_teacher_course_students(query).await {
-        Ok(students) => HttpResponse::Ok().json(TeacherCourseStudentsResponse::from(students)),
-        Err(error) => teacher_course_dashboard_read_error_response(error),
-    }
+) -> Result<web::Json<TeacherCourseStudentsResponse>, ApiError> {
+    let query = TeacherCourseStudentsQuery::new(requester.user_id(), path.into_inner());
+    use_case
+        .get_teacher_course_students(query)
+        .await
+        .map(TeacherCourseStudentsResponse::from)
+        .map(web::Json)
+        .map_err(teacher_course_dashboard_read_error)
 }

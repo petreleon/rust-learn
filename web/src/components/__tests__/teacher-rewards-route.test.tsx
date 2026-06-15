@@ -35,11 +35,18 @@ vi.mock("@/lib/teacher", async (importOriginal) => {
   };
 });
 
-const emptyScope = { delegated_permissions: [], direct_permissions: [], effective_permissions: [], roles: [] };
+const emptyScope = { capabilities: [], delegated_permissions: [], direct_permissions: [], effective_permissions: [], roles: [] };
 
 function session(): CurrentSession {
   return {
-    courses: [{ ...emptyScope, id: 9, lifecycle_status: "published", title: "Rust Safety" }],
+    access: { learner: true, teacher: true, teacher_application: false, organization: false, platform_admin: false },
+    courses: [{
+      ...emptyScope,
+      capabilities: [{ enabled: true, key: "teaching", label: "Teaching", permissions: [] }],
+      id: 9,
+      lifecycle_status: "published",
+      title: "Rust Safety",
+    }],
     delegated_permissions: [],
     organizations: [],
     platform: emptyScope,
@@ -72,6 +79,8 @@ function students(canViewRewards: boolean): TeacherCourseStudentsResponse {
   return {
     course: course(canViewRewards),
     progress_supported: true,
+    reward_eligibility: { active_policy_count: 0, event_types: [], supported: false },
+    reward_eligibility_supported: true,
     reward_evidence_supported: true,
     students: [],
     teacher_roles: ["TEACHER"],

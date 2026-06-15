@@ -1,49 +1,59 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{http::StatusCode, web};
 
 use crate::application::organizations::manage_organizations::{
-    OrganizationCreateCommand, OrganizationManagementError, OrganizationManagementUseCase,
-    OrganizationOutput, OrganizationUpdateCommand,
+    OrganizationCreateCommand, OrganizationManagementUseCase, OrganizationOutput,
+    OrganizationUpdateCommand,
 };
+use crate::http::errors::ApiError;
 
 use super::dto::{CreateOrganizationRequest, UpdateOrganizationRequest};
+use super::errors::organization_management_error;
 use super::organization_dto::OrganizationResponse;
 
 pub(super) async fn list_organizations(
     use_case: web::Data<Arc<dyn OrganizationManagementUseCase>>,
-) -> impl Responder {
-    match use_case.list_organizations().await {
-        Ok(organizations) => HttpResponse::Ok().json(organization_responses(organizations)),
-        Err(error) => organization_management_error_response(
-            error,
-            None,
-            "organization_list_failed",
-            "Failed to load organizations",
-        ),
-    }
+) -> Result<web::Json<Vec<OrganizationResponse>>, ApiError> {
+    use_case
+        .list_organizations()
+        .await
+        .map(organization_responses)
+        .map(web::Json)
+        .map_err(|error| {
+            organization_management_error(
+                error,
+                None,
+                "organization_list_failed",
+                "Failed to load organizations",
+            )
+        })
 }
 
 pub(super) async fn get_organization(
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn OrganizationManagementUseCase>>,
-) -> impl Responder {
+) -> Result<web::Json<OrganizationResponse>, ApiError> {
     let organization_id = path.into_inner();
-    match use_case.get_organization(organization_id).await {
-        Ok(organization) => HttpResponse::Ok().json(OrganizationResponse::from(organization)),
-        Err(error) => organization_management_error_response(
-            error,
-            Some(organization_id),
-            "organization_fetch_failed",
-            "Failed to fetch organization",
-        ),
-    }
+    use_case
+        .get_organization(organization_id)
+        .await
+        .map(OrganizationResponse::from)
+        .map(web::Json)
+        .map_err(|error| {
+            organization_management_error(
+                error,
+                Some(organization_id),
+                "organization_fetch_failed",
+                "Failed to fetch organization",
+            )
+        })
 }
 
 pub(super) async fn create_organization(
     use_case: web::Data<Arc<dyn OrganizationManagementUseCase>>,
     req: web::Json<CreateOrganizationRequest>,
-) -> impl Responder {
+) -> Result<(web::Json<OrganizationResponse>, StatusCode), ApiError> {
     let command = OrganizationCreateCommand {
         name: req.name.clone(),
         website_link: req.website_link.clone(),
@@ -51,22 +61,27 @@ pub(super) async fn create_organization(
         course_ids: req.course_ids.clone(),
     };
 
-    match use_case.create_organization(command).await {
-        Ok(organization) => HttpResponse::Created().json(OrganizationResponse::from(organization)),
-        Err(error) => organization_management_error_response(
-            error,
-            None,
-            "organization_create_failed",
-            "Failed to create organization",
-        ),
-    }
+    use_case
+        .create_organization(command)
+        .await
+        .map(OrganizationResponse::from)
+        .map(web::Json)
+        .map(|body| (body, StatusCode::CREATED))
+        .map_err(|error| {
+            organization_management_error(
+                error,
+                None,
+                "organization_create_failed",
+                "Failed to create organization",
+            )
+        })
 }
 
 pub(super) async fn update_organization(
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn OrganizationManagementUseCase>>,
     req: web::Json<UpdateOrganizationRequest>,
-) -> impl Responder {
+) -> Result<web::Json<OrganizationResponse>, ApiError> {
     let organization_id = path.into_inner();
     let update = req.into_inner();
     let command = OrganizationUpdateCommand {
@@ -76,58 +91,38 @@ pub(super) async fn update_organization(
         profile_url: update.profile_url,
     };
 
-    match use_case.update_organization(command).await {
-        Ok(organization) => HttpResponse::Ok().json(OrganizationResponse::from(organization)),
-        Err(error) => organization_management_error_response(
-            error,
-            Some(organization_id),
-            "organization_update_failed",
-            "Failed to update organization",
-        ),
-    }
+    use_case
+        .update_organization(command)
+        .await
+        .map(OrganizationResponse::from)
+        .map(web::Json)
+        .map_err(|error| {
+            organization_management_error(
+                error,
+                Some(organization_id),
+                "organization_update_failed",
+                "Failed to update organization",
+            )
+        })
 }
 
 pub(super) async fn delete_organization(
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn OrganizationManagementUseCase>>,
-) -> impl Responder {
+) -> Result<(&'static str, StatusCode), ApiError> {
     let organization_id = path.into_inner();
-    match use_case.delete_organization(organization_id).await {
-        Ok(_) => HttpResponse::Ok().body("Organization deleted"),
-        Err(error) => organization_management_error_response(
-            error,
-            Some(organization_id),
-            "organization_delete_failed",
-            "Failed to delete organization",
-        ),
-    }
-}
-
-fn organization_management_error_response(
-    error: OrganizationManagementError,
-    organization_id: Option<i32>,
-    event: &str,
-    response_body: &'static str,
-) -> HttpResponse {
-    match error {
-        OrganizationManagementError::NotFound => {
-            HttpResponse::NotFound().body("Organization not found")
-        }
-        OrganizationManagementError::Connection(error)
-        | OrganizationManagementError::Database(error) => {
-            if let Some(organization_id) = organization_id {
-                log::error!(
-                    "event={} organization_id={} error={}",
-                    event,
-                    organization_id,
-                    error
-                );
-            } else {
-                log::error!("event={} error={}", event, error);
-            }
-            HttpResponse::InternalServerError().body(response_body)
-        }
-    }
+    use_case
+        .delete_organization(organization_id)
+        .await
+        .map(|_| ("Organization deleted", StatusCode::OK))
+        .map_err(|error| {
+            organization_management_error(
+                error,
+                Some(organization_id),
+                "organization_delete_failed",
+                "Failed to delete organization",
+            )
+        })
 }
 
 fn organization_responses(organizations: Vec<OrganizationOutput>) -> Vec<OrganizationResponse> {

@@ -1,18 +1,15 @@
-use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::AsyncPgConnection;
 use futures::future::{BoxFuture, FutureExt};
 
-use crate::application::kyc::{KycAuditEventOutput, KycError, KycStore, KycSubmissionOutput};
-use crate::config::constants::permissions::Permissions;
-use crate::db::schema::{kyc_audit_events, kyc_submissions, users};
-use crate::domain::kyc::submission::{
-    NormalizedKycDecision, NormalizedKycSubmission, KYC_STATUS_SUBMITTED, KYC_STATUS_UNDER_REVIEW,
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
 };
+use crate::application::kyc::{KycAuditEventOutput, KycError, KycStore, KycSubmissionOutput};
+use crate::domain::kyc::submission::{NormalizedKycDecision, NormalizedKycSubmission};
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::kyc::kyc_mappers::map_error;
+use crate::infra::postgres::kyc::kyc_read_queries;
 use crate::infra::postgres::kyc::kyc_transactions::{create_submission, decide_submission};
-use crate::models::kyc_audit_event::KycAuditEvent;
-use crate::models::kyc_submission::KycSubmission;
 
 pub struct PostgresKycStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -26,33 +23,15 @@ impl<'conn> PostgresKycStore<'conn> {
 
 impl KycStore for PostgresKycStore<'_> {
     fn get_user_kyc_verified(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, KycError>> {
-        async move {
-            users::table
-                .find(user_id)
-                .select(users::kyc_verified)
-                .first::<bool>(self.conn)
-                .await
-                .map_err(map_error)
-        }
-        .boxed()
+        async move { kyc_read_queries::get_user_kyc_verified(self.conn, user_id).await }.boxed()
     }
 
     fn latest_submission_for_user(
         &mut self,
         user_id: i32,
     ) -> BoxFuture<'_, Result<Option<KycSubmissionOutput>, KycError>> {
-        async move {
-            kyc_submissions::table
-                .filter(kyc_submissions::user_id.eq(user_id))
-                .order(kyc_submissions::updated_at.desc())
-                .then_order_by(kyc_submissions::id.desc())
-                .first::<KycSubmission>(self.conn)
-                .await
-                .optional()
-                .map(|submission| submission.map(Into::into))
-                .map_err(map_error)
-        }
-        .boxed()
+        async move { kyc_read_queries::latest_submission_for_user(self.conn, user_id).await }
+            .boxed()
     }
 
     fn create_submission(
@@ -62,46 +41,15 @@ impl KycStore for PostgresKycStore<'_> {
         async move { create_submission(self.conn, submission).await }.boxed()
     }
 
-    fn can_review_kyc(&mut self, user_id: i32) -> BoxFuture<'_, Result<bool, KycError>> {
-        async move {
-            let permission = Permissions::REVIEW_KYC_SUBMISSIONS.to_string();
-            permission_checks::has_platform_permission(self.conn, user_id, &permission)
-                .await
-                .map_err(map_error)
-        }
-        .boxed()
-    }
-
     fn list_review_queue(&mut self) -> BoxFuture<'_, Result<Vec<KycSubmissionOutput>, KycError>> {
-        async move {
-            kyc_submissions::table
-                .filter(
-                    kyc_submissions::status.eq_any([KYC_STATUS_SUBMITTED, KYC_STATUS_UNDER_REVIEW]),
-                )
-                .order(kyc_submissions::submitted_at.asc())
-                .then_order_by(kyc_submissions::id.asc())
-                .limit(50)
-                .load::<KycSubmission>(self.conn)
-                .await
-                .map(|items| items.into_iter().map(Into::into).collect())
-                .map_err(map_error)
-        }
-        .boxed()
+        async move { kyc_read_queries::list_review_queue(self.conn).await }.boxed()
     }
 
     fn find_submission(
         &mut self,
         submission_id: i64,
     ) -> BoxFuture<'_, Result<KycSubmissionOutput, KycError>> {
-        async move {
-            kyc_submissions::table
-                .find(submission_id)
-                .first::<KycSubmission>(self.conn)
-                .await
-                .map(Into::into)
-                .map_err(map_error)
-        }
-        .boxed()
+        async move { kyc_read_queries::find_submission(self.conn, submission_id).await }.boxed()
     }
 
     fn decide_submission(
@@ -128,14 +76,23 @@ impl KycStore for PostgresKycStore<'_> {
         &mut self,
         submission_id: i64,
     ) -> BoxFuture<'_, Result<Vec<KycAuditEventOutput>, KycError>> {
+        async move { kyc_read_queries::list_submission_audit(self.conn, submission_id).await }
+            .boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresKycStore<'_> {
+    type Error = KycError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, KycError>> {
         async move {
-            kyc_audit_events::table
-                .filter(kyc_audit_events::submission_id.eq(submission_id))
-                .order(kyc_audit_events::created_at.asc())
-                .then_order_by(kyc_audit_events::id.asc())
-                .load::<KycAuditEvent>(self.conn)
+            permission_checks::can(self.conn, actor, action, scope)
                 .await
-                .map(|items| items.into_iter().map(Into::into).collect())
                 .map_err(map_error)
         }
         .boxed()

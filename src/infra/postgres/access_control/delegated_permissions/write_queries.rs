@@ -3,7 +3,9 @@ use diesel_async::AsyncPgConnection;
 use crate::application::access_control::manage_delegated_permissions::{
     DelegatedPermissionCreate, DelegatedPermissionError, DelegatedPermissionOutput,
 };
-use crate::infra::postgres::access_control::delegated_permissions::mappers::map_error;
+use crate::infra::postgres::access_control::delegated_permissions::mappers::{
+    delegated_permission_output_from_record, map_error,
+};
 use crate::infra::postgres::access_control::delegated_permissions::records;
 use crate::models::delegated_permission::NewDelegatedPermission;
 
@@ -24,7 +26,7 @@ pub(super) async fn create_delegated_permission(
 
     records::create_delegated_permission(conn, new_delegation)
         .await
-        .map(Into::into)
+        .map(delegated_permission_output_from_record)
         .map_err(map_error)
 }
 
@@ -36,6 +38,6 @@ pub(super) async fn revoke_delegated_permission(
 ) -> Result<DelegatedPermissionOutput, DelegatedPermissionError> {
     records::revoke_delegated_permission(conn, delegation_id, revoked_by_user_id, revoke_reason)
         .await
-        .map(Into::into)
+        .map(delegated_permission_output_from_record)
         .map_err(map_error)
 }

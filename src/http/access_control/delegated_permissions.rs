@@ -1,40 +1,45 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{http::StatusCode, web};
 
 use crate::application::access_control::manage_delegated_permissions::{
-    DelegatedPermissionError, DelegatedPermissionUseCase,
+    DelegatedPermissionOutput, DelegatedPermissionUseCase,
 };
 use crate::http::access_control::dto::{
     DelegatedPermissionResponse, GrantDelegatedPermissionRequest, ListDelegatedPermissionsParams,
     RevokeDelegatedPermissionRequest,
 };
+use crate::http::access_control::errors::delegated_permission_error;
+use crate::http::errors::ApiError;
 use crate::http::extractors::auth_user::AuthUser;
 
 async fn grant_delegated_permission(
     requester: AuthUser,
     use_case: web::Data<Arc<dyn DelegatedPermissionUseCase>>,
     body: web::Json<GrantDelegatedPermissionRequest>,
-) -> impl Responder {
+) -> Result<(web::Json<DelegatedPermissionResponse>, StatusCode), ApiError> {
     let command = body.into_inner().into_command(requester.user_id());
-    match use_case.grant_delegated_permission(command).await {
-        Ok(delegation) => {
-            HttpResponse::Created().json(DelegatedPermissionResponse::from(delegation))
-        }
-        Err(error) => delegated_permission_error_response(error),
-    }
+    use_case
+        .grant_delegated_permission(command)
+        .await
+        .map(DelegatedPermissionResponse::from)
+        .map(web::Json)
+        .map(|body| (body, StatusCode::CREATED))
+        .map_err(delegated_permission_error)
 }
 
 async fn list_delegated_permissions(
     requester: AuthUser,
     use_case: web::Data<Arc<dyn DelegatedPermissionUseCase>>,
     query: web::Query<ListDelegatedPermissionsParams>,
-) -> impl Responder {
+) -> Result<web::Json<Vec<DelegatedPermissionResponse>>, ApiError> {
     let query = query.into_inner().into_query(requester.user_id());
-    match use_case.list_delegated_permissions(query).await {
-        Ok(delegations) => HttpResponse::Ok().json(delegated_permission_responses(delegations)),
-        Err(error) => delegated_permission_error_response(error),
-    }
+    use_case
+        .list_delegated_permissions(query)
+        .await
+        .map(delegated_permission_responses)
+        .map(web::Json)
+        .map_err(delegated_permission_error)
 }
 
 async fn revoke_delegated_permission(
@@ -42,37 +47,20 @@ async fn revoke_delegated_permission(
     path: web::Path<i64>,
     use_case: web::Data<Arc<dyn DelegatedPermissionUseCase>>,
     body: web::Json<RevokeDelegatedPermissionRequest>,
-) -> impl Responder {
+) -> Result<web::Json<DelegatedPermissionResponse>, ApiError> {
     let command = body
         .into_inner()
         .into_command(requester.user_id(), path.into_inner());
-    match use_case.revoke_delegated_permission(command).await {
-        Ok(delegation) => HttpResponse::Ok().json(DelegatedPermissionResponse::from(delegation)),
-        Err(error) => delegated_permission_error_response(error),
-    }
-}
-
-fn delegated_permission_error_response(error: DelegatedPermissionError) -> HttpResponse {
-    match error {
-        DelegatedPermissionError::PermissionDenied(_) => {
-            HttpResponse::Forbidden().body("User does not have delegated-permission access")
-        }
-        DelegatedPermissionError::InvalidInput(message) => HttpResponse::BadRequest().body(message),
-        DelegatedPermissionError::NotFound => {
-            HttpResponse::NotFound().body("Delegated permission not found")
-        }
-        DelegatedPermissionError::Connection(message)
-        | DelegatedPermissionError::Database(message) => {
-            log::error!("event=delegated_permission_api_failed error={}", message);
-            HttpResponse::InternalServerError().body("Failed to process delegated permission")
-        }
-    }
+    use_case
+        .revoke_delegated_permission(command)
+        .await
+        .map(DelegatedPermissionResponse::from)
+        .map(web::Json)
+        .map_err(delegated_permission_error)
 }
 
 fn delegated_permission_responses(
-    delegations: Vec<
-        crate::application::access_control::manage_delegated_permissions::DelegatedPermissionOutput,
-    >,
+    delegations: Vec<DelegatedPermissionOutput>,
 ) -> Vec<DelegatedPermissionResponse> {
     delegations
         .into_iter()

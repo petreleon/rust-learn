@@ -1,29 +1,27 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::web;
 
 use crate::application::organizations::list_organization_courses::{
-    OrganizationCourseListError, OrganizationCourseListQuery, OrganizationCourseListUseCase,
+    OrganizationCourseListQuery, OrganizationCourseListUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::errors::ApiError;
+use crate::http::extractors::auth_user::AuthUser;
 
 use super::course_dto::OrganizationCourseListResponse;
 use super::dto::OrganizationCourseListParams;
+use super::errors::organization_course_list_error;
 
 pub(super) async fn get_organization_courses(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn OrganizationCourseListUseCase>>,
     query: web::Query<OrganizationCourseListParams>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
+) -> Result<web::Json<OrganizationCourseListResponse>, ApiError> {
     let organization_id = path.into_inner();
 
     let list_query = OrganizationCourseListQuery::new(
-        requester.user_id,
+        requester.user_id(),
         organization_id,
         query.search.clone(),
         query.lifecycle_status.clone(),
@@ -32,28 +30,10 @@ pub(super) async fn get_organization_courses(
         query.offset,
     );
 
-    match use_case.list_organization_courses(list_query).await {
-        Ok(courses) => HttpResponse::Ok().json(OrganizationCourseListResponse::from(courses)),
-        Err(OrganizationCourseListError::PermissionDenied(_)) => HttpResponse::Forbidden()
-            .body("User does not have permission to view organization courses"),
-        Err(OrganizationCourseListError::NotFound) => {
-            HttpResponse::NotFound().body("Organization not found")
-        }
-        Err(OrganizationCourseListError::Connection(error)) => {
-            log::error!(
-                "event=organization_courses_connection_failed organization_id={} error={}",
-                organization_id,
-                error
-            );
-            HttpResponse::InternalServerError().body("Failed to get DB connection")
-        }
-        Err(OrganizationCourseListError::Database(error)) => {
-            log::error!(
-                "event=organization_courses_fetch_failed organization_id={} error={}",
-                organization_id,
-                error
-            );
-            HttpResponse::InternalServerError().body("Failed to fetch organization courses")
-        }
-    }
+    use_case
+        .list_organization_courses(list_query)
+        .await
+        .map(OrganizationCourseListResponse::from)
+        .map(web::Json)
+        .map_err(|error| organization_course_list_error(organization_id, error))
 }

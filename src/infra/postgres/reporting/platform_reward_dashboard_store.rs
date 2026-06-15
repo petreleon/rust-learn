@@ -2,7 +2,8 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::reporting::platform_reward_dashboard::store::PlatformRewardDashboardStore;
 use crate::application::reporting::platform_reward_dashboard::{
-    PlatformRewardDashboardError, PlatformRewardDashboardOutput,
+    platform_reward_dashboard_output, PlatformRewardDashboardError, PlatformRewardDashboardFact,
+    PlatformRewardDashboardOutput,
 };
 use crate::infra::postgres::reporting::platform_reward_dashboard_reconciliation::reward_reconciliation_mismatches;
 use crate::infra::postgres::reporting::platform_reward_dashboard_rows::{
@@ -33,18 +34,18 @@ impl PlatformRewardDashboardStore for PostgresPlatformRewardDashboardStore<'_> {
                 pending_amount_approvals(self.conn).await?;
             let (payout_failures, payout_failure_count) = payout_failures(self.conn).await?;
             let reconciliation_mismatches = reward_reconciliation_mismatches(self.conn).await?;
-            let reconciliation_mismatch_count = reconciliation_mismatches.len() as i64;
 
-            Ok(PlatformRewardDashboardOutput {
-                teacher_applications,
-                reward_candidates,
-                pending_amount_approval_count,
-                pending_amount_approvals,
-                payout_failure_count,
-                payout_failures,
-                reconciliation_mismatch_count,
-                reconciliation_mismatches,
-            })
+            Ok(platform_reward_dashboard_output(
+                PlatformRewardDashboardFact {
+                    teacher_applications,
+                    reward_candidates,
+                    pending_amount_approval_count,
+                    pending_amount_approvals,
+                    payout_failure_count,
+                    payout_failures,
+                    reconciliation_mismatches,
+                },
+            ))
         }
         .boxed()
     }

@@ -1,6 +1,9 @@
 use chrono::Utc;
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::learning::learner_progress::{
     save_learner_progress, LearnerProgressError, LearnerProgressOutput, LearnerProgressStore,
     ProgressCourse, SaveLearnerProgressCommand,
@@ -13,6 +16,24 @@ struct FakeLearnerProgressStore {
     approved_join: bool,
     content_belongs: bool,
     saved_content_id: Option<i32>,
+}
+
+impl AccessDecisionStore for FakeLearnerProgressStore {
+    type Error = LearnerProgressError;
+
+    fn can(
+        &mut self,
+        _actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, LearnerProgressError>> {
+        assert_eq!(action.permission_name(), "VIEW_COURSE");
+        assert!(matches!(
+            scope,
+            AccessScope::Course(_) | AccessScope::Organization(_)
+        ));
+        async move { Ok(false) }.boxed()
+    }
 }
 
 impl LearnerProgressStore for FakeLearnerProgressStore {
@@ -35,24 +56,6 @@ impl LearnerProgressStore for FakeLearnerProgressStore {
         _course_id: i32,
     ) -> BoxFuture<'_, Result<Vec<i32>, LearnerProgressError>> {
         async move { Ok(Vec::new()) }.boxed()
-    }
-
-    fn has_course_permission(
-        &mut self,
-        _actor_user_id: i32,
-        _course_id: i32,
-        _permission: &str,
-    ) -> BoxFuture<'_, Result<bool, LearnerProgressError>> {
-        async move { Ok(false) }.boxed()
-    }
-
-    fn has_organization_permission(
-        &mut self,
-        _actor_user_id: i32,
-        _organization_id: i32,
-        _permission: &str,
-    ) -> BoxFuture<'_, Result<bool, LearnerProgressError>> {
-        async move { Ok(false) }.boxed()
     }
 
     fn actor_course_roles(

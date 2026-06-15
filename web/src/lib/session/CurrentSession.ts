@@ -2,8 +2,10 @@ import { type CourseSessionScope } from "./CourseSessionScope";
 import { type DelegatedPermissionSession } from "./DelegatedPermissionSession";
 import { type OrganizationSessionScope } from "./OrganizationSessionScope";
 import { type PlatformSessionScope } from "./PlatformSessionScope";
+import { type SessionAccessSummary } from "./SessionAccessSummary";
 
 export type CurrentSession = {
+  access: SessionAccessSummary;
   user: {
     id: number;
     name: string;

@@ -1,3 +1,6 @@
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::teacher_applications::{
     submit_application::{
         TeacherApplicationSubmission, TeacherApplicationSubmitCommand,
@@ -10,16 +13,22 @@ use crate::domain::teacher_applications::{
     status::{TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED},
 };
 
+const SUBMIT_TEACHER_APPLICATION: &str = "SUBMIT_TEACHER_APPLICATION";
+
 pub async fn submit_application(
     store: &mut impl TeacherApplicationSubmitStore,
     command: TeacherApplicationSubmitCommand,
 ) -> Result<TeacherApplicationOutput, TeacherApplicationSubmitError> {
     if !store
-        .can_submit_teacher_application(command.actor_user_id)
+        .can(
+            AccessActor::user(command.actor_user_id),
+            AccessAction::permission(SUBMIT_TEACHER_APPLICATION),
+            AccessScope::platform(),
+        )
         .await?
     {
         return Err(TeacherApplicationSubmitError::PermissionDenied(
-            "SUBMIT_TEACHER_APPLICATION".to_string(),
+            SUBMIT_TEACHER_APPLICATION.to_string(),
         ));
     }
 
@@ -154,19 +163,16 @@ fn clean_portfolio_links(portfolio_links: Option<Vec<String>>) -> Vec<String> {
 fn normalize_idempotency_key(
     idempotency_key: Option<String>,
 ) -> Result<Option<String>, TeacherApplicationSubmitError> {
-    match idempotency_key {
-        Some(value) => {
-            let trimmed = value.trim().to_string();
-            if trimmed.is_empty() {
-                Err(TeacherApplicationSubmitError::InvalidInput(
-                    "idempotency_key cannot be blank".to_string(),
-                ))
-            } else {
-                Ok(Some(trimmed))
-            }
-        }
-        None => Ok(None),
+    let Some(value) = idempotency_key else {
+        return Ok(None);
+    };
+    let trimmed = value.trim().to_string();
+    if trimmed.is_empty() {
+        return Err(TeacherApplicationSubmitError::InvalidInput(
+            "idempotency_key cannot be blank".to_string(),
+        ));
     }
+    Ok(Some(trimmed))
 }
 
 #[cfg(test)]

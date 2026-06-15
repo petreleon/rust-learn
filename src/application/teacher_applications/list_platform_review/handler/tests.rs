@@ -17,28 +17,27 @@ struct FakeStore {
     listed: bool,
 }
 
+impl AccessDecisionStore for FakeStore {
+    type Error = TeacherApplicationPlatformReviewError;
+
+    fn can(
+        &mut self,
+        _: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, TeacherApplicationPlatformReviewError>> {
+        assert!(matches!(scope, AccessScope::Platform(_)));
+        let allowed = match action.permission_name() {
+            REVIEW_TEACHER_APPLICATIONS => self.can_review,
+            APPROVE_TEACHER_APPLICATION => self.can_approve,
+            REJECT_TEACHER_APPLICATION => self.can_reject,
+            permission => panic!("unexpected platform-review permission {permission}"),
+        };
+        async move { Ok(allowed) }.boxed()
+    }
+}
+
 impl TeacherApplicationPlatformReviewStore for FakeStore {
-    fn can_review_teacher_applications(
-        &mut self,
-        _: i32,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationPlatformReviewError>> {
-        async move { Ok(self.can_review) }.boxed()
-    }
-
-    fn can_approve_teacher_application(
-        &mut self,
-        _: i32,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationPlatformReviewError>> {
-        async move { Ok(self.can_approve) }.boxed()
-    }
-
-    fn can_reject_teacher_application(
-        &mut self,
-        _: i32,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationPlatformReviewError>> {
-        async move { Ok(self.can_reject) }.boxed()
-    }
-
     fn list_applications(
         &mut self,
     ) -> BoxFuture<

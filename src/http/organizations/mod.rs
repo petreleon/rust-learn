@@ -6,6 +6,7 @@ mod dashboard_dto;
 mod dashboard_summary_conversions;
 mod dashboard_summary_dto;
 mod dto;
+mod errors;
 mod handlers;
 mod member_audit;
 mod member_audit_dto;

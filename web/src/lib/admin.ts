@@ -53,7 +53,6 @@ export { AdminRequestError } from "./admin/AdminRequestError";
 export type { KycDecisionOptions } from "./admin/KycDecisionOptions";
 export type { PlatformTeacherApplicationListOptions } from "./admin/PlatformTeacherApplicationListOptions";
 export type { TeacherApplicationDecisionOptions } from "./admin/TeacherApplicationDecisionOptions";
-export { platformCapabilityDefinitions } from "./admin/platformCapabilityDefinitions";
 export { buildPlatformAdminWorkspace } from "./admin/buildPlatformAdminWorkspace";
 export { platformCapabilityEnabled } from "./admin/platformCapabilityEnabled";
 export { missingPlatformPermissions } from "./admin/missingPlatformPermissions";

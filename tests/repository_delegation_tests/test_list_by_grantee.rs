@@ -5,7 +5,7 @@ async fn test_list_by_grantee() {
     let grantee = create_user_helper(&mut conn, "d5e").await;
 
     for i in 0..2 {
-        delegated_permission_repository::create_delegated_permission(
+        delegated_permissions::create_delegated_permission(
             &mut conn,
             new_del(
                 grantor.id(),
@@ -18,7 +18,7 @@ async fn test_list_by_grantee() {
         .unwrap();
     }
 
-    let list = delegated_permission_repository::list_delegated_permissions(
+    let list = delegated_permissions::list_delegated_permissions(
         &mut conn,
         DelegatedPermissionFilter {
             grantee_user_id: Some(grantee.id()),
@@ -37,14 +37,14 @@ async fn test_active_filter_excludes_revoked() {
     let grantor = create_user_helper(&mut conn, "d6g").await;
     let grantee = create_user_helper(&mut conn, "d6e").await;
 
-    let d = delegated_permission_repository::create_delegated_permission(
+    let d = delegated_permissions::create_delegated_permission(
         &mut conn,
         new_del(grantor.id(), grantee.id(), "VIEW_COURSE_REWARD_STATUS", 100),
     )
     .await
     .unwrap();
 
-    let active_before = delegated_permission_repository::list_delegated_permissions(
+    let active_before = delegated_permissions::list_delegated_permissions(
         &mut conn,
         DelegatedPermissionFilter {
             grantee_user_id: Some(grantee.id()),
@@ -56,7 +56,7 @@ async fn test_active_filter_excludes_revoked() {
     .unwrap();
     assert!(active_before.iter().any(|d2| d2.id == d.id));
 
-    delegated_permission_repository::revoke_delegated_permission(
+    delegated_permissions::revoke_delegated_permission(
         &mut conn,
         d.id,
         grantor.id(),
@@ -65,7 +65,7 @@ async fn test_active_filter_excludes_revoked() {
     .await
     .unwrap();
 
-    let active_after = delegated_permission_repository::list_delegated_permissions(
+    let active_after = delegated_permissions::list_delegated_permissions(
         &mut conn,
         DelegatedPermissionFilter {
             grantee_user_id: Some(grantee.id()),
@@ -84,7 +84,7 @@ async fn test_has_active_platform_delegation() {
     let grantor = create_user_helper(&mut conn, "d7g").await;
     let grantee = create_user_helper(&mut conn, "d7e").await;
 
-    delegated_permission_repository::create_delegated_permission(
+    delegated_permissions::create_delegated_permission(
         &mut conn,
         NewDelegatedPermission {
             grantor_user_id: grantor.id(),
@@ -100,7 +100,7 @@ async fn test_has_active_platform_delegation() {
     .await
     .unwrap();
 
-    let has = delegated_permission_repository::has_active_platform_delegation(
+    let has = delegated_permissions::has_active_platform_delegation(
         &mut conn,
         grantee.id(),
         "VIEW_REWARD_AUDIT",

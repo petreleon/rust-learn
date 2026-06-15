@@ -1,7 +1,10 @@
 use futures::executor::block_on;
 use futures::future::{ready, BoxFuture, FutureExt};
 
-use super::invite_organization_member;
+use super::{invite_organization_member, INVITE_USER_TO_ORGANIZATION};
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::organizations::invite_organization_member::{
     OrganizationMemberInviteCommand, OrganizationMemberInviteError, OrganizationMemberInviteStore,
     OrganizationMemberInviteTarget,
@@ -70,16 +73,26 @@ impl FakeOrganizationMemberInviteStore {
     }
 }
 
-impl OrganizationMemberInviteStore for FakeOrganizationMemberInviteStore {
-    fn can_invite_member(
+impl AccessDecisionStore for FakeOrganizationMemberInviteStore {
+    type Error = OrganizationMemberInviteError;
+
+    fn can(
         &mut self,
-        actor_user_id: i32,
-        organization_id: i32,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, OrganizationMemberInviteError>> {
-        self.permission_check = Some((actor_user_id, organization_id));
+        assert_eq!(action.permission_name(), INVITE_USER_TO_ORGANIZATION);
+        let organization_id = match scope {
+            AccessScope::Organization(scope) => scope.organization_id(),
+            _ => panic!("member invite must use organization scope"),
+        };
+        self.permission_check = Some((actor.user_id, organization_id));
         ready(Ok(self.can_invite)).boxed()
     }
+}
 
+impl OrganizationMemberInviteStore for FakeOrganizationMemberInviteStore {
     fn find_user_by_email(
         &mut self,
         email: String,

@@ -1,3 +1,6 @@
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::teacher_applications::list_platform_review::{
     TeacherApplicationPlatformReviewError, TeacherApplicationPlatformReviewItemOutput,
     TeacherApplicationPlatformReviewOutput, TeacherApplicationPlatformReviewPermissionsOutput,
@@ -5,16 +8,17 @@ use crate::application::teacher_applications::list_platform_review::{
 };
 use crate::domain::teacher_applications::status::normalize_optional_status;
 
+const REVIEW_TEACHER_APPLICATIONS: &str = "REVIEW_TEACHER_APPLICATIONS";
+const APPROVE_TEACHER_APPLICATION: &str = "APPROVE_TEACHER_APPLICATION";
+const REJECT_TEACHER_APPLICATION: &str = "REJECT_TEACHER_APPLICATION";
+
 pub async fn list_platform_review_applications(
     store: &mut impl TeacherApplicationPlatformReviewStore,
     query: TeacherApplicationPlatformReviewQuery,
 ) -> Result<TeacherApplicationPlatformReviewOutput, TeacherApplicationPlatformReviewError> {
-    if !store
-        .can_review_teacher_applications(query.actor_user_id)
-        .await?
-    {
+    if !can_platform_action(store, query.actor_user_id, REVIEW_TEACHER_APPLICATIONS).await? {
         return Err(TeacherApplicationPlatformReviewError::PermissionDenied(
-            "REVIEW_TEACHER_APPLICATIONS".to_string(),
+            REVIEW_TEACHER_APPLICATIONS.to_string(),
         ));
     }
 
@@ -22,12 +26,10 @@ pub async fn list_platform_review_applications(
     let search = normalize_optional_text(query.search);
     let limit = query.limit.unwrap_or(25).clamp(1, 100);
     let offset = query.offset.unwrap_or(0).max(0);
-    let can_approve_applications = store
-        .can_approve_teacher_application(query.actor_user_id)
-        .await?;
-    let can_reject_applications = store
-        .can_reject_teacher_application(query.actor_user_id)
-        .await?;
+    let can_approve_applications =
+        can_platform_action(store, query.actor_user_id, APPROVE_TEACHER_APPLICATION).await?;
+    let can_reject_applications =
+        can_platform_action(store, query.actor_user_id, REJECT_TEACHER_APPLICATION).await?;
     let dataset = store.list_applications().await?;
     let mut applications = dataset.applications;
 
@@ -61,6 +63,20 @@ pub async fn list_platform_review_applications(
         status,
         search,
     })
+}
+
+async fn can_platform_action(
+    store: &mut impl AccessDecisionStore<Error = TeacherApplicationPlatformReviewError>,
+    actor_user_id: i32,
+    permission: &'static str,
+) -> Result<bool, TeacherApplicationPlatformReviewError> {
+    store
+        .can(
+            AccessActor::user(actor_user_id),
+            AccessAction::permission(permission),
+            AccessScope::platform(),
+        )
+        .await
 }
 
 fn normalize_optional_text(value: Option<String>) -> Option<String> {

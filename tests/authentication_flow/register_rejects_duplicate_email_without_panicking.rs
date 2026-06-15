@@ -62,7 +62,7 @@ async fn register_normalizes_email_and_login_accepts_case_variants() {
     assert_eq!(register_resp.status(), StatusCode::OK);
 
     let mut conn = setup_conn(&pool).await;
-    let user = User::find_by_email(&normalized_email, &mut conn)
+    let user = find_user_by_email(&mut conn, &normalized_email)
         .await
         .expect("registered user should be stored under normalized email");
     assert_eq!(user.email, normalized_email);

@@ -21,7 +21,7 @@ async fn password_reset_request_is_private_and_completion_is_one_time() {
     assert_eq!(register_resp.status(), StatusCode::OK);
 
     let mut conn = setup_conn(&pool).await;
-    let user = User::find_by_email(&email, &mut conn)
+    let user = find_user_by_email(&mut conn, &email)
         .await
         .expect("registered user should exist");
     diesel::update(users::table.find(user.id()))
@@ -141,7 +141,7 @@ async fn reset_password_rejects_missing_invalid_and_expired_tokens() {
     );
 
     let mut conn = setup_conn(&pool).await;
-    let user = User::find_by_email(&email, &mut conn)
+    let user = find_user_by_email(&mut conn, &email)
         .await
         .expect("registered user should exist");
     let expired_token = unique_token("expired-reset-token");

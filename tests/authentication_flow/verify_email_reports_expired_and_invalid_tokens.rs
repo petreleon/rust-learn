@@ -5,7 +5,7 @@ async fn verify_email_reports_expired_and_invalid_tokens() {
     let app = test::init_service(auth_test_app(pool.clone())).await;
     let mut conn = setup_conn(&pool).await;
 
-    let user = rust_learn::repositories::user_repository::create_user(
+    let user = rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user(
         &mut conn,
         "Expired Verify Email",
         &unique_email("auth-expired-verify"),

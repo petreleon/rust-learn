@@ -13,7 +13,7 @@ async fn organization_teacher_applications_return_scoped_tracking_rows() {
     let other_applicant = create_test_user(&mut conn, "other_candidate").await;
     assign_organization_role(&mut conn, operator.id(), org.id, "ADMIN").await;
     assign_organization_role(&mut conn, operator.id(), other_org.id, "ADMIN").await;
-    assign_role_to_user(&mut conn, reviewer.id(), Roles::ADMIN)
+    assign_platform_role_to_user(&mut conn, reviewer.id(), Roles::ADMIN)
         .await
         .expect("failed to assign platform reviewer");
 
@@ -80,6 +80,9 @@ async fn organization_teacher_applications_return_scoped_tracking_rows() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
             .app_data(organization_teacher_application_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::organizations::organization_scope()),

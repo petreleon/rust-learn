@@ -29,14 +29,14 @@ handler, Diesel query, permission rule, and domain workflow to change together.
 
 ## Current Problems To Fix
 
-- [ ] Stop adding new `include!`-based service modules. They split files but
+- [x] Stop adding new `include!`-based service modules. They split files but
       keep one shared module namespace, shared imports, and hidden coupling.
-- [ ] Move direct Diesel usage out of API handlers. Examples to migrate include
+- [x] Move direct Diesel usage out of API handlers. Examples to migrate include
       chapters, notification preferences, course assessments, user search, and
       content mutations.
-- [ ] Separate DB records from API DTOs. Avoid returning Diesel models directly
+- [x] Separate DB records from API DTOs. Avoid returning Diesel models directly
       from handlers for user-facing contracts.
-- [ ] Stop mixing Active Record and Repository patterns. DB methods currently
+- [x] Stop mixing Active Record and Repository patterns. DB methods currently
       live both on `models::*` and in `repositories::*`; converge on repository
       or infra modules.
 - [ ] Centralize authorization policy. Permission checks currently live in
@@ -44,7 +44,7 @@ handler, Diesel query, permission rule, and domain workflow to change together.
 - [x] Pull startup side effects out of `main.rs`. DB setup, S3 setup,
       notification state, and Ethereum startup deployment should be composed
       through a small bootstrap module.
-- [ ] Give cross-cutting utilities a home based on responsibility. Some
+- [x] Give cross-cutting utilities a home based on responsibility. Some
       `utils::*` modules are infrastructure adapters, some are domain helpers,
       and some are application services.
 - [ ] Make frontend capability checks consume backend-derived session
@@ -935,15 +935,43 @@ Wiring rule:
       e.g. `pub fn configure_routes(cfg: &mut web::ServiceConfig)`.
 - [x] `http::api_scope()` composes context route configurators and
       cross-cutting middleware.
-- [ ] Build an `AppState` or context-specific state structs once outside the
+- [x] Build an `AppState` or context-specific state structs once outside the
       `HttpServer::new` closure, then pass them with `web::Data`.
-- [ ] Prefer typed extractors over manual `HttpRequest` parsing where possible:
+- [x] Prefer typed extractors over manual `HttpRequest` parsing where possible:
       `AuthUser`, `DbConn`, `Json<T>`, `Path<T>`, and `Query<T>`.
-- [ ] API handlers return `Result<web::Json<T>, ApiError>` or equivalent,
+- [x] API handlers return `Result<web::Json<T>, ApiError>` or equivalent,
       instead of manually matching every service error to `HttpResponse`.
-- [ ] Domain/application errors do not implement Actix traits directly. The
+      Progress: `http/access_control` role catalog and delegated-permission
+      handlers, `http/notifications` handlers, and `http/operations` handlers
+      now use typed JSON/text/status responders with `ApiError` where errors
+      are possible. Identity session, user profile/list, and platform role
+      assignment handlers also use typed results. Legacy identity
+      authentication handlers now use typed results with a local text
+      `ResponseError` to preserve their tested plain-text contract. KYC status,
+      submission, review, and audit handlers now use typed JSON/status results
+      with a KYC HTTP error mapper. Teacher-application submission, listing,
+      self-read, review, decision, audit, and organization nomination handlers
+      now use typed JSON/status results with a teacher-application HTTP error
+      mapper. Content chapter/content-item/upload/media/processing handlers now
+      use typed JSON/text/status results with content HTTP error mappers.
+      Organization CRUD, dashboard, course/member/teacher-application lists,
+      member invite/removal/role, and member audit handlers now use typed
+      JSON/text/status results with organization HTTP error mappers. Wallet
+      read/link/audit/deposit/retirement/token-tax handlers now use typed
+      JSON/status results with wallet HTTP error mappers. Reporting dashboard
+      and CSV export handlers now use typed JSON/CSV download results with
+      reporting HTTP error mappers. Rewards candidate, policy, fraud-block,
+      audit, history, and review handlers now use typed JSON/status results
+      with rewards HTTP error mappers. Learning course catalog, management,
+      lifecycle, organizations, roles, enrollment, progress, assessment, and
+      teaching handlers now use typed JSON/text/status results with granular
+      learning HTTP error mappers. Repository-wide HTTP scans now find manual
+      `HttpResponse` construction only in the shared JSON `ApiError`
+      `ResponseError` and the intentional identity-auth plain-text
+      `ResponseError`.
+- [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
-- [ ] Configure JSON limits and JSON parse errors centrally so every route has
+- [x] Configure JSON limits and JSON parse errors centrally so every route has
       consistent bad-request behavior.
 
 ## First Low-Risk Building Blocks
@@ -953,7 +981,7 @@ Wiring rule:
       implementation with consistent JSON error bodies.
 - [x] Add an `http/extractors/auth_user.rs` extractor that reads the `UserJWT`
       extension once and removes repeated `authenticated_user(&req)` boilerplate.
-- [ ] Add a DB connection extractor or helper so handlers do not repeat
+- [x] Add a DB connection extractor or helper so handlers do not repeat
       `pool.get().await` and 500 mapping.
 - [x] Add `bootstrap/app_state.rs` to group `DbPool`, `S3State`,
       `NotificationsState`, and future infra handles.
@@ -1115,31 +1143,773 @@ remaining gaps.
 | 217 | Deleted the `utils::jwt_utils` compatibility bridge after moving HTTP extractors, authentication JWKS/tests, JWT middleware, and integration fixtures to the `infra/tokens/jwt` owner directly. |
 | 218 | Deleted the `utils::notifications` compatibility bridge after moving HTTP best-effort notification senders and integration fixtures to the `infra/notifications` owner directly. |
 | 219 | Deleted the `utils::s3_utils` compatibility bridge after moving S3, readiness, and video-upload integration fixtures to the `infra/object_storage` owner directly. |
+| 220 | Deleted the `utils::eth_utils` compatibility bridge after moving Ethereum compiler, deployer, provider, and wallet integration tests to the `infra/ethereum/operations` owners directly. |
+| 221 | Deleted the unused `utils::centralized_wallets` compatibility bridge after scans proved source and tests call the `infra/postgres/wallet/centralized_wallets` owner directly or do not use the helper. |
+| 222 | Deleted the final unused `src/utils` module after scans proved no `crate::utils` or `rust_learn::utils` callers remain; stale course invite helpers were superseded by `infra/postgres/learning/course_creation_store`. |
+| 223 | Moved platform, organization, and course permission/hierarchy middleware checks off legacy repository imports and onto an `infra/postgres/access_control/authorization_checks` adapter facade, leaving middleware dependent on the access-control Postgres boundary instead of `src/repositories`. |
+| 224 | Moved the version-2 bootstrap admin creation/update path off legacy user/platform repositories and onto `infra/postgres/identity/bootstrap_accounts` plus access-control role catalog/assignment adapters, making production `src` free of `crate::repositories` imports. |
+| 225 | Added an infra-owned verified password user helper, repointed all integration-test `user_repository::create_user` fixtures to it, and deleted the unused legacy `user_repository` module/export. |
+| 226 | Promoted access-control permission, hierarchy, platform-role, organization-role, and platform-permission fixture helpers to `infra/postgres/access_control/authorization_checks`, repointed tests to that facade, and deleted the unused legacy course/organization/platform/platform-permission repository modules. |
+| 227 | Promoted delegated-permission fixture/read helpers to `infra/postgres/access_control/delegated_permissions`, repointed tests to that infra module, and deleted the legacy delegated-permission repository shell plus child bridge modules. |
+| 228 | Made `infra/postgres/operations/persistent_state` the public Postgres owner for persistent key/value state, repointed wallet/reward integration fixtures to it, and deleted the legacy persistent-state repository shell. |
+| 229 | Moved teacher-application audit fixture reads to the Postgres teacher-application audit store helper, repointed tests to that infra owner, and deleted the legacy teacher-application repository shell. |
+| 230 | Promoted reward fixture record helpers to `infra/postgres/rewards`, repointed reward tests to those Postgres owners, removed `repositories` from the binary/library module trees, deleted the entire legacy `src/repositories` module, and refreshed public architecture maps. |
+| 231 | Moved upload-job queue claim/metrics/done/failure/retry persistence out of `models::upload_job` and into `infra/postgres/content/upload_job_queue`, leaving `UploadJob` as a row shape plus pure id helper while the worker and upload tests call the infra owner. |
+| 232 | Moved user read persistence out of `models::user` and into `infra/postgres/identity/accounts`, repointed bootstrap, organization invite, and authentication-flow fixtures to identity infra helpers, leaving `src/models` free of async DB methods. |
+| 233 | Moved teacher and amount reward-decision target-status alias parsing into pure `domain/rewards/candidate/transition` helpers, leaving application validation as thin error translation. |
+| 234 | Moved teacher and amount reward-decision target-transition validation into pure `domain/rewards/candidate/transition` helpers, leaving Postgres adapters responsible only for stored-status parsing and error translation. |
+| 235 | Moved wallet-credit notification and reward reconciliation lifecycle predicates into `domain/rewards/candidate/lifecycle`, leaving Postgres validation modules responsible for stored-status parsing and use-case error wording. |
+| 236 | Added named reward candidate domain transitions for token confirmation and wallet credit, and repointed Postgres adapters away from raw `TransitionAction` selection. |
+| 237 | Added a domain-owned wallet-credit notification target-status helper, split lifecycle tests out of the production module, and repointed the notification transaction away from hard-coded `Notified` status writes. |
+| 238 | Repointed wallet-credit persistence to use the domain-resolved target status from validation instead of hard-coding `WalletCredited` in the transaction. |
+| 239 | Moved the wallet-credit-record-required status predicate into `domain/rewards/candidate/lifecycle`, leaving Postgres validation responsible for stored-status parsing and error wording. |
+| 240 | Moved the wallet-credit payout-evidence-required predicate for reconciliation candidates into `domain/rewards/candidate/lifecycle`, leaving evidence lookup and error wording in the Postgres adapter. |
+| 241 | Moved the prior-candidate statuses that allow a fresh reward submission into `domain/rewards/candidate/lifecycle`, leaving the Postgres eligibility query to consume the named domain set. |
+| 242 | Split reward candidate lifecycle tests by concern into reconciliation, wallet-credit, and submission modules so the domain lifecycle boundary can keep growing under the manual file-size ceiling. |
+| 243 | Moved platform reward-dashboard candidate-status bucket assignment into the reporting application layer, leaving Postgres to parse DB status strings into the domain enum before applying report shape. |
+| 244 | Moved platform reward-dashboard reconciliation mismatch classification and scan-status ownership into the reporting application layer, leaving Postgres to load records and pass typed facts. |
+| 245 | Moved wallet-audit reward reconciliation classification from `domain/wallet/audit` into `domain/rewards/candidate/reconciliation`, leaving wallet infra as a consumer of reward-domain facts. |
+| 246 | Moved organization-dashboard reward attention status bucketing into the organization dashboard application layer, leaving Postgres to parse candidate DB status strings into the reward domain enum. |
+| 247 | Moved organization course-list reward queue status bucketing into the organization course-list application layer, leaving Postgres to group candidate status rows and pass typed reward statuses. |
+| 248 | Moved teacher course-dashboard reward queue status bucketing into the teacher dashboard application layer, leaving Postgres to group candidate status rows and pass typed reward statuses. |
+| 249 | Moved per-student teacher reward progress status bucketing into the teacher-students application layer, leaving Postgres to group candidate status rows and pass typed reward statuses. |
+| 250 | Moved platform wallet-reconciliation reward status sets into the reporting application layer, leaving Postgres to translate typed statuses into SQL filters for missing-record counts. |
+| 251 | Split platform wallet-reconciliation candidate-id resolution into a dedicated Postgres helper and shared mapper, leaving the count adapter focused on aggregation and application-owned status-set filters. |
+| 252 | Moved organization reward-dashboard sponsored teacher-application status bucketing into the reporting application layer, leaving Postgres to load status rows only. |
+| 253 | Moved organization reward-dashboard course, approved reward, approved amount, and wallet balance total aggregation into the reporting application layer behind dashboard fact structs. |
+| 254 | Moved organization reward-dashboard course and wallet row/fact construction into application-owned fact constructors, leaving Postgres to pass loaded values and decimals. |
+| 255 | Moved organization reward-dashboard date-window expansion into the reporting application layer, leaving Postgres to consume prepared inclusive timestamp bounds. |
+| 256 | Moved organization reward-dashboard per-course approved amount summarization into the reporting application layer, leaving Postgres to load nullable amount values only. |
+| 257 | Split the organization reward-dashboard Postgres adapter into focused course, teacher-application, wallet, and mapper modules instead of one mixed query bucket. |
+| 258 | Moved organization reward-dashboard organization-name lookup into a focused Postgres helper, leaving the store as dashboard fact orchestration only. |
+| 259 | Moved platform fraud-dashboard scope summary and output assembly into the reporting application layer, leaving Postgres to load active fraud-block facts. |
+| 260 | Split platform fraud-dashboard active-block loading and Diesel error mapping into focused Postgres helpers, leaving the store as orchestration only. |
+| 261 | Moved organization-summary count and output assembly into the reporting application layer, leaving Postgres to load summary facts. |
+| 262 | Split organization-summary identity, course, member, wallet, course-role, and Diesel mapper reads into focused Postgres helpers. |
+| 263 | Moved platform CSV export Diesel error mapping into a focused Postgres mapper module, leaving the CSV store as orchestration only. |
+| 264 | Moved platform teacher-application CSV row assembly into the reporting application layer behind a teacher-application export fact. |
+| 265 | Moved platform reward-approval CSV row assembly into the reporting application layer behind a reward-approval export fact. |
+| 266 | Moved platform delegated-permission CSV row assembly and state classification into the reporting application layer behind a delegated-permission export fact. |
+| 267 | Moved platform wallet-credit CSV row assembly into the reporting application layer behind a wallet-credit export fact. |
+| 268 | Moved the final platform token-payout CSV row assembly and optional external-transaction defaulting into the reporting application layer, closing the platform CSV export row-assembly migration batch. |
+| 269 | Moved platform reward-dashboard and wallet-reconciliation row display shaping into application-owned row fact assemblers, leaving Postgres helpers to load records and pass typed facts. |
+| 270 | Moved platform summary, platform reward-dashboard, and platform wallet-reconciliation top-level output assembly into application-owned report builders, leaving Postgres stores to load counts/rows/facts. |
+| 271 | Moved simple notification, delegated-permission, content, KYC, and wallet output assembly into application-owned fact builders, leaving Postgres adapters to translate Diesel records into facts and call the application boundary. |
+| 272 | Split content item and KYC Postgres stores into thin orchestration modules backed by focused record, scope, read-query, and permission-query helpers. |
+| 273 | Split bootstrap app-state construction and app-data registration into context-owned wiring bundles for learning, content, notifications, rewards, wallet, and reporting. |
+| 274 | Moved the remaining wallet and transaction Active Record methods out of `models::*` and into wallet Postgres ledger records, leaving model files as Diesel row shapes only. |
+| 275 | Moved JWT request claims from `models` into pure `domain/identity`, repointed HTTP extractors, middleware, and token infra, and proved the HTTP ring no longer imports models, DB, schema, repositories, services, or Diesel. |
+| 276 | Routed platform, course, and organization permission middlewares through an application access-control permission-check use case instead of direct Postgres authorization helper calls. |
+| 277 | Routed platform and organization hierarchy middlewares through an application access-control hierarchy-check use case, moved hierarchy-level ordering semantics into pure domain, and made organization hierarchy middleware mountable with normal Actix route wrapping. |
+| 278 | Deleted the mixed `infra/postgres/access_control/authorization_checks` facade after splitting it into focused permission-query, hierarchy-query, and role-assignment modules and repointing integration fixtures to those owners. |
+| 279 | Moved access-control middleware app-state dependencies off concrete `DbPool` and onto application-owned permission/hierarchy check service app data, with bootstrap wiring registering the Postgres-backed implementations for production and route tests. |
+| 280 | Added backend-derived session access/capability facts for platform, organization, and course scopes, exposed them through `/api/me`, and removed frontend `web/src/lib` permission-group tables for admin, organization, and workspace capability checks. |
+| 281 | Added an application-level notification delivery contract, implemented it with the existing infra notification sender, registered it through notification app-data wiring, removed raw `NotificationsState` exposure from `AppState`, and repointed content, learning enrollment, course-role assignment, and organization-role assignment HTTP handlers away from notification infra imports. |
+| 282 | Added an application-owned JWKS contract, mapped env-backed token infra into that contract through identity wiring, moved JWKS JSON serialization into HTTP, and made HTTP auth extractors rely on middleware-inserted identity claims instead of decoding JWTs directly. |
+| 283 | Added an `AuthUserId` typed extractor and migrated id-only handlers in notifications, content processing, learning enrollment/progress/assessment/course-role routes, organization member invite/removal/role routes, and identity platform/session-id routes away from manual `authenticated_user_id(&req)` parsing. |
+| 284 | Made `AuthUser` preserve the old plain-text unauthorized failures and migrated wallet read/link/audit/deposit/retirement/token-tax routes away from manual `authenticated_user(&req)` parsing. |
+| 285 | Migrated reward policy, fraud-block, candidate submission/list/review/audit/history, teacher decision, and amount decision routes to `AuthUser`, removing manual full-claims request auth from `http/rewards`. |
+| 286 | Migrated identity user lookup, learning management/catalog/teaching/lifecycle routes, and organization dashboard/course/member/audit/teacher-application read routes to `AuthUser`, leaving only current-session's custom JSON unauthorized path on the legacy request-auth helper. |
+| 287 | Replaced the final legacy request-auth helper with a current-session-specific typed extractor that preserves `/api/me` JSON unauthorized responses, removed `http/extractors/request_auth.rs`, and proved HTTP has no direct DB pool acquisition. |
 
 ## Recent Slice Evidence
 
-Slice 219: delete S3 utility compatibility bridge.
+Batch 288: centralize JSON extractor limits and parse errors.
 
-- [x] Move S3, readiness, and video-upload integration fixtures off
-      `utils::s3_utils` and onto the explicit `infra::object_storage` owner.
-- [x] Delete `src/utils/s3_utils.rs` and remove it from `src/utils/mod.rs`
-      after scans proved no source or test references remain.
-- [x] Preserve object-storage behavior through the existing infra API,
-      especially `S3State` construction, readiness health checks, and video
-      upload fixture wiring.
-- [x] Self-critique: `infra/object_storage::S3State` still includes video
-      processing methods that depend directly on concrete notification infra.
-      A later content/worker slice should split media-processing orchestration
-      behind an application port rather than keeping notification fan-out inside
-      the object-storage adapter.
-- [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib object_storage`,
+- [x] Added `http::configure_json` as the HTTP-owned Actix extractor policy for
+      `web::Json<T>` payload limits, content-type failures, parse failures, and
+      unreadable payloads.
+- [x] Registered the JSON extractor policy from
+      `bootstrap::app_data::configure_app_data`, keeping production process
+      wiring in bootstrap while HTTP owns the error contract.
+- [x] Covered malformed JSON, non-JSON content type, and oversized JSON bodies
+      with focused unit tests that assert the shared `ApiError` JSON envelope.
+- [x] Proved behavior and wiring with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib json_config`,
       `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, scans showing no source/test `s3_utils` references
-      remain, scans showing `utils/mod.rs` no longer exports S3 utilities, and
-      file-size checks keeping changed Rust files under the manual 180-line
-      ceiling.
+      `JsonConfig`/`JsonPayloadError` scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this centralizes `Json<T>` extraction failures only.
+      Manual handler `HttpResponse` mapping and non-JSON extractor failures
+      remain separate open HTTP refactor slices.
+
+Batch 289: mark source-boundary cleanup that scans now prove complete.
+
+- [x] Proved production source no longer uses `include!` with
+      `rg -n "include!\(" src --glob '*.rs'`; remaining `include!` hits are
+      integration-test harness composition, not service modules.
+- [x] Proved domain and application rings do not implement or import Actix
+      response traits with
+      `rg -n "impl .*ResponseError|ResponseError|actix_web|HttpResponse|StatusCode" src/domain src/application --glob '*.rs'`.
+- [x] Left the broad HTTP handler-return refactor open because `src/http` still
+      has many explicit `HttpResponse` builders and `impl Responder` handlers.
+
+Batch 290: move coarse frontend admin gates to backend-derived capabilities.
+
+- [x] Added a small admin-route helper for checking backend-derived
+      `PlatformCapabilityKey` values from the `/api/me` session workspace.
+- [x] Repointed KYC review, CSV exports, system status, wallet audit, and coarse
+      admin-dashboard summary/export/fraud controls away from duplicated
+      frontend permission groups and onto session capability keys.
+- [x] Tightened the KYC route test fixture so a session with unrelated platform
+      permissions keeps the `kyc_reviews` capability disabled and still renders
+      the backend capability's missing-permission message.
+- [x] Proved behavior with `npm run test -- admin-kyc-route`,
+      `npm run test -- admin-kyc-route admin-action-panel access`,
+      `npm run lint`, admin-route capability/permission scans, and
+      `git diff --check`.
+- [x] Self-critique: fine-grained admin actions still use exact effective
+      permission checks where a broad capability would loosen behavior
+      (`approve` vs `review`, `grant` vs `view`, `revoke` vs `view`). The
+      frontend capability item remains open until those contracts become
+      backend-owned action capabilities.
+
+Batch 291: move access-control HTTP handlers to typed `ApiError` results.
+
+- [x] Repointed role-catalog and delegated-permission handlers away from
+      manual `HttpResponse`/`impl Responder` branches and into typed
+      `Result<web::Json<_>, ApiError>` responses.
+- [x] Added `http/access_control/errors.rs` as the access-control HTTP
+      boundary's local application-error-to-HTTP-envelope mapper, keeping
+      application errors Actix-free and preserving status/code/message
+      ownership in HTTP.
+- [x] Covered role-catalog connection, delegated-permission invalid-input, and
+      delegated-permission not-found mappings with focused unit tests that
+      render and assert the shared `ApiError` JSON envelope.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::access_control::errors`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control role_read_routes_require_view_role_assignments_permission`,
+      `./scripts/run-host-tests.sh cargo test --test reward_management_api delegated_permission_api_grants_lists_and_revokes_reward_permissions`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      access-control `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and
+      touched file-size checks.
+- [x] Self-critique: this completes the access-control HTTP slice only. The
+      global handler-return refactor remains open until the remaining HTTP
+      contexts stop hand-building response branches.
+
+Batch 292: move notifications and operations handlers to typed HTTP results.
+
+- [x] Repointed notification preferences and inbox handlers away from manual
+      `HttpResponse`/`impl Responder` branches and into typed
+      `Result<web::Json<_>, ApiError>` or typed text results for stable
+      existing text-body routes.
+- [x] Added `http/notifications/errors.rs` as the notifications HTTP
+      boundary's local mapper from application errors to the shared
+      `ApiError` envelope, preserving Actix-free application errors and
+      per-operation failure messages.
+- [x] Repointed operations health/readiness handlers to typed JSON/status
+      responders without manual `HttpResponse` builders.
+- [x] Covered notification preference and inbox failure mappings with focused
+      unit tests that render and assert the shared `ApiError` JSON envelope.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::notifications::errors`,
+      `./scripts/run-host-tests.sh cargo test --test health_readiness health_returns_ok_without_dependencies`,
+      `./scripts/run-host-tests.sh cargo test --test health_readiness readiness_reports_not_ready_without_configured_use_case`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api notification_preferences_default_and_save_round_trip`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api notification_inbox_routes_list_mark_read_and_clear`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing bootstrap_routes_expose_index_and_health`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      notifications/operations `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes notifications and operations handler
+      return cleanup only. Reporting, wallet, rewards, learning, identity,
+      organizations, content, and teacher-application handlers still contain
+      manual response branches.
+
+Batch 293: move identity session and user handlers to typed HTTP results.
+
+- [x] Repointed `/api/me`, `/user`, `/user/{id}`, and `/user/{id}/role`
+      handlers away from manual `HttpResponse`/`impl Responder` branches and
+      into typed JSON/text results with `ApiError` where errors are possible.
+- [x] Added `http/identity/errors.rs` as the identity HTTP boundary's local
+      mapper for current-session, user-profile, user-list, and platform-role
+      assignment errors, keeping application errors Actix-free.
+- [x] Kept the current-session extractor local to the HTTP boundary while
+      returning the shared `ApiError` envelope for missing authenticated claims.
+- [x] Covered user-profile forbidden and platform-role-not-found mappings with
+      focused unit tests that render and assert the shared `ApiError` JSON
+      envelope.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::identity::errors`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api current_session_rejects_unverified_email`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api current_session_reports_missing_user`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control read_user_routes_require_view_user_or_self`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control test_platform_permission_middleware`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control platform_role_assignment_enforces_hierarchy`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      touched identity handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes identity session/read/admin-role handlers
+      only. Legacy identity authentication flows were left for a follow-up
+      slice because they have tested plain-text response bodies.
+
+Batch 294: move identity authentication handlers to typed HTTP results.
+
+- [x] Added `http/identity/authentication/text_error.rs` as the local typed
+      `ResponseError` for legacy auth routes whose plain-text response bodies
+      are part of the current tested contract.
+- [x] Added `http/identity/authentication/errors.rs` as the authentication HTTP
+      boundary mapper for login, registration, reset, resend-verification,
+      verify-email, and JWKS application errors.
+- [x] Repointed login, registration, forgot-password, reset-password,
+      resend-verification, verify-email, JWKS, and `/auth/user_id` handlers
+      away from handler-local `HttpResponse`/`impl Responder` branches and into
+      typed JSON/text results.
+- [x] Updated the `/auth/user_id` unit test to document the Level 2 boundary:
+      raw bearer tokens are not decoded inside the extractor; decoded claims
+      must be supplied through request extensions by middleware.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib identity::authentication`,
+      focused `authentication_flow` tests for login verification/JWT,
+      weak-password/bad-login, duplicate and normalized registration,
+      password-reset request/completion, resend verification, successful and
+      invalid/expired email verification, missing/invalid/expired reset tokens,
+      blank-email registration, and registration side effects,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      authentication handler `HttpResponse`/`impl Responder` scans showing the
+      only remaining `HttpResponse` is the local text `ResponseError`,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes identity HTTP typed-result cleanup, while
+      reporting, wallet, rewards, learning, organizations, content, KYC, and
+      teacher-application contexts still contain manual response branches.
+
+Batch 295: move KYC handlers to typed HTTP results.
+
+- [x] Added `http/kyc/errors.rs` as the local HTTP boundary mapper from
+      `KycError` into the shared `ApiError` envelope, preserving the current
+      forbidden, bad-request, conflict, not-found, and internal-error messages.
+- [x] Repointed KYC status, submission, review queue, review decision, and audit
+      handlers away from handler-local `HttpResponse`/`impl Responder` branches
+      and into typed JSON/status results.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::kyc::errors`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing api_scope_and_following_routes_are_reachable`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      KYC handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes the KYC HTTP typed-result slice only.
+      Reporting, wallet, rewards, learning, organizations, content, and
+      teacher-application contexts still contain manual response branches.
+
+Batch 296: move teacher-application handlers to typed HTTP results.
+
+- [x] Added `http/teacher_applications/errors.rs` as the local HTTP boundary
+      mapper from teacher-application application errors into the shared
+      `ApiError` envelope, preserving the existing permission, input,
+      transition, not-found, and processing-failure messages.
+- [x] Repointed teacher-application submission, listing, self-read, platform
+      review, decision, audit, and organization nomination handlers away from
+      handler-local `HttpResponse`/`impl Responder` branches and into typed
+      JSON/status results.
+- [x] Kept notification fan-out as a success-only side effect after the use case
+      returns an application output; service errors now short-circuit through
+      the typed mapper before notifications run.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::teacher_applications::errors`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing api_scope_and_following_routes_are_reachable`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      teacher-application handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes the teacher-application HTTP typed-result
+      slice only. Reporting, wallet, rewards, learning, organizations, and
+      content contexts still contain manual response branches.
+
+Batch 297: move content handlers to typed HTTP results.
+
+- [x] Added `http/content/errors.rs` and `http/content/errors/transfer.rs` as
+      the local HTTP boundary mappers from content application errors into the
+      shared `ApiError` envelope.
+- [x] Repointed chapter, content-item, upload-url, media-url, and video
+      processing handlers away from handler-local `HttpResponse`/`impl Responder`
+      branches and into typed JSON/text/status results.
+- [x] Kept legacy success text bodies for chapter/content deletes and video
+      processing queue responses while moving service-error responses through
+      the shared error envelope.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib application::content`,
+      `./scripts/run-host-tests.sh cargo test --lib http::content::errors`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      content handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes the content HTTP typed-result slice only.
+      Reporting, wallet, rewards, learning, and organizations still contain
+      manual response branches.
+
+Batch 298: move organization handlers to typed HTTP results.
+
+- [x] Added `http/organizations/errors.rs`,
+      `http/organizations/errors/read_models.rs`, and
+      `http/organizations/errors/members.rs` as the local HTTP boundary mappers
+      from organization application errors into the shared `ApiError` envelope.
+- [x] Repointed organization CRUD, dashboard, course list, member list, member
+      audit, member invite, member removal, member role assignment, and
+      organization teacher-application list handlers away from handler-local
+      `HttpResponse`/`impl Responder` branches and into typed JSON/text/status
+      results.
+- [x] Kept legacy success text bodies for organization deletion, member
+      removal, and member role assignment while moving service-error responses
+      through the shared error envelope.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::organizations::errors`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing api_scope_and_following_routes_are_reachable`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      organization handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes the organization HTTP typed-result slice
+      only. Reporting, wallet, rewards, and learning still contain manual
+      response branches.
+
+Batch 299: move wallet handlers to typed HTTP results.
+
+- [x] Added granular `http/wallet/errors` mappers for wallet read, link, audit,
+      deposit-intent, retirement, and token-tax application errors, all
+      returning the shared `ApiError` envelope from the HTTP boundary.
+- [x] Repointed wallet read/link/audit/deposit/retirement/token-tax handlers
+      away from handler-local `HttpResponse`/`impl Responder` branches and into
+      typed JSON/status results.
+- [x] Preserved the existing success statuses, including `201 Created` for
+      wallet creation, deposit intents, and retirements, while moving error
+      mapping out of route functions.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::wallet::errors`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      wallet handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      wallet file-size checks.
+- [x] Self-critique: this completes the wallet HTTP typed-result slice only.
+      Reporting, rewards, and learning still contain manual response branches.
+
+Batch 300: move reporting handlers to typed HTTP results.
+
+- [x] Added `http/reporting/errors` mappers for platform summary, platform
+      fraud/reward dashboards, platform wallet reconciliation, platform CSV
+      exports, organization summary, and organization reward-dashboard
+      application errors, all returning the shared `ApiError` envelope.
+- [x] Added a concrete `CsvDownload` response contract in `http/reporting/dto`
+      so CSV routes keep their download headers without repeating
+      `HttpResponse` builders in handlers.
+- [x] Repointed reporting dashboard and CSV export handlers away from
+      handler-local `HttpResponse`/`impl Responder` branches and into typed
+      JSON/CSV result types.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::reporting`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing api_scope_and_following_routes_are_reachable`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      reporting handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      reporting file-size checks.
+- [x] Self-critique: this completes the reporting HTTP typed-result slice only.
+      Rewards and learning still contain manual response branches.
+
+Batch 301: move rewards handlers to typed HTTP results.
+
+- [x] Added granular `http/rewards/errors` mappers for reward candidate
+      submission/decisions/lists/audit, reward policy, fraud blocks, and
+      student reward history application errors, all returning the shared
+      `ApiError` envelope from the HTTP boundary.
+- [x] Repointed reward submission, teacher decision, amount decision, platform
+      candidate, course candidate, candidate audit, reward history,
+      reward-policy, and fraud-block handlers away from handler-local
+      `HttpResponse`/`impl Responder` branches and into typed JSON/status
+      results.
+- [x] Preserved the existing success statuses, including `201 Created` for
+      reward candidate submission, reward policy creation, and fraud-block
+      creation, while moving error mapping out of route functions.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::rewards::errors`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing api_scope_and_following_routes_are_reachable`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      rewards handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      rewards file-size checks.
+- [x] Self-critique: this completes the rewards HTTP typed-result slice only.
+      Learning still contains manual response branches.
+
+Batch 302: move learning handlers to typed HTTP results.
+
+- [x] Added granular `http/learning/course_routes/errors` modules for learning
+      management, catalog, enrollment, teaching, assessment, and shared
+      learning HTTP mapper helpers, all returning the shared `ApiError`
+      envelope from the HTTP boundary.
+- [x] Repointed course catalog/read/discovery, management, lifecycle,
+      organizations, role assignment, enrollment, progress, assessment, and
+      teacher-course handlers away from handler-local `HttpResponse`/`impl
+      Responder` branches and into typed JSON/text/status results.
+- [x] Removed the old learning `support.rs` response helpers now that route
+      functions delegate application-error mapping to context-owned HTTP error
+      modules.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::learning::course_routes::errors`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing api_scope_and_following_routes_are_reachable`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      learning and repository-wide handler `HttpResponse`/`impl Responder`
+      scans, learning DB/Diesel/service dependency scans, domain/application
+      Actix-boundary scans, `include!`/`imports.rs` scans, `git diff --check`,
+      and touched learning file-size checks.
+- [x] Self-critique: this completes the final known HTTP typed-result cleanup
+      context. The remaining Level 2 work is deeper boundary hardening such as
+      central authorization, capability-contract cleanup, and residual legacy
+      model/repository ownership, not handler-local response construction.
+
+Batch 303: introduce the access-control `can(actor, action, scope)` API.
+
+- [x] Added `AccessActor`, `AccessAction`, `AccessScope`, and
+      `AccessDecisionUseCase::can` to `application/access_control`, with the
+      old `PermissionCheckService` and `has_permission` surface kept as a
+      compatibility bridge for existing wiring and tests.
+- [x] Repointed the Postgres permission-check adapter from implementing
+      `has_permission(user, scope, permission)` directly to implementing the
+      new `can(actor, action, scope)` decision contract.
+- [x] Repointed platform, organization, and course permission middleware to
+      call `can(...)`, so early HTTP rejection now uses the same actor/action/
+      scope vocabulary that deeper application authorization can converge on.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::check_permission`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      middleware/adapter scans proving direct `.has_permission(...)` calls were
+      removed from those call sites, ring import-boundary scans,
+      `git diff --check`, and touched file-size checks.
+- [x] Self-critique: this creates the shared decision API and moves middleware
+      onto it, but it does not finish central authorization. Reward/wallet
+      action-specific authorization and older context-specific permission ports
+      still need to converge onto this vocabulary before permission behavior
+      can be called one backend source of truth.
+
+Batch 304: move reward and wallet authorization stores onto `can(...)`.
+
+- [x] Replaced the reward authorization store's platform/course/organization
+      permission methods with one `can(AccessActor, AccessAction, AccessScope)`
+      decision method, while keeping reward use cases expressed in typed
+      `RewardAuthorizationAction` variants.
+- [x] Replaced the wallet authorization store's platform/organization
+      permission methods with the same `can(...)` decision method, while
+      keeping wallet use cases expressed in typed `WalletAuthorizationAction`
+      variants.
+- [x] Repointed the reward and wallet Postgres authorization adapters and their
+      fake stores to the shared actor/action/scope vocabulary; only the
+      adapter layer still calls the low-level Postgres permission queries.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::authorize_reward`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::authorize_wallet`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      reward/wallet authorization scans for old scope-specific store methods,
+      reward-context scans for direct `user_permission` and permission-query
+      calls, ring import-boundary scans, `git diff --check`, and touched
+      access-control file-size checks.
+- [x] Self-critique: this completes the reward/wallet action-authorization
+      convergence onto the new decision vocabulary, but it still leaves older
+      learning and teacher-application context-specific permission ports, plus
+      the final middleware/application single-service consolidation, for later
+      batches.
+
+Batch 305: type access-control decision scopes.
+
+- [x] Replaced loose `AccessScope` variants with explicit `PlatformScope`,
+      `CourseScope`, and `OrganizationScope` value objects plus constructor
+      methods, so middleware and application authorization callers no longer
+      construct scope internals by hand.
+- [x] Repointed platform/course/organization middleware, reward authorization,
+      wallet authorization, Postgres access-control adapters, and fake stores
+      to the typed scope constructors and match wrappers.
+- [x] Added a domain `DelegatedScope` value type to delegated-permission scope
+      normalization while preserving existing `scope_type`, `organization_id`,
+      and `course_id` fields for HTTP/DB compatibility.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::check_permission`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::authorize_reward`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::authorize_wallet`,
+      `./scripts/run-host-tests.sh cargo test --lib domain::access_control::delegation`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale `AccessScope` constructor scans, ring import-boundary scans,
+      `git diff --check`, and touched access-control file-size checks.
+- [x] Self-critique: this closes the practical scope-typing item for the shared
+      access decision API and delegated-permission normalization. It does not
+      complete central authorization: older learning/teacher-application
+      permission ports and the final middleware/application single-service
+      consolidation remain separate follow-up work.
+
+Batch 306: consolidate Postgres access-decision adapters.
+
+- [x] Added a shared `PostgresAccessDecisionStore` for transactional
+      reward/wallet authorization and deleted the separate
+      `PostgresRewardAuthorizationStore` and `PostgresWalletAuthorizationStore`
+      adapter modules.
+- [x] Added `permission_checks::can(conn, actor, action, scope)` as the single
+      Postgres access-decision helper used by both the pool-backed middleware
+      `AccessDecisionService` and the connection-backed reward/wallet
+      application authorization paths.
+- [x] Repointed middleware/bootstrap app data from the legacy
+      `PermissionCheckService` name to `AccessDecisionService`; the old alias
+      remains only as a compatibility bridge.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::check_permission`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::authorize_reward`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::authorize_wallet`,
+      `./scripts/run-host-tests.sh cargo test --lib wallet::manage_token_tax`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale reward/wallet store scans, shared `permission_checks::can` scans,
+      ring import-boundary scans, `git diff --check`, and touched file-size
+      checks.
+- [x] Self-critique: this makes middleware and the moved reward/wallet
+      application authorization paths share the same Postgres decision core,
+      but it does not finish all application authorization consolidation.
+      Older learning, teacher-application, identity, KYC, and organization
+      ports still call lower-level permission helpers directly.
+
+Batch 307: route remaining Postgres permission adapters through `can(...)`.
+
+- [x] Added scoped `can_platform_permission`, `can_course_permission`, and
+      `can_organization_permission` wrappers around
+      `permission_checks::can(conn, actor, action, scope)`, then made the raw
+      role/delegation helper functions private implementation details.
+- [x] Moved raw role-table existence queries into private
+      `permission_role_queries`, keeping `permission_checks` under the
+      180-line cap and focused on access-decision composition.
+- [x] Repointed learning, teacher-application, identity, KYC,
+      delegated-permission, and organization Postgres adapters away from
+      direct lower-level permission helper calls and onto the shared
+      `can_*_permission` decision wrappers.
+- [x] Kept public `access_control/permission_queries` compatibility functions
+      for existing tests and callers, but their implementation now goes through
+      the shared decision wrappers.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::check_permission`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::manage_delegated_permissions`,
+      `./scripts/run-host-tests.sh cargo test --lib learning::create_course`,
+      `./scripts/run-host-tests.sh cargo test --lib learning::update_course`,
+      `./scripts/run-host-tests.sh cargo test --lib learning::learner_progress`,
+      `./scripts/run-host-tests.sh cargo test --lib teacher_applications`,
+      `./scripts/run-host-tests.sh cargo test --lib identity::get_user_profile`,
+      `./scripts/run-host-tests.sh cargo test --lib kyc`,
+      `./scripts/run-host-tests.sh cargo test --lib organizations`,
+      `./scripts/run-host-tests.sh cargo test --test delegated_permissions`,
+      `./scripts/run-host-tests.sh cargo test --test course_discovery`,
+      `./scripts/run-host-tests.sh cargo test --test course_lifecycle`,
+      `./scripts/run-host-tests.sh cargo test --test teacher_applications`,
+      `./scripts/run-host-tests.sh cargo test --test organization_members`,
+      `./scripts/run-host-tests.sh cargo test --test platform_permissions --test organization_permissions --test course_permissions`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale direct `permission_checks::has_*` scans, ring import-boundary
+      scans, `git diff --check`, and touched file-size checks.
+- [x] Self-critique: this removes the remaining known direct low-level
+      Postgres permission helper calls from migrated infra adapters. The
+      application ports themselves still have context-specific method names, so
+      the final service-contract cleanup remains open.
+
+Batch 308: move learning authorization ports to access decisions.
+
+- [x] Added a mutable `AccessDecisionStore` port with an associated error to
+      `application/access_control`, giving transactional application stores the
+      same `can(actor, action, scope)` vocabulary as route middleware.
+- [x] Removed the legacy `PermissionCheckService`,
+      `PermissionCheckUseCase`, and `PermissionCheckError` compatibility
+      bridge now that bootstrap, middleware, and moved application paths use
+      access-decision names directly.
+- [x] Repointed course creation, course update, course lifecycle, and learner
+      progress application store ports away from context-specific
+      `has_platform_permission`, `has_course_permission`, and
+      `has_organization_permission` methods and onto the shared
+      `AccessDecisionStore` contract.
+- [x] Repointed the matching learning handlers and fake stores to build
+      typed `AccessActor`, `AccessAction`, and `AccessScope` decisions at the
+      application boundary while preserving each use case's error type.
+- [x] Repointed the matching Postgres learning adapters to implement
+      `AccessDecisionStore` through `permission_checks::can`, keeping raw
+      permission-query details behind the infra access-control adapter.
+- [x] Proved behavior and boundaries with `cargo fmt --all`,
+      `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib learning::create_course`,
+      `./scripts/run-host-tests.sh cargo test --lib learning::update_course`,
+      `./scripts/run-host-tests.sh cargo test --lib learning::learner_progress`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::check_permission`,
+      `./scripts/run-host-tests.sh cargo test --test course_creation_permissions --test course_discovery --test course_editing_permissions --test course_lifecycle`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale learning authorization-port scans, legacy permission-check alias
+      scans, ring import-boundary scans, `git diff --check`, and learning/
+      access-control file-size checks.
+- [x] Self-critique: this removes the context-specific learning permission
+      methods from the migrated course-creation, course-update, lifecycle, and
+      progress ports. Teacher-application, organization, identity, KYC, and
+      the final middleware/application same-service cleanup still need their
+      own contract cleanup before central authorization is complete.
+
+Batch 309: move teacher-application authorization ports to access decisions.
+
+- [x] Repointed teacher-application submit, nominate, list, audit, platform
+      review, and decision store ports to extend the shared mutable
+      `AccessDecisionStore` contract instead of exposing context-specific
+      permission methods such as `can_submit_teacher_application`,
+      `can_review_teacher_applications`, `can_approve_teacher_application`,
+      `can_reject_teacher_application`, `has_platform_permission`, or
+      `has_organization_permission`.
+- [x] Repointed the matching application handlers and fake stores to build
+      typed `AccessActor`, `AccessAction`, and `AccessScope` decisions at the
+      application boundary while preserving each use case's existing error
+      type and output contract.
+- [x] Repointed the matching Postgres teacher-application adapters to
+      implement `AccessDecisionStore` through `permission_checks::can`, so
+      submit, nominate, list, audit, platform-review, and decision
+      authorization no longer call scoped `can_*_permission` helpers directly.
+- [x] Kept route/use-case contracts stable: API routing fakes still compile
+      through the existing use-case traits, and the teacher-application API
+      flows still preserve the legacy route behavior.
+- [x] Proved behavior and boundaries with `cargo fmt --all`,
+      `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib teacher_applications`,
+      `./scripts/run-host-tests.sh cargo test --test teacher_applications --test organization_teacher_applications`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale teacher-application permission-port scans, scoped Postgres
+      permission-helper scans, direct `permission_checks::can` adapter scans,
+      ring import-boundary scans, `git diff --check`, and
+      teacher-application file-size checks.
+- [x] Self-critique: this closes the teacher-application application-facing
+      authorization contract cleanup. Organization, identity, KYC, and the
+      final middleware/application same-service cleanup still need follow-up
+      batches before central authorization is complete.
+
+Batch 310: move identity and KYC platform authorization to access decisions.
+
+- [x] Removed the identity profile `UserProfileAccessStore` marker and made
+      `get_user_profile` depend directly on
+      `AccessDecisionStore<Error = UserProfileError>` plus the user profile
+      read store; cross-user reads now build a typed `VIEW_USER` platform
+      decision in the application handler.
+- [x] Repointed the Postgres user-profile adapter and identity profile fake to
+      implement `AccessDecisionStore` through `permission_checks::can`,
+      deleting the old `can_view_any_user` store method.
+- [x] Repointed KYC review queue, decision, and audit authorization from the
+      context-specific `can_review_kyc` store method to typed
+      `REVIEW_KYC_SUBMISSIONS` platform decisions built in the application
+      handlers.
+- [x] Repointed the Postgres KYC adapter to implement `AccessDecisionStore`
+      through `permission_checks::can` and deleted the KYC-specific
+      `kyc_permission_queries` module.
+- [x] Proved behavior and boundaries with `cargo fmt --all`,
+      `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib identity::get_user_profile`,
+      `./scripts/run-host-tests.sh cargo test --lib kyc`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api --test kyc_review`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control test_course_permission_middleware`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale identity/KYC permission-port scans, direct
+      `permission_checks::can` adapter scans, ring import-boundary scans,
+      `git diff --check`, and identity/KYC file-size checks.
+- [x] Self-critique: this closes the identity profile and KYC application-facing
+      platform authorization contract cleanup. Organization application-facing
+      permission ports and the final middleware/application same-service
+      cleanup still need follow-up batches before central authorization is
+      complete.
+
+Batch 311: move organization action authorization ports to access decisions.
+
+- [x] Repointed organization invite, removal, role-assignment, member-audit,
+      and teacher-application list store ports to extend
+      `AccessDecisionStore` instead of exposing context-specific permission
+      methods.
+- [x] Updated the organization application handlers to build `AccessActor`,
+      `AccessAction`, and `AccessScope` decisions directly; organization
+      teacher-application listing preserves the previous platform-or-organization
+      behavior by checking platform scope first, then organization scope.
+- [x] Updated the matching Postgres adapters to implement `AccessDecisionStore`
+      through the shared `permission_checks::can` adapter and removed the dead
+      organization-only permission wrapper.
+- [x] Proved behavior and boundaries with `cargo fmt --all`,
+      `./scripts/run-host-tests.sh cargo test --lib organizations`,
+      `./scripts/run-host-tests.sh cargo test --test organization_members --test organization_teacher_applications --test organization_permissions`,
+      `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      stale custom organization permission-port scans, scoped Postgres
+      permission-helper scans, direct `permission_checks::can` adapter scans,
+      ring import-boundary scans, `git diff --check`, and organization
+      file-size checks.
+- [x] Self-critique: this closes the direct organization application-facing
+      action authorization ports. Dashboard visibility and infra-only
+      organization permission summary/read-model helpers still use richer
+      organization permission helper modules and need a separate batch before
+      the final middleware/application single-service cleanup.
+
+Batch 287: remove the final legacy request-auth helper.
+
+- [x] Added a current-session-specific typed extractor beside the `/api/me`
+      handler so missing bearer claims still return the existing JSON
+      `unauthorized` envelope.
+- [x] Repointed current-session away from `HttpRequest` and deleted
+      `src/http/extractors/request_auth.rs`; `http/extractors/mod.rs` now only
+      exposes the typed auth extractors.
+- [x] Proved `src/http` no longer imports `HttpRequest` outside typed extractor
+      implementations and no code calls `authenticated_user*`.
+- [x] Proved `src/http` has no direct `pool.get().await`; DB connection
+      acquisition lives behind application use cases and infra adapters instead
+      of route handlers, so a `DbConn` extractor is not needed for current HTTP
+      routes.
+- [x] Self-critique: API handlers still manually map many application errors to
+      `HttpResponse`.
+- [x] Prove behavior with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo test --lib extractors`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      `request_auth`/`authenticated_user*` scans, `HttpRequest` scans,
+      `src/http` `pool.get().await` scans, `git diff --check`, and file-size
+      checks.
 
 ## Legacy Transition Rules
 
@@ -1147,7 +1917,7 @@ Slice 219: delete S3 utility compatibility bridge.
       called from existing `services` and `repositories` while deeper
       extraction is in progress.
 - [x] New ring-based modules must not call old `services::*` modules.
-- [ ] New domain and application modules must not call old `models::*` async DB
+- [x] New domain and application modules must not call old `models::*` async DB
       methods. Use a temporary infra adapter if a legacy query still lives
       there.
 - [ ] Keep route URLs stable. Move implementation behind the route before
@@ -1203,6 +1973,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Legacy `api/reward_policies` and `api/reward_fraud_blocks`
       compatibility wrappers have been deleted; callers import reward routes
       from `http/rewards`.
+- [x] Rewards HTTP handlers return typed JSON/status results and map
+      application errors through granular `http/rewards/errors` modules,
+      keeping Actix response construction out of route functions.
 - [ ] Move remaining reward request/response structs out of service imports and
       into `http/rewards/dto`.
 - [ ] Move candidate transition rules into pure domain functions:
@@ -1223,7 +1996,7 @@ boundary checks from the matrix above to every canonical context.
       `application/access_control`, including payout, platform review/policy,
       compensation, course/organization reward actions, fraud-block actions,
       and notification recipient groups.
-- [ ] Move reward permission decisions through `application/access_control`
+- [x] Move reward permission decisions through `application/access_control`
       instead of calling `user_permission_*_request` directly from reward use
       cases.
 - [ ] Keep the old route paths stable while swapping internals.
@@ -1240,6 +2013,9 @@ boundary checks from the matrix above to every canonical context.
       preserved.
 - [x] `http/reporting` owns the `/reports` Actix scope and exposes only a
       context-level route configurator to the rest of the app.
+- [x] Reporting HTTP handlers return typed JSON/CSV download results and map
+      application errors through granular `http/reporting/errors` modules,
+      keeping Actix response construction out of route functions.
 
 ## Wallet Context
 
@@ -1250,6 +2026,9 @@ boundary checks from the matrix above to every canonical context.
       wallet access checks flow through `application/access_control`.
 - [x] `http/wallet` owns the `/wallets` Actix scope and exposes only a
       context-level route configurator to the rest of the app.
+- [x] Wallet HTTP handlers return typed JSON/status results and map application
+      errors through granular `http/wallet/errors` modules, keeping Actix
+      response construction out of route functions.
 
 ## Operations Context
 
@@ -1261,6 +2040,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] `http/content` exposes one context-level route configurator for chapter
       and content-item routes; the legacy `api/chapters` and `api/contents`
       wrappers have been deleted.
+- [x] Content HTTP handlers return typed JSON/text/status results and map
+      application errors through `http/content/errors`, keeping Actix response
+      construction out of route functions.
 
 ## Access Control Context
 
@@ -1276,15 +2058,36 @@ boundary checks from the matrix above to every canonical context.
       adapter/use case, HTTP DTO mapping, bootstrap wiring, and
       delegated-permission/API tests; the legacy include-based delegated
       permission service has been deleted.
-- [ ] Create one access-control API for `can(actor, action, scope)` style
+- [x] Create one access-control API for `can(actor, action, scope)` style
       decisions.
-- [ ] Encode scope as types instead of loose strings where practical:
+- [x] Reward and wallet authorization stores use the same `AccessActor`,
+      `AccessAction`, and `AccessScope` vocabulary as route middleware.
+- [x] Encode scope as types instead of loose strings where practical:
       `PlatformScope`, `OrganizationScope`, `CourseScope`, `DelegatedScope`.
+- [x] Middleware, reward authorization, and wallet authorization now share the
+      same Postgres `can(actor, action, scope)` decision helper.
+- [x] Migrated learning, teacher-application, identity, KYC, organization, and
+      delegated-permission Postgres adapters to shared `can_*_permission`
+      decision wrappers instead of direct low-level permission helpers.
+- [x] Learning course creation, course update, course lifecycle, and learner
+      progress application store ports now use the shared mutable
+      access-decision store contract instead of context-specific permission
+      methods.
+- [x] Teacher-application submit, nominate, list, audit, platform-review, and
+      decision application store ports now use the shared mutable
+      access-decision store contract instead of context-specific permission
+      methods.
+- [x] Identity profile reads and KYC review/audit application paths now use the
+      shared mutable access-decision store contract instead of context-specific
+      platform permission methods.
+- [x] Organization invite, removal, role assignment, member-audit, and
+      teacher-application list action gates now use the shared mutable
+      access-decision store contract.
 - [ ] Make middleware call the same access-control service as application use
       cases.
 - [ ] Keep middleware as an early rejection optimization; do not make it the
       only place that protects business actions.
-- [ ] Return frontend capabilities from session endpoints so `web/src/lib`
+- [x] Return frontend capabilities from session endpoints so `web/src/lib`
       does not duplicate backend permission groupings.
 
 ## Identity Context
@@ -1364,7 +2167,10 @@ boundary checks from the matrix above to every canonical context.
       receive injected application use cases with Postgres adapters/use cases,
       bootstrap wiring, and route tests; the HTTP assessment handler no longer
       owns DB pool access or concrete Postgres store construction.
-- [ ] Move remaining learning service/DB-heavy handlers into application use
+- [x] Learning HTTP handlers return typed JSON/text/status results and map
+      application errors through granular `http/learning/course_routes/errors`
+      modules; the old route-local response helpers were deleted.
+- [x] Move remaining learning service/DB-heavy handlers into application use
       cases with Postgres adapters.
 
 ## Organizations Context
@@ -1407,6 +2213,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Organization CRUD routes now have application command/output/error and
       store-port contracts, a Postgres management adapter/use case, HTTP DTO
       mapping, bootstrap wiring, and organization management/API route tests.
+- [x] Organization HTTP handlers return typed JSON/text/status results and map
+      application errors through `http/organizations/errors`, keeping Actix
+      response construction out of route functions.
 
 ## KYC Context
 
@@ -1417,6 +2226,9 @@ boundary checks from the matrix above to every canonical context.
       contracts, a Postgres adapter/use case, HTTP DTO mapping, bootstrap
       wiring, and KYC/API route tests; the legacy include-based KYC service has
       been deleted.
+- [x] KYC HTTP handlers return typed JSON/status results and map application
+      `KycError` values through `http/kyc/errors.rs`, keeping Actix response
+      construction out of the route functions.
 
 ## Teacher Applications Context
 
@@ -1457,6 +2269,9 @@ boundary checks from the matrix above to every canonical context.
       adapter use case, HTTP best-effort app-data wiring, and unit/integration
       coverage; `http/teacher_applications` no longer owns DB-backed recipient
       lookup.
+- [x] Teacher-application HTTP handlers return typed JSON/status results and map
+      application errors through `http/teacher_applications/errors.rs`, keeping
+      Actix response construction out of route functions.
 
 ## Data Boundary Rules
 
@@ -1497,7 +2312,7 @@ boundary checks from the matrix above to every canonical context.
       database pool.
 - [ ] A use-case test can run with fake ports for authorization, persistence,
       notifications, and time.
-- [ ] API handlers mostly contain extraction, use-case call, and response
+- [x] API handlers mostly contain extraction, use-case call, and response
       mapping; no complex Diesel query builders.
 - [ ] Permission behavior has one backend source of truth.
 - [x] `main.rs` is mostly logging/env setup, bootstrap calls, and server start.

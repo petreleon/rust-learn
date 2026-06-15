@@ -1,7 +1,8 @@
 use ethers::prelude::*;
-use rust_learn::utils::eth_utils::{
-    try_compile_contract, try_deploy_contract, try_get_provider, try_load_wallet_from_env,
-};
+use rust_learn::infra::ethereum::operations::compiler::try_compile_contract;
+use rust_learn::infra::ethereum::operations::deployer::try_deploy_contract;
+use rust_learn::infra::ethereum::operations::provider::try_get_provider;
+use rust_learn::infra::ethereum::operations::wallet::try_load_wallet_from_env;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_compile_learn_token_from_source() {

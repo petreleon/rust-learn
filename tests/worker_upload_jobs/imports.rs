@@ -3,6 +3,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::schema::upload_jobs;
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::content::upload_job_queue;
 use rust_learn::models::upload_job::{NewUploadJob, UploadJob};
 use std::sync::LazyLock;
 use tokio::sync::{Mutex, MutexGuard};
@@ -56,7 +57,7 @@ async fn queue_metrics_counts_ready_delayed_processing_and_failed_jobs() {
     let mut conn = setup_conn(&pool).await;
     conn.transaction::<(), diesel::result::Error, _>(|tx| {
         Box::pin(async move {
-            let before = UploadJob::queue_metrics(tx)
+            let before = upload_job_queue::queue_metrics(tx)
                 .await
                 .expect("queue metrics should load before seeded jobs");
 
@@ -75,11 +76,11 @@ async fn queue_metrics_counts_ready_delayed_processing_and_failed_jobs() {
                 .execute(tx)
                 .await
                 .expect("test should mark a job processing");
-            UploadJob::mark_failed(failed.id(), 3, "metrics failure".to_string(), tx)
+            upload_job_queue::mark_failed(failed.id(), 3, "metrics failure".to_string(), tx)
                 .await
                 .expect("test should mark a job failed");
 
-            let after = UploadJob::queue_metrics(tx)
+            let after = upload_job_queue::queue_metrics(tx)
                 .await
                 .expect("queue metrics should load after seeded jobs");
 
@@ -90,7 +91,7 @@ async fn queue_metrics_counts_ready_delayed_processing_and_failed_jobs() {
             assert_eq!(after.queue_depth(), before.queue_depth() + 2);
 
             for job in [ready, delayed, processing, failed] {
-                UploadJob::mark_done(job.id(), tx)
+                upload_job_queue::mark_done(job.id(), tx)
                     .await
                     .expect("test should clean up metrics job");
             }

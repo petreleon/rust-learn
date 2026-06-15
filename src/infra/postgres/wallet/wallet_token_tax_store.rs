@@ -9,7 +9,7 @@ use crate::application::access_control::authorize_wallet::{
 use crate::application::wallet::manage_token_tax::{
     WalletTokenTaxError, WalletTokenTaxOperation, WalletTokenTaxStore,
 };
-use crate::infra::postgres::access_control::wallet_authorization_store::PostgresWalletAuthorizationStore;
+use crate::infra::postgres::access_control::access_decision_store::PostgresAccessDecisionStore;
 use crate::infra::postgres::operations::persistent_state::{
     get_persistent_state, set_persistent_state,
 };
@@ -34,7 +34,7 @@ impl WalletTokenTaxStore for PostgresWalletTokenTaxStore<'_> {
         operation: WalletTokenTaxOperation,
     ) -> BoxFuture<'_, Result<bool, WalletTokenTaxError>> {
         async move {
-            let mut store = PostgresWalletAuthorizationStore::new(self.conn);
+            let mut store = PostgresAccessDecisionStore::new(self.conn);
             authorize_wallet_action(&mut store, actor_user_id, set_tax_action(operation))
                 .await
                 .map_err(|error| WalletTokenTaxError::PermissionCheck(error.to_string()))

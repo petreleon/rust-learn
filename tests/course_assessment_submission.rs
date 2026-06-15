@@ -7,11 +7,11 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::application::learning::submit_assessment_attempt::AssessmentSubmissionUseCase;
 use rust_learn::db::schema::{assessment_attempts, assessment_questions, assessments, courses};
 use rust_learn::db::{establish_connection, DbPool};
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::learning::assessment_submission_use_case::PostgresAssessmentSubmissionUseCase;
 use rust_learn::infra::tokens::jwt::create_jwt;
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::models::user::User;
-use rust_learn::repositories::user_repository::create_user;
 use serde_json::{json, Value};
 
 fn unique_string(prefix: &str) -> String {
@@ -123,6 +123,9 @@ async fn assessment_submit_attempt_scores_persists_and_enforces_max_attempts() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
             .app_data(assessment_submission_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),

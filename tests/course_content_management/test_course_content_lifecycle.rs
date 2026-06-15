@@ -13,6 +13,7 @@ async fn test_course_content_lifecycle() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool))
             .app_data(chapter_use_cases_data(&pool))
             .app_data(content_item_use_cases_data(&pool))
             .app_data(content_processing_use_case_data(&pool))

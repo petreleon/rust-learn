@@ -1,16 +1,13 @@
 use futures::future::BoxFuture;
 
+use crate::application::access_control::check_permission::AccessDecisionStore;
 use crate::application::organizations::invite_organization_member::{
     OrganizationMemberInviteError, OrganizationMemberInviteTarget,
 };
 
-pub trait OrganizationMemberInviteStore {
-    fn can_invite_member(
-        &mut self,
-        actor_user_id: i32,
-        organization_id: i32,
-    ) -> BoxFuture<'_, Result<bool, OrganizationMemberInviteError>>;
-
+pub trait OrganizationMemberInviteStore:
+    AccessDecisionStore<Error = OrganizationMemberInviteError>
+{
     fn find_user_by_email(
         &mut self,
         email: String,

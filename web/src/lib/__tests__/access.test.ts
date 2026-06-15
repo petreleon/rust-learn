@@ -14,18 +14,24 @@ import type {
   CourseSessionScope,
   OrganizationSessionScope,
   DelegatedPermissionSession,
+  SessionCapability,
 } from "@/lib/session";
 
-function makePlatformScope(permissions: string[]): PlatformSessionScope {
+function capability(key: string, enabled = true): SessionCapability {
+  return { enabled, key, label: key, permissions: [] };
+}
+
+function makePlatformScope(permissions: string[], capabilities: SessionCapability[] = []): PlatformSessionScope {
   return {
     roles: [],
     direct_permissions: permissions,
     delegated_permissions: [],
     effective_permissions: permissions,
+    capabilities,
   };
 }
 
-function makeCourseScope(permissions: string[]): CourseSessionScope {
+function makeCourseScope(permissions: string[], capabilities: SessionCapability[] = []): CourseSessionScope {
   return {
     id: 1,
     title: "Course 1",
@@ -34,10 +40,11 @@ function makeCourseScope(permissions: string[]): CourseSessionScope {
     direct_permissions: permissions,
     delegated_permissions: [],
     effective_permissions: permissions,
+    capabilities,
   };
 }
 
-function makeOrgScope(permissions: string[]): OrganizationSessionScope {
+function makeOrgScope(permissions: string[], capabilities: SessionCapability[] = []): OrganizationSessionScope {
   return {
     id: 1,
     name: "Org 1",
@@ -45,11 +52,19 @@ function makeOrgScope(permissions: string[]): OrganizationSessionScope {
     direct_permissions: permissions,
     delegated_permissions: [],
     effective_permissions: permissions,
+    capabilities,
   };
 }
 
 function makeSession(overrides: Partial<CurrentSession> = {}): CurrentSession {
   return {
+    access: {
+      learner: true,
+      teacher: false,
+      teacher_application: false,
+      organization: false,
+      platform_admin: false,
+    },
     user: { id: 1, name: "Test", email: "test@e.com", email_verified: true, kyc_verified: false },
     platform: makePlatformScope([]),
     organizations: [],
@@ -72,17 +87,22 @@ describe("accessSummary", () => {
     expect(accessSummary(makeSession()).learner).toBe(true);
   });
 
-  it("teacher is true with SUBMIT_TEACHER_APPLICATION", () => {
-    const s = makeSession({ platform: makePlatformScope(["SUBMIT_TEACHER_APPLICATION"]) });
+  it("teacher is true when backend access says teacher", () => {
+    const s = makeSession({ access: { ...makeSession().access, teacher: true } });
     expect(accessSummary(s).teacher).toBe(true);
   });
 
-  it("teacher is true when any course has teacher permissions", () => {
-    const s = makeSession({ courses: [makeCourseScope(["MANAGE_COURSE_SETTINGS"])] });
-    expect(accessSummary(s).teacher).toBe(true);
+  it("teacher course access uses backend course capabilities", () => {
+    const course = makeCourseScope(["MANAGE_COURSE_SETTINGS"], [capability("teaching")]);
+    expect(hasTeacherCourseAccess(course)).toBe(true);
   });
 
-  it("teacher is false with no permissions", () => {
+  it("teacher application access uses backend access", () => {
+    const s = makeSession({ access: { ...makeSession().access, teacher_application: true } });
+    expect(hasTeacherApplicationAccess(s)).toBe(true);
+  });
+
+  it("teacher is false when backend access denies it", () => {
     expect(accessSummary(makeSession()).teacher).toBe(false);
   });
 });
@@ -110,6 +130,10 @@ describe("hasOrganizationAccess", () => {
     expect(hasOrganizationAccess(org)).toBe(true);
   });
 
+  it("true when org has backend capabilities", () => {
+    expect(hasOrganizationAccess(makeOrgScope([], [capability("reports")]))).toBe(true);
+  });
+
   it("false when org has nothing", () => {
     expect(hasOrganizationAccess(makeOrgScope([]))).toBe(false);
   });
@@ -129,8 +153,8 @@ describe("countDelegatedPermissions", () => {
 });
 
 describe("platform admin access", () => {
-  it("hasPlatformAdminAccess with admin permission", () => {
-    const s = makeSession({ platform: makePlatformScope(["VIEW_REWARD_AUDIT"]) });
+  it("hasPlatformAdminAccess follows backend access", () => {
+    const s = makeSession({ access: { ...makeSession().access, platform_admin: true } });
     expect(hasPlatformAdminAccess(s)).toBe(true);
   });
 

@@ -2,8 +2,9 @@ use bigdecimal::BigDecimal;
 use diesel_async::AsyncPgConnection;
 
 use crate::application::rewards::credit_wallet::RewardWalletCreditError;
+use crate::domain::rewards::candidate::lifecycle;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-use crate::domain::rewards::candidate::transition::{apply_transition, TransitionAction};
+use crate::domain::rewards::candidate::transition;
 use crate::infra::postgres::rewards::reward_wallet_credit_policy::reward_policy_is_off_chain;
 use crate::models::reward_candidate::RewardCandidate;
 
@@ -27,20 +28,20 @@ pub(super) fn reject_already_credited_without_record(
     candidate: &RewardCandidate,
 ) -> Result<(), RewardWalletCreditError> {
     match RewardCandidateStatus::parse(&candidate.status) {
-        Ok(RewardCandidateStatus::WalletCredited)
-        | Ok(RewardCandidateStatus::Notified)
-        | Ok(RewardCandidateStatus::Completed) => Err(RewardWalletCreditError::InvalidStatus(
-            "wallet credited candidate is missing a reward wallet credit record".to_string(),
-        )),
+        Ok(status) if lifecycle::requires_wallet_credit_record(status) => {
+            Err(RewardWalletCreditError::InvalidStatus(
+                "wallet credited candidate is missing a reward wallet credit record".to_string(),
+            ))
+        }
         _ => Ok(()),
     }
 }
 
-pub(super) async fn ensure_wallet_credit_allowed(
+pub(super) async fn wallet_credit_target_status(
     conn: &mut AsyncPgConnection,
     candidate: &RewardCandidate,
     allow_reconciliation_credit: bool,
-) -> Result<(), RewardWalletCreditError> {
+) -> Result<RewardCandidateStatus, RewardWalletCreditError> {
     let status = RewardCandidateStatus::parse(&candidate.status).map_err(|_| {
         RewardWalletCreditError::InvalidStatus(
             "wallet credit requires token confirmation unless the reward policy is off-chain"
@@ -48,15 +49,11 @@ pub(super) async fn ensure_wallet_credit_allowed(
         )
     })?;
 
-    if status == RewardCandidateStatus::NeedsReconciliation {
-        return if allow_reconciliation_credit {
-            Ok(())
-        } else {
-            Err(RewardWalletCreditError::InvalidStatus(
-                "needs reconciliation candidate requires confirmed payout evidence before wallet credit"
-                    .to_string(),
-            ))
-        };
+    if lifecycle::requires_wallet_credit_payout_evidence(status) && !allow_reconciliation_credit {
+        return Err(RewardWalletCreditError::InvalidStatus(
+            "needs reconciliation candidate requires confirmed payout evidence before wallet credit"
+                .to_string(),
+        ));
     }
 
     if status == RewardCandidateStatus::AmountApproved
@@ -65,9 +62,7 @@ pub(super) async fn ensure_wallet_credit_allowed(
         return Err(token_confirmation_required_error());
     }
 
-    apply_transition(status, TransitionAction::CreditWallet)
-        .map(|_| ())
-        .map_err(|_| token_confirmation_required_error())
+    transition::credit_wallet(status).map_err(|_| token_confirmation_required_error())
 }
 
 fn token_confirmation_required_error() -> RewardWalletCreditError {

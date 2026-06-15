@@ -3,14 +3,12 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::organizations::get_organization_dashboard::{
-    OrganizationDashboardError, OrganizationDashboardRewardSummaryOutput,
-    OrganizationDashboardWalletSummaryOutput,
+    record_organization_dashboard_reward_status, OrganizationDashboardError,
+    OrganizationDashboardRewardSummaryOutput, OrganizationDashboardWalletSummaryOutput,
 };
 use crate::application::reporting::organization_reward_dashboard::load_organization_reward_dashboard;
 use crate::db::schema::{courses_organizations, reward_candidates, wallets};
-use crate::domain::rewards::candidate::status::{
-    REWARD_STATUS_FAILED, REWARD_STATUS_NEEDS_RECONCILIATION,
-};
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::organizations::organization_dashboard_mappers::{
     map_dashboard_error, map_reward_dashboard_error,
 };
@@ -28,18 +26,23 @@ pub async fn load_reward_summary(
     };
     let course_ids = load_organization_course_ids(conn, organization_id).await?;
     let statuses = load_reward_candidate_statuses(conn, &course_ids).await?;
-    let failed_count = count_status(&statuses, REWARD_STATUS_FAILED);
-    let needs_reconciliation_count = count_status(&statuses, REWARD_STATUS_NEEDS_RECONCILIATION);
 
-    Ok(OrganizationDashboardRewardSummaryOutput {
+    let mut summary = OrganizationDashboardRewardSummaryOutput {
         available: true,
         missing_permissions: vec![],
         reward_candidate_count: reward_dashboard.course_reward_count,
         approved_reward_count: reward_dashboard.approved_reward_count,
         approved_amount_total: reward_dashboard.approved_amount_total,
-        failed_count,
-        needs_reconciliation_count,
-    })
+        failed_count: 0,
+        needs_reconciliation_count: 0,
+    };
+    for status in statuses {
+        if let Ok(status) = RewardCandidateStatus::parse(&status) {
+            record_organization_dashboard_reward_status(&mut summary, status);
+        }
+    }
+
+    Ok(summary)
 }
 
 pub async fn load_wallet_summary(
@@ -92,11 +95,4 @@ async fn load_reward_candidate_statuses(
         .load::<String>(conn)
         .await
         .map_err(map_dashboard_error)
-}
-
-fn count_status(statuses: &[String], expected: &str) -> i64 {
-    statuses
-        .iter()
-        .filter(|status| status.as_str() == expected)
-        .count() as i64
 }

@@ -7,6 +7,7 @@ use crate::application::content::manage_chapter::{
 };
 use crate::application::content::ports::ChapterStore;
 use crate::db::schema::chapters;
+use crate::infra::postgres::content::mappers::chapter_output_from_record;
 use crate::models::chapter::{Chapter, NewChapter, UpdateChapter};
 
 pub struct PostgresChapterStore<'conn> {
@@ -30,7 +31,12 @@ impl ChapterStore for PostgresChapterStore<'_> {
                 .order(chapters::order.asc())
                 .load::<Chapter>(self.conn)
                 .await
-                .map(|chapters| chapters.into_iter().map(ChapterOutput::from).collect())
+                .map(|chapters| {
+                    chapters
+                        .into_iter()
+                        .map(chapter_output_from_record)
+                        .collect()
+                })
                 .map_err(map_chapter_error)
         }
         .boxed()
@@ -51,7 +57,7 @@ impl ChapterStore for PostgresChapterStore<'_> {
                 .values(&new_chapter)
                 .get_result::<Chapter>(self.conn)
                 .await
-                .map(ChapterOutput::from)
+                .map(chapter_output_from_record)
                 .map_err(map_chapter_error)
         }
         .boxed()
@@ -72,7 +78,7 @@ impl ChapterStore for PostgresChapterStore<'_> {
                 .set(&update)
                 .get_result::<Chapter>(self.conn)
                 .await
-                .map(ChapterOutput::from)
+                .map(chapter_output_from_record)
                 .map_err(map_chapter_error)
         }
         .boxed()
@@ -87,17 +93,6 @@ impl ChapterStore for PostgresChapterStore<'_> {
                 .map_err(map_chapter_error)
         }
         .boxed()
-    }
-}
-
-impl From<Chapter> for ChapterOutput {
-    fn from(chapter: Chapter) -> Self {
-        Self {
-            id: chapter.id,
-            course_id: chapter.course_id,
-            title: chapter.title,
-            order: chapter.order,
-        }
     }
 }
 

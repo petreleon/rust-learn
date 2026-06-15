@@ -1,3 +1,4 @@
+pub mod delivery;
 pub mod get_preferences;
 pub mod notification_inbox;
 pub mod ports;

@@ -1,6 +1,9 @@
 use diesel_async::AsyncPgConnection;
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::learning::learner_progress::{
     LearnerProgressError, LearnerProgressOutput, LearnerProgressStore, ProgressCourse,
 };
@@ -38,46 +41,6 @@ impl LearnerProgressStore for PostgresLearnerProgressStore<'_> {
             learner_progress_queries::course_organization_ids(self.conn, course_id)
                 .await
                 .map_err(map_progress_error)
-        }
-        .boxed()
-    }
-
-    fn has_course_permission(
-        &mut self,
-        actor_user_id: i32,
-        course_id: i32,
-        permission: &str,
-    ) -> BoxFuture<'_, Result<bool, LearnerProgressError>> {
-        let permission = permission.to_string();
-        async move {
-            permission_checks::has_course_permission(
-                self.conn,
-                actor_user_id,
-                course_id,
-                &permission,
-            )
-            .await
-            .map_err(map_progress_error)
-        }
-        .boxed()
-    }
-
-    fn has_organization_permission(
-        &mut self,
-        actor_user_id: i32,
-        organization_id: i32,
-        permission: &str,
-    ) -> BoxFuture<'_, Result<bool, LearnerProgressError>> {
-        let permission = permission.to_string();
-        async move {
-            permission_checks::has_organization_permission(
-                self.conn,
-                actor_user_id,
-                organization_id,
-                &permission,
-            )
-            .await
-            .map_err(map_progress_error)
         }
         .boxed()
     }
@@ -152,6 +115,24 @@ impl LearnerProgressStore for PostgresLearnerProgressStore<'_> {
             learner_progress_queries::get_progress(self.conn, actor_user_id, course_id)
                 .await
                 .map(|progress| progress.map(LearnerProgressOutput::from))
+                .map_err(map_progress_error)
+        }
+        .boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresLearnerProgressStore<'_> {
+    type Error = LearnerProgressError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, LearnerProgressError>> {
+        async move {
+            permission_checks::can(self.conn, actor, action, scope)
+                .await
                 .map_err(map_progress_error)
         }
         .boxed()

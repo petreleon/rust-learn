@@ -1,23 +1,37 @@
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::organizations::list_organization_teacher_applications::{
     OrganizationTeacherApplicationListError, OrganizationTeacherApplicationListOutput,
     OrganizationTeacherApplicationListQuery, OrganizationTeacherApplicationListStore,
 };
+
+const VIEW_ORG_TEACHER_APPLICATIONS: &str = "VIEW_ORG_TEACHER_APPLICATIONS";
+const NOMINATE_TEACHER_FOR_PLATFORM_REVIEW: &str = "NOMINATE_TEACHER_FOR_PLATFORM_REVIEW";
 
 pub async fn list_organization_teacher_applications(
     store: &mut impl OrganizationTeacherApplicationListStore,
     query: OrganizationTeacherApplicationListQuery,
 ) -> Result<OrganizationTeacherApplicationListOutput, OrganizationTeacherApplicationListError> {
     let organization = store.organization(query.organization_id).await?;
-    let can_view_applications = store
-        .can_view_applications(query.actor_user_id, query.organization_id)
-        .await?;
-    let can_nominate_teachers = store
-        .can_nominate_teachers(query.actor_user_id, query.organization_id)
-        .await?;
+    let can_view_applications = can_platform_or_organization_action(
+        store,
+        query.actor_user_id,
+        query.organization_id,
+        VIEW_ORG_TEACHER_APPLICATIONS,
+    )
+    .await?;
+    let can_nominate_teachers = can_platform_or_organization_action(
+        store,
+        query.actor_user_id,
+        query.organization_id,
+        NOMINATE_TEACHER_FOR_PLATFORM_REVIEW,
+    )
+    .await?;
 
     if !can_view_applications && !can_nominate_teachers {
         return Err(OrganizationTeacherApplicationListError::PermissionDenied(
-            "VIEW_ORG_TEACHER_APPLICATIONS".to_string(),
+            VIEW_ORG_TEACHER_APPLICATIONS.to_string(),
         ));
     }
 
@@ -58,6 +72,32 @@ pub async fn list_organization_teacher_applications(
         status,
         search,
     })
+}
+
+async fn can_platform_or_organization_action(
+    store: &mut impl AccessDecisionStore<Error = OrganizationTeacherApplicationListError>,
+    actor_user_id: i32,
+    organization_id: i32,
+    permission: &'static str,
+) -> Result<bool, OrganizationTeacherApplicationListError> {
+    let actor = AccessActor::user(actor_user_id);
+    if store
+        .can(
+            actor,
+            AccessAction::permission(permission),
+            AccessScope::platform(),
+        )
+        .await?
+    {
+        return Ok(true);
+    }
+    store
+        .can(
+            actor,
+            AccessAction::permission(permission),
+            AccessScope::organization(organization_id),
+        )
+        .await
 }
 
 fn normalize_status(

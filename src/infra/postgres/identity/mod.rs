@@ -1,5 +1,6 @@
 pub mod accounts;
 pub mod authentication_records;
+pub mod bootstrap_accounts;
 pub mod current_session_course_queries;
 pub mod current_session_delegations;
 pub mod current_session_organization_queries;

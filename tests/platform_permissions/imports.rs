@@ -2,11 +2,10 @@ use chrono::NaiveDate;
 use rust_learn::config::constants::permissions::Permissions;
 use rust_learn::config::constants::roles::Roles;
 use rust_learn::db::establish_connection;
-use rust_learn::repositories::platform_permission_repository::assign_permission_to_role_platform;
-use rust_learn::repositories::platform_repository::{
-    assign_role_to_user, user_permission_platform_request,
-};
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::access_control::permission_queries::has_platform_permission;
+use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_permission_to_role;
+use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 
 fn unique_email(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -39,7 +38,7 @@ async fn platform_super_admin_has_key_permissions() {
     .await
     .expect("failed to create user");
 
-    assign_role_to_user(&mut conn, user.id(), Roles::SUPER_ADMIN)
+    assign_platform_role_to_user(&mut conn, user.id(), Roles::SUPER_ADMIN)
         .await
         .expect("failed to assign SUPER_ADMIN role");
 
@@ -55,7 +54,7 @@ async fn platform_super_admin_has_key_permissions() {
     ];
 
     for p in perms {
-        let ok = user_permission_platform_request(&mut conn, user.id(), &p.to_string())
+        let ok = has_platform_permission(&mut conn, user.id(), &p.to_string())
             .await
             .expect("permission query failed");
         assert!(ok, "SUPER_ADMIN missing {:?}", p);
@@ -78,7 +77,7 @@ async fn platform_admin_has_curated_permissions_but_not_all() {
     .await
     .expect("failed to create user");
 
-    assign_role_to_user(&mut conn, user.id(), Roles::ADMIN)
+    assign_platform_role_to_user(&mut conn, user.id(), Roles::ADMIN)
         .await
         .expect("failed to assign ADMIN role");
 
@@ -92,7 +91,7 @@ async fn platform_admin_has_curated_permissions_but_not_all() {
     ];
 
     for p in allowed {
-        let ok = user_permission_platform_request(&mut conn, user.id(), &p.to_string())
+        let ok = has_platform_permission(&mut conn, user.id(), &p.to_string())
             .await
             .expect("permission query failed");
         assert!(ok, "ADMIN should have {:?}", p);
@@ -105,7 +104,7 @@ async fn platform_admin_has_curated_permissions_but_not_all() {
     ];
 
     for p in denied {
-        let ok = user_permission_platform_request(&mut conn, user.id(), &p.to_string())
+        let ok = has_platform_permission(&mut conn, user.id(), &p.to_string())
             .await
             .expect("permission query failed");
         assert!(!ok, "ADMIN should NOT have {:?}", p);

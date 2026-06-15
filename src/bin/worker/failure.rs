@@ -4,7 +4,7 @@ use diesel_async::AsyncPgConnection;
 use super::jobs::FailureContext;
 use rust_learn::bootstrap::worker_runtime as worker_utils;
 use rust_learn::infra::notifications::NotificationsState;
-use rust_learn::models::upload_job::UploadJob;
+use rust_learn::infra::postgres::content::upload_job_queue;
 
 pub async fn mark_terminal_failure(
     notifications: &NotificationsState,
@@ -32,7 +32,7 @@ pub async fn mark_terminal_failure(
         }
     }
 
-    if let Err(error) = UploadJob::mark_failed(
+    if let Err(error) = upload_job_queue::mark_failed(
         context.job_id,
         new_attempts as i32,
         context.error.clone(),
@@ -67,7 +67,7 @@ pub async fn schedule_retry(
         context.current_attempts,
     );
 
-    if let Err(error) = UploadJob::schedule_retry(
+    if let Err(error) = upload_job_queue::schedule_retry(
         context.job_id,
         new_attempts as i32,
         context.error.clone(),

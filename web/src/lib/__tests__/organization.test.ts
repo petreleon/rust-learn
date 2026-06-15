@@ -8,15 +8,17 @@ import {
 import type { CurrentSession } from "@/lib/session";
 
 function makeSession(orgs: Array<{
-  id: number; name: string; roles: string[]; permissions: string[];
+  id: number; name: string; roles: string[]; permissions: string[]; capabilities?: string[];
 }>) {
   return {
+    access: { learner: true, teacher: false, teacher_application: false, organization: orgs.length > 0, platform_admin: false },
     user: { id: 1, name: "T", email: "t@e.com", email_verified: true, kyc_verified: false },
-    platform: { roles: [], direct_permissions: [], delegated_permissions: [], effective_permissions: [] },
+    platform: { roles: [], direct_permissions: [], delegated_permissions: [], effective_permissions: [], capabilities: [] },
     organizations: orgs.map((o) => ({
       id: o.id, name: o.name,
       roles: o.roles, direct_permissions: o.permissions,
       delegated_permissions: [], effective_permissions: o.permissions,
+      capabilities: (o.capabilities ?? []).map((key) => ({ enabled: true, key, label: key, permissions: [] })),
     })),
     courses: [], delegated_permissions: [],
   } as CurrentSession;
@@ -46,7 +48,7 @@ describe("buildOrganizationWorkspace", () => {
 describe("organizationMatchesCapability", () => {
   // We use buildOrganizationWorkspace to get real OrganizationWorkspaceItems
   const org = buildOrganizationWorkspace(makeSession([
-    { id: 1, name: "O", roles: [], permissions: ["VIEW_ORGANIZATION"] },
+    { id: 1, name: "O", roles: [], permissions: ["VIEW_ORGANIZATION"], capabilities: ["members"] },
   ])).organizations[0];
 
   it('"all" always matches', () => {
@@ -61,8 +63,8 @@ describe("organizationMatchesCapability", () => {
 
 describe("filterOrganizationWorkspace", () => {
   const orgs = buildOrganizationWorkspace(makeSession([
-    { id: 1, name: "Alpha", roles: ["ADMIN"], permissions: ["VIEW_ORG_REWARD_REPORTS"] },
-    { id: 2, name: "Beta", roles: [], permissions: ["VIEW_ORGANIZATION"] },
+    { id: 1, name: "Alpha", roles: ["ADMIN"], permissions: ["VIEW_ORG_REWARD_REPORTS"], capabilities: ["reports"] },
+    { id: 2, name: "Beta", roles: [], permissions: ["VIEW_ORGANIZATION"], capabilities: ["members"] },
   ])).organizations;
 
   it("filters by search name", () => {
@@ -85,7 +87,7 @@ describe("filterOrganizationWorkspace", () => {
 describe("enabledOrganizationCapabilities", () => {
   it("returns only enabled capabilities", () => {
     const org = buildOrganizationWorkspace(makeSession([
-      { id: 1, name: "O", roles: [], permissions: ["VIEW_ORGANIZATION"] },
+      { id: 1, name: "O", roles: [], permissions: ["VIEW_ORGANIZATION"], capabilities: ["members"] },
     ])).organizations[0];
     const caps = enabledOrganizationCapabilities(org);
     caps.forEach((c) => expect(c.enabled).toBe(true));

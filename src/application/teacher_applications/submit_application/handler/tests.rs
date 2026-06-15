@@ -1,6 +1,9 @@
 use futures::future::{BoxFuture, FutureExt};
 
 use super::*;
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use fixtures::{application, application_from_submission, command};
 
 mod fixtures;
@@ -13,14 +16,22 @@ struct FakeStore {
     created: Option<TeacherApplicationSubmission>,
 }
 
-impl TeacherApplicationSubmitStore for FakeStore {
-    fn can_submit_teacher_application(
+impl AccessDecisionStore for FakeStore {
+    type Error = TeacherApplicationSubmitError;
+
+    fn can(
         &mut self,
-        _: i32,
+        _: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, TeacherApplicationSubmitError>> {
+        assert_eq!(action.permission_name(), SUBMIT_TEACHER_APPLICATION);
+        assert!(matches!(scope, AccessScope::Platform(_)));
         async move { Ok(self.can_submit) }.boxed()
     }
+}
 
+impl TeacherApplicationSubmitStore for FakeStore {
     fn find_application_by_idempotency_key(
         &mut self,
         _: String,

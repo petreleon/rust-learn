@@ -39,14 +39,14 @@ pub async fn has_course_context_permission(
     course_id: i32,
     permission: &str,
 ) -> Result<bool, CourseEnrollmentError> {
-    if permission_checks::has_course_permission(conn, user_id, course_id, permission).await?
-        || permission_checks::has_platform_permission(conn, user_id, permission).await?
+    if permission_checks::can_course_permission(conn, user_id, course_id, permission).await?
+        || permission_checks::can_platform_permission(conn, user_id, permission).await?
     {
         return Ok(true);
     }
 
     for organization_id in course_organization_ids(conn, course_id).await? {
-        if permission_checks::has_organization_permission(
+        if permission_checks::can_organization_permission(
             conn,
             user_id,
             organization_id,

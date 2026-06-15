@@ -7,17 +7,19 @@ use crate::application::access_control::manage_delegated_permissions::{
 };
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{courses, organizations};
-use crate::infra::postgres::access_control::delegated_permissions::mappers::map_error;
+use crate::infra::postgres::access_control::delegated_permissions::mappers::{
+    delegated_permission_output_from_record, map_error,
+};
 use crate::infra::postgres::access_control::delegated_permissions::records::{
     self, DelegatedPermissionRecordFilter,
 };
-use crate::infra::postgres::access_control::permission_checks::has_platform_permission;
+use crate::infra::postgres::access_control::permission_checks::can_platform_permission;
 
 pub(super) async fn can_delegate_reward_permissions(
     conn: &mut AsyncPgConnection,
     user_id: i32,
 ) -> Result<bool, DelegatedPermissionError> {
-    has_platform_permission(
+    can_platform_permission(
         conn,
         user_id,
         &Permissions::DELEGATE_REWARD_APPROVAL.to_string(),
@@ -65,7 +67,7 @@ pub(super) async fn find_active_delegated_permission(
         course_id,
     )
     .await
-    .map(|item| item.map(Into::into))
+    .map(|item| item.map(delegated_permission_output_from_record))
     .map_err(map_error)
 }
 
@@ -75,7 +77,12 @@ pub(super) async fn list_delegated_permissions(
 ) -> Result<Vec<DelegatedPermissionOutput>, DelegatedPermissionError> {
     records::list_delegated_permissions(conn, DelegatedPermissionRecordFilter::from(filter))
         .await
-        .map(|items| items.into_iter().map(Into::into).collect())
+        .map(|items| {
+            items
+                .into_iter()
+                .map(delegated_permission_output_from_record)
+                .collect()
+        })
         .map_err(map_error)
 }
 

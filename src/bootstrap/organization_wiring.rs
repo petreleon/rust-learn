@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use actix_web::web;
+
 use crate::application::organizations::assign_organization_member_role::OrganizationMemberRoleAssignmentUseCase;
 use crate::application::organizations::get_organization_dashboard::OrganizationDashboardUseCase;
 use crate::application::organizations::invite_organization_member::OrganizationMemberInviteUseCase;
@@ -49,4 +51,19 @@ pub fn build_organization_use_cases(pool: &DbPool) -> OrganizationUseCases {
             pool.clone(),
         )),
     }
+}
+
+pub fn configure_organization_app_data(
+    cfg: &mut web::ServiceConfig,
+    use_cases: &OrganizationUseCases,
+) {
+    cfg.app_data(web::Data::new(use_cases.course_list.clone()))
+        .app_data(web::Data::new(use_cases.dashboard.clone()))
+        .app_data(web::Data::new(use_cases.management.clone()))
+        .app_data(web::Data::new(use_cases.member_audit.clone()))
+        .app_data(web::Data::new(use_cases.member_invite.clone()))
+        .app_data(web::Data::new(use_cases.member_list.clone()))
+        .app_data(web::Data::new(use_cases.member_removal.clone()))
+        .app_data(web::Data::new(use_cases.member_role_assignment.clone()))
+        .app_data(web::Data::new(use_cases.teacher_applications.clone()));
 }

@@ -1,16 +1,15 @@
 use crate::application::rewards::decide_teacher_candidate::TeacherRewardCandidateDecisionError;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::domain::rewards::candidate::transition::teacher_decision_target_status;
 
 pub(super) fn normalize_teacher_decision_status(
     status: &str,
 ) -> Result<RewardCandidateStatus, TeacherRewardCandidateDecisionError> {
-    match status.trim().to_ascii_lowercase().as_str() {
-        "approved" | "teacher_approved" => Ok(RewardCandidateStatus::TeacherApproved),
-        "rejected" | "teacher_rejected" => Ok(RewardCandidateStatus::TeacherRejected),
-        _ => Err(TeacherRewardCandidateDecisionError::InvalidStatus(
+    teacher_decision_target_status(status).ok_or_else(|| {
+        TeacherRewardCandidateDecisionError::InvalidStatus(
             "unsupported teacher reward decision status".to_string(),
-        )),
-    }
+        )
+    })
 }
 
 #[cfg(test)]

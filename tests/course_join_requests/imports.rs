@@ -22,8 +22,8 @@ use rust_learn::models::user::User;
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::organization_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
-use rust_learn::repositories::course_repository::user_permission_course_request;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::access_control::permission_queries::has_course_permission;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 
 #[derive(Debug, Clone)]
 struct CourseJoinDecisionRequest {

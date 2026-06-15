@@ -1,15 +1,13 @@
 use futures::future::BoxFuture;
 
+use crate::application::access_control::check_permission::AccessDecisionStore;
 use crate::application::teacher_applications::{
     list_application_audit::TeacherApplicationAuditError, TeacherApplicationAuditEventOutput,
 };
 
-pub trait TeacherApplicationAuditStore {
-    fn can_review_teacher_applications(
-        &mut self,
-        actor_user_id: i32,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationAuditError>>;
-
+pub trait TeacherApplicationAuditStore:
+    AccessDecisionStore<Error = TeacherApplicationAuditError>
+{
     fn list_audit_events(
         &mut self,
         application_id: i64,

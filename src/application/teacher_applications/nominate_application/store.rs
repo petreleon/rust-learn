@@ -1,19 +1,15 @@
 use futures::future::BoxFuture;
 
+use crate::application::access_control::check_permission::AccessDecisionStore;
 use crate::application::teacher_applications::{
     submit_application::TeacherApplicationSubmission, TeacherApplicationOutput,
 };
 
 use super::TeacherApplicationNominationError;
 
-pub trait TeacherApplicationNominationStore {
-    fn has_organization_permission(
-        &mut self,
-        actor_user_id: i32,
-        organization_id: i32,
-        permission: String,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationNominationError>>;
-
+pub trait TeacherApplicationNominationStore:
+    AccessDecisionStore<Error = TeacherApplicationNominationError>
+{
     fn find_application_by_idempotency_key(
         &mut self,
         idempotency_key: String,

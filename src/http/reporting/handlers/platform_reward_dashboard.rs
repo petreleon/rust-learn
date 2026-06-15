@@ -1,66 +1,37 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::web;
 
-use crate::application::reporting::platform_reward_dashboard::{
-    PlatformRewardDashboardError, PlatformRewardDashboardUseCase,
+use crate::application::reporting::platform_reward_dashboard::PlatformRewardDashboardUseCase;
+use crate::http::errors::ApiError;
+use crate::http::reporting::dto::{
+    csv_download, platform_reward_dashboard_csv, CsvDownload, PlatformRewardDashboardResponse,
 };
-use crate::http::reporting::dto::{platform_reward_dashboard_csv, PlatformRewardDashboardResponse};
+use crate::http::reporting::errors::{platform_reward_dashboard_error, ReportOperation};
 
 pub async fn get_platform_reward_dashboard(
     dashboard: web::Data<Arc<dyn PlatformRewardDashboardUseCase>>,
-) -> impl Responder {
-    match dashboard.load_platform_reward_dashboard().await {
-        Ok(output) => HttpResponse::Ok().json(PlatformRewardDashboardResponse::from(output)),
-        Err(error) => platform_reward_dashboard_error_response(error, "load"),
-    }
+) -> Result<web::Json<PlatformRewardDashboardResponse>, ApiError> {
+    dashboard
+        .load_platform_reward_dashboard()
+        .await
+        .map(PlatformRewardDashboardResponse::from)
+        .map(web::Json)
+        .map_err(|error| platform_reward_dashboard_error(error, ReportOperation::Load))
 }
 
 pub async fn export_platform_reward_dashboard(
     dashboard: web::Data<Arc<dyn PlatformRewardDashboardUseCase>>,
-) -> impl Responder {
-    match dashboard.load_platform_reward_dashboard().await {
-        Ok(output) => {
-            let response = PlatformRewardDashboardResponse::from(output);
-            csv_response(
+) -> Result<CsvDownload, ApiError> {
+    dashboard
+        .load_platform_reward_dashboard()
+        .await
+        .map(PlatformRewardDashboardResponse::from)
+        .map(|response| {
+            csv_download(
                 "platform-reward-dashboard.csv",
                 platform_reward_dashboard_csv(&response),
             )
-        }
-        Err(error) => platform_reward_dashboard_error_response(error, "export"),
-    }
-}
-
-fn platform_reward_dashboard_error_response(
-    error: PlatformRewardDashboardError,
-    operation: &'static str,
-) -> HttpResponse {
-    match error {
-        PlatformRewardDashboardError::Connection(_) => {
-            HttpResponse::InternalServerError().body("Failed to get DB connection")
-        }
-        PlatformRewardDashboardError::Database(message) => {
-            log::error!(
-                "event=report_{}_failed scope=platform report=reward_dashboard error={}",
-                operation,
-                message
-            );
-            let label = if operation == "export" {
-                "export reward dashboard"
-            } else {
-                "load reward dashboard"
-            };
-            HttpResponse::InternalServerError().body(format!("Failed to {}", label))
-        }
-    }
-}
-
-fn csv_response(filename: &str, body: String) -> HttpResponse {
-    HttpResponse::Ok()
-        .content_type("text/csv; charset=utf-8")
-        .insert_header((
-            "Content-Disposition",
-            format!("attachment; filename=\"{}\"", filename),
-        ))
-        .body(body)
+        })
+        .map_err(|error| platform_reward_dashboard_error(error, ReportOperation::Export))
 }

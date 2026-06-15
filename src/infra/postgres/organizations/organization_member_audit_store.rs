@@ -2,16 +2,18 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::organizations::list_organization_member_audit::{
     OrganizationMemberAuditError, OrganizationMemberAuditEventOutput, OrganizationMemberAuditQuery,
     OrganizationMemberAuditStore,
 };
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::organization_member_audit_events;
+use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::organizations::organization_member_audit_mappers::{
     map_member_audit_error, organization_member_audit_output_from_model,
 };
-use crate::infra::postgres::organizations::organization_permission_checks::has_organization_permission;
 use crate::models::organization_member_audit_event::OrganizationMemberAuditEvent;
 
 pub struct PostgresOrganizationMemberAuditStore<'conn> {
@@ -25,30 +27,30 @@ impl<'conn> PostgresOrganizationMemberAuditStore<'conn> {
 }
 
 impl OrganizationMemberAuditStore for PostgresOrganizationMemberAuditStore<'_> {
-    fn can_view_member_audit(
-        &mut self,
-        actor_user_id: i32,
-        organization_id: i32,
-    ) -> BoxFuture<'_, Result<bool, OrganizationMemberAuditError>> {
-        async move {
-            has_organization_permission(
-                self.conn,
-                actor_user_id,
-                organization_id,
-                Permissions::VIEW_ORGANIZATION,
-            )
-            .await
-            .map_err(map_member_audit_error)
-        }
-        .boxed()
-    }
-
     fn list_member_audit_events(
         &mut self,
         query: OrganizationMemberAuditQuery,
     ) -> BoxFuture<'_, Result<Vec<OrganizationMemberAuditEventOutput>, OrganizationMemberAuditError>>
     {
         async move { list_member_audit_events(self.conn, query).await }.boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresOrganizationMemberAuditStore<'_> {
+    type Error = OrganizationMemberAuditError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, OrganizationMemberAuditError>> {
+        async move {
+            permission_checks::can(self.conn, actor, action, scope)
+                .await
+                .map_err(map_member_audit_error)
+        }
+        .boxed()
     }
 }
 

@@ -15,7 +15,7 @@ import { StatusPill } from "./StatusPill";
 import { emptyWorkspace } from "./emptyWorkspace";
 import { exportReports } from "./exportReports";
 import { getCapability } from "./getCapability";
-import { hasPlatformPermission } from "./hasPlatformPermission";
+import { hasPlatformCapability } from "./hasPlatformCapability";
 import { normalizeRouteError } from "./normalizeRouteError";
 import { startCsvDownload } from "./startCsvDownload";
 import { useAdminSession } from "./useAdminSession";
@@ -29,7 +29,7 @@ export function AdminExportsRoute() {
     [route.session],
   );
   const allowed = route.session ? hasPlatformAdminAccess(route.session) : false;
-  const canExport = hasPlatformPermission(workspace, "EXPORT_DATA");
+  const canExport = hasPlatformCapability(workspace, "exports");
 
   const [csvState, setCsvState] = useState<CsvState>("idle");
   const [csvError, setCsvError] = useState<RouteError | null>(null);

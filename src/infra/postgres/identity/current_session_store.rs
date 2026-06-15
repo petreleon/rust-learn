@@ -4,7 +4,9 @@ use diesel::result::Error as DieselError;
 use diesel_async::AsyncPgConnection;
 use futures::future::{BoxFuture, FutureExt};
 
-use crate::application::identity::current_session::{CurrentSessionError, CurrentSessionOutput};
+use crate::application::identity::current_session::{
+    capabilities, CurrentSessionError, CurrentSessionOutput,
+};
 use crate::application::identity::ports::CurrentSessionStore;
 use crate::infra::postgres::identity::current_session_course_queries::{
     list_course_permissions, list_course_roles,
@@ -135,11 +137,20 @@ async fn load_current_session(
         &mut courses,
     );
 
+    let platform = platform.into();
+    let organizations = organizations
+        .into_values()
+        .map(Into::into)
+        .collect::<Vec<_>>();
+    let courses = courses.into_values().map(Into::into).collect::<Vec<_>>();
+    let access = capabilities::access_summary(&platform, &organizations, &courses);
+
     Ok(CurrentSessionOutput {
+        access,
         user: user.into(),
-        platform: platform.into(),
-        organizations: organizations.into_values().map(Into::into).collect(),
-        courses: courses.into_values().map(Into::into).collect(),
+        platform,
+        organizations,
+        courses,
         delegated_permissions: delegations
             .into_iter()
             .map(|delegation| {

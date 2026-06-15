@@ -3,9 +3,11 @@ use diesel::prelude::*;
 use diesel::result::{DatabaseErrorKind, Error as DieselError};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
-use crate::application::wallet::link_wallet::{LinkedWalletView, WalletLinkError};
+use crate::application::wallet::link_wallet::{
+    linked_wallet_view, LinkedWalletFact, LinkedWalletView, WalletLinkError,
+};
 use crate::db::schema::wallets;
-use crate::infra::postgres::wallet::wallet_mappers::wallet_view_from_model;
+use crate::infra::postgres::wallet::wallet_mappers::wallet_view_output_from_record;
 use crate::models::wallet::{NewWallet, Wallet};
 
 pub(super) async fn link_user_wallet_record(
@@ -93,10 +95,10 @@ async fn find_organization_wallet(
 }
 
 fn linked_wallet(wallet: Wallet, created: bool) -> LinkedWalletView {
-    LinkedWalletView {
-        wallet: wallet_view_from_model(wallet),
+    linked_wallet_view(LinkedWalletFact {
+        wallet: wallet_view_output_from_record(wallet),
         created,
-    }
+    })
 }
 
 fn is_unique_violation(error: &DieselError) -> bool {

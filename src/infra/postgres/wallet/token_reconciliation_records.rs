@@ -3,9 +3,11 @@ use bigdecimal::BigDecimal;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
-use crate::models::transaction::{
-    ExternalTransaction, NewExternalTransaction, Transaction, TransactionLink,
+use crate::infra::postgres::wallet::wallet_ledger_records::{
+    create_external_transaction, create_transaction, find_external_transaction_by_chain_tx_log,
+    find_transaction_for_external, link_external_transaction,
 };
+use crate::models::transaction::NewExternalTransaction;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenEventKind {
@@ -81,22 +83,21 @@ pub fn record_token_event(
     validate_observed_event(event)?;
 
     conn.transaction::<TokenReconciliationRecord, anyhow::Error, _>(|tx| {
-        if let Some(existing) = ExternalTransaction::find_by_chain_tx_log(
+        if let Some(existing) = find_external_transaction_by_chain_tx_log(
             event.chain_id,
             &event.transaction_hash,
             event.log_index,
             tx,
         )? {
-            let transaction_id =
-                match TransactionLink::find_transaction_for_external(existing.id, tx)? {
-                    Some(transaction_id) => transaction_id,
-                    None => {
-                        let transaction_id =
-                            Transaction::create(event.event_type.transaction_type(), tx)?;
-                        TransactionLink::create_external(transaction_id, existing.id, tx)?;
-                        transaction_id
-                    }
-                };
+            let transaction_id = match find_transaction_for_external(existing.id, tx)? {
+                Some(transaction_id) => transaction_id,
+                None => {
+                    let transaction_id =
+                        create_transaction(event.event_type.transaction_type(), tx)?;
+                    link_external_transaction(transaction_id, existing.id, tx)?;
+                    transaction_id
+                }
+            };
 
             return Ok(TokenReconciliationRecord {
                 transaction_id,
@@ -105,8 +106,8 @@ pub fn record_token_event(
             });
         }
 
-        let transaction_id = Transaction::create(event.event_type.transaction_type(), tx)?;
-        let external_transaction_id = ExternalTransaction::create(
+        let transaction_id = create_transaction(event.event_type.transaction_type(), tx)?;
+        let external_transaction_id = create_external_transaction(
             NewExternalTransaction {
                 amount: event.amount.clone(),
                 blockchain_address: &event.to_address,
@@ -120,7 +121,7 @@ pub fn record_token_event(
             },
             tx,
         )?;
-        TransactionLink::create_external(transaction_id, external_transaction_id, tx)?;
+        link_external_transaction(transaction_id, external_transaction_id, tx)?;
 
         Ok(TokenReconciliationRecord {
             transaction_id,

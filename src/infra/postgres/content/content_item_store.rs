@@ -1,13 +1,18 @@
-use diesel::{ExpressionMethods, QueryDsl};
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::AsyncPgConnection;
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::content::manage_content_item::{
     ContentItemError, ContentItemOutput, CreateContentItemCommand, UpdateContentItemCommand,
 };
 use crate::application::content::ports::ContentItemStore;
-use crate::db::schema::{chapters, contents, user_role_course};
-use crate::models::content::{Content, NewContent, UpdateContent};
+use crate::infra::postgres::content::content_item_records::{
+    create_content_item, delete_content_item, list_content_items, list_course_content_recipients,
+    update_content_item,
+};
+use crate::infra::postgres::content::content_item_scope::{
+    ensure_chapter_belongs_to_course, ensure_content_belongs_to_chapter,
+};
+use crate::models::content::{NewContent, UpdateContent};
 
 pub struct PostgresContentItemStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -27,13 +32,7 @@ impl ContentItemStore for PostgresContentItemStore<'_> {
     ) -> BoxFuture<'_, Result<Vec<ContentItemOutput>, ContentItemError>> {
         async move {
             ensure_chapter_belongs_to_course(self.conn, course_id, chapter_id).await?;
-            contents::table
-                .filter(contents::chapter_id.eq(chapter_id))
-                .order(contents::order.asc())
-                .load::<Content>(self.conn)
-                .await
-                .map(|items| items.into_iter().map(ContentItemOutput::from).collect())
-                .map_err(map_database_error)
+            list_content_items(self.conn, chapter_id).await
         }
         .boxed()
     }
@@ -52,12 +51,7 @@ impl ContentItemStore for PostgresContentItemStore<'_> {
                 data: command.data,
             };
 
-            diesel::insert_into(contents::table)
-                .values(&new_content)
-                .get_result::<Content>(self.conn)
-                .await
-                .map(ContentItemOutput::from)
-                .map_err(map_database_error)
+            create_content_item(self.conn, new_content).await
         }
         .boxed()
     }
@@ -66,17 +60,7 @@ impl ContentItemStore for PostgresContentItemStore<'_> {
         &mut self,
         course_id: i32,
     ) -> BoxFuture<'_, Result<Vec<i32>, ContentItemError>> {
-        async move {
-            user_role_course::table
-                .filter(user_role_course::course_id.eq(course_id))
-                .select(user_role_course::user_id)
-                .distinct()
-                .load::<Option<i32>>(self.conn)
-                .await
-                .map(|ids| ids.into_iter().flatten().collect())
-                .map_err(map_database_error)
-        }
-        .boxed()
+        async move { list_course_content_recipients(self.conn, course_id).await }.boxed()
     }
 
     fn update(
@@ -95,12 +79,7 @@ impl ContentItemStore for PostgresContentItemStore<'_> {
                 data: command.data,
             };
 
-            diesel::update(contents::table.find(content_id))
-                .set(&update)
-                .get_result::<Content>(self.conn)
-                .await
-                .map(ContentItemOutput::from)
-                .map_err(map_content_error)
+            update_content_item(self.conn, content_id, update).await
         }
         .boxed()
     }
@@ -114,60 +93,8 @@ impl ContentItemStore for PostgresContentItemStore<'_> {
         async move {
             ensure_chapter_belongs_to_course(self.conn, course_id, chapter_id).await?;
             ensure_content_belongs_to_chapter(self.conn, chapter_id, content_id).await?;
-            diesel::delete(contents::table.find(content_id))
-                .execute(self.conn)
-                .await
-                .map(|count| count > 0)
-                .map_err(map_database_error)
+            delete_content_item(self.conn, content_id).await
         }
         .boxed()
     }
-}
-
-async fn ensure_chapter_belongs_to_course(
-    conn: &mut AsyncPgConnection,
-    course_id: i32,
-    chapter_id: i32,
-) -> Result<(), ContentItemError> {
-    chapters::table
-        .filter(chapters::id.eq(chapter_id))
-        .filter(chapters::course_id.eq(course_id))
-        .select(chapters::id)
-        .first::<i32>(conn)
-        .await
-        .map(|_| ())
-        .map_err(map_chapter_error)
-}
-
-async fn ensure_content_belongs_to_chapter(
-    conn: &mut AsyncPgConnection,
-    chapter_id: i32,
-    content_id: i32,
-) -> Result<(), ContentItemError> {
-    contents::table
-        .filter(contents::id.eq(content_id))
-        .filter(contents::chapter_id.eq(chapter_id))
-        .select(contents::id)
-        .first::<i32>(conn)
-        .await
-        .map(|_| ())
-        .map_err(map_content_error)
-}
-
-fn map_chapter_error(error: diesel::result::Error) -> ContentItemError {
-    match error {
-        diesel::result::Error::NotFound => ContentItemError::ChapterNotFound,
-        other => ContentItemError::Database(other.to_string()),
-    }
-}
-
-fn map_content_error(error: diesel::result::Error) -> ContentItemError {
-    match error {
-        diesel::result::Error::NotFound => ContentItemError::ContentNotFound,
-        other => ContentItemError::Database(other.to_string()),
-    }
-}
-
-fn map_database_error(error: diesel::result::Error) -> ContentItemError {
-    ContentItemError::Database(error.to_string())
 }

@@ -2,11 +2,13 @@ use actix_web::{http::StatusCode, test, web, App};
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::models::user::User;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::tokens::jwt::create_jwt;
 
 use actix_service::Service;
 use chrono::NaiveDate;
+use rust_learn::application::access_control::check_permission::AccessDecisionService;
+use rust_learn::application::access_control::compare_hierarchy::HierarchyCheckService;
 use rust_learn::application::access_control::list_roles::RoleCatalogUseCase;
 use rust_learn::application::identity::assign_platform_role::PlatformRoleAssignmentUseCase;
 use rust_learn::application::identity::get_user_profile::UserProfileReadUseCase;
@@ -58,6 +60,14 @@ async fn create_test_user(conn: &mut AsyncPgConnection, name: &str) -> User {
 
 fn generate_token(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to generate token")
+}
+
+fn permission_check_use_case_data(pool: &DbPool) -> web::Data<AccessDecisionService> {
+    web::Data::new(Arc::new(pool.clone()))
+}
+
+fn hierarchy_check_use_case_data(pool: &DbPool) -> web::Data<HierarchyCheckService> {
+    web::Data::new(Arc::new(pool.clone()))
 }
 
 fn role_catalog_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn RoleCatalogUseCase>> {

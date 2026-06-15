@@ -2,17 +2,11 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::platform_reward_dashboard::{
-    PlatformRewardDashboardError, RewardCandidateDashboardSummaryOutput,
-    TeacherApplicationDashboardSummaryOutput,
+    record_reward_candidate_status_count, PlatformRewardDashboardError,
+    RewardCandidateDashboardSummaryOutput, TeacherApplicationDashboardSummaryOutput,
 };
 use crate::db::schema::{reward_candidates, teacher_applications};
-use crate::domain::rewards::candidate::status::{
-    REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_AMOUNT_REJECTED, REWARD_STATUS_COMPLETED,
-    REWARD_STATUS_FAILED, REWARD_STATUS_NEEDS_RECONCILIATION, REWARD_STATUS_NOTIFIED,
-    REWARD_STATUS_PENDING_TEACHER_APPROVAL, REWARD_STATUS_TEACHER_APPROVED,
-    REWARD_STATUS_TEACHER_REJECTED, REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_TOKEN_PENDING,
-    REWARD_STATUS_WALLET_CREDITED,
-};
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::teacher_applications::status::{
     TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
     TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
@@ -55,20 +49,8 @@ pub(super) async fn reward_candidate_dashboard_summary(
     let mut summary = RewardCandidateDashboardSummaryOutput::default();
     for (status, count) in rows {
         summary.total += count;
-        match status.as_str() {
-            REWARD_STATUS_PENDING_TEACHER_APPROVAL => summary.pending_teacher_approval = count,
-            REWARD_STATUS_TEACHER_APPROVED => summary.teacher_approved = count,
-            REWARD_STATUS_TEACHER_REJECTED => summary.teacher_rejected = count,
-            REWARD_STATUS_AMOUNT_APPROVED => summary.amount_approved = count,
-            REWARD_STATUS_AMOUNT_REJECTED => summary.amount_rejected = count,
-            REWARD_STATUS_TOKEN_PENDING => summary.token_pending = count,
-            REWARD_STATUS_TOKEN_CONFIRMED => summary.token_confirmed = count,
-            REWARD_STATUS_WALLET_CREDITED => summary.wallet_credited = count,
-            REWARD_STATUS_NOTIFIED => summary.notified = count,
-            REWARD_STATUS_COMPLETED => summary.completed = count,
-            REWARD_STATUS_NEEDS_RECONCILIATION => summary.needs_reconciliation = count,
-            REWARD_STATUS_FAILED => summary.failed = count,
-            _ => {}
+        if let Ok(status) = RewardCandidateStatus::parse(&status) {
+            record_reward_candidate_status_count(&mut summary, status, count);
         }
     }
     Ok(summary)

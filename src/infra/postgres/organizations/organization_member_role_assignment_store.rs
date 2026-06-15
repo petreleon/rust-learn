@@ -1,13 +1,15 @@
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::organizations::assign_organization_member_role::{
     OrganizationMemberRoleAssignmentCommand, OrganizationMemberRoleAssignmentError,
     OrganizationMemberRoleAssignmentStore,
 };
-use crate::config::constants::permissions::Permissions;
 use crate::db::schema::organization_member_audit_events;
-use crate::infra::postgres::organizations::organization_permission_checks::has_organization_permission;
+use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::organizations::organization_role_assignments;
 use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
 
@@ -22,24 +24,6 @@ impl<'conn> PostgresOrganizationMemberRoleAssignmentStore<'conn> {
 }
 
 impl OrganizationMemberRoleAssignmentStore for PostgresOrganizationMemberRoleAssignmentStore<'_> {
-    fn can_assign_role(
-        &mut self,
-        actor_user_id: i32,
-        organization_id: i32,
-    ) -> BoxFuture<'_, Result<bool, OrganizationMemberRoleAssignmentError>> {
-        async move {
-            has_organization_permission(
-                self.conn,
-                actor_user_id,
-                organization_id,
-                Permissions::ASSIGN_ROLES_TO_ORG_USERS,
-            )
-            .await
-            .map_err(map_assignment_error)
-        }
-        .boxed()
-    }
-
     fn actor_min_level(
         &mut self,
         actor_user_id: i32,
@@ -137,6 +121,24 @@ impl OrganizationMemberRoleAssignmentStore for PostgresOrganizationMemberRoleAss
                 .execute(self.conn)
                 .await
                 .map(|_| ())
+                .map_err(map_assignment_error)
+        }
+        .boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresOrganizationMemberRoleAssignmentStore<'_> {
+    type Error = OrganizationMemberRoleAssignmentError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, OrganizationMemberRoleAssignmentError>> {
+        async move {
+            permission_checks::can(self.conn, actor, action, scope)
+                .await
                 .map_err(map_assignment_error)
         }
         .boxed()

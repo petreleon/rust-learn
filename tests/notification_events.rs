@@ -3,8 +3,8 @@ use diesel_async::AsyncPgConnection;
 use rust_learn::application::notifications::notification_inbox::NOTIFICATION_LIST_LIMIT;
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::infra::notifications::NotificationsState;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::models::user::User;
-use rust_learn::repositories::user_repository::create_user;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicU64, Ordering};
 

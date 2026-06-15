@@ -1,13 +1,16 @@
 use std::sync::Arc;
 
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{post, web};
 use serde::Deserialize;
 
 use crate::application::identity::email::{email_log_hash, normalize_email};
 use crate::application::identity::resend_verification::{
-    ResendVerificationCommand, ResendVerificationError, ResendVerificationOutcome,
-    ResendVerificationUseCase,
+    ResendVerificationCommand, ResendVerificationOutcome, ResendVerificationUseCase,
 };
+use crate::http::identity::authentication::errors::{
+    missing_email_error, resend_verification_error,
+};
+use crate::http::identity::authentication::text_error::AuthTextError;
 
 const RESEND_VERIFICATION_MESSAGE: &str =
     "If an unverified account matches that email, a verification link has been sent.";
@@ -21,10 +24,10 @@ pub(super) struct ResendVerificationRequest {
 pub(super) async fn resend_verification(
     use_case: web::Data<Arc<dyn ResendVerificationUseCase>>,
     req: web::Json<ResendVerificationRequest>,
-) -> impl Responder {
+) -> Result<&'static str, AuthTextError> {
     let email = normalize_email(&req.email);
     if email.is_empty() {
-        return HttpResponse::BadRequest().body("Email is required");
+        return Err(missing_email_error());
     }
 
     match use_case
@@ -38,35 +41,11 @@ pub(super) async fn resend_verification(
                 "event=email_verification_resend_unknown_email email_hash={}",
                 email_log_hash(&email)
             );
-            generic_success_response()
+            Ok(RESEND_VERIFICATION_MESSAGE)
         }
         Ok(ResendVerificationOutcome::Sent | ResendVerificationOutcome::AlreadyVerified) => {
-            generic_success_response()
+            Ok(RESEND_VERIFICATION_MESSAGE)
         }
-        Err(error) => resend_verification_error_response(error),
-    }
-}
-
-fn generic_success_response() -> HttpResponse {
-    HttpResponse::Ok().body(RESEND_VERIFICATION_MESSAGE)
-}
-
-fn resend_verification_error_response(error: ResendVerificationError) -> HttpResponse {
-    match error {
-        ResendVerificationError::Connection(_) => {
-            HttpResponse::InternalServerError().body("Failed to get DB connection")
-        }
-        ResendVerificationError::Lookup(error) => {
-            log::error!("event=email_verification_resend_lookup_failed error={error}");
-            HttpResponse::InternalServerError().body("Failed to resend verification email")
-        }
-        ResendVerificationError::TokenGeneration(error) => {
-            log::error!("event=email_verification_resend_token_failed error={error}");
-            HttpResponse::InternalServerError().body("Failed to create email verification token")
-        }
-        ResendVerificationError::Store(error) => {
-            log::error!("event=email_verification_resend_store_failed error={error}");
-            HttpResponse::InternalServerError().body("Failed to resend verification email")
-        }
+        Err(error) => Err(resend_verification_error(error)),
     }
 }

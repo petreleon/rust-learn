@@ -2,8 +2,10 @@
 
 use crate::application::identity::password_policy::validate_password_strength;
 use crate::config::constants::roles::Roles;
-use crate::repositories::platform_repository::assign_role_to_user;
-use crate::repositories::user_repository::create_user;
+use crate::infra::postgres::access_control::{platform_role_records, role_catalog_store};
+use crate::infra::postgres::identity::bootstrap_accounts::{
+    create_verified_password_account, BootstrapPasswordAccount,
+};
 use anyhow::{anyhow, Context, Result};
 use chrono::NaiveDate;
 use diesel_async::AsyncPgConnection;
@@ -21,18 +23,29 @@ pub fn apply_update_v2(conn: &mut AsyncPgConnection) -> BoxFuture<'_, Result<()>
         validate_admin_password(&admin_password)?;
         let admin_dob = optional_admin_date_of_birth()?;
 
-        // Attempt to create the admin user
-        let user = create_user(conn, &admin_name, &admin_email, admin_dob, &admin_password)
-            .await
-            .context("Failed to create admin user")?;
+        let user = create_verified_password_account(
+            conn,
+            BootstrapPasswordAccount {
+                name: admin_name,
+                email: admin_email,
+                date_of_birth: admin_dob,
+                password: admin_password,
+            },
+        )
+        .await
+        .context("Failed to create admin user")?;
         log::info!(
             "event=bootstrap_admin_created version=2 user_id={} user_name={}",
-            user.id,
+            user.user_id,
             user.name
         );
 
-        // Attempt to assign the SUPER_ADMIN role to the newly created admin user
-        assign_role_to_user(conn, user.id, Roles::SUPER_ADMIN)
+        let role_id =
+            role_catalog_store::platform_role_id_by_name(conn, &Roles::SUPER_ADMIN.to_string())
+                .await
+                .context("Failed to find SUPER_ADMIN platform role")?;
+
+        platform_role_records::assign_platform_role_to_user(conn, user.user_id, role_id)
             .await
             .with_context(|| {
                 format!("Failed to assign SUPER_ADMIN role to user '{}'", user.name)
@@ -40,7 +53,7 @@ pub fn apply_update_v2(conn: &mut AsyncPgConnection) -> BoxFuture<'_, Result<()>
 
         log::info!(
             "event=bootstrap_admin_role_assigned version=2 user_id={} role={}",
-            user.id,
+            user.user_id,
             Roles::SUPER_ADMIN
         );
 

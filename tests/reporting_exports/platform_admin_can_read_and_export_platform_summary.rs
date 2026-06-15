@@ -14,6 +14,9 @@ async fn platform_admin_can_read_and_export_platform_summary() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
             .app_data(platform_summary_use_case(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::reporting::configure_routes),

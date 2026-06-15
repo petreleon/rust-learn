@@ -31,7 +31,7 @@ async fn organization_admin_can_remove_course_enrollment() {
         .expect("organization admin should remove course enrollment");
     assert!(removal.removed);
 
-    let still_enrolled = user_permission_course_request(
+    let still_enrolled = has_course_permission(
         &mut conn,
         requester.id(),
         course.id,

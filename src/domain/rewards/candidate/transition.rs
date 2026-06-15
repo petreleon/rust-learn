@@ -21,6 +21,12 @@ pub struct TransitionError {
     pub action: TransitionAction,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TargetTransitionError {
+    pub from: RewardCandidateStatus,
+    pub target: RewardCandidateStatus,
+}
+
 pub fn apply_transition(
     from: RewardCandidateStatus,
     action: TransitionAction,
@@ -74,51 +80,60 @@ pub fn amount_decision(
     apply_transition(from, action)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{amount_decision, apply_transition, teacher_decision, TransitionAction};
-    use crate::domain::rewards::candidate::status::RewardCandidateStatus as Status;
+pub fn confirm_token(
+    from: RewardCandidateStatus,
+) -> Result<RewardCandidateStatus, TransitionError> {
+    apply_transition(from, TransitionAction::ConfirmToken)
+}
 
-    #[test]
-    fn teacher_approval_starts_from_pending_teacher_approval() {
-        assert_eq!(
-            teacher_decision(Status::PendingTeacherApproval, true).unwrap(),
-            Status::TeacherApproved
-        );
-        assert!(teacher_decision(Status::AmountApproved, true).is_err());
-    }
+pub fn credit_wallet(
+    from: RewardCandidateStatus,
+) -> Result<RewardCandidateStatus, TransitionError> {
+    apply_transition(from, TransitionAction::CreditWallet)
+}
 
-    #[test]
-    fn amount_approval_starts_from_teacher_approved() {
-        assert_eq!(
-            amount_decision(Status::TeacherApproved, true).unwrap(),
-            Status::AmountApproved
-        );
-        assert!(amount_decision(Status::PendingTeacherApproval, true).is_err());
-    }
+pub fn teacher_decision_transition(
+    from: RewardCandidateStatus,
+    target: RewardCandidateStatus,
+) -> Result<RewardCandidateStatus, TargetTransitionError> {
+    use RewardCandidateStatus as Status;
 
-    #[test]
-    fn token_confirmation_requires_token_pending() {
-        assert_eq!(
-            apply_transition(Status::TokenPending, TransitionAction::ConfirmToken).unwrap(),
-            Status::TokenConfirmed
-        );
-        assert!(apply_transition(Status::AmountApproved, TransitionAction::ConfirmToken).is_err());
+    match (from, target) {
+        (Status::PendingTeacherApproval, Status::TeacherApproved | Status::TeacherRejected) => {
+            Ok(target)
+        }
+        _ => Err(TargetTransitionError { from, target }),
     }
+}
 
-    #[test]
-    fn wallet_credit_accepts_confirmed_off_chain_or_reconciliation_states() {
-        assert_eq!(
-            apply_transition(Status::TokenConfirmed, TransitionAction::CreditWallet).unwrap(),
-            Status::WalletCredited
-        );
-        assert_eq!(
-            apply_transition(Status::AmountApproved, TransitionAction::CreditWallet).unwrap(),
-            Status::WalletCredited
-        );
-        assert_eq!(
-            apply_transition(Status::NeedsReconciliation, TransitionAction::CreditWallet).unwrap(),
-            Status::WalletCredited
-        );
+pub fn amount_decision_transition(
+    from: RewardCandidateStatus,
+    target: RewardCandidateStatus,
+) -> Result<RewardCandidateStatus, TargetTransitionError> {
+    use RewardCandidateStatus as Status;
+
+    match (from, target) {
+        (Status::TeacherApproved, Status::AmountApproved | Status::AmountRejected) => Ok(target),
+        _ => Err(TargetTransitionError { from, target }),
     }
+}
+
+pub fn teacher_decision_target_status(status: &str) -> Option<RewardCandidateStatus> {
+    match normalize_decision_status(status).as_str() {
+        "approved" | "teacher_approved" => Some(RewardCandidateStatus::TeacherApproved),
+        "rejected" | "teacher_rejected" => Some(RewardCandidateStatus::TeacherRejected),
+        _ => None,
+    }
+}
+
+pub fn amount_decision_target_status(status: &str) -> Option<RewardCandidateStatus> {
+    match normalize_decision_status(status).as_str() {
+        "approved" | "amount_approved" => Some(RewardCandidateStatus::AmountApproved),
+        "rejected" | "amount_rejected" => Some(RewardCandidateStatus::AmountRejected),
+        _ => None,
+    }
+}
+
+fn normalize_decision_status(status: &str) -> String {
+    status.trim().to_ascii_lowercase()
 }

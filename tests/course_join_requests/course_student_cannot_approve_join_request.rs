@@ -73,7 +73,7 @@ async fn course_teacher_can_waitlist_then_approve_join_request() {
     .expect("course teacher should approve waitlisted join request");
     assert_eq!(approved.status, COURSE_JOIN_STATUS_APPROVED);
 
-    let enrolled = user_permission_course_request(
+    let enrolled = has_course_permission(
         &mut conn,
         requester.id(),
         course.id,

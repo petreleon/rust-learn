@@ -1,11 +1,13 @@
 use actix_web::{dev::ServiceRequest, web, HttpMessage};
 use futures::FutureExt;
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionError, AccessDecisionService, AccessScope,
+};
+use crate::domain::identity::UserJWT;
 use crate::http::request_params::extract_param;
 use crate::http::request_params::ParamType;
 use crate::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
-use crate::models::user_jwt::UserJWT;
-use crate::repositories::course_repository::user_permission_course_request;
 
 pub struct CoursePermissionMiddleware;
 
@@ -24,17 +26,16 @@ impl CoursePermissionMiddleware {
                 // Extract data synchronously (as much as possible that doesn't need async)
                 // But we need to move it into the async block.
 
-                // 1. Get DB Pool
-                let db_pool = match req.app_data::<web::Data<crate::db::DbPool>>() {
+                let access_decision = match req.app_data::<web::Data<AccessDecisionService>>() {
                     Some(pool) => pool.get_ref().clone(),
                     None => {
                         log::error!(
-                            "event=permission_check_failed scope=course reason=missing_db_pool permission={}",
+                            "event=permission_check_failed scope=course reason=missing_access_decision_service permission={}",
                             permission_name
                         );
                         return Box::pin(futures::future::ready(Err(
                             actix_web::error::ErrorInternalServerError(
-                                "Failed to access database pool",
+                                "Failed to access permission decision service",
                             ),
                         )));
                     }
@@ -83,25 +84,13 @@ impl CoursePermissionMiddleware {
                 };
 
                 async move {
-                    let mut conn = db_pool.get().await.map_err(|_| {
-                        log::error!(
-                            "event=permission_check_failed scope=course reason=db_connection permission={} user_id={} course_id={}",
-                            permission_name,
-                            user_jwt.user_id,
-                            course_id
-                        );
-                        actix_web::error::ErrorInternalServerError(
-                            "Failed to get database connection",
+                    match access_decision
+                        .can(
+                            AccessActor::user(user_jwt.user_id),
+                            AccessAction::permission(permission_name.clone()),
+                            AccessScope::course(course_id),
                         )
-                    })?;
-
-                    match user_permission_course_request(
-                        &mut conn,
-                        user_jwt.user_id,
-                        course_id,
-                        &permission_name,
-                    )
-                    .await
+                        .await
                     {
                         Ok(true) => Ok(true),
                         Ok(false) => {
@@ -113,7 +102,19 @@ impl CoursePermissionMiddleware {
                             );
                             Ok(false)
                         }
-                        Err(err) => {
+                        Err(AccessDecisionError::Connection(err)) => {
+                            log::error!(
+                                "event=permission_check_failed scope=course reason=db_connection permission={} user_id={} course_id={} error={}",
+                                permission_name,
+                                user_jwt.user_id,
+                                course_id,
+                                err
+                            );
+                            Err(actix_web::error::ErrorInternalServerError(
+                                "Failed to get database connection",
+                            ))
+                        }
+                        Err(AccessDecisionError::Query(err)) => {
                             log::error!(
                                 "event=permission_check_failed scope=course reason=query permission={} user_id={} course_id={} error={}",
                                 permission_name,

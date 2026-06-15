@@ -3,8 +3,9 @@ use bigdecimal::BigDecimal;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
-use crate::models::transaction::{Transaction, TransactionLink};
-use crate::models::wallet::Wallet;
+use crate::infra::postgres::wallet::wallet_ledger_records::{
+    create_transaction, link_internal_transaction, lock_wallets_for_update,
+};
 
 use super::records::{pay, receive, wallet_locator};
 
@@ -46,18 +47,18 @@ pub fn transfers_between_wallets(
             // Lock both wallet rows in ascending id order to avoid cycles
             let mut ids = vec![from_wallet_id, to_wallet_id];
             ids.sort_unstable();
-            let _locked = Wallet::lock_wallets(ids, txn)?;
+            let _locked = lock_wallets_for_update(ids, txn)?;
 
             // Perform debit and credit using the helper (these will do guarded updates)
             let debit_id = pay(txn, from_wallet_id, amount.clone())?;
             let credit_id = receive(txn, to_wallet_id, amount.clone())?;
 
             // Create generic transaction
-            let tx_id = Transaction::create("internal_transfer", txn)?;
+            let tx_id = create_transaction("internal_transfer", txn)?;
 
             // Link generic transaction to internal entries
-            TransactionLink::create(tx_id, debit_id, txn)?;
-            TransactionLink::create(tx_id, credit_id, txn)?;
+            link_internal_transaction(tx_id, debit_id, txn)?;
+            link_internal_transaction(tx_id, credit_id, txn)?;
 
             Ok(TransferResult {
                 transaction_id: tx_id,

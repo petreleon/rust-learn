@@ -8,8 +8,63 @@ pub const DELEGATED_SCOPE_COURSE: &str = "course";
 pub const DELEGATED_SCOPE_ORGANIZATION: &str = "organization";
 pub const DELEGATED_SCOPE_PLATFORM: &str = "platform";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DelegatedScope {
+    kind: DelegatedScopeKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum DelegatedScopeKind {
+    Platform,
+    Organization { organization_id: i32 },
+    Course { course_id: i32 },
+}
+
+impl DelegatedScope {
+    pub fn platform() -> Self {
+        Self {
+            kind: DelegatedScopeKind::Platform,
+        }
+    }
+
+    pub fn organization(organization_id: i32) -> Self {
+        Self {
+            kind: DelegatedScopeKind::Organization { organization_id },
+        }
+    }
+
+    pub fn course(course_id: i32) -> Self {
+        Self {
+            kind: DelegatedScopeKind::Course { course_id },
+        }
+    }
+
+    pub fn scope_type(&self) -> &'static str {
+        match self.kind {
+            DelegatedScopeKind::Platform => DELEGATED_SCOPE_PLATFORM,
+            DelegatedScopeKind::Organization { .. } => DELEGATED_SCOPE_ORGANIZATION,
+            DelegatedScopeKind::Course { .. } => DELEGATED_SCOPE_COURSE,
+        }
+    }
+
+    pub fn organization_id(&self) -> Option<i32> {
+        match self.kind {
+            DelegatedScopeKind::Organization { organization_id } => Some(organization_id),
+            _ => None,
+        }
+    }
+
+    pub fn course_id(&self) -> Option<i32> {
+        match self.kind {
+            DelegatedScopeKind::Course { course_id } => Some(course_id),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DelegationScope {
+    pub delegated_scope: DelegatedScope,
     pub scope_type: String,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,
@@ -64,7 +119,7 @@ fn normalize_platform_scope(
             "platform delegation cannot include organization_id or course_id".to_string(),
         ));
     }
-    Ok(scope(DELEGATED_SCOPE_PLATFORM, None, None))
+    Ok(scope(DelegatedScope::platform()))
 }
 
 fn normalize_organization_scope(
@@ -83,11 +138,7 @@ fn normalize_organization_scope(
             "organization delegation cannot include course_id".to_string(),
         ));
     }
-    Ok(scope(
-        DELEGATED_SCOPE_ORGANIZATION,
-        Some(organization_id),
-        None,
-    ))
+    Ok(scope(DelegatedScope::organization(organization_id)))
 }
 
 fn normalize_course_scope(
@@ -104,17 +155,14 @@ fn normalize_course_scope(
             "course delegation cannot include organization_id".to_string(),
         ));
     }
-    Ok(scope(DELEGATED_SCOPE_COURSE, None, Some(course_id)))
+    Ok(scope(DelegatedScope::course(course_id)))
 }
 
-fn scope(
-    scope_type: &str,
-    organization_id: Option<i32>,
-    course_id: Option<i32>,
-) -> DelegationScope {
+fn scope(delegated_scope: DelegatedScope) -> DelegationScope {
     DelegationScope {
-        course_id,
-        organization_id,
-        scope_type: scope_type.to_string(),
+        course_id: delegated_scope.course_id(),
+        delegated_scope,
+        organization_id: delegated_scope.organization_id(),
+        scope_type: delegated_scope.scope_type().to_string(),
     }
 }

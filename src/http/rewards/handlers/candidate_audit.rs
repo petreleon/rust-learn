@@ -1,48 +1,26 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::web;
 
 use crate::application::rewards::list_candidate_audit::{
-    RewardCandidateAuditError, RewardCandidateAuditEvent, RewardCandidateAuditUseCase,
+    RewardCandidateAuditEvent, RewardCandidateAuditUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::errors::ApiError;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::rewards::dto::RewardCandidateAuditEventResponse;
+use crate::http::rewards::errors::reward_candidate_audit_error;
 
 pub async fn list_reward_candidate_audit(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i64>,
     audit: web::Data<Arc<dyn RewardCandidateAuditUseCase>>,
-) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
-    match audit
-        .list_reward_candidate_audit(requester.user_id, path.into_inner())
+) -> Result<web::Json<Vec<RewardCandidateAuditEventResponse>>, ApiError> {
+    audit
+        .list_reward_candidate_audit(requester.user_id(), path.into_inner())
         .await
-    {
-        Ok(events) => HttpResponse::Ok().json(audit_event_responses(events)),
-        Err(error) => reward_candidate_audit_error_response(error),
-    }
-}
-
-fn reward_candidate_audit_error_response(error: RewardCandidateAuditError) -> HttpResponse {
-    match error {
-        RewardCandidateAuditError::PermissionDenied(_) => {
-            HttpResponse::Forbidden().body("User does not have reward candidate permission")
-        }
-        RewardCandidateAuditError::NotFound => {
-            HttpResponse::NotFound().body("Reward candidate not found")
-        }
-        RewardCandidateAuditError::Connection(_) => {
-            HttpResponse::InternalServerError().body("Failed to get DB connection")
-        }
-        RewardCandidateAuditError::Database(message) => {
-            log::error!("event=reward_candidate_audit_api_failed error={}", message);
-            HttpResponse::InternalServerError().body("Failed to process reward candidate")
-        }
-    }
+        .map(audit_event_responses)
+        .map(web::Json)
+        .map_err(reward_candidate_audit_error)
 }
 
 fn audit_event_responses(

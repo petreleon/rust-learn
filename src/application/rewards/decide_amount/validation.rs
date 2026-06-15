@@ -2,17 +2,16 @@ use bigdecimal::BigDecimal;
 
 use crate::application::rewards::decide_amount::RewardAmountDecisionError;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::domain::rewards::candidate::transition::amount_decision_target_status;
 
 pub(super) fn normalize_amount_decision_status(
     status: &str,
 ) -> Result<RewardCandidateStatus, RewardAmountDecisionError> {
-    match status.trim().to_ascii_lowercase().as_str() {
-        "approved" | "amount_approved" => Ok(RewardCandidateStatus::AmountApproved),
-        "rejected" | "amount_rejected" => Ok(RewardCandidateStatus::AmountRejected),
-        _ => Err(RewardAmountDecisionError::InvalidStatus(
+    amount_decision_target_status(status).ok_or_else(|| {
+        RewardAmountDecisionError::InvalidStatus(
             "unsupported reward amount decision status".to_string(),
-        )),
-    }
+        )
+    })
 }
 
 pub(super) fn approved_amount_for_status(

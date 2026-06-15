@@ -1,14 +1,27 @@
 mod access_control_wiring;
 pub mod app_data;
 pub mod app_state;
+mod content_wiring;
 pub(crate) mod contract_startup;
 mod identity_wiring;
 mod kyc_wiring;
+mod learning_wiring;
 pub mod logging;
+mod notification_wiring;
 mod organization_wiring;
 pub mod readiness;
+mod reporting_wiring;
+mod reward_wiring;
 pub mod routes;
 pub mod startup;
 mod teacher_application_wiring;
 mod use_case_wiring;
+mod wallet_wiring;
 pub mod worker_runtime;
+
+pub fn configure_access_control_check_app_data(
+    cfg: &mut actix_web::web::ServiceConfig,
+    pool: &crate::db::DbPool,
+) {
+    access_control_wiring::configure_access_control_check_app_data(cfg, pool);
+}

@@ -1,13 +1,15 @@
 use diesel_async::{AsyncConnection, AsyncPgConnection};
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::teacher_applications::{
     submit_application::{
         TeacherApplicationSubmission, TeacherApplicationSubmitError, TeacherApplicationSubmitStore,
     },
     TeacherApplicationOutput,
 };
-use crate::config::constants::permissions::Permissions;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::teacher_applications::teacher_application_records;
 use crate::models::teacher_application::{NewTeacherApplication, NewTeacherApplicationAuditEvent};
@@ -23,19 +25,6 @@ impl<'conn> PostgresTeacherApplicationSubmitStore<'conn> {
 }
 
 impl TeacherApplicationSubmitStore for PostgresTeacherApplicationSubmitStore<'_> {
-    fn can_submit_teacher_application(
-        &mut self,
-        actor_user_id: i32,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationSubmitError>> {
-        async move {
-            let permission = Permissions::SUBMIT_TEACHER_APPLICATION.to_string();
-            permission_checks::has_platform_permission(self.conn, actor_user_id, &permission)
-                .await
-                .map_err(map_error)
-        }
-        .boxed()
-    }
-
     fn find_application_by_idempotency_key(
         &mut self,
         idempotency_key: String,
@@ -101,6 +90,24 @@ impl TeacherApplicationSubmitStore for PostgresTeacherApplicationSubmitStore<'_>
                 })
                 .await
                 .map(Into::into)
+                .map_err(map_error)
+        }
+        .boxed()
+    }
+}
+
+impl AccessDecisionStore for PostgresTeacherApplicationSubmitStore<'_> {
+    type Error = TeacherApplicationSubmitError;
+
+    fn can(
+        &mut self,
+        actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, TeacherApplicationSubmitError>> {
+        async move {
+            permission_checks::can(self.conn, actor, action, scope)
+                .await
                 .map_err(map_error)
         }
         .boxed()

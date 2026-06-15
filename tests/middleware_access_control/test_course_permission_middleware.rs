@@ -29,8 +29,19 @@ async fn test_course_permission_middleware() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(permission_check_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
-            .service(rust_learn::http::learning::course_scope()),
+            .service(web::resource("/courses/{id}").route(
+                web::put()
+                    .to(|| async { actix_web::HttpResponse::Ok().finish() })
+                    .wrap(
+                        rust_learn::middlewares::course_permission_middleware::CoursePermissionMiddleware::require(
+                            rust_learn::config::constants::permissions::Permissions::MANAGE_COURSE_SETTINGS.to_string(),
+                            rust_learn::http::request_params::ParamType::Path,
+                            "id".to_string(),
+                        ),
+                    ),
+            )),
     )
     .await;
 
@@ -85,6 +96,7 @@ async fn read_user_routes_require_view_user_or_self() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(permission_check_use_case_data(&pool))
             .app_data(user_list_use_case_data(&pool))
             .app_data(user_profile_use_case_data(&pool))
             .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)

@@ -4,7 +4,7 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::reporting::platform_summary::store::PlatformSummaryStore;
 use crate::application::reporting::platform_summary::{
-    PlatformSummaryError, PlatformSummaryOutput,
+    platform_summary_output, PlatformSummaryError, PlatformSummaryFact, PlatformSummaryOutput,
 };
 use crate::db::schema::{courses, notifications, organizations, users, wallets};
 
@@ -49,13 +49,13 @@ impl PlatformSummaryStore for PostgresPlatformSummaryStore<'_> {
                 .await
                 .map_err(map_diesel_error)?;
 
-            Ok(PlatformSummaryOutput {
+            Ok(platform_summary_output(PlatformSummaryFact {
                 total_users,
                 total_organizations,
                 total_courses,
                 total_wallets,
                 total_notifications,
-            })
+            }))
         }
         .boxed()
     }

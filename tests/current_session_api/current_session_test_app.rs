@@ -11,6 +11,9 @@ fn current_session_test_app(
 > {
     App::new()
         .app_data(web::Data::new(pool.clone()))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
         .app_data(current_session_use_case_data(&pool))
         .app_data(notification_inbox_use_case_data(&pool))
         .app_data(notification_preferences_use_case_data(&pool))

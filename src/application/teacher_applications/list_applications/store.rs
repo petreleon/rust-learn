@@ -1,5 +1,6 @@
 use futures::future::BoxFuture;
 
+use crate::application::access_control::check_permission::AccessDecisionStore;
 use crate::application::teacher_applications::{
     list_applications::TeacherApplicationListError, TeacherApplicationOutput,
 };
@@ -13,12 +14,9 @@ pub struct TeacherApplicationListFilter {
     pub offset: Option<i64>,
 }
 
-pub trait TeacherApplicationListStore {
-    fn can_review_teacher_applications(
-        &mut self,
-        actor_user_id: i32,
-    ) -> BoxFuture<'_, Result<bool, TeacherApplicationListError>>;
-
+pub trait TeacherApplicationListStore:
+    AccessDecisionStore<Error = TeacherApplicationListError>
+{
     fn list_applications(
         &mut self,
         filter: TeacherApplicationListFilter,

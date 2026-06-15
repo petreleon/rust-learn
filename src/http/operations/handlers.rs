@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{http::StatusCode, web};
 
 use crate::application::operations::ports::ReadinessDependency;
 use crate::application::operations::readiness_check::{
@@ -8,22 +8,27 @@ use crate::application::operations::readiness_check::{
 };
 use crate::http::operations::dto::{LivenessResponse, ReadinessResponse};
 
-pub async fn health() -> impl Responder {
-    HttpResponse::Ok().json(LivenessResponse::ok())
+pub async fn health() -> web::Json<LivenessResponse> {
+    web::Json(LivenessResponse::ok())
 }
 
-pub async fn readiness(use_case: Option<web::Data<Arc<dyn ReadinessUseCase>>>) -> impl Responder {
+pub async fn readiness(
+    use_case: Option<web::Data<Arc<dyn ReadinessUseCase>>>,
+) -> (web::Json<ReadinessResponse>, StatusCode) {
     let output = match use_case {
         Some(use_case) => use_case.check().await,
         None => missing_readiness().await,
     };
-    let ready = matches!(output.status, ReadinessStatus::Ready);
+    let status = readiness_status_code(output.status);
     let response = ReadinessResponse::from(output);
 
-    if ready {
-        HttpResponse::Ok().json(response)
-    } else {
-        HttpResponse::ServiceUnavailable().json(response)
+    (web::Json(response), status)
+}
+
+fn readiness_status_code(status: ReadinessStatus) -> StatusCode {
+    match status {
+        ReadinessStatus::Ready => StatusCode::OK,
+        ReadinessStatus::NotReady => StatusCode::SERVICE_UNAVAILABLE,
     }
 }
 

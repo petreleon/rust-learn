@@ -11,8 +11,8 @@ use rust_learn::infra::postgres::learning::course_role_assignment_store::Postgre
 use rust_learn::models::course::{Course, NewCourse};
 use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::infra::postgres::access_control::course_role_records;
-use rust_learn::repositories::course_repository::user_permission_course_request;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::access_control::permission_queries::has_course_permission;
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -83,7 +83,7 @@ async fn create_user_helper(
 ) -> rust_learn::models::user::User {
     let suffix = unique_string(name_suffix);
     let email = format!("user_{}@example.com", suffix);
-    rust_learn::repositories::user_repository::create_user(
+    rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user(
         conn,
         &format!("User {}", suffix),
         &email,
@@ -117,7 +117,7 @@ async fn teacher_has_permissions() {
 
     for p in allowed_permissions {
         let has_perm =
-            user_permission_course_request(&mut conn, user.id(), course.id, &p.to_string())
+            has_course_permission(&mut conn, user.id(), course.id, &p.to_string())
                 .await
                 .expect("permission query failed");
         assert!(has_perm, "TEACHER should have permission: {:?}", p);

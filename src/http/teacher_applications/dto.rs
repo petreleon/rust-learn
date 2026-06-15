@@ -36,7 +36,7 @@ pub(super) struct TeacherApplicationSelfResponse {
 }
 
 #[derive(Debug, Serialize)]
-pub(super) struct TeacherApplicationResponse {
+pub(crate) struct TeacherApplicationResponse {
     pub(super) id: i64,
     pub(super) applicant_user_id: i32,
     pub(super) requested_scope: String,

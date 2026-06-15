@@ -13,6 +13,7 @@ mod platform_token_payouts_csv;
 mod platform_wallet_credits_csv;
 mod platform_wallet_reconciliation;
 
+pub use csv::{csv_download, CsvDownload};
 pub use organization_reward_dashboard::{
     OrganizationCourseRewardDashboardRowResponse, OrganizationRewardDashboardResponse,
     OrganizationWalletBalanceRowResponse, TeacherApplicationDashboardSummaryResponse,

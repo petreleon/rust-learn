@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{post, web};
 use serde::Deserialize;
 
-use crate::application::identity::email::{email_log_hash, normalize_email};
-use crate::application::identity::login::{LoginCommand, LoginError, LoginUseCase};
+use crate::application::identity::email::normalize_email;
+use crate::application::identity::login::{LoginCommand, LoginUseCase};
+use crate::http::identity::authentication::errors::login_error;
+use crate::http::identity::authentication::text_error::AuthTextError;
 
 #[derive(Deserialize)]
 pub(super) struct LoginRequest {
@@ -16,49 +18,15 @@ pub(super) struct LoginRequest {
 pub(super) async fn login(
     use_case: web::Data<Arc<dyn LoginUseCase>>,
     req: web::Json<LoginRequest>,
-) -> impl Responder {
+) -> Result<web::Json<String>, AuthTextError> {
     let email = normalize_email(&req.email);
 
-    match use_case
+    use_case
         .login(LoginCommand {
             email: email.clone(),
             password: req.password.clone(),
         })
         .await
-    {
-        Ok(output) => HttpResponse::Ok().json(output.jwt),
-        Err(LoginError::EmailUnverified { user_id }) => {
-            log::info!(
-                "event=auth_login_denied reason=email_unverified user_id={} email_hash={}",
-                user_id,
-                email_log_hash(&email)
-            );
-            HttpResponse::Forbidden().body("Email verification required")
-        }
-        Err(LoginError::InvalidCredentials) => {
-            log::info!(
-                "event=auth_login_failed reason=invalid_credentials email_hash={}",
-                email_log_hash(&email)
-            );
-            HttpResponse::Unauthorized().body("Invalid credentials")
-        }
-        Err(LoginError::MissingPasswordAuthentication) => {
-            log::warn!(
-                "event=auth_login_failed reason=missing_password_auth email_hash={}",
-                email_log_hash(&email)
-            );
-            HttpResponse::Unauthorized().body("Invalid credentials")
-        }
-        Err(LoginError::Connection(_)) => {
-            HttpResponse::InternalServerError().body("Failed to get DB connection")
-        }
-        Err(LoginError::Token { user_id, message }) => {
-            log::error!(
-                "event=auth_jwt_create_failed user_id={} error={}",
-                user_id,
-                message
-            );
-            HttpResponse::InternalServerError().body("Failed to create JWT")
-        }
-    }
+        .map(|output| web::Json(output.jwt))
+        .map_err(|error| login_error(error, &email))
 }

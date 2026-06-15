@@ -1,5 +1,8 @@
 use futures::future::{BoxFuture, FutureExt};
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessDecisionStore, AccessScope,
+};
 use crate::application::learning::update_course_lifecycle::{
     update_course_lifecycle, CourseLifecycleCommand, CourseLifecycleError, CourseLifecycleOutput,
     CourseLifecycleStore,
@@ -13,27 +16,28 @@ struct FakeCourseLifecycleStore {
     updated_status: Option<String>,
 }
 
+impl AccessDecisionStore for FakeCourseLifecycleStore {
+    type Error = CourseLifecycleError;
+
+    fn can(
+        &mut self,
+        _actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
+    ) -> BoxFuture<'_, Result<bool, CourseLifecycleError>> {
+        let allowed = match scope {
+            AccessScope::Course(_) => {
+                self.requested_course_permission = Some(action.permission_name().to_string());
+                self.course_permission
+            }
+            AccessScope::Platform(_) => self.platform_permission,
+            AccessScope::Organization(_) => false,
+        };
+        async move { Ok(allowed) }.boxed()
+    }
+}
+
 impl CourseLifecycleStore for FakeCourseLifecycleStore {
-    fn has_course_permission(
-        &mut self,
-        _actor_user_id: i32,
-        _course_id: i32,
-        permission: &str,
-    ) -> BoxFuture<'_, Result<bool, CourseLifecycleError>> {
-        self.requested_course_permission = Some(permission.to_string());
-        let allowed = self.course_permission;
-        async move { Ok(allowed) }.boxed()
-    }
-
-    fn has_platform_permission(
-        &mut self,
-        _actor_user_id: i32,
-        _permission: &str,
-    ) -> BoxFuture<'_, Result<bool, CourseLifecycleError>> {
-        let allowed = self.platform_permission;
-        async move { Ok(allowed) }.boxed()
-    }
-
     fn update_status(
         &mut self,
         course_id: i32,

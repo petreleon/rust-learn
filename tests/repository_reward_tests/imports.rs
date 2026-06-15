@@ -23,13 +23,23 @@ use rust_learn::models::reward_candidate::NewRewardCandidate;
 use rust_learn::models::reward_fraud_block::NewRewardFraudBlock;
 use rust_learn::models::reward_policy::NewRewardPolicy;
 use rust_learn::models::user::User;
-use rust_learn::repositories::reward_audit_event_repository;
-use rust_learn::repositories::reward_candidate_repository::{self, RewardCandidateFilter};
-use rust_learn::repositories::reward_execution_job_repository;
-use rust_learn::repositories::reward_fraud_block_repository::{self, RewardFraudBlockFilter};
-use rust_learn::repositories::reward_policy_repository;
-use rust_learn::repositories::user_repository::create_user;
+use rust_learn::infra::postgres::rewards::reward_audit_records as reward_audit_event_repository;
+use rust_learn::infra::postgres::rewards::reward_candidate_records::{
+    self as reward_candidate_repository, RewardCandidateFilter,
+};
+use rust_learn::infra::postgres::rewards::reward_execution_job_records as reward_execution_job_repository;
+use rust_learn::infra::postgres::rewards::reward_fraud_block_records::{
+    self as reward_fraud_block_repository, RewardFraudBlockFilter,
+};
+use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use serde_json::json;
+
+mod reward_policy_repository {
+    pub use rust_learn::infra::postgres::rewards::reward_policy_activation::deactivate_active_policies;
+    pub use rust_learn::infra::postgres::rewards::reward_policy_records::{
+        create_policy, list_policies, next_policy_version, RewardPolicyFilter,
+    };
+}
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);

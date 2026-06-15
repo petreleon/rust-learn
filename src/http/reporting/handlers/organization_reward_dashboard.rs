@@ -1,54 +1,54 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::web;
 use chrono::NaiveDate;
 
-use crate::application::reporting::organization_reward_dashboard::{
-    OrganizationRewardDashboardError, OrganizationRewardDashboardUseCase,
-};
+use crate::application::reporting::organization_reward_dashboard::OrganizationRewardDashboardUseCase;
+use crate::http::errors::ApiError;
 use crate::http::reporting::dto::{
-    organization_reward_dashboard_csv, OrganizationRewardDashboardResponse,
+    csv_download, organization_reward_dashboard_csv, CsvDownload,
+    OrganizationRewardDashboardResponse,
 };
+use crate::http::reporting::errors::{organization_reward_dashboard_error, ReportOperation};
 
 pub async fn get_organization_reward_dashboard(
     path: web::Path<i32>,
     dashboard: web::Data<Arc<dyn OrganizationRewardDashboardUseCase>>,
     query: web::Query<HashMap<String, String>>,
-) -> impl Responder {
+) -> Result<web::Json<OrganizationRewardDashboardResponse>, ApiError> {
     let organization_id = path.into_inner();
     let (from, to) = date_range(&query);
-    match dashboard
+    dashboard
         .load_organization_reward_dashboard(organization_id, from, to)
         .await
-    {
-        Ok(output) => HttpResponse::Ok().json(OrganizationRewardDashboardResponse::from(output)),
-        Err(error) => organization_reward_dashboard_error_response(error, "load", organization_id),
-    }
+        .map(OrganizationRewardDashboardResponse::from)
+        .map(web::Json)
+        .map_err(|error| {
+            organization_reward_dashboard_error(error, ReportOperation::Load, organization_id)
+        })
 }
 
 pub async fn export_organization_reward_dashboard(
     path: web::Path<i32>,
     dashboard: web::Data<Arc<dyn OrganizationRewardDashboardUseCase>>,
     query: web::Query<HashMap<String, String>>,
-) -> impl Responder {
+) -> Result<CsvDownload, ApiError> {
     let organization_id = path.into_inner();
     let (from, to) = date_range(&query);
-    match dashboard
+    dashboard
         .load_organization_reward_dashboard(organization_id, from, to)
         .await
-    {
-        Ok(output) => {
-            let response = OrganizationRewardDashboardResponse::from(output);
-            csv_response(
-                &format!("organization-{}-reward-dashboard.csv", organization_id),
+        .map(OrganizationRewardDashboardResponse::from)
+        .map(|response| {
+            csv_download(
+                format!("organization-{}-reward-dashboard.csv", organization_id),
                 organization_reward_dashboard_csv(&response),
             )
-        }
-        Err(error) => {
-            organization_reward_dashboard_error_response(error, "export", organization_id)
-        }
-    }
+        })
+        .map_err(|error| {
+            organization_reward_dashboard_error(error, ReportOperation::Export, organization_id)
+        })
 }
 
 fn date_range(query: &HashMap<String, String>) -> (Option<NaiveDate>, Option<NaiveDate>) {
@@ -62,43 +62,4 @@ fn parse_date_query(query: &HashMap<String, String>, key: &str) -> Option<NaiveD
     query
         .get(key)
         .and_then(|value| NaiveDate::parse_from_str(value, "%Y-%m-%d").ok())
-}
-
-fn organization_reward_dashboard_error_response(
-    error: OrganizationRewardDashboardError,
-    operation: &'static str,
-    organization_id: i32,
-) -> HttpResponse {
-    match error {
-        OrganizationRewardDashboardError::NotFound => {
-            HttpResponse::NotFound().body("Organization not found")
-        }
-        OrganizationRewardDashboardError::Connection(_) => {
-            HttpResponse::InternalServerError().body("Failed to get DB connection")
-        }
-        OrganizationRewardDashboardError::Database(message) => {
-            log::error!(
-                "event=report_{}_failed scope=organization report=reward_dashboard organization_id={} error={}",
-                operation,
-                organization_id,
-                message
-            );
-            let label = if operation == "export" {
-                "export organization reward dashboard"
-            } else {
-                "load organization reward dashboard"
-            };
-            HttpResponse::InternalServerError().body(format!("Failed to {}", label))
-        }
-    }
-}
-
-fn csv_response(filename: &str, body: String) -> HttpResponse {
-    HttpResponse::Ok()
-        .content_type("text/csv; charset=utf-8")
-        .insert_header((
-            "Content-Disposition",
-            format!("attachment; filename=\"{}\"", filename),
-        ))
-        .body(body)
 }

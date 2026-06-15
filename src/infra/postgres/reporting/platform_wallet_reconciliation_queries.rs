@@ -2,13 +2,14 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::reporting::platform_wallet_reconciliation::{
-    PlatformWalletReconciliationError, PlatformWalletReconciliationOutput,
-    PlatformWalletReconciliationRowOutput,
+    platform_wallet_reconciliation_output, PlatformWalletReconciliationError,
+    PlatformWalletReconciliationOutput, PlatformWalletReconciliationRowFact,
 };
 use crate::db::schema::wallets;
 use crate::infra::postgres::reporting::platform_wallet_reconciliation_counts::{
     wallet_reconciliation_counts, WalletReconciliationCounts,
 };
+use crate::infra::postgres::reporting::platform_wallet_reconciliation_mappers::map_diesel_error;
 use crate::models::wallet::Wallet;
 
 pub(super) async fn load_platform_wallet_reconciliation(
@@ -20,45 +21,25 @@ pub(super) async fn load_platform_wallet_reconciliation(
         .await
         .map_err(map_diesel_error)?;
 
-    let mut rows = Vec::new();
-    let mut total_internal_transactions = 0;
-    let mut total_external_transactions = 0;
-    let mut total_reward_records = 0;
-    let mut total_needs_reconciliation = 0;
+    let mut wallet_facts = Vec::new();
 
     for wallet in wallet_rows {
         let counts = wallet_reconciliation_counts(conn, &wallet).await?;
-        total_internal_transactions += counts.internal_transaction_count;
-        total_external_transactions += counts.external_transaction_count;
-        total_reward_records += counts.reward_record_count;
-        total_needs_reconciliation += counts.needs_reconciliation_count;
-        rows.push(wallet_reconciliation_row(wallet, counts));
+        wallet_facts.push(wallet_reconciliation_fact(wallet, counts));
     }
 
-    Ok(PlatformWalletReconciliationOutput {
-        total_wallets: rows.len() as i64,
-        total_internal_transactions,
-        total_external_transactions,
-        total_reward_records,
-        total_needs_reconciliation,
-        wallets: rows,
-    })
+    Ok(platform_wallet_reconciliation_output(wallet_facts))
 }
 
-fn wallet_reconciliation_row(
+fn wallet_reconciliation_fact(
     wallet: Wallet,
     counts: WalletReconciliationCounts,
-) -> PlatformWalletReconciliationRowOutput {
-    PlatformWalletReconciliationRowOutput {
+) -> PlatformWalletReconciliationRowFact {
+    PlatformWalletReconciliationRowFact {
         wallet_id: wallet.id,
-        owner_type: if wallet.user_id.is_some() {
-            "user".to_string()
-        } else {
-            "organization".to_string()
-        },
         user_id: wallet.user_id,
         organization_id: wallet.organization_id,
-        balance: wallet.value.to_string(),
+        balance: wallet.value,
         internal_transaction_count: counts.internal_transaction_count,
         external_transaction_count: counts.external_transaction_count,
         reward_record_count: counts.reward_record_count,
@@ -67,8 +48,4 @@ fn wallet_reconciliation_row(
         missing_notification_count: counts.missing_notification_count,
         missing_payout_count: counts.missing_payout_count,
     }
-}
-
-pub(super) fn map_diesel_error(error: diesel::result::Error) -> PlatformWalletReconciliationError {
-    PlatformWalletReconciliationError::Database(error.to_string())
 }
