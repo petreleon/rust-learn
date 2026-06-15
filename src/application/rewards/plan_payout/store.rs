@@ -2,13 +2,15 @@ use bigdecimal::BigDecimal;
 use futures::future::BoxFuture;
 
 use crate::application::rewards::plan_payout::RewardPayoutPlanError;
+use crate::domain::rewards::candidate::event_type::RewardEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::domain::rewards::policy::RewardPaymentStrategy;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RewardPayoutCandidate {
     pub id: i64,
     pub course_id: i32,
-    pub event_type: String,
+    pub event_type: RewardEventType,
     pub status: RewardCandidateStatus,
     pub approved_amount: Option<BigDecimal>,
 }
@@ -16,7 +18,7 @@ pub struct RewardPayoutCandidate {
 #[derive(Debug, Clone, PartialEq)]
 pub struct RewardPayoutPolicy {
     pub id: i64,
-    pub payment_strategy: String,
+    pub payment_strategy: RewardPaymentStrategy,
 }
 
 pub trait RewardPayoutPlanStore {
@@ -33,7 +35,7 @@ pub trait RewardPayoutPlanStore {
     fn active_policy_for_candidate(
         &mut self,
         course_id: i32,
-        event_type: String,
+        event_type: RewardEventType,
     ) -> BoxFuture<'_, Result<Option<RewardPayoutPolicy>, RewardPayoutPlanError>>;
 
     fn has_presigner_contract(&mut self) -> BoxFuture<'_, Result<bool, RewardPayoutPlanError>>;

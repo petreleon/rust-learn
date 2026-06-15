@@ -26,7 +26,7 @@ pub async fn plan_reward_payout(
         policy_id: policy.id,
         amount,
         payment_strategy: policy.payment_strategy,
-        payout_method: payout_method.as_str().to_string(),
+        payout_method,
         requires_token_confirmation,
     };
 
@@ -69,17 +69,13 @@ async fn select_payout_method(
     store: &mut impl RewardPayoutPlanStore,
     policy: &RewardPayoutPolicy,
 ) -> Result<RewardPayoutMethod, RewardPayoutPlanError> {
-    let strategy =
-        RewardPaymentStrategy::parse(policy.payment_strategy.as_str()).map_err(|_| {
-            RewardPayoutPlanError::InvalidInput("unsupported reward payment strategy".to_string())
-        })?;
-    let has_presigner_contract = match strategy {
+    let has_presigner_contract = match policy.payment_strategy {
         RewardPaymentStrategy::TreasuryTransfer => store.has_presigner_contract().await?,
         RewardPaymentStrategy::Mint | RewardPaymentStrategy::OffChain => false,
     };
 
     Ok(RewardPayoutMethod::for_payment_strategy(
-        strategy,
+        policy.payment_strategy,
         has_presigner_contract,
     ))
 }

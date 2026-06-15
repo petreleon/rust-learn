@@ -78,7 +78,7 @@ pub(super) async fn submit_reward_candidate(
             course_id: submission.course_id,
             student_user_id: submission.command.student_user_id,
             submitter_user_id: actor_user_id,
-            source_scope: submission.source_scope,
+            source_scope: submission.source_scope.as_str().to_string(),
             source_organization_id: submission.source_organization_id,
             event_type: event_type_string,
             idempotency_key,

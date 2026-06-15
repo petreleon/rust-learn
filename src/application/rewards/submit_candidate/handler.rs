@@ -16,7 +16,7 @@ pub async fn submit_course_reward_candidate(
         .submit_reward_candidate(RewardCandidateSubmission {
             actor_user_id,
             course_id,
-            source_scope: RewardCandidateSourceScope::Course.as_str().to_string(),
+            source_scope: RewardCandidateSourceScope::Course,
             source_organization_id: None,
             command,
         })
@@ -37,9 +37,7 @@ pub async fn submit_organization_reward_candidate(
         .submit_reward_candidate(RewardCandidateSubmission {
             actor_user_id,
             course_id,
-            source_scope: RewardCandidateSourceScope::Organization
-                .as_str()
-                .to_string(),
+            source_scope: RewardCandidateSourceScope::Organization,
             source_organization_id: Some(organization_id),
             command,
         })

@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
 
+use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,9 +23,9 @@ pub struct PlatformRewardCandidateRecord {
     pub course_id: i32,
     pub student_user_id: i32,
     pub submitter_user_id: i32,
-    pub source_scope: String,
+    pub source_scope: RewardCandidateSourceScope,
     pub source_organization_id: Option<i32>,
-    pub event_type: String,
+    pub event_type: RewardEventType,
     pub status: RewardCandidateStatus,
     pub teacher_approver_user_id: Option<i32>,
     pub teacher_decision_reason: Option<String>,
@@ -37,14 +39,14 @@ pub struct PlatformRewardCandidateItem {
     pub id: i64,
     pub student: PlatformRewardCandidateUserSummary,
     pub course: PlatformRewardCandidateCourseSummary,
-    pub event_type: String,
+    pub event_type: RewardEventType,
     pub status: RewardCandidateStatus,
     pub teacher_approver: Option<PlatformRewardCandidateUserSummary>,
     pub teacher_decision_reason: Option<String>,
     pub approved_amount: Option<String>,
     pub submitter: PlatformRewardCandidateUserSummary,
     pub source_organization_id: Option<i32>,
-    pub source_scope: String,
+    pub source_scope: RewardCandidateSourceScope,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

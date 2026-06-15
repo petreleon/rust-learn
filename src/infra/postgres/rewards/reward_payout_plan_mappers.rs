@@ -1,7 +1,9 @@
 use crate::application::rewards::plan_payout::{
     RewardPayoutCandidate, RewardPayoutPlanError, RewardPayoutPolicy,
 };
-use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::infra::postgres::rewards::reward_vocabulary::{
+    parse_candidate_status, parse_payment_strategy, parse_reward_event_type,
+};
 use crate::models::reward_candidate::RewardCandidate;
 use crate::models::reward_policy::RewardPolicy;
 
@@ -15,13 +17,17 @@ pub(super) fn map_reward_payout_plan_error(error: diesel::result::Error) -> Rewa
 pub(super) fn map_reward_payout_candidate(
     candidate: RewardCandidate,
 ) -> Result<RewardPayoutCandidate, RewardPayoutPlanError> {
-    let status = RewardCandidateStatus::parse(&candidate.status)
-        .map_err(|error| RewardPayoutPlanError::InvalidStatus(error.to_string()))?;
+    let status = parse_candidate_status(&candidate.status, |message| {
+        RewardPayoutPlanError::InvalidStatus(message)
+    })?;
+    let event_type = parse_reward_event_type(&candidate.event_type, |message| {
+        RewardPayoutPlanError::Database(message)
+    })?;
 
     Ok(RewardPayoutCandidate {
         id: candidate.id,
         course_id: candidate.course_id,
-        event_type: candidate.event_type,
+        event_type,
         status,
         approved_amount: candidate.approved_amount,
     })
@@ -35,6 +41,7 @@ mod tests {
 
     use super::map_reward_payout_candidate;
     use crate::application::rewards::plan_payout::RewardPayoutPlanError;
+    use crate::domain::rewards::candidate::event_type::RewardEventType;
     use crate::domain::rewards::candidate::status::RewardCandidateStatus;
     use crate::models::reward_candidate::RewardCandidate;
 
@@ -44,6 +51,7 @@ mod tests {
             .expect("known status should map");
 
         assert_eq!(mapped.status, RewardCandidateStatus::AmountApproved);
+        assert_eq!(mapped.event_type, RewardEventType::CourseCompletion);
         assert_eq!(mapped.approved_amount, Some(BigDecimal::from(10)));
     }
 
@@ -82,11 +90,17 @@ mod tests {
     }
 }
 
-impl From<RewardPolicy> for RewardPayoutPolicy {
-    fn from(policy: RewardPolicy) -> Self {
-        Self {
+impl TryFrom<RewardPolicy> for RewardPayoutPolicy {
+    type Error = RewardPayoutPlanError;
+
+    fn try_from(policy: RewardPolicy) -> Result<Self, Self::Error> {
+        let payment_strategy = parse_payment_strategy(&policy.payment_strategy, |message| {
+            RewardPayoutPlanError::Database(message)
+        })?;
+
+        Ok(Self {
             id: policy.id,
-            payment_strategy: policy.payment_strategy,
-        }
+            payment_strategy,
+        })
     }
 }

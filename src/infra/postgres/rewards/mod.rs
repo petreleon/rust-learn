@@ -64,6 +64,7 @@ pub mod reward_token_confirmation_mappers;
 pub mod reward_token_confirmation_store;
 pub mod reward_token_confirmation_transaction;
 pub mod reward_token_confirmation_use_case;
+pub(super) mod reward_vocabulary;
 pub mod reward_wallet_credit_mappers;
 pub mod reward_wallet_credit_notification_mappers;
 pub mod reward_wallet_credit_notification_notifications;

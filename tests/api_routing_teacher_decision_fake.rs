@@ -7,6 +7,8 @@ use rust_learn::application::rewards::decide_teacher_candidate::{
     TeacherRewardCandidateDecisionCommand, TeacherRewardCandidateDecisionError,
     TeacherRewardCandidateDecisionOutput, TeacherRewardCandidateDecisionUseCase,
 };
+use rust_learn::domain::rewards::candidate::event_type::RewardEventType;
+use rust_learn::domain::rewards::candidate::source::RewardCandidateSourceScope;
 use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
 use serde_json::json;
 
@@ -40,9 +42,9 @@ fn teacher_decision_output(candidate_id: i64) -> TeacherRewardCandidateDecisionO
         course_id: 12,
         student_user_id: 23,
         submitter_user_id: 7,
-        source_scope: "course".to_string(),
+        source_scope: RewardCandidateSourceScope::Course,
         source_organization_id: None,
-        event_type: "manual_completion".to_string(),
+        event_type: RewardEventType::ManualCompletion,
         idempotency_key: "manual:12:23".to_string(),
         evidence: json!({}),
         status: RewardCandidateStatus::TeacherApproved,

@@ -9,6 +9,8 @@ use crate::application::rewards::list_platform_candidates::{
     PlatformRewardCandidateUserSummary, PlatformRewardCandidatesError,
     PlatformRewardCandidatesQuery,
 };
+use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[test]
@@ -147,9 +149,9 @@ fn candidate_record(id: i64, student_user_id: i32) -> PlatformRewardCandidateRec
         course_id: 7,
         student_user_id,
         submitter_user_id: 9,
-        source_scope: "course".to_string(),
+        source_scope: RewardCandidateSourceScope::Course,
         source_organization_id: None,
-        event_type: "course_completion".to_string(),
+        event_type: RewardEventType::CourseCompletion,
         status: RewardCandidateStatus::TeacherApproved,
         teacher_approver_user_id: Some(9),
         teacher_decision_reason: Some("well done".to_string()),

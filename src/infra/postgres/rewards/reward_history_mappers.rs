@@ -5,7 +5,9 @@ use crate::application::rewards::list_reward_history::{
     StudentRewardCandidateRecord, StudentRewardHistoryError, StudentRewardTokenTransaction,
     StudentRewardWalletCredit,
 };
-use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::infra::postgres::rewards::reward_vocabulary::{
+    parse_candidate_status, parse_reward_event_type,
+};
 use crate::models::reward_candidate::RewardCandidate;
 
 pub(super) type WalletCreditRow = (
@@ -39,14 +41,18 @@ pub(super) fn candidate_record(
     candidate: RewardCandidate,
     course_title: String,
 ) -> Result<StudentRewardCandidateRecord, StudentRewardHistoryError> {
-    let status = RewardCandidateStatus::parse(&candidate.status)
-        .map_err(|error| StudentRewardHistoryError::InvalidStatus(error.to_string()))?;
+    let status = parse_candidate_status(&candidate.status, |message| {
+        StudentRewardHistoryError::InvalidStatus(message)
+    })?;
+    let event_type = parse_reward_event_type(&candidate.event_type, |message| {
+        StudentRewardHistoryError::Database(message)
+    })?;
 
     Ok(StudentRewardCandidateRecord {
         reward_candidate_id: candidate.id,
         course_id: candidate.course_id,
         course_title,
-        event_type: candidate.event_type,
+        event_type,
         status,
         approved_amount: candidate.approved_amount.map(|amount| amount.to_string()),
         created_at: candidate.created_at,
@@ -85,6 +91,7 @@ mod tests {
 
     use super::candidate_record;
     use crate::application::rewards::list_reward_history::StudentRewardHistoryError;
+    use crate::domain::rewards::candidate::event_type::RewardEventType;
     use crate::domain::rewards::candidate::status::RewardCandidateStatus;
     use crate::models::reward_candidate::RewardCandidate;
 
@@ -94,6 +101,7 @@ mod tests {
             .expect("known status should map");
 
         assert_eq!(mapped.status, RewardCandidateStatus::WalletCredited);
+        assert_eq!(mapped.event_type, RewardEventType::CourseCompletion);
         assert_eq!(mapped.approved_amount, Some("10".to_string()));
     }
 

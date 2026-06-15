@@ -29,8 +29,11 @@ async fn treasury_policy_uses_presigner_when_contract_is_available() {
         .await
         .expect("amount-approved candidate should produce a payout plan");
 
-    assert_eq!(plan.payment_strategy, REWARD_PAYMENT_TREASURY_TRANSFER);
-    assert_eq!(plan.payout_method, REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER);
+    assert_eq!(
+        plan.payment_strategy,
+        RewardPaymentStrategy::TreasuryTransfer
+    );
+    assert_eq!(plan.payout_method, RewardPayoutMethod::PresignerTransfer);
     assert!(plan.requires_token_confirmation);
     assert_eq!(plan.amount, BigDecimal::from(10));
 }
@@ -64,8 +67,8 @@ async fn mint_method_requires_explicit_mint_policy() {
         .await
         .expect("mint policy should produce a mint payout plan");
 
-    assert_eq!(plan.payment_strategy, REWARD_PAYMENT_MINT);
-    assert_eq!(plan.payout_method, REWARD_PAYOUT_METHOD_MINT);
+    assert_eq!(plan.payment_strategy, RewardPaymentStrategy::Mint);
+    assert_eq!(plan.payout_method, RewardPayoutMethod::Mint);
     assert!(plan.requires_token_confirmation);
 }
 

@@ -99,7 +99,7 @@ impl From<PlatformRewardCandidateItem> for PlatformRewardCandidateItemResponse {
             id: candidate.id,
             student: PlatformRewardCandidateUserSummaryResponse::from(candidate.student),
             course: PlatformRewardCandidateCourseSummaryResponse::from(candidate.course),
-            event_type: candidate.event_type,
+            event_type: candidate.event_type.as_str().to_string(),
             status: candidate.status.as_str().to_string(),
             teacher_approver: candidate
                 .teacher_approver
@@ -108,7 +108,7 @@ impl From<PlatformRewardCandidateItem> for PlatformRewardCandidateItemResponse {
             approved_amount: candidate.approved_amount,
             submitter: PlatformRewardCandidateUserSummaryResponse::from(candidate.submitter),
             source_organization_id: candidate.source_organization_id,
-            source_scope: candidate.source_scope,
+            source_scope: candidate.source_scope.as_str().to_string(),
             created_at: candidate.created_at,
             updated_at: candidate.updated_at,
         }

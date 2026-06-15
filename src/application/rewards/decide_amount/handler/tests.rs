@@ -8,6 +8,8 @@ use crate::application::rewards::decide_amount::{
     decide_reward_amount, RewardAmountDecision, RewardAmountDecisionCommand,
     RewardAmountDecisionError, RewardAmountDecisionOutput, RewardAmountDecisionStore,
 };
+use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 struct FakeStore {
@@ -129,9 +131,9 @@ fn output(
         course_id: 11,
         student_user_id: 23,
         submitter_user_id: 7,
-        source_scope: "course".to_string(),
+        source_scope: RewardCandidateSourceScope::Course,
         source_organization_id: None,
-        event_type: "manual_completion".to_string(),
+        event_type: RewardEventType::ManualCompletion,
         idempotency_key: "manual:11:23".to_string(),
         evidence: json!({}),
         status,

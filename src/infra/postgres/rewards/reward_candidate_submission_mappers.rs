@@ -2,24 +2,33 @@ use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
 };
 use crate::domain::rewards::candidate::evidence::RewardEvidenceError;
-use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::RewardCandidateFraudBlockError;
+use crate::infra::postgres::rewards::reward_vocabulary::{
+    parse_candidate_source_scope, parse_candidate_status, parse_reward_event_type,
+};
 use crate::models::reward_candidate::RewardCandidate;
 
 pub(super) fn map_reward_candidate_submission(
     candidate: RewardCandidate,
 ) -> Result<RewardCandidateSubmissionOutput, RewardCandidateSubmissionError> {
-    let status = RewardCandidateStatus::parse(&candidate.status)
-        .map_err(|error| RewardCandidateSubmissionError::InvalidStatus(error.to_string()))?;
+    let status = parse_candidate_status(&candidate.status, |message| {
+        RewardCandidateSubmissionError::InvalidStatus(message)
+    })?;
+    let source_scope = parse_candidate_source_scope(&candidate.source_scope, |message| {
+        RewardCandidateSubmissionError::Database(message)
+    })?;
+    let event_type = parse_reward_event_type(&candidate.event_type, |message| {
+        RewardCandidateSubmissionError::Database(message)
+    })?;
 
     Ok(RewardCandidateSubmissionOutput {
         id: candidate.id,
         course_id: candidate.course_id,
         student_user_id: candidate.student_user_id,
         submitter_user_id: candidate.submitter_user_id,
-        source_scope: candidate.source_scope,
+        source_scope,
         source_organization_id: candidate.source_organization_id,
-        event_type: candidate.event_type,
+        event_type,
         idempotency_key: candidate.idempotency_key,
         evidence: candidate.evidence,
         status,
@@ -75,6 +84,8 @@ mod tests {
 
     use super::map_reward_candidate_submission;
     use crate::application::rewards::submit_candidate::RewardCandidateSubmissionError;
+    use crate::domain::rewards::candidate::event_type::RewardEventType;
+    use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
     use crate::domain::rewards::candidate::status::RewardCandidateStatus;
     use crate::models::reward_candidate::RewardCandidate;
 
@@ -84,6 +95,8 @@ mod tests {
             .expect("known status should map");
 
         assert_eq!(mapped.status, RewardCandidateStatus::PendingTeacherApproval);
+        assert_eq!(mapped.source_scope, RewardCandidateSourceScope::Course);
+        assert_eq!(mapped.event_type, RewardEventType::CourseCompletion);
         assert_eq!(mapped.approved_amount, Some(BigDecimal::from(10)));
     }
 

@@ -21,12 +21,10 @@ pub(crate) use rust_learn::domain::rewards::candidate::status::{
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_NOTIFIED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,
     REWARD_STATUS_TOKEN_CONFIRMED, REWARD_STATUS_TOKEN_PENDING, REWARD_STATUS_WALLET_CREDITED,
 };
-pub(crate) use rust_learn::domain::rewards::payout::{
-    REWARD_PAYOUT_METHOD_MINT, REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER,
-};
+pub(crate) use rust_learn::domain::rewards::payout::RewardPayoutMethod;
 pub(crate) use rust_learn::domain::rewards::policy::{
-    REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN, REWARD_PAYMENT_TREASURY_TRANSFER,
-    REWARD_POLICY_SCOPE_COURSE,
+    RewardPaymentStrategy, REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN,
+    REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
 };
 pub(crate) use rust_learn::domain::rewards::wallet_credit::REWARD_TRANSACTION_TYPE_WALLET_CREDIT;
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;

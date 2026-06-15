@@ -5,13 +5,12 @@ use crate::application::rewards::plan_payout::{
     plan_reward_payout, plan_reward_payout_for_actor, RewardPayoutCandidate, RewardPayoutPlanError,
     RewardPayoutPlanStore, RewardPayoutPolicy,
 };
+use crate::domain::rewards::candidate::event_type::RewardEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-use crate::domain::rewards::payout::{
-    REWARD_PAYOUT_METHOD_MINT, REWARD_PAYOUT_METHOD_OFF_CHAIN,
-    REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER,
-};
+use crate::domain::rewards::payout::RewardPayoutMethod;
 use crate::domain::rewards::policy::{
-    REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN, REWARD_PAYMENT_TREASURY_TRANSFER,
+    RewardPaymentStrategy, REWARD_PAYMENT_MINT, REWARD_PAYMENT_OFF_CHAIN,
+    REWARD_PAYMENT_TREASURY_TRANSFER,
 };
 
 struct FakeStore {
@@ -41,7 +40,7 @@ impl RewardPayoutPlanStore for FakeStore {
     fn active_policy_for_candidate(
         &mut self,
         _course_id: i32,
-        _event_type: String,
+        _event_type: RewardEventType,
     ) -> BoxFuture<'_, Result<Option<RewardPayoutPolicy>, RewardPayoutPlanError>> {
         ready(Ok(self.policy.clone())).boxed()
     }
@@ -58,7 +57,7 @@ async fn plans_treasury_payout_with_presigner() {
 
     let plan = plan_reward_payout(&mut store, 1).await.unwrap();
 
-    assert_eq!(plan.payout_method, REWARD_PAYOUT_METHOD_PRESIGNER_TRANSFER);
+    assert_eq!(plan.payout_method, RewardPayoutMethod::PresignerTransfer);
     assert!(plan.requires_token_confirmation);
     assert_eq!(plan.amount, BigDecimal::from(10));
 }
@@ -69,7 +68,7 @@ async fn off_chain_payout_does_not_require_token_confirmation() {
 
     let plan = plan_reward_payout(&mut store, 1).await.unwrap();
 
-    assert_eq!(plan.payout_method, REWARD_PAYOUT_METHOD_OFF_CHAIN);
+    assert_eq!(plan.payout_method, RewardPayoutMethod::OffChain);
     assert!(!plan.requires_token_confirmation);
 }
 
@@ -79,7 +78,7 @@ async fn mint_payout_requires_token_confirmation() {
 
     let plan = plan_reward_payout(&mut store, 1).await.unwrap();
 
-    assert_eq!(plan.payout_method, REWARD_PAYOUT_METHOD_MINT);
+    assert_eq!(plan.payout_method, RewardPayoutMethod::Mint);
     assert!(plan.requires_token_confirmation);
 }
 
@@ -111,18 +110,19 @@ async fn missing_policy_is_no_active_policy() {
 }
 
 fn fake(payment_strategy: &str) -> FakeStore {
+    let payment_strategy = RewardPaymentStrategy::parse(payment_strategy).unwrap();
     FakeStore {
         can_execute: true,
         candidate: RewardPayoutCandidate {
             id: 1,
             course_id: 2,
-            event_type: "course_completion".to_string(),
+            event_type: RewardEventType::CourseCompletion,
             status: RewardCandidateStatus::AmountApproved,
             approved_amount: Some(BigDecimal::from(10)),
         },
         policy: Some(RewardPayoutPolicy {
             id: 3,
-            payment_strategy: payment_strategy.to_string(),
+            payment_strategy,
         }),
         has_presigner: false,
         loaded_candidate: false,

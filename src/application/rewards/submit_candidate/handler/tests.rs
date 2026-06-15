@@ -8,7 +8,8 @@ use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmission, RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
     RewardCandidateSubmissionStore, SubmitRewardCandidateCommand,
 };
-use crate::domain::rewards::candidate::source::{REWARD_SOURCE_COURSE, REWARD_SOURCE_ORGANIZATION};
+use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 struct FakeStore {
@@ -85,7 +86,7 @@ fn course_submission_uses_course_source_after_permission() {
     let submission = store.submission.unwrap();
     assert_eq!(submission.actor_user_id, 7);
     assert_eq!(submission.course_id, 11);
-    assert_eq!(submission.source_scope, REWARD_SOURCE_COURSE);
+    assert_eq!(submission.source_scope, RewardCandidateSourceScope::Course);
     assert_eq!(submission.source_organization_id, None);
 }
 
@@ -103,7 +104,10 @@ fn organization_submission_uses_organization_source_after_attachment_and_permiss
 
     let submission = store.submission.unwrap();
     assert_eq!(submission.course_id, 11);
-    assert_eq!(submission.source_scope, REWARD_SOURCE_ORGANIZATION);
+    assert_eq!(
+        submission.source_scope,
+        RewardCandidateSourceScope::Organization
+    );
     assert_eq!(submission.source_organization_id, Some(13));
 }
 
@@ -162,9 +166,9 @@ fn output() -> RewardCandidateSubmissionOutput {
         course_id: 11,
         student_user_id: 23,
         submitter_user_id: 7,
-        source_scope: REWARD_SOURCE_COURSE.to_string(),
+        source_scope: RewardCandidateSourceScope::Course,
         source_organization_id: None,
-        event_type: "manual_completion".to_string(),
+        event_type: RewardEventType::ManualCompletion,
         idempotency_key: "manual:11:23".to_string(),
         evidence: json!({}),
         status: RewardCandidateStatus::PendingTeacherApproval,

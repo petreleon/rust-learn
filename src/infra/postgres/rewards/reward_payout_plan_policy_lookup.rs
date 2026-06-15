@@ -42,8 +42,9 @@ async fn course_policy(
         .first::<RewardPolicy>(conn)
         .await
         .optional()
-        .map(|policy| policy.map(RewardPayoutPolicy::from))
-        .map_err(map_reward_payout_plan_error)
+        .map_err(map_reward_payout_plan_error)?
+        .map(RewardPayoutPolicy::try_from)
+        .transpose()
 }
 
 async fn organization_policy(
@@ -74,8 +75,9 @@ async fn organization_policy(
         .first::<RewardPolicy>(conn)
         .await
         .optional()
-        .map(|policy| policy.map(RewardPayoutPolicy::from))
-        .map_err(map_reward_payout_plan_error)
+        .map_err(map_reward_payout_plan_error)?
+        .map(RewardPayoutPolicy::try_from)
+        .transpose()
 }
 
 async fn platform_policy(
@@ -95,6 +97,7 @@ async fn platform_policy(
         .first::<RewardPolicy>(conn)
         .await
         .optional()
-        .map(|policy| policy.map(RewardPayoutPolicy::from))
-        .map_err(map_reward_payout_plan_error)
+        .map_err(map_reward_payout_plan_error)?
+        .map(RewardPayoutPolicy::try_from)
+        .transpose()
 }

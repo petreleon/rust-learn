@@ -3,6 +3,7 @@ use crate::{
     reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
     teacher_decision_helper::*,
 };
+use rust_learn::domain::rewards::candidate::source::RewardCandidateSourceScope;
 use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[actix_web::test]
@@ -49,7 +50,10 @@ async fn organization_submission_requires_linked_course_and_still_waits_for_teac
     )
     .await
     .expect("organization admin should submit linked course reward candidate");
-    assert_eq!(candidate.source_scope, REWARD_SOURCE_ORGANIZATION);
+    assert_eq!(
+        candidate.source_scope,
+        RewardCandidateSourceScope::Organization
+    );
     assert_eq!(candidate.source_organization_id, Some(organization.id));
     assert_eq!(
         candidate.status,

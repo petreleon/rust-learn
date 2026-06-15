@@ -1,13 +1,13 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Last named verified base: `2287a1f9`.
+Last named verified base: `02388e62`.
 
 Objective: move RustLearn to a Level 2 modular monolith with firm business
 boundaries. The target is ownership, not folder volume: HTTP, use cases, domain
 rules, adapters, permissions, DTOs, and tests should have clear owners.
 
-## Current Rules
+## Target Shape
 
 Top-level rings stay stable; bounded contexts live inside those rings as
 granular modules where needed.
@@ -31,23 +31,20 @@ bootstrap -> concrete wiring
 domain -> no Actix, Diesel, S3, Ethereum, env vars, or HTTP responses
 ```
 
-Canonical contexts checked so far:
-
-```text
-access_control, content, identity, kyc, learning, notifications,
-operations, organizations, reporting, rewards, teacher_applications, wallet
-```
+Canonical contexts checked so far: `access_control`, `content`, `identity`,
+`kyc`, `learning`, `notifications`, `operations`, `organizations`, `reporting`,
+`rewards`, `teacher_applications`, `wallet`.
 
 `infra/postgres/<context>` should exist for every DB-owning context. `rewards`
 is only the deepest current extraction, not the only Postgres owner.
 
-## Already Done
+## Completed / Verified
 
-| Area | Status |
+| Area | Done / checked |
 | --- | --- |
 | Bootstrap | `main.rs` is thin; startup, state, DB/S3 setup, route composition, and app data registration live under `bootstrap`. |
 | Routing | Legacy `src/api` wrappers are gone; `/api` is composed from context route configurators under `http`. |
-| HTTP | Migrated handlers use typed extractors, DTOs, typed errors, centralized JSON errors, and use-case calls. |
+| HTTP | Migrated handlers use typed extractors, DTOs, typed errors, centralized JSON errors, and use-case calls. Public DTO strings stay HTTP-owned. |
 | Application | Migrated workflows use commands, outputs, errors, ports, fake-port tests, and explicit access decisions. |
 | Domain | Migrated modules own vocabulary, invariants, status transitions, and validation without framework/provider coupling. |
 | Infra | PostgreSQL, object storage, Ethereum, email, worker, and dispatcher code are concrete adapters instead of route owners. |
@@ -56,8 +53,6 @@ is only the deepest current extraction, not the only Postgres owner.
 | Auth | Route handlers use typed auth extractors; `/api/me` keeps its JSON unauthorized response contract. |
 | Frontend gates | Platform, organization, learner, teacher-application, and ops gates consume backend-derived current-session capabilities. |
 | Tests | Integration harnesses use explicit modules/support helpers instead of `include!` and `imports.rs`. |
-
-## Already Checked
 
 Live guardrails checked on 2026-06-15:
 
@@ -68,7 +63,18 @@ Live guardrails checked on 2026-06-15:
 - No direct `pool.get().await` remains in `src/http`.
 - Boundary scans check ring import leaks from `domain` and `application`.
 
-Standard proof set used for verified batches:
+## Verified Ledger
+
+Detailed history belongs in git; this ledger keeps the architectural proof.
+
+| Batches | Commits | Proof |
+| --- | --- | --- |
+| 287-331 | `581f1be3`..`57215a3c` | Removed final request-auth helper; centralized JSON extractor errors; moved major context handlers to typed HTTP results/errors; introduced typed access decisions; repointed frontend gates to backend current-session capabilities; normalized integration harnesses away from `include!` and `imports.rs`. Proof included focused frontend/backend tests, Cargo gates, line checks, and boundary scans. |
+| 332-336 | `5a1643fa`..`2287a1f9` | Typed reward payout candidate, teacher decision, amount decision, submission, course/platform candidate, and student reward-history statuses at the infra/application boundary. HTTP kept public string DTO contracts. Proof included focused use-case/mapper/integration tests, Cargo gates, no-run integration compile, line checks, and boundary scans. |
+| 337 | `02388e62` | Typed reward candidate audit `from_status`/`to_status` and reconciliation `final_status` at the infra/application boundary. HTTP kept public audit-status strings and DB audit inserts stayed infra-owned. Proof: audit mapper known/unknown-status tests, candidate-audit and reconciliation use-case tests, `reward_candidate_audit`, `reward_candidates`, `reward_execution` reconciliation integration, `api_routing`, Cargo format/check gates, no-run integration compile, line checks, and boundary scans. |
+| 338 | same commit as this TODO update | Typed reward candidate source/event, audit event, reward-history event, payout event, payment strategy, and payout method across application outputs/ports. Infra parses persisted vocabulary before crossing into application; HTTP keeps public string DTOs. Proof: reward vocabulary helper tests, candidate/history/audit/payout mapper tests, source-scope use-case tests, `reward_candidates`, `reward_candidate_audit`, `reward_course_candidates`, `student_reward_history`, `reward_execution`, `api_routing`, Cargo format/check gates, no-run integration compile, line checks, and boundary scans. |
+
+Standard proof set for each verified batch:
 
 - `cargo fmt --all --check`
 - focused host tests for touched contexts
@@ -80,31 +86,13 @@ Standard proof set used for verified batches:
 - boundary scans for legacy folders, `include!`, HTTP DB-pool access,
   request-auth helper usage, and ring import leaks
 
-## Verified Ledger
-
-Detailed history belongs in git; this table keeps the architectural proof.
-
-| Batch | Commit | Proof |
-| --- | --- | --- |
-| 287 | `581f1be3` | Removed final request-auth helper and scanned away `authenticated_user*`, stray handler `HttpRequest` parsing, and direct `pool.get().await` in `src/http`. |
-| 288-302 | `7cdddb44`..`8b3717e5` | Centralized JSON extractor errors and moved major context handlers to typed HTTP results/errors. |
-| 303-312 | `19f31541`..`d0d0f32f` | Introduced typed access decisions and removed scope-specific permission wrappers from migrated use cases. |
-| 313-315 | `8ac98ee2`..`4f8eb696` | Repointed frontend action gates to backend current-session capabilities and proved with frontend/backend checks. |
-| 316-331 | `88308a68`..`57215a3c` | Normalized integration harnesses away from `include!`/`imports.rs` across delegated permissions, reporting, rewards, wallet linking, video upload, and related flows. |
-| 332 | `5a1643fa` | Typed reward payout candidate status at the infra/application boundary. |
-| 333 | `247a5096` | Typed teacher reward decision output status; infra parses persisted status and HTTP maps it back to the public string. |
-| 334 | `a3a7bbbf` | Typed reward amount decision output status; infra parses persisted status and HTTP preserves the public string contract. |
-| 335 | `dbc5259f` | Typed reward candidate submission output status; creation and idempotent replay parse persisted status before use-case output. |
-| 336 | `2287a1f9` | Typed course candidate, platform candidate, and student reward-history read-model status at the infra/application boundary; HTTP keeps public string DTOs. |
-| 337 | same commit as this TODO update | Typed reward candidate audit `from_status`/`to_status` and reconciliation `final_status` at the infra/application boundary; HTTP keeps public audit-status strings and DB audit inserts stay infra-owned. Proof: audit mapper known/unknown-status tests, candidate-audit and reconciliation use-case tests, `reward_candidate_audit`, `reward_candidates`, `reward_execution` reconciliation integration, `api_routing`, Cargo format/check gates, no-run integration compile, line checks, and boundary scans. |
-
 ## Active Remaining Work
 
-- Rewards: keep converting event/source/method strings into domain vocabulary
-  where they represent business state rather than public query strings.
-- Rewards: inspect remaining audit/event outputs, payout/credit method outputs,
-  and transition records for business-state strings that should become domain
-  vocabulary before crossing into application.
+- Rewards: convert remaining policy, fraud-block, token-confirmation, credit,
+  and notification event/payment strings into domain vocabulary where they
+  represent business state rather than public query strings.
+- Rewards: inspect transition records and reporting-facing reward rows for
+  business-state strings crossing into application.
 - Persistence: keep Diesel schema/model leakage inside infra or persistence
   records.
 - HTTP: keep public API DTOs HTTP-owned and separate from Diesel records.

@@ -1,23 +1,32 @@
 use crate::application::rewards::list_course_candidates::{
     CourseRewardCandidate, CourseRewardCandidatesError,
 };
-use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::infra::postgres::rewards::reward_vocabulary::{
+    parse_candidate_source_scope, parse_candidate_status, parse_reward_event_type,
+};
 use crate::models::reward_candidate::RewardCandidate;
 
 pub(super) fn map_course_reward_candidate(
     candidate: RewardCandidate,
 ) -> Result<CourseRewardCandidate, CourseRewardCandidatesError> {
-    let status = RewardCandidateStatus::parse(&candidate.status)
-        .map_err(|error| CourseRewardCandidatesError::InvalidStatus(error.to_string()))?;
+    let status = parse_candidate_status(&candidate.status, |message| {
+        CourseRewardCandidatesError::InvalidStatus(message)
+    })?;
+    let source_scope = parse_candidate_source_scope(&candidate.source_scope, |message| {
+        CourseRewardCandidatesError::Database(message)
+    })?;
+    let event_type = parse_reward_event_type(&candidate.event_type, |message| {
+        CourseRewardCandidatesError::Database(message)
+    })?;
 
     Ok(CourseRewardCandidate {
         id: candidate.id,
         course_id: candidate.course_id,
         student_user_id: candidate.student_user_id,
         submitter_user_id: candidate.submitter_user_id,
-        source_scope: candidate.source_scope,
+        source_scope,
         source_organization_id: candidate.source_organization_id,
-        event_type: candidate.event_type,
+        event_type,
         idempotency_key: candidate.idempotency_key,
         evidence: candidate.evidence,
         status,
@@ -50,6 +59,8 @@ mod tests {
 
     use super::map_course_reward_candidate;
     use crate::application::rewards::list_course_candidates::CourseRewardCandidatesError;
+    use crate::domain::rewards::candidate::event_type::RewardEventType;
+    use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
     use crate::domain::rewards::candidate::status::RewardCandidateStatus;
     use crate::models::reward_candidate::RewardCandidate;
 
@@ -59,6 +70,8 @@ mod tests {
             .expect("known status should map");
 
         assert_eq!(mapped.status, RewardCandidateStatus::TeacherApproved);
+        assert_eq!(mapped.source_scope, RewardCandidateSourceScope::Course);
+        assert_eq!(mapped.event_type, RewardEventType::CourseCompletion);
         assert_eq!(mapped.approved_amount, Some("10".to_string()));
     }
 

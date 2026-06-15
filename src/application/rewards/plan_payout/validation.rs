@@ -37,6 +37,7 @@ mod tests {
 
     use super::{approved_positive_amount, ensure_candidate_ready_for_payout};
     use crate::application::rewards::plan_payout::{RewardPayoutCandidate, RewardPayoutPlanError};
+    use crate::domain::rewards::candidate::event_type::RewardEventType;
     use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
     #[test]
@@ -95,7 +96,7 @@ mod tests {
         RewardPayoutCandidate {
             id: 1,
             course_id: 2,
-            event_type: "course_completion".to_string(),
+            event_type: RewardEventType::CourseCompletion,
             status,
             approved_amount,
         }

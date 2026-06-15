@@ -23,7 +23,7 @@ impl From<RewardCandidateAuditEvent> for RewardCandidateAuditEventResponse {
             id: event.id,
             reward_candidate_id: event.reward_candidate_id,
             actor_user_id: event.actor_user_id,
-            event_type: event.event_type,
+            event_type: event.event_type.as_str().to_string(),
             from_status: event.from_status.map(|status| status.as_str().to_string()),
             to_status: event.to_status.as_str().to_string(),
             reason: event.reason,

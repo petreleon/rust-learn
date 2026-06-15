@@ -1,7 +1,9 @@
 use crate::application::rewards::list_candidate_audit::{
     RewardCandidateAuditError, RewardCandidateAuditEvent,
 };
-use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::infra::postgres::rewards::reward_vocabulary::{
+    parse_audit_event_type, parse_candidate_status,
+};
 use crate::models::reward_audit_event::RewardAuditEvent;
 
 pub(super) fn map_reward_candidate_audit_event(
@@ -10,17 +12,24 @@ pub(super) fn map_reward_candidate_audit_event(
     let from_status = event
         .from_status
         .as_deref()
-        .map(RewardCandidateStatus::parse)
-        .transpose()
-        .map_err(|error| RewardCandidateAuditError::InvalidStatus(error.to_string()))?;
-    let to_status = RewardCandidateStatus::parse(&event.to_status)
-        .map_err(|error| RewardCandidateAuditError::InvalidStatus(error.to_string()))?;
+        .map(|status| {
+            parse_candidate_status(status, |message| {
+                RewardCandidateAuditError::InvalidStatus(message)
+            })
+        })
+        .transpose()?;
+    let to_status = parse_candidate_status(&event.to_status, |message| {
+        RewardCandidateAuditError::InvalidStatus(message)
+    })?;
+    let event_type = parse_audit_event_type(&event.event_type, |message| {
+        RewardCandidateAuditError::Database(message)
+    })?;
 
     Ok(RewardCandidateAuditEvent {
         id: event.id,
         reward_candidate_id: event.reward_candidate_id,
         actor_user_id: event.actor_user_id,
-        event_type: event.event_type,
+        event_type,
         from_status,
         to_status,
         reason: event.reason,
@@ -45,6 +54,7 @@ mod tests {
 
     use super::map_reward_candidate_audit_event;
     use crate::application::rewards::list_candidate_audit::RewardCandidateAuditError;
+    use crate::domain::rewards::audit::RewardAuditEventType;
     use crate::domain::rewards::candidate::status::RewardCandidateStatus;
     use crate::models::reward_audit_event::RewardAuditEvent;
 
@@ -61,6 +71,7 @@ mod tests {
             Some(RewardCandidateStatus::PendingTeacherApproval)
         );
         assert_eq!(mapped.to_status, RewardCandidateStatus::TeacherApproved);
+        assert_eq!(mapped.event_type, RewardAuditEventType::TeacherDecision);
     }
 
     #[test]
