@@ -1,44 +1,23 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{http::StatusCode, web};
 
-use crate::application::wallet::retire_tokens::{WalletRetirementError, WalletRetirementUseCase};
+use crate::application::wallet::retire_tokens::WalletRetirementUseCase;
+use crate::http::errors::ApiError;
 use crate::http::extractors::auth_user::AuthUser;
 use crate::http::wallet::dto::{WalletRetirementRequestDto, WalletRetirementResponse};
+use crate::http::wallet::errors::wallet_retirement_error;
 
 pub async fn retire_my_tokens(
     requester: AuthUser,
     retirement: web::Data<Arc<dyn WalletRetirementUseCase>>,
     body: web::Json<WalletRetirementRequestDto>,
-) -> impl Responder {
-    match retirement
+) -> Result<(web::Json<WalletRetirementResponse>, StatusCode), ApiError> {
+    retirement
         .retire_tokens(requester.user_id(), body.into_inner().into())
         .await
-    {
-        Ok(result) => HttpResponse::Created().json(WalletRetirementResponse::from(result)),
-        Err(error) => wallet_retirement_error_response(error),
-    }
-}
-
-fn wallet_retirement_error_response(error: WalletRetirementError) -> HttpResponse {
-    match error {
-        WalletRetirementError::Connection(_) => {
-            HttpResponse::InternalServerError().body("Failed to get DB connection")
-        }
-        WalletRetirementError::KycRequired => {
-            HttpResponse::Conflict().body("KYC verification is required before wallet actions")
-        }
-        WalletRetirementError::InvalidInput(message) => HttpResponse::BadRequest().body(message),
-        WalletRetirementError::InsufficientFunds => {
-            HttpResponse::Conflict().body("Insufficient wallet balance")
-        }
-        WalletRetirementError::KycLoad(message)
-        | WalletRetirementError::TaxLoad(message)
-        | WalletRetirementError::WalletLoad(message)
-        | WalletRetirementError::WalletCreate(message)
-        | WalletRetirementError::RetirementCreate(message) => {
-            log::error!("event=wallet_retirement_api_failed error={}", message);
-            HttpResponse::InternalServerError().body("Failed to process wallet token transfer")
-        }
-    }
+        .map(WalletRetirementResponse::from)
+        .map(web::Json)
+        .map(|response| (response, StatusCode::CREATED))
+        .map_err(wallet_retirement_error)
 }

@@ -956,9 +956,10 @@ Wiring rule:
       use typed JSON/text/status results with content HTTP error mappers.
       Organization CRUD, dashboard, course/member/teacher-application lists,
       member invite/removal/role, and member audit handlers now use typed
-      JSON/text/status results with organization HTTP error mappers. Reporting,
-      wallet, rewards, and learning contexts still need the same treatment
-      before this is done.
+      JSON/text/status results with organization HTTP error mappers. Wallet
+      read/link/audit/deposit/retirement/token-tax handlers now use typed
+      JSON/status results with wallet HTTP error mappers. Reporting, rewards,
+      and learning contexts still need the same treatment before this is done.
 - [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
 - [x] Configure JSON limits and JSON parse errors centrally so every route has
@@ -1476,6 +1477,28 @@ Batch 298: move organization handlers to typed HTTP results.
       only. Reporting, wallet, rewards, and learning still contain manual
       response branches.
 
+Batch 299: move wallet handlers to typed HTTP results.
+
+- [x] Added granular `http/wallet/errors` mappers for wallet read, link, audit,
+      deposit-intent, retirement, and token-tax application errors, all
+      returning the shared `ApiError` envelope from the HTTP boundary.
+- [x] Repointed wallet read/link/audit/deposit/retirement/token-tax handlers
+      away from handler-local `HttpResponse`/`impl Responder` branches and into
+      typed JSON/status results.
+- [x] Preserved the existing success statuses, including `201 Created` for
+      wallet creation, deposit intents, and retirements, while moving error
+      mapping out of route functions.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::wallet::errors`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      wallet handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      wallet file-size checks.
+- [x] Self-critique: this completes the wallet HTTP typed-result slice only.
+      Reporting, rewards, and learning still contain manual response branches.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1612,6 +1635,9 @@ boundary checks from the matrix above to every canonical context.
       wallet access checks flow through `application/access_control`.
 - [x] `http/wallet` owns the `/wallets` Actix scope and exposes only a
       context-level route configurator to the rest of the app.
+- [x] Wallet HTTP handlers return typed JSON/status results and map application
+      errors through granular `http/wallet/errors` modules, keeping Actix
+      response construction out of route functions.
 
 ## Operations Context
 
