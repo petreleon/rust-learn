@@ -3,8 +3,10 @@ use std::sync::Arc;
 use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::content::manage_content_item::{ContentItemError, ContentItemUseCases};
+use crate::application::notifications::delivery::{
+    ContentPublishedNotification, NotificationDeliveryUseCase,
+};
 use crate::http::content::dto::{ContentItemResponse, CreateContentItemRequest};
-use crate::infra::notifications::NotificationsState;
 
 use super::content_item_error_log;
 
@@ -44,7 +46,7 @@ pub(in crate::http::content) async fn list_contents(
 pub(in crate::http::content) async fn create_content(
     path: web::Path<(i32, i32)>, // course_id, chapter_id
     content_item_use_cases: web::Data<Arc<dyn ContentItemUseCases>>,
-    notifications: Option<web::Data<NotificationsState>>,
+    notifications: Option<web::Data<Arc<dyn NotificationDeliveryUseCase>>>,
     req: web::Json<CreateContentItemRequest>,
 ) -> impl Responder {
     let (course_id, chapter_id) = path.into_inner();
@@ -67,21 +69,20 @@ pub(in crate::http::content) async fn create_content(
                 }
 
                 for recipient_id in output.notification_recipient_ids {
-                    if let Err(err) = notifications
-                        .send_content_published_notification(
-                            recipient_id,
-                            course_id,
-                            content.id,
-                            &content.content_type,
-                        )
-                        .await
-                    {
+                    let notification = ContentPublishedNotification {
+                        recipient_user_id: recipient_id,
+                        course_id,
+                        content_id: content.id,
+                        content_type: content.content_type.clone(),
+                    };
+
+                    if let Err(err) = notifications.send_content_published(notification).await {
                         log::warn!(
-                            "event=notification_send_failed kind=content_published course_id={} content_id={} target_user_id={} error={:?}",
+                            "event=notification_send_failed kind=content_published course_id={} content_id={} target_user_id={} error={}",
                             course_id,
                             content.id,
                             recipient_id,
-                            err
+                            err.message()
                         );
                     }
                 }

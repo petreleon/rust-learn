@@ -13,14 +13,12 @@ use crate::bootstrap::reward_wiring::RewardUseCases;
 use crate::bootstrap::teacher_application_wiring::TeacherApplicationUseCases;
 use crate::bootstrap::wallet_wiring::WalletUseCases;
 use crate::db::DbPool;
-use crate::infra::notifications::NotificationsState;
 use crate::infra::object_storage::S3State;
 
 #[derive(Clone)]
 pub struct AppState {
     pub pool: DbPool,
     pub s3: S3State,
-    pub notifications: NotificationsState,
     pub(crate) access_control_use_cases: AccessControlUseCases,
     pub(crate) content_use_cases: ContentUseCases,
     pub(crate) identity_use_cases: IdentityUseCases,

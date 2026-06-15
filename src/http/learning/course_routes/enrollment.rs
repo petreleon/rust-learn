@@ -5,31 +5,33 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::learning::course_enrollment::{
     CourseEnrollmentUseCase, RemoveCourseEnrollmentCommand, RequestCourseJoinCommand,
 };
+use crate::application::notifications::delivery::{
+    EnrollmentNotificationCommand, NotificationDeliveryUseCase,
+};
 use crate::http::extractors::request_auth::authenticated_user_id;
 use crate::http::learning::dto::{
     CourseEnrollmentRemovalResponse, CourseJoinDecisionRequest, CourseJoinRequestResponse,
 };
-use crate::infra::notifications::NotificationsState;
 
 use super::support::course_enrollment_error_response;
 
 async fn send_enrollment_notification(
-    notifications: &NotificationsState,
+    notifications: &Arc<dyn NotificationDeliveryUseCase>,
     notification: crate::application::learning::course_enrollment::EnrollmentNotification,
 ) {
     if let Err(err) = notifications
-        .send_enrollment_notification(
-            notification.target_user_id,
-            notification.course_id,
-            notification.course_title,
-        )
+        .send_enrollment(EnrollmentNotificationCommand {
+            target_user_id: notification.target_user_id,
+            course_id: notification.course_id,
+            course_title: notification.course_title,
+        })
         .await
     {
         log::warn!(
-            "event=notification_send_failed kind=enrollment course_id={} target_user_id={} error={:?}",
+            "event=notification_send_failed kind=enrollment course_id={} target_user_id={} error={}",
             notification.course_id,
             notification.target_user_id,
-            err
+            err.message()
         );
     }
 }
@@ -80,7 +82,9 @@ pub(super) async fn decide_course_join_request(
     {
         Ok(output) => {
             if let Some(notification) = output.enrollment_notification {
-                if let Some(notifications) = req.app_data::<web::Data<NotificationsState>>() {
+                if let Some(notifications) =
+                    req.app_data::<web::Data<Arc<dyn NotificationDeliveryUseCase>>>()
+                {
                     send_enrollment_notification(notifications, notification).await;
                 }
             }

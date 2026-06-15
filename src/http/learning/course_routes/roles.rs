@@ -5,9 +5,11 @@ use actix_web::{web, HttpRequest, HttpResponse, Responder};
 use crate::application::learning::assign_course_role::{
     CourseRoleAssignmentError, CourseRoleAssignmentUseCase,
 };
+use crate::application::notifications::delivery::{
+    NotificationDeliveryUseCase, RoleAssignmentNotification, RoleAssignmentScope,
+};
 use crate::http::extractors::request_auth::authenticated_user_id;
 use crate::http::learning::dto::AssignCourseRoleRequest;
-use crate::infra::notifications::NotificationsState;
 
 pub(super) async fn assign_role(
     req: HttpRequest,
@@ -26,21 +28,23 @@ pub(super) async fn assign_role(
 
     match use_case.assign_course_role(command).await {
         Ok(output) => {
-            if let Some(notifications) = req.app_data::<web::Data<NotificationsState>>() {
+            if let Some(notifications) =
+                req.app_data::<web::Data<Arc<dyn NotificationDeliveryUseCase>>>()
+            {
                 if let Err(err) = notifications
-                    .send_role_assignment_notification(
-                        output.target_user_id,
-                        "course",
-                        Some(output.course_id),
-                        &output.role_name,
-                    )
+                    .send_role_assignment(RoleAssignmentNotification {
+                        target_user_id: output.target_user_id,
+                        scope: RoleAssignmentScope::Course,
+                        scope_id: output.course_id,
+                        role_name: output.role_name.clone(),
+                    })
                     .await
                 {
                     log::warn!(
-                        "event=notification_send_failed kind=role_assignment scope=course course_id={} target_user_id={} error={:?}",
+                        "event=notification_send_failed kind=role_assignment scope=course course_id={} target_user_id={} error={}",
                         output.course_id,
                         output.target_user_id,
-                        err
+                        err.message()
                     );
                 }
             }

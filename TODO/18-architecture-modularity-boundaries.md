@@ -44,7 +44,7 @@ handler, Diesel query, permission rule, and domain workflow to change together.
 - [x] Pull startup side effects out of `main.rs`. DB setup, S3 setup,
       notification state, and Ethereum startup deployment should be composed
       through a small bootstrap module.
-- [ ] Give cross-cutting utilities a home based on responsibility. Some
+- [x] Give cross-cutting utilities a home based on responsibility. Some
       `utils::*` modules are infrastructure adapters, some are domain helpers,
       and some are application services.
 - [ ] Make frontend capability checks consume backend-derived session
@@ -935,7 +935,7 @@ Wiring rule:
       e.g. `pub fn configure_routes(cfg: &mut web::ServiceConfig)`.
 - [x] `http::api_scope()` composes context route configurators and
       cross-cutting middleware.
-- [ ] Build an `AppState` or context-specific state structs once outside the
+- [x] Build an `AppState` or context-specific state structs once outside the
       `HttpServer::new` closure, then pass them with `web::Data`.
 - [ ] Prefer typed extractors over manual `HttpRequest` parsing where possible:
       `AuthUser`, `DbConn`, `Json<T>`, `Path<T>`, and `Query<T>`.
@@ -1176,49 +1176,42 @@ remaining gaps.
 | 278 | Deleted the mixed `infra/postgres/access_control/authorization_checks` facade after splitting it into focused permission-query, hierarchy-query, and role-assignment modules and repointing integration fixtures to those owners. |
 | 279 | Moved access-control middleware app-state dependencies off concrete `DbPool` and onto application-owned permission/hierarchy check service app data, with bootstrap wiring registering the Postgres-backed implementations for production and route tests. |
 | 280 | Added backend-derived session access/capability facts for platform, organization, and course scopes, exposed them through `/api/me`, and removed frontend `web/src/lib` permission-group tables for admin, organization, and workspace capability checks. |
+| 281 | Added an application-level notification delivery contract, implemented it with the existing infra notification sender, registered it through notification app-data wiring, removed raw `NotificationsState` exposure from `AppState`, and repointed content, learning enrollment, course-role assignment, and organization-role assignment HTTP handlers away from notification infra imports. |
 
 ## Recent Slice Evidence
 
-Batch 280: make frontend capability summaries come from the session API.
+Batch 281: make HTTP notification delivery depend on an application contract.
 
-- [x] Added `SessionCapability` and `CurrentSessionAccess` output facts to the
-      identity current-session application contract, with capability definition
-      tables owned by the backend application layer.
-- [x] Added platform, organization, and course capability builders for `/api/me`
-      scopes: platform admin workspace capabilities, organization workspace
-      capabilities including member management, and course teaching access.
-- [x] Split current-session HTTP DTO serialization into a private response
-      child module so the expanded session response stays granular and under
-      the file-size ceiling.
-- [x] Updated the Postgres current-session builder to attach capabilities and a
-      top-level access summary after loading existing roles, direct
-      permissions, and active delegated permissions.
-- [x] Repointed `web/src/lib/access.ts`, platform admin workspace construction,
-      and organization workspace construction to consume backend session
-      capabilities instead of local permission-group tables.
-- [x] Deleted `web/src/lib/admin/platformCapabilityDefinitions.ts` and
-      `web/src/lib/organization/capabilityPermissions.ts`; scans prove the old
-      frontend capability table names and local access permission set names are
-      gone.
-- [x] Added backend current-session integration coverage proving `/api/me`
-      returns access booleans plus platform, organization, and course
-      capability facts.
-- [x] Self-critique: this closes the `web/src/lib` capability-group duplication
-      path, but the broader authorization source-of-truth item remains open
-      because several frontend route components still use raw permission names
-      for action-level button gating and some backend adapters still perform
-      adapter-local authorization composition.
+- [x] Added `application/notifications/delivery.rs` with typed notification
+      commands and a `NotificationDeliveryUseCase` port for content-published,
+      enrollment, and role-assignment notification delivery.
+- [x] Implemented the delivery port for the existing infra-backed
+      `NotificationsState` in `infra/notifications/delivery.rs`, keeping DB
+      writes and message persistence inside the infra ring.
+- [x] Registered the notification delivery port through
+      `bootstrap/notification_wiring.rs` and removed raw `NotificationsState`
+      from `AppState` plus global app-data registration, so HTTP cannot obtain
+      the concrete sender from production app state.
+- [x] Repointed content item creation, course enrollment decisions, course role
+      assignment, and organization role assignment handlers to consume
+      `Arc<dyn NotificationDeliveryUseCase>` instead of importing
+      `infra::notifications::NotificationsState`.
+- [x] Updated the course enrollment API fixture to register the same
+      application-level delivery contract, preserving enrollment and
+      role-assignment notification behavior through the public route.
+- [x] Self-critique: this closes the notification-delivery HTTP-to-infra leak,
+      but JWT/JWKS helpers still reach from HTTP into `infra/tokens/jwt`, so
+      the wider HTTP cross-cutting adapter cleanup remains open.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
-      `./scripts/run-host-tests.sh cargo test --test current_session_api`,
-      targeted frontend Vitest suites for access, organization workspace,
-      session scope summary, product shell, teacher rewards, admin delegations,
-      and admin KYC routes, `cd web && npx tsc --noEmit`,
-      `cd web && npm run lint` (warnings only in pre-existing unrelated files),
+      `./scripts/run-host-tests.sh cargo test --test course_enrollment_api`,
+      `./scripts/run-host-tests.sh cargo test --test course_content_management`,
+      `./scripts/run-host-tests.sh cargo test --test organization_members`,
+      `./scripts/run-host-tests.sh cargo test --test notification_events`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, ring-boundary scans, frontend capability-table scans,
-      and file-size checks.
+      `git diff --check`, HTTP notification-infra boundary scans,
+      application-ring import scans, and file-size checks.
 
 ## Legacy Transition Rules
 

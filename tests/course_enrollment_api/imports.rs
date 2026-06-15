@@ -6,19 +6,20 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use rust_learn::application::learning::assign_course_role::CourseRoleAssignmentUseCase;
 use rust_learn::application::learning::course_enrollment::CourseEnrollmentUseCase;
+use rust_learn::application::notifications::delivery::NotificationDeliveryUseCase;
 use rust_learn::db::schema::{courses, notifications};
 use rust_learn::db::{establish_connection, DbPool};
 use rust_learn::domain::learning::enrollment::status::COURSE_JOIN_STATUS_APPROVED;
-use rust_learn::infra::postgres::learning::course_enrollment_use_case::PostgresCourseEnrollmentUseCase;
-use rust_learn::infra::postgres::learning::course_role_assignment_use_case::PostgresCourseRoleAssignmentUseCase;
-use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::infra::postgres::access_control::role_catalog_store;
-use rust_learn::models::user::User;
+use rust_learn::infra::notifications::NotificationsState;
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::platform_role_records;
+use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+use rust_learn::infra::postgres::learning::course_enrollment_use_case::PostgresCourseEnrollmentUseCase;
+use rust_learn::infra::postgres::learning::course_role_assignment_use_case::PostgresCourseRoleAssignmentUseCase;
 use rust_learn::infra::tokens::jwt::create_jwt;
-use rust_learn::infra::notifications::NotificationsState;
+use rust_learn::models::course::{Course, NewCourse};
+use rust_learn::models::user::User;
 use serde_json::Value;
 
 fn unique_string(prefix: &str) -> String {
@@ -104,7 +105,7 @@ fn course_enrollment_test_app(
             })
         .app_data(course_enrollment_use_case_data(&pool))
         .app_data(course_role_assignment_use_case_data(&pool))
-        .app_data(web::Data::new(NotificationsState::new(pool)))
+        .app_data(notification_delivery_use_case_data(&pool))
         .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
         .service(rust_learn::http::learning::course_scope())
 }
@@ -117,6 +118,12 @@ fn course_role_assignment_use_case_data(
     pool: &DbPool,
 ) -> web::Data<Arc<dyn CourseRoleAssignmentUseCase>> {
     web::Data::new(Arc::new(PostgresCourseRoleAssignmentUseCase::new(pool.clone())))
+}
+
+fn notification_delivery_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn NotificationDeliveryUseCase>> {
+    web::Data::new(Arc::new(NotificationsState::new(pool.clone())))
 }
 
 async fn notification_count(conn: &mut AsyncPgConnection, user_id: i32, title: &str) -> i64 {

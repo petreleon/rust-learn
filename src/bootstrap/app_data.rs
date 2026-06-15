@@ -5,7 +5,6 @@ use crate::bootstrap::app_state::AppState;
 pub fn configure_app_data(cfg: &mut web::ServiceConfig, app_state: &AppState) {
     cfg.app_data(web::Data::new(app_state.pool.clone()))
         .app_data(web::Data::new(app_state.s3.clone()))
-        .app_data(web::Data::new(app_state.notifications.clone()))
         .app_data(web::Data::new(app_state.readiness_use_case.clone()));
 
     crate::bootstrap::access_control_wiring::configure_access_control_app_data(
