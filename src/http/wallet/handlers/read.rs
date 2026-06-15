@@ -1,56 +1,41 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::wallet::read_wallet::{
     WalletReadError, WalletReadSubject, WalletReadUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::wallet::dto::WalletResponse;
 
 pub async fn get_my_wallet(
-    req: HttpRequest,
+    requester: AuthUser,
     read: web::Data<Arc<dyn WalletReadUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
-    wallet_read_response(read, requester.user_id, WalletReadSubject::OwnUser).await
+    wallet_read_response(read, requester.user_id(), WalletReadSubject::OwnUser).await
 }
 
 pub async fn get_user_wallet(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     read: web::Data<Arc<dyn WalletReadUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     wallet_read_response(
         read,
-        requester.user_id,
+        requester.user_id(),
         WalletReadSubject::User(path.into_inner()),
     )
     .await
 }
 
 pub async fn get_organization_wallet(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     read: web::Data<Arc<dyn WalletReadUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     wallet_read_response(
         read,
-        requester.user_id,
+        requester.user_id(),
         WalletReadSubject::Organization(path.into_inner()),
     )
     .await

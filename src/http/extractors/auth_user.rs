@@ -4,7 +4,6 @@ use actix_web::{Error, FromRequest, HttpMessage, HttpRequest};
 use futures::future::{ready, Ready};
 
 use crate::domain::identity::UserJWT;
-use crate::http::errors::ApiError;
 
 #[derive(Clone)]
 pub struct AuthUser(pub UserJWT);
@@ -33,7 +32,7 @@ impl FromRequest for AuthUser {
     type Future = Ready<Result<Self, Self::Error>>;
 
     fn from_request(req: &HttpRequest, _payload: &mut Payload) -> Self::Future {
-        ready(auth_user_from_request(req).map_err(Into::into))
+        ready(auth_user_from_request(req))
     }
 }
 
@@ -64,30 +63,29 @@ fn auth_user_id_from_request(req: &HttpRequest) -> Result<AuthUserId, Error> {
     Err(ErrorUnauthorized("Invalid token"))
 }
 
-fn auth_user_from_request(req: &HttpRequest) -> Result<AuthUser, ApiError> {
+fn auth_user_from_request(req: &HttpRequest) -> Result<AuthUser, Error> {
     if let Some(user_jwt) = req.extensions().get::<UserJWT>() {
         return Ok(AuthUser(user_jwt.clone()));
     }
 
-    let auth_header = req
-        .headers()
-        .get("Authorization")
-        .ok_or_else(|| ApiError::unauthorized("Missing Authorization header"))?;
-    let auth_str = auth_header
-        .to_str()
-        .map_err(|_| ApiError::unauthorized("Invalid Authorization header format"))?;
-    let _token = auth_str
-        .strip_prefix("Bearer ")
-        .ok_or_else(|| ApiError::unauthorized("Invalid Authorization header format"))?;
+    let Some(auth_header) = req.headers().get("Authorization") else {
+        return Err(ErrorUnauthorized("Missing Authorization header"));
+    };
+    let Ok(auth_str) = auth_header.to_str() else {
+        return Err(ErrorUnauthorized("Invalid Authorization header format"));
+    };
+    let Some(_token) = auth_str.strip_prefix("Bearer ") else {
+        return Err(ErrorUnauthorized("Invalid Authorization header format"));
+    };
 
-    Err(ApiError::unauthorized("Invalid token"))
+    Err(ErrorUnauthorized("Invalid token"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::{auth_user_from_request, auth_user_id_from_request};
     use crate::domain::identity::UserJWT;
-    use actix_web::{http::StatusCode, test as actix_test, HttpMessage, ResponseError};
+    use actix_web::{body::to_bytes, http::StatusCode, test as actix_test, HttpMessage};
 
     #[test]
     fn reads_user_from_request_extensions() {
@@ -103,8 +101,8 @@ mod tests {
         assert_eq!(user.into_inner().exp, 1000);
     }
 
-    #[test]
-    fn rejects_missing_authorization_header() {
+    #[actix_web::test]
+    async fn rejects_missing_authorization_header() {
         let req = actix_test::TestRequest::default().to_http_request();
 
         let error = match auth_user_from_request(&req) {
@@ -112,12 +110,18 @@ mod tests {
             Err(error) => error,
         };
 
-        assert_eq!(error.status_code(), StatusCode::UNAUTHORIZED);
-        assert_eq!(error.code(), "unauthorized");
+        assert_eq!(
+            error.as_response_error().status_code(),
+            StatusCode::UNAUTHORIZED
+        );
+        let body = to_bytes(error.as_response_error().error_response().into_body())
+            .await
+            .unwrap();
+        assert_eq!(body.as_ref(), b"Missing Authorization header");
     }
 
-    #[test]
-    fn rejects_non_bearer_authorization_header() {
+    #[actix_web::test]
+    async fn rejects_non_bearer_authorization_header() {
         let req = actix_test::TestRequest::default()
             .insert_header(("Authorization", "Token abc123"))
             .to_http_request();
@@ -127,7 +131,14 @@ mod tests {
             Err(error) => error,
         };
 
-        assert_eq!(error.status_code(), StatusCode::UNAUTHORIZED);
+        assert_eq!(
+            error.as_response_error().status_code(),
+            StatusCode::UNAUTHORIZED
+        );
+        let body = to_bytes(error.as_response_error().error_response().into_body())
+            .await
+            .unwrap();
+        assert_eq!(body.as_ref(), b"Invalid Authorization header format");
     }
 
     #[test]

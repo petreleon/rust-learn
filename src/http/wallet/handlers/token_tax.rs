@@ -1,23 +1,19 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::wallet::manage_token_tax::{
     WalletTokenTaxError, WalletTokenTaxOperation, WalletTokenTaxUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::wallet::dto::{
     SetWalletTokenTaxRequest, WalletTokenTaxResponse, WalletTokenTaxSettingsResponse,
 };
 
 pub async fn list_wallet_token_taxes(
-    req: HttpRequest,
+    _requester: AuthUser,
     tax: web::Data<Arc<dyn WalletTokenTaxUseCase>>,
 ) -> impl Responder {
-    if let Err(response) = authenticated_user(&req) {
-        return response;
-    }
-
     match tax.list_token_taxes().await {
         Ok(settings) => HttpResponse::Ok().json(WalletTokenTaxSettingsResponse::from(settings)),
         Err(error) => wallet_token_tax_error_response(error),
@@ -25,12 +21,12 @@ pub async fn list_wallet_token_taxes(
 }
 
 pub async fn set_deposit_tax(
-    req: HttpRequest,
+    requester: AuthUser,
     tax: web::Data<Arc<dyn WalletTokenTaxUseCase>>,
     body: web::Json<SetWalletTokenTaxRequest>,
 ) -> impl Responder {
     set_wallet_token_tax(
-        req,
+        requester.user_id(),
         tax,
         WalletTokenTaxOperation::Deposit,
         body.into_inner(),
@@ -39,26 +35,27 @@ pub async fn set_deposit_tax(
 }
 
 pub async fn set_retire_tax(
-    req: HttpRequest,
+    requester: AuthUser,
     tax: web::Data<Arc<dyn WalletTokenTaxUseCase>>,
     body: web::Json<SetWalletTokenTaxRequest>,
 ) -> impl Responder {
-    set_wallet_token_tax(req, tax, WalletTokenTaxOperation::Retire, body.into_inner()).await
+    set_wallet_token_tax(
+        requester.user_id(),
+        tax,
+        WalletTokenTaxOperation::Retire,
+        body.into_inner(),
+    )
+    .await
 }
 
 async fn set_wallet_token_tax(
-    req: HttpRequest,
+    actor_user_id: i32,
     tax: web::Data<Arc<dyn WalletTokenTaxUseCase>>,
     operation: WalletTokenTaxOperation,
     body: SetWalletTokenTaxRequest,
 ) -> HttpResponse {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     match tax
-        .set_token_tax(requester.user_id, operation, body.tax_amount)
+        .set_token_tax(actor_user_id, operation, body.tax_amount)
         .await
     {
         Ok(view) => HttpResponse::Ok().json(WalletTokenTaxResponse::from(view)),

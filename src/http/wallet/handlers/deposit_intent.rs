@@ -1,25 +1,20 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::wallet::create_deposit_intent::{
     WalletDepositIntentError, WalletDepositIntentUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::wallet::dto::{WalletDepositIntentRequestDto, WalletDepositIntentResponse};
 
 pub async fn deposit_my_tokens(
-    req: HttpRequest,
+    requester: AuthUser,
     deposit: web::Data<Arc<dyn WalletDepositIntentUseCase>>,
     body: web::Json<WalletDepositIntentRequestDto>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     match deposit
-        .create_deposit_intent(requester.user_id, body.into_inner().into())
+        .create_deposit_intent(requester.user_id(), body.into_inner().into())
         .await
     {
         Ok(intent) => HttpResponse::Created().json(WalletDepositIntentResponse::from(intent)),

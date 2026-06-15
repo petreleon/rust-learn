@@ -1179,46 +1179,35 @@ remaining gaps.
 | 281 | Added an application-level notification delivery contract, implemented it with the existing infra notification sender, registered it through notification app-data wiring, removed raw `NotificationsState` exposure from `AppState`, and repointed content, learning enrollment, course-role assignment, and organization-role assignment HTTP handlers away from notification infra imports. |
 | 282 | Added an application-owned JWKS contract, mapped env-backed token infra into that contract through identity wiring, moved JWKS JSON serialization into HTTP, and made HTTP auth extractors rely on middleware-inserted identity claims instead of decoding JWTs directly. |
 | 283 | Added an `AuthUserId` typed extractor and migrated id-only handlers in notifications, content processing, learning enrollment/progress/assessment/course-role routes, organization member invite/removal/role routes, and identity platform/session-id routes away from manual `authenticated_user_id(&req)` parsing. |
+| 284 | Made `AuthUser` preserve the old plain-text unauthorized failures and migrated wallet read/link/audit/deposit/retirement/token-tax routes away from manual `authenticated_user(&req)` parsing. |
 
 ## Recent Slice Evidence
 
-Batch 283: migrate id-only request auth to a typed extractor.
+Batch 284: migrate wallet full-claims request auth to a typed extractor.
 
-- [x] Added `AuthUserId` to `http/extractors/auth_user.rs`, reading the
-      middleware-inserted `UserJWT` extension and preserving the old plain-text
-      unauthorized messages for missing, malformed, or invalid bearer headers.
-- [x] Repointed notification preference/inbox handlers to `AuthUserId`, so
-      `/me/notifications*` and `/me/notification-preferences` no longer accept
-      `HttpRequest` just to extract the actor id.
-- [x] Repointed content processing, learner progress, assessment submission
-      and attempt listing, course enrollment, course role assignment,
-      organization member invite/removal/role assignment, platform role
-      assignment, and `/auth/user_id` handlers to typed user-id extraction.
-- [x] Changed enrollment, course-role, and organization-role notification
-      delivery handlers to receive optional notification app data directly
-      instead of retrieving it through `HttpRequest::app_data`.
-- [x] Left current-session on `authenticated_user_id(&req)` intentionally
-      because that handler owns a custom JSON unauthorized response contract.
-- [x] Self-critique: this substantially reduces id-only manual auth parsing,
-      but the broader typed-extractor checkbox remains open because many
-      handlers still call `authenticated_user(&req)` when they need the full
-      claims object.
+- [x] Changed `AuthUser` to return the same Actix unauthorized failures as the
+      legacy manual helper, preserving plain-text messages for missing,
+      malformed, or invalid bearer headers while still reading the
+      middleware-inserted `UserJWT` extension.
+- [x] Repointed wallet read, wallet link, wallet audit, deposit intent,
+      retirement, and token-tax handlers to receive `AuthUser` directly instead
+      of accepting `HttpRequest` and calling `authenticated_user(&req)`.
+- [x] Kept wallet application calls unchanged: handlers still pass the actor
+      user id into the existing wallet read/link/audit/deposit/retirement/tax
+      use cases and keep the same service-error response mapping.
+- [x] Proved the wallet HTTP context no longer imports `HttpRequest`,
+      `request_auth`, or manual `authenticated_user(&req)` parsing.
+- [x] Self-critique: the typed-extractor checkbox remains open. Full-claims
+      routes in rewards, learning management/catalog/teaching, organization
+      reads, and identity user search still need the same migration.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo test --lib extractors`,
-      `./scripts/run-host-tests.sh cargo test --test current_session_api`,
-      `./scripts/run-host-tests.sh cargo test --test course_enrollment_api`,
-      `./scripts/run-host-tests.sh cargo test --test course_assessments`,
-      `./scripts/run-host-tests.sh cargo test --test course_assessment_submission`,
-      `./scripts/run-host-tests.sh cargo test --test course_discovery learner_progress_requires_enrollment_and_course_content`,
-      `./scripts/run-host-tests.sh cargo test --test video_upload_flow`,
-      `./scripts/run-host-tests.sh cargo test --test organization_members`,
-      `./scripts/run-host-tests.sh cargo test --test api_routing`,
-      `./scripts/run-host-tests.sh cargo test --test middleware_access_control test_platform_permission_middleware`,
+      `./scripts/run-host-tests.sh cargo test --test wallet_linking`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, `authenticated_user_id` usage scans, touched-route
-      `HttpRequest` scans, and file-size checks.
+      `git diff --check`, wallet `HttpRequest`/`request_auth`/manual auth
+      scans, stale `AuthUser`/`ApiError` scans, and file-size checks.
 
 ## Legacy Transition Rules
 

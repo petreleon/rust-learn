@@ -1,56 +1,41 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::wallet::audit_wallet::{
     WalletAuditError, WalletAuditSubject, WalletAuditUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::wallet::dto::WalletAuditResponse;
 
 pub async fn get_my_wallet_audit(
-    req: HttpRequest,
+    requester: AuthUser,
     audit: web::Data<Arc<dyn WalletAuditUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
-    wallet_audit_response(audit, requester.user_id, WalletAuditSubject::OwnUser).await
+    wallet_audit_response(audit, requester.user_id(), WalletAuditSubject::OwnUser).await
 }
 
 pub async fn get_user_wallet_audit(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     audit: web::Data<Arc<dyn WalletAuditUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     wallet_audit_response(
         audit,
-        requester.user_id,
+        requester.user_id(),
         WalletAuditSubject::User(path.into_inner()),
     )
     .await
 }
 
 pub async fn get_organization_wallet_audit(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     audit: web::Data<Arc<dyn WalletAuditUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     wallet_audit_response(
         audit,
-        requester.user_id,
+        requester.user_id(),
         WalletAuditSubject::Organization(path.into_inner()),
     )
     .await

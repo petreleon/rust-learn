@@ -1,56 +1,41 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::wallet::link_wallet::{
     WalletLinkError, WalletLinkSubject, WalletLinkUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::wallet::dto::WalletLinkResponse;
 
 pub async fn link_my_wallet(
-    req: HttpRequest,
+    requester: AuthUser,
     link: web::Data<Arc<dyn WalletLinkUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
-    wallet_link_response(link, requester.user_id, WalletLinkSubject::OwnUser).await
+    wallet_link_response(link, requester.user_id(), WalletLinkSubject::OwnUser).await
 }
 
 pub async fn link_user_wallet(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     link: web::Data<Arc<dyn WalletLinkUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     wallet_link_response(
         link,
-        requester.user_id,
+        requester.user_id(),
         WalletLinkSubject::User(path.into_inner()),
     )
     .await
 }
 
 pub async fn link_organization_wallet(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     link: web::Data<Arc<dyn WalletLinkUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     wallet_link_response(
         link,
-        requester.user_id,
+        requester.user_id(),
         WalletLinkSubject::Organization(path.into_inner()),
     )
     .await
