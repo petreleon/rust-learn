@@ -71,8 +71,9 @@ pub(super) async fn find_active_delegated_permission(
         course_id,
     )
     .await
-    .map(|item| item.map(delegated_permission_output_from_record))
-    .map_err(map_error)
+    .map_err(map_error)?
+    .map(delegated_permission_output_from_record)
+    .transpose()
 }
 
 pub(super) async fn list_delegated_permissions(
@@ -81,13 +82,10 @@ pub(super) async fn list_delegated_permissions(
 ) -> Result<Vec<DelegatedPermissionOutput>, DelegatedPermissionError> {
     records::list_delegated_permissions(conn, DelegatedPermissionRecordFilter::from(filter))
         .await
-        .map(|items| {
-            items
-                .into_iter()
-                .map(delegated_permission_output_from_record)
-                .collect()
-        })
-        .map_err(map_error)
+        .map_err(map_error)?
+        .into_iter()
+        .map(delegated_permission_output_from_record)
+        .collect()
 }
 
 impl From<DelegatedPermissionFilter> for DelegatedPermissionRecordFilter {
@@ -101,7 +99,9 @@ impl From<DelegatedPermissionFilter> for DelegatedPermissionRecordFilter {
             offset: filter.offset,
             organization_id: filter.organization_id,
             permission: filter.permission,
-            scope_type: filter.scope_type,
+            scope_type: filter
+                .scope_type
+                .map(|scope_type| scope_type.as_str().to_string()),
         }
     }
 }

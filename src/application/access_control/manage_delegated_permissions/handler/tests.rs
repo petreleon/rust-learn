@@ -1,11 +1,11 @@
-use chrono::Utc;
-use futures::future::{BoxFuture, FutureExt};
-
 use super::*;
 use crate::application::access_control::manage_delegated_permissions::{
     DelegatedPermissionCreate, DelegatedPermissionFilter, DelegatedPermissionOutput,
     DelegatedPermissionStore, GrantDelegatedPermissionCommand, ListDelegatedPermissionsQuery,
 };
+use crate::domain::access_control::delegation::DelegatedScopeType;
+use chrono::Utc;
+use futures::future::{BoxFuture, FutureExt};
 
 #[derive(Default)]
 struct FakeStore {
@@ -38,19 +38,26 @@ impl DelegatedPermissionStore for FakeStore {
         &mut self,
         _: i32,
         _: String,
-        _: String,
+        _: DelegatedScopeType,
         _: Option<i32>,
         _: Option<i32>,
     ) -> BoxFuture<'_, Result<Option<DelegatedPermissionOutput>, DelegatedPermissionError>> {
         async move { Ok(self.active.clone()) }.boxed()
     }
-
     fn create_delegated_permission(
         &mut self,
         delegation: DelegatedPermissionCreate,
     ) -> BoxFuture<'_, Result<DelegatedPermissionOutput, DelegatedPermissionError>> {
         self.created = Some(delegation.clone());
-        async move { Ok(output_from_create(delegation)) }.boxed()
+        async move {
+            Ok(output(
+                &delegation.permission,
+                delegation.scope_type,
+                delegation.organization_id,
+                delegation.course_id,
+            ))
+        }
+        .boxed()
     }
 
     fn list_delegated_permissions(
@@ -60,17 +67,23 @@ impl DelegatedPermissionStore for FakeStore {
         self.listed = Some(filter);
         async move { Ok(Vec::new()) }.boxed()
     }
-
     fn revoke_delegated_permission(
         &mut self,
         _: i64,
         _: i32,
         _: Option<String>,
     ) -> BoxFuture<'_, Result<DelegatedPermissionOutput, DelegatedPermissionError>> {
-        async move { Ok(output("APPROVE_REWARD_AMOUNT", "platform", None, None)) }.boxed()
+        async move {
+            Ok(output(
+                "APPROVE_REWARD_AMOUNT",
+                DelegatedScopeType::Platform,
+                None,
+                None,
+            ))
+        }
+        .boxed()
     }
 }
-
 #[tokio::test]
 async fn grant_normalizes_and_creates_delegation() {
     let mut store = FakeStore {
@@ -84,7 +97,7 @@ async fn grant_normalizes_and_creates_delegation() {
 
     let created = store.created.expect("delegation should be created");
     assert_eq!(created.permission, "APPROVE_REWARD_AMOUNT");
-    assert_eq!(created.scope_type, "platform");
+    assert_eq!(created.scope_type, DelegatedScopeType::Platform);
     assert_eq!(granted.grantee_user_id, 20);
 }
 
@@ -125,7 +138,7 @@ async fn list_normalizes_filters_before_store_query() {
 
     let filter = store.listed.expect("filter should be passed to store");
     assert_eq!(filter.permission.as_deref(), Some("VIEW_REWARD_AUDIT"));
-    assert_eq!(filter.scope_type.as_deref(), Some("platform"));
+    assert_eq!(filter.scope_type, Some(DelegatedScopeType::Platform));
 }
 
 fn platform_command() -> GrantDelegatedPermissionCommand {
@@ -141,18 +154,9 @@ fn platform_command() -> GrantDelegatedPermissionCommand {
     }
 }
 
-fn output_from_create(delegation: DelegatedPermissionCreate) -> DelegatedPermissionOutput {
-    output(
-        &delegation.permission,
-        &delegation.scope_type,
-        delegation.organization_id,
-        delegation.course_id,
-    )
-}
-
 fn output(
     permission: &str,
-    scope_type: &str,
+    scope_type: DelegatedScopeType,
     organization_id: Option<i32>,
     course_id: Option<i32>,
 ) -> DelegatedPermissionOutput {
@@ -170,7 +174,7 @@ fn output(
         revoke_reason: None,
         revoked_at: None,
         revoked_by_user_id: None,
-        scope_type: scope_type.to_string(),
+        scope_type,
         updated_at: now,
     }
 }

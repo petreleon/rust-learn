@@ -21,13 +21,13 @@ pub(super) async fn create_delegated_permission(
         organization_id: delegation.organization_id,
         permission: delegation.permission,
         reason: delegation.reason,
-        scope_type: delegation.scope_type,
+        scope_type: delegation.scope_type.as_str().to_string(),
     };
 
     records::create_delegated_permission(conn, new_delegation)
         .await
-        .map(delegated_permission_output_from_record)
         .map_err(map_error)
+        .and_then(delegated_permission_output_from_record)
 }
 
 pub(super) async fn revoke_delegated_permission(
@@ -38,6 +38,6 @@ pub(super) async fn revoke_delegated_permission(
 ) -> Result<DelegatedPermissionOutput, DelegatedPermissionError> {
     records::revoke_delegated_permission(conn, delegation_id, revoked_by_user_id, revoke_reason)
         .await
-        .map(delegated_permission_output_from_record)
         .map_err(map_error)
+        .and_then(delegated_permission_output_from_record)
 }

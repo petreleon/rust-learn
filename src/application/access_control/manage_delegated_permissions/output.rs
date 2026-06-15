@@ -1,12 +1,14 @@
 use chrono::{DateTime, Utc};
 
+use crate::domain::access_control::delegation::DelegatedScopeType;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DelegatedPermissionOutput {
     pub id: i64,
     pub grantor_user_id: i32,
     pub grantee_user_id: i32,
     pub permission: String,
-    pub scope_type: String,
+    pub scope_type: DelegatedScopeType,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,
     pub reason: Option<String>,
@@ -23,7 +25,7 @@ pub(crate) struct DelegatedPermissionFact {
     pub grantor_user_id: i32,
     pub grantee_user_id: i32,
     pub permission: String,
-    pub scope_type: String,
+    pub scope_type: DelegatedScopeType,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,
     pub reason: Option<String>,
