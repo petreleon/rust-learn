@@ -1,3 +1,5 @@
+use crate::{create_custom_platform_role::*, submit_support::*, support::*};
+
 #[actix_web::test]
 async fn teacher_application_submission_is_idempotent_by_key() {
     let mut conn = setup_conn().await;
@@ -110,7 +112,10 @@ async fn applicant_can_read_latest_application_snapshot_without_review_permissio
         &app,
         test::TestRequest::get()
             .uri("/teacher-applications/me")
-            .insert_header(("Authorization", format!("Bearer {}", token_for(applicant.id()))))
+            .insert_header((
+                "Authorization",
+                format!("Bearer {}", token_for(applicant.id())),
+            ))
             .to_request(),
     )
     .await;

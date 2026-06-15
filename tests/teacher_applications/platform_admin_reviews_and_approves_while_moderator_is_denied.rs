@@ -1,3 +1,5 @@
+use crate::{create_custom_platform_role::*, decision_support::*, submit_support::*, support::*};
+
 #[actix_web::test]
 async fn platform_admin_reviews_and_approves_while_moderator_is_denied() {
     let mut conn = setup_conn().await;
@@ -83,7 +85,10 @@ async fn platform_admin_reviews_and_approves_while_moderator_is_denied() {
     let decision_response = test::call_service(
         &decision_app,
         test::TestRequest::put()
-            .uri(&format!("/teacher-applications/{}/decision", application.id))
+            .uri(&format!(
+                "/teacher-applications/{}/decision",
+                application.id
+            ))
             .insert_header(("Authorization", format!("Bearer {}", token_for(admin.id()))))
             .set_json(TeacherApplicationDecisionRequest {
                 status: "approved".to_string(),

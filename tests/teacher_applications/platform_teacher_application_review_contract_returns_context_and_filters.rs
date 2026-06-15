@@ -1,3 +1,7 @@
+use crate::{
+    create_custom_platform_role::*, decision_support::*, platform_review_support::*,
+    submit_support::*, support::*,
+};
 #[actix_web::test]
 async fn platform_teacher_application_review_contract_returns_context_and_filters() {
     let mut conn = setup_conn().await;
@@ -159,7 +163,10 @@ async fn platform_teacher_application_review_contract_returns_context_and_filter
             .uri(&format!(
                 "/teacher-applications/review?status=submitted&search={search_marker}"
             ))
-            .insert_header(("Authorization", format!("Bearer {}", token_for(reviewer.id()))))
+            .insert_header((
+                "Authorization",
+                format!("Bearer {}", token_for(reviewer.id())),
+            ))
             .to_request(),
     )
     .await;
