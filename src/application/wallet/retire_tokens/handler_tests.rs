@@ -3,7 +3,7 @@ use futures::executor::block_on;
 
 use super::handler::retire_tokens;
 use crate::application::wallet::retire_tokens::{
-    test_support::FakeWalletRetirementStore, WalletRetirementError, WalletRetirementRequest,
+    test_support::FakeWalletRetirementStore, WalletRetirementCommand, WalletRetirementError,
 };
 
 #[test]
@@ -45,7 +45,7 @@ fn creates_platform_paid_retirement_with_tax_and_platform_action() {
         platform_tax: BigDecimal::from(1),
         ..Default::default()
     };
-    let request = WalletRetirementRequest {
+    let request = WalletRetirementCommand {
         amount: BigDecimal::from(5),
         ethereum_address: " 0xReceiver ".to_string(),
         gas_payer: "platform".to_string(),
@@ -75,7 +75,7 @@ fn creates_platform_paid_retirement_with_tax_and_platform_action() {
 #[test]
 fn creates_user_paid_retirement_without_loading_platform_tax() {
     let mut store = FakeWalletRetirementStore::default();
-    let request = WalletRetirementRequest {
+    let request = WalletRetirementCommand {
         amount: BigDecimal::from(5),
         ethereum_address: "0xreceiver".to_string(),
         gas_payer: "user".to_string(),
@@ -112,8 +112,8 @@ fn rejects_empty_platform_address_when_provided() {
     );
 }
 
-fn request_with_amount(amount: BigDecimal) -> WalletRetirementRequest {
-    WalletRetirementRequest {
+fn request_with_amount(amount: BigDecimal) -> WalletRetirementCommand {
+    WalletRetirementCommand {
         amount,
         ethereum_address: "0xreceiver".to_string(),
         gas_payer: "platform".to_string(),

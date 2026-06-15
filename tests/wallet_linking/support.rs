@@ -4,7 +4,7 @@ pub(crate) use chrono::{NaiveDate, Utc};
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::application::wallet::create_deposit_intent::{
-    create_deposit_intent, WalletDepositIntentRequest as WalletTokenTransferRequest,
+    create_deposit_intent, WalletDepositIntentCommand as WalletTokenTransferCommand,
     WalletDepositIntentView,
 };
 pub(crate) use rust_learn::application::wallet::index_deposit::{
@@ -103,7 +103,7 @@ pub(crate) async fn link_organization_wallet(
 pub(crate) async fn deposit_tokens_to_user_wallet(
     conn: &mut AsyncPgConnection,
     user_id: i32,
-    request: WalletTokenTransferRequest,
+    request: WalletTokenTransferCommand,
 ) -> Result<
     WalletDepositIntentView,
     rust_learn::application::wallet::create_deposit_intent::WalletDepositIntentError,

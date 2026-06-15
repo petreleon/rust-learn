@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::application::rewards::list_platform_candidates::{
     PlatformRewardCandidateCourseSummary, PlatformRewardCandidateItem,
     PlatformRewardCandidatePermissions, PlatformRewardCandidateUserSummary,
-    PlatformRewardCandidatesQuery, PlatformRewardCandidatesResponse,
+    PlatformRewardCandidatesOutput, PlatformRewardCandidatesQuery,
 };
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -73,8 +73,8 @@ impl From<PlatformRewardCandidatesRequest> for PlatformRewardCandidatesQuery {
     }
 }
 
-impl From<PlatformRewardCandidatesResponse> for PlatformRewardCandidatesResponseBody {
-    fn from(output: PlatformRewardCandidatesResponse) -> Self {
+impl From<PlatformRewardCandidatesOutput> for PlatformRewardCandidatesResponseBody {
+    fn from(output: PlatformRewardCandidatesOutput) -> Self {
         Self {
             candidates: output
                 .candidates

@@ -2,7 +2,7 @@ use diesel::sql_types::Integer;
 use diesel_async::RunQueryDsl;
 use futures::future::{BoxFuture, FutureExt};
 
-use crate::application::operations::ports::ReadinessDependency;
+use crate::application::operations::ports::{ReadinessDependency, READINESS_DEPENDENCY_DATABASE};
 use crate::db::DbPool;
 
 pub struct PostgresReadinessCheck {
@@ -17,7 +17,7 @@ impl PostgresReadinessCheck {
 
 impl ReadinessDependency for PostgresReadinessCheck {
     fn name(&self) -> &'static str {
-        "postgres"
+        READINESS_DEPENDENCY_DATABASE
     }
 
     fn check(&mut self) -> BoxFuture<'_, Result<(), String>> {

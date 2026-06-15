@@ -58,7 +58,7 @@ pub struct PlatformRewardCandidatePermissions {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PlatformRewardCandidatesResponse {
+pub struct PlatformRewardCandidatesOutput {
     pub candidates: Vec<PlatformRewardCandidateItem>,
     pub total: i64,
     pub limit: i64,

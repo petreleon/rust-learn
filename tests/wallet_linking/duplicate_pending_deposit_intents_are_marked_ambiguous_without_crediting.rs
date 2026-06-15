@@ -16,7 +16,7 @@ async fn duplicate_pending_deposit_intents_are_marked_ambiguous_without_creditin
     .await
     .expect("failed to configure platform importer address");
 
-    let request = WalletTokenTransferRequest {
+    let request = WalletTokenTransferCommand {
         amount: BigDecimal::from(20),
         ethereum_address: "0x00000000000000000000000000000000000000aa".to_string(),
         gas_payer: "platform".to_string(),

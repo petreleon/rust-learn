@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use actix_web::{http::StatusCode, web};
 
-use crate::application::operations::ports::ReadinessDependency;
+use crate::application::operations::ports::{
+    ReadinessDependency, READINESS_DEPENDENCY_BLOCKCHAIN, READINESS_DEPENDENCY_DATABASE,
+    READINESS_DEPENDENCY_OBJECT_STORAGE,
+};
 use crate::application::operations::readiness_check::{
     check_readiness, MissingReadinessDependency, ReadinessStatus, ReadinessUseCase,
 };
@@ -35,12 +38,15 @@ fn readiness_status_code(status: ReadinessStatus) -> StatusCode {
 async fn missing_readiness() -> crate::application::operations::readiness_check::ReadinessOutput {
     let mut dependencies: Vec<Box<dyn ReadinessDependency>> = vec![
         Box::new(MissingReadinessDependency::new(
-            "postgres",
+            READINESS_DEPENDENCY_DATABASE,
             "missing database pool",
         )),
-        Box::new(MissingReadinessDependency::new("s3", "missing S3 state")),
         Box::new(MissingReadinessDependency::new(
-            "ethereum",
+            READINESS_DEPENDENCY_OBJECT_STORAGE,
+            "missing object storage state",
+        )),
+        Box::new(MissingReadinessDependency::new(
+            READINESS_DEPENDENCY_BLOCKCHAIN,
             "missing readiness use case",
         )),
     ];

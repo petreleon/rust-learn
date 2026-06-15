@@ -84,6 +84,10 @@ fn failed(name: &'static str, message: impl Into<String>) -> DependencyCheckOutp
 mod tests {
     use futures::future::{BoxFuture, FutureExt};
 
+    use crate::application::operations::ports::{
+        READINESS_DEPENDENCY_DATABASE, READINESS_DEPENDENCY_OBJECT_STORAGE,
+    };
+
     use super::*;
 
     struct FakeDependency {
@@ -104,16 +108,16 @@ mod tests {
 
     #[tokio::test]
     async fn check_readiness_is_ready_when_all_dependencies_pass() {
-        let postgres = FakeDependency {
-            name: "postgres",
+        let database = FakeDependency {
+            name: READINESS_DEPENDENCY_DATABASE,
             result: Ok(()),
         };
-        let s3 = FakeDependency {
-            name: "s3",
+        let object_storage = FakeDependency {
+            name: READINESS_DEPENDENCY_OBJECT_STORAGE,
             result: Ok(()),
         };
 
-        let output = check_readiness(&mut [Box::new(postgres), Box::new(s3)]).await;
+        let output = check_readiness(&mut [Box::new(database), Box::new(object_storage)]).await;
 
         assert_eq!(output.status, ReadinessStatus::Ready);
         assert_eq!(output.checks.len(), 2);
@@ -125,20 +129,20 @@ mod tests {
 
     #[tokio::test]
     async fn check_readiness_reports_not_ready_when_dependency_fails() {
-        let postgres = FakeDependency {
-            name: "postgres",
+        let database = FakeDependency {
+            name: READINESS_DEPENDENCY_DATABASE,
             result: Ok(()),
         };
-        let s3 = FakeDependency {
-            name: "s3",
+        let object_storage = FakeDependency {
+            name: READINESS_DEPENDENCY_OBJECT_STORAGE,
             result: Err("missing bucket".to_string()),
         };
 
-        let output = check_readiness(&mut [Box::new(postgres), Box::new(s3)]).await;
+        let output = check_readiness(&mut [Box::new(database), Box::new(object_storage)]).await;
 
         assert_eq!(output.status, ReadinessStatus::NotReady);
         assert!(output.checks.iter().any(|check| {
-            check.name == "s3"
+            check.name == READINESS_DEPENDENCY_OBJECT_STORAGE
                 && matches!(check.status, DependencyStatus::Failed)
                 && check.message.as_deref() == Some("missing bucket")
         }));

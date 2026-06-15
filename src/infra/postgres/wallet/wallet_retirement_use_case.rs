@@ -3,7 +3,7 @@ use diesel_async::AsyncPgConnection;
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::wallet::retire_tokens::{
-    self, WalletRetirementError, WalletRetirementRequest, WalletRetirementUseCase,
+    self, WalletRetirementCommand, WalletRetirementError, WalletRetirementUseCase,
     WalletRetirementView,
 };
 use crate::db::DbPool;
@@ -24,7 +24,7 @@ impl WalletRetirementUseCase for PostgresWalletRetirementUseCase {
     fn retire_tokens(
         &self,
         user_id: i32,
-        request: WalletRetirementRequest,
+        request: WalletRetirementCommand,
     ) -> BoxFuture<'_, Result<WalletRetirementView, WalletRetirementError>> {
         async move {
             let mut conn = self.connection().await?;

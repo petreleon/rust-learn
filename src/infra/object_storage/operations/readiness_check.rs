@@ -1,6 +1,8 @@
 use futures::future::{BoxFuture, FutureExt};
 
-use crate::application::operations::ports::ReadinessDependency;
+use crate::application::operations::ports::{
+    ReadinessDependency, READINESS_DEPENDENCY_OBJECT_STORAGE,
+};
 use crate::infra::object_storage::S3State;
 
 pub struct S3ReadinessCheck {
@@ -15,7 +17,7 @@ impl S3ReadinessCheck {
 
 impl ReadinessDependency for S3ReadinessCheck {
     fn name(&self) -> &'static str {
-        "s3"
+        READINESS_DEPENDENCY_OBJECT_STORAGE
     }
 
     fn check(&mut self) -> BoxFuture<'_, Result<(), String>> {

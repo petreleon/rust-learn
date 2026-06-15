@@ -1,14 +1,14 @@
 use bigdecimal::BigDecimal;
 
 use crate::application::wallet::retire_tokens::{
-    WalletRetirementDraft, WalletRetirementError, WalletRetirementGasPayer,
-    WalletRetirementRequest, WalletRetirementStore, WalletRetirementView,
+    WalletRetirementCommand, WalletRetirementDraft, WalletRetirementError,
+    WalletRetirementGasPayer, WalletRetirementStore, WalletRetirementView,
 };
 
 pub async fn retire_tokens(
     store: &mut impl WalletRetirementStore,
     user_id: i32,
-    request: WalletRetirementRequest,
+    request: WalletRetirementCommand,
 ) -> Result<WalletRetirementView, WalletRetirementError> {
     if !store.user_kyc_verified(user_id).await? {
         return Err(WalletRetirementError::KycRequired);
@@ -49,7 +49,7 @@ pub async fn retire_tokens(
     store.retire_tokens(user_id, draft).await
 }
 
-fn validate_request(request: &WalletRetirementRequest) -> Result<(), WalletRetirementError> {
+fn validate_request(request: &WalletRetirementCommand) -> Result<(), WalletRetirementError> {
     validate_positive_amount(&request.amount, "amount")?;
     if request.ethereum_address.trim().is_empty() {
         return Err(WalletRetirementError::InvalidInput(
@@ -96,7 +96,7 @@ fn validate_non_negative_amount(
 }
 
 fn validate_external_transaction_fields(
-    request: &WalletRetirementRequest,
+    request: &WalletRetirementCommand,
 ) -> Result<(), WalletRetirementError> {
     if request
         .chain_id

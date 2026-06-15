@@ -1,7 +1,7 @@
 use futures::future::BoxFuture;
 
 use crate::application::rewards::list_platform_candidates::{
-    PlatformRewardCandidatesError, PlatformRewardCandidatesQuery, PlatformRewardCandidatesResponse,
+    PlatformRewardCandidatesError, PlatformRewardCandidatesOutput, PlatformRewardCandidatesQuery,
 };
 
 pub trait PlatformRewardCandidatesUseCase: Send + Sync {
@@ -9,5 +9,5 @@ pub trait PlatformRewardCandidatesUseCase: Send + Sync {
         &self,
         actor_user_id: i32,
         query: PlatformRewardCandidatesQuery,
-    ) -> BoxFuture<'_, Result<PlatformRewardCandidatesResponse, PlatformRewardCandidatesError>>;
+    ) -> BoxFuture<'_, Result<PlatformRewardCandidatesOutput, PlatformRewardCandidatesError>>;
 }

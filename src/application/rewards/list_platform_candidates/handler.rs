@@ -4,7 +4,7 @@ use crate::application::rewards::list_platform_candidates::enrichment::{
 use crate::application::rewards::list_platform_candidates::store::PlatformRewardCandidateStore;
 use crate::application::rewards::list_platform_candidates::{
     PlatformRewardCandidatePermissions, PlatformRewardCandidatesError,
-    PlatformRewardCandidatesQuery, PlatformRewardCandidatesResponse,
+    PlatformRewardCandidatesOutput, PlatformRewardCandidatesQuery,
 };
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
@@ -12,7 +12,7 @@ pub async fn list_platform_reward_candidates(
     store: &mut impl PlatformRewardCandidateStore,
     actor_user_id: i32,
     query: PlatformRewardCandidatesQuery,
-) -> Result<PlatformRewardCandidatesResponse, PlatformRewardCandidatesError> {
+) -> Result<PlatformRewardCandidatesOutput, PlatformRewardCandidatesError> {
     ensure_can_view_candidates(store, actor_user_id).await?;
     let status = normalized_status(query.status)?;
     let search = normalized_search(query.search);
@@ -34,7 +34,7 @@ pub async fn list_platform_reward_candidates(
         .take(limit as usize)
         .collect();
 
-    Ok(PlatformRewardCandidatesResponse {
+    Ok(PlatformRewardCandidatesOutput {
         candidates,
         total,
         limit,
