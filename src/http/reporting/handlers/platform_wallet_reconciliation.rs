@@ -1,34 +1,19 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::web;
 
-use crate::application::reporting::platform_wallet_reconciliation::{
-    PlatformWalletReconciliationError, PlatformWalletReconciliationUseCase,
-};
+use crate::application::reporting::platform_wallet_reconciliation::PlatformWalletReconciliationUseCase;
+use crate::http::errors::ApiError;
 use crate::http::reporting::dto::PlatformWalletReconciliationResponse;
+use crate::http::reporting::errors::platform_wallet_reconciliation_error;
 
 pub async fn get_platform_wallet_reconciliation(
     reconciliation: web::Data<Arc<dyn PlatformWalletReconciliationUseCase>>,
-) -> impl Responder {
-    match reconciliation.load_platform_wallet_reconciliation().await {
-        Ok(output) => HttpResponse::Ok().json(PlatformWalletReconciliationResponse::from(output)),
-        Err(error) => platform_wallet_reconciliation_error_response(error),
-    }
-}
-
-fn platform_wallet_reconciliation_error_response(
-    error: PlatformWalletReconciliationError,
-) -> HttpResponse {
-    match error {
-        PlatformWalletReconciliationError::Connection(_) => {
-            HttpResponse::InternalServerError().body("Failed to get DB connection")
-        }
-        PlatformWalletReconciliationError::Database(message) => {
-            log::error!(
-                "event=report_load_failed scope=platform report=wallet_reconciliation error={}",
-                message
-            );
-            HttpResponse::InternalServerError().body("Failed to load wallet reconciliation")
-        }
-    }
+) -> Result<web::Json<PlatformWalletReconciliationResponse>, ApiError> {
+    reconciliation
+        .load_platform_wallet_reconciliation()
+        .await
+        .map(PlatformWalletReconciliationResponse::from)
+        .map(web::Json)
+        .map_err(platform_wallet_reconciliation_error)
 }

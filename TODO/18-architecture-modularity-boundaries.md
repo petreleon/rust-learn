@@ -958,8 +958,10 @@ Wiring rule:
       member invite/removal/role, and member audit handlers now use typed
       JSON/text/status results with organization HTTP error mappers. Wallet
       read/link/audit/deposit/retirement/token-tax handlers now use typed
-      JSON/status results with wallet HTTP error mappers. Reporting, rewards,
-      and learning contexts still need the same treatment before this is done.
+      JSON/status results with wallet HTTP error mappers. Reporting dashboard
+      and CSV export handlers now use typed JSON/CSV download results with
+      reporting HTTP error mappers. Rewards and learning contexts still need
+      the same treatment before this is done.
 - [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
 - [x] Configure JSON limits and JSON parse errors centrally so every route has
@@ -1499,6 +1501,30 @@ Batch 299: move wallet handlers to typed HTTP results.
 - [x] Self-critique: this completes the wallet HTTP typed-result slice only.
       Reporting, rewards, and learning still contain manual response branches.
 
+Batch 300: move reporting handlers to typed HTTP results.
+
+- [x] Added `http/reporting/errors` mappers for platform summary, platform
+      fraud/reward dashboards, platform wallet reconciliation, platform CSV
+      exports, organization summary, and organization reward-dashboard
+      application errors, all returning the shared `ApiError` envelope.
+- [x] Added a concrete `CsvDownload` response contract in `http/reporting/dto`
+      so CSV routes keep their download headers without repeating
+      `HttpResponse` builders in handlers.
+- [x] Repointed reporting dashboard and CSV export handlers away from
+      handler-local `HttpResponse`/`impl Responder` branches and into typed
+      JSON/CSV result types.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::reporting`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing api_scope_and_following_routes_are_reachable`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      reporting handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      reporting file-size checks.
+- [x] Self-critique: this completes the reporting HTTP typed-result slice only.
+      Rewards and learning still contain manual response branches.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1625,6 +1651,9 @@ boundary checks from the matrix above to every canonical context.
       preserved.
 - [x] `http/reporting` owns the `/reports` Actix scope and exposes only a
       context-level route configurator to the rest of the app.
+- [x] Reporting HTTP handlers return typed JSON/CSV download results and map
+      application errors through granular `http/reporting/errors` modules,
+      keeping Actix response construction out of route functions.
 
 ## Wallet Context
 
