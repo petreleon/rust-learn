@@ -1,3 +1,5 @@
+use crate::{create_course::*, support::*, use_case_helpers::*};
+
 #[actix_web::test]
 async fn treasury_policy_uses_presigner_when_contract_is_available() {
     let mut conn = setup_conn().await;

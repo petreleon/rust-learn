@@ -1,3 +1,5 @@
+use crate::{create_course::*, support::*, use_case_helpers::*};
+
 #[actix_web::test]
 async fn execute_reward_payout_permission_gates_token_confirmation_and_wallet_credit() {
     let mut conn = setup_conn().await;

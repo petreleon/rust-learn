@@ -72,8 +72,8 @@ Live refresh from 2026-06-15:
 - No production `include!` calls remain under `src`.
 - No `authenticated_user*` helper usage or direct `pool.get().await` remained
   in `src/http` in the latest scan.
-- Remaining integration-test harness cleanup: 3 `tests/*/imports.rs` files and
-  28 test `include!` calls.
+- Remaining integration-test harness cleanup: 2 `tests/*/imports.rs` files and
+  17 test `include!` calls.
 
 Completed architecture outcomes:
 
@@ -112,7 +112,8 @@ Detailed history is in git. Keep only compact proof here.
 | 325 | `46de0502` | Converted `teacher_course_dashboard` to explicit modules/support; kept dashboard fixtures/helpers crate-local and proved with focused tests, Cargo gates, scans, and line checks. |
 | 326 | `4102c76a` | Converted `delegated_permissions` to explicit modules/support; proved with focused delegated-permissions tests, Cargo gates, scans showing no local `include!`/`imports.rs`, and line checks. |
 | 327 | `641ddd50` | Converted `reporting_exports` to explicit modules plus `support.rs` and reporting app-data helpers; fixed fixture idempotency keys and proved with focused reporting tests, Cargo gates, scans, and line checks. |
-| 328 | this batch | Converted `reward_candidates` to explicit modules/support; fixed reward fixture idempotency keys, refreshed the reward candidate permission-envelope assertion, and proved with focused reward-candidates tests, Cargo gates, scans, and line checks. |
+| 328 | `930d6586` | Converted `reward_candidates` to explicit modules/support; fixed reward fixture idempotency keys, refreshed the reward candidate permission-envelope assertion, and proved with focused reward-candidates tests, Cargo gates, scans, and line checks. |
+| 329 | this batch | Converted `reward_execution` to explicit modules/support; kept execution use-case helpers crate-local and proved with focused reward-execution tests, Cargo gates, scans, and line checks. |
 
 Repeated verification used by completed batches:
 
@@ -150,7 +151,6 @@ Repeated verification used by completed batches:
 Keep this list small and evidence-based.
 
 - Finish global integration-test harness cleanup. Remaining files:
-  - `tests/reward_execution/imports.rs`
   - `tests/video_upload_flow/imports.rs`
   - `tests/wallet_linking/imports.rs`
 - Finish authorization hardening: middleware should remain an early rejection
@@ -165,9 +165,9 @@ Keep this list small and evidence-based.
 - Before each commit/push that advances this objective, refresh this TODO with
   the latest completed proof and active counters.
 
-Suggested next small batch: convert `tests/reward_execution` from
+Suggested next small batch: convert `tests/wallet_linking` from
 `include!`/`imports.rs` to explicit modules plus `support.rs`, then rerun the
-focused reward-execution test and the standard gates.
+focused wallet-linking test and the standard gates.
 
 ## Acceptance Criteria
 

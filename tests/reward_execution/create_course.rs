@@ -1,4 +1,6 @@
-async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
+use crate::support::*;
+
+pub(crate) async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
     diesel::insert_into(courses::table)
         .values(NewCourse {
             title: title.to_string(),
@@ -11,7 +13,7 @@ async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
         .expect("failed to create course")
 }
 
-async fn create_course_reward_policy(
+pub(crate) async fn create_course_reward_policy(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     payment_strategy: &str,
@@ -36,7 +38,7 @@ async fn create_course_reward_policy(
         .expect("failed to create reward policy");
 }
 
-async fn create_reward_candidate(
+pub(crate) async fn create_reward_candidate(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     student_user_id: i32,
