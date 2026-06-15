@@ -1,6 +1,9 @@
 use chrono::{DateTime, Utc};
 
-use crate::application::reporting::platform_csv_exports::PlatformDelegatedPermissionExportRowOutput;
+use crate::application::reporting::platform_csv_exports::{
+    PlatformDelegatedPermissionExportRowOutput, PlatformDelegatedPermissionExportState,
+};
+use crate::domain::access_control::delegation::DelegatedScopeType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct PlatformDelegatedPermissionExportFact {
@@ -8,7 +11,7 @@ pub(crate) struct PlatformDelegatedPermissionExportFact {
     pub grantor_user_id: i32,
     pub grantee_user_id: i32,
     pub permission: String,
-    pub scope_type: String,
+    pub scope_type: DelegatedScopeType,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,
     pub reason: Option<String>,
@@ -31,15 +34,15 @@ fn platform_delegated_permission_export_row_at(
     now: DateTime<Utc>,
 ) -> PlatformDelegatedPermissionExportRowOutput {
     let state = if fact.revoked_at.is_some() {
-        "revoked"
+        PlatformDelegatedPermissionExportState::Revoked
     } else if fact
         .expires_at
         .map(|expires_at| expires_at <= now)
         .unwrap_or(false)
     {
-        "expired"
+        PlatformDelegatedPermissionExportState::Expired
     } else {
-        "active"
+        PlatformDelegatedPermissionExportState::Active
     };
 
     PlatformDelegatedPermissionExportRowOutput {
@@ -50,7 +53,7 @@ fn platform_delegated_permission_export_row_at(
         scope_type: fact.scope_type,
         organization_id: fact.organization_id,
         course_id: fact.course_id,
-        state: state.to_string(),
+        state,
         reason: fact.reason.unwrap_or_default(),
         expires_at: fact.expires_at,
         revoked_at: fact.revoked_at,
@@ -82,7 +85,7 @@ mod tests {
             now,
         );
 
-        assert_eq!(row.state, "revoked");
+        assert_eq!(row.state, PlatformDelegatedPermissionExportState::Revoked);
         assert_eq!(row.reason, "grant reason");
         assert_eq!(row.revoke_reason, "revoke reason");
     }
@@ -96,7 +99,7 @@ mod tests {
             now,
         );
 
-        assert_eq!(row.state, "expired");
+        assert_eq!(row.state, PlatformDelegatedPermissionExportState::Expired);
         assert_eq!(row.reason, "");
         assert_eq!(row.revoke_reason, "");
     }
@@ -110,7 +113,7 @@ mod tests {
             now,
         );
 
-        assert_eq!(row.state, "active");
+        assert_eq!(row.state, PlatformDelegatedPermissionExportState::Active);
     }
 
     fn delegated_permission_fact(
@@ -125,7 +128,7 @@ mod tests {
             grantor_user_id: 2,
             grantee_user_id: 3,
             permission: "reports:read".to_string(),
-            scope_type: "platform".to_string(),
+            scope_type: DelegatedScopeType::Platform,
             organization_id: None,
             course_id: None,
             reason,

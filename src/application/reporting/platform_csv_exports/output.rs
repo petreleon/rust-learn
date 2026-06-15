@@ -1,10 +1,28 @@
 use chrono::{DateTime, Utc};
 
+use crate::domain::access_control::delegation::DelegatedScopeType;
 use crate::domain::rewards::candidate::event_type::RewardEventType;
 use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::teacher_applications::scope::TeacherApplicationScope;
 use crate::domain::teacher_applications::status::TeacherApplicationStatus;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlatformDelegatedPermissionExportState {
+    Active,
+    Expired,
+    Revoked,
+}
+
+impl PlatformDelegatedPermissionExportState {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::Expired => "expired",
+            Self::Revoked => "revoked",
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlatformTeacherApplicationExportRowOutput {
@@ -85,10 +103,10 @@ pub struct PlatformDelegatedPermissionExportRowOutput {
     pub grantor_user_id: i32,
     pub grantee_user_id: i32,
     pub permission: String,
-    pub scope_type: String,
+    pub scope_type: DelegatedScopeType,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,
-    pub state: String,
+    pub state: PlatformDelegatedPermissionExportState,
     pub reason: String,
     pub expires_at: Option<DateTime<Utc>>,
     pub revoked_at: Option<DateTime<Utc>>,

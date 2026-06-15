@@ -14,10 +14,10 @@ pub fn platform_delegated_permissions_csv(
             row.grantor_user_id,
             row.grantee_user_id,
             csv_value(&row.permission),
-            csv_value(&row.scope_type),
+            csv_value(row.scope_type.as_str()),
             csv_optional(row.organization_id),
             csv_optional(row.course_id),
-            csv_value(&row.state),
+            csv_value(row.state.as_str()),
             csv_value(&row.reason),
             csv_optional(row.expires_at.as_ref()),
             csv_optional(row.revoked_at.as_ref()),
@@ -35,7 +35,10 @@ mod tests {
     use chrono::Utc;
 
     use super::platform_delegated_permissions_csv;
-    use crate::application::reporting::platform_csv_exports::PlatformDelegatedPermissionExportRowOutput;
+    use crate::application::reporting::platform_csv_exports::{
+        PlatformDelegatedPermissionExportRowOutput, PlatformDelegatedPermissionExportState,
+    };
+    use crate::domain::access_control::delegation::DelegatedScopeType;
 
     #[test]
     fn keeps_legacy_delegated_permissions_csv_shape() {
@@ -46,10 +49,10 @@ mod tests {
                 grantor_user_id: 2,
                 grantee_user_id: 3,
                 permission: "APPROVE_REWARD_AMOUNT".to_string(),
-                scope_type: "platform".to_string(),
+                scope_type: DelegatedScopeType::Platform,
                 organization_id: None,
                 course_id: None,
-                state: "active".to_string(),
+                state: PlatformDelegatedPermissionExportState::Active,
                 reason: "temporary, reviewer".to_string(),
                 expires_at: None,
                 revoked_at: None,

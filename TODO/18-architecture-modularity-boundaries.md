@@ -1,11 +1,12 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Verified base: `74811b12`; current checked batch listed below.
+Verified base before this changeset: `285bdfcb`.
+Latest verified changeset: delegated-permission CSV export vocabulary.
 
 Goal: move RustLearn to a Level 2 modular monolith with firm business
-boundaries. Ownership matters more than folder count. Preserve behavior unless
-another TODO explicitly owns the behavior change.
+boundaries. Ownership matters more than folder count; preserve behavior unless
+another TODO owns the behavior change.
 
 ## Level 2 Boundaries
 
@@ -17,66 +18,49 @@ another TODO explicitly owns the behavior change.
 - `infra`: Postgres, object storage, Ethereum, email, workers, dispatchers.
 - `http`: Actix routes, extractors, DTOs, response mapping.
 
-Allowed flow: `http -> application -> domain`; `infra` implements
-application/domain ports; `bootstrap` wires concrete dependencies.
+Allowed flow: `http -> application -> domain`; `infra` implements ports;
+`bootstrap` wires concrete dependencies.
 
 Checked contexts: `access_control`, `content`, `identity`, `kyc`, `learning`,
 `notifications`, `operations`, `organizations`, `reporting`, `rewards`,
 `teacher_applications`, `wallet`.
 
-## Already Done / Checked
+## Done / Checked
 
-- Thin bootstrap and route composition under `bootstrap`; no `src/api`.
-- Migrated handlers use typed extractors, DTOs, typed errors, and application
-  use cases.
+- Bootstrap is thin; migrated HTTP uses typed extractors, DTOs, errors, and use
+  cases.
 - Migrated workflows use commands, outputs, ports, fake-port tests, access
   decisions, domain vocabulary, invariants, and transitions.
-- Concrete adapters own Postgres, object storage, Ethereum, email, workers, and
-  dispatchers; Diesel is kept out of route handlers and migrated
-  application/domain code.
-- Shared access-control vocabulary is used by middleware and use cases; typed
-  auth extractors are in place; `/api/me` keeps its unauthorized JSON contract.
-- Frontend gates consume backend current-session capabilities; tests no longer
-  use `include!` or `imports.rs`.
-- Scans checked: no legacy `src/{api,services,repositories,utils}`, no
-  `include!`, no `tests/*/imports.rs`, no `authenticated_user*` or direct
-  `pool.get().await` in `src/http`, and ring-import scans for `domain` and
-  `application`.
+- Infra owns Postgres, object storage, Ethereum, email, workers, dispatchers;
+  Diesel is kept out of route handlers and migrated application/domain code.
+- Shared access-control vocabulary, typed auth extractors, frontend capability
+  gates, and `/api/me` unauthorized JSON contract are checked.
+- Boundary scans checked: no legacy `src/{api,services,repositories,utils}`, no
+  `include!`, no `tests/*/imports.rs`, no direct auth/pool access in `http`,
+  and no forbidden ring imports in `domain`/`application`.
 
 ## Verified Commit Groups
 
 - `581f1be3`..`57215a3c`: auth helper removal, JSON extractor errors, typed
   HTTP results/errors, access decisions, frontend gates, test harness cleanup.
-- `5a1643fa`..`2287a1f9`: reward status vocabulary at infra/application
-  boundary for payout candidates, decisions, submissions, and reward history.
-- `02388e62`: reward audit transition statuses and reconciliation final status.
-- `986b1686`: reward source/event, audit/history/payout events, payment
-  strategy, payout method.
-- `b1413b5d`: reward policy scope/event/payment strategy, fraud-block
-  scope/audit event, token-confirmation transaction type.
-- `53a3fd67`: platform reward dashboard row vocabulary. Application
-  outputs/facts carry typed reward event/status/execution status and
-  reconciliation mismatch types; Postgres adapters parse persisted strings
-  before crossing into application; HTTP DTOs keep the public string contract.
+- `5a1643fa`..`2287a1f9`: reward status vocabulary for payout candidates,
+  decisions, submissions, and reward history.
+- `02388e62`, `986b1686`, `b1413b5d`: reward audit/reconciliation/source/event,
+  payment, policy, fraud, and token-confirmation vocabulary.
+- `53a3fd67`: platform reward dashboard rows are typed across app/infra/http.
 - `74811b12`: platform reward-approval CSV export vocabulary.
-  Application facts/outputs carry typed reward source scope, event type, and
-  candidate status; Postgres parses persisted strings before crossing into
-  application; HTTP CSV serialization keeps the public string contract.
-- Current verified batch: platform teacher-application CSV export vocabulary.
-  Domain now exposes typed teacher-application scope/status enums while
-  preserving existing normalization APIs; application export rows carry typed
-  scope/status, Postgres parses persisted strings, and HTTP CSV serialization
-  keeps the public string contract.
+- `285bdfcb`: platform teacher-application CSV export vocabulary.
+- This changeset: platform delegated-permission CSV export vocabulary.
 
-Proof set used for verified batches: focused host tests, fmt, Cargo lib/bin
-checks, integration no-run compile, `git diff --check`, line-count checks,
-reward/reporting string-field scans, and boundary scans.
+Proof set for verified batches: focused host tests, fmt, Cargo lib/bin checks,
+integration no-run compile, `git diff --check`, line counts, string-field scans,
+and boundary scans. This changeset additionally passed the reporting export
+integration test and delegated-permission focused tests.
 
 ## Still Open
 
 - Rewards/reporting: remaining credit, notification event/payment, transition,
-  CSV/export/reporting surfaces outside the verified dashboard rows and
-  reward/teacher-application exports, wallet, and audit business strings
+  CSV/export/reporting surfaces not listed above, wallet, and audit strings
   crossing infra/application.
 - Persistence: keep Diesel schema/model leakage inside infra/persistence
   records.
