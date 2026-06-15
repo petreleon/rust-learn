@@ -1000,7 +1000,8 @@ completed entries.
 | 318 | `7415aebb` | Converted small permission/management harnesses: `model_permission_tests`, `repository_core_tests`, `repository_delegation_tests`, `platform_permissions`, `organization_management`, `course_enrollment_api`. |
 | 319 | `dc6b11ea` | Converted `course_content_management` and `student_reward_history` harnesses; kept touched files under the 180-line cap. |
 | 320 | `ca1c80c9` | Converted `course_join_requests`, `organization_dashboard`, and `worker_upload_jobs` harnesses to explicit modules/support; proved with focused tests, Cargo gates, boundary scans, and touched-file size checks. |
-| 321 | this batch | Converted `current_session_api` and `organization_members` harnesses to explicit modules/support; proved with focused tests, Cargo gates, boundary scans, and touched-file size checks. |
+| 321 | `61edcae1` | Converted `current_session_api` and `organization_members` harnesses to explicit modules/support; proved with focused tests, Cargo gates, boundary scans, and touched-file size checks. |
+| 322 | this batch | Converted `authentication_flow` to explicit modules/support, split the hidden registration test out of shared setup, and proved with focused auth tests, Cargo gates, boundary scans, and touched-file size checks. |
 
 ### Repeated Verification Already Used
 
@@ -1026,7 +1027,7 @@ and boundary scans.
 
 - Finish global integration-test harness cleanup: remaining test crates still
   using `include!`/`imports.rs` need explicit modules and `support.rs` files.
-  Current scan after Batch 321: 12 `tests/*/imports.rs` files and 111 test
+  Current scan after Batch 322: 11 `tests/*/imports.rs` files and 104 test
   `include!` occurrences remain.
 - Finish authorization hardening: middleware should stay an early rejection
   optimization, while application use cases remain the real business guard.
