@@ -38,9 +38,6 @@ pub fn configure_access_control_app_data(
 }
 
 pub(crate) fn configure_access_control_check_app_data(cfg: &mut web::ServiceConfig, pool: &DbPool) {
-    let hierarchy_check: HierarchyCheckService = Arc::new(pool.clone());
-    let access_decision: AccessDecisionService = Arc::new(pool.clone());
-
-    cfg.app_data(web::Data::new(hierarchy_check))
-        .app_data(web::Data::new(access_decision));
+    let use_cases = build_access_control_use_cases(pool);
+    configure_access_control_app_data(cfg, &use_cases);
 }

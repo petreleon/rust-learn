@@ -1996,6 +1996,32 @@ Batch 315: finish frontend capability gates on backend-derived session facts.
       capability is enabled; middleware/application same-service consolidation
       remains the main open authorization boundary.
 
+Batch 316: remove access-control test include shells and unify check wiring.
+
+- [x] Replaced the `course_permissions`, `organization_permissions`, and
+      `middleware_access_control` integration-test `include!` shells with
+      normal modules plus explicit crate-local `support` modules.
+- [x] Renamed the three access-control test `imports.rs` files to `support.rs`
+      and made shared helpers/re-exports explicit instead of relying on
+      textual include scope.
+- [x] Routed `configure_access_control_check_app_data` through the same
+      `AccessControlUseCases` builder/configurer as production app-state
+      wiring, so compatibility route tests register permission and hierarchy
+      checks from the same application-owned service bundle.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --test course_permissions --test organization_permissions --test middleware_access_control`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api current_session_returns_backend_capabilities`,
+      `./scripts/run-host-tests.sh cargo check --lib`, targeted
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      `include!`/`imports.rs` scans for the converted harnesses, middleware
+      direct-Postgres-helper scans, ring import-boundary scans,
+      `git diff --check`, and touched-file size checks.
+- [x] Self-critique: this removes access-control test harness include coupling
+      and closes the middleware use-case wiring gap, but many unrelated
+      integration-test crates still use `include!`/`imports.rs`; the global
+      no-include test cleanup remains open.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -2207,7 +2233,7 @@ boundary checks from the matrix above to every canonical context.
 - [x] Ops, teacher-application, learner, and organization frontend gates now
       consume backend-derived current-session access/capability facts instead
       of local permission selector state or raw effective-permission checks.
-- [ ] Make middleware call the same access-control service as application use
+- [x] Make middleware call the same access-control service as application use
       cases.
 - [ ] Keep middleware as an early rejection optimization; do not make it the
       only place that protects business actions.

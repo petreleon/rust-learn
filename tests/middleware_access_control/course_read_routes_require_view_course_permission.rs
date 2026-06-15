@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn course_read_routes_require_view_course_permission() {
     let _ = dotenvy::dotenv();
