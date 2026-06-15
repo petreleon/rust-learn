@@ -1,25 +1,20 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::rewards::list_candidate_audit::{
     RewardCandidateAuditError, RewardCandidateAuditEvent, RewardCandidateAuditUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::rewards::dto::RewardCandidateAuditEventResponse;
 
 pub async fn list_reward_candidate_audit(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i64>,
     audit: web::Data<Arc<dyn RewardCandidateAuditUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     match audit
-        .list_reward_candidate_audit(requester.user_id, path.into_inner())
+        .list_reward_candidate_audit(requester.user_id(), path.into_inner())
         .await
     {
         Ok(events) => HttpResponse::Ok().json(audit_event_responses(events)),

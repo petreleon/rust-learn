@@ -1,28 +1,23 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::rewards::manage_fraud_block::{
     RewardFraudBlockAuditEventOutput, RewardFraudBlockError, RewardFraudBlockUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::rewards::dto::{
     CreateRewardFraudBlockRequest, ListRewardFraudBlocksRequest, ListRewardFraudBlocksResponse,
     RewardFraudBlockAuditEventResponse, RewardFraudBlockResponse,
 };
 
 pub async fn create_reward_fraud_block(
-    req: HttpRequest,
+    requester: AuthUser,
     fraud_blocks: web::Data<Arc<dyn RewardFraudBlockUseCase>>,
     body: web::Json<CreateRewardFraudBlockRequest>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     match fraud_blocks
-        .create_reward_fraud_block(requester.user_id, body.into_inner().into())
+        .create_reward_fraud_block(requester.user_id(), body.into_inner().into())
         .await
     {
         Ok(block) => HttpResponse::Created().json(RewardFraudBlockResponse::from(block)),
@@ -31,17 +26,12 @@ pub async fn create_reward_fraud_block(
 }
 
 pub async fn list_reward_fraud_blocks(
-    req: HttpRequest,
+    requester: AuthUser,
     fraud_blocks: web::Data<Arc<dyn RewardFraudBlockUseCase>>,
     query: web::Query<ListRewardFraudBlocksRequest>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     match fraud_blocks
-        .list_reward_fraud_blocks(requester.user_id, query.into_inner().into())
+        .list_reward_fraud_blocks(requester.user_id(), query.into_inner().into())
         .await
     {
         Ok(output) => HttpResponse::Ok().json(ListRewardFraudBlocksResponse::from(output)),
@@ -50,17 +40,12 @@ pub async fn list_reward_fraud_blocks(
 }
 
 pub async fn revoke_reward_fraud_block(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i64>,
     fraud_blocks: web::Data<Arc<dyn RewardFraudBlockUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     match fraud_blocks
-        .revoke_reward_fraud_block(requester.user_id, path.into_inner())
+        .revoke_reward_fraud_block(requester.user_id(), path.into_inner())
         .await
     {
         Ok(block) => HttpResponse::Ok().json(RewardFraudBlockResponse::from(block)),
@@ -69,17 +54,12 @@ pub async fn revoke_reward_fraud_block(
 }
 
 pub async fn reward_fraud_block_audit_history(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i64>,
     fraud_blocks: web::Data<Arc<dyn RewardFraudBlockUseCase>>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     match fraud_blocks
-        .reward_fraud_block_audit_history(requester.user_id, path.into_inner())
+        .reward_fraud_block_audit_history(requester.user_id(), path.into_inner())
         .await
     {
         Ok(events) => HttpResponse::Ok().json(audit_event_responses(events)),

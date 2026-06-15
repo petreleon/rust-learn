@@ -1,27 +1,22 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::rewards::manage_reward_policy::{
     RewardPolicyError, RewardPolicyOutput, RewardPolicyUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::rewards::dto::{
     CreateRewardPolicyRequest, ListRewardPoliciesRequest, RewardPolicyResponse,
 };
 
 pub async fn create_reward_policy(
-    req: HttpRequest,
+    requester: AuthUser,
     policies: web::Data<Arc<dyn RewardPolicyUseCase>>,
     body: web::Json<CreateRewardPolicyRequest>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     match policies
-        .create_reward_policy(requester.user_id, body.into_inner().into())
+        .create_reward_policy(requester.user_id(), body.into_inner().into())
         .await
     {
         Ok(policy) => HttpResponse::Created().json(RewardPolicyResponse::from(policy)),
@@ -30,17 +25,12 @@ pub async fn create_reward_policy(
 }
 
 pub async fn list_reward_policies(
-    req: HttpRequest,
+    requester: AuthUser,
     policies: web::Data<Arc<dyn RewardPolicyUseCase>>,
     query: web::Query<ListRewardPoliciesRequest>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     match policies
-        .list_reward_policies(requester.user_id, query.into_inner().into())
+        .list_reward_policies(requester.user_id(), query.into_inner().into())
         .await
     {
         Ok(policies) => HttpResponse::Ok().json(reward_policy_responses(policies)),

@@ -1,27 +1,22 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::rewards::list_platform_candidates::{
     PlatformRewardCandidatesError, PlatformRewardCandidatesUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::rewards::dto::{
     PlatformRewardCandidatesRequest, PlatformRewardCandidatesResponseBody,
 };
 
 pub async fn list_platform_reward_candidates(
-    req: HttpRequest,
+    requester: AuthUser,
     candidates: web::Data<Arc<dyn PlatformRewardCandidatesUseCase>>,
     query: web::Query<PlatformRewardCandidatesRequest>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     match candidates
-        .list_platform_reward_candidates(requester.user_id, query.into_inner().into())
+        .list_platform_reward_candidates(requester.user_id(), query.into_inner().into())
         .await
     {
         Ok(output) => HttpResponse::Ok().json(PlatformRewardCandidatesResponseBody::from(output)),

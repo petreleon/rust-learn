@@ -1,27 +1,22 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmissionError, RewardCandidateSubmissionUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::rewards::dto::{RewardCandidateSubmissionResponse, SubmitRewardCandidateRequest};
 
 pub async fn submit_course_reward_candidate(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     use_case: web::Data<Arc<dyn RewardCandidateSubmissionUseCase>>,
     body: web::Json<SubmitRewardCandidateRequest>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     match use_case
         .submit_course_reward_candidate(
-            requester.user_id,
+            requester.user_id(),
             path.into_inner(),
             body.into_inner().into(),
         )
@@ -35,20 +30,16 @@ pub async fn submit_course_reward_candidate(
 }
 
 pub async fn submit_organization_reward_candidate(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<(i32, i32)>,
     use_case: web::Data<Arc<dyn RewardCandidateSubmissionUseCase>>,
     body: web::Json<SubmitRewardCandidateRequest>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
     let (organization_id, course_id) = path.into_inner();
 
     match use_case
         .submit_organization_reward_candidate(
-            requester.user_id,
+            requester.user_id(),
             organization_id,
             course_id,
             body.into_inner().into(),

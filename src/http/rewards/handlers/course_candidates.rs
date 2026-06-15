@@ -1,27 +1,22 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpRequest, HttpResponse, Responder};
+use actix_web::{web, HttpResponse, Responder};
 
 use crate::application::rewards::list_course_candidates::{
     CourseRewardCandidate, CourseRewardCandidatesError, CourseRewardCandidatesUseCase,
 };
-use crate::http::extractors::request_auth::authenticated_user;
+use crate::http::extractors::auth_user::AuthUser;
 use crate::http::rewards::dto::{CourseRewardCandidateResponse, ListCourseRewardCandidatesRequest};
 
 pub async fn list_course_reward_candidates(
-    req: HttpRequest,
+    requester: AuthUser,
     path: web::Path<i32>,
     candidates: web::Data<Arc<dyn CourseRewardCandidatesUseCase>>,
     query: web::Query<ListCourseRewardCandidatesRequest>,
 ) -> impl Responder {
-    let requester = match authenticated_user(&req) {
-        Ok(user) => user,
-        Err(response) => return response,
-    };
-
     match candidates
         .list_course_reward_candidates(
-            requester.user_id,
+            requester.user_id(),
             path.into_inner(),
             query.into_inner().into(),
         )

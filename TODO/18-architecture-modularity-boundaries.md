@@ -1180,34 +1180,38 @@ remaining gaps.
 | 282 | Added an application-owned JWKS contract, mapped env-backed token infra into that contract through identity wiring, moved JWKS JSON serialization into HTTP, and made HTTP auth extractors rely on middleware-inserted identity claims instead of decoding JWTs directly. |
 | 283 | Added an `AuthUserId` typed extractor and migrated id-only handlers in notifications, content processing, learning enrollment/progress/assessment/course-role routes, organization member invite/removal/role routes, and identity platform/session-id routes away from manual `authenticated_user_id(&req)` parsing. |
 | 284 | Made `AuthUser` preserve the old plain-text unauthorized failures and migrated wallet read/link/audit/deposit/retirement/token-tax routes away from manual `authenticated_user(&req)` parsing. |
+| 285 | Migrated reward policy, fraud-block, candidate submission/list/review/audit/history, teacher decision, and amount decision routes to `AuthUser`, removing manual full-claims request auth from `http/rewards`. |
 
 ## Recent Slice Evidence
 
-Batch 284: migrate wallet full-claims request auth to a typed extractor.
+Batch 285: migrate reward full-claims request auth to a typed extractor.
 
-- [x] Changed `AuthUser` to return the same Actix unauthorized failures as the
-      legacy manual helper, preserving plain-text messages for missing,
-      malformed, or invalid bearer headers while still reading the
-      middleware-inserted `UserJWT` extension.
-- [x] Repointed wallet read, wallet link, wallet audit, deposit intent,
-      retirement, and token-tax handlers to receive `AuthUser` directly instead
-      of accepting `HttpRequest` and calling `authenticated_user(&req)`.
-- [x] Kept wallet application calls unchanged: handlers still pass the actor
-      user id into the existing wallet read/link/audit/deposit/retirement/tax
-      use cases and keep the same service-error response mapping.
-- [x] Proved the wallet HTTP context no longer imports `HttpRequest`,
+- [x] Repointed reward policy creation/listing, fraud-block
+      create/list/revoke/audit, candidate submission, course/platform candidate
+      listing, candidate audit, student reward history, teacher decision, and
+      amount decision handlers to receive `AuthUser` directly.
+- [x] Kept reward application calls unchanged: handlers still pass the actor
+      user id into the existing reward use cases and keep the same service-error
+      response mapping.
+- [x] Proved the reward HTTP context no longer imports `HttpRequest`,
       `request_auth`, or manual `authenticated_user(&req)` parsing.
 - [x] Self-critique: the typed-extractor checkbox remains open. Full-claims
-      routes in rewards, learning management/catalog/teaching, organization
-      reads, and identity user search still need the same migration.
+      routes in learning management/catalog/teaching, organization reads, and
+      identity user search still need the same migration.
 - [x] Prove behavior with `cargo fmt --all --check`,
-      `./scripts/run-host-tests.sh cargo test --lib extractors`,
-      `./scripts/run-host-tests.sh cargo test --test wallet_linking`,
       `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo test --test reward_policies`,
+      `./scripts/run-host-tests.sh cargo test --test reward_candidates`,
+      `./scripts/run-host-tests.sh cargo test --test reward_fraud_blocks`,
+      `./scripts/run-host-tests.sh cargo test --test reward_course_candidates`,
+      `./scripts/run-host-tests.sh cargo test --test reward_candidate_audit`,
+      `./scripts/run-host-tests.sh cargo test --test reward_management_api`,
+      `./scripts/run-host-tests.sh cargo test --test student_reward_history`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing`,
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, wallet `HttpRequest`/`request_auth`/manual auth
-      scans, stale `AuthUser`/`ApiError` scans, and file-size checks.
+      `git diff --check`, reward `HttpRequest`/`request_auth`/manual auth
+      scans, remaining manual-auth scans, and file-size checks.
 
 ## Legacy Transition Rules
 
