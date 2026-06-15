@@ -1,4 +1,6 @@
-async fn assert_teacher_students(fixture: &TeacherDashboardFixture) {
+use crate::{link_course_to_org::*, support::*, teacher_course_dashboard_fixture::*};
+
+pub(crate) async fn assert_teacher_students(fixture: &TeacherDashboardFixture) {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
@@ -93,7 +95,7 @@ async fn assert_teacher_students(fixture: &TeacherDashboardFixture) {
     );
 }
 
-async fn assert_outsider_teacher_dashboard_access(fixture: &TeacherDashboardFixture) {
+pub(crate) async fn assert_outsider_teacher_dashboard_access(fixture: &TeacherDashboardFixture) {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))

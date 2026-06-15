@@ -1,4 +1,6 @@
-async fn assert_teacher_dashboard_list(fixture: &TeacherDashboardFixture) {
+use crate::{link_course_to_org::*, support::*, teacher_course_dashboard_fixture::*};
+
+pub(crate) async fn assert_teacher_dashboard_list(fixture: &TeacherDashboardFixture) {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))

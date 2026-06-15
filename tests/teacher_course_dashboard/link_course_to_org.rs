@@ -1,4 +1,10 @@
-async fn link_course_to_org(conn: &mut AsyncPgConnection, course_id: i32, organization_id: i32) {
+use crate::support::*;
+
+pub(crate) async fn link_course_to_org(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    organization_id: i32,
+) {
     diesel::insert_into(courses_organizations::table)
         .values(NewCourseOrganization {
             course_id,
@@ -10,7 +16,11 @@ async fn link_course_to_org(conn: &mut AsyncPgConnection, course_id: i32, organi
         .expect("failed to link course and organization");
 }
 
-async fn create_chapter(conn: &mut AsyncPgConnection, course_id: i32, title: &str) -> i32 {
+pub(crate) async fn create_chapter(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    title: &str,
+) -> i32 {
     diesel::insert_into(chapters::table)
         .values(NewChapter {
             course_id,
@@ -23,7 +33,7 @@ async fn create_chapter(conn: &mut AsyncPgConnection, course_id: i32, title: &st
         .expect("failed to create chapter")
 }
 
-async fn create_content(
+pub(crate) async fn create_content(
     conn: &mut AsyncPgConnection,
     chapter_id: i32,
     content_type: &str,
@@ -42,7 +52,7 @@ async fn create_content(
         .expect("failed to create content")
 }
 
-async fn create_join_request(
+pub(crate) async fn create_join_request(
     conn: &mut AsyncPgConnection,
     requester_user_id: i32,
     course_id: i32,
@@ -59,7 +69,7 @@ async fn create_join_request(
         .expect("failed to create join request");
 }
 
-async fn create_reward_policy(conn: &mut AsyncPgConnection, course_id: i32) {
+pub(crate) async fn create_reward_policy(conn: &mut AsyncPgConnection, course_id: i32) {
     diesel::insert_into(reward_policies::table)
         .values(NewRewardPolicy {
             active: true,
@@ -80,7 +90,7 @@ async fn create_reward_policy(conn: &mut AsyncPgConnection, course_id: i32) {
         .expect("failed to create reward policy");
 }
 
-async fn create_reward_candidate(
+pub(crate) async fn create_reward_candidate(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     student_user_id: i32,
@@ -104,6 +114,6 @@ async fn create_reward_candidate(
         .expect("failed to create reward candidate");
 }
 
-fn token_for(user_id: i32) -> String {
+pub(crate) fn token_for(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to create JWT")
 }
