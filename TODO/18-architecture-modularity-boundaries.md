@@ -947,8 +947,11 @@ Wiring rule:
       are possible. Identity session, user profile/list, and platform role
       assignment handlers also use typed results. Legacy identity
       authentication handlers now use typed results with a local text
-      `ResponseError` to preserve their tested plain-text contract. Other HTTP
-      contexts still need the same treatment before this is done.
+      `ResponseError` to preserve their tested plain-text contract. KYC status,
+      submission, review, and audit handlers now use typed JSON/status results
+      with a KYC HTTP error mapper. Reporting, wallet, rewards, learning,
+      organizations, content, and teacher-application contexts still need the
+      same treatment before this is done.
 - [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
 - [x] Configure JSON limits and JSON parse errors centrally so every route has
@@ -1368,6 +1371,27 @@ Batch 294: move identity authentication handlers to typed HTTP results.
       reporting, wallet, rewards, learning, organizations, content, KYC, and
       teacher-application contexts still contain manual response branches.
 
+Batch 295: move KYC handlers to typed HTTP results.
+
+- [x] Added `http/kyc/errors.rs` as the local HTTP boundary mapper from
+      `KycError` into the shared `ApiError` envelope, preserving the current
+      forbidden, bad-request, conflict, not-found, and internal-error messages.
+- [x] Repointed KYC status, submission, review queue, review decision, and audit
+      handlers away from handler-local `HttpResponse`/`impl Responder` branches
+      and into typed JSON/status results.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::kyc::errors`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing api_scope_and_following_routes_are_reachable`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      KYC handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes the KYC HTTP typed-result slice only.
+      Reporting, wallet, rewards, learning, organizations, content, and
+      teacher-application contexts still contain manual response branches.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1671,6 +1695,9 @@ boundary checks from the matrix above to every canonical context.
       contracts, a Postgres adapter/use case, HTTP DTO mapping, bootstrap
       wiring, and KYC/API route tests; the legacy include-based KYC service has
       been deleted.
+- [x] KYC HTTP handlers return typed JSON/status results and map application
+      `KycError` values through `http/kyc/errors.rs`, keeping Actix response
+      construction out of the route functions.
 
 ## Teacher Applications Context
 

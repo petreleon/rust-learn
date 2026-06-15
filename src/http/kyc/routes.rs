@@ -1,48 +1,37 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{http::StatusCode, web};
 
 use crate::application::kyc::{
-    KycAuditQuery, KycAuditUseCase, KycDecisionCommand, KycError, KycReviewQueueOutput,
-    KycReviewUseCase, KycStatusUseCase, KycSubmissionUseCase, SubmitKycCommand,
+    KycAuditQuery, KycAuditUseCase, KycDecisionCommand, KycReviewQueueOutput, KycReviewUseCase,
+    KycStatusUseCase, KycSubmissionUseCase, SubmitKycCommand,
 };
+use crate::http::errors::ApiError;
 use crate::http::extractors::auth_user::AuthUser;
 
 use super::dto::{
     KycAuditEventResponse, KycDecisionRequest, KycReviewQueueResponse, KycStatusResponse,
     KycSubmissionResponse, SubmitKycRequest,
 };
-
-fn service_error_response(error: KycError) -> HttpResponse {
-    match error {
-        KycError::PermissionDenied(_) => {
-            HttpResponse::Forbidden().body("User does not have the required permission")
-        }
-        KycError::InvalidInput(message) => HttpResponse::BadRequest().body(message),
-        KycError::InvalidTransition(message) => HttpResponse::Conflict().body(message),
-        KycError::NotFound => HttpResponse::NotFound().body("KYC submission not found"),
-        KycError::Connection(message) | KycError::Database(message) => {
-            log::error!("event=kyc_api_failed reason=database error={}", message);
-            HttpResponse::InternalServerError().body("Failed to process KYC request")
-        }
-    }
-}
+use super::errors::kyc_error;
 
 async fn get_my_kyc(
     requester: AuthUser,
     use_case: web::Data<Arc<dyn KycStatusUseCase>>,
-) -> impl Responder {
-    match use_case.get_my_status(requester.user_id()).await {
-        Ok(status) => HttpResponse::Ok().json(KycStatusResponse::from(status)),
-        Err(error) => service_error_response(error),
-    }
+) -> Result<web::Json<KycStatusResponse>, ApiError> {
+    use_case
+        .get_my_status(requester.user_id())
+        .await
+        .map(KycStatusResponse::from)
+        .map(web::Json)
+        .map_err(kyc_error)
 }
 
 async fn submit_my_kyc(
     requester: AuthUser,
     use_case: web::Data<Arc<dyn KycSubmissionUseCase>>,
     body: web::Json<SubmitKycRequest>,
-) -> impl Responder {
+) -> Result<(web::Json<KycStatusResponse>, StatusCode), ApiError> {
     let request = body.into_inner();
     let command = SubmitKycCommand {
         country_code: request.country_code,
@@ -53,20 +42,25 @@ async fn submit_my_kyc(
         provider_reference: request.provider_reference,
         user_id: requester.user_id(),
     };
-    match use_case.submit_my_kyc(command).await {
-        Ok(status) => HttpResponse::Created().json(KycStatusResponse::from(status)),
-        Err(error) => service_error_response(error),
-    }
+    use_case
+        .submit_my_kyc(command)
+        .await
+        .map(KycStatusResponse::from)
+        .map(web::Json)
+        .map(|body| (body, StatusCode::CREATED))
+        .map_err(kyc_error)
 }
 
 async fn list_review_queue(
     requester: AuthUser,
     use_case: web::Data<Arc<dyn KycReviewUseCase>>,
-) -> impl Responder {
-    match use_case.list_review_queue(requester.user_id()).await {
-        Ok(queue) => HttpResponse::Ok().json(review_queue_response(queue)),
-        Err(error) => service_error_response(error),
-    }
+) -> Result<web::Json<KycReviewQueueResponse>, ApiError> {
+    use_case
+        .list_review_queue(requester.user_id())
+        .await
+        .map(review_queue_response)
+        .map(web::Json)
+        .map_err(kyc_error)
 }
 
 async fn decide_kyc(
@@ -74,7 +68,7 @@ async fn decide_kyc(
     use_case: web::Data<Arc<dyn KycReviewUseCase>>,
     path: web::Path<i64>,
     body: web::Json<KycDecisionRequest>,
-) -> impl Responder {
+) -> Result<web::Json<KycSubmissionResponse>, ApiError> {
     let request = body.into_inner();
     let command = KycDecisionCommand {
         rejection_reason: request.rejection_reason,
@@ -82,25 +76,29 @@ async fn decide_kyc(
         status: request.status,
         submission_id: path.into_inner(),
     };
-    match use_case.decide_submission(command).await {
-        Ok(submission) => HttpResponse::Ok().json(KycSubmissionResponse::from(submission)),
-        Err(error) => service_error_response(error),
-    }
+    use_case
+        .decide_submission(command)
+        .await
+        .map(KycSubmissionResponse::from)
+        .map(web::Json)
+        .map_err(kyc_error)
 }
 
 async fn list_kyc_audit(
     requester: AuthUser,
     use_case: web::Data<Arc<dyn KycAuditUseCase>>,
     path: web::Path<i64>,
-) -> impl Responder {
+) -> Result<web::Json<Vec<KycAuditEventResponse>>, ApiError> {
     let query = KycAuditQuery {
         reviewer_user_id: requester.user_id(),
         submission_id: path.into_inner(),
     };
-    match use_case.list_submission_audit(query).await {
-        Ok(events) => HttpResponse::Ok().json(audit_event_responses(events)),
-        Err(error) => service_error_response(error),
-    }
+    use_case
+        .list_submission_audit(query)
+        .await
+        .map(audit_event_responses)
+        .map(web::Json)
+        .map_err(kyc_error)
 }
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
