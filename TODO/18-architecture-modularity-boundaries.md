@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified pushed base before current batch: `18c1796c`
-(`Move Diesel models under postgres infra`).
+Latest verified pushed base before current batch: `a489fcb7`
+(`Move Postgres schema and pool under infra`).
 
 Objective: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
@@ -41,37 +41,12 @@ submodules only where a context or use case has real ownership.
 - `87c4ca4b`: reward evidence and reward audit metadata moved into domain
   reward vocabulary; unused top-level `shared` module removed.
 - `18c1796c`: all Diesel model records moved from top-level `src/models` to
-  `src/infra/postgres/models`; root `models` exports removed; infra, worker,
-  Diesel associations, and DB-backed tests use `infra::postgres::models`.
+  `src/infra/postgres/models`; root `models` exports removed.
+- `a489fcb7`: Diesel schema and pool construction moved from top-level `src/db`
+  to `src/infra/postgres`; root `db` exports removed; `diesel.toml`, bootstrap,
+  worker, infra adapters, and DB-backed tests use the Postgres infra path.
 
-## Current Verified Batch
-
-Included problems:
-
-- Top-level `src/db` owned Diesel schema and pool construction outside the
-  Level 2 rings.
-- Runtime wiring, worker code, infra adapters, and DB-backed tests imported the
-  root `db` namespace.
-- Diesel CLI and README still pointed schema maintenance at `src/db/schema.rs`.
-
-Fixes:
-
-- Moved pool construction to `src/infra/postgres/connection.rs`.
-- Moved generated Diesel schema to `src/infra/postgres/schema.rs`.
-- Re-exported `DbPool`, `database_url_from_env`, `establish_connection`, and
-  `try_establish_connection` from `infra::postgres`.
-- Removed root `db` modules from `src/lib.rs` and `src/main.rs`.
-- Updated bootstrap, worker, infra adapters, DB-backed tests, `diesel.toml`, and
-  `README.md` to the Postgres infra path.
-
-Deferred problems:
-
-- DB-backed test fixtures still use Diesel directly; that is a test-fixture
-  ergonomics concern, not the production Postgres ownership boundary moved here.
-- Remaining application `Request` wording is deferred to a product-language
-  audit because the current batch is only DB/Postgres ownership.
-
-Proof:
+Proof for the latest pushed architecture batch:
 
 - `cargo fmt --all --check`.
 - `./scripts/run-host-tests.sh cargo check --lib`.
@@ -80,12 +55,43 @@ Proof:
 - Focused tests: `--lib connection::tests`, `--test db_version_control`,
   `--test repository_core_tests`, `--test worker_upload_jobs`,
   `--test health_readiness`, and `--test api_routing`.
-- `git diff --check`.
 - Scans: no old `crate::db` / `rust_learn::db` / `src/db` source references, no
-  root `src/db`, Postgres schema and connection files present, no
-  domain/application infra/HTTP/DB leaks, no HTTP DB leaks, no `include!`, no
-  `imports.rs`, no application DTO/Actix leaks, and no maintained Rust file over
-  180 lines.
+  root `src/db`, no domain/application infra/HTTP/DB leaks, no HTTP DB leaks,
+  no `include!`, no `imports.rs`, no application DTO/Actix leaks, and no
+  maintained Rust file over 180 lines.
+
+## Current Verified Batch
+
+Included problems:
+
+- `make migrate` and `make migrate-redo` still used host Diesel, even though
+  schema generation now belongs to the Postgres infra path and development
+  workflows should be Docker-first.
+
+Fixes:
+
+- Added a `diesel_cli` Docker build target and a small
+  `docker-compose.tools.yml` Diesel tool service.
+- Updated `make migrate` and `make migrate-redo` to start Compose PostgreSQL
+  and run Diesel through the Compose tool container.
+- Updated README and contributor guidance to make `make migrate` the primary
+  development command.
+
+Proof:
+
+- `make -n migrate` and `make -n migrate-redo` expand to Docker Compose Diesel
+  commands.
+- `docker compose -f docker-compose.yml -f docker-compose.tools.yml config
+  --services`.
+- `docker compose -f docker-compose.yml -f docker-compose.tools.yml build
+  diesel`.
+- `docker compose -f docker-compose.yml -f docker-compose.tools.yml run --rm
+  --no-deps diesel diesel --version`.
+- `cargo fmt --all --check`.
+- `./scripts/run-host-tests.sh cargo check --lib`.
+- `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`.
+- `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
+- `git diff --check`; manual non-Markdown files remain <=180 lines.
 
 ## Remaining Work
 

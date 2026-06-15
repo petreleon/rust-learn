@@ -709,16 +709,21 @@ make dev-deps
 
 ## Database migrations
 
-Run migrations with Diesel CLI:
+Run migrations through the Docker Compose Diesel tool container:
 
 ```bash
-diesel migration run
+make migrate
 ```
+
+This starts the Compose PostgreSQL service and runs Diesel inside the Compose
+tool container, so a host Diesel CLI install is not required. The generated
+schema is written through the mounted workspace to
+`src/infra/postgres/schema.rs`.
 
 Redo the latest migration:
 
 ```bash
-diesel migration redo
+make migrate-redo
 ```
 
 When adding migrations, include reversible `up.sql` and `down.sql` files whenever possible and update/check `src/infra/postgres/schema.rs` when schema changes require it.
@@ -739,7 +744,7 @@ When running the API on the host, `DATABASE_URL` should point at
 connection string or database state, rerun:
 
 ```bash
-diesel migration run
+make migrate
 ```
 
 S3 or RustFS connectivity errors usually come from using container-only hostnames

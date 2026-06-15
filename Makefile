@@ -16,6 +16,7 @@ K8S_WORKER_IMAGE := rust-worker:$(K8S_IMAGE_TAG)
 K8S_WEB_IMAGE := web:$(K8S_IMAGE_TAG)
 DOCKER ?= $(shell command -v docker 2>/dev/null || printf /opt/homebrew/bin/docker)
 DOCKER_COMPOSE ?= $(DOCKER) compose
+DIESEL_COMPOSE ?= $(DOCKER_COMPOSE) -f docker-compose.yml -f docker-compose.tools.yml run --rm --no-deps --build diesel diesel
 COMPOSE_REFRESH_SERVICES ?= app web
 KUBECTL ?= $(shell command -v kubectl 2>/dev/null || printf /opt/homebrew/bin/kubectl)
 MINIKUBE ?= $(shell command -v minikube 2>/dev/null || printf /opt/homebrew/bin/minikube)

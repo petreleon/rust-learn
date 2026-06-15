@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM rust:bookworm AS app_builder
+FROM rust:bookworm AS diesel_cli
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DIESEL_CLI_VERSION=2.3.10
@@ -16,6 +16,8 @@ ENV CARGO_HOME=/usr/local/cargo
 ENV PATH="/usr/local/cargo/bin:${PATH}"
 
 WORKDIR /usr/src/app
+
+FROM diesel_cli AS app_builder
 
 COPY . .
 # Build with a single job to reduce memory pressure during linking.
@@ -33,7 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     bash ca-certificates coreutils libpq5 libssl3 libstdc++6 \
  && rm -rf /var/lib/apt/lists/*
 
-COPY --from=app_builder /usr/local/cargo/bin/diesel /usr/local/bin/diesel
+COPY --from=diesel_cli /usr/local/cargo/bin/diesel /usr/local/bin/diesel
 COPY --from=app_builder /usr/local/bin/rust-learn-build /usr/local/bin/rust-learn
 
 WORKDIR /usr/src/app

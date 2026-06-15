@@ -65,8 +65,10 @@ web-build-compose: ## Build the frontend Docker image through Docker Compose
 	$(DOCKER_COMPOSE) build web
 
 # DB Migrations
-migrate: ## Run Diesel migrations
-	diesel migration run
+migrate: ## Run Diesel migrations through Docker Compose
+	$(DOCKER_COMPOSE) up -d db
+	$(DIESEL_COMPOSE) migration run
 
-migrate-redo: ## Redo last migration
-	diesel migration redo
+migrate-redo: ## Redo last migration through Docker Compose
+	$(DOCKER_COMPOSE) up -d db
+	$(DIESEL_COMPOSE) migration redo

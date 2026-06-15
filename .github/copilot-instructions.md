@@ -56,8 +56,7 @@
   - Open a shell manually: `docker compose exec app bash`
   - The Compose `app` service already starts the API under `PROD_MODE=TRUE`;
     use `make dev-refresh COMPOSE_REFRESH_SERVICES=app` after API image changes.
-  - Database migrations (diesel CLI is preinstalled in the image):
-    `docker compose exec app diesel migration run`
+  - Database migrations: `make migrate` runs Diesel through Docker Compose.
   - Export ABI/bytecode example:
     `docker compose exec app cargo run --bin abi_export -- ethereum/contracts/LearnToken.sol LearnToken ethereum/artifacts`
 
