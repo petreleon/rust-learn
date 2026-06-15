@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified pushed base before current batch: `42278e6b`
-(`Merge pull request #20 from petreleon/master`).
+Latest verified pushed base before current batch: `76cbc9f1`
+(`Unify reward authorization permissions catalog`).
 
 Objective: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
@@ -60,6 +60,9 @@ submodules only where a context or use case has real ownership.
   infra directly. Diesel development commands also use Make/Compose as the
   primary path, with `make schema` regenerating and formatting
   `src/infra/postgres/schema.rs` inside the tool container.
+- `76cbc9f1`: reward/wallet authorization and fraud-block notification
+  recipient policy now use the canonical `Permissions` catalog; the duplicate
+  `domain::access_control::permission::Permission` subset enum was removed.
 
 Proof for completed pushed work:
 
@@ -78,33 +81,25 @@ Proof for completed pushed work:
 
 Included problems:
 
-- `domain::access_control::permission::Permission` duplicated a reward/wallet
-  subset of the full `Permissions` catalog.
-- Reward and wallet authorization helpers used the duplicate enum while other
-  application handlers used `Permissions`.
-- Fraud-block notification recipient code accepted the duplicate enum and then
-  converted it back to DB permission keys.
-- Test fakes maintained string-to-duplicate-enum mappings that could drift from
-  the canonical catalog.
+- `domain::access_control::delegation::permission_rules` still hard-coded the
+  delegatable reward permission set as raw strings.
+- Scope validation for delegated platform, organization, and course permissions
+  repeated those string literals in `matches!` blocks.
+- This could drift from the canonical `Permissions` catalog after the duplicate
+  subset enum was removed.
 
 Fixes:
 
-- Reward/wallet authorization and fraud-block notification helpers now use the
-  canonical `Permissions` catalog directly.
-- Removed `src/domain/access_control/permission.rs` and its module export.
-- Test fakes parse `AccessAction` permission names into `Permissions` instead
-  of maintaining local duplicate match tables.
-- Infra recipient queries map `Permissions` to strings at the SQL boundary,
-  where persisted permission names are required.
-- Kept `AccessAction::Permission(String)` as the existing application boundary
-  type because public/API and DB contracts still carry permission names as
-  strings.
+- Delegation permission normalization now parses input into `Permissions`.
+- Delegatable reward permissions and scope-specific delegation rules now use
+  `Permissions` variants directly.
+- Public/persisted boundaries still return and filter permission names as
+  strings, preserving the API and DB contract.
+- String literals remain only in tests that assert public permission-name
+  behavior.
 
 Deferred problems:
 
-- Domain delegation permission rules still normalize a scoped raw string policy
-  list. This may be deliberate because delegated permissions are persisted and
-  filtered as public permission-name strings, but the final audit must confirm.
 - Opaque `serde_json::Value` evidence/metadata fields remain in domain and
   application outputs. They are not Actix DTOs, but the final audit should
   confirm they are intentional product payloads rather than HTTP leakage.
@@ -113,30 +108,26 @@ Proof:
 
 - `cargo fmt --all --check`.
 - `./scripts/run-host-tests.sh cargo check --lib`.
-- `./scripts/run-host-tests.sh cargo test --lib authorize_reward`.
-- `./scripts/run-host-tests.sh cargo test --lib authorize_wallet`.
-- `./scripts/run-host-tests.sh cargo test --lib
-  reward_fraud_block_notifications`.
-- `./scripts/run-host-tests.sh cargo test --test reward_fraud_blocks --test
+- `./scripts/run-host-tests.sh cargo test --lib delegation`.
+- `./scripts/run-host-tests.sh cargo test --lib manage_delegated_permissions`.
+- `./scripts/run-host-tests.sh cargo test --test delegated_permissions --test
   reward_management_api`.
 - `./scripts/run-host-tests.sh cargo check --bin rust-learn --features
   app-bin`.
 - `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
 - `git diff --check`.
-- Scans: no `domain::access_control::permission` module references,
-  `Permission::...` variants, or duplicate `enum Permission`; no
-  `crate::infra` / `rust_learn::infra` imports in `src/http`;
-  domain/application boundary scan found no concrete dependency leaks, only
-  the domain vocabulary variant `MANAGE_S3_OBJECTS`; no maintained Rust file
-  over 180 lines.
+- Scans: no hard-coded delegated reward permission literals remain in
+  production delegation policy; no `crate::infra` / `rust_learn::infra` imports
+  in `src/http`; domain/application boundary scan found no concrete dependency
+  leaks, only the domain vocabulary variant `MANAGE_S3_OBJECTS`; no maintained
+  Rust file over 180 lines.
 
 ## Remaining Work
 
 - Audit TODO/18 requirement-by-requirement against current code and pushed
   evidence before calling Level 2 complete.
-- Decide whether delegated-permission raw string normalization and opaque JSON
-  evidence/metadata should remain documented Level 2 exceptions or need one
-  final typed-vocabulary cleanup.
+- Decide whether opaque JSON evidence/metadata should remain a documented Level
+  2 exception or need one final typed-vocabulary cleanup.
 - Keep public API DTOs HTTP-owned and separate from application commands and
   outputs.
 - Keep use cases as the real authorization guard; middleware remains early
