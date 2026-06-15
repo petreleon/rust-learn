@@ -37,7 +37,10 @@ async fn custom_course_roles_with_reward_permissions_can_submit_and_approve_cand
     )
     .await
     .expect("custom role with submit permission should create reward candidate");
-    assert_eq!(candidate.status, REWARD_STATUS_PENDING_TEACHER_APPROVAL);
+    assert_eq!(
+        candidate.status,
+        RewardCandidateStatus::PendingTeacherApproval
+    );
     let submitted_audit = list_reward_audit_events(&mut conn, candidate.id)
         .await
         .expect("submitted reward audit events should load");

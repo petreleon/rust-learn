@@ -26,7 +26,10 @@ async fn teacher_submits_and_approves_then_platform_reviewer_sets_amount() {
     )
     .await
     .expect("course teacher should submit reward candidate");
-    assert_eq!(candidate.status, REWARD_STATUS_PENDING_TEACHER_APPROVAL);
+    assert_eq!(
+        candidate.status,
+        RewardCandidateStatus::PendingTeacherApproval
+    );
 
     let duplicate = submit_course_reward_candidate(
         &mut conn,

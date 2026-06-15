@@ -12,7 +12,9 @@ use crate::infra::postgres::rewards::reward_candidate_submission_audit_insert::c
 use crate::infra::postgres::rewards::reward_candidate_submission_eligibility::{
     ensure_no_prior_active_reward_candidate, ensure_reward_target_eligible,
 };
-use crate::infra::postgres::rewards::reward_candidate_submission_mappers::map_reward_candidate_submission_error;
+use crate::infra::postgres::rewards::reward_candidate_submission_mappers::{
+    map_reward_candidate_submission, map_reward_candidate_submission_error,
+};
 use crate::infra::postgres::rewards::reward_candidate_submission_validation::{
     normalize_idempotency_key, normalize_reward_event_type,
 };
@@ -128,7 +130,7 @@ fn idempotent_replay_or_conflict(
             existing.source_organization_id,
             existing.idempotency_key
         );
-        return Ok(existing.into());
+        return map_reward_candidate_submission(existing);
     }
 
     Err(RewardCandidateSubmissionError::InvalidInput(

@@ -1,4 +1,5 @@
 use crate::{delegation_helper::*, force_assign_course_role::*, submission_helper::*, support::*};
+use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[actix_web::test]
 async fn delegated_permission_grant_requires_platform_delegate_permission() {
@@ -87,5 +88,8 @@ async fn delegated_organization_permission_submits_for_attached_course_only() {
     )
     .await
     .expect("delegated organization operator should submit attached course reward");
-    assert_eq!(candidate.status, REWARD_STATUS_PENDING_TEACHER_APPROVAL);
+    assert_eq!(
+        candidate.status,
+        RewardCandidateStatus::PendingTeacherApproval
+    );
 }

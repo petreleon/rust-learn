@@ -9,6 +9,7 @@ use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmissionStore, SubmitRewardCandidateCommand,
 };
 use crate::domain::rewards::candidate::source::{REWARD_SOURCE_COURSE, REWARD_SOURCE_ORGANIZATION};
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 struct FakeStore {
     course_exists: bool,
@@ -166,7 +167,7 @@ fn output() -> RewardCandidateSubmissionOutput {
         event_type: "manual_completion".to_string(),
         idempotency_key: "manual:11:23".to_string(),
         evidence: json!({}),
-        status: "pending_teacher_approval".to_string(),
+        status: RewardCandidateStatus::PendingTeacherApproval,
         teacher_approver_user_id: None,
         teacher_decision_reason: None,
         teacher_decided_at: None,
