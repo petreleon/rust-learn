@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 
 use crate::application::rewards::list_candidate_audit::RewardCandidateAuditEvent;
-use crate::shared::json::JsonValue;
+use crate::domain::rewards::audit::RewardAuditMetadata;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct RewardCandidateAuditEventResponse {
@@ -13,7 +13,7 @@ pub struct RewardCandidateAuditEventResponse {
     pub from_status: Option<String>,
     pub to_status: String,
     pub reason: Option<String>,
-    pub metadata: JsonValue,
+    pub metadata: RewardAuditMetadata,
     pub created_at: DateTime<Utc>,
 }
 

@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
 
 use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::evidence::RewardEvidence;
 use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-use crate::shared::json::JsonValue;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CourseRewardCandidate {
@@ -15,7 +15,7 @@ pub struct CourseRewardCandidate {
     pub source_organization_id: Option<i32>,
     pub event_type: RewardEventType,
     pub idempotency_key: String,
-    pub evidence: JsonValue,
+    pub evidence: RewardEvidence,
     pub status: RewardCandidateStatus,
     pub teacher_approver_user_id: Option<i32>,
     pub teacher_decision_reason: Option<String>,

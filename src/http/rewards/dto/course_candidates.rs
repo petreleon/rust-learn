@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::application::rewards::list_course_candidates::{
     CourseRewardCandidate, CourseRewardCandidatesQuery,
 };
-use crate::shared::json::JsonValue;
+use crate::domain::rewards::candidate::evidence::RewardEvidence;
 
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct ListCourseRewardCandidatesRequest {
@@ -24,7 +24,7 @@ pub struct CourseRewardCandidateResponse {
     pub source_organization_id: Option<i32>,
     pub event_type: String,
     pub idempotency_key: String,
-    pub evidence: JsonValue,
+    pub evidence: RewardEvidence,
     pub status: String,
     pub teacher_approver_user_id: Option<i32>,
     pub teacher_decision_reason: Option<String>,

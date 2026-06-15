@@ -7,6 +7,5 @@ pub mod http;
 pub mod infra;
 pub mod middlewares;
 pub mod models;
-pub mod shared;
 
 // Keep lib lightweight; main.rs remains the binary entrypoint.

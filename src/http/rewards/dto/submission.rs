@@ -6,14 +6,14 @@ use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmissionError, RewardCandidateSubmissionOutput, SubmitRewardCandidateCommand,
 };
 use crate::domain::rewards::candidate::event_type::RewardEventType;
-use crate::shared::json::JsonValue;
+use crate::domain::rewards::candidate::evidence::RewardEvidence;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct SubmitRewardCandidateRequest {
     pub student_user_id: i32,
     pub event_type: String,
     pub idempotency_key: Option<String>,
-    pub evidence: Option<JsonValue>,
+    pub evidence: Option<RewardEvidence>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -26,7 +26,7 @@ pub struct RewardCandidateSubmissionResponse {
     pub source_organization_id: Option<i32>,
     pub event_type: String,
     pub idempotency_key: String,
-    pub evidence: JsonValue,
+    pub evidence: RewardEvidence,
     pub status: String,
     pub teacher_approver_user_id: Option<i32>,
     pub teacher_decision_reason: Option<String>,

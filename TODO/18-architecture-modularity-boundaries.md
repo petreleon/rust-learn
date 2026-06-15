@@ -1,7 +1,7 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified pushed base: `004d1037` (`Type audit event vocabulary`).
+Latest verified pushed base: `7693fb71` (`Clarify readiness and DTO boundaries`).
 
 Goal: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
@@ -36,59 +36,10 @@ submodules only where a context or use case has real ownership.
   vocabulary, and external token event outputs.
 - `004d1037`: KYC audit event vocabulary and organization member audit event
   read/write/output vocabulary.
+- `7693fb71`: abstract readiness dependency labels plus wallet/platform reward
+  application command/output names separated from HTTP DTO names.
 
-Latest pushed proof for `004d1037`:
-
-- Focused tests: `audit_event_types`, `list_organization_member_audit`,
-  `domain::kyc::submission`, `--test kyc_review`,
-  `--test organization_members`, `--test api_routing`, and
-  `--test teacher_applications platform_teacher_application_review_contract_returns_context_and_filters`.
-- `cargo fmt --all --check`.
-- `./scripts/run-host-tests.sh cargo check --lib`.
-- `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`.
-- `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
-- `git diff --check`, targeted raw event scans, targeted
-  domain/application/http boundary scans, no `include!`, no `imports.rs`, and
-  maintained Rust line-count scan.
-
-## Current Verified Batch
-
-Status: verified locally, pending commit/push.
-
-Included problems:
-
-- Operations readiness exposed concrete dependency labels (`postgres`, `s3`,
-  `ethereum`) at application/HTTP boundaries.
-- Wallet application commands still used HTTP-shaped `Request` names.
-- Platform reward candidate application output still used an HTTP-shaped
-  `Response` name.
-
-Fixes:
-
-- Added application readiness dependency vocabulary:
-  `READINESS_DEPENDENCY_DATABASE`, `READINESS_DEPENDENCY_OBJECT_STORAGE`, and
-  `READINESS_DEPENDENCY_BLOCKCHAIN`.
-- Infra adapters map Postgres, object storage, and Ethereum checks into those
-  abstract labels.
-- HTTP readiness fallback now reports `database`, `object_storage`, and
-  `blockchain`.
-- Renamed application types to `WalletDepositIntentCommand`,
-  `WalletRetirementCommand`, and `PlatformRewardCandidatesOutput`.
-- Kept HTTP DTO ownership in HTTP:
-  `WalletDepositIntentRequestDto`, `WalletRetirementRequestDto`, and
-  `PlatformRewardCandidatesResponseBody`.
-
-Deferred problems:
-
-- Remaining application `Request` strings are business concepts or verbs
-  (`RequestPasswordResetCommand`, `RequestUploadUrlCommand`,
-  `RequestMediaUrlCommand`, course join-request outputs). They are not safe to
-  batch with DTO cleanup without a broader product-language audit.
-- Full runtime readiness test still depends on live object storage and timed
-  out once, so the deterministic missing-use-case readiness test is counted as
-  proof instead.
-
-Current batch proof:
+Latest pushed proof for `7693fb71`:
 
 - `cargo fmt --all --check`.
 - Focused tests:
@@ -101,19 +52,64 @@ Current batch proof:
 - `./scripts/run-host-tests.sh cargo check --lib`.
 - `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`.
 - `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
+- `git diff --check`, old-name scans, concrete readiness-label scans,
+  domain/application/http boundary scans, no `include!`, no `imports.rs`, and
+  maintained Rust line-count scan.
+
+## Current Verified Batch
+
+Status: verified locally, pending commit/push.
+
+Included problem:
+
+- `src/shared` was a sixth top-level module outside the Level 2 rings. Its only
+  live type, `JsonValue`, carried reward candidate evidence and reward audit
+  metadata across domain/application/http without domain ownership.
+
+Fixes:
+
+- Added `RewardEvidence` to `domain::rewards::candidate::evidence`.
+- Added `RewardAuditMetadata` to `domain::rewards::audit`.
+- Updated reward application outputs/commands and reward HTTP DTOs to use the
+  domain reward vocabulary.
+- Removed `pub mod shared` and deleted the unused placeholder shared modules.
+
+Deferred problems:
+
+- Top-level `src/models` still exists as the Diesel record/model surface used by
+  infra and DB-backed tests. Moving it under infra would be much larger,
+  mechanically noisy, and should be audited as its own batch.
+- Remaining application `Request` strings are business concepts or verbs
+  (`RequestPasswordResetCommand`, `RequestUploadUrlCommand`,
+  `RequestMediaUrlCommand`, course join-request outputs). They remain deferred
+  to a broader product-language audit.
+
+Current batch proof:
+
+- Discovery scans: no `src/services` or `src/repositories`; `src/shared` only
+  contained placeholders plus `JsonValue`; `JsonValue` was used only in reward
+  evidence/metadata paths.
+- `cargo fmt --all --check`.
+- Focused tests: `evidence`, `--test reward_candidates`,
+  `--test reward_candidate_audit`, `--test reward_course_candidates`, and
+  `--test api_routing`.
+- `./scripts/run-host-tests.sh cargo check --lib`.
+- `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`.
+- `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
 - `git diff --check`.
-- Scans: no old application names, no concrete readiness labels in the touched
-  operations boundary, no domain/application external imports, no HTTP DB leaks,
-  no application DTO/response-body types, no `include!`, no `imports.rs`, and
-  no maintained Rust file over 180 lines.
+- Scans: no `shared`/`JsonValue` references, no top-level `src/shared`, no
+  domain/application infra/HTTP/DB leaks, no HTTP DB leaks, no application DTO
+  types, no `include!`, no `imports.rs`, and no maintained Rust file over 180
+  lines.
 
 ## Remaining Actionable Checklist
 
 - Audit TODO/18 requirement-by-requirement against current code and pushed
   evidence before calling Level 2 complete.
-- Continue raw-vocabulary scans for other migrated contexts and only batch
-  fixes that share a reviewable architectural concern.
-- Keep Diesel schema/model leakage inside infra records.
+- Audit top-level `src/models` and decide whether to keep it as legacy Diesel
+  records or move record ownership under `infra/postgres` in focused batches.
+- Continue raw-vocabulary scans for migrated contexts and only batch fixes that
+  share a reviewable architectural concern.
 - Keep public API DTOs HTTP-owned and separate from application outputs.
 - Keep use cases as the real authorization guard; middleware remains early
   rejection.

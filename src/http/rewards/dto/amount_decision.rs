@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::application::rewards::decide_amount::{
     RewardAmountDecisionCommand, RewardAmountDecisionOutput,
 };
-use crate::shared::json::JsonValue;
+use crate::domain::rewards::candidate::evidence::RewardEvidence;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RewardAmountDecisionRequest {
@@ -24,7 +24,7 @@ pub struct RewardAmountDecisionResponse {
     pub source_organization_id: Option<i32>,
     pub event_type: String,
     pub idempotency_key: String,
-    pub evidence: JsonValue,
+    pub evidence: RewardEvidence,
     pub status: String,
     pub teacher_approver_user_id: Option<i32>,
     pub teacher_decision_reason: Option<String>,

@@ -1,8 +1,7 @@
 use chrono::{DateTime, Utc};
 
-use crate::domain::rewards::audit::RewardAuditEventType;
+use crate::domain::rewards::audit::{RewardAuditEventType, RewardAuditMetadata};
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-use crate::shared::json::JsonValue;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RewardCandidateAuditEvent {
@@ -13,6 +12,6 @@ pub struct RewardCandidateAuditEvent {
     pub from_status: Option<RewardCandidateStatus>,
     pub to_status: RewardCandidateStatus,
     pub reason: Option<String>,
-    pub metadata: JsonValue,
+    pub metadata: RewardAuditMetadata,
     pub created_at: DateTime<Utc>,
 }

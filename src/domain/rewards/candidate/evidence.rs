@@ -1,5 +1,6 @@
 use crate::domain::rewards::candidate::event_type::RewardEventType;
-use crate::shared::json::JsonValue;
+
+pub type RewardEvidence = serde_json::Value;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum RewardEvidenceError {
@@ -9,7 +10,7 @@ pub enum RewardEvidenceError {
 
 pub fn ensure_reward_evidence_is_eligible(
     event_type: RewardEventType,
-    evidence: &JsonValue,
+    evidence: &RewardEvidence,
 ) -> Result<(), RewardEvidenceError> {
     match event_type {
         RewardEventType::CourseCompletion => {
@@ -23,13 +24,13 @@ pub fn ensure_reward_evidence_is_eligible(
 }
 
 fn ensure_evidence_number_at_least(
-    evidence: &JsonValue,
+    evidence: &RewardEvidence,
     key: &'static str,
     minimum: f64,
 ) -> Result<(), RewardEvidenceError> {
     let value = evidence
         .get(key)
-        .and_then(JsonValue::as_f64)
+        .and_then(RewardEvidence::as_f64)
         .ok_or(RewardEvidenceError::MissingNumber { key })?;
 
     if value >= minimum {

@@ -1,5 +1,7 @@
 use std::fmt;
 
+pub type RewardAuditMetadata = serde_json::Value;
+
 pub const REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED: &str = "candidate_submitted";
 pub const REWARD_AUDIT_EVENT_TEACHER_DECISION: &str = "teacher_decision";
 pub const REWARD_AUDIT_EVENT_AMOUNT_DECISION: &str = "amount_decision";
