@@ -1,3 +1,5 @@
+use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TeacherApplicationNotificationCommand {
     pub application_id: i64,
@@ -6,6 +8,6 @@ pub struct TeacherApplicationNotificationCommand {
     pub organization_sponsor_id: Option<i32>,
     pub status: String,
     pub requested_scope: String,
-    pub event_type: String,
+    pub event_type: TeacherApplicationAuditEventType,
     pub reason: Option<String>,
 }

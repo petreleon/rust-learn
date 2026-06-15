@@ -140,7 +140,7 @@ impl From<TeacherApplicationAuditEventOutput> for TeacherApplicationAuditEventRe
             actor_user_id: event.actor_user_id,
             application_id: event.application_id,
             created_at: event.created_at,
-            event_type: event.event_type,
+            event_type: event.event_type.as_str().to_string(),
             from_status: event.from_status,
             id: event.id,
             reason: event.reason,

@@ -68,7 +68,7 @@ impl TeacherApplicationNotificationStore for PostgresTeacherApplicationNotificat
                 .send_teacher_application_notification(
                     recipient_user_id,
                     command.application_id,
-                    command.event_type,
+                    command.event_type.as_str(),
                     command.status,
                     command.requested_scope,
                     command.reason.as_deref(),

@@ -36,7 +36,7 @@ async fn organization_admin_can_nominate_teacher_to_central_queue() {
         .await
         .expect("audit events should load");
     assert_eq!(audit.len(), 1);
-    assert_eq!(audit[0].event_type, "organization_nominated");
+    assert_eq!(audit[0].event_type.as_str(), "organization_nominated");
 
     decide_application(
         &mut conn,

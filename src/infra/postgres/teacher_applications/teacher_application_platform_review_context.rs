@@ -140,8 +140,8 @@ async fn load_audits(
         .then_order_by(teacher_application_audit_events::id.asc())
         .load::<TeacherApplicationAuditEvent>(conn)
         .await
-        .map(audit_summaries)
         .map_err(map_error)
+        .and_then(audit_summaries)
 }
 
 fn map_error(error: diesel::result::Error) -> TeacherApplicationPlatformReviewError {

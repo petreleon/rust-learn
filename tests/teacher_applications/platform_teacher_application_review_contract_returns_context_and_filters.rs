@@ -133,7 +133,10 @@ async fn platform_teacher_application_review_contract_returns_context_and_filter
     );
     assert_eq!(application.audit.event_count, 1);
     assert_eq!(
-        application.audit.latest_event_type.as_deref(),
+        application
+            .audit
+            .latest_event_type
+            .map(|event_type| event_type.as_str()),
         Some("submitted")
     );
 

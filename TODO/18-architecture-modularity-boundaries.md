@@ -1,10 +1,9 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified base before this changeset: `ce829ddb`
-(`Type token event boundaries`).
-Current changeset: reward policy/candidate command vocabulary in this commit,
-verified locally.
+Latest verified pushed base: `d5a5172e` (`Type reward command vocabulary`).
+Current verified changeset: teacher-application audit event vocabulary in this
+commit, verified locally.
 
 Goal: finish RustLearn as a Level 2 modular monolith. Keep the main rings:
 `domain`, `application`, `infra`, `http`, `bootstrap`. Use granular modules
@@ -22,20 +21,21 @@ inside those rings when a context or use case has real ownership.
 - Forbidden in `domain`/`application`: Actix, Diesel, S3, Ethereum, env vars,
   HTTP responses, request extractors, concrete pools, and web state.
 
-## Done
+## Completed / Checked
 
 - Migrated contexts checked: `access_control`, `content`, `identity`, `kyc`,
   `learning`, `notifications`, `operations`, `organizations`, `reporting`,
   `rewards`, `teacher_applications`, `wallet`.
-- Bootstrap is thin; migrated HTTP owns DTOs/extractors/errors and delegates to
-  application use cases.
-- Migrated use cases use commands, outputs, ports, fake-port tests, typed access
-  decisions, domain vocabulary, invariants, and transition helpers.
-- Infra owns concrete adapters; Diesel stays out of migrated route handlers and
-  migrated application/domain code.
-- Shared auth/access-control vocabulary, typed auth extractors, frontend
-  capability gates, and `/api/me` unauthorized JSON contract are checked.
-- Manual Rust file cap is currently clean except generated/exempt files.
+- Bootstrap is thin; migrated HTTP owns DTOs, extractors, errors, and request
+  mapping before delegating to application use cases.
+- Migrated application code owns commands, outputs, ports, errors,
+  authorization decisions, orchestration, and fake-port tests.
+- Domain owns typed vocabulary, invariants, and transition helpers for migrated
+  boundaries; infra owns Diesel/Postgres/external adapters.
+- Shared auth/access-control vocabulary, typed auth extractors, frontend gates,
+  and `/api/me` unauthorized JSON behavior are checked.
+- Manual Rust file cap is clean for maintained non-Markdown files; generated,
+  lockfile, binary, and tool-owned artifacts are exempt.
 
 ## Verified Commits
 
@@ -56,40 +56,52 @@ inside those rings when a context or use case has real ownership.
   and token reconciliation event type are typed across domain, application,
   Ethereum/Postgres adapters, HTTP/test helpers, and wallet/reward integration
   tests.
+- `d5a5172e`: reward policy command/query vocabulary, reward-candidate command
+  event vocabulary, and teacher-student reward latest-candidate event vocabulary
+  are typed across domain/application/infra/http.
 
-## Current Verified Changeset
+## Verification Proof
 
-- `CreateRewardPolicyCommand` and `ListRewardPoliciesQuery` now carry typed
-  reward policy scope/event/payment vocabulary; HTTP parses request strings
-  before calling application use cases.
-- `SubmitRewardCandidateCommand` now carries typed `RewardEventType`; infra no
-  longer reparses reward event strings before persistence/eligibility checks.
-- Teacher-student reward latest-candidate output now carries typed
-  `RewardEventType`, with Postgres parsing DB strings at the adapter boundary
-  and HTTP mapping back to DTO strings.
+Latest pushed batch (`d5a5172e`) passed:
 
-Proof for this changeset:
+- Focused host tests for reward policy create/list, submit-candidate behavior,
+  course reward policy validation, organization/delegated reward submission,
+  evidence threshold checks, and teacher course dashboard reward progress.
+- `cargo fmt --all --check`.
+- `./scripts/run-host-tests.sh cargo check --lib`.
+- `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`.
+- `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
+- `git diff --check`, dependency boundary scans, no `include!`, no
+  `tests/*/imports.rs`, targeted raw-vocabulary scans for touched application
+  paths, and manual line-count scan.
 
-- Passed focused host tests for submit-candidate handler behavior, reward policy
-  create/list flows, course reward policy validation, organization/delegated
-  reward candidate submission, evidence threshold checks, and teacher course
-  dashboard reward progress.
+Current verified changeset passed:
+
+- `TeacherApplicationAuditEventType` now owns submitted, organization-nominated,
+  approved, needs-changes, and rejected audit-event vocabulary in domain.
+- Teacher-application audit outputs, notification commands, platform-review
+  audit summaries, and organization teacher-application audit summaries now use
+  typed event vocabulary in application.
+- Postgres adapters parse persisted audit event strings at infra boundaries and
+  persist typed event values back to strings.
+- HTTP DTOs still expose public JSON strings and convert typed application
+  values at the HTTP boundary.
+- Passed `./scripts/run-host-tests.sh cargo test teacher_application`.
 - Passed `cargo fmt --all --check`.
 - Passed `./scripts/run-host-tests.sh cargo check --lib`.
 - Passed `./scripts/run-host-tests.sh cargo check --bin rust-learn --features
   app-bin`.
 - Passed `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
-- Passed `git diff --check`, dependency boundary scans, no `include!`, no
-  `tests/*/imports.rs`, targeted raw vocabulary scans for touched application
-  paths, and manual line-count scan.
+- Passed `git diff --check`, strict domain/application/http boundary scans, no
+  `include!`, no `imports.rs`, targeted raw teacher-application event scans, and
+  manual Rust line-count scan.
 
 ## Still Open
 
-- Replace remaining raw application event vocabulary: wallet audit/history
-  external transaction event type, teacher-application audit/notification and
-  latest-event summaries, KYC audit output/facts, reporting token payout CSV
-  event type, organization teacher-application latest-event summaries, and
-  organization member audit events.
+- Replace remaining raw application event vocabulary:
+  wallet audit/history external transaction event type, KYC audit output/facts,
+  reporting token payout CSV event type, reward history external transaction
+  event summaries, and organization member audit events.
 - Keep Diesel schema/model leakage inside infra records.
 - Keep public API DTOs HTTP-owned and separate from application outputs.
 - Keep use cases as the real authorization guard; middleware remains early

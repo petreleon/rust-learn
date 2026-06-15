@@ -10,6 +10,7 @@ use crate::application::teacher_applications::{
     },
     TeacherApplicationOutput,
 };
+use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::teacher_applications::teacher_application_records;
 use crate::models::teacher_application::{NewTeacherApplication, NewTeacherApplicationAuditEvent};
@@ -78,7 +79,9 @@ impl TeacherApplicationSubmitStore for PostgresTeacherApplicationSubmitStore<'_>
                             NewTeacherApplicationAuditEvent {
                                 application_id: application.id,
                                 actor_user_id: Some(actor_user_id),
-                                event_type: "submitted".to_string(),
+                                event_type: TeacherApplicationAuditEventType::Submitted
+                                    .as_str()
+                                    .to_string(),
                                 from_status: None,
                                 to_status: application.status.clone(),
                                 reason: None,

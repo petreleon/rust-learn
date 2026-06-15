@@ -9,6 +9,7 @@ use crate::application::teacher_applications::{
     decide_application::{TeacherApplicationDecisionError, TeacherApplicationDecisionStore},
     TeacherApplicationOutput,
 };
+use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 use crate::domain::teacher_applications::status::TEACHER_APPLICATION_STATUS_APPROVED;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::teacher_applications::teacher_application_records;
@@ -48,6 +49,8 @@ impl TeacherApplicationDecisionStore for PostgresTeacherApplicationDecisionStore
         decision_reason: Option<String>,
     ) -> BoxFuture<'_, Result<TeacherApplicationOutput, TeacherApplicationDecisionError>> {
         async move {
+            let audit_event_type = TeacherApplicationAuditEventType::parse(&target_status)
+                .map_err(|error| TeacherApplicationDecisionError::Database(error.to_string()))?;
             self.conn
                 .transaction::<_, diesel::result::Error, _>(|conn| {
                     Box::pin(async move {
@@ -70,7 +73,7 @@ impl TeacherApplicationDecisionStore for PostgresTeacherApplicationDecisionStore
                             NewTeacherApplicationAuditEvent {
                                 application_id: current.id,
                                 actor_user_id: Some(actor_user_id),
-                                event_type: target_status.clone(),
+                                event_type: audit_event_type.as_str().to_string(),
                                 from_status: Some(current.status),
                                 to_status: target_status,
                                 reason: decision_reason,

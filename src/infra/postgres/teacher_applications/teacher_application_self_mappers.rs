@@ -1,8 +1,6 @@
 use crate::application::teacher_applications::get_my_application::TeacherApplicationSelfError;
-use crate::application::teacher_applications::{
-    TeacherApplicationAuditEventOutput, TeacherApplicationOutput,
-};
-use crate::models::teacher_application::{TeacherApplication, TeacherApplicationAuditEvent};
+use crate::application::teacher_applications::TeacherApplicationOutput;
+use crate::models::teacher_application::TeacherApplication;
 
 impl From<TeacherApplication> for TeacherApplicationOutput {
     fn from(application: TeacherApplication) -> Self {
@@ -22,21 +20,6 @@ impl From<TeacherApplication> for TeacherApplicationOutput {
             reviewer_id: application.reviewer_id,
             status: application.status,
             updated_at: application.updated_at,
-        }
-    }
-}
-
-impl From<TeacherApplicationAuditEvent> for TeacherApplicationAuditEventOutput {
-    fn from(event: TeacherApplicationAuditEvent) -> Self {
-        Self {
-            actor_user_id: event.actor_user_id,
-            application_id: event.application_id,
-            created_at: event.created_at,
-            event_type: event.event_type,
-            from_status: event.from_status,
-            id: event.id,
-            reason: event.reason,
-            to_status: event.to_status,
         }
     }
 }

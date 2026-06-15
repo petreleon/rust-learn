@@ -4,6 +4,7 @@ use actix_web::{http::StatusCode, web};
 
 use crate::application::teacher_applications::nominate_application::TeacherApplicationNominationUseCase;
 use crate::application::teacher_applications::notify_application_event::TeacherApplicationNotificationUseCase;
+use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 use crate::http::errors::ApiError;
 use crate::http::extractors::auth_user::AuthUser;
 use crate::http::teacher_applications::dto::TeacherApplicationResponse;
@@ -30,7 +31,7 @@ pub(crate) async fn nominate_application(
     notify_teacher_application_event(
         notifications.as_ref(),
         &application,
-        "organization_nominated",
+        TeacherApplicationAuditEventType::OrganizationNominated,
         None,
     )
     .await;

@@ -88,7 +88,9 @@ impl From<OrganizationTeacherApplicationAuditSummaryOutput>
     fn from(audit: OrganizationTeacherApplicationAuditSummaryOutput) -> Self {
         Self {
             event_count: audit.event_count,
-            latest_event_type: audit.latest_event_type,
+            latest_event_type: audit
+                .latest_event_type
+                .map(|event_type| event_type.as_str().to_string()),
             latest_event_at: audit.latest_event_at,
             latest_reason: audit.latest_reason,
         }

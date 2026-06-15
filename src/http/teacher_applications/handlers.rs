@@ -6,6 +6,7 @@ use crate::application::teacher_applications::get_my_application::TeacherApplica
 use crate::application::teacher_applications::list_applications::TeacherApplicationListUseCase;
 use crate::application::teacher_applications::notify_application_event::TeacherApplicationNotificationUseCase;
 use crate::application::teacher_applications::submit_application::TeacherApplicationSubmitUseCase;
+use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 use crate::http::errors::ApiError;
 use crate::http::extractors::auth_user::AuthUser;
 use crate::http::teacher_applications::dto::{
@@ -28,7 +29,13 @@ pub(super) async fn submit_application(
         .submit_application(command)
         .await
         .map_err(submit_application_error)?;
-    notify_teacher_application_event(notifications.as_ref(), &application, "submitted", None).await;
+    notify_teacher_application_event(
+        notifications.as_ref(),
+        &application,
+        TeacherApplicationAuditEventType::Submitted,
+        None,
+    )
+    .await;
     Ok((
         web::Json(TeacherApplicationResponse::from(application)),
         StatusCode::CREATED,

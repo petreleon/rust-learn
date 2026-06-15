@@ -2,8 +2,10 @@ use std::sync::Arc;
 
 use actix_web::web;
 
+use crate::application::teacher_applications::decide_application::TeacherApplicationDecisionError;
 use crate::application::teacher_applications::decide_application::TeacherApplicationDecisionUseCase;
 use crate::application::teacher_applications::notify_application_event::TeacherApplicationNotificationUseCase;
+use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 use crate::http::errors::ApiError;
 use crate::http::extractors::auth_user::AuthUser;
 use crate::http::teacher_applications::decision_dto::TeacherApplicationDecisionRequest;
@@ -24,11 +26,14 @@ pub(super) async fn decide_application(
         .decide_application(decision.into_command(requester.user_id(), path.into_inner()))
         .await
         .map_err(decision_error)?;
-    let event_type = application.status.clone();
+    let event_type =
+        TeacherApplicationAuditEventType::parse(&application.status).map_err(|error| {
+            decision_error(TeacherApplicationDecisionError::Database(error.to_string()))
+        })?;
     notify_teacher_application_event(
         notifications.as_ref(),
         &application,
-        &event_type,
+        event_type,
         decision_reason.as_deref(),
     )
     .await;
