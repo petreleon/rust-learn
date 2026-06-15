@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
 
+use crate::domain::rewards::candidate::reconciliation::RewardReconciliationStatus;
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::wallet::owner::WalletOwnerType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -48,8 +50,8 @@ pub struct WalletExternalTransactionAudit {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletRewardRecordAudit {
     pub reward_candidate_id: i64,
-    pub candidate_status: String,
-    pub reconciliation_status: String,
+    pub candidate_status: RewardCandidateStatus,
+    pub reconciliation_status: RewardReconciliationStatus,
     pub approved_amount: Option<String>,
     pub wallet_credit_record_id: Option<i64>,
     pub wallet_credit_transaction_id: Option<i64>,

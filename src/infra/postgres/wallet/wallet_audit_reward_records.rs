@@ -8,6 +8,7 @@ use crate::db::schema::{reward_candidates, reward_payout_records, reward_wallet_
 use crate::domain::rewards::candidate::reconciliation::{
     reward_reconciliation_status, RewardReconciliationFacts,
 };
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::wallet::wallet_audit_mappers::map_wallet_audit_error;
 use crate::models::reward_candidate::RewardCandidate;
 use crate::models::reward_payout_record::RewardPayoutRecord;
@@ -46,23 +47,24 @@ pub(super) async fn load_reward_records(
         .map(|record| (record.reward_candidate_id, record))
         .collect::<HashMap<_, _>>();
 
-    Ok(candidates
+    candidates
         .into_iter()
         .map(|candidate| {
+            let candidate_status = RewardCandidateStatus::parse(&candidate.status)
+                .map_err(|error| WalletAuditError::AuditLoad(error.to_string()))?;
             let credit_record = credit_records.get(&candidate.id);
             let payout_record = payout_records.get(&candidate.id);
-            WalletRewardRecordAudit {
+            Ok(WalletRewardRecordAudit {
                 reward_candidate_id: candidate.id,
-                candidate_status: candidate.status.clone(),
+                candidate_status,
                 reconciliation_status: reward_reconciliation_status(RewardReconciliationFacts {
-                    candidate_status: &candidate.status,
+                    candidate_status: candidate_status.as_str(),
                     has_credit_record: credit_record.is_some(),
                     has_notification_record: credit_record
                         .and_then(|record| record.notification_id)
                         .is_some(),
                     has_payout_record: payout_record.is_some(),
-                })
-                .to_string(),
+                }),
                 approved_amount: candidate.approved_amount.as_ref().map(ToString::to_string),
                 wallet_credit_record_id: credit_record.map(|record| record.id),
                 wallet_credit_transaction_id: credit_record.map(|record| record.transaction_id),
@@ -74,7 +76,7 @@ pub(super) async fn load_reward_records(
                 notified_at: credit_record.and_then(|record| record.notified_at),
                 created_at: candidate.created_at,
                 updated_at: candidate.updated_at,
-            }
+            })
         })
-        .collect())
+        .collect()
 }

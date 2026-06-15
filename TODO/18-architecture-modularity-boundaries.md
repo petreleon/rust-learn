@@ -1,8 +1,9 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified commit before this changeset: `0db0000c`.
-Current verified changeset: wallet deposit status vocabulary (commit pending).
+Latest verified commit before this changeset: `e4ff6767`.
+Current verified changeset: wallet reward-audit status vocabulary
+(commit pending).
 
 Goal: make RustLearn a Level 2 modular monolith with firm boundaries.
 Ownership matters more than folder count; preserve behavior unless another TODO
@@ -48,15 +49,17 @@ owns the behavior change.
 - `0db0000c`: delegated-permission management uses typed scope vocabulary across
   application outputs/store/filter, Postgres adapters, HTTP DTO mapping, and
   routing fakes.
-- Commit pending: wallet deposit status vocabulary is typed across domain,
+- `e4ff6767`: wallet deposit status vocabulary is typed across domain,
   application deposit intent/index outputs, Postgres deposit adapters, HTTP DTO
   mapping, and wallet integration helpers.
+- Commit pending: wallet reward-audit candidate and reconciliation status
+  vocabulary is typed across domain, application outputs, Postgres reward audit
+  loading, and HTTP DTO mapping.
 
 Proof set used across verified batches: focused host tests, `cargo fmt`,
 Cargo lib/bin checks, integration no-run compile, `git diff --check`, line
 counts, string-field scans, and boundary scans. This changeset additionally
-passed `cargo test index_deposit`, `cargo test deposit_intent`, and the
-platform-paid wallet deposit/retirement flow.
+passed reconciliation unit tests and `cargo test wallet_audit`.
 
 ## Still Open
 

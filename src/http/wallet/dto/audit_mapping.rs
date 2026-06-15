@@ -83,8 +83,8 @@ impl From<WalletRewardRecordAudit> for WalletRewardRecordAuditResponse {
     fn from(record: WalletRewardRecordAudit) -> Self {
         Self {
             reward_candidate_id: record.reward_candidate_id,
-            candidate_status: record.candidate_status,
-            reconciliation_status: record.reconciliation_status,
+            candidate_status: record.candidate_status.as_str().to_string(),
+            reconciliation_status: record.reconciliation_status.as_str().to_string(),
             approved_amount: record.approved_amount,
             wallet_credit_record_id: record.wallet_credit_record_id,
             wallet_credit_transaction_id: record.wallet_credit_transaction_id,
