@@ -32,17 +32,17 @@ pub(crate) use rust_learn::infra::postgres::access_control::organization_role_re
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::courses_organizations::NewCourseOrganization;
+pub(crate) use rust_learn::infra::postgres::models::delegated_permission::NewDelegatedPermission;
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::reward_candidate::NewRewardCandidate;
+pub(crate) use rust_learn::infra::postgres::models::reward_fraud_block::NewRewardFraudBlock;
+pub(crate) use rust_learn::infra::postgres::models::reward_policy::NewRewardPolicy;
+pub(crate) use rust_learn::infra::postgres::models::teacher_application::NewTeacherApplication;
+pub(crate) use rust_learn::infra::postgres::models::user::User;
+pub(crate) use rust_learn::infra::postgres::models::wallet::NewWallet;
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::courses_organizations::NewCourseOrganization;
-pub(crate) use rust_learn::models::delegated_permission::NewDelegatedPermission;
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
-pub(crate) use rust_learn::models::reward_candidate::NewRewardCandidate;
-pub(crate) use rust_learn::models::reward_fraud_block::NewRewardFraudBlock;
-pub(crate) use rust_learn::models::reward_policy::NewRewardPolicy;
-pub(crate) use rust_learn::models::teacher_application::NewTeacherApplication;
-pub(crate) use rust_learn::models::user::User;
-pub(crate) use rust_learn::models::wallet::NewWallet;
 pub(crate) use serde_json::{json, Value};
 
 use std::sync::atomic::{AtomicU64, Ordering};

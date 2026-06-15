@@ -7,10 +7,10 @@ use crate::application::organizations::list_organization_members::{
     OrganizationMemberListQuery, OrganizationMemberListStore, OrganizationMemberOrganizationOutput,
 };
 use crate::db::schema::organizations;
+use crate::infra::postgres::models::organization::Organization;
 use crate::infra::postgres::organizations::{
     organization_member_builders, organization_member_permission_queries,
 };
-use crate::models::organization::Organization;
 
 pub struct PostgresOrganizationMemberListStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

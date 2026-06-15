@@ -2,8 +2,8 @@ pub(crate) use actix_web::{http::StatusCode, test, web, App};
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::user::User;
 
 pub(crate) use actix_service::Service;
 pub(crate) use chrono::NaiveDate;
@@ -28,8 +28,8 @@ pub(crate) use rust_learn::infra::postgres::identity::user_profile_read_use_case
 pub(crate) use rust_learn::infra::postgres::learning::course_discovery_use_case::PostgresCourseDiscoveryUseCase;
 pub(crate) use rust_learn::infra::postgres::learning::course_organization_use_case::PostgresCourseOrganizationsUseCase;
 pub(crate) use rust_learn::infra::postgres::learning::course_read_use_case::PostgresCourseReadUseCase;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
 use std::sync::Arc;
 
 pub(crate) fn unique_string(prefix: &str) -> String {

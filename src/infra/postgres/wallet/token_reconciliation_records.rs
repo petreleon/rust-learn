@@ -4,11 +4,11 @@ use diesel::pg::PgConnection;
 use diesel::prelude::*;
 
 use crate::domain::rewards::token::RewardTokenEventType;
+use crate::infra::postgres::models::transaction::NewExternalTransaction;
 use crate::infra::postgres::wallet::wallet_ledger_records::{
     create_external_transaction, create_transaction, find_external_transaction_by_chain_tx_log,
     find_transaction_for_external, link_external_transaction,
 };
-use crate::models::transaction::NewExternalTransaction;
 
 #[derive(Debug, Clone)]
 pub struct ObservedTokenEvent {

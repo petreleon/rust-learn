@@ -2,11 +2,11 @@ use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
 };
 use crate::domain::rewards::candidate::evidence::RewardEvidenceError;
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::RewardCandidateFraudBlockError;
 use crate::infra::postgres::rewards::reward_vocabulary::{
     parse_candidate_source_scope, parse_candidate_status, parse_reward_event_type,
 };
-use crate::models::reward_candidate::RewardCandidate;
 
 pub(super) fn map_reward_candidate_submission(
     candidate: RewardCandidate,
@@ -87,7 +87,7 @@ mod tests {
     use crate::domain::rewards::candidate::event_type::RewardEventType;
     use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
     use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-    use crate::models::reward_candidate::RewardCandidate;
+    use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 
     #[test]
     fn maps_known_candidate_status_into_domain_status() {

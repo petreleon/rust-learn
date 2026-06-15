@@ -16,7 +16,7 @@ use crate::db::schema::{
 use crate::infra::postgres::learning::{
     learner_course_access_queries, learner_course_enrollment_summary_queries,
 };
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
 
 pub async fn build_learner_course_catalog_item(
     conn: &mut AsyncPgConnection,

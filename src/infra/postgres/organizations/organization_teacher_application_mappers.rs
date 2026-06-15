@@ -2,8 +2,8 @@ use crate::application::organizations::list_organization_teacher_applications::{
     OrganizationTeacherApplicationCourseOutput, OrganizationTeacherApplicationItemOutput,
     OrganizationTeacherApplicationOrganizationOutput, TeacherApplicationUserSummaryOutput,
 };
+use crate::infra::postgres::models::teacher_application::TeacherApplication;
 use crate::infra::postgres::organizations::organization_teacher_application_context::OrganizationTeacherApplicationContext;
-use crate::models::teacher_application::TeacherApplication;
 
 pub fn organization_teacher_application_item(
     application: &TeacherApplication,

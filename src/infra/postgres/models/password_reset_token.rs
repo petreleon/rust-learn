@@ -1,12 +1,12 @@
-use crate::db::schema::email_verification_tokens;
-use crate::models::user::User;
+use crate::db::schema::password_reset_tokens;
+use crate::infra::postgres::models::user::User;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Associations)]
 #[diesel(belongs_to(User))]
-#[diesel(table_name = email_verification_tokens)]
-pub struct EmailVerificationToken {
+#[diesel(table_name = password_reset_tokens)]
+pub struct PasswordResetToken {
     pub id: i32,
     pub user_id: i32,
     pub token_hash: String,
@@ -16,8 +16,8 @@ pub struct EmailVerificationToken {
 }
 
 #[derive(Insertable)]
-#[diesel(table_name = email_verification_tokens)]
-pub struct NewEmailVerificationToken {
+#[diesel(table_name = password_reset_tokens)]
+pub struct NewPasswordResetToken {
     pub user_id: i32,
     pub token_hash: String,
     pub expires_at: NaiveDateTime,

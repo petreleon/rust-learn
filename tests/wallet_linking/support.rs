@@ -30,14 +30,14 @@ pub(crate) use rust_learn::domain::rewards::candidate::status::{
 pub(crate) use rust_learn::domain::wallet::deposit::{WalletDepositEventType, WalletDepositStatus};
 use rust_learn::infra::postgres::access_control::{platform_role_records, role_catalog_store};
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::models::course::NewCourse;
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::reward_candidate::NewRewardCandidate;
+use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::operations::persistent_state::set_persistent_state;
 use rust_learn::infra::postgres::wallet::wallet_deposit_index_store::PostgresWalletDepositIndexStore;
 use rust_learn::infra::postgres::wallet::wallet_deposit_intent_store::PostgresWalletDepositIntentStore;
 use rust_learn::infra::postgres::wallet::wallet_link_store::PostgresWalletLinkStore;
-pub(crate) use rust_learn::models::course::NewCourse;
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
-pub(crate) use rust_learn::models::reward_candidate::NewRewardCandidate;
-use rust_learn::models::user::User;
 pub(crate) use serde_json::{json, Value};
 use std::sync::atomic::{AtomicU64, Ordering};
 

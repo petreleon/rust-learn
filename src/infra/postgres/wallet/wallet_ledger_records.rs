@@ -6,11 +6,11 @@ use crate::db::schema::{
     external_transactions, internal_transactions, transactions, transactions_external_transactions,
     transactions_internal_transactions, wallets,
 };
-use crate::models::transaction::{
+use crate::infra::postgres::models::transaction::{
     ExternalTransaction, NewExternalTransaction, NewInternalTransaction, NewTransaction,
     NewTransactionExternalTransactionLink, NewTransactionInternalTransactionLink,
 };
-use crate::models::wallet::NewWallet;
+use crate::infra::postgres::models::wallet::NewWallet;
 
 pub(in crate::infra::postgres::wallet) fn find_user_wallet_id(
     user_id: i32,

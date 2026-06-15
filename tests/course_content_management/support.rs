@@ -14,11 +14,11 @@ pub(crate) use rust_learn::infra::postgres::content::chapter_use_cases::Postgres
 pub(crate) use rust_learn::infra::postgres::content::content_item_use_cases::PostgresContentItemUseCases;
 pub(crate) use rust_learn::infra::postgres::content::processing_use_case::PostgresContentProcessingUseCase;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::models::chapter::{Chapter, NewChapter};
+pub(crate) use rust_learn::infra::postgres::models::content::Content;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::chapter::{Chapter, NewChapter};
-pub(crate) use rust_learn::models::content::Content;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::user::User;
 pub(crate) use std::sync::Arc;
 
 pub(crate) fn unique_string(prefix: &str) -> String {

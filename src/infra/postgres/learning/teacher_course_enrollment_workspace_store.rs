@@ -13,7 +13,7 @@ use crate::infra::postgres::learning::{
     teacher_course_join_request_queries, teacher_course_reward_eligibility_queries,
     teacher_course_roster_queries, teacher_course_workspace_queries,
 };
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
 
 pub struct PostgresTeacherCourseEnrollmentWorkspaceStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

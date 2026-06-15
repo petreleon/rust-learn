@@ -5,13 +5,13 @@ use crate::application::rewards::submit_candidate::{
     RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
 };
 use crate::domain::rewards::audit::RewardAuditEventType;
+use crate::infra::postgres::models::reward_audit_event::NewRewardAuditEvent;
+use crate::infra::postgres::models::reward_candidate::NewRewardCandidate;
 use crate::infra::postgres::rewards::reward_audit_records::create_reward_audit_event;
 use crate::infra::postgres::rewards::reward_candidate_records::create_candidate;
 use crate::infra::postgres::rewards::reward_candidate_submission_mappers::{
     map_reward_candidate_submission, map_reward_candidate_submission_error,
 };
-use crate::models::reward_audit_event::NewRewardAuditEvent;
-use crate::models::reward_candidate::NewRewardCandidate;
 
 pub(super) async fn create_candidate_with_audit(
     conn: &mut AsyncPgConnection,

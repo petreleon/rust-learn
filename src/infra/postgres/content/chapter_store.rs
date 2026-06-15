@@ -8,7 +8,7 @@ use crate::application::content::manage_chapter::{
 use crate::application::content::ports::ChapterStore;
 use crate::db::schema::chapters;
 use crate::infra::postgres::content::mappers::chapter_output_from_record;
-use crate::models::chapter::{Chapter, NewChapter, UpdateChapter};
+use crate::infra::postgres::models::chapter::{Chapter, NewChapter, UpdateChapter};
 
 pub struct PostgresChapterStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

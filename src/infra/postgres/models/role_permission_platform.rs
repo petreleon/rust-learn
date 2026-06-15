@@ -1,5 +1,5 @@
 use crate::db::schema::role_permission_platform;
-use crate::models::role::PlatformRole;
+use crate::infra::postgres::models::role::PlatformRole;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Associations)]

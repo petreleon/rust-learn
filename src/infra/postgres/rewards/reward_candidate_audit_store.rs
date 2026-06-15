@@ -8,11 +8,11 @@ use crate::application::rewards::list_candidate_audit::{
 };
 use crate::application::rewards::ports::RewardCandidateAuditStore;
 use crate::db::schema::{reward_audit_events, reward_candidates};
+use crate::infra::postgres::models::reward_audit_event::RewardAuditEvent;
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_audit_mappers::{
     map_reward_candidate_audit_error, map_reward_candidate_audit_event,
 };
-use crate::models::reward_audit_event::RewardAuditEvent;
 
 pub struct PostgresRewardCandidateAuditStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

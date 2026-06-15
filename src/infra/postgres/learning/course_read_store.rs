@@ -4,7 +4,7 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::learning::get_course::{CourseOutput, CourseReadError, CourseReadStore};
 use crate::db::schema::courses;
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
 
 pub struct PostgresCourseReadStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

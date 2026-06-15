@@ -3,7 +3,7 @@ use crate::application::access_control::manage_delegated_permissions::{
     DelegatedPermissionOutput,
 };
 use crate::domain::access_control::delegation::DelegatedScopeType;
-use crate::models::delegated_permission::DelegatedPermission;
+use crate::infra::postgres::models::delegated_permission::DelegatedPermission;
 
 pub(super) fn delegated_permission_output_from_record(
     delegation: DelegatedPermission,

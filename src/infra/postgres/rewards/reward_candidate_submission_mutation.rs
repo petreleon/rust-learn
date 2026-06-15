@@ -6,6 +6,7 @@ use crate::application::rewards::submit_candidate::{
 };
 use crate::domain::rewards::candidate::evidence::ensure_reward_evidence_is_eligible;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::infra::postgres::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
 use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::ensure_no_active_reward_fraud_block;
 use crate::infra::postgres::rewards::reward_candidate_records::find_candidate_by_idempotency_key;
 use crate::infra::postgres::rewards::reward_candidate_submission_audit_insert::create_candidate_with_audit;
@@ -16,7 +17,6 @@ use crate::infra::postgres::rewards::reward_candidate_submission_mappers::{
     map_reward_candidate_submission, map_reward_candidate_submission_error,
 };
 use crate::infra::postgres::rewards::reward_candidate_submission_validation::normalize_idempotency_key;
-use crate::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
 
 pub(super) async fn submit_reward_candidate(
     conn: &mut AsyncPgConnection,

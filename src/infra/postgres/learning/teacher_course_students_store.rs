@@ -16,7 +16,7 @@ use crate::infra::postgres::learning::{
     teacher_course_workspace_queries, teacher_student_progress_queries,
     teacher_student_reward_progress_queries,
 };
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
 
 pub struct PostgresTeacherCourseStudentsStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

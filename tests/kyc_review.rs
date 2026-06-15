@@ -14,8 +14,8 @@ use rust_learn::infra::postgres::access_control::delegated_permissions::create_d
 use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::kyc::kyc_use_case::PostgresKycUseCase;
-use rust_learn::models::delegated_permission::NewDelegatedPermission;
-use rust_learn::models::user::User;
+use rust_learn::infra::postgres::models::delegated_permission::NewDelegatedPermission;
+use rust_learn::infra::postgres::models::user::User;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);

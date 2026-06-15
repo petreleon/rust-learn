@@ -1,5 +1,5 @@
 use crate::db::schema::authentications;
-use crate::models::user::User;
+use crate::infra::postgres::models::user::User;
 use diesel::prelude::*;
 
 #[derive(Queryable, Insertable, Associations)]

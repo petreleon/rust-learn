@@ -1,11 +1,11 @@
 use crate::application::rewards::plan_payout::{
     RewardPayoutCandidate, RewardPayoutPlanError, RewardPayoutPolicy,
 };
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
+use crate::infra::postgres::models::reward_policy::RewardPolicy;
 use crate::infra::postgres::rewards::reward_vocabulary::{
     parse_candidate_status, parse_payment_strategy, parse_reward_event_type,
 };
-use crate::models::reward_candidate::RewardCandidate;
-use crate::models::reward_policy::RewardPolicy;
 
 pub(super) fn map_reward_payout_plan_error(error: diesel::result::Error) -> RewardPayoutPlanError {
     match error {
@@ -43,7 +43,7 @@ mod tests {
     use crate::application::rewards::plan_payout::RewardPayoutPlanError;
     use crate::domain::rewards::candidate::event_type::RewardEventType;
     use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-    use crate::models::reward_candidate::RewardCandidate;
+    use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 
     #[test]
     fn maps_known_candidate_status_into_domain_status() {

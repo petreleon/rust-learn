@@ -8,8 +8,8 @@ use crate::application::reporting::platform_csv_exports::{
 use crate::db::schema::teacher_applications;
 use crate::domain::teacher_applications::scope::TeacherApplicationScope;
 use crate::domain::teacher_applications::status::TeacherApplicationStatus;
+use crate::infra::postgres::models::teacher_application::TeacherApplication;
 use crate::infra::postgres::reporting::platform_csv_export_mappers::map_diesel_error;
-use crate::models::teacher_application::TeacherApplication;
 
 pub(super) async fn load_teacher_application_export_rows(
     conn: &mut AsyncPgConnection,

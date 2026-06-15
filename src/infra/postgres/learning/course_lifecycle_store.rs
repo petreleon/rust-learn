@@ -10,7 +10,7 @@ use crate::application::learning::update_course_lifecycle::{
 };
 use crate::db::schema::courses;
 use crate::infra::postgres::access_control::permission_checks;
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
 
 pub struct PostgresCourseLifecycleStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

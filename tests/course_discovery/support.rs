@@ -29,17 +29,17 @@ pub(crate) use rust_learn::infra::postgres::learning::learner_course_catalog_lis
 pub(crate) use rust_learn::infra::postgres::learning::learner_course_detail_use_case::PostgresLearnerCourseDetailUseCase;
 pub(crate) use rust_learn::infra::postgres::learning::learner_course_learning_use_case::PostgresLearnerCourseLearningUseCase;
 pub(crate) use rust_learn::infra::postgres::learning::learner_progress_use_case::PostgresLearnerProgressUseCase;
+pub(crate) use rust_learn::infra::postgres::models::chapter::NewChapter;
+pub(crate) use rust_learn::infra::postgres::models::content::NewContent;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::course_join_request::NewCourseJoinRequest;
+pub(crate) use rust_learn::infra::postgres::models::courses_organizations::NewCourseOrganization;
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::reward_policy::NewRewardPolicy;
+pub(crate) use rust_learn::infra::postgres::models::upload_job::NewUploadJob;
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::organizations::organization_course_list_use_case::PostgresOrganizationCourseListUseCase;
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::chapter::NewChapter;
-pub(crate) use rust_learn::models::content::NewContent;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::course_join_request::NewCourseJoinRequest;
-pub(crate) use rust_learn::models::courses_organizations::NewCourseOrganization;
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
-pub(crate) use rust_learn::models::reward_policy::NewRewardPolicy;
-pub(crate) use rust_learn::models::upload_job::NewUploadJob;
-pub(crate) use rust_learn::models::user::User;
 pub(crate) use serde_json::Value;
 pub(crate) use std::sync::{
     atomic::{AtomicU64, Ordering},

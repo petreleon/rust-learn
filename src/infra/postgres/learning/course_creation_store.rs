@@ -10,9 +10,9 @@ use crate::application::learning::create_course::{
 };
 use crate::db::schema::{courses, courses_organizations, pending_course_organization_invites};
 use crate::infra::postgres::access_control::permission_checks;
-use crate::models::course::{Course, NewCourse};
-use crate::models::courses_organizations::NewCourseOrganization;
-use crate::models::pending_course_organization_invites::NewPendingCourseOrganizationInvite;
+use crate::infra::postgres::models::course::{Course, NewCourse};
+use crate::infra::postgres::models::courses_organizations::NewCourseOrganization;
+use crate::infra::postgres::models::pending_course_organization_invites::NewPendingCourseOrganizationInvite;
 
 pub struct PostgresCourseCreationStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

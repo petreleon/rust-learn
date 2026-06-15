@@ -7,7 +7,7 @@ use crate::infra::postgres::access_control::delegated_permissions::mappers::{
     delegated_permission_output_from_record, map_error,
 };
 use crate::infra::postgres::access_control::delegated_permissions::records;
-use crate::models::delegated_permission::NewDelegatedPermission;
+use crate::infra::postgres::models::delegated_permission::NewDelegatedPermission;
 
 pub(super) async fn create_delegated_permission(
     conn: &mut AsyncPgConnection,

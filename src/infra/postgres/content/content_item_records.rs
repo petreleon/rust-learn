@@ -4,7 +4,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use crate::application::content::manage_content_item::{ContentItemError, ContentItemOutput};
 use crate::db::schema::{contents, user_role_course};
 use crate::infra::postgres::content::mappers::content_item_output_from_record;
-use crate::models::content::{Content, NewContent, UpdateContent};
+use crate::infra::postgres::models::content::{Content, NewContent, UpdateContent};
 
 pub(super) async fn list_content_items(
     conn: &mut AsyncPgConnection,

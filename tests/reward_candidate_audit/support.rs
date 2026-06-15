@@ -11,12 +11,14 @@ pub(crate) use rust_learn::domain::rewards::candidate::status::REWARD_STATUS_PEN
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::reward_audit_event::NewRewardAuditEvent;
+pub(crate) use rust_learn::infra::postgres::models::reward_candidate::{
+    NewRewardCandidate, RewardCandidate,
+};
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_candidate_audit_use_case::PostgresRewardCandidateAuditUseCase;
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::reward_audit_event::NewRewardAuditEvent;
-pub(crate) use rust_learn::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
-pub(crate) use rust_learn::models::user::User;
 pub(crate) use serde_json::{json, Value};
 pub(crate) use std::sync::Arc;
 

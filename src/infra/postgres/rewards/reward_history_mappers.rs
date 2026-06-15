@@ -4,10 +4,10 @@ use chrono::{DateTime, Utc};
 use crate::application::rewards::list_reward_history::{
     StudentRewardCandidateRecord, StudentRewardHistoryError, StudentRewardWalletCredit,
 };
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 use crate::infra::postgres::rewards::reward_vocabulary::{
     parse_candidate_status, parse_reward_event_type,
 };
-use crate::models::reward_candidate::RewardCandidate;
 
 pub(super) type WalletCreditRow = (
     i64,
@@ -76,7 +76,7 @@ mod tests {
     use crate::application::rewards::list_reward_history::StudentRewardHistoryError;
     use crate::domain::rewards::candidate::event_type::RewardEventType;
     use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-    use crate::models::reward_candidate::RewardCandidate;
+    use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 
     #[test]
     fn maps_known_candidate_status_into_domain_status() {

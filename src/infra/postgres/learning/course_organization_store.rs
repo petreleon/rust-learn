@@ -6,7 +6,7 @@ use crate::application::learning::list_course_organizations::{
     CourseOrganizationOutput, CourseOrganizationReadError, CourseOrganizationStore,
 };
 use crate::db::schema::{courses_organizations, organizations};
-use crate::models::organization::Organization;
+use crate::infra::postgres::models::organization::Organization;
 
 pub struct PostgresCourseOrganizationStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

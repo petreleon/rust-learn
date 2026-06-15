@@ -12,7 +12,7 @@ pub(crate) use rust_learn::infra::postgres::access_control::permission_queries::
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 pub(crate) use rust_learn::infra::postgres::learning::course_role_assignment_store::PostgresCourseRoleAssignmentStore;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
 
 pub(crate) fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -80,7 +80,7 @@ pub(crate) async fn assign_course_role_via_use_case(
 pub(crate) async fn create_user_helper(
     conn: &mut AsyncPgConnection,
     name_suffix: &str,
-) -> rust_learn::models::user::User {
+) -> rust_learn::infra::postgres::models::user::User {
     let suffix = unique_string(name_suffix);
     let email = format!("user_{}@example.com", suffix);
     rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user(

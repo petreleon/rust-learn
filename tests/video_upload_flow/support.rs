@@ -8,18 +8,18 @@ pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::infra::notifications::NotificationsState;
 pub(crate) use rust_learn::infra::object_storage::S3State;
 pub(crate) use rust_learn::infra::postgres::content::upload_job_queue;
+pub(crate) use rust_learn::infra::postgres::models::chapter::Chapter;
+pub(crate) use rust_learn::infra::postgres::models::content::Content;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::upload_job::UploadJob;
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::chapter::Chapter;
-pub(crate) use rust_learn::models::content::Content;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::upload_job::UploadJob;
 pub(crate) use serde::Deserialize;
 pub(crate) use std::path::Path;
 pub(crate) use std::time::Duration as StdDuration;
 
 use rust_learn::infra::postgres::access_control::{course_role_records, role_catalog_store};
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
-use rust_learn::models::user::User;
+use rust_learn::infra::postgres::models::user::User;
 
 #[derive(Deserialize)]
 pub(crate) struct UploadUrlResponse {

@@ -6,11 +6,11 @@ use crate::application::wallet::retire_tokens::{
     WalletRetirementDraft, WalletRetirementError, WalletRetirementView,
 };
 use crate::db::schema::{external_transactions, transactions, transactions_external_transactions};
-use crate::infra::postgres::wallet::wallet_link_records::link_user_wallet_record;
-use crate::infra::postgres::wallet::wallet_retirement_ledger::apply_retirement_ledger_entries;
-use crate::models::transaction::{
+use crate::infra::postgres::models::transaction::{
     NewExternalTransaction, NewTransaction, NewTransactionExternalTransactionLink,
 };
+use crate::infra::postgres::wallet::wallet_link_records::link_user_wallet_record;
+use crate::infra::postgres::wallet::wallet_retirement_ledger::apply_retirement_ledger_entries;
 
 const RETIRE_OPERATION: &str = "retire";
 const RETIRE_TRANSACTION_TYPE: &str = "token_retire";

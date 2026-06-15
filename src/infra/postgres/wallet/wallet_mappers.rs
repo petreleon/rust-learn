@@ -1,6 +1,6 @@
 use crate::application::wallet::wallet_view::WalletView;
 use crate::application::wallet::{wallet_view_output, WalletViewFact};
-use crate::models::wallet::Wallet;
+use crate::infra::postgres::models::wallet::Wallet;
 
 pub(super) fn wallet_view_output_from_record(wallet: Wallet) -> WalletView {
     wallet_view_output(WalletViewFact {

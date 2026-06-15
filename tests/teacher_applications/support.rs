@@ -32,9 +32,9 @@ pub(crate) use rust_learn::infra::postgres::teacher_applications::teacher_applic
 pub(crate) use rust_learn::infra::postgres::teacher_applications::teacher_application_list_use_case::PostgresTeacherApplicationListUseCase;
 pub(crate) use rust_learn::infra::postgres::teacher_applications::teacher_application_self_use_case::PostgresTeacherApplicationSelfUseCase;
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
-pub(crate) use rust_learn::models::user::User;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use std::sync::Arc;
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum TeacherApplicationError {

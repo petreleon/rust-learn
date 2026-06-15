@@ -13,7 +13,7 @@ use crate::infra::postgres::learning::{
     teacher_course_dashboard_permissions, teacher_course_dashboard_scope,
     teacher_course_dashboard_summary_queries,
 };
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
 
 const LIKE_ESCAPE_CHAR: char = '\\';
 

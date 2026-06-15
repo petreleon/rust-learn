@@ -3,6 +3,7 @@ pub mod content;
 pub mod identity;
 pub mod kyc;
 pub mod learning;
+pub mod models;
 pub mod notifications;
 pub mod operations;
 pub mod organizations;

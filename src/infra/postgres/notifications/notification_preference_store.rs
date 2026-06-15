@@ -9,7 +9,7 @@ use crate::application::notifications::preferences::{
 };
 use crate::application::notifications::save_preferences::SaveNotificationPreferencesCommand;
 use crate::db::schema::user_notification_preferences;
-use crate::models::notification_preferences::{
+use crate::infra::postgres::models::notification_preferences::{
     NotificationPreferences, UpsertNotificationPreferences,
 };
 

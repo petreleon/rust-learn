@@ -5,8 +5,8 @@ use futures::future::{BoxFuture, FutureExt};
 use crate::application::content::ports::ContentProcessingJobStore;
 use crate::application::content::process_upload_job::{ProcessUploadJobError, ProcessableContent};
 use crate::db::schema::{chapters, contents, upload_jobs};
-use crate::models::content::Content;
-use crate::models::upload_job::NewUploadJob;
+use crate::infra::postgres::models::content::Content;
+use crate::infra::postgres::models::upload_job::NewUploadJob;
 
 pub struct PostgresContentUploadJobStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

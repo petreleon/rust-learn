@@ -1,6 +1,6 @@
 use crate::application::teacher_applications::TeacherApplicationAuditEventOutput;
 use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
-use crate::models::teacher_application::TeacherApplicationAuditEvent;
+use crate::infra::postgres::models::teacher_application::TeacherApplicationAuditEvent;
 
 pub(super) fn audit_event_output(
     event: TeacherApplicationAuditEvent,

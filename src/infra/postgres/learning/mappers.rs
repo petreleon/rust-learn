@@ -3,9 +3,11 @@ use crate::application::learning::assessment::{
 };
 use crate::application::learning::create_course::CourseCreationOutput;
 use crate::application::learning::learner_progress::LearnerProgressOutput;
-use crate::models::assessment::{Assessment, AssessmentAttempt, AssessmentQuestion};
-use crate::models::course::Course;
-use crate::models::course_progress::CourseProgress;
+use crate::infra::postgres::models::assessment::{
+    Assessment, AssessmentAttempt, AssessmentQuestion,
+};
+use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::models::course_progress::CourseProgress;
 
 impl From<Course> for CourseCreationOutput {
     fn from(course: Course) -> Self {

@@ -12,9 +12,9 @@ use crate::domain::rewards::candidate::status::{
     RewardCandidateStatus, REWARD_STATUS_TEACHER_APPROVED,
 };
 use crate::domain::rewards::execution::RewardExecutionJobStatus;
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
+use crate::infra::postgres::models::reward_execution_job::RewardExecutionJob;
 use crate::infra::postgres::reporting::platform_reward_dashboard_summaries::map_diesel_error;
-use crate::models::reward_candidate::RewardCandidate;
-use crate::models::reward_execution_job::RewardExecutionJob;
 
 pub(super) async fn pending_amount_approvals(
     conn: &mut AsyncPgConnection,

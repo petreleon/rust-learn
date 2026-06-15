@@ -3,7 +3,7 @@ use bigdecimal::BigDecimal;
 use crate::application::rewards::notify_wallet_credit::RewardWalletCreditNotificationError;
 use crate::domain::rewards::candidate::lifecycle;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-use crate::models::reward_candidate::RewardCandidate;
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 
 pub(super) fn approved_positive_amount(
     candidate: &RewardCandidate,

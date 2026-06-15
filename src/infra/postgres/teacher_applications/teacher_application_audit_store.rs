@@ -11,8 +11,8 @@ use crate::application::teacher_applications::{
 };
 use crate::db::schema::teacher_application_audit_events;
 use crate::infra::postgres::access_control::permission_checks;
+use crate::infra::postgres::models::teacher_application::TeacherApplicationAuditEvent;
 use crate::infra::postgres::teacher_applications::teacher_application_audit_mappers::audit_event_output;
-use crate::models::teacher_application::TeacherApplicationAuditEvent;
 
 pub struct PostgresTeacherApplicationAuditStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

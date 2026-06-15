@@ -11,7 +11,7 @@ use crate::db::schema::{courses, courses_organizations};
 use crate::infra::postgres::learning::{
     learner_course_access_queries, learner_course_catalog_item_queries,
 };
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
 
 const LIKE_ESCAPE_CHAR: char = '\\';
 

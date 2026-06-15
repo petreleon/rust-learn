@@ -10,6 +10,7 @@ use crate::application::rewards::decide_teacher_candidate::{
 use crate::domain::rewards::audit::RewardAuditEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::domain::rewards::candidate::transition;
+use crate::infra::postgres::models::reward_audit_event::NewRewardAuditEvent;
 use crate::infra::postgres::rewards::reward_audit_records::create_reward_audit_event;
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_fraud_blocks::ensure_no_active_reward_fraud_block;
@@ -17,7 +18,6 @@ use crate::infra::postgres::rewards::reward_candidate_records;
 use crate::infra::postgres::rewards::teacher_reward_candidate_decision_mappers::{
     map_teacher_decision_candidate, map_teacher_decision_error,
 };
-use crate::models::reward_audit_event::NewRewardAuditEvent;
 
 pub struct PostgresTeacherRewardCandidateDecisionStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

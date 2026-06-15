@@ -4,8 +4,8 @@ use crate::application::teacher_applications::list_platform_review::{
     TeacherApplicationPlatformReviewCourseOutput, TeacherApplicationPlatformReviewItemOutput,
     TeacherApplicationPlatformReviewOrganizationOutput, TeacherApplicationPlatformReviewUserOutput,
 };
+use crate::infra::postgres::models::teacher_application::TeacherApplication;
 use crate::infra::postgres::teacher_applications::teacher_application_platform_review_context::TeacherApplicationPlatformReviewContext;
-use crate::models::teacher_application::TeacherApplication;
 
 pub fn platform_review_item(
     application: &TeacherApplication,

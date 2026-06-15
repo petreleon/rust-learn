@@ -1,10 +1,10 @@
 use crate::application::rewards::list_candidate_audit::{
     RewardCandidateAuditError, RewardCandidateAuditEvent,
 };
+use crate::infra::postgres::models::reward_audit_event::RewardAuditEvent;
 use crate::infra::postgres::rewards::reward_vocabulary::{
     parse_audit_event_type, parse_candidate_status,
 };
-use crate::models::reward_audit_event::RewardAuditEvent;
 
 pub(super) fn map_reward_candidate_audit_event(
     event: RewardAuditEvent,
@@ -56,7 +56,7 @@ mod tests {
     use crate::application::rewards::list_candidate_audit::RewardCandidateAuditError;
     use crate::domain::rewards::audit::RewardAuditEventType;
     use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-    use crate::models::reward_audit_event::RewardAuditEvent;
+    use crate::infra::postgres::models::reward_audit_event::RewardAuditEvent;
 
     #[test]
     fn maps_known_candidate_statuses_into_domain_statuses() {

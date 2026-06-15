@@ -13,7 +13,7 @@ use crate::db::schema::{
     chapters, contents, courses_organizations, organizations, reward_policies,
 };
 use crate::infra::postgres::learning::teacher_course_dashboard_metric_queries;
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
 
 pub async fn build_teacher_course_dashboard_item(
     conn: &mut AsyncPgConnection,

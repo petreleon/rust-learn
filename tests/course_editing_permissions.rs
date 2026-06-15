@@ -12,8 +12,8 @@ use rust_learn::infra::postgres::access_control::role_assignments::assign_platfo
 use rust_learn::infra::postgres::access_control::role_catalog_store;
 use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 use rust_learn::infra::postgres::learning::course_update_use_case::PostgresCourseUpdateUseCase;
-use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::user::User;
+use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+use rust_learn::infra::postgres::models::user::User;
 
 fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);

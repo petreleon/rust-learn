@@ -12,10 +12,10 @@ pub(crate) use rust_learn::domain::rewards::policy::{
 };
 pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_policy_use_case::PostgresRewardPolicyUseCase;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
-pub(crate) use rust_learn::models::user::User;
 pub(crate) use std::str::FromStr;
 
 pub(crate) fn unique_string(prefix: &str) -> String {

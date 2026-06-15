@@ -3,8 +3,8 @@ use crate::application::kyc::{
     KycError, KycSubmissionFact, KycSubmissionOutput,
 };
 use crate::domain::kyc::audit::KycAuditEventType;
-use crate::models::kyc_audit_event::KycAuditEvent;
-use crate::models::kyc_submission::KycSubmission;
+use crate::infra::postgres::models::kyc_audit_event::KycAuditEvent;
+use crate::infra::postgres::models::kyc_submission::KycSubmission;
 
 pub(super) fn kyc_submission_output_from_record(submission: KycSubmission) -> KycSubmissionOutput {
     kyc_submission_output(KycSubmissionFact {

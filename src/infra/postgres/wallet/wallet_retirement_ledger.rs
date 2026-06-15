@@ -4,7 +4,9 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::wallet::retire_tokens::WalletRetirementError;
 use crate::db::schema::{internal_transactions, transactions_internal_transactions, wallets};
-use crate::models::transaction::{NewInternalTransaction, NewTransactionInternalTransactionLink};
+use crate::infra::postgres::models::transaction::{
+    NewInternalTransaction, NewTransactionInternalTransactionLink,
+};
 
 pub(super) async fn apply_retirement_ledger_entries(
     conn: &mut AsyncPgConnection,

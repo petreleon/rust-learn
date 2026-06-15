@@ -1,6 +1,6 @@
 use crate::application::teacher_applications::get_my_application::TeacherApplicationSelfError;
 use crate::application::teacher_applications::TeacherApplicationOutput;
-use crate::models::teacher_application::TeacherApplication;
+use crate::infra::postgres::models::teacher_application::TeacherApplication;
 
 impl From<TeacherApplication> for TeacherApplicationOutput {
     fn from(application: TeacherApplication) -> Self {

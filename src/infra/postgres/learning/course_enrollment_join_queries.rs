@@ -13,7 +13,9 @@ use crate::domain::learning::enrollment::status::{
 use crate::infra::postgres::learning::course_enrollment_queries::{
     map_enrollment_error, student_role_id,
 };
-use crate::models::course_join_request::{CourseJoinRequest, NewCourseJoinRequest};
+use crate::infra::postgres::models::course_join_request::{
+    CourseJoinRequest, NewCourseJoinRequest,
+};
 
 pub async fn course_exists(
     conn: &mut AsyncPgConnection,

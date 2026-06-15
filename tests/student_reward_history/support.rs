@@ -21,12 +21,12 @@ pub(crate) use rust_learn::domain::rewards::candidate::status::{
 pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::reward_candidate::NewRewardCandidate;
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_history_use_case::PostgresStudentRewardHistoryUseCase;
 pub(crate) use rust_learn::infra::postgres::wallet::wallet_link_store::PostgresWalletLinkStore;
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::reward_candidate::NewRewardCandidate;
-pub(crate) use rust_learn::models::user::User;
 pub(crate) use serde_json::{json, Value};
 pub(crate) use std::sync::Arc;
 

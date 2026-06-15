@@ -12,8 +12,8 @@ use crate::application::teacher_applications::{
 use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 use crate::domain::teacher_applications::status::TEACHER_APPLICATION_STATUS_APPROVED;
 use crate::infra::postgres::access_control::permission_checks;
+use crate::infra::postgres::models::teacher_application::NewTeacherApplicationAuditEvent;
 use crate::infra::postgres::teacher_applications::teacher_application_records;
-use crate::models::teacher_application::NewTeacherApplicationAuditEvent;
 
 use super::teacher_application_decision_roles::assign_approved_teaching_bundle;
 

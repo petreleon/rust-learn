@@ -7,10 +7,10 @@ use crate::application::wallet::create_deposit_intent::{
 use crate::application::wallet::link_wallet::WalletLinkError;
 use crate::db::schema::wallet_token_deposit_intents;
 use crate::domain::wallet::deposit::{WalletDepositStatus, WALLET_DEPOSIT_STATUS_PENDING};
-use crate::infra::postgres::wallet::wallet_link_records::link_user_wallet_record;
-use crate::models::wallet_token_deposit_intent::{
+use crate::infra::postgres::models::wallet_token_deposit_intent::{
     NewWalletTokenDepositIntent, WalletTokenDepositIntent,
 };
+use crate::infra::postgres::wallet::wallet_link_records::link_user_wallet_record;
 
 impl From<DieselError> for WalletDepositIntentError {
     fn from(error: DieselError) -> Self {

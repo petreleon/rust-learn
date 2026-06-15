@@ -13,7 +13,9 @@ use crate::domain::teacher_applications::status::{
     TEACHER_APPLICATION_STATUS_APPROVED, TEACHER_APPLICATION_STATUS_NEEDS_CHANGES,
     TEACHER_APPLICATION_STATUS_REJECTED, TEACHER_APPLICATION_STATUS_SUBMITTED,
 };
-use crate::models::teacher_application::{TeacherApplication, TeacherApplicationAuditEvent};
+use crate::infra::postgres::models::teacher_application::{
+    TeacherApplication, TeacherApplicationAuditEvent,
+};
 
 pub async fn load_audits(
     conn: &mut AsyncPgConnection,

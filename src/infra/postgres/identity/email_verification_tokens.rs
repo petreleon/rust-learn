@@ -3,8 +3,10 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::db::schema::{email_verification_tokens, users};
-use crate::models::email_verification_token::{EmailVerificationToken, NewEmailVerificationToken};
-use crate::models::user::User;
+use crate::infra::postgres::models::email_verification_token::{
+    EmailVerificationToken, NewEmailVerificationToken,
+};
+use crate::infra::postgres::models::user::User;
 
 const EMAIL_VERIFICATION_TOKEN_TTL_HOURS: i64 = 24;
 

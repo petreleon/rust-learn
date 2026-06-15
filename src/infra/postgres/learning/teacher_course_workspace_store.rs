@@ -12,7 +12,7 @@ use crate::infra::postgres::learning::{
     teacher_course_dashboard_permissions, teacher_course_dashboard_summary_queries,
     teacher_course_workspace_queries,
 };
-use crate::models::course::Course;
+use crate::infra::postgres::models::course::Course;
 
 pub struct PostgresTeacherCourseWorkspaceStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

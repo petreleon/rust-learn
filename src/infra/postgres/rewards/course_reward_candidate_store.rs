@@ -8,11 +8,11 @@ use crate::application::rewards::list_course_candidates::{
 };
 use crate::application::rewards::ports::CourseRewardCandidateStore;
 use crate::db::schema::{courses, reward_candidates};
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 use crate::infra::postgres::rewards::course_reward_candidate_mappers::{
     map_course_reward_candidate, map_course_reward_candidate_error,
 };
 use crate::infra::postgres::rewards::reward_authorization_access;
-use crate::models::reward_candidate::RewardCandidate;
 
 pub struct PostgresCourseRewardCandidateStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

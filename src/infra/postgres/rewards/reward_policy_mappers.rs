@@ -1,11 +1,11 @@
 use crate::application::rewards::manage_reward_policy::{
     RewardPolicyDraft, RewardPolicyError, RewardPolicyListFilter, RewardPolicyOutput,
 };
+use crate::infra::postgres::models::reward_policy::{NewRewardPolicy, RewardPolicy};
 use crate::infra::postgres::rewards::reward_policy_records::RewardPolicyFilter;
 use crate::infra::postgres::rewards::reward_vocabulary::{
     parse_payment_strategy, parse_policy_scope, parse_reward_event_type,
 };
-use crate::models::reward_policy::{NewRewardPolicy, RewardPolicy};
 
 pub(super) fn new_reward_policy(draft: RewardPolicyDraft, version: i32) -> NewRewardPolicy {
     NewRewardPolicy {

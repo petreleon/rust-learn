@@ -5,10 +5,10 @@ use crate::application::notifications::notification_inbox::{
     NOTIFICATION_LIST_LIMIT,
 };
 use crate::application::notifications::ports::NotificationInboxStore;
+use crate::infra::postgres::models::notification::Notification;
 use crate::infra::postgres::notifications::notification_records::{
     delete_user_notifications, list_user_notifications, mark_user_notification_read,
 };
-use crate::models::notification::Notification;
 
 pub struct PostgresNotificationInboxStore<'conn> {
     conn: &'conn mut diesel_async::AsyncPgConnection,

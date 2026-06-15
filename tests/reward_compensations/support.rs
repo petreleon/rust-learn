@@ -15,11 +15,11 @@ pub(crate) use rust_learn::domain::rewards::compensation::REWARD_TRANSACTION_TYP
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::reward_candidate::NewRewardCandidate;
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_candidate_records::find_candidate;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_compensation_use_case::PostgresRewardCompensationUseCase;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::reward_candidate::NewRewardCandidate;
-pub(crate) use rust_learn::models::user::User;
 pub(crate) use serde_json::json;
 
 pub(crate) fn unique_string(prefix: &str) -> String {

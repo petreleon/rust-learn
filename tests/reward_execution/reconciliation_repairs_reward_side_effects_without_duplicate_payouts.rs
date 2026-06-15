@@ -60,7 +60,7 @@ async fn reconciliation_repairs_reward_side_effects_without_duplicate_payouts() 
     let wallet = wallets::table
         .filter(wallets::user_id.eq(Some(student.id())))
         .filter(wallets::organization_id.is_null())
-        .first::<rust_learn::models::wallet::Wallet>(&mut conn)
+        .first::<rust_learn::infra::postgres::models::wallet::Wallet>(&mut conn)
         .await
         .expect("wallet should exist after reconciliation");
     assert_eq!(wallet.value, BigDecimal::from(17));
@@ -79,7 +79,7 @@ async fn reconciliation_repairs_reward_side_effects_without_duplicate_payouts() 
 
     let credit_record = reward_wallet_credit_records::table
         .filter(reward_wallet_credit_records::reward_candidate_id.eq(candidate.id))
-        .first::<rust_learn::models::reward_wallet_credit_record::RewardWalletCreditRecord>(
+        .first::<rust_learn::infra::postgres::models::reward_wallet_credit_record::RewardWalletCreditRecord>(
             &mut conn,
         )
         .await

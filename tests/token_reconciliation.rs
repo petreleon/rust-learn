@@ -54,7 +54,7 @@ fn record_token_event_inserts_external_transaction_and_is_idempotent() {
 
     let external = external_transactions::table
         .find(first.external_transaction_id)
-        .first::<rust_learn::models::transaction::ExternalTransaction>(&mut conn)
+        .first::<rust_learn::infra::postgres::models::transaction::ExternalTransaction>(&mut conn)
         .expect("external transaction should exist");
     assert_eq!(external.chain_id, Some(event.chain_id));
     assert_eq!(

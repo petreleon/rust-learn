@@ -33,15 +33,15 @@ pub(crate) use rust_learn::infra::postgres::learning::teacher_course_enrollment_
 pub(crate) use rust_learn::infra::postgres::learning::teacher_course_students_use_case::PostgresTeacherCourseStudentsUseCase;
 pub(crate) use rust_learn::infra::postgres::learning::teacher_course_workspace_use_case::PostgresTeacherCourseWorkspaceUseCase;
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::chapter::NewChapter;
-pub(crate) use rust_learn::models::content::NewContent;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::course_join_request::NewCourseJoinRequest;
-pub(crate) use rust_learn::models::courses_organizations::NewCourseOrganization;
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
-pub(crate) use rust_learn::models::reward_candidate::NewRewardCandidate;
-pub(crate) use rust_learn::models::reward_policy::NewRewardPolicy;
-pub(crate) use rust_learn::models::user::User;
+pub(crate) use rust_learn::infra::postgres::models::chapter::NewChapter;
+pub(crate) use rust_learn::infra::postgres::models::content::NewContent;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::course_join_request::NewCourseJoinRequest;
+pub(crate) use rust_learn::infra::postgres::models::courses_organizations::NewCourseOrganization;
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::reward_candidate::NewRewardCandidate;
+pub(crate) use rust_learn::infra::postgres::models::reward_policy::NewRewardPolicy;
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use serde_json::{Value, json};
 pub(crate) use std::sync::{
     atomic::{AtomicU64, Ordering},

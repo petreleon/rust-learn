@@ -6,7 +6,7 @@ use rust_learn::db::DbPool;
 use rust_learn::infra::notifications::NotificationsState;
 use rust_learn::infra::object_storage::S3State;
 use rust_learn::infra::postgres::content::upload_job_queue;
-use rust_learn::models::upload_job::UploadJob;
+use rust_learn::infra::postgres::models::upload_job::UploadJob;
 
 use super::failure::{mark_terminal_failure, schedule_retry};
 

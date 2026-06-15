@@ -11,7 +11,7 @@ use crate::infra::postgres::identity::current_session_scope_builder::{
     course_builder, organization_builder, CourseScopeBuilder, OrganizationScopeBuilder,
     PlatformScopeBuilder,
 };
-use crate::models::delegated_permission::DelegatedPermission;
+use crate::infra::postgres::models::delegated_permission::DelegatedPermission;
 
 pub(super) async fn active_delegations_for_user(
     conn: &mut AsyncPgConnection,

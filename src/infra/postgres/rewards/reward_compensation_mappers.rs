@@ -1,8 +1,8 @@
 use crate::application::rewards::record_compensation::{
     RewardCompensationError, RewardCompensationRecordOutput, RewardCompensationWalletOutput,
 };
-use crate::models::reward_compensation_record::RewardCompensationRecord;
-use crate::models::wallet::Wallet;
+use crate::infra::postgres::models::reward_compensation_record::RewardCompensationRecord;
+use crate::infra::postgres::models::wallet::Wallet;
 
 pub(super) fn map_reward_compensation_error(
     error: diesel::result::Error,

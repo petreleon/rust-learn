@@ -10,7 +10,7 @@ use crate::db::schema::{
     transactions_internal_transactions, wallets,
 };
 use crate::domain::wallet::deposit::WALLET_DEPOSIT_TRANSACTION_TYPE;
-use crate::models::transaction::{
+use crate::infra::postgres::models::transaction::{
     NewExternalTransaction, NewInternalTransaction, NewTransaction,
     NewTransactionExternalTransactionLink, NewTransactionInternalTransactionLink,
 };

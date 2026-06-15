@@ -30,12 +30,14 @@ pub(crate) use rust_learn::domain::rewards::token::RewardTokenEventType;
 pub(crate) use rust_learn::domain::rewards::wallet_credit::REWARD_TRANSACTION_TYPE_WALLET_CREDIT;
 pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::reward_candidate::{
+    NewRewardCandidate, RewardCandidate,
+};
+pub(crate) use rust_learn::infra::postgres::models::reward_policy::NewRewardPolicy;
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::operations::persistent_state::set_persistent_state;
 pub(crate) use rust_learn::infra::postgres::rewards::reward_audit_records::list_reward_audit_events;
-pub(crate) use rust_learn::models::course::{Course, NewCourse};
-pub(crate) use rust_learn::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
-pub(crate) use rust_learn::models::reward_policy::NewRewardPolicy;
-pub(crate) use rust_learn::models::user::User;
 pub(crate) use serde_json::json;
 
 use std::sync::atomic::{AtomicU64, Ordering};

@@ -11,8 +11,10 @@ use crate::application::teacher_applications::{
 };
 use crate::domain::teacher_applications::audit::TeacherApplicationAuditEventType;
 use crate::infra::postgres::access_control::permission_checks;
+use crate::infra::postgres::models::teacher_application::{
+    NewTeacherApplication, NewTeacherApplicationAuditEvent,
+};
 use crate::infra::postgres::teacher_applications::teacher_application_records;
-use crate::models::teacher_application::{NewTeacherApplication, NewTeacherApplicationAuditEvent};
 
 pub struct PostgresTeacherApplicationNominationStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

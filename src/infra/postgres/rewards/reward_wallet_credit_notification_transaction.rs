@@ -5,6 +5,8 @@ use crate::application::rewards::notify_wallet_credit::{
     RewardWalletCreditNotificationOutput,
 };
 use crate::domain::rewards::audit::RewardAuditEventType;
+use crate::infra::postgres::models::reward_audit_event::NewRewardAuditEvent;
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 use crate::infra::postgres::rewards::reward_audit_records::create_reward_audit_event;
 use crate::infra::postgres::rewards::reward_candidate_records::{
     find_candidate, update_candidate_status,
@@ -20,8 +22,6 @@ use crate::infra::postgres::rewards::reward_wallet_credit_notification_validatio
 use crate::infra::postgres::rewards::reward_wallet_credit_records::{
     find_reward_wallet_credit_record_by_candidate, mark_reward_wallet_credit_record_notified,
 };
-use crate::models::reward_audit_event::NewRewardAuditEvent;
-use crate::models::reward_candidate::RewardCandidate;
 
 pub(super) async fn notify_reward_wallet_credit(
     conn: &mut AsyncPgConnection,

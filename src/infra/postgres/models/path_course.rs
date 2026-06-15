@@ -1,6 +1,6 @@
 use crate::db::schema::paths_courses;
-use crate::models::course::Course;
-use crate::models::path::Path;
+use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::models::path::Path;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Associations, PartialEq, Debug)]

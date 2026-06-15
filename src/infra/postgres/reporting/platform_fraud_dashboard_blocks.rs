@@ -6,8 +6,8 @@ use crate::application::reporting::platform_fraud_dashboard::{
 };
 use crate::db::schema::reward_fraud_blocks;
 use crate::domain::rewards::fraud_block::RewardFraudBlockScope;
+use crate::infra::postgres::models::reward_fraud_block::RewardFraudBlock;
 use crate::infra::postgres::reporting::platform_fraud_dashboard_mappers::map_diesel_error;
-use crate::models::reward_fraud_block::RewardFraudBlock;
 
 pub(super) async fn active_fraud_block_facts(
     conn: &mut AsyncPgConnection,

@@ -1,11 +1,11 @@
 use anyhow::Result;
 use diesel_async::AsyncPgConnection;
 
+use crate::infra::postgres::models::notification::NewNotification;
 use crate::infra::postgres::notifications::notification_records::{
     delete_user_notifications, insert_notification, insert_notifications,
     mark_user_notification_read,
 };
-use crate::models::notification::NewNotification;
 
 use super::state::NotificationsState;
 

@@ -38,7 +38,7 @@ async fn wallet_credit_notification_persists_context_and_is_idempotent() {
         .expect("notification result should include notification id");
     let notification = notifications::table
         .find(notification_id)
-        .first::<rust_learn::models::notification::Notification>(&mut conn)
+        .first::<rust_learn::infra::postgres::models::notification::Notification>(&mut conn)
         .await
         .expect("reward wallet notification should exist");
     assert_eq!(notification.user_id, Some(student.id()));
@@ -61,7 +61,7 @@ async fn wallet_credit_notification_persists_context_and_is_idempotent() {
                 .credit_record_id
                 .expect("wallet credit should create record"),
         )
-        .first::<rust_learn::models::reward_wallet_credit_record::RewardWalletCreditRecord>(
+        .first::<rust_learn::infra::postgres::models::reward_wallet_credit_record::RewardWalletCreditRecord>(
             &mut conn,
         )
         .await

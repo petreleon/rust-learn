@@ -9,6 +9,7 @@ use crate::application::rewards::decide_amount::{
 };
 use crate::domain::rewards::audit::RewardAuditEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::infra::postgres::models::reward_audit_event::NewRewardAuditEvent;
 use crate::infra::postgres::rewards::reward_amount_decision_mappers::{
     map_reward_amount_decision_candidate, map_reward_amount_decision_error,
 };
@@ -22,7 +23,6 @@ use crate::infra::postgres::rewards::reward_candidate_records::{
     find_candidate, update_amount_decision,
 };
 use crate::infra::postgres::rewards::reward_execution_job_records::enqueue_reward_execution_job;
-use crate::models::reward_audit_event::NewRewardAuditEvent;
 
 pub struct PostgresRewardAmountDecisionStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

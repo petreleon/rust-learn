@@ -10,7 +10,7 @@ use crate::application::identity::ports::UserProfileStore;
 use crate::application::identity::user_profile::{UserProfileError, UserProfileOutput};
 use crate::db::schema::users;
 use crate::infra::postgres::access_control::permission_checks;
-use crate::models::user::User;
+use crate::infra::postgres::models::user::User;
 
 pub struct PostgresUserProfileStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

@@ -10,7 +10,9 @@ use diesel_async::AsyncPgConnection;
 
 pub use crate::application::access_control::manage_delegated_permissions::DelegatedPermissionFilter;
 use crate::infra::postgres::access_control::permission_delegations;
-use crate::models::delegated_permission::{DelegatedPermission, NewDelegatedPermission};
+use crate::infra::postgres::models::delegated_permission::{
+    DelegatedPermission, NewDelegatedPermission,
+};
 
 pub async fn create_delegated_permission(
     conn: &mut AsyncPgConnection,

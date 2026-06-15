@@ -1,10 +1,10 @@
 use crate::application::rewards::list_course_candidates::{
     CourseRewardCandidate, CourseRewardCandidatesError,
 };
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 use crate::infra::postgres::rewards::reward_vocabulary::{
     parse_candidate_source_scope, parse_candidate_status, parse_reward_event_type,
 };
-use crate::models::reward_candidate::RewardCandidate;
 
 pub(super) fn map_course_reward_candidate(
     candidate: RewardCandidate,
@@ -62,7 +62,7 @@ mod tests {
     use crate::domain::rewards::candidate::event_type::RewardEventType;
     use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
     use crate::domain::rewards::candidate::status::RewardCandidateStatus;
-    use crate::models::reward_candidate::RewardCandidate;
+    use crate::infra::postgres::models::reward_candidate::RewardCandidate;
 
     #[test]
     fn maps_known_candidate_status_into_domain_status() {

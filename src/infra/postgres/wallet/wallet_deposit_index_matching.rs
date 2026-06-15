@@ -7,8 +7,8 @@ use crate::domain::wallet::deposit::{
     WalletDepositEventType, WALLET_DEPOSIT_STATUS_AMBIGUOUS, WALLET_DEPOSIT_STATUS_CREDITED,
     WALLET_DEPOSIT_STATUS_PENDING, WALLET_GAS_PAYER_PLATFORM, WALLET_GAS_PAYER_USER,
 };
+use crate::infra::postgres::models::wallet_token_deposit_intent::WalletTokenDepositIntent;
 use crate::infra::postgres::wallet::wallet_deposit_index_ledger::normalize_address;
-use crate::models::wallet_token_deposit_intent::WalletTokenDepositIntent;
 
 pub(super) async fn load_matching_pending_deposit_intents(
     conn: &mut AsyncPgConnection,

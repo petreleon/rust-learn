@@ -7,7 +7,7 @@ use std::{error::Error, fmt};
 
 use crate::db::schema::{authentications, users};
 use crate::infra::postgres::identity::accounts::find_user_by_id;
-use crate::models::user::User;
+use crate::infra::postgres::models::user::User;
 
 const PASSWORD_AUTH_TYPE: &str = "password";
 

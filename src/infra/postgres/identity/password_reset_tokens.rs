@@ -3,7 +3,9 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::db::schema::password_reset_tokens;
-use crate::models::password_reset_token::{NewPasswordResetToken, PasswordResetToken};
+use crate::infra::postgres::models::password_reset_token::{
+    NewPasswordResetToken, PasswordResetToken,
+};
 
 const PASSWORD_RESET_TOKEN_TTL_HOURS: i64 = 1;
 

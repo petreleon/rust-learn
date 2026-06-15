@@ -1,5 +1,5 @@
 use crate::db::schema::role_course_hierarchy;
-use crate::models::role::CourseRole;
+use crate::infra::postgres::models::role::CourseRole;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Associations)]

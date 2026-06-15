@@ -1,7 +1,7 @@
 use crate::db::schema::user_role_organization;
-use crate::models::organization::Organization;
-use crate::models::role::OrganizationRole;
-use crate::models::user::User;
+use crate::infra::postgres::models::organization::Organization;
+use crate::infra::postgres::models::role::OrganizationRole;
+use crate::infra::postgres::models::user::User;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Associations)]

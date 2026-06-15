@@ -6,7 +6,7 @@ use crate::db::schema::{
     chapters, contents, course_join_requests, course_progress, course_roles, courses,
     courses_organizations, user_role_course,
 };
-use crate::models::course_progress::{CourseProgress, NewCourseProgress};
+use crate::infra::postgres::models::course_progress::{CourseProgress, NewCourseProgress};
 
 pub async fn load_course(
     conn: &mut AsyncPgConnection,

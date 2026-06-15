@@ -2,7 +2,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::db::schema::{platform_roles, role_permission_platform, user_role_platform, users};
-use crate::models::user::User;
+use crate::infra::postgres::models::user::User;
 
 pub(super) async fn find_user(conn: &mut AsyncPgConnection, user_id: i32) -> QueryResult<User> {
     users::table.find(user_id).first(conn).await

@@ -12,8 +12,8 @@ use crate::application::organizations::remove_organization_member::{
 use crate::db::schema::{organization_member_audit_events, user_role_organization};
 use crate::domain::organizations::member_audit::OrganizationMemberAuditEventType;
 use crate::infra::postgres::access_control::permission_checks;
+use crate::infra::postgres::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
 use crate::infra::postgres::organizations::organization_member_removal_mappers::map_member_removal_error;
-use crate::models::organization_member_audit_event::NewOrganizationMemberAuditEvent;
 
 pub struct PostgresOrganizationMemberRemovalStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

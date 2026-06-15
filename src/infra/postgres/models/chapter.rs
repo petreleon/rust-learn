@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Identifiable, Associations, PartialEq, Debug, Serialize, Deserialize)]
-#[diesel(belongs_to(crate::models::course::Course))]
+#[diesel(belongs_to(crate::infra::postgres::models::course::Course))]
 #[diesel(table_name = chapters)]
 pub struct Chapter {
     pub id: i32,

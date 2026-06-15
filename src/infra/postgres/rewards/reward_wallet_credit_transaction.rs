@@ -4,6 +4,9 @@ use crate::application::rewards::credit_wallet::{
     RewardWalletCredit, RewardWalletCreditError, RewardWalletCreditOutput,
 };
 use crate::domain::rewards::audit::RewardAuditEventType;
+use crate::infra::postgres::models::reward_audit_event::NewRewardAuditEvent;
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
+use crate::infra::postgres::models::reward_wallet_credit_record::NewRewardWalletCreditRecord;
 use crate::infra::postgres::rewards::reward_audit_records::create_reward_audit_event;
 use crate::infra::postgres::rewards::reward_candidate_records::{
     find_candidate, update_candidate_status,
@@ -23,9 +26,6 @@ use crate::infra::postgres::rewards::reward_wallet_credit_validation::{
 use crate::infra::postgres::rewards::reward_wallet_credit_wallets::{
     credit_wallet_balance, link_user_wallet,
 };
-use crate::models::reward_audit_event::NewRewardAuditEvent;
-use crate::models::reward_candidate::RewardCandidate;
-use crate::models::reward_wallet_credit_record::NewRewardWalletCreditRecord;
 
 pub(super) async fn credit_reward_wallet(
     conn: &mut AsyncPgConnection,

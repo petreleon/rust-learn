@@ -6,7 +6,7 @@ use crate::db::schema::{kyc_submissions, users};
 use crate::domain::kyc::submission::{NormalizedKycDecision, NormalizedKycSubmission};
 use crate::infra::postgres::kyc::kyc_audit::{record_decision_audit, record_submission_audit};
 use crate::infra::postgres::kyc::kyc_mappers::{kyc_submission_output_from_record, map_error};
-use crate::models::kyc_submission::{KycSubmission, NewKycSubmission};
+use crate::infra::postgres::models::kyc_submission::{KycSubmission, NewKycSubmission};
 
 pub(super) async fn create_submission(
     conn: &mut AsyncPgConnection,

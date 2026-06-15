@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::db::schema::{authentications, platform_roles, user_role_platform, users};
-use crate::models::user::User;
+use crate::infra::postgres::models::user::User;
 
 const DEFAULT_REGISTRATION_ROLE: &str = "STUDENT";
 const PASSWORD_AUTH_TYPE: &str = "password";

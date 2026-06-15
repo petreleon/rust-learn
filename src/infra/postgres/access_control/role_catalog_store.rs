@@ -7,7 +7,7 @@ use crate::application::access_control::role_catalog::{
     RoleCatalogEntry, RoleCatalogError, RoleCatalogScope,
 };
 use crate::db::schema::{course_roles, organization_roles, platform_roles};
-use crate::models::role::{CourseRole, OrganizationRole, PlatformRole};
+use crate::infra::postgres::models::role::{CourseRole, OrganizationRole, PlatformRole};
 
 pub struct PostgresRoleCatalogStore<'conn> {
     conn: &'conn mut AsyncPgConnection,

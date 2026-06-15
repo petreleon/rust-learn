@@ -21,12 +21,12 @@ pub(crate) use rust_learn::infra::postgres::organizations::organization_member_l
 pub(crate) use rust_learn::infra::postgres::organizations::organization_member_removal_use_case::PostgresOrganizationMemberRemovalUseCase;
 pub(crate) use rust_learn::infra::postgres::organizations::organization_member_role_assignment_use_case::PostgresOrganizationMemberRoleAssignmentUseCase;
 pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
-pub(crate) use rust_learn::models::delegated_permission::NewDelegatedPermission;
-pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
-pub(crate) use rust_learn::models::organization_member_audit_event::{
+pub(crate) use rust_learn::infra::postgres::models::delegated_permission::NewDelegatedPermission;
+pub(crate) use rust_learn::infra::postgres::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::infra::postgres::models::organization_member_audit_event::{
     NewOrganizationMemberAuditEvent, OrganizationMemberAuditEvent,
 };
-pub(crate) use rust_learn::models::user::User;
+pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use serde_json::Value;
 pub(crate) use std::sync::{
     atomic::{AtomicU64, Ordering},

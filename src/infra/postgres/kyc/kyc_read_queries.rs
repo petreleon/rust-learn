@@ -7,8 +7,8 @@ use crate::domain::kyc::submission::{KYC_STATUS_SUBMITTED, KYC_STATUS_UNDER_REVI
 use crate::infra::postgres::kyc::kyc_mappers::{
     kyc_audit_event_output_from_record, kyc_submission_output_from_record, map_error,
 };
-use crate::models::kyc_audit_event::KycAuditEvent;
-use crate::models::kyc_submission::KycSubmission;
+use crate::infra::postgres::models::kyc_audit_event::KycAuditEvent;
+use crate::infra::postgres::models::kyc_submission::KycSubmission;
 
 pub(super) async fn get_user_kyc_verified(
     conn: &mut AsyncPgConnection,

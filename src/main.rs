@@ -6,7 +6,6 @@ pub mod domain;
 pub mod http;
 pub mod infra;
 pub mod middlewares;
-mod models;
 
 use actix_web::{App, HttpServer};
 

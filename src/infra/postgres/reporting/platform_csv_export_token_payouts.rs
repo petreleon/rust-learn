@@ -8,9 +8,9 @@ use crate::application::reporting::platform_csv_exports::{
 };
 use crate::db::schema::{external_transactions, reward_candidates, reward_payout_records};
 use crate::domain::rewards::token::RewardTokenEventType;
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
+use crate::infra::postgres::models::reward_payout_record::RewardPayoutRecord;
 use crate::infra::postgres::reporting::platform_csv_export_mappers::map_diesel_error;
-use crate::models::reward_candidate::RewardCandidate;
-use crate::models::reward_payout_record::RewardPayoutRecord;
 
 type ExternalTransactionRow = (
     BigDecimal,

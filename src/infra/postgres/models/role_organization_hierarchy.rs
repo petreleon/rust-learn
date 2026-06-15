@@ -1,5 +1,5 @@
 use crate::db::schema::role_organization_hierarchy;
-use crate::models::role::OrganizationRole;
+use crate::infra::postgres::models::role::OrganizationRole;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Associations)]

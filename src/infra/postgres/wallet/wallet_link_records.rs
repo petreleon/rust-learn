@@ -7,8 +7,8 @@ use crate::application::wallet::link_wallet::{
     linked_wallet_view, LinkedWalletFact, LinkedWalletView, WalletLinkError,
 };
 use crate::db::schema::wallets;
+use crate::infra::postgres::models::wallet::{NewWallet, Wallet};
 use crate::infra::postgres::wallet::wallet_mappers::wallet_view_output_from_record;
-use crate::models::wallet::{NewWallet, Wallet};
 
 pub(super) async fn link_user_wallet_record(
     conn: &mut AsyncPgConnection,

@@ -21,7 +21,9 @@ async fn platform_audit_permission_reads_candidate_events() {
             reason: Some("student completed the course".to_string()),
             metadata: json!({"source": "api-test"}),
         })
-        .get_result::<rust_learn::models::reward_audit_event::RewardAuditEvent>(&mut conn)
+        .get_result::<rust_learn::infra::postgres::models::reward_audit_event::RewardAuditEvent>(
+            &mut conn,
+        )
         .await
         .expect("failed to create reward audit event");
     drop(conn);

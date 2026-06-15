@@ -7,8 +7,8 @@ use crate::application::reporting::platform_csv_exports::{
 };
 use crate::db::schema::delegated_permissions;
 use crate::domain::access_control::delegation::DelegatedScopeType;
+use crate::infra::postgres::models::delegated_permission::DelegatedPermission;
 use crate::infra::postgres::reporting::platform_csv_export_mappers::map_diesel_error;
-use crate::models::delegated_permission::DelegatedPermission;
 
 pub(super) async fn load_delegated_permission_export_rows(
     conn: &mut AsyncPgConnection,

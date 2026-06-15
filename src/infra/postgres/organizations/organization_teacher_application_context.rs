@@ -8,8 +8,8 @@ use crate::application::organizations::list_organization_teacher_applications::{
     TeacherApplicationUserSummaryOutput,
 };
 use crate::db::schema::{courses, organizations, users};
+use crate::infra::postgres::models::teacher_application::TeacherApplication;
 use crate::infra::postgres::organizations::organization_teacher_application_audit_context::load_audits;
-use crate::models::teacher_application::TeacherApplication;
 
 pub struct OrganizationTeacherApplicationContext {
     pub users: BTreeMap<i32, TeacherApplicationUserSummaryOutput>,

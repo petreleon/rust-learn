@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::db::schema::{teacher_application_audit_events, teacher_applications};
-use crate::models::teacher_application::{
+use crate::infra::postgres::models::teacher_application::{
     NewTeacherApplication, NewTeacherApplicationAuditEvent, TeacherApplication,
     TeacherApplicationAuditEvent,
 };

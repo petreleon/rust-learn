@@ -5,8 +5,8 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::rewards::record_compensation::RewardCompensationError;
 use crate::db::schema::wallets;
+use crate::infra::postgres::models::wallet::{NewWallet, Wallet};
 use crate::infra::postgres::rewards::reward_compensation_mappers::map_reward_compensation_error;
-use crate::models::wallet::{NewWallet, Wallet};
 
 pub(super) async fn link_user_wallet(
     conn: &mut AsyncPgConnection,

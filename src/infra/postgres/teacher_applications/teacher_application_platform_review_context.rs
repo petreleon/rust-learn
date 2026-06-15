@@ -8,8 +8,10 @@ use crate::application::teacher_applications::list_platform_review::{
     TeacherApplicationPlatformReviewUserOutput,
 };
 use crate::db::schema::{courses, organizations, teacher_application_audit_events, users};
+use crate::infra::postgres::models::teacher_application::{
+    TeacherApplication, TeacherApplicationAuditEvent,
+};
 use crate::infra::postgres::teacher_applications::teacher_application_platform_review_audit::audit_summaries;
-use crate::models::teacher_application::{TeacherApplication, TeacherApplicationAuditEvent};
 
 pub struct TeacherApplicationPlatformReviewContext {
     pub users: BTreeMap<i32, TeacherApplicationPlatformReviewUserOutput>,

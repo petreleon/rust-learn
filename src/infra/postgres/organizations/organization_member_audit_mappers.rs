@@ -2,7 +2,7 @@ use crate::application::organizations::list_organization_member_audit::{
     OrganizationMemberAuditError, OrganizationMemberAuditEventOutput,
 };
 use crate::domain::organizations::member_audit::OrganizationMemberAuditEventType;
-use crate::models::organization_member_audit_event::OrganizationMemberAuditEvent;
+use crate::infra::postgres::models::organization_member_audit_event::OrganizationMemberAuditEvent;
 
 pub fn organization_member_audit_output_from_model(
     event: OrganizationMemberAuditEvent,

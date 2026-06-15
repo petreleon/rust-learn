@@ -9,10 +9,10 @@ use crate::application::organizations::list_organization_courses::{
 };
 use crate::config::constants::permissions::Permissions;
 use crate::db::schema::{courses, courses_organizations, organizations};
+use crate::infra::postgres::models::course::Course;
 use crate::infra::postgres::organizations::{
     organization_course_permission_queries, organization_course_summary_queries,
 };
-use crate::models::course::Course;
 
 const LIKE_ESCAPE_CHAR: char = '\\';
 

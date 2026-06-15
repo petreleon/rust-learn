@@ -9,10 +9,10 @@ use crate::domain::rewards::candidate::reconciliation::{
     reward_reconciliation_status, RewardReconciliationFacts,
 };
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::infra::postgres::models::reward_candidate::RewardCandidate;
+use crate::infra::postgres::models::reward_payout_record::RewardPayoutRecord;
+use crate::infra::postgres::models::reward_wallet_credit_record::RewardWalletCreditRecord;
 use crate::infra::postgres::wallet::wallet_audit_mappers::map_wallet_audit_error;
-use crate::models::reward_candidate::RewardCandidate;
-use crate::models::reward_payout_record::RewardPayoutRecord;
-use crate::models::reward_wallet_credit_record::RewardWalletCreditRecord;
 
 pub(super) async fn load_reward_records(
     conn: &mut AsyncPgConnection,

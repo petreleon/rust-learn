@@ -1,6 +1,6 @@
 use crate::db::schema::role_permission_course;
-use crate::models::course::Course;
-use crate::models::role::CourseRole;
+use crate::infra::postgres::models::course::Course;
+use crate::infra::postgres::models::role::CourseRole;
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Associations)]
