@@ -1,7 +1,7 @@
 .PHONY: help build run stop test test-compose clean docker-build docker-up docker-down setup health runtime-verify runtime-log-scan runtime-disk docker-prune-build-cache \
   k8s-build k8s-apply k8s-dev-secrets k8s-dev-apply k8s-dev-refresh k8s-dev-refresh-app k8s-dev-refresh-web k8s-dev-delete k8s-delete k8s-status k8s-logs k8s-forward \
   k8s-validate k8s-dev-validate dev-build dev-deps dev-run dev-worker worker-build diesel-compose schema migration-generate migrate migrate-redo \
-  dev-refresh test-integration preflight fmt fmt-compose clippy web-lint web-build web-api-helper-tests web-lint-compose web-build-compose mock-email logs ps shell
+  dev-refresh test-integration preflight fmt fmt-compose clippy web-dev web-lint web-build web-api-helper-tests web-lint-compose web-build-compose mock-email logs ps shell
 
 # Variables
 export PATH := /opt/homebrew/bin:/usr/local/bin:$(PATH)

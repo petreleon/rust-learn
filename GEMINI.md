@@ -1,26 +1,30 @@
 # Gemini Instructions
 
-This document provides a set of guidelines for interacting with the Gemini AI assistant in this project. Please follow these instructions to ensure a smooth and efficient workflow.
+Guidance for Gemini and other code-generating assistants in this repository.
 
-## General Instructions
+## Development Workflow
 
-- **Write Tests:** Always write tests for the code you produce. This ensures that your changes are working as expected and helps to prevent regressions.
+- Prefer Make targets for development tasks. They encode the repo's host
+  wrapper, Docker Compose service networking, and validation defaults.
+- Use raw `cargo`, `npm`, or `docker compose` commands only when no Make target
+  covers the task or when a Make target explicitly documents that escape hatch.
+- Keep Rust code formatted with `make fmt`; use `make fmt-compose` when the
+  check must run in the Compose test-runner container.
 
-## Docker and docker-compose
+## Database Migrations
 
-- **Always work in Docker:** To ensure a consistent development environment, please perform all development tasks within the provided Docker container. This helps to avoid issues related to dependency conflicts and environment inconsistencies.
-- **Use `docker-compose`:** Please use `docker-compose` (with a hyphen) instead of `Docker Compose` in all commands and documentation.
+- The source-controlled Diesel schema is `src/infra/postgres/schema.rs`.
+- Run migrations with `make migrate`; redo the latest migration with
+  `make migrate-redo`.
+- Regenerate only the schema with `make schema`.
+- Generate migration directories with `make migration-generate NAME=...`.
+- Run uncommon Diesel subcommands with
+  `make diesel-compose DIESEL_ARGS='...'`.
+- Do not require or document a host Diesel CLI path for normal development.
 
-## Instructions for Migrations
+## Migration Rules
 
-When creating or modifying database migrations, please adhere to the following guidelines:
-
-- **Modify Existing Tables with Caution:** Before creating a new migration that alters an existing table, always check the current schema to avoid conflicts.
-
-- **Prefer Altering Over Creating:** Whenever possible, prefer altering existing tables to creating new ones. This helps to keep the database schema clean and concise.
-
-- **Consult the Schema:** The source of truth for the database schema is `src/db/schema.rs`. Please review this file carefully before making any changes.
-
-```
-src/db/schema.rs
-```
+- Modify existing tables with care; inspect the current schema before adding a
+  migration that changes an existing table.
+- Prefer altering existing tables over creating duplicate replacement tables.
+- Include reversible `up.sql` and `down.sql` files whenever possible.

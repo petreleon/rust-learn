@@ -2,6 +2,9 @@
 
 - Prefer the Makefile targets; they encode the local host wrapper, Docker
   Compose service networking, and Kubernetes validation paths used by this repo.
+- Use raw `cargo`, `npm`, `docker compose`, or Diesel commands only when no
+  Make target covers the task. Diesel development work must go through
+  `make diesel-compose` or the higher-level migration/schema targets.
 - Use `make setup` once to create a local `.env` and development JWT key pair,
   then edit `.env` for environment-specific values.
 - Start the local Docker Compose stack with `make dev` or selected infra with
@@ -33,6 +36,7 @@
 
   - Start services: `make dev`
   - Run app locally through Compose: `make dev`
+  - Run frontend dev server on the host: `make web-dev`
   - Rebuild/restart selected app or web services after code changes: `make dev-refresh`
   - Test through Compose service networking: `make test-compose`
   - Narrow Compose test suite: `make test-compose CARGO_TEST_ARGS='--lib'`

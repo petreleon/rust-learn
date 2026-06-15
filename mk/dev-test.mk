@@ -52,6 +52,9 @@ k8s-validate: k8s-dev-secrets ## Render base and local development Kubernetes ma
 k8s-dev-validate: k8s-dev-secrets ## Render local Kubernetes development overlay
 	$(KUBECTL) kustomize $(K8S_DEV) >/dev/null
 
+web-dev: ## Run frontend dev server on the host
+	cd web && npm install && npm run dev
+
 web-lint: ## Run frontend lint checks
 	cd web && npm run lint
 
@@ -71,25 +74,25 @@ mock-email: ## Preview local mock email output (use: make mock-email MOCK_EMAIL=
 	$(HOST_CARGO) cargo run --bin mock_email --features tool-bin -- "$(MOCK_EMAIL)" "$(MOCK_NAME)" "$(MOCK_TOKEN)"
 
 # DB Migrations
-diesel-compose: ## Run Diesel CLI through Compose (use: make diesel-compose DIESEL_ARGS='migration list')
+diesel-compose: ## Run Diesel CLI in the Compose tool container (use: make diesel-compose DIESEL_ARGS='migration list')
 	$(DOCKER_COMPOSE) up -d db
 	$(DIESEL_COMPOSE) $(DIESEL_ARGS)
 
-schema: ## Regenerate Diesel schema through Compose
+schema: ## Regenerate Diesel schema in the Compose tool container
 	$(DOCKER_COMPOSE) up -d db
 	$(DIESEL_COMPOSE_RUN) sh -c '/usr/local/cargo/bin/diesel print-schema > "$(DIESEL_SCHEMA_FILE)" && /usr/local/cargo/bin/rustfmt "$(DIESEL_SCHEMA_FILE)"'
 
-migration-generate: ## Generate a Diesel migration through Compose (use: make migration-generate NAME=create_table)
+migration-generate: ## Generate a Diesel migration in the Compose tool container (use: make migration-generate NAME=create_table)
 	@if [ -z "$(NAME)" ]; then \
 		echo "$(YELLOW)Usage: make migration-generate NAME=create_table$(NC)"; \
 		exit 1; \
 	fi
-	$(DIESEL_COMPOSE) migration generate $(NAME)
+	$(MAKE) diesel-compose DIESEL_ARGS='migration generate $(NAME)'
 
-migrate: ## Run Diesel migrations through Docker Compose
+migrate: ## Primary DB migration path: run migrations and refresh schema in Compose
 	$(MAKE) diesel-compose DIESEL_ARGS='migration run'
 	$(MAKE) schema
 
-migrate-redo: ## Redo last migration through Docker Compose
+migrate-redo: ## Redo last migration and refresh schema in Compose
 	$(MAKE) diesel-compose DIESEL_ARGS='migration redo'
 	$(MAKE) schema

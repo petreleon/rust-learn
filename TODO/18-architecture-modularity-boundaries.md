@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified pushed base before current batch: `76cbc9f1`
-(`Unify reward authorization permissions catalog`).
+Latest verified pushed base before current batch: `cc74255c`
+(`Use permission catalog for delegation rules`).
 
 Objective: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
@@ -63,6 +63,9 @@ submodules only where a context or use case has real ownership.
 - `76cbc9f1`: reward/wallet authorization and fraud-block notification
   recipient policy now use the canonical `Permissions` catalog; the duplicate
   `domain::access_control::permission::Permission` subset enum was removed.
+- `cc74255c`: delegated permission normalization and scope rules now use the
+  canonical `Permissions` catalog; raw permission-name strings remain only at
+  public/persisted boundaries and tests asserting that contract.
 
 Proof for completed pushed work:
 
@@ -81,22 +84,25 @@ Proof for completed pushed work:
 
 Included problems:
 
-- `domain::access_control::delegation::permission_rules` still hard-coded the
-  delegatable reward permission set as raw strings.
-- Scope validation for delegated platform, organization, and course permissions
-  repeated those string literals in `matches!` blocks.
-- This could drift from the canonical `Permissions` catalog after the duplicate
-  subset enum was removed.
+- Development docs still mixed Make-first guidance with raw `npm` examples and
+  stale assistant guidance.
+- `GEMINI.md` pointed at the old `src/db/schema.rs` path.
+- `make migration-generate` used the Compose Diesel command directly instead
+  of delegating through the `diesel-compose` Make entrypoint.
+- The frontend dev loop had no Make target, so docs had to show raw `npm`
+  commands.
 
 Fixes:
 
-- Delegation permission normalization now parses input into `Permissions`.
-- Delegatable reward permissions and scope-specific delegation rules now use
-  `Permissions` variants directly.
-- Public/persisted boundaries still return and filter permission names as
-  strings, preserving the API and DB contract.
-- String literals remain only in tests that assert public permission-name
-  behavior.
+- Added `make web-dev` for the host frontend dev server.
+- Tightened Make target help so Diesel migration/schema work is explicitly
+  Compose-container based.
+- `make migration-generate` now delegates through `make diesel-compose`.
+- `README.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `GEMINI.md`,
+  and `diesel.toml` now state that Make is the primary development command
+  surface and Diesel development commands do not require a host Diesel CLI.
+- Assistant guidance now names the current schema path:
+  `src/infra/postgres/schema.rs`.
 
 Deferred problems:
 
@@ -108,19 +114,20 @@ Proof:
 
 - `cargo fmt --all --check`.
 - `./scripts/run-host-tests.sh cargo check --lib`.
-- `./scripts/run-host-tests.sh cargo test --lib delegation`.
-- `./scripts/run-host-tests.sh cargo test --lib manage_delegated_permissions`.
-- `./scripts/run-host-tests.sh cargo test --test delegated_permissions --test
-  reward_management_api`.
+- Make dry-runs: `make -n migrate`, `make -n migrate-redo`, `make -n schema`,
+  `make -n migration-generate NAME=create_make_primary_smoke`,
+  `make -n diesel-compose DIESEL_ARGS='migration list'`, and
+  `make -n web-dev`.
+- `make help` output includes `web-dev`, `diesel-compose`, `schema`,
+  `migration-generate`, `migrate`, and `migrate-redo`.
+- `docker compose -f docker-compose.yml -f docker-compose.tools.yml config -q`.
 - `./scripts/run-host-tests.sh cargo check --bin rust-learn --features
   app-bin`.
 - `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
 - `git diff --check`.
-- Scans: no hard-coded delegated reward permission literals remain in
-  production delegation policy; no `crate::infra` / `rust_learn::infra` imports
-  in `src/http`; domain/application boundary scan found no concrete dependency
-  leaks, only the domain vocabulary variant `MANAGE_S3_OBJECTS`; no maintained
-  Rust file over 180 lines.
+- Scans: no active contributor docs outside this TODO point at
+  `src/db/schema.rs`; Make/help/docs expose Diesel work through Compose-backed
+  Make targets; touched non-Markdown files remain under 180 lines.
 
 ## Remaining Work
 

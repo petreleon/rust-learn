@@ -1,2 +1,3 @@
+# Use `make schema` or `make migrate`; Diesel runs in the Compose tool container.
 [print_schema]
 file = "src/infra/postgres/schema.rs"

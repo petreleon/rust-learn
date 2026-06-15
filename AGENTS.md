@@ -36,7 +36,7 @@ RustLearn is an incentivized learning platform. The backend is a Rust/Actix Web 
 - Do not commit secrets. `.env` is ignored; `.env.example` should contain placeholders only.
 - Do not add generated dependency directories such as `target/` or `web/node_modules/`.
 - Keep manually maintained non-Markdown files at or below 180 lines. Generated files, lockfiles, binary assets, and tool-owned artifacts are exempt.
-- Keep Rust code formatted with `cargo fmt` before committing.
+- Keep Rust code formatted with `make fmt` before committing.
 - Prefer application use cases and context-owned infra adapters for business
   workflows/database logic instead of embedding complex queries directly in
   route handlers.
@@ -55,6 +55,7 @@ make test-compose
 make test-integration
 make dev
 make dev-worker
+make web-dev
 make migrate
 make schema
 ```
@@ -64,10 +65,11 @@ tests; it rewrites Compose-only service hosts to localhost, adds local native
 library paths such as Homebrew `libpq`, and keeps host artifacts in
 `target/host-tests`. For direct Cargo-style host test filters, use
 `./scripts/run-host-tests.sh cargo test ...` instead of bare `cargo test`.
-Diesel development commands must go through the Compose tool container via
+Make targets are the primary development interface. Diesel development
+commands must go through the Compose tool container via
 `make migrate`, `make migrate-redo`, `make schema`,
 `make migration-generate NAME=...`, or `make diesel-compose DIESEL_ARGS='...'`;
-do not require a host Diesel CLI.
+do not require or document a host Diesel CLI path.
 The worker binary can require a large Docker VM memory allocation during release
 builds.
 

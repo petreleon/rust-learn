@@ -470,9 +470,7 @@ make dev-worker
 Run the frontend locally:
 
 ```bash
-cd web
-npm install
-npm run dev
+make web-dev
 ```
 
 ## Worker service
@@ -534,6 +532,13 @@ for queue depth, attempts, processing duration, retries, and failed jobs.
 
 Hosted GitHub Actions CI is intentionally disabled. Run the quality gates
 locally, preferably through Docker Compose, to avoid spending hosted CI minutes.
+Use Make targets as the primary development command surface; they encode the
+host wrapper, Compose service networking, and repo-specific defaults. Raw
+`cargo`, `npm`, `docker compose`, or Diesel commands are escape hatches when no
+Make target exists. Diesel CLI work should stay in Compose through
+`make migrate`, `make migrate-redo`, `make schema`,
+`make migration-generate NAME=...`, or
+`make diesel-compose DIESEL_ARGS='...'`.
 
 Run Rust tests through Docker Compose service networking:
 
@@ -611,9 +616,9 @@ make fmt-compose
 Frontend checks:
 
 ```bash
-cd web
-npm run lint
-npm run build
+make web-lint
+make web-api-helper-tests
+make web-build
 ```
 
 Docker Compose equivalent:
@@ -648,11 +653,17 @@ make clippy
 make preflight
 make test
 make test-integration
+make web-dev
 make web-lint
 make web-api-helper-tests
 make web-build
 make web-lint-compose
 make web-build-compose
+make migrate
+make migrate-redo
+make schema
+make migration-generate NAME=create_learning_paths
+make diesel-compose DIESEL_ARGS='migration list'
 make health
 make runtime-verify
 make runtime-log-scan
@@ -726,6 +737,8 @@ For less common Diesel commands, keep the Makefile as the entrypoint:
 make diesel-compose DIESEL_ARGS='migration list'
 make schema
 ```
+
+Direct host Diesel invocations are not the normal development path.
 
 When adding migrations, include reversible `up.sql` and `down.sql` files whenever possible and update/check `src/infra/postgres/schema.rs` through `make migrate`, `make migrate-redo`, or `make schema` when schema changes require it.
 
