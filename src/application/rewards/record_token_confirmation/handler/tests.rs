@@ -6,6 +6,7 @@ use crate::application::rewards::record_token_confirmation::{
     RewardTokenConfirmation, RewardTokenConfirmationCommand, RewardTokenConfirmationError,
     RewardTokenConfirmationOutput, RewardTokenConfirmationStore,
 };
+use crate::domain::rewards::token::RewardTokenTransactionType;
 
 #[tokio::test]
 async fn records_valid_confirmation_with_transaction_type() {
@@ -16,8 +17,8 @@ async fn records_valid_confirmation_with_transaction_type() {
 
     assert_eq!(result.candidate_id, 42);
     assert_eq!(
-        store.recorded_transaction_type.as_deref(),
-        Some("token_transfer")
+        store.recorded_transaction_type,
+        Some(RewardTokenTransactionType::Transfer)
     );
     assert_eq!(store.recorded_actor, None);
 }
@@ -88,7 +89,7 @@ struct FakeStore {
     permission_checks: usize,
     record_calls: usize,
     recorded_actor: Option<i32>,
-    recorded_transaction_type: Option<String>,
+    recorded_transaction_type: Option<RewardTokenTransactionType>,
 }
 
 impl FakeStore {

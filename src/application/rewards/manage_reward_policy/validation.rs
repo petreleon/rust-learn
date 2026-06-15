@@ -6,8 +6,7 @@ use crate::application::rewards::manage_reward_policy::{
 };
 use crate::application::rewards::ports::RewardPolicyStore;
 use crate::domain::rewards::policy::{
-    normalize_event_type, normalize_payment_strategy, normalize_scope_type,
-    REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_ORGANIZATION, REWARD_POLICY_SCOPE_PLATFORM,
+    RewardPaymentStrategy, RewardPolicyEventType, RewardPolicyScope,
 };
 
 pub(super) async fn validated_draft(
@@ -15,21 +14,21 @@ pub(super) async fn validated_draft(
     actor_user_id: i32,
     command: CreateRewardPolicyCommand,
 ) -> Result<RewardPolicyDraft, RewardPolicyError> {
-    let scope_type = normalize_scope_type(&command.scope_type).ok_or_else(|| {
+    let scope_type = RewardPolicyScope::normalize(&command.scope_type).map_err(|_| {
         RewardPolicyError::InvalidInput("unsupported reward policy scope type".to_string())
     })?;
     validate_scope_references(
         store,
-        &scope_type,
+        scope_type,
         command.organization_id,
         command.course_id,
     )
     .await?;
-    let event_type = normalize_event_type(&command.event_type).ok_or_else(|| {
+    let event_type = RewardPolicyEventType::normalize(&command.event_type).map_err(|_| {
         RewardPolicyError::InvalidInput("unsupported reward policy event type".to_string())
     })?;
     let payment_strategy =
-        normalize_payment_strategy(&command.payment_strategy).ok_or_else(|| {
+        RewardPaymentStrategy::normalize(&command.payment_strategy).map_err(|_| {
             RewardPolicyError::InvalidInput(
                 "unsupported reward policy payment strategy".to_string(),
             )
@@ -74,19 +73,16 @@ pub(super) fn validated_filter(
 
 async fn validate_scope_references(
     store: &mut impl RewardPolicyStore,
-    scope_type: &str,
+    scope_type: RewardPolicyScope,
     organization_id: Option<i32>,
     course_id: Option<i32>,
 ) -> Result<(), RewardPolicyError> {
     match scope_type {
-        REWARD_POLICY_SCOPE_PLATFORM => reject_platform_refs(organization_id, course_id),
-        REWARD_POLICY_SCOPE_ORGANIZATION => {
+        RewardPolicyScope::Platform => reject_platform_refs(organization_id, course_id),
+        RewardPolicyScope::Organization => {
             validate_organization_scope(store, organization_id, course_id).await
         }
-        REWARD_POLICY_SCOPE_COURSE => {
-            validate_course_scope(store, organization_id, course_id).await
-        }
-        _ => unreachable!("scope type was normalized before validation"),
+        RewardPolicyScope::Course => validate_course_scope(store, organization_id, course_id).await,
     }
 }
 
@@ -164,14 +160,14 @@ fn validate_amounts(
     Ok(())
 }
 
-fn normalized_scope(scope: String) -> Result<String, RewardPolicyError> {
-    normalize_scope_type(&scope).ok_or_else(|| {
+fn normalized_scope(scope: String) -> Result<RewardPolicyScope, RewardPolicyError> {
+    RewardPolicyScope::normalize(&scope).map_err(|_| {
         RewardPolicyError::InvalidInput("unsupported reward policy scope type".to_string())
     })
 }
 
-fn normalized_event(event: String) -> Result<String, RewardPolicyError> {
-    normalize_event_type(&event).ok_or_else(|| {
+fn normalized_event(event: String) -> Result<RewardPolicyEventType, RewardPolicyError> {
+    RewardPolicyEventType::normalize(&event).map_err(|_| {
         RewardPolicyError::InvalidInput("unsupported reward policy event type".to_string())
     })
 }

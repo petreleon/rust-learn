@@ -10,6 +10,7 @@ fn exposes_stable_scope_keys() {
         RewardFraudBlockScope::RewardPolicy.as_str(),
         "reward_policy"
     );
+    assert_eq!(RewardFraudBlockAuditEventType::Created.as_str(), "created");
 }
 
 #[test]
@@ -17,6 +18,10 @@ fn parses_known_scopes() {
     assert_eq!(
         RewardFraudBlockScope::parse(REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION).unwrap(),
         RewardFraudBlockScope::Organization
+    );
+    assert_eq!(
+        RewardFraudBlockAuditEventType::parse(REWARD_FRAUD_BLOCK_EVENT_REVOKED).unwrap(),
+        RewardFraudBlockAuditEventType::Revoked
     );
 }
 
@@ -44,6 +49,7 @@ fn normalizes_valid_scopes() {
 fn rejects_invalid_scope() {
     assert!(normalize_scope_type("").is_none());
     assert!(normalize_scope_type("unknown").is_none());
+    assert!(RewardFraudBlockAuditEventType::parse("updated").is_err());
 }
 
 #[test]

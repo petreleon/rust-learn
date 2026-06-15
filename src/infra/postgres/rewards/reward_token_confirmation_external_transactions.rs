@@ -3,6 +3,7 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::rewards::record_token_confirmation::RewardTokenConfirmationCommand;
 use crate::db::schema::{external_transactions, transactions, transactions_external_transactions};
+use crate::domain::rewards::token::RewardTokenTransactionType;
 use crate::infra::postgres::rewards::reward_token_confirmation_mappers::RewardTokenConfirmationTransactionError;
 use crate::models::transaction::{
     ExternalTransaction, NewExternalTransaction, NewTransaction,
@@ -18,7 +19,7 @@ pub(super) struct RecordedExternalRewardTransaction {
 pub(super) async fn record_external_reward_transaction(
     conn: &mut AsyncPgConnection,
     command: &RewardTokenConfirmationCommand,
-    transaction_type: &str,
+    transaction_type: RewardTokenTransactionType,
 ) -> Result<RecordedExternalRewardTransaction, RewardTokenConfirmationTransactionError> {
     if let Some(existing) = find_external_transaction_by_chain_tx_log(
         conn,
@@ -96,7 +97,7 @@ async fn find_transaction_for_external(
 async fn create_transaction_for_external(
     conn: &mut AsyncPgConnection,
     external_transaction_id: i64,
-    transaction_type: &str,
+    transaction_type: RewardTokenTransactionType,
 ) -> QueryResult<i64> {
     let transaction_id = create_transaction(conn, transaction_type).await?;
     link_transaction_external(conn, transaction_id, external_transaction_id).await?;
@@ -105,11 +106,11 @@ async fn create_transaction_for_external(
 
 async fn create_transaction(
     conn: &mut AsyncPgConnection,
-    transaction_type: &str,
+    transaction_type: RewardTokenTransactionType,
 ) -> QueryResult<i64> {
     diesel::insert_into(transactions::table)
         .values(NewTransaction {
-            type_: transaction_type,
+            type_: transaction_type.as_str(),
         })
         .returning(transactions::id)
         .get_result(conn)

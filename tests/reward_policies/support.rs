@@ -9,8 +9,8 @@ pub(crate) use rust_learn::db::schema::{courses, organizations};
 pub(crate) use rust_learn::db::{establish_connection, DbPool};
 pub(crate) use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
 pub(crate) use rust_learn::domain::rewards::policy::{
-    REWARD_PAYMENT_MINT, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
-    REWARD_POLICY_SCOPE_PLATFORM,
+    RewardPaymentStrategy, RewardPolicyScope, REWARD_PAYMENT_MINT,
+    REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_PLATFORM,
 };
 pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;

@@ -40,7 +40,7 @@ pub(super) async fn record_reward_token_confirmation(
     let recorded = record_external_reward_transaction(
         conn,
         &confirmation.command,
-        &confirmation.transaction_type,
+        confirmation.transaction_type,
     )
     .await?;
     let payout_record = create_reward_payout_record(

@@ -104,10 +104,10 @@ async fn course_policy_requires_course_scope_and_can_explicitly_allow_mint() {
         .await
         .expect("admin should create course reward policy");
 
-    assert_eq!(policy.scope_type, REWARD_POLICY_SCOPE_COURSE);
+    assert_eq!(policy.scope_type, RewardPolicyScope::Course);
     assert_eq!(policy.course_id, Some(course.id));
     assert_eq!(policy.organization_id, Some(organization.id));
-    assert_eq!(policy.payment_strategy, REWARD_PAYMENT_MINT);
+    assert_eq!(policy.payment_strategy, RewardPaymentStrategy::Mint);
 
     let invalid = policies
         .create_reward_policy(

@@ -18,7 +18,7 @@ pub(crate) use rust_learn::domain::access_control::delegation::{
     DELEGATED_SCOPE_ORGANIZATION, DELEGATED_SCOPE_PLATFORM,
 };
 pub(crate) use rust_learn::domain::rewards::fraud_block::{
-    REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
+    RewardFraudBlockScope, REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
     REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
 };
 pub(crate) use rust_learn::infra::postgres::access_control::delegated_permissions::use_case::PostgresDelegatedPermissionUseCase;

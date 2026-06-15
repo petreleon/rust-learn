@@ -3,11 +3,11 @@ use bigdecimal::BigDecimal;
 use crate::application::rewards::record_token_confirmation::{
     RewardTokenConfirmationCommand, RewardTokenConfirmationError,
 };
-use crate::domain::rewards::token::RewardTokenEventType;
+use crate::domain::rewards::token::{RewardTokenEventType, RewardTokenTransactionType};
 
 pub fn validate_token_confirmation_command(
     command: &RewardTokenConfirmationCommand,
-) -> Result<String, RewardTokenConfirmationError> {
+) -> Result<RewardTokenTransactionType, RewardTokenConfirmationError> {
     if command.chain_id <= 0 {
         return Err(RewardTokenConfirmationError::InvalidInput(
             "chain_id must be positive".to_string(),
@@ -39,7 +39,7 @@ pub fn validate_token_confirmation_command(
         ));
     }
     RewardTokenEventType::parse(&command.event_type)
-        .map(|event| event.transaction_type().as_str().to_string())
+        .map(|event| event.transaction_type())
         .map_err(|_| {
             RewardTokenConfirmationError::InvalidInput("unsupported token event type".to_string())
         })
@@ -53,6 +53,7 @@ mod tests {
     use crate::application::rewards::record_token_confirmation::{
         RewardTokenConfirmationCommand, RewardTokenConfirmationError,
     };
+    use crate::domain::rewards::token::RewardTokenTransactionType;
 
     fn valid_command() -> RewardTokenConfirmationCommand {
         RewardTokenConfirmationCommand {
@@ -71,7 +72,7 @@ mod tests {
     fn valid_command_returns_transaction_type() {
         assert_eq!(
             validate_token_confirmation_command(&valid_command()).unwrap(),
-            "token_transfer"
+            RewardTokenTransactionType::Transfer
         );
     }
 

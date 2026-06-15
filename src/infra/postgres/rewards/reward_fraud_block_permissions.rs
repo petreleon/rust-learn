@@ -1,18 +1,15 @@
 use diesel_async::AsyncPgConnection;
 
 use crate::application::rewards::manage_fraud_block::RewardFraudBlockError;
-use crate::domain::rewards::fraud_block::{
-    REWARD_FRAUD_BLOCK_SCOPE_COURSE, REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION,
-    REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY, REWARD_FRAUD_BLOCK_SCOPE_TEACHER,
-};
+use crate::domain::rewards::fraud_block::RewardFraudBlockScope;
 use crate::infra::postgres::rewards::reward_authorization_access;
 
 pub(super) async fn can_manage_fraud_block_scope(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,
-    scope_type: &str,
+    scope_type: RewardFraudBlockScope,
 ) -> Result<bool, RewardFraudBlockError> {
-    match authorization_for_scope(scope_type)? {
+    match authorization_for_scope(scope_type) {
         FraudBlockAuthorization::Teacher => {
             reward_authorization_access::can_manage_teacher_reward_fraud_block(conn, actor_user_id)
                 .await
@@ -47,18 +44,13 @@ enum FraudBlockAuthorization {
     General,
 }
 
-fn authorization_for_scope(
-    scope_type: &str,
-) -> Result<FraudBlockAuthorization, RewardFraudBlockError> {
+fn authorization_for_scope(scope_type: RewardFraudBlockScope) -> FraudBlockAuthorization {
     match scope_type {
-        REWARD_FRAUD_BLOCK_SCOPE_TEACHER => Ok(FraudBlockAuthorization::Teacher),
-        REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION => Ok(FraudBlockAuthorization::Organization),
-        REWARD_FRAUD_BLOCK_SCOPE_COURSE | REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY => {
-            Ok(FraudBlockAuthorization::General)
+        RewardFraudBlockScope::Teacher => FraudBlockAuthorization::Teacher,
+        RewardFraudBlockScope::Organization => FraudBlockAuthorization::Organization,
+        RewardFraudBlockScope::Course | RewardFraudBlockScope::RewardPolicy => {
+            FraudBlockAuthorization::General
         }
-        _ => Err(RewardFraudBlockError::InvalidInput(
-            "unsupported fraud block scope type".to_string(),
-        )),
     }
 }
 

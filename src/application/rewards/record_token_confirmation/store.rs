@@ -3,12 +3,13 @@ use futures::future::BoxFuture;
 use crate::application::rewards::record_token_confirmation::{
     RewardTokenConfirmationCommand, RewardTokenConfirmationError, RewardTokenConfirmationOutput,
 };
+use crate::domain::rewards::token::RewardTokenTransactionType;
 
 pub struct RewardTokenConfirmation {
     pub candidate_id: i64,
     pub actor_user_id: Option<i32>,
     pub command: RewardTokenConfirmationCommand,
-    pub transaction_type: String,
+    pub transaction_type: RewardTokenTransactionType,
 }
 
 pub trait RewardTokenConfirmationStore {

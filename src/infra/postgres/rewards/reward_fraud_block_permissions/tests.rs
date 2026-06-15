@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn teacher_scope_uses_teacher_fraud_authorization() {
     assert_eq!(
-        authorization_for_scope(REWARD_FRAUD_BLOCK_SCOPE_TEACHER).unwrap(),
+        authorization_for_scope(RewardFraudBlockScope::Teacher),
         FraudBlockAuthorization::Teacher
     );
 }
@@ -11,7 +11,7 @@ fn teacher_scope_uses_teacher_fraud_authorization() {
 #[test]
 fn organization_scope_uses_organization_fraud_authorization() {
     assert_eq!(
-        authorization_for_scope(REWARD_FRAUD_BLOCK_SCOPE_ORGANIZATION).unwrap(),
+        authorization_for_scope(RewardFraudBlockScope::Organization),
         FraudBlockAuthorization::Organization
     );
 }
@@ -19,11 +19,11 @@ fn organization_scope_uses_organization_fraud_authorization() {
 #[test]
 fn course_and_policy_scopes_use_general_fraud_authorization() {
     for scope in [
-        REWARD_FRAUD_BLOCK_SCOPE_COURSE,
-        REWARD_FRAUD_BLOCK_SCOPE_REWARD_POLICY,
+        RewardFraudBlockScope::Course,
+        RewardFraudBlockScope::RewardPolicy,
     ] {
         assert_eq!(
-            authorization_for_scope(scope).unwrap(),
+            authorization_for_scope(scope),
             FraudBlockAuthorization::General
         );
     }

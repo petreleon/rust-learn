@@ -1,3 +1,5 @@
+use crate::domain::rewards::fraud_block::RewardFraudBlockScope;
+
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ListRewardFraudBlocksQuery {
     pub scope_type: Option<String>,
@@ -12,7 +14,7 @@ pub struct ListRewardFraudBlocksQuery {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RewardFraudBlockListFilter {
-    pub scope_type: Option<String>,
+    pub scope_type: Option<RewardFraudBlockScope>,
     pub teacher_user_id: Option<i32>,
     pub organization_id: Option<i32>,
     pub course_id: Option<i32>,

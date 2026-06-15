@@ -2,7 +2,7 @@ use crate::application::rewards::manage_fraud_block::{
     CreateRewardFraudBlockCommand, RewardFraudBlockDraft, RewardFraudBlockError,
     RewardFraudBlockListFilter,
 };
-use crate::domain::rewards::fraud_block::{normalize_scope_type, scope_matches_target};
+use crate::domain::rewards::fraud_block::RewardFraudBlockScope;
 
 pub(super) fn validated_draft(
     actor_user_id: i32,
@@ -17,7 +17,7 @@ pub(super) fn validated_draft(
     }
 
     ensure_exactly_one_target(&command)?;
-    ensure_target_matches_scope(&scope_type, &command)?;
+    ensure_target_matches_scope(scope_type, &command)?;
 
     Ok(RewardFraudBlockDraft {
         created_by_user_id: actor_user_id,
@@ -50,8 +50,8 @@ pub(super) fn validated_filter(
     })
 }
 
-fn normalized_scope(scope_type: &str) -> Result<String, RewardFraudBlockError> {
-    normalize_scope_type(scope_type).ok_or_else(|| {
+fn normalized_scope(scope_type: &str) -> Result<RewardFraudBlockScope, RewardFraudBlockError> {
+    RewardFraudBlockScope::normalize(scope_type).map_err(|_| {
         RewardFraudBlockError::InvalidInput("unsupported fraud block scope type".to_string())
     })
 }
@@ -79,11 +79,10 @@ fn ensure_exactly_one_target(
 }
 
 fn ensure_target_matches_scope(
-    scope_type: &str,
+    scope_type: RewardFraudBlockScope,
     command: &CreateRewardFraudBlockCommand,
 ) -> Result<(), RewardFraudBlockError> {
-    if scope_matches_target(
-        scope_type,
+    if scope_type.matches_target(
         command.teacher_user_id.is_some(),
         command.organization_id.is_some(),
         command.course_id.is_some(),
