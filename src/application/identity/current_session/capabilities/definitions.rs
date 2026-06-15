@@ -33,7 +33,11 @@ pub(super) const PLATFORM: &[CapabilityDefinition] = &[
     capability(
         "delegations",
         "Delegations",
-        &["MANAGE_ROLE_PERMISSIONS", "VIEW_ROLE_ASSIGNMENTS"],
+        &[
+            "DELEGATE_REWARD_APPROVAL",
+            "MANAGE_ROLE_PERMISSIONS",
+            "VIEW_ROLE_ASSIGNMENTS",
+        ],
     ),
     capability("exports", "Exports", &["EXPORT_DATA"]),
     capability(

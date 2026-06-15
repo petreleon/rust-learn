@@ -88,6 +88,11 @@ async fn current_session_returns_profile_scopes_and_delegations() {
         &body["platform"]["effective_permissions"],
         "EXECUTE_REWARD_PAYOUT"
     ));
+    assert!(capability_contains_permission(
+        &body["platform"],
+        "delegations",
+        "DELEGATE_REWARD_APPROVAL"
+    ));
 
     let organizations = body["organizations"]
         .as_array()

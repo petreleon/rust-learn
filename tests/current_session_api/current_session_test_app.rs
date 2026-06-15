@@ -31,3 +31,15 @@ fn array_contains(value: &Value, expected: &str) -> bool {
         .map(|items| items.iter().any(|item| item.as_str() == Some(expected)))
         .unwrap_or(false)
 }
+
+fn capability_contains_permission(scope: &Value, key: &str, permission: &str) -> bool {
+    scope["capabilities"]
+        .as_array()
+        .map(|capabilities| {
+            capabilities.iter().any(|capability| {
+                capability["key"].as_str() == Some(key)
+                    && array_contains(&capability["permissions"], permission)
+            })
+        })
+        .unwrap_or(false)
+}

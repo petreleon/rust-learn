@@ -1918,6 +1918,32 @@ Batch 312: remove scope-specific Postgres permission wrappers.
       `AccessDecisionStore` adapters, and the final middleware/application
       same-service cleanup remains open until those contracts are consolidated.
 
+Batch 313: make admin permission gates honor backend capability contracts.
+
+- [x] Added `DELEGATE_REWARD_APPROVAL` to the backend current-session
+      `delegations` capability definition so the session capability contract
+      advertises the permission that actually authorizes delegation grants.
+- [x] Added a frontend `platformPermissionEnabled` helper under
+      `web/src/lib/admin` and repointed admin route permission checks through
+      it; platform action gates now require both an effective permission and an
+      enabled backend-declared capability containing that permission.
+- [x] Added frontend capability-helper tests and extended the current-session
+      API test to prove the delegation capability includes
+      `DELEGATE_REWARD_APPROVAL`.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib current_session`,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api`,
+      `npm test -- admin-capabilities admin-delegations-route admin-kyc-route admin-action-panel`,
+      `npx tsc --noEmit`, `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      ring import-boundary scans, frontend direct-permission helper scans,
+      `git diff --check`, and touched-file size checks.
+- [x] Self-critique: this tightens platform-admin frontend gates around the
+      backend session capability contract, but the broader frontend capability
+      item stays open until organization routes and the ops/debug workflow stop
+      owning raw permission groupings.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -2120,6 +2146,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Scope-specific Postgres permission wrapper functions have been removed;
       remaining backend infra callers build typed access decisions against
       `permission_checks::can` or `permission_checks::can_any`.
+- [x] Platform-admin frontend permission gates now require backend-declared
+      current-session capabilities in addition to effective platform
+      permissions.
 - [ ] Make middleware call the same access-control service as application use
       cases.
 - [ ] Keep middleware as an early rejection optimization; do not make it the
