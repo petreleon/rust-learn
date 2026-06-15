@@ -57,7 +57,7 @@ pub(crate) fn reward_request(
 ) -> SubmitRewardCandidateRequest {
     SubmitRewardCandidateRequest {
         student_user_id,
-        event_type: REWARD_EVENT_COURSE_COMPLETION.to_string(),
+        event_type: RewardEventType::CourseCompletion,
         idempotency_key: Some(idempotency_key.to_string()),
         evidence: Some(json!({ "completion_percentage": 100 })),
     }

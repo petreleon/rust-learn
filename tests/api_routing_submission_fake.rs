@@ -7,7 +7,6 @@ use rust_learn::application::rewards::submit_candidate::{
     RewardCandidateSubmissionError, RewardCandidateSubmissionOutput,
     RewardCandidateSubmissionUseCase, SubmitRewardCandidateCommand,
 };
-use rust_learn::domain::rewards::candidate::event_type::RewardEventType;
 use rust_learn::domain::rewards::candidate::source::RewardCandidateSourceScope;
 use rust_learn::domain::rewards::candidate::status::RewardCandidateStatus;
 use serde_json::json;
@@ -64,8 +63,7 @@ fn submission_output(
             RewardCandidateSourceScope::Course
         },
         source_organization_id,
-        event_type: RewardEventType::normalize(&command.event_type)
-            .unwrap_or(RewardEventType::ManualCompletion),
+        event_type: command.event_type,
         idempotency_key: command
             .idempotency_key
             .unwrap_or_else(|| "manual:12:23".to_string()),

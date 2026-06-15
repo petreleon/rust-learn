@@ -20,7 +20,7 @@ pub(crate) use rust_learn::domain::rewards::audit::{
     REWARD_AUDIT_EVENT_TEACHER_DECISION,
 };
 pub(crate) use rust_learn::domain::rewards::candidate::event_type::{
-    REWARD_EVENT_COURSE_COMPLETION, REWARD_EVENT_MANUAL_COMPLETION,
+    RewardEventType, REWARD_EVENT_COURSE_COMPLETION, REWARD_EVENT_MANUAL_COMPLETION,
 };
 pub(crate) use rust_learn::domain::rewards::candidate::status::{
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_PENDING_TEACHER_APPROVAL,

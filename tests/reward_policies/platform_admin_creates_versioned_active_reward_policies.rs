@@ -29,8 +29,8 @@ async fn platform_admin_creates_versioned_active_reward_policies() {
         .list_reward_policies(
             admin.id(),
             ListRewardPoliciesQuery {
-                scope_type: Some(REWARD_POLICY_SCOPE_PLATFORM.to_string()),
-                event_type: Some(REWARD_EVENT_COURSE_COMPLETION.to_string()),
+                scope_type: Some(RewardPolicyScope::Platform),
+                event_type: Some(RewardPolicyEventType::CourseCompletion),
                 active: Some(true),
                 ..Default::default()
             },
@@ -44,8 +44,8 @@ async fn platform_admin_creates_versioned_active_reward_policies() {
         .list_reward_policies(
             admin.id(),
             ListRewardPoliciesQuery {
-                scope_type: Some(REWARD_POLICY_SCOPE_PLATFORM.to_string()),
-                event_type: Some(REWARD_EVENT_COURSE_COMPLETION.to_string()),
+                scope_type: Some(RewardPolicyScope::Platform),
+                event_type: Some(RewardPolicyEventType::CourseCompletion),
                 active: Some(false),
                 ..Default::default()
             },
@@ -89,15 +89,15 @@ async fn course_policy_requires_course_scope_and_can_explicitly_allow_mint() {
         .create_reward_policy(
             admin.id(),
             CreateRewardPolicyCommand {
-                scope_type: REWARD_POLICY_SCOPE_COURSE.to_string(),
+                scope_type: RewardPolicyScope::Course,
                 organization_id: Some(organization.id),
                 course_id: Some(course.id),
-                event_type: REWARD_EVENT_COURSE_COMPLETION.to_string(),
+                event_type: RewardPolicyEventType::CourseCompletion,
                 token_amount: BigDecimal::from(20),
                 multiplier: Some(BigDecimal::from_str("1.25").expect("valid multiplier")),
                 max_payout: Some(BigDecimal::from(50)),
                 cooldown_seconds: Some(3_600),
-                payment_strategy: REWARD_PAYMENT_MINT.to_string(),
+                payment_strategy: RewardPaymentStrategy::Mint,
                 active: Some(true),
             },
         )
@@ -113,15 +113,15 @@ async fn course_policy_requires_course_scope_and_can_explicitly_allow_mint() {
         .create_reward_policy(
             admin.id(),
             CreateRewardPolicyCommand {
-                scope_type: REWARD_POLICY_SCOPE_COURSE.to_string(),
+                scope_type: RewardPolicyScope::Course,
                 organization_id: None,
                 course_id: None,
-                event_type: REWARD_EVENT_COURSE_COMPLETION.to_string(),
+                event_type: RewardPolicyEventType::CourseCompletion,
                 token_amount: BigDecimal::from(20),
                 multiplier: None,
                 max_payout: None,
                 cooldown_seconds: None,
-                payment_strategy: REWARD_PAYMENT_TREASURY_TRANSFER.to_string(),
+                payment_strategy: RewardPaymentStrategy::TreasuryTransfer,
                 active: Some(true),
             },
         )

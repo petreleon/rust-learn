@@ -15,16 +15,14 @@ use crate::infra::postgres::rewards::reward_candidate_submission_eligibility::{
 use crate::infra::postgres::rewards::reward_candidate_submission_mappers::{
     map_reward_candidate_submission, map_reward_candidate_submission_error,
 };
-use crate::infra::postgres::rewards::reward_candidate_submission_validation::{
-    normalize_idempotency_key, normalize_reward_event_type,
-};
+use crate::infra::postgres::rewards::reward_candidate_submission_validation::normalize_idempotency_key;
 use crate::models::reward_candidate::{NewRewardCandidate, RewardCandidate};
 
 pub(super) async fn submit_reward_candidate(
     conn: &mut AsyncPgConnection,
     submission: RewardCandidateSubmission,
 ) -> Result<RewardCandidateSubmissionOutput, RewardCandidateSubmissionError> {
-    let event_type = normalize_reward_event_type(&submission.command.event_type)?;
+    let event_type = submission.command.event_type;
     let idempotency_key = normalize_idempotency_key(
         submission.command.idempotency_key,
         submission.course_id,

@@ -137,7 +137,7 @@ impl From<TeacherStudentRewardCandidateSummaryOutput>
     fn from(candidate: TeacherStudentRewardCandidateSummaryOutput) -> Self {
         Self {
             id: candidate.id,
-            event_type: candidate.event_type,
+            event_type: candidate.event_type.as_str().to_string(),
             status: candidate.status,
             evidence: candidate.evidence,
             teacher_decision_reason: candidate.teacher_decision_reason,

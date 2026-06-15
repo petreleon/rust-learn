@@ -5,18 +5,14 @@ use crate::application::rewards::manage_reward_policy::{
     RewardPolicyListFilter,
 };
 use crate::application::rewards::ports::RewardPolicyStore;
-use crate::domain::rewards::policy::{
-    RewardPaymentStrategy, RewardPolicyEventType, RewardPolicyScope,
-};
+use crate::domain::rewards::policy::RewardPolicyScope;
 
 pub(super) async fn validated_draft(
     store: &mut impl RewardPolicyStore,
     actor_user_id: i32,
     command: CreateRewardPolicyCommand,
 ) -> Result<RewardPolicyDraft, RewardPolicyError> {
-    let scope_type = RewardPolicyScope::normalize(&command.scope_type).map_err(|_| {
-        RewardPolicyError::InvalidInput("unsupported reward policy scope type".to_string())
-    })?;
+    let scope_type = command.scope_type;
     validate_scope_references(
         store,
         scope_type,
@@ -24,15 +20,8 @@ pub(super) async fn validated_draft(
         command.course_id,
     )
     .await?;
-    let event_type = RewardPolicyEventType::normalize(&command.event_type).map_err(|_| {
-        RewardPolicyError::InvalidInput("unsupported reward policy event type".to_string())
-    })?;
-    let payment_strategy =
-        RewardPaymentStrategy::normalize(&command.payment_strategy).map_err(|_| {
-            RewardPolicyError::InvalidInput(
-                "unsupported reward policy payment strategy".to_string(),
-            )
-        })?;
+    let event_type = command.event_type;
+    let payment_strategy = command.payment_strategy;
     let multiplier = command.multiplier.unwrap_or_else(|| BigDecimal::from(1));
     let cooldown_seconds = command.cooldown_seconds.unwrap_or(0);
     validate_amounts(
@@ -61,10 +50,10 @@ pub(super) fn validated_filter(
     query: ListRewardPoliciesQuery,
 ) -> Result<RewardPolicyListFilter, RewardPolicyError> {
     Ok(RewardPolicyListFilter {
-        scope_type: query.scope_type.map(normalized_scope).transpose()?,
+        scope_type: query.scope_type,
         organization_id: query.organization_id,
         course_id: query.course_id,
-        event_type: query.event_type.map(normalized_event).transpose()?,
+        event_type: query.event_type,
         active: query.active,
         limit: query.limit,
         offset: query.offset,
@@ -158,18 +147,6 @@ fn validate_amounts(
         ));
     }
     Ok(())
-}
-
-fn normalized_scope(scope: String) -> Result<RewardPolicyScope, RewardPolicyError> {
-    RewardPolicyScope::normalize(&scope).map_err(|_| {
-        RewardPolicyError::InvalidInput("unsupported reward policy scope type".to_string())
-    })
-}
-
-fn normalized_event(event: String) -> Result<RewardPolicyEventType, RewardPolicyError> {
-    RewardPolicyEventType::normalize(&event).map_err(|_| {
-        RewardPolicyError::InvalidInput("unsupported reward policy event type".to_string())
-    })
 }
 
 #[cfg(test)]

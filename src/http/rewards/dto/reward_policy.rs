@@ -3,7 +3,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::application::rewards::manage_reward_policy::{
-    CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyOutput,
+    CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyError, RewardPolicyOutput,
+};
+use crate::domain::rewards::policy::{
+    RewardPaymentStrategy, RewardPolicyEventType, RewardPolicyScope,
 };
 
 #[derive(Debug, Clone, Deserialize)]
@@ -50,35 +53,74 @@ pub struct RewardPolicyResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<CreateRewardPolicyRequest> for CreateRewardPolicyCommand {
-    fn from(request: CreateRewardPolicyRequest) -> Self {
-        Self {
-            scope_type: request.scope_type,
-            organization_id: request.organization_id,
-            course_id: request.course_id,
-            event_type: request.event_type,
-            token_amount: request.token_amount,
-            multiplier: request.multiplier,
-            max_payout: request.max_payout,
-            cooldown_seconds: request.cooldown_seconds,
-            payment_strategy: request.payment_strategy,
-            active: request.active,
-        }
+impl CreateRewardPolicyRequest {
+    pub(in crate::http::rewards) fn into_command(
+        self,
+    ) -> Result<CreateRewardPolicyCommand, RewardPolicyError> {
+        Ok(CreateRewardPolicyCommand {
+            scope_type: reward_policy_scope(&self.scope_type)?,
+            organization_id: self.organization_id,
+            course_id: self.course_id,
+            event_type: reward_policy_event_type(&self.event_type)?,
+            token_amount: self.token_amount,
+            multiplier: self.multiplier,
+            max_payout: self.max_payout,
+            cooldown_seconds: self.cooldown_seconds,
+            payment_strategy: reward_payment_strategy(&self.payment_strategy)?,
+            active: self.active,
+        })
     }
 }
 
-impl From<ListRewardPoliciesRequest> for ListRewardPoliciesQuery {
-    fn from(request: ListRewardPoliciesRequest) -> Self {
-        Self {
-            scope_type: request.scope_type,
-            organization_id: request.organization_id,
-            course_id: request.course_id,
-            event_type: request.event_type,
-            active: request.active,
-            limit: request.limit,
-            offset: request.offset,
-        }
+impl ListRewardPoliciesRequest {
+    pub(in crate::http::rewards) fn into_query(
+        self,
+    ) -> Result<ListRewardPoliciesQuery, RewardPolicyError> {
+        Ok(ListRewardPoliciesQuery {
+            scope_type: request_optional_scope(self.scope_type)?,
+            organization_id: self.organization_id,
+            course_id: self.course_id,
+            event_type: request_optional_event(self.event_type)?,
+            active: self.active,
+            limit: self.limit,
+            offset: self.offset,
+        })
     }
+}
+
+fn reward_policy_scope(scope_type: &str) -> Result<RewardPolicyScope, RewardPolicyError> {
+    RewardPolicyScope::normalize(scope_type).map_err(|_| {
+        RewardPolicyError::InvalidInput("unsupported reward policy scope type".to_string())
+    })
+}
+
+fn reward_policy_event_type(event_type: &str) -> Result<RewardPolicyEventType, RewardPolicyError> {
+    RewardPolicyEventType::normalize(event_type).map_err(|_| {
+        RewardPolicyError::InvalidInput("unsupported reward policy event type".to_string())
+    })
+}
+
+fn reward_payment_strategy(
+    payment_strategy: &str,
+) -> Result<RewardPaymentStrategy, RewardPolicyError> {
+    RewardPaymentStrategy::normalize(payment_strategy).map_err(|_| {
+        RewardPolicyError::InvalidInput("unsupported reward policy payment strategy".to_string())
+    })
+}
+
+fn request_optional_scope(
+    scope_type: Option<String>,
+) -> Result<Option<RewardPolicyScope>, RewardPolicyError> {
+    scope_type.as_deref().map(reward_policy_scope).transpose()
+}
+
+fn request_optional_event(
+    event_type: Option<String>,
+) -> Result<Option<RewardPolicyEventType>, RewardPolicyError> {
+    event_type
+        .as_deref()
+        .map(reward_policy_event_type)
+        .transpose()
 }
 
 impl From<RewardPolicyOutput> for RewardPolicyResponse {

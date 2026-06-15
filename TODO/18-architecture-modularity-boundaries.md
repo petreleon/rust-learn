@@ -1,10 +1,10 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified base before this changeset: `782a5a3c`
-(`Type wallet reward audit statuses`).
-Current changeset: token/deposit event vocabulary in this commit, verified
-locally.
+Latest verified base before this changeset: `ce829ddb`
+(`Type token event boundaries`).
+Current changeset: reward policy/candidate command vocabulary in this commit,
+verified locally.
 
 Goal: finish RustLearn as a Level 2 modular monolith. Keep the main rings:
 `domain`, `application`, `infra`, `http`, `bootstrap`. Use granular modules
@@ -52,40 +52,44 @@ inside those rings when a context or use case has real ownership.
   Postgres, HTTP, and integration helpers.
 - `782a5a3c`: wallet reward-audit candidate and reconciliation status
   vocabulary across domain, application, Postgres, HTTP, and `wallet_audit`.
+- `ce829ddb`: wallet deposit event type, reward token confirmation event type,
+  and token reconciliation event type are typed across domain, application,
+  Ethereum/Postgres adapters, HTTP/test helpers, and wallet/reward integration
+  tests.
 
 ## Current Verified Changeset
 
-- Added typed `WalletDepositEventType` in `domain::wallet::deposit`.
-- `ObservedWalletDepositEvent` now carries typed deposit event vocabulary through
-  application, Ethereum indexer adapters, Postgres matching/ledger/records, and
-  wallet-linking tests.
-- `RewardTokenConfirmationCommand` now carries `RewardTokenEventType`; token
-  confirmation validation no longer reparses raw event strings.
-- Token reconciliation uses `RewardTokenEventType`; the infra-local duplicate
-  `TokenEventKind` was removed.
-- `submit_candidate` handler tests were compacted under the manual file line
-  cap without behavior changes.
+- `CreateRewardPolicyCommand` and `ListRewardPoliciesQuery` now carry typed
+  reward policy scope/event/payment vocabulary; HTTP parses request strings
+  before calling application use cases.
+- `SubmitRewardCandidateCommand` now carries typed `RewardEventType`; infra no
+  longer reparses reward event strings before persistence/eligibility checks.
+- Teacher-student reward latest-candidate output now carries typed
+  `RewardEventType`, with Postgres parsing DB strings at the adapter boundary
+  and HTTP mapping back to DTO strings.
 
 Proof for this changeset:
 
-- Passed focused host tests for wallet deposit domain parsing, wallet deposit
-  indexing, reward token confirmation, token reconciliation, reward execution,
-  wallet linking, and compacted submit-candidate tests.
+- Passed focused host tests for submit-candidate handler behavior, reward policy
+  create/list flows, course reward policy validation, organization/delegated
+  reward candidate submission, evidence threshold checks, and teacher course
+  dashboard reward progress.
 - Passed `cargo fmt --all --check`.
 - Passed `./scripts/run-host-tests.sh cargo check --lib`.
 - Passed `./scripts/run-host-tests.sh cargo check --bin rust-learn --features
   app-bin`.
 - Passed `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
 - Passed `git diff --check`, dependency boundary scans, no `include!`, no
-  `tests/*/imports.rs`, targeted raw event leak scans, and manual line-count
-  scan.
+  `tests/*/imports.rs`, targeted raw vocabulary scans for touched application
+  paths, and manual line-count scan.
 
 ## Still Open
 
-- Replace remaining raw application `event_type: String` pockets:
-  teacher-application notifications/audit, reward policy/candidate submit,
-  learning teacher-student output, KYC output, reporting platform CSV exports,
-  and organization member audit output.
+- Replace remaining raw application event vocabulary: wallet audit/history
+  external transaction event type, teacher-application audit/notification and
+  latest-event summaries, KYC audit output/facts, reporting token payout CSV
+  event type, organization teacher-application latest-event summaries, and
+  organization member audit events.
 - Keep Diesel schema/model leakage inside infra records.
 - Keep public API DTOs HTTP-owned and separate from application outputs.
 - Keep use cases as the real authorization guard; middleware remains early

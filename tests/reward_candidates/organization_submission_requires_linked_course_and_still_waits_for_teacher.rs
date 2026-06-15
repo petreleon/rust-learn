@@ -43,7 +43,7 @@ async fn organization_submission_requires_linked_course_and_still_waits_for_teac
         course.id,
         SubmitRewardCandidateRequest {
             student_user_id: student.id(),
-            event_type: REWARD_EVENT_MANUAL_COMPLETION.to_string(),
+            event_type: RewardEventType::ManualCompletion,
             idempotency_key: Some(unique_string("org_reward")),
             evidence: Some(json!({ "source": "organization dashboard" })),
         },
@@ -91,7 +91,7 @@ async fn reward_candidate_requires_completion_evidence_threshold() {
         course.id,
         SubmitRewardCandidateRequest {
             student_user_id: student.id(),
-            event_type: REWARD_EVENT_COURSE_COMPLETION.to_string(),
+            event_type: RewardEventType::CourseCompletion,
             idempotency_key: Some(unique_string("low_completion_reward")),
             evidence: Some(json!({ "completion_percentage": 80 })),
         },

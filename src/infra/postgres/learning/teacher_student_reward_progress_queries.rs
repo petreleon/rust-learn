@@ -9,7 +9,18 @@ use crate::application::learning::get_teacher_course_students::{
 };
 use crate::application::learning::teacher_course_dashboard::TeacherCourseDashboardError;
 use crate::db::schema::reward_candidates;
+use crate::domain::rewards::candidate::event_type::RewardEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+
+type LatestRewardCandidateRow = (
+    i64,
+    String,
+    String,
+    Value,
+    Option<String>,
+    DateTime<Utc>,
+    DateTime<Utc>,
+);
 
 pub async fn load_teacher_student_reward_progress(
     conn: &mut AsyncPgConnection,
@@ -54,39 +65,37 @@ async fn load_latest_reward_candidate(
             reward_candidates::created_at,
             reward_candidates::updated_at,
         ))
-        .first::<(
-            i64,
-            String,
-            String,
-            Value,
-            Option<String>,
-            DateTime<Utc>,
-            DateTime<Utc>,
-        )>(conn)
+        .first::<LatestRewardCandidateRow>(conn)
         .await
         .optional()
-        .map(|row| {
-            row.map(
-                |(
-                    id,
-                    event_type,
-                    status,
-                    evidence,
-                    teacher_decision_reason,
-                    created_at,
-                    updated_at,
-                )| TeacherStudentRewardCandidateSummaryOutput {
-                    id,
-                    event_type,
-                    status,
-                    evidence,
-                    teacher_decision_reason,
-                    created_at,
-                    updated_at,
-                },
-            )
-        })
-        .map_err(map_dashboard_error)
+        .map_err(map_dashboard_error)?
+        .map(latest_candidate_output)
+        .transpose()
+}
+
+fn latest_candidate_output(
+    (
+        id,
+        event_type,
+        status,
+        evidence,
+        teacher_decision_reason,
+        created_at,
+        updated_at,
+    ): LatestRewardCandidateRow,
+) -> Result<TeacherStudentRewardCandidateSummaryOutput, TeacherCourseDashboardError> {
+    let event_type = RewardEventType::parse(&event_type)
+        .map_err(|error| TeacherCourseDashboardError::Database(error.to_string()))?;
+
+    Ok(TeacherStudentRewardCandidateSummaryOutput {
+        id,
+        event_type,
+        status,
+        evidence,
+        teacher_decision_reason,
+        created_at,
+        updated_at,
+    })
 }
 
 async fn load_student_reward_candidate_status_counts(

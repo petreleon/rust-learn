@@ -3,8 +3,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::application::rewards::submit_candidate::{
-    RewardCandidateSubmissionOutput, SubmitRewardCandidateCommand,
+    RewardCandidateSubmissionError, RewardCandidateSubmissionOutput, SubmitRewardCandidateCommand,
 };
+use crate::domain::rewards::candidate::event_type::RewardEventType;
 use crate::shared::json::JsonValue;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -38,14 +39,22 @@ pub struct RewardCandidateSubmissionResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<SubmitRewardCandidateRequest> for SubmitRewardCandidateCommand {
-    fn from(request: SubmitRewardCandidateRequest) -> Self {
-        Self {
-            student_user_id: request.student_user_id,
-            event_type: request.event_type,
-            idempotency_key: request.idempotency_key,
-            evidence: request.evidence,
-        }
+impl SubmitRewardCandidateRequest {
+    pub(in crate::http::rewards) fn into_command(
+        self,
+    ) -> Result<SubmitRewardCandidateCommand, RewardCandidateSubmissionError> {
+        let event_type = RewardEventType::normalize(&self.event_type).map_err(|_| {
+            RewardCandidateSubmissionError::InvalidInput(
+                "unsupported reward event type".to_string(),
+            )
+        })?;
+
+        Ok(SubmitRewardCandidateCommand {
+            student_user_id: self.student_user_id,
+            event_type,
+            idempotency_key: self.idempotency_key,
+            evidence: self.evidence,
+        })
     }
 }
 

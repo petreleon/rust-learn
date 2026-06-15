@@ -7,10 +7,8 @@ pub(crate) use rust_learn::application::rewards::manage_reward_policy::{
 pub(crate) use rust_learn::config::constants::roles::Roles;
 pub(crate) use rust_learn::db::schema::{courses, organizations};
 pub(crate) use rust_learn::db::{establish_connection, DbPool};
-pub(crate) use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
 pub(crate) use rust_learn::domain::rewards::policy::{
-    RewardPaymentStrategy, RewardPolicyScope, REWARD_PAYMENT_MINT,
-    REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE, REWARD_POLICY_SCOPE_PLATFORM,
+    RewardPaymentStrategy, RewardPolicyEventType, RewardPolicyScope,
 };
 pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
@@ -81,15 +79,15 @@ pub(crate) fn reward_policy_use_case(pool: &DbPool) -> PostgresRewardPolicyUseCa
 
 pub(crate) fn platform_policy_request(amount: &str) -> CreateRewardPolicyCommand {
     CreateRewardPolicyCommand {
-        scope_type: REWARD_POLICY_SCOPE_PLATFORM.to_string(),
+        scope_type: RewardPolicyScope::Platform,
         organization_id: None,
         course_id: None,
-        event_type: REWARD_EVENT_COURSE_COMPLETION.to_string(),
+        event_type: RewardPolicyEventType::CourseCompletion,
         token_amount: BigDecimal::from_str(amount).expect("valid amount"),
         multiplier: Some(BigDecimal::from(1)),
         max_payout: Some(BigDecimal::from(100)),
         cooldown_seconds: Some(86_400),
-        payment_strategy: REWARD_PAYMENT_TREASURY_TRANSFER.to_string(),
+        payment_strategy: RewardPaymentStrategy::TreasuryTransfer,
         active: Some(true),
     }
 }

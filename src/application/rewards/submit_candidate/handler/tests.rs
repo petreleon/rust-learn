@@ -140,7 +140,7 @@ fn rejects_unattached_organization_course_before_store_mutation() {
 fn command() -> SubmitRewardCandidateCommand {
     SubmitRewardCandidateCommand {
         student_user_id: 23,
-        event_type: "manual_completion".to_string(),
+        event_type: RewardEventType::ManualCompletion,
         idempotency_key: Some("manual:11:23".to_string()),
         evidence: Some(json!({})),
     }

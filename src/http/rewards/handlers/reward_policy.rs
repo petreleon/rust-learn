@@ -15,8 +15,13 @@ pub async fn create_reward_policy(
     policies: web::Data<Arc<dyn RewardPolicyUseCase>>,
     body: web::Json<CreateRewardPolicyRequest>,
 ) -> Result<(web::Json<RewardPolicyResponse>, StatusCode), ApiError> {
+    let command = body
+        .into_inner()
+        .into_command()
+        .map_err(reward_policy_error)?;
+
     policies
-        .create_reward_policy(requester.user_id(), body.into_inner().into())
+        .create_reward_policy(requester.user_id(), command)
         .await
         .map(RewardPolicyResponse::from)
         .map(web::Json)
@@ -29,8 +34,13 @@ pub async fn list_reward_policies(
     policies: web::Data<Arc<dyn RewardPolicyUseCase>>,
     query: web::Query<ListRewardPoliciesRequest>,
 ) -> Result<web::Json<Vec<RewardPolicyResponse>>, ApiError> {
+    let query = query
+        .into_inner()
+        .into_query()
+        .map_err(reward_policy_error)?;
+
     policies
-        .list_reward_policies(requester.user_id(), query.into_inner().into())
+        .list_reward_policies(requester.user_id(), query)
         .await
         .map(reward_policy_responses)
         .map(web::Json)
