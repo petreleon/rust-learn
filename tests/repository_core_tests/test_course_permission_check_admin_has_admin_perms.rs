@@ -1,3 +1,6 @@
+use crate::assign_course_role::*;
+use crate::support::*;
+
 // ── access-control course helpers ──
 
 #[actix_web::test]
@@ -47,14 +50,9 @@ async fn test_course_role_assignment_admin_can_assign_student() {
     let admin_role_id = get_course_admin_role_id(&mut conn).await;
     assign_course_role(&mut conn, admin.id(), course.id, admin_role_id).await;
 
-    let result = assign_course_role_with_use_case(
-        &mut conn,
-        admin.id(),
-        student.id(),
-        course.id,
-        "STUDENT",
-    )
-    .await;
+    let result =
+        assign_course_role_with_use_case(&mut conn, admin.id(), student.id(), course.id, "STUDENT")
+            .await;
     assert!(result.is_ok());
 }
 

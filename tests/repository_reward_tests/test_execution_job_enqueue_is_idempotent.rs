@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn test_execution_job_enqueue_is_idempotent() {
     let mut conn = setup_conn().await;

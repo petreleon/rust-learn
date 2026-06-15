@@ -1,13 +1,15 @@
-struct CourseContentFixture {
-    pool: DbPool,
-    course: Course,
-    other_chapter: Chapter,
-    teacher_token: String,
-    student_token: String,
-    outsider_token: String,
+use crate::support::*;
+
+pub(crate) struct CourseContentFixture {
+    pub(crate) pool: DbPool,
+    pub(crate) course: Course,
+    pub(crate) other_chapter: Chapter,
+    pub(crate) teacher_token: String,
+    pub(crate) student_token: String,
+    pub(crate) outsider_token: String,
 }
 
-async fn setup_course_content_fixture() -> CourseContentFixture {
+pub(crate) async fn setup_course_content_fixture() -> CourseContentFixture {
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
     let mut conn = setup_conn(&pool).await;
@@ -59,7 +61,7 @@ async fn setup_course_content_fixture() -> CourseContentFixture {
     }
 }
 
-fn assert_forbidden_response<B>(
+pub(crate) fn assert_forbidden_response<B>(
     resp: Result<actix_web::dev::ServiceResponse<B>, actix_web::Error>,
     success_message: &str,
 ) {

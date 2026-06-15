@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn fraud_block_api_separates_read_audit_from_block_management() {
     let _ = dotenvy::dotenv();

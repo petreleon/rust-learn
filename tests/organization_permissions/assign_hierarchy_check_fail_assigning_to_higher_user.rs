@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn assign_hierarchy_check_fail_assigning_to_higher_user() {
     let mut conn = setup_conn().await;

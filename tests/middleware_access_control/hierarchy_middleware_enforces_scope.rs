@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn platform_hierarchy_middleware_blocks_lower_actor() {
     let _ = dotenvy::dotenv();

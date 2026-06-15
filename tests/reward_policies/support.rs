@@ -1,36 +1,36 @@
-use bigdecimal::BigDecimal;
-use chrono::NaiveDate;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::application::rewards::manage_reward_policy::{
+pub(crate) use bigdecimal::BigDecimal;
+pub(crate) use chrono::NaiveDate;
+pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
+pub(crate) use rust_learn::application::rewards::manage_reward_policy::{
     CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyError, RewardPolicyUseCase,
 };
-use rust_learn::config::constants::roles::Roles;
-use rust_learn::db::schema::{courses, organizations};
-use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::domain::rewards::policy::{
+pub(crate) use rust_learn::config::constants::roles::Roles;
+pub(crate) use rust_learn::db::schema::{courses, organizations};
+pub(crate) use rust_learn::db::{establish_connection, DbPool};
+pub(crate) use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
+pub(crate) use rust_learn::domain::rewards::policy::{
     REWARD_PAYMENT_MINT, REWARD_PAYMENT_TREASURY_TRANSFER, REWARD_POLICY_SCOPE_COURSE,
     REWARD_POLICY_SCOPE_PLATFORM,
 };
-use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
-use rust_learn::infra::postgres::rewards::reward_policy_use_case::PostgresRewardPolicyUseCase;
-use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::user::User;
-use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
-use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
-use std::str::FromStr;
+pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
+pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::rewards::reward_policy_use_case::PostgresRewardPolicyUseCase;
+pub(crate) use rust_learn::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::models::user::User;
+pub(crate) use std::str::FromStr;
 
-fn unique_string(prefix: &str) -> String {
+pub(crate) fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
 }
 
-fn setup_pool() -> DbPool {
+pub(crate) fn setup_pool() -> DbPool {
     let _ = dotenvy::dotenv();
     establish_connection()
 }
 
-async fn setup_conn(
+pub(crate) async fn setup_conn(
     pool: &DbPool,
 ) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
     pool.get()
@@ -38,7 +38,7 @@ async fn setup_conn(
         .expect("failed to get DB connection from pool")
 }
 
-async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {
+pub(crate) async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {
     create_user(
         conn,
         &format!("{} Test", prefix),
@@ -50,7 +50,7 @@ async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User 
     .expect("failed to create user")
 }
 
-async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
+pub(crate) async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
     diesel::insert_into(courses::table)
         .values(NewCourse {
             title: title.to_string(),
@@ -63,7 +63,7 @@ async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
         .expect("failed to create course")
 }
 
-async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organization {
+pub(crate) async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organization {
     diesel::insert_into(organizations::table)
         .values(NewOrganization {
             name: name.to_string(),
@@ -75,11 +75,11 @@ async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organi
         .expect("failed to create organization")
 }
 
-fn reward_policy_use_case(pool: &DbPool) -> PostgresRewardPolicyUseCase {
+pub(crate) fn reward_policy_use_case(pool: &DbPool) -> PostgresRewardPolicyUseCase {
     PostgresRewardPolicyUseCase::new(pool.clone())
 }
 
-fn platform_policy_request(amount: &str) -> CreateRewardPolicyCommand {
+pub(crate) fn platform_policy_request(amount: &str) -> CreateRewardPolicyCommand {
     CreateRewardPolicyCommand {
         scope_type: REWARD_POLICY_SCOPE_PLATFORM.to_string(),
         organization_id: None,

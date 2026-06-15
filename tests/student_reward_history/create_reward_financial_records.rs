@@ -1,4 +1,7 @@
-async fn create_reward_financial_records(
+use crate::create_reward_candidate::*;
+use crate::support::*;
+
+pub(crate) async fn create_reward_financial_records(
     conn: &mut AsyncPgConnection,
     candidate_id: i64,
     wallet_id: i32,

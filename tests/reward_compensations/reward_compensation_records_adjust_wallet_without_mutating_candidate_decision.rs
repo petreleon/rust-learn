@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn reward_compensation_records_adjust_wallet_without_mutating_candidate_decision() {
     let mut conn = setup_conn().await;

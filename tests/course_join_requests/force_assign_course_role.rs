@@ -1,4 +1,6 @@
-async fn force_assign_course_role(
+use crate::support::*;
+
+pub(crate) async fn force_assign_course_role(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     course_id: i32,
@@ -10,6 +12,38 @@ async fn force_assign_course_role(
     course_role_records::assign_course_role_to_user(conn, user_id, course_id, role_id)
         .await
         .expect("failed to assign course role");
+}
+
+pub(crate) async fn force_assign_platform_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    role_name: &str,
+) {
+    let role_id = role_catalog_store::platform_role_id_by_name(conn, role_name)
+        .await
+        .expect("platform role not found");
+    platform_role_records::assign_platform_role_to_user(conn, user_id, role_id)
+        .await
+        .expect("failed to assign platform role");
+}
+
+pub(crate) async fn force_assign_organization_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    organization_id: i32,
+    role_name: &str,
+) {
+    let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
+        .await
+        .expect("organization role not found");
+    organization_role_records::assign_organization_role_to_user(
+        conn,
+        user_id,
+        organization_id,
+        role_id,
+    )
+    .await
+    .expect("failed to assign organization role");
 }
 
 #[actix_web::test]

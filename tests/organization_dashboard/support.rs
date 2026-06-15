@@ -1,50 +1,50 @@
-use actix_web::{http::StatusCode, test, web, App};
-use bigdecimal::BigDecimal;
-use chrono::NaiveDate;
-use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::application::organizations::get_organization_dashboard::OrganizationDashboardUseCase;
-use rust_learn::db::schema::{
+pub(crate) use actix_web::{http::StatusCode, test, web, App};
+pub(crate) use bigdecimal::BigDecimal;
+pub(crate) use chrono::NaiveDate;
+pub(crate) use diesel::prelude::*;
+pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
+pub(crate) use rust_learn::application::organizations::get_organization_dashboard::OrganizationDashboardUseCase;
+pub(crate) use rust_learn::db::schema::{
     courses, courses_organizations, organizations, reward_candidates, teacher_applications, wallets,
 };
-use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::domain::learning::course::status::{
+pub(crate) use rust_learn::db::{establish_connection, DbPool};
+pub(crate) use rust_learn::domain::learning::course::status::{
     COURSE_STATUS_NEEDS_CHANGES, COURSE_STATUS_PUBLISHED,
 };
-use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
-use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
-use rust_learn::domain::rewards::candidate::status::{
+pub(crate) use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
+pub(crate) use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
+pub(crate) use rust_learn::domain::rewards::candidate::status::{
     REWARD_STATUS_AMOUNT_APPROVED, REWARD_STATUS_FAILED,
 };
-use rust_learn::domain::teacher_applications::scope::TEACHER_APPLICATION_SCOPE_PLATFORM;
-use rust_learn::domain::teacher_applications::status::TEACHER_APPLICATION_STATUS_SUBMITTED;
-use rust_learn::infra::postgres::organizations::organization_dashboard_use_case::PostgresOrganizationDashboardUseCase;
-use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::courses_organizations::NewCourseOrganization;
-use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::models::reward_candidate::NewRewardCandidate;
-use rust_learn::infra::postgres::access_control::role_catalog_store;
-use rust_learn::models::teacher_application::NewTeacherApplication;
-use rust_learn::models::user::User;
-use rust_learn::infra::postgres::access_control::organization_role_records;
-use rust_learn::models::wallet::NewWallet;
-use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
-use rust_learn::infra::tokens::jwt::create_jwt;
-use serde_json::{json, Value};
-use std::sync::{
+pub(crate) use rust_learn::domain::teacher_applications::scope::TEACHER_APPLICATION_SCOPE_PLATFORM;
+pub(crate) use rust_learn::domain::teacher_applications::status::TEACHER_APPLICATION_STATUS_SUBMITTED;
+pub(crate) use rust_learn::infra::postgres::access_control::organization_role_records;
+pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
+pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::organizations::organization_dashboard_use_case::PostgresOrganizationDashboardUseCase;
+pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
+pub(crate) use rust_learn::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::models::courses_organizations::NewCourseOrganization;
+pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::models::reward_candidate::NewRewardCandidate;
+pub(crate) use rust_learn::models::teacher_application::NewTeacherApplication;
+pub(crate) use rust_learn::models::user::User;
+pub(crate) use rust_learn::models::wallet::NewWallet;
+pub(crate) use serde_json::{json, Value};
+pub(crate) use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
 };
 
 static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
-fn unique_string(prefix: &str) -> String {
+pub(crate) fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     let counter = UNIQUE_COUNTER.fetch_add(1, Ordering::Relaxed);
     format!("{}_{}_{}_{}", prefix, std::process::id(), ts, counter)
 }
 
-async fn setup_conn(
+pub(crate) async fn setup_conn(
     pool: &DbPool,
 ) -> diesel_async::pooled_connection::deadpool::Object<AsyncPgConnection> {
     pool.get()
@@ -52,7 +52,7 @@ async fn setup_conn(
         .expect("failed to get DB connection from pool")
 }
 
-async fn create_test_user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
+pub(crate) async fn create_test_user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
     let email = format!("{}@example.com", unique_string(prefix));
     create_user(
         conn,
@@ -65,7 +65,7 @@ async fn create_test_user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
     .expect("failed to create user")
 }
 
-async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organization {
+pub(crate) async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organization {
     diesel::insert_into(organizations::table)
         .values(NewOrganization {
             name: name.to_string(),
@@ -77,7 +77,7 @@ async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organi
         .expect("failed to create organization")
 }
 
-async fn create_course(
+pub(crate) async fn create_course(
     conn: &mut AsyncPgConnection,
     organization_id: i32,
     title: &str,
@@ -117,7 +117,7 @@ async fn create_course(
         .expect("failed to reload course")
 }
 
-fn organization_dashboard_use_case_data(
+pub(crate) fn organization_dashboard_use_case_data(
     pool: &DbPool,
 ) -> web::Data<Arc<dyn OrganizationDashboardUseCase>> {
     web::Data::new(Arc::new(PostgresOrganizationDashboardUseCase::new(

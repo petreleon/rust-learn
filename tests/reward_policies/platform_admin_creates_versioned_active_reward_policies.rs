@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn platform_admin_creates_versioned_active_reward_policies() {
     let pool = setup_pool();

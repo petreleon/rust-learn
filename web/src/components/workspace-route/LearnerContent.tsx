@@ -2,7 +2,7 @@
 
 import { BookOpen, BriefcaseBusiness, CreditCard, ShieldCheck, Trophy } from "lucide-react";
 import Link from "next/link";
-import { type CurrentSession } from "@/lib/session";
+import { sessionScopePermissionEnabled, type CurrentSession } from "@/lib/session";
 import styles from "../workspace-route.module.css";
 import { ScopeList } from "./ScopeList";
 import { SummaryCard } from "./SummaryCard";
@@ -15,7 +15,7 @@ export function LearnerContent({ session }: { session: CurrentSession }) {
         <SummaryCard
           icon={<ShieldCheck size={20} aria-hidden />}
           label="Reward scopes"
-          value={session.courses.filter((course) => course.effective_permissions.includes("VIEW_COURSE_REWARD_STATUS")).length}
+          value={session.courses.filter((course) => sessionScopePermissionEnabled(course, "VIEW_COURSE_REWARD_STATUS")).length}
         />
         <SummaryCard icon={<BriefcaseBusiness size={20} aria-hidden />} label="Organizations" value={session.organizations.length} />
       </section>

@@ -1,3 +1,4 @@
+use crate::{current_session_test_app::*, support::*};
 #[actix_web::test]
 async fn current_session_returns_profile_scopes_and_delegations() {
     let _ = dotenvy::dotenv();
@@ -12,7 +13,6 @@ async fn current_session_returns_profile_scopes_and_delegations() {
     assign_platform_role(&mut conn, user.id(), "ADMIN").await;
     assign_organization_role(&mut conn, user.id(), organization.id, "ADMIN").await;
     assign_course_role(&mut conn, user.id(), course.id, "TEACHER").await;
-
     create_delegated_permission(
         &mut conn,
         NewDelegatedPermission {
@@ -87,6 +87,11 @@ async fn current_session_returns_profile_scopes_and_delegations() {
     assert!(array_contains(
         &body["platform"]["effective_permissions"],
         "EXECUTE_REWARD_PAYOUT"
+    ));
+    assert!(capability_contains_permission(
+        &body["platform"],
+        "delegations",
+        "DELEGATE_REWARD_APPROVAL"
     ));
 
     let organizations = body["organizations"]

@@ -1,3 +1,5 @@
+use crate::{current_session_test_app::*, support::*};
+
 #[actix_web::test]
 async fn current_session_returns_backend_capabilities() {
     let _ = dotenvy::dotenv();
@@ -61,7 +63,10 @@ async fn current_session_returns_backend_capabilities() {
     assert_eq!(body["access"]["teacher"].as_bool(), Some(true));
     assert_eq!(body["access"]["organization"].as_bool(), Some(true));
     assert_eq!(body["access"]["platform_admin"].as_bool(), Some(true));
-    assert!(capability_enabled(&body["platform"]["capabilities"], "summary"));
+    assert!(capability_enabled(
+        &body["platform"]["capabilities"],
+        "summary"
+    ));
 
     let session_org = body["organizations"]
         .as_array()
@@ -70,6 +75,11 @@ async fn current_session_returns_backend_capabilities() {
         .find(|item| item["id"].as_i64() == Some(organization.id as i64))
         .expect("session should include organization scope");
     assert!(capability_enabled(&session_org["capabilities"], "settings"));
+    assert!(capability_contains_permission(
+        session_org,
+        "reports",
+        "GENERATE_REPORT"
+    ));
 
     let session_course = body["courses"]
         .as_array()
@@ -77,16 +87,24 @@ async fn current_session_returns_backend_capabilities() {
         .iter()
         .find(|item| item["id"].as_i64() == Some(course.id as i64))
         .expect("session should include course scope");
-    assert!(capability_enabled(&session_course["capabilities"], "teaching"));
+    assert!(capability_enabled(
+        &session_course["capabilities"],
+        "teaching"
+    ));
+    assert!(capability_contains_permission(
+        session_course,
+        "reward_status",
+        "VIEW_COURSE_REWARD_STATUS"
+    ));
 }
 
 fn capability_enabled(value: &Value, key: &str) -> bool {
     value
         .as_array()
         .map(|items| {
-            items
-                .iter()
-                .any(|item| item["key"].as_str() == Some(key) && item["enabled"].as_bool() == Some(true))
+            items.iter().any(|item| {
+                item["key"].as_str() == Some(key) && item["enabled"].as_bool() == Some(true)
+            })
         })
         .unwrap_or(false)
 }

@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn test_course_permission_middleware() {
     let _ = dotenvy::dotenv();
@@ -123,10 +125,7 @@ async fn read_user_routes_require_view_user_or_self() {
         .uri(&format!("/user?search={}", target.email))
         .insert_header(("Authorization", format!("Bearer {}", admin_token)))
         .to_request();
-    let response = app
-        .call(req)
-        .await
-        .expect("admin user search should run");
+    let response = app.call(req).await.expect("admin user search should run");
     assert_eq!(response.status(), StatusCode::OK);
     let body: serde_json::Value = test::read_body_json(response).await;
     assert!(user_list_contains_email(&body, target.email.as_str()));
@@ -155,6 +154,10 @@ async fn read_user_routes_require_view_user_or_self() {
 fn user_list_contains_email(body: &serde_json::Value, email: &str) -> bool {
     body["users"]
         .as_array()
-        .map(|users| users.iter().any(|user| user["email"].as_str() == Some(email)))
+        .map(|users| {
+            users
+                .iter()
+                .any(|user| user["email"].as_str() == Some(email))
+        })
         .unwrap_or(false)
 }

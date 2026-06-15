@@ -55,6 +55,7 @@ export type { PlatformTeacherApplicationListOptions } from "./admin/PlatformTeac
 export type { TeacherApplicationDecisionOptions } from "./admin/TeacherApplicationDecisionOptions";
 export { buildPlatformAdminWorkspace } from "./admin/buildPlatformAdminWorkspace";
 export { platformCapabilityEnabled } from "./admin/platformCapabilityEnabled";
+export { platformPermissionEnabled } from "./admin/platformPermissionEnabled";
 export { missingPlatformPermissions } from "./admin/missingPlatformPermissions";
 export { fetchKycReviewQueue } from "./admin/fetchKycReviewQueue";
 export { fetchKycSubmissionAudit } from "./admin/fetchKycSubmissionAudit";

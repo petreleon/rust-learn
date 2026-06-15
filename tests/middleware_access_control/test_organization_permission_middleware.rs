@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn test_organization_permission_middleware() {
     let _ = dotenvy::dotenv();

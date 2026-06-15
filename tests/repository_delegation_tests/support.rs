@@ -1,22 +1,22 @@
-use chrono::NaiveDate;
-use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::db::establish_connection;
-use rust_learn::db::schema::users;
-use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_COURSE;
-use rust_learn::models::delegated_permission::NewDelegatedPermission;
-use rust_learn::models::user::User;
-use rust_learn::infra::postgres::access_control::delegated_permissions::{
+pub(crate) use chrono::NaiveDate;
+pub(crate) use diesel::prelude::*;
+pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
+pub(crate) use rust_learn::db::establish_connection;
+pub(crate) use rust_learn::db::schema::users;
+pub(crate) use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_COURSE;
+pub(crate) use rust_learn::infra::postgres::access_control::delegated_permissions::{
     self as delegated_permissions, DelegatedPermissionFilter,
 };
-use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::models::delegated_permission::NewDelegatedPermission;
+pub(crate) use rust_learn::models::user::User;
 
-fn unique_string(prefix: &str) -> String {
+pub(crate) fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
 }
 
-async fn setup_conn(
+pub(crate) async fn setup_conn(
 ) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
@@ -25,7 +25,7 @@ async fn setup_conn(
         .expect("failed to get DB connection from pool")
 }
 
-async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {
+pub(crate) async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {
     let user = create_user(
         conn,
         &format!("{} Test", prefix),
@@ -43,7 +43,12 @@ async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User 
     user
 }
 
-fn new_del(grantor: i32, grantee: i32, permission: &str, course_id: i32) -> NewDelegatedPermission {
+pub(crate) fn new_del(
+    grantor: i32,
+    grantee: i32,
+    permission: &str,
+    course_id: i32,
+) -> NewDelegatedPermission {
     NewDelegatedPermission {
         grantor_user_id: grantor,
         grantee_user_id: grantee,
@@ -57,7 +62,7 @@ fn new_del(grantor: i32, grantee: i32, permission: &str, course_id: i32) -> NewD
 }
 
 #[actix_web::test]
-async fn test_create_and_find() {
+pub(crate) async fn test_create_and_find() {
     let mut conn = setup_conn().await;
     let grantor = create_user_helper(&mut conn, "d1g").await;
     let grantee = create_user_helper(&mut conn, "d1e").await;
@@ -79,7 +84,7 @@ async fn test_create_and_find() {
 }
 
 #[actix_web::test]
-async fn test_duplicate_returns_existing() {
+pub(crate) async fn test_duplicate_returns_existing() {
     let mut conn = setup_conn().await;
     let grantor = create_user_helper(&mut conn, "d2g").await;
     let grantee = create_user_helper(&mut conn, "d2e").await;
@@ -102,7 +107,7 @@ async fn test_duplicate_returns_existing() {
 }
 
 #[actix_web::test]
-async fn test_find_active() {
+pub(crate) async fn test_find_active() {
     let mut conn = setup_conn().await;
     let grantor = create_user_helper(&mut conn, "d3g").await;
     let grantee = create_user_helper(&mut conn, "d3e").await;
@@ -140,7 +145,7 @@ async fn test_find_active() {
 }
 
 #[actix_web::test]
-async fn test_revoke() {
+pub(crate) async fn test_revoke() {
     let mut conn = setup_conn().await;
     let grantor = create_user_helper(&mut conn, "d4g").await;
     let grantee = create_user_helper(&mut conn, "d4e").await;

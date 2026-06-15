@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn delegated_permission_api_grants_lists_and_revokes_reward_permissions() {
     let _ = dotenvy::dotenv();

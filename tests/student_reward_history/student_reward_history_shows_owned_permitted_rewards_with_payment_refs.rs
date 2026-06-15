@@ -1,3 +1,7 @@
+use crate::create_reward_candidate::*;
+use crate::create_reward_financial_records::*;
+use crate::support::*;
+
 #[actix_web::test]
 async fn student_reward_history_shows_owned_permitted_rewards_with_payment_refs() {
     let _ = dotenvy::dotenv();

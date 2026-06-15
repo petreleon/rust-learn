@@ -1,5 +1,8 @@
 use diesel_async::AsyncPgConnection;
 
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::application::learning::teacher_course_dashboard::{
     TeacherCourseDashboardError, TeacherCoursePermissionSummaryOutput,
 };
@@ -95,11 +98,11 @@ async fn teacher_has_course_permission(
     course_id: i32,
     permission: Permissions,
 ) -> Result<bool, TeacherCourseDashboardError> {
-    permission_checks::can_course_permission(
+    permission_checks::can(
         conn,
-        actor_user_id,
-        course_id,
-        &permission.to_string(),
+        AccessActor::user(actor_user_id),
+        AccessAction::permission(permission.to_string()),
+        AccessScope::course(course_id),
     )
     .await
     .map_err(map_dashboard_error)

@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn test_fraud_block_revoke() {
     let mut conn = setup_conn().await;

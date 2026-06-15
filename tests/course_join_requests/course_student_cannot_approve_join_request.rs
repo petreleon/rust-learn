@@ -1,3 +1,6 @@
+use crate::force_assign_course_role::*;
+use crate::support::*;
+
 #[actix_web::test]
 async fn course_student_cannot_approve_join_request() {
     let mut conn = setup_conn().await;

@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn assign_permission_to_admin_and_verify_user_gets_it() {
     let mut conn = setup_conn().await;

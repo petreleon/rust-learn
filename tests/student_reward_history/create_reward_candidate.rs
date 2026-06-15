@@ -1,4 +1,6 @@
-async fn create_reward_candidate(
+use crate::support::*;
+
+pub(crate) async fn create_reward_candidate(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     student_user_id: i32,
@@ -37,11 +39,11 @@ async fn create_reward_candidate(
     candidate_id
 }
 
-struct RewardFinancialFixture {
-    payout_transaction_id: i64,
-    external_transaction_id: i64,
-    wallet_transaction_id: i64,
-    internal_transaction_id: i64,
-    wallet_credit_record_id: i64,
-    transaction_hash: String,
+pub(crate) struct RewardFinancialFixture {
+    pub(crate) payout_transaction_id: i64,
+    pub(crate) external_transaction_id: i64,
+    pub(crate) wallet_transaction_id: i64,
+    pub(crate) internal_transaction_id: i64,
+    pub(crate) wallet_credit_record_id: i64,
+    pub(crate) transaction_hash: String,
 }

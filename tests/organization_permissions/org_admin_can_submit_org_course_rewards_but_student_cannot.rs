@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn org_admin_can_submit_org_course_rewards_but_student_cannot() {
     let mut conn = setup_conn().await;
@@ -49,14 +51,10 @@ async fn org_member_has_limited_permissions() {
     let denied_permissions = [Permissions::MANAGE_ORG_SETTINGS];
 
     for p in denied_permissions {
-        let has_perm = has_organization_permission(
-            &mut conn,
-            subject_user.id(),
-            org.id,
-            &p.to_string(),
-        )
-        .await
-        .expect("permission query failed");
+        let has_perm =
+            has_organization_permission(&mut conn, subject_user.id(), org.id, &p.to_string())
+                .await
+                .expect("permission query failed");
         assert!(!has_perm, "STUDENT should NOT have permission: {:?}", p);
     }
 }

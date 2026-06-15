@@ -2,7 +2,7 @@
 
 import { BriefcaseBusiness, Building2, ShieldCheck } from "lucide-react";
 import { countDelegatedPermissions, hasOrganizationAccess } from "@/lib/access";
-import { type CurrentSession } from "@/lib/session";
+import { sessionScopePermissionEnabled, type CurrentSession } from "@/lib/session";
 import styles from "../workspace-route.module.css";
 import { ScopeList } from "./ScopeList";
 import { SummaryCard } from "./SummaryCard";
@@ -16,7 +16,7 @@ export function OrganizationContent({ session }: { session: CurrentSession }) {
         <SummaryCard
           icon={<ShieldCheck size={20} aria-hidden />}
           label="Report scopes"
-          value={organizations.filter((organization) => organization.effective_permissions.includes("VIEW_ORG_REWARD_REPORTS")).length}
+          value={organizations.filter((organization) => sessionScopePermissionEnabled(organization, "VIEW_ORG_REWARD_REPORTS")).length}
         />
         <SummaryCard icon={<BriefcaseBusiness size={20} aria-hidden />} label="Delegations" value={countDelegatedPermissions(session)} />
       </section>

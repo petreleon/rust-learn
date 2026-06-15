@@ -1,3 +1,6 @@
+use crate::content_lifecycle_helpers::*;
+use crate::support::*;
+
 #[actix_web::test]
 async fn test_course_content_lifecycle() {
     let fixture = setup_course_content_fixture().await;
@@ -13,7 +16,9 @@ async fn test_course_content_lifecycle() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(pool.clone()))
-            .configure(|cfg| rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool))
+            .configure(|cfg| {
+                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
+            })
             .app_data(chapter_use_cases_data(&pool))
             .app_data(content_item_use_cases_data(&pool))
             .app_data(content_processing_use_case_data(&pool))
@@ -22,7 +27,6 @@ async fn test_course_content_lifecycle() {
     )
     .await;
 
-    // 1. Teacher CREATES Chapter (/courses/{id}/chapters)
     let req = test::TestRequest::post()
         .uri(&format!("/courses/{}/chapters", course.id))
         .insert_header(("Authorization", format!("Bearer {}", teacher_token)))
@@ -38,7 +42,6 @@ async fn test_course_content_lifecycle() {
     let chapter: Chapter = test::read_body_json(resp).await;
     assert_eq!(chapter.title, "Intro");
 
-    // 2. Student List Chapters (/courses/{id}/chapters)
     let req = test::TestRequest::get()
         .uri(&format!("/courses/{}/chapters", course.id))
         .insert_header(("Authorization", format!("Bearer {}", student_token)))
@@ -48,7 +51,6 @@ async fn test_course_content_lifecycle() {
     let chapters: Vec<Chapter> = test::read_body_json(resp).await;
     assert_eq!(chapters.len(), 1);
 
-    // 3. Teacher CREATES Content (/courses/{id}/chapters/{cid}/contents)
     let req = test::TestRequest::post()
         .uri(&format!(
             "/courses/{}/chapters/{}/contents",
@@ -70,7 +72,6 @@ async fn test_course_content_lifecycle() {
     let content: Content = test::read_body_json(resp).await;
     assert_eq!(content.data.unwrap(), "Welcome to the course");
 
-    // 3b. Teacher cannot use their course permission with a chapter from another course.
     let req = test::TestRequest::post()
         .uri(&format!(
             "/courses/{}/chapters/{}/contents",
@@ -86,7 +87,6 @@ async fn test_course_content_lifecycle() {
     let resp = app.call(req).await.unwrap();
     assert_eq!(resp.status(), actix_web::http::StatusCode::NOT_FOUND);
 
-    // 4. Student lists content through VIEW_CONTENT
     let req = test::TestRequest::get()
         .uri(&format!(
             "/courses/{}/chapters/{}/contents",
@@ -109,7 +109,6 @@ async fn test_course_content_lifecycle() {
     let resp = app.call(req).await.unwrap();
     assert_eq!(resp.status(), actix_web::http::StatusCode::NOT_FOUND);
 
-    // 5. User without course content permission cannot list content
     let req = test::TestRequest::get()
         .uri(&format!(
             "/courses/{}/chapters/{}/contents",
@@ -119,7 +118,6 @@ async fn test_course_content_lifecycle() {
         .to_request();
     assert_forbidden_response(app.call(req).await, "Outsider listed content!");
 
-    // 6. Student Cannot Create Content -> 403
     let req = test::TestRequest::post()
         .uri(&format!(
             "/courses/{}/chapters/{}/contents",
@@ -132,10 +130,8 @@ async fn test_course_content_lifecycle() {
             "data": "hack"
         }))
         .to_request();
-    // Use try_call check logic manually or app.call
     assert_forbidden_response(app.call(req).await, "Student created content!");
 
-    // 7. Update Content (Teacher)
     let req = test::TestRequest::put()
         .uri(&format!(
             "/courses/{}/chapters/{}/contents/{}",
@@ -158,7 +154,6 @@ async fn test_course_content_lifecycle() {
         .expect("upload job count query should succeed");
     drop(conn);
 
-    // 8. Teacher cannot trigger video processing for text content
     let req = test::TestRequest::post()
         .uri(&format!(
             "/courses/{}/chapters/{}/contents/{}/process",

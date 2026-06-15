@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn test_list_by_grantee() {
     let mut conn = setup_conn().await;
@@ -56,14 +58,9 @@ async fn test_active_filter_excludes_revoked() {
     .unwrap();
     assert!(active_before.iter().any(|d2| d2.id == d.id));
 
-    delegated_permissions::revoke_delegated_permission(
-        &mut conn,
-        d.id,
-        grantor.id(),
-        None,
-    )
-    .await
-    .unwrap();
+    delegated_permissions::revoke_delegated_permission(&mut conn, d.id, grantor.id(), None)
+        .await
+        .unwrap();
 
     let active_after = delegated_permissions::list_delegated_permissions(
         &mut conn,

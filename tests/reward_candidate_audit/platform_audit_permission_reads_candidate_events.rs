@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn platform_audit_permission_reads_candidate_events() {
     let _ = dotenvy::dotenv();
@@ -34,37 +36,56 @@ async fn platform_audit_permission_reads_candidate_events() {
 
     let req = test::TestRequest::get()
         .uri(&format!("/reward-candidates/{}/audit", candidate.id))
-        .insert_header(("Authorization", format!("Bearer {}", token_for(auditor.id()))))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(auditor.id())),
+        ))
         .to_request();
     let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
     let body: Vec<Value> = test::read_body_json(resp).await;
     assert_eq!(body.len(), 1);
     assert_eq!(body[0]["id"].as_i64(), Some(event.id));
+    assert_eq!(body[0]["reward_candidate_id"].as_i64(), Some(candidate.id));
     assert_eq!(
-        body[0]["reward_candidate_id"].as_i64(),
-        Some(candidate.id)
+        body[0]["actor_user_id"].as_i64(),
+        Some(i64::from(submitter.id()))
     );
-    assert_eq!(body[0]["actor_user_id"].as_i64(), Some(i64::from(submitter.id())));
-    assert_eq!(body[0]["event_type"], REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED);
+    assert_eq!(
+        body[0]["event_type"],
+        REWARD_AUDIT_EVENT_CANDIDATE_SUBMITTED
+    );
     assert_eq!(body[0]["to_status"], REWARD_STATUS_PENDING_TEACHER_APPROVAL);
     assert_eq!(body[0]["metadata"]["source"], "api-test");
 
     let denied_req = test::TestRequest::get()
         .uri(&format!("/reward-candidates/{}/audit", candidate.id))
-        .insert_header(("Authorization", format!("Bearer {}", token_for(student.id()))))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(student.id())),
+        ))
         .to_request();
     let denied_resp = test::call_service(&app, denied_req).await;
     assert_eq!(denied_resp.status(), StatusCode::FORBIDDEN);
-    let body = to_bytes(denied_resp.into_body()).await.unwrap();
-    assert_eq!(body.as_ref(), b"User does not have reward candidate permission");
+    let body: Value = test::read_body_json(denied_resp).await;
+    assert_eq!(body["error"]["code"], "permission_denied");
+    assert_eq!(
+        body["error"]["message"],
+        "User does not have reward candidate permission"
+    );
+    assert_eq!(body["error"]["status"].as_u64(), Some(403));
 
     let missing_req = test::TestRequest::get()
         .uri("/reward-candidates/922337203685477580/audit")
-        .insert_header(("Authorization", format!("Bearer {}", token_for(auditor.id()))))
+        .insert_header((
+            "Authorization",
+            format!("Bearer {}", token_for(auditor.id())),
+        ))
         .to_request();
     let missing_resp = test::call_service(&app, missing_req).await;
     assert_eq!(missing_resp.status(), StatusCode::NOT_FOUND);
-    let body = to_bytes(missing_resp.into_body()).await.unwrap();
-    assert_eq!(body.as_ref(), b"Reward candidate not found");
+    let body: Value = test::read_body_json(missing_resp).await;
+    assert_eq!(body["error"]["code"], "reward_candidate_not_found");
+    assert_eq!(body["error"]["message"], "Reward candidate not found");
+    assert_eq!(body["error"]["status"].as_u64(), Some(404));
 }

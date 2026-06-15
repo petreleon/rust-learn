@@ -1,33 +1,33 @@
-use bigdecimal::BigDecimal;
-use chrono::NaiveDate;
-use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::db::establish_connection;
-use rust_learn::db::schema::{courses, reward_candidates, transactions, wallets};
-use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
-use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
-use rust_learn::domain::rewards::candidate::status::REWARD_STATUS_COMPLETED;
-use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::reward_candidate::NewRewardCandidate;
-use rust_learn::infra::postgres::access_control::role_catalog_store;
-use rust_learn::models::user::User;
-use rust_learn::infra::postgres::access_control::platform_role_records;
-use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
-use rust_learn::infra::postgres::rewards::reward_candidate_records::find_candidate;
-use rust_learn::application::rewards::record_compensation::{
+pub(crate) use bigdecimal::BigDecimal;
+pub(crate) use chrono::NaiveDate;
+pub(crate) use diesel::prelude::*;
+pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
+pub(crate) use rust_learn::application::rewards::record_compensation::{
     RecordRewardCompensationCommand as RewardCompensationRequest, RewardCompensationError,
     RewardCompensationOutput, RewardCompensationUseCase,
 };
-use rust_learn::domain::rewards::compensation::REWARD_TRANSACTION_TYPE_COMPENSATION;
-use rust_learn::infra::postgres::rewards::reward_compensation_use_case::PostgresRewardCompensationUseCase;
-use serde_json::json;
+pub(crate) use rust_learn::db::establish_connection;
+pub(crate) use rust_learn::db::schema::{courses, reward_candidates, transactions, wallets};
+pub(crate) use rust_learn::domain::rewards::candidate::event_type::REWARD_EVENT_COURSE_COMPLETION;
+pub(crate) use rust_learn::domain::rewards::candidate::source::REWARD_SOURCE_COURSE;
+pub(crate) use rust_learn::domain::rewards::candidate::status::REWARD_STATUS_COMPLETED;
+pub(crate) use rust_learn::domain::rewards::compensation::REWARD_TRANSACTION_TYPE_COMPENSATION;
+pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
+pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
+pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::rewards::reward_candidate_records::find_candidate;
+pub(crate) use rust_learn::infra::postgres::rewards::reward_compensation_use_case::PostgresRewardCompensationUseCase;
+pub(crate) use rust_learn::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::models::reward_candidate::NewRewardCandidate;
+pub(crate) use rust_learn::models::user::User;
+pub(crate) use serde_json::json;
 
-fn unique_string(prefix: &str) -> String {
+pub(crate) fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
 }
 
-async fn setup_conn(
+pub(crate) async fn setup_conn(
 ) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
@@ -36,7 +36,7 @@ async fn setup_conn(
         .expect("failed to get DB connection from pool")
 }
 
-async fn record_reward_compensation(
+pub(crate) async fn record_reward_compensation(
     _conn: &mut AsyncPgConnection,
     actor_user_id: i32,
     request: RewardCompensationRequest,
@@ -47,7 +47,7 @@ async fn record_reward_compensation(
         .await
 }
 
-async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {
+pub(crate) async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User {
     create_user(
         conn,
         &format!("{} Test", prefix),
@@ -59,7 +59,7 @@ async fn create_user_helper(conn: &mut AsyncPgConnection, prefix: &str) -> User 
     .expect("failed to create user")
 }
 
-async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
+pub(crate) async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
     diesel::insert_into(courses::table)
         .values(NewCourse {
             title: title.to_string(),
@@ -72,7 +72,11 @@ async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
         .expect("failed to create course")
 }
 
-async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
+pub(crate) async fn force_assign_platform_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    role_name: &str,
+) {
     let role_id = role_catalog_store::platform_role_id_by_name(conn, role_name)
         .await
         .expect("platform role not found");
@@ -81,7 +85,7 @@ async fn force_assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, 
         .expect("failed to assign platform role");
 }
 
-async fn create_completed_reward_candidate(
+pub(crate) async fn create_completed_reward_candidate(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     student_user_id: i32,

@@ -1,3 +1,5 @@
+use crate::support::*;
+
 // ── reward_candidate_repository ──
 
 #[actix_web::test]

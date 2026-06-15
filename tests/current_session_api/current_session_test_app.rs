@@ -1,4 +1,6 @@
-fn current_session_test_app(
+use crate::support::*;
+
+pub(crate) fn current_session_test_app(
     pool: DbPool,
 ) -> App<
     impl actix_service::ServiceFactory<
@@ -11,9 +13,7 @@ fn current_session_test_app(
 > {
     App::new()
         .app_data(web::Data::new(pool.clone()))
-            .configure(|cfg| {
-                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
-            })
+        .configure(|cfg| rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool))
         .app_data(current_session_use_case_data(&pool))
         .app_data(notification_inbox_use_case_data(&pool))
         .app_data(notification_preferences_use_case_data(&pool))
@@ -25,9 +25,21 @@ fn current_session_test_app(
         )
 }
 
-fn array_contains(value: &Value, expected: &str) -> bool {
+pub(crate) fn array_contains(value: &Value, expected: &str) -> bool {
     value
         .as_array()
         .map(|items| items.iter().any(|item| item.as_str() == Some(expected)))
+        .unwrap_or(false)
+}
+
+pub(crate) fn capability_contains_permission(scope: &Value, key: &str, permission: &str) -> bool {
+    scope["capabilities"]
+        .as_array()
+        .map(|capabilities| {
+            capabilities.iter().any(|capability| {
+                capability["key"].as_str() == Some(key)
+                    && array_contains(&capability["permissions"], permission)
+            })
+        })
         .unwrap_or(false)
 }

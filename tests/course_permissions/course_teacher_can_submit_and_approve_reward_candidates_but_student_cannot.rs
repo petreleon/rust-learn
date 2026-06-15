@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn course_teacher_can_submit_and_approve_reward_candidates_but_student_cannot() {
     let mut conn = setup_conn().await;
@@ -14,24 +16,16 @@ async fn course_teacher_can_submit_and_approve_reward_candidates_but_student_can
         Permissions::APPROVE_STUDENT_REWARD_CANDIDATE,
         Permissions::GRADE_REWARDABLE_ASSESSMENT,
     ] {
-        let teacher_has = has_course_permission(
-            &mut conn,
-            teacher.id(),
-            course.id,
-            &permission.to_string(),
-        )
-        .await
-        .expect("permission query failed");
+        let teacher_has =
+            has_course_permission(&mut conn, teacher.id(), course.id, &permission.to_string())
+                .await
+                .expect("permission query failed");
         assert!(teacher_has, "TEACHER should have {:?}", permission);
 
-        let student_has = has_course_permission(
-            &mut conn,
-            student.id(),
-            course.id,
-            &permission.to_string(),
-        )
-        .await
-        .expect("permission query failed");
+        let student_has =
+            has_course_permission(&mut conn, student.id(), course.id, &permission.to_string())
+                .await
+                .expect("permission query failed");
         assert!(!student_has, "STUDENT should not have {:?}", permission);
     }
 
@@ -72,10 +66,9 @@ async fn student_has_limited_permissions() {
     let denied_permissions = [Permissions::MANAGE_COURSE_SETTINGS];
 
     for p in denied_permissions {
-        let has_perm =
-            has_course_permission(&mut conn, user.id(), course.id, &p.to_string())
-                .await
-                .expect("permission query failed");
+        let has_perm = has_course_permission(&mut conn, user.id(), course.id, &p.to_string())
+            .await
+            .expect("permission query failed");
         assert!(!has_perm, "STUDENT should NOT have permission: {:?}", p);
     }
 }

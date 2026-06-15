@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn org_hierarchy_admin_has_lower_level_than_student() {
     let mut conn = setup_conn().await;
@@ -10,17 +12,26 @@ async fn org_hierarchy_admin_has_lower_level_than_student() {
         .await
         .unwrap();
 
-    organization_role_records::assign_organization_role_to_user(&mut conn, admin.id(), 1, admin_role_id)
-        .await
-        .unwrap();
-    organization_role_records::assign_organization_role_to_user(&mut conn, student.id(), 1, student_role_id)
-        .await
-        .unwrap();
+    organization_role_records::assign_organization_role_to_user(
+        &mut conn,
+        admin.id(),
+        1,
+        admin_role_id,
+    )
+    .await
+    .unwrap();
+    organization_role_records::assign_organization_role_to_user(
+        &mut conn,
+        student.id(),
+        1,
+        student_role_id,
+    )
+    .await
+    .unwrap();
 
-    let admin_level =
-        hierarchy_records::organization_min_level_for_user(&mut conn, admin.id(), 1)
-            .await
-            .unwrap();
+    let admin_level = hierarchy_records::organization_min_level_for_user(&mut conn, admin.id(), 1)
+        .await
+        .unwrap();
     let student_level =
         hierarchy_records::organization_min_level_for_user(&mut conn, student.id(), 1)
             .await
