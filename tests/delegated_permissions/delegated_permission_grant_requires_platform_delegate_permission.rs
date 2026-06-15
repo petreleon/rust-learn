@@ -1,3 +1,5 @@
+use crate::{delegation_helper::*, force_assign_course_role::*, submission_helper::*, support::*};
+
 #[actix_web::test]
 async fn delegated_permission_grant_requires_platform_delegate_permission() {
     let mut conn = setup_conn().await;

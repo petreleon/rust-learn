@@ -1,3 +1,9 @@
+use crate::{
+    delegation_helper::*, force_assign_course_role::*,
+    reward_candidate_error::RewardCandidateError, submission_helper::*, support::*,
+    teacher_decision_helper::*,
+};
+
 #[actix_web::test]
 async fn delegated_platform_amount_reviewer_can_set_amount_after_teacher_approval() {
     let mut conn = setup_conn().await;
