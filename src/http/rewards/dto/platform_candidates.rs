@@ -100,7 +100,7 @@ impl From<PlatformRewardCandidateItem> for PlatformRewardCandidateItemResponse {
             student: PlatformRewardCandidateUserSummaryResponse::from(candidate.student),
             course: PlatformRewardCandidateCourseSummaryResponse::from(candidate.course),
             event_type: candidate.event_type,
-            status: candidate.status,
+            status: candidate.status.as_str().to_string(),
             teacher_approver: candidate
                 .teacher_approver
                 .map(PlatformRewardCandidateUserSummaryResponse::from),

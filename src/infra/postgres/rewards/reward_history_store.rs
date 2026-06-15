@@ -98,8 +98,7 @@ async fn list_candidates(
         .await
         .map_err(map_reward_history_error)?;
 
-    Ok(rows
-        .into_iter()
+    rows.into_iter()
         .map(|(candidate, title)| candidate_record(candidate, title))
-        .collect())
+        .collect()
 }

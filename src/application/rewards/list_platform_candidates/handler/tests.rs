@@ -9,6 +9,7 @@ use crate::application::rewards::list_platform_candidates::{
     PlatformRewardCandidateUserSummary, PlatformRewardCandidatesError,
     PlatformRewardCandidatesQuery,
 };
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[test]
 fn enriches_searches_and_pages_platform_candidates() {
@@ -149,7 +150,7 @@ fn candidate_record(id: i64, student_user_id: i32) -> PlatformRewardCandidateRec
         source_scope: "course".to_string(),
         source_organization_id: None,
         event_type: "course_completion".to_string(),
-        status: "teacher_approved".to_string(),
+        status: RewardCandidateStatus::TeacherApproved,
         teacher_approver_user_id: Some(9),
         teacher_decision_reason: Some("well done".to_string()),
         approved_amount: None,

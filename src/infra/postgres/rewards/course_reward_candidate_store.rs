@@ -8,7 +8,9 @@ use crate::application::rewards::list_course_candidates::{
 };
 use crate::application::rewards::ports::CourseRewardCandidateStore;
 use crate::db::schema::{courses, reward_candidates};
-use crate::infra::postgres::rewards::course_reward_candidate_mappers::map_course_reward_candidate_error;
+use crate::infra::postgres::rewards::course_reward_candidate_mappers::{
+    map_course_reward_candidate, map_course_reward_candidate_error,
+};
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::models::reward_candidate::RewardCandidate;
 
@@ -112,18 +114,17 @@ async fn list_candidates(
         query = query.filter(reward_candidates::status.eq(status));
     }
 
-    query
+    let candidates = query
         .order(reward_candidates::created_at.desc())
         .limit(filter.limit.unwrap_or(25).clamp(1, 100))
         .offset(filter.offset.unwrap_or(0).max(0))
         .select(RewardCandidate::as_select())
         .load::<RewardCandidate>(conn)
         .await
-        .map(|candidates| {
-            candidates
-                .into_iter()
-                .map(CourseRewardCandidate::from)
-                .collect()
-        })
-        .map_err(map_course_reward_candidate_error)
+        .map_err(map_course_reward_candidate_error)?;
+
+    candidates
+        .into_iter()
+        .map(map_course_reward_candidate)
+        .collect()
 }

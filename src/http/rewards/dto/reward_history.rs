@@ -75,7 +75,7 @@ impl From<StudentRewardHistoryEntry> for StudentRewardHistoryEntryResponse {
             course_id: entry.course_id,
             course_title: entry.course_title,
             event_type: entry.event_type,
-            status: entry.status,
+            status: entry.status.as_str().to_string(),
             approved_amount: entry.approved_amount,
             wallet_credit: entry
                 .wallet_credit

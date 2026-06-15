@@ -9,6 +9,7 @@ use crate::application::rewards::list_course_candidates::{
     CourseRewardCandidatesQuery,
 };
 use crate::application::rewards::ports::CourseRewardCandidateStore;
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[test]
 fn non_manager_is_limited_to_own_candidates() {
@@ -160,7 +161,7 @@ fn candidate(course_id: i32) -> CourseRewardCandidate {
         event_type: "course_completion".to_string(),
         idempotency_key: "course_completion:7:42:manual".to_string(),
         evidence: json!({"completion_percentage": 100}),
-        status: "teacher_approved".to_string(),
+        status: RewardCandidateStatus::TeacherApproved,
         teacher_approver_user_id: Some(9),
         teacher_decision_reason: None,
         teacher_decided_at: None,
