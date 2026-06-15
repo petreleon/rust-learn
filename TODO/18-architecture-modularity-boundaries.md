@@ -1,7 +1,7 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Verified base: `53a3fd67`; current checked batch listed below.
+Verified base: `74811b12`; current checked batch listed below.
 
 Goal: move RustLearn to a Level 2 modular monolith with firm business
 boundaries. Ownership matters more than folder count. Preserve behavior unless
@@ -58,10 +58,15 @@ Checked contexts: `access_control`, `content`, `identity`, `kyc`, `learning`,
   outputs/facts carry typed reward event/status/execution status and
   reconciliation mismatch types; Postgres adapters parse persisted strings
   before crossing into application; HTTP DTOs keep the public string contract.
-- Current verified batch: platform reward-approval CSV export vocabulary.
+- `74811b12`: platform reward-approval CSV export vocabulary.
   Application facts/outputs carry typed reward source scope, event type, and
   candidate status; Postgres parses persisted strings before crossing into
   application; HTTP CSV serialization keeps the public string contract.
+- Current verified batch: platform teacher-application CSV export vocabulary.
+  Domain now exposes typed teacher-application scope/status enums while
+  preserving existing normalization APIs; application export rows carry typed
+  scope/status, Postgres parses persisted strings, and HTTP CSV serialization
+  keeps the public string contract.
 
 Proof set used for verified batches: focused host tests, fmt, Cargo lib/bin
 checks, integration no-run compile, `git diff --check`, line-count checks,
@@ -71,8 +76,8 @@ reward/reporting string-field scans, and boundary scans.
 
 - Rewards/reporting: remaining credit, notification event/payment, transition,
   CSV/export/reporting surfaces outside the verified dashboard rows and
-  reward-approval exports, wallet, and audit business strings crossing
-  infra/application.
+  reward/teacher-application exports, wallet, and audit business strings
+  crossing infra/application.
 - Persistence: keep Diesel schema/model leakage inside infra/persistence
   records.
 - HTTP: public API DTOs stay HTTP-owned, separate from Diesel records and

@@ -2,16 +2,18 @@ use chrono::{DateTime, Utc};
 use serde_json::Value;
 
 use crate::application::reporting::platform_csv_exports::PlatformTeacherApplicationExportRowOutput;
+use crate::domain::teacher_applications::scope::TeacherApplicationScope;
+use crate::domain::teacher_applications::status::TeacherApplicationStatus;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct PlatformTeacherApplicationExportFact {
     pub application_id: i64,
     pub applicant_user_id: i32,
-    pub requested_scope: String,
+    pub requested_scope: TeacherApplicationScope,
     pub requested_organization_id: Option<i32>,
     pub requested_course_id: Option<i32>,
     pub organization_sponsor_id: Option<i32>,
-    pub status: String,
+    pub status: TeacherApplicationStatus,
     pub reviewer_id: Option<i32>,
     pub decision_reason: Option<String>,
     pub portfolio_links: Value,
@@ -53,11 +55,11 @@ mod tests {
         let row = platform_teacher_application_export_row(PlatformTeacherApplicationExportFact {
             application_id: 7,
             applicant_user_id: 42,
-            requested_scope: "organization".to_string(),
+            requested_scope: TeacherApplicationScope::Organization,
             requested_organization_id: Some(11),
             requested_course_id: None,
             organization_sponsor_id: Some(12),
-            status: "approved".to_string(),
+            status: TeacherApplicationStatus::Approved,
             reviewer_id: Some(3),
             decision_reason: Some("qualified".to_string()),
             portfolio_links: json!(["https://example.com"]),
@@ -68,6 +70,8 @@ mod tests {
 
         assert_eq!(row.application_id, 7);
         assert_eq!(row.applicant_user_id, 42);
+        assert_eq!(row.requested_scope, TeacherApplicationScope::Organization);
+        assert_eq!(row.status, TeacherApplicationStatus::Approved);
         assert_eq!(row.decision_reason, "qualified");
         assert_eq!(row.portfolio_links, "[\"https://example.com\"]");
         assert_eq!(row.decided_at, Some(now));
@@ -80,11 +84,11 @@ mod tests {
         let row = platform_teacher_application_export_row(PlatformTeacherApplicationExportFact {
             application_id: 1,
             applicant_user_id: 2,
-            requested_scope: "platform".to_string(),
+            requested_scope: TeacherApplicationScope::Platform,
             requested_organization_id: None,
             requested_course_id: None,
             organization_sponsor_id: None,
-            status: "submitted".to_string(),
+            status: TeacherApplicationStatus::Submitted,
             reviewer_id: None,
             decision_reason: None,
             portfolio_links: json!([]),

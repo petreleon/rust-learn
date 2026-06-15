@@ -46,6 +46,8 @@ mod tests {
     use crate::domain::rewards::candidate::event_type::RewardEventType;
     use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
     use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+    use crate::domain::teacher_applications::scope::TeacherApplicationScope;
+    use crate::domain::teacher_applications::status::TeacherApplicationStatus;
 
     #[test]
     fn loads_platform_csv_export_rows_through_store_port() {
@@ -69,7 +71,22 @@ mod tests {
             '_,
             Result<Vec<PlatformTeacherApplicationExportRowOutput>, PlatformCsvExportError>,
         > {
-            ready(Ok(Vec::new())).boxed()
+            ready(Ok(vec![PlatformTeacherApplicationExportRowOutput {
+                application_id: 7,
+                applicant_user_id: 8,
+                requested_scope: TeacherApplicationScope::Platform,
+                requested_organization_id: None,
+                requested_course_id: None,
+                organization_sponsor_id: None,
+                status: TeacherApplicationStatus::Submitted,
+                reviewer_id: None,
+                decision_reason: String::new(),
+                portfolio_links: "[]".to_string(),
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                decided_at: None,
+            }]))
+            .boxed()
         }
 
         fn load_platform_reward_approval_exports(

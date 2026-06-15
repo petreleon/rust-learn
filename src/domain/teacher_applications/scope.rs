@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TeacherApplicationScopeError {
     InvalidScope(String),
@@ -5,20 +7,44 @@ pub enum TeacherApplicationScopeError {
     MissingCourseTarget(String),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TeacherApplicationScope {
+    Course,
+    Organization,
+    Platform,
+}
+
 pub const TEACHER_APPLICATION_SCOPE_COURSE: &str = "course";
 pub const TEACHER_APPLICATION_SCOPE_ORGANIZATION: &str = "organization";
 pub const TEACHER_APPLICATION_SCOPE_PLATFORM: &str = "platform";
 
-pub fn normalize_scope(scope: &str) -> Result<String, TeacherApplicationScopeError> {
-    let normalized = scope.trim().to_ascii_lowercase();
-    match normalized.as_str() {
-        TEACHER_APPLICATION_SCOPE_COURSE
-        | TEACHER_APPLICATION_SCOPE_ORGANIZATION
-        | TEACHER_APPLICATION_SCOPE_PLATFORM => Ok(normalized),
-        _ => Err(TeacherApplicationScopeError::InvalidScope(
-            "unsupported requested_scope".to_string(),
-        )),
+impl TeacherApplicationScope {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Course => TEACHER_APPLICATION_SCOPE_COURSE,
+            Self::Organization => TEACHER_APPLICATION_SCOPE_ORGANIZATION,
+            Self::Platform => TEACHER_APPLICATION_SCOPE_PLATFORM,
+        }
     }
+
+    pub fn parse(scope: &str) -> Result<Self, TeacherApplicationScopeError> {
+        match scope {
+            TEACHER_APPLICATION_SCOPE_COURSE => Ok(Self::Course),
+            TEACHER_APPLICATION_SCOPE_ORGANIZATION => Ok(Self::Organization),
+            TEACHER_APPLICATION_SCOPE_PLATFORM => Ok(Self::Platform),
+            _ => Err(TeacherApplicationScopeError::InvalidScope(
+                "unsupported requested_scope".to_string(),
+            )),
+        }
+    }
+
+    pub fn normalize(scope: &str) -> Result<Self, TeacherApplicationScopeError> {
+        Self::parse(&scope.trim().to_ascii_lowercase())
+    }
+}
+
+pub fn normalize_scope(scope: &str) -> Result<String, TeacherApplicationScopeError> {
+    TeacherApplicationScope::normalize(scope).map(|scope| scope.as_str().to_string())
 }
 
 pub fn validate_requested_scope(
@@ -54,6 +80,16 @@ pub fn validate_requested_scope(
     }
 }
 
+impl fmt::Display for TeacherApplicationScopeError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidScope(message)
+            | Self::MissingOrganizationTarget(message)
+            | Self::MissingCourseTarget(message) => formatter.write_str(message),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -63,6 +99,10 @@ mod tests {
         assert_eq!(normalize_scope(" PLATFORM ").unwrap(), "platform");
         assert_eq!(normalize_scope("organization").unwrap(), "organization");
         assert_eq!(normalize_scope("course").unwrap(), "course");
+        assert_eq!(
+            TeacherApplicationScope::parse("organization").unwrap(),
+            TeacherApplicationScope::Organization
+        );
     }
 
     #[test]
