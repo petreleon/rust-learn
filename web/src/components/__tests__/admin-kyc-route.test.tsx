@@ -26,6 +26,8 @@ vi.mock("@/lib/admin", async (importOriginal) => {
 });
 
 function session(permissions: string[]): CurrentSession {
+  const kycReviewPermission = "REVIEW_KYC_SUBMISSIONS";
+
   return {
     access: {
       learner: true,
@@ -41,9 +43,14 @@ function session(permissions: string[]): CurrentSession {
       delegated_permissions: [],
       direct_permissions: permissions,
       effective_permissions: permissions,
-      capabilities: permissions.length
-        ? [{ enabled: true, key: "kyc_reviews", label: "KYC review", permissions }]
-        : [],
+      capabilities: [
+        {
+          enabled: permissions.includes(kycReviewPermission),
+          key: "kyc_reviews",
+          label: "KYC review",
+          permissions: [kycReviewPermission],
+        },
+      ],
       roles: permissions.length ? ["platform_admin"] : [],
     },
     user: {

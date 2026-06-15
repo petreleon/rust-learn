@@ -1219,6 +1219,26 @@ Batch 289: mark source-boundary cleanup that scans now prove complete.
 - [x] Left the broad HTTP handler-return refactor open because `src/http` still
       has many explicit `HttpResponse` builders and `impl Responder` handlers.
 
+Batch 290: move coarse frontend admin gates to backend-derived capabilities.
+
+- [x] Added a small admin-route helper for checking backend-derived
+      `PlatformCapabilityKey` values from the `/api/me` session workspace.
+- [x] Repointed KYC review, CSV exports, system status, wallet audit, and coarse
+      admin-dashboard summary/export/fraud controls away from duplicated
+      frontend permission groups and onto session capability keys.
+- [x] Tightened the KYC route test fixture so a session with unrelated platform
+      permissions keeps the `kyc_reviews` capability disabled and still renders
+      the backend capability's missing-permission message.
+- [x] Proved behavior with `npm run test -- admin-kyc-route`,
+      `npm run test -- admin-kyc-route admin-action-panel access`,
+      `npm run lint`, admin-route capability/permission scans, and
+      `git diff --check`.
+- [x] Self-critique: fine-grained admin actions still use exact effective
+      permission checks where a broad capability would loosen behavior
+      (`approve` vs `review`, `grant` vs `view`, `revoke` vs `view`). The
+      frontend capability item remains open until those contracts become
+      backend-owned action capabilities.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`

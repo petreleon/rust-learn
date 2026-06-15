@@ -18,7 +18,8 @@ import { SessionErrorState } from "./SessionErrorState";
 import { SignedOutState } from "./SignedOutState";
 import { StatusPill } from "./StatusPill";
 import { emptyWorkspace } from "./emptyWorkspace";
-import { hasPlatformPermission } from "./hasPlatformPermission";
+import { getCapability } from "./getCapability";
+import { hasPlatformCapability } from "./hasPlatformCapability";
 import { normalizeRouteError } from "./normalizeRouteError";
 import { useAdminSession } from "./useAdminSession";
 import { useKycReviewAudit } from "./useKycReviewAudit";
@@ -31,7 +32,7 @@ export function AdminKycReviewRoute() {
   const route = useAdminSession();
   const workspace = useMemo(() => (route.session ? buildPlatformAdminWorkspace(route.session) : emptyWorkspace), [route.session]);
   const allowed = route.session ? hasPlatformAdminAccess(route.session) : false;
-  const canReview = hasPlatformPermission(workspace, "REVIEW_KYC_SUBMISSIONS");
+  const canReview = hasPlatformCapability(workspace, "kyc_reviews");
   const [queue, setQueue] = useState<KycReviewQueueResponse | null>(null);
   const [queueError, setQueueError] = useState<RouteError | null>(null);
   const [queueState, setQueueState] = useState<SectionState>("idle");
@@ -167,7 +168,7 @@ export function AdminKycReviewRoute() {
             ) : null}
           </div>
         ) : (
-          <GatedPanel capability={{ enabled: false, key: "kyc_reviews", label: "KYC review", permissions: ["REVIEW_KYC_SUBMISSIONS"] }} icon={<IdCard size={20} aria-hidden />} title="KYC review unavailable" />
+          <GatedPanel capability={getCapability(workspace, "kyc_reviews")} icon={<IdCard size={20} aria-hidden />} title="KYC review unavailable" />
         )
       ) : null}
     </ProductShell>
