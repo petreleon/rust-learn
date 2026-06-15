@@ -29,7 +29,7 @@ handler, Diesel query, permission rule, and domain workflow to change together.
 
 ## Current Problems To Fix
 
-- [ ] Stop adding new `include!`-based service modules. They split files but
+- [x] Stop adding new `include!`-based service modules. They split files but
       keep one shared module namespace, shared imports, and hidden coupling.
 - [x] Move direct Diesel usage out of API handlers. Examples to migrate include
       chapters, notification preferences, course assessments, user search, and
@@ -941,7 +941,7 @@ Wiring rule:
       `AuthUser`, `DbConn`, `Json<T>`, `Path<T>`, and `Query<T>`.
 - [ ] API handlers return `Result<web::Json<T>, ApiError>` or equivalent,
       instead of manually matching every service error to `HttpResponse`.
-- [ ] Domain/application errors do not implement Actix traits directly. The
+- [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
 - [x] Configure JSON limits and JSON parse errors centrally so every route has
       consistent bad-request behavior.
@@ -1207,6 +1207,17 @@ Batch 288: centralize JSON extractor limits and parse errors.
 - [x] Self-critique: this centralizes `Json<T>` extraction failures only.
       Manual handler `HttpResponse` mapping and non-JSON extractor failures
       remain separate open HTTP refactor slices.
+
+Batch 289: mark source-boundary cleanup that scans now prove complete.
+
+- [x] Proved production source no longer uses `include!` with
+      `rg -n "include!\(" src --glob '*.rs'`; remaining `include!` hits are
+      integration-test harness composition, not service modules.
+- [x] Proved domain and application rings do not implement or import Actix
+      response traits with
+      `rg -n "impl .*ResponseError|ResponseError|actix_web|HttpResponse|StatusCode" src/domain src/application --glob '*.rs'`.
+- [x] Left the broad HTTP handler-return refactor open because `src/http` still
+      has many explicit `HttpResponse` builders and `impl Responder` handlers.
 
 Batch 287: remove the final legacy request-auth helper.
 
