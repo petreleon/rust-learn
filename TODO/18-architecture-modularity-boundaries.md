@@ -949,9 +949,11 @@ Wiring rule:
       authentication handlers now use typed results with a local text
       `ResponseError` to preserve their tested plain-text contract. KYC status,
       submission, review, and audit handlers now use typed JSON/status results
-      with a KYC HTTP error mapper. Reporting, wallet, rewards, learning,
-      organizations, content, and teacher-application contexts still need the
-      same treatment before this is done.
+      with a KYC HTTP error mapper. Teacher-application submission, listing,
+      self-read, review, decision, audit, and organization nomination handlers
+      now use typed JSON/status results with a teacher-application HTTP error
+      mapper. Reporting, wallet, rewards, learning, organizations, and content
+      contexts still need the same treatment before this is done.
 - [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
 - [x] Configure JSON limits and JSON parse errors centrally so every route has
@@ -1392,6 +1394,32 @@ Batch 295: move KYC handlers to typed HTTP results.
       Reporting, wallet, rewards, learning, organizations, content, and
       teacher-application contexts still contain manual response branches.
 
+Batch 296: move teacher-application handlers to typed HTTP results.
+
+- [x] Added `http/teacher_applications/errors.rs` as the local HTTP boundary
+      mapper from teacher-application application errors into the shared
+      `ApiError` envelope, preserving the existing permission, input,
+      transition, not-found, and processing-failure messages.
+- [x] Repointed teacher-application submission, listing, self-read, platform
+      review, decision, audit, and organization nomination handlers away from
+      handler-local `HttpResponse`/`impl Responder` branches and into typed
+      JSON/status results.
+- [x] Kept notification fan-out as a success-only side effect after the use case
+      returns an application output; service errors now short-circuit through
+      the typed mapper before notifications run.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::teacher_applications::errors`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing api_scope_and_following_routes_are_reachable`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      teacher-application handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this completes the teacher-application HTTP typed-result
+      slice only. Reporting, wallet, rewards, learning, organizations, and
+      content contexts still contain manual response branches.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1738,6 +1766,9 @@ boundary checks from the matrix above to every canonical context.
       adapter use case, HTTP best-effort app-data wiring, and unit/integration
       coverage; `http/teacher_applications` no longer owns DB-backed recipient
       lookup.
+- [x] Teacher-application HTTP handlers return typed JSON/status results and map
+      application errors through `http/teacher_applications/errors.rs`, keeping
+      Actix response construction out of route functions.
 
 ## Data Boundary Rules
 
