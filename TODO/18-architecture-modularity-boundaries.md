@@ -51,8 +51,8 @@ Live checks on 2026-06-15:
 - No production `include!` calls remain under `src`.
 - No `authenticated_user*` helper usage or direct `pool.get().await` remains in
   `src/http`.
-- Remaining integration-test cleanup: `tests/video_upload_flow/imports.rs`.
-- Remaining test `include!` calls: 4, all in `video_upload_flow`.
+- No `tests/*/imports.rs` files remain.
+- No test `include!` calls remain.
 
 ## Done Or Checked
 
@@ -68,7 +68,7 @@ Live checks on 2026-06-15:
 | Access control | Shared `AccessActor`, `AccessAction`, `AccessScope`, `can(...)`, and `can_any(...)` are used across middleware and migrated use cases. |
 | Typed auth | Route handlers use typed auth extractors; `/api/me` keeps its JSON unauthorized response contract. |
 | Frontend gates | Platform, organization, learner, teacher-application, and ops UI gates consume backend-derived current-session capabilities. |
-| Test harnesses | Production source no longer uses `include!`; all but `video_upload_flow` integration harnesses now use explicit modules plus `support.rs`. |
+| Test harnesses | Production and integration-test source no longer use `include!` or `imports.rs`; harnesses use explicit modules plus support helpers. |
 
 ## Verified Batches
 
@@ -85,7 +85,8 @@ Detailed history belongs in git; keep only proof that matters here.
 | 327 | `641ddd50` | Converted `reporting_exports`; fixed fixture idempotency keys and proved with focused tests plus standard gates. |
 | 328 | `930d6586` | Converted `reward_candidates`; fixed idempotency keys and refreshed permission-envelope assertion. |
 | 329 | `fc018ef7` | Converted `reward_execution`; focused reward-execution tests, Cargo gates, scans, and line checks passed. |
-| 330 | this batch | Converted `wallet_linking`; refreshed the stale KYC conflict assertion to the typed HTTP error envelope and proved with focused wallet tests, Cargo gates, scans, and line checks. |
+| 330 | `6b0092a2` | Converted `wallet_linking`; refreshed the stale KYC conflict assertion to the typed HTTP error envelope and proved with focused wallet tests, Cargo gates, scans, and line checks. |
+| 331 | this batch | Converted `video_upload_flow`; moved content app wiring and sample-video helpers behind explicit modules and proved with the focused video upload flow, Cargo gates, scans, and line checks. |
 
 Standard proof set used for recent batches:
 
@@ -118,8 +119,6 @@ Standard proof set used for recent batches:
 
 ## Remaining Work
 
-- Convert `tests/video_upload_flow` from `include!`/`imports.rs` to explicit
-  modules plus `support.rs`.
 - Keep hardening authorization so middleware is an early rejection optimization
   and application use cases remain the real business guard.
 - Keep hardening rewards around statuses/events/newtypes, candidate transitions,
@@ -129,7 +128,8 @@ Standard proof set used for recent batches:
 - Preserve route URLs and response semantics unless a migration note explicitly
   records a behavior change.
 
-Suggested next batch: `tests/video_upload_flow`.
+Suggested next batch: audit remaining authorization/reward/data-boundary items
+against code evidence, then extract the next smallest verified slice.
 
 ## Acceptance Criteria
 
