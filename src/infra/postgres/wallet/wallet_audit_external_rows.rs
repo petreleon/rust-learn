@@ -1,4 +1,5 @@
-use crate::application::wallet::audit_wallet::WalletExternalTransactionAudit;
+use crate::application::wallet::audit_wallet::{WalletAuditError, WalletExternalTransactionAudit};
+use crate::domain::rewards::token::RewardTokenEventType;
 
 pub(super) type WalletExternalTransactionRow = (
     i64,
@@ -31,7 +32,7 @@ pub(super) type RewardExternalTransactionRow = (
 
 pub(super) fn reward_external_transaction_audit(
     row: RewardExternalTransactionRow,
-) -> WalletExternalTransactionAudit {
+) -> Result<WalletExternalTransactionAudit, WalletAuditError> {
     let (
         reward_candidate_id,
         transaction_id,
@@ -47,7 +48,10 @@ pub(super) fn reward_external_transaction_audit(
         to_address,
     ) = row;
 
-    WalletExternalTransactionAudit {
+    let event_type = RewardTokenEventType::parse_optional(event_type)
+        .map_err(|error| WalletAuditError::AuditLoad(error.to_string()))?;
+
+    Ok(WalletExternalTransactionAudit {
         external_transaction_id,
         transaction_id,
         reward_candidate_id: Some(reward_candidate_id),
@@ -60,12 +64,12 @@ pub(super) fn reward_external_transaction_audit(
         event_type,
         from_address,
         to_address,
-    }
+    })
 }
 
 pub(super) fn wallet_external_transaction_audit(
     row: WalletExternalTransactionRow,
-) -> WalletExternalTransactionAudit {
+) -> Result<WalletExternalTransactionAudit, WalletAuditError> {
     let (
         transaction_id,
         external_transaction_id,
@@ -80,7 +84,10 @@ pub(super) fn wallet_external_transaction_audit(
         to_address,
     ) = row;
 
-    WalletExternalTransactionAudit {
+    let event_type = RewardTokenEventType::parse_optional(event_type)
+        .map_err(|error| WalletAuditError::AuditLoad(error.to_string()))?;
+
+    Ok(WalletExternalTransactionAudit {
         external_transaction_id,
         transaction_id,
         reward_candidate_id: None,
@@ -93,5 +100,5 @@ pub(super) fn wallet_external_transaction_audit(
         event_type,
         from_address,
         to_address,
-    }
+    })
 }

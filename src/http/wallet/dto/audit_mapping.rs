@@ -72,7 +72,9 @@ impl From<WalletExternalTransactionAudit> for WalletExternalTransactionAuditResp
             contract_address: transaction.contract_address,
             transaction_hash: transaction.transaction_hash,
             log_index: transaction.log_index,
-            event_type: transaction.event_type,
+            event_type: transaction
+                .event_type
+                .map(|event_type| event_type.as_str().to_string()),
             from_address: transaction.from_address,
             to_address: transaction.to_address,
         }

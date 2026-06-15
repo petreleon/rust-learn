@@ -136,7 +136,7 @@ async fn student_reward_history_shows_owned_permitted_rewards_with_payment_refs(
     );
     assert_eq!(token_transaction["amount"], "12");
     assert_eq!(token_transaction["chain_id"].as_i64(), Some(31337));
-    assert_eq!(token_transaction["event_type"], "Transfer");
+    assert_eq!(token_transaction["event_type"], "transfer");
     assert_eq!(
         token_transaction["transaction_hash"].as_str(),
         Some(financials.transaction_hash.as_str())

@@ -40,7 +40,7 @@ pub(super) async fn load_wallet_external_transactions(
         .map_err(map_wallet_audit_error)?;
 
     for row in rows {
-        let audit = wallet_external_transaction_audit(row);
+        let audit = wallet_external_transaction_audit(row)?;
         if seen.insert((audit.transaction_id, audit.external_transaction_id)) {
             audits.push(audit);
         }

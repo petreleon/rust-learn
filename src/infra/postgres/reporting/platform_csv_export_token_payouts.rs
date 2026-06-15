@@ -7,6 +7,7 @@ use crate::application::reporting::platform_csv_exports::{
     PlatformTokenPayoutExportRowOutput,
 };
 use crate::db::schema::{external_transactions, reward_candidates, reward_payout_records};
+use crate::domain::rewards::token::RewardTokenEventType;
 use crate::infra::postgres::reporting::platform_csv_export_mappers::map_diesel_error;
 use crate::models::reward_candidate::RewardCandidate;
 use crate::models::reward_payout_record::RewardPayoutRecord;
@@ -64,17 +65,18 @@ async fn token_payout_row(
         .first::<ExternalTransactionRow>(conn)
         .await
         .map_err(map_diesel_error)?;
-    Ok(platform_token_payout_export_row(token_payout_fact(
-        record, candidate, external,
-    )))
+    let fact = token_payout_fact(record, candidate, external)?;
+    Ok(platform_token_payout_export_row(fact))
 }
 
 fn token_payout_fact(
     record: RewardPayoutRecord,
     candidate: RewardCandidate,
     external: ExternalTransactionRow,
-) -> PlatformTokenPayoutExportFact {
-    PlatformTokenPayoutExportFact {
+) -> Result<PlatformTokenPayoutExportFact, PlatformCsvExportError> {
+    let event_type = RewardTokenEventType::parse_optional(external.6)
+        .map_err(|error| PlatformCsvExportError::Database(error.to_string()))?;
+    Ok(PlatformTokenPayoutExportFact {
         reward_payout_record_id: record.id,
         reward_candidate_id: record.reward_candidate_id,
         course_id: candidate.course_id,
@@ -87,9 +89,9 @@ fn token_payout_fact(
         contract_address: external.3,
         transaction_hash: external.4,
         log_index: external.5,
-        event_type: external.6,
+        event_type,
         from_address: external.7,
         to_address: external.8,
         created_at: record.created_at,
-    }
+    })
 }

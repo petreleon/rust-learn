@@ -4,6 +4,7 @@ use crate::domain::access_control::delegation::DelegatedScopeType;
 use crate::domain::rewards::candidate::event_type::RewardEventType;
 use crate::domain::rewards::candidate::source::RewardCandidateSourceScope;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::domain::rewards::token::RewardTokenEventType;
 use crate::domain::teacher_applications::scope::TeacherApplicationScope;
 use crate::domain::teacher_applications::status::TeacherApplicationStatus;
 
@@ -76,7 +77,7 @@ pub struct PlatformTokenPayoutExportRowOutput {
     pub contract_address: String,
     pub transaction_hash: String,
     pub log_index: Option<i64>,
-    pub event_type: String,
+    pub event_type: Option<RewardTokenEventType>,
     pub from_address: String,
     pub to_address: String,
     pub created_at: DateTime<Utc>,

@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 
 use crate::domain::rewards::candidate::reconciliation::RewardReconciliationStatus;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::domain::rewards::token::RewardTokenEventType;
 use crate::domain::wallet::owner::WalletOwnerType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,7 +43,7 @@ pub struct WalletExternalTransactionAudit {
     pub contract_address: Option<String>,
     pub transaction_hash: Option<String>,
     pub log_index: Option<i64>,
-    pub event_type: Option<String>,
+    pub event_type: Option<RewardTokenEventType>,
     pub from_address: Option<String>,
     pub to_address: Option<String>,
 }

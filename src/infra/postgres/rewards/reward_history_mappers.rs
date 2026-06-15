@@ -2,8 +2,7 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 
 use crate::application::rewards::list_reward_history::{
-    StudentRewardCandidateRecord, StudentRewardHistoryError, StudentRewardTokenTransaction,
-    StudentRewardWalletCredit,
+    StudentRewardCandidateRecord, StudentRewardHistoryError, StudentRewardWalletCredit,
 };
 use crate::infra::postgres::rewards::reward_vocabulary::{
     parse_candidate_status, parse_reward_event_type,
@@ -19,22 +18,6 @@ pub(super) type WalletCreditRow = (
     Option<DateTime<Utc>>,
     DateTime<Utc>,
     BigDecimal,
-);
-
-pub(super) type TokenTransactionRow = (
-    i64,
-    i64,
-    i64,
-    DateTime<Utc>,
-    BigDecimal,
-    String,
-    Option<i64>,
-    Option<String>,
-    Option<String>,
-    Option<i64>,
-    Option<String>,
-    Option<String>,
-    Option<String>,
 );
 
 pub(super) fn candidate_record(
@@ -137,39 +120,6 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         }
-    }
-}
-
-pub(super) fn token_transaction(row: TokenTransactionRow) -> StudentRewardTokenTransaction {
-    let (
-        record_id,
-        transaction_id,
-        external_id,
-        recorded_at,
-        amount,
-        address,
-        chain_id,
-        contract,
-        hash,
-        log_index,
-        event,
-        from,
-        to,
-    ) = row;
-    StudentRewardTokenTransaction {
-        reward_payout_record_id: record_id,
-        payout_transaction_id: transaction_id,
-        external_transaction_id: external_id,
-        amount: amount.to_string(),
-        blockchain_address: address,
-        chain_id,
-        contract_address: contract,
-        transaction_hash: hash,
-        log_index,
-        event_type: event,
-        from_address: from,
-        to_address: to,
-        recorded_at,
     }
 }
 

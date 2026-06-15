@@ -59,7 +59,7 @@ pub(crate) async fn assert_user_wallet_audit(pool: &DbPool, expected: UserWallet
     );
     assert_eq!(external[0]["reward_candidate_id"], expected.candidate_id);
     assert_eq!(external[0]["chain_id"], 31337);
-    assert_eq!(external[0]["event_type"], "Transfer");
+    assert_eq!(external[0]["event_type"], "transfer");
 
     let reward_records = audit["reward_records"]
         .as_array()

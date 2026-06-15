@@ -41,6 +41,7 @@ pub mod reward_fraud_block_use_case;
 pub mod reward_history_financials;
 pub mod reward_history_mappers;
 pub mod reward_history_store;
+mod reward_history_token_transactions;
 pub mod reward_history_use_case;
 pub mod reward_payout_plan_mappers;
 pub mod reward_payout_plan_policy_lookup;
