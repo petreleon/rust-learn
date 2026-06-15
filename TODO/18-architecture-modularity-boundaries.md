@@ -960,8 +960,10 @@ Wiring rule:
       read/link/audit/deposit/retirement/token-tax handlers now use typed
       JSON/status results with wallet HTTP error mappers. Reporting dashboard
       and CSV export handlers now use typed JSON/CSV download results with
-      reporting HTTP error mappers. Rewards and learning contexts still need
-      the same treatment before this is done.
+      reporting HTTP error mappers. Rewards candidate, policy, fraud-block,
+      audit, history, and review handlers now use typed JSON/status results
+      with rewards HTTP error mappers. Learning is the remaining context that
+      still needs the same treatment before this is done.
 - [x] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
 - [x] Configure JSON limits and JSON parse errors centrally so every route has
@@ -1525,6 +1527,32 @@ Batch 300: move reporting handlers to typed HTTP results.
 - [x] Self-critique: this completes the reporting HTTP typed-result slice only.
       Rewards and learning still contain manual response branches.
 
+Batch 301: move rewards handlers to typed HTTP results.
+
+- [x] Added granular `http/rewards/errors` mappers for reward candidate
+      submission/decisions/lists/audit, reward policy, fraud blocks, and
+      student reward history application errors, all returning the shared
+      `ApiError` envelope from the HTTP boundary.
+- [x] Repointed reward submission, teacher decision, amount decision, platform
+      candidate, course candidate, candidate audit, reward history,
+      reward-policy, and fraud-block handlers away from handler-local
+      `HttpResponse`/`impl Responder` branches and into typed JSON/status
+      results.
+- [x] Preserved the existing success statuses, including `201 Created` for
+      reward candidate submission, reward policy creation, and fraud-block
+      creation, while moving error mapping out of route functions.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib http::rewards::errors`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing api_scope_and_following_routes_are_reachable`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      rewards handler `HttpResponse`/`impl Responder` scans,
+      domain/application Actix-boundary scans, `git diff --check`, and touched
+      rewards file-size checks.
+- [x] Self-critique: this completes the rewards HTTP typed-result slice only.
+      Learning still contains manual response branches.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1614,6 +1642,9 @@ boundary checks from the matrix above to every canonical context.
 - [x] Legacy `api/reward_policies` and `api/reward_fraud_blocks`
       compatibility wrappers have been deleted; callers import reward routes
       from `http/rewards`.
+- [x] Rewards HTTP handlers return typed JSON/status results and map
+      application errors through granular `http/rewards/errors` modules,
+      keeping Actix response construction out of route functions.
 - [ ] Move remaining reward request/response structs out of service imports and
       into `http/rewards/dto`.
 - [ ] Move candidate transition rules into pure domain functions:

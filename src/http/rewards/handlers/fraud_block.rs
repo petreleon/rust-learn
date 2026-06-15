@@ -1,89 +1,69 @@
 use std::sync::Arc;
 
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{http::StatusCode, web};
 
 use crate::application::rewards::manage_fraud_block::{
-    RewardFraudBlockAuditEventOutput, RewardFraudBlockError, RewardFraudBlockUseCase,
+    RewardFraudBlockAuditEventOutput, RewardFraudBlockUseCase,
 };
+use crate::http::errors::ApiError;
 use crate::http::extractors::auth_user::AuthUser;
 use crate::http::rewards::dto::{
     CreateRewardFraudBlockRequest, ListRewardFraudBlocksRequest, ListRewardFraudBlocksResponse,
     RewardFraudBlockAuditEventResponse, RewardFraudBlockResponse,
 };
+use crate::http::rewards::errors::reward_fraud_block_error;
 
 pub async fn create_reward_fraud_block(
     requester: AuthUser,
     fraud_blocks: web::Data<Arc<dyn RewardFraudBlockUseCase>>,
     body: web::Json<CreateRewardFraudBlockRequest>,
-) -> impl Responder {
-    match fraud_blocks
+) -> Result<(web::Json<RewardFraudBlockResponse>, StatusCode), ApiError> {
+    fraud_blocks
         .create_reward_fraud_block(requester.user_id(), body.into_inner().into())
         .await
-    {
-        Ok(block) => HttpResponse::Created().json(RewardFraudBlockResponse::from(block)),
-        Err(error) => reward_fraud_block_error_response(error),
-    }
+        .map(RewardFraudBlockResponse::from)
+        .map(web::Json)
+        .map(|response| (response, StatusCode::CREATED))
+        .map_err(reward_fraud_block_error)
 }
 
 pub async fn list_reward_fraud_blocks(
     requester: AuthUser,
     fraud_blocks: web::Data<Arc<dyn RewardFraudBlockUseCase>>,
     query: web::Query<ListRewardFraudBlocksRequest>,
-) -> impl Responder {
-    match fraud_blocks
+) -> Result<web::Json<ListRewardFraudBlocksResponse>, ApiError> {
+    fraud_blocks
         .list_reward_fraud_blocks(requester.user_id(), query.into_inner().into())
         .await
-    {
-        Ok(output) => HttpResponse::Ok().json(ListRewardFraudBlocksResponse::from(output)),
-        Err(error) => reward_fraud_block_error_response(error),
-    }
+        .map(ListRewardFraudBlocksResponse::from)
+        .map(web::Json)
+        .map_err(reward_fraud_block_error)
 }
 
 pub async fn revoke_reward_fraud_block(
     requester: AuthUser,
     path: web::Path<i64>,
     fraud_blocks: web::Data<Arc<dyn RewardFraudBlockUseCase>>,
-) -> impl Responder {
-    match fraud_blocks
+) -> Result<web::Json<RewardFraudBlockResponse>, ApiError> {
+    fraud_blocks
         .revoke_reward_fraud_block(requester.user_id(), path.into_inner())
         .await
-    {
-        Ok(block) => HttpResponse::Ok().json(RewardFraudBlockResponse::from(block)),
-        Err(error) => reward_fraud_block_error_response(error),
-    }
+        .map(RewardFraudBlockResponse::from)
+        .map(web::Json)
+        .map_err(reward_fraud_block_error)
 }
 
 pub async fn reward_fraud_block_audit_history(
     requester: AuthUser,
     path: web::Path<i64>,
     fraud_blocks: web::Data<Arc<dyn RewardFraudBlockUseCase>>,
-) -> impl Responder {
-    match fraud_blocks
+) -> Result<web::Json<Vec<RewardFraudBlockAuditEventResponse>>, ApiError> {
+    fraud_blocks
         .reward_fraud_block_audit_history(requester.user_id(), path.into_inner())
         .await
-    {
-        Ok(events) => HttpResponse::Ok().json(audit_event_responses(events)),
-        Err(error) => reward_fraud_block_error_response(error),
-    }
-}
-
-fn reward_fraud_block_error_response(error: RewardFraudBlockError) -> HttpResponse {
-    match error {
-        RewardFraudBlockError::PermissionDenied(_) => {
-            HttpResponse::Forbidden().body("User does not have reward fraud-block permission")
-        }
-        RewardFraudBlockError::InvalidInput(message) => HttpResponse::BadRequest().body(message),
-        RewardFraudBlockError::NotFound => {
-            HttpResponse::NotFound().body("Reward fraud block not found")
-        }
-        RewardFraudBlockError::Connection(_) => {
-            HttpResponse::InternalServerError().body("Failed to get DB connection")
-        }
-        RewardFraudBlockError::Database(message) => {
-            log::error!("event=reward_fraud_block_api_failed error={}", message);
-            HttpResponse::InternalServerError().body("Failed to process reward fraud block")
-        }
-    }
+        .map(audit_event_responses)
+        .map(web::Json)
+        .map_err(reward_fraud_block_error)
 }
 
 fn audit_event_responses(
