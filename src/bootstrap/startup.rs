@@ -1,9 +1,9 @@
 use crate::bootstrap::app_state::AppState;
 use crate::bootstrap::contract_startup::deploy_startup_contracts;
 use crate::bootstrap::use_case_wiring::build_app_state;
-use crate::config::db_setup::version_updater;
 use crate::infra::object_storage::S3State;
 use crate::infra::postgres;
+use crate::infra::postgres::operations::db_setup::version_updater;
 
 pub async fn initialize_app_state() -> std::io::Result<AppState> {
     let pool = postgres::try_establish_connection().map_err(|error| {

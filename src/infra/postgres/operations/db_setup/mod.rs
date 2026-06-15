@@ -1,5 +1,3 @@
-// src/config/db_setup/mod.rs
-
 pub mod updates;
 
 use self::updates::{apply_update_v1, apply_update_v2};

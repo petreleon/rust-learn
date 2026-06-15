@@ -94,7 +94,7 @@
 - src/utils/eth/ — compile/deploy helpers (use these when adding or testing contracts).
 - src/bin/abi_export.rs — shows how to export ABI/bytecode with `cargo run --bin abi_export -- ethereum/contracts/LearnToken.sol LearnToken ethereum/artifacts`.
 - src/main.rs — app startup: DB pool, S3 init, deploy_startup call, Actix server wiring.
-- src/config/db_setup.rs — DB version updater called on startup (keep migrations/`migrations/` in sync).
+- src/infra/postgres/operations/db_setup — DB version updater called on startup (keep migrations/`migrations/` in sync).
 - docker-compose.yml, Dockerfile, and docker/test-runner.Dockerfile —
   development infra, test runner, and how `solc`/Z3 are produced; heavy builds
   exist in the Dockerfile (use cautiously).

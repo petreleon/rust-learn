@@ -1,5 +1,3 @@
-// src/config/db_setup/updates/update_v1.rs
-
 use anyhow::Result;
 use diesel_async::AsyncPgConnection;
 use futures::future::{BoxFuture, FutureExt};

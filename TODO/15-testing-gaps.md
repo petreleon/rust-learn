@@ -40,8 +40,8 @@
 - `src/http/identity` user routes — no dedicated test file (exercised by integration tests)
 
 ### 4. Config Migration Data (LOW)
-- `src/config/db_setup/updates/update_v1.rs` — seed data insertion not verified
-- `src/config/db_setup/updates/update_v2.rs` — seed data insertion not verified
+- `src/infra/postgres/operations/db_setup/updates/update_v1.rs` — seed data insertion not verified
+- `src/infra/postgres/operations/db_setup/updates/update_v2.rs` — seed data insertion not verified
 
 ### 5. Utility Edge (LOW)
 - `src/utils/course_utils.rs` — all DB calls, no isolated test

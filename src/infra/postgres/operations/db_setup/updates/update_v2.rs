@@ -1,5 +1,3 @@
-// src/config/db_setup/updates/update_v2.rs
-
 use crate::application::identity::password_policy::validate_password_strength;
 use crate::config::constants::roles::Roles;
 use crate::infra::postgres::access_control::{platform_role_records, role_catalog_store};
