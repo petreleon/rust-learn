@@ -1,4 +1,6 @@
-async fn assign_course_role(
+use crate::support::*;
+
+pub(crate) async fn assign_course_role(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     course_id: i32,
@@ -105,8 +107,13 @@ async fn test_org_role_assignment_admin_can_assign_member() {
     let admin_role_id = get_org_admin_role_id(&mut conn).await;
     assign_org_role(&mut conn, admin.id(), org.id, admin_role_id).await;
 
-    let result =
-        assign_organization_role_with_hierarchy(&mut conn, admin.id(), member.id(), org.id, "STUDENT")
-            .await;
+    let result = assign_organization_role_with_hierarchy(
+        &mut conn,
+        admin.id(),
+        member.id(),
+        org.id,
+        "STUDENT",
+    )
+    .await;
     assert!(result.is_ok());
 }

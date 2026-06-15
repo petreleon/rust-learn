@@ -1,18 +1,18 @@
-use chrono::NaiveDate;
-use rust_learn::config::constants::permissions::Permissions;
-use rust_learn::config::constants::roles::Roles;
-use rust_learn::db::establish_connection;
-use rust_learn::infra::postgres::access_control::permission_queries::has_platform_permission;
-use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_permission_to_role;
-use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
-use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use chrono::NaiveDate;
+pub(crate) use rust_learn::config::constants::permissions::Permissions;
+pub(crate) use rust_learn::config::constants::roles::Roles;
+pub(crate) use rust_learn::db::establish_connection;
+pub(crate) use rust_learn::infra::postgres::access_control::permission_queries::has_platform_permission;
+pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_permission_to_role;
+pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
+pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 
-fn unique_email(prefix: &str) -> String {
+pub(crate) fn unique_email(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}+{}@example.com", prefix, ts)
 }
 
-async fn setup_conn(
+pub(crate) async fn setup_conn(
 ) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
     // Load .env so DATABASE_URL and other envs are available in tests
     let _ = dotenvy::dotenv();
@@ -23,7 +23,7 @@ async fn setup_conn(
 }
 
 #[actix_web::test]
-async fn platform_super_admin_has_key_permissions() {
+pub(crate) async fn platform_super_admin_has_key_permissions() {
     let mut conn = setup_conn().await;
 
     // Create a fresh user and assign SUPER_ADMIN
@@ -62,7 +62,7 @@ async fn platform_super_admin_has_key_permissions() {
 }
 
 #[actix_web::test]
-async fn platform_admin_has_curated_permissions_but_not_all() {
+pub(crate) async fn platform_admin_has_curated_permissions_but_not_all() {
     let mut conn = setup_conn().await;
 
     // Create a fresh user and assign ADMIN

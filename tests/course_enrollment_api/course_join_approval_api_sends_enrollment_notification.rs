@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn course_join_approval_api_sends_enrollment_notification() {
     let _ = dotenvy::dotenv();

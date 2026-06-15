@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn platform_admin_and_moderator_have_amount_approval_but_not_candidate_approval() {
     let mut conn = setup_conn().await;

@@ -2047,6 +2047,29 @@ Batch 317: normalize reward integration-test harness modules.
       cleanup remains open until every remaining integration-test crate has the
       same explicit-module shape.
 
+Batch 318: normalize small permission and management test harness modules.
+
+- [x] Replaced the `model_permission_tests`, `repository_core_tests`,
+      `repository_delegation_tests`, `platform_permissions`,
+      `organization_management`, and `course_enrollment_api` integration-test
+      `include!` shells with explicit modules and crate-local `support`
+      modules.
+- [x] Renamed the selected `imports.rs` files to `support.rs`, exposed shared
+      fixtures/re-exports as `pub(crate)`, and made the cross-module repository
+      course-role helper an explicit crate-local helper instead of an
+      include-scope side effect.
+- [x] Proved behavior and boundaries with `cargo fmt --all`,
+      `./scripts/run-host-tests.sh cargo test --test model_permission_tests --test repository_core_tests --test repository_delegation_tests --test platform_permissions --test organization_management --test course_enrollment_api`,
+      `cargo fmt --all --check`, `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      selected harness `include!`/`imports.rs` scans, ring import-boundary
+      scans, `git diff --check`, and touched-file size checks.
+- [x] Self-critique: this removes another low-risk set of include-scope test
+      dependencies, but larger suites such as reward candidates, reward
+      execution, wallet linking, reporting exports, teacher applications, and
+      current session still need the same explicit-module cleanup.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`

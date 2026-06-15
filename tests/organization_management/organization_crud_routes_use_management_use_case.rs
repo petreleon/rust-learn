@@ -1,3 +1,5 @@
+use crate::support::*;
+
 #[actix_web::test]
 async fn organization_crud_routes_use_management_use_case() {
     let _ = dotenvy::dotenv();
@@ -43,7 +45,10 @@ async fn organization_crud_routes_use_management_use_case() {
     assert_eq!(create_resp.status(), StatusCode::CREATED);
     let created: Value = test::read_body_json(create_resp).await;
     let created_id = created["id"].as_i64().expect("created id") as i32;
-    assert_eq!(course_link_order(&pool, created_id, course.id).await, Some(0));
+    assert_eq!(
+        course_link_order(&pool, created_id, course.id).await,
+        Some(0)
+    );
 
     let list_resp = test::call_service(
         &app,

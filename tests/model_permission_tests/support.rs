@@ -1,23 +1,23 @@
-use chrono::NaiveDate;
-use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::config::constants::permissions::Permissions;
-use rust_learn::db::establish_connection;
-use rust_learn::db::schema::users;
-use rust_learn::infra::postgres::access_control::hierarchy_records;
-use rust_learn::infra::postgres::access_control::role_catalog_store;
-use rust_learn::models::user::User;
-use rust_learn::infra::postgres::access_control::course_role_records;
-use rust_learn::infra::postgres::access_control::organization_role_records;
-use rust_learn::infra::postgres::access_control::platform_role_records;
-use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use chrono::NaiveDate;
+pub(crate) use diesel::prelude::*;
+pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
+pub(crate) use rust_learn::config::constants::permissions::Permissions;
+pub(crate) use rust_learn::db::establish_connection;
+pub(crate) use rust_learn::db::schema::users;
+pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
+pub(crate) use rust_learn::infra::postgres::access_control::hierarchy_records;
+pub(crate) use rust_learn::infra::postgres::access_control::organization_role_records;
+pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
+pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
+pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::models::user::User;
 
-fn unique_string(prefix: &str) -> String {
+pub(crate) fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}", prefix, ts)
 }
 
-async fn setup_conn(
+pub(crate) async fn setup_conn(
 ) -> diesel_async::pooled_connection::deadpool::Object<diesel_async::AsyncPgConnection> {
     let _ = dotenvy::dotenv();
     let pool = establish_connection();
@@ -26,7 +26,7 @@ async fn setup_conn(
         .expect("failed to get DB connection from pool")
 }
 
-async fn user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
+pub(crate) async fn user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
     let u = create_user(
         conn,
         &format!("{} T", prefix),
@@ -47,7 +47,7 @@ async fn user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
 // ── Platform ──
 
 #[actix_web::test]
-async fn super_admin_has_all_permissions() {
+pub(crate) async fn super_admin_has_all_permissions() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "perm_super").await;
     let role_id = role_catalog_store::platform_role_id_by_name(&mut conn, "SUPER_ADMIN")
@@ -75,7 +75,7 @@ async fn super_admin_has_all_permissions() {
 }
 
 #[actix_web::test]
-async fn regular_user_has_no_platform_permission() {
+pub(crate) async fn regular_user_has_no_platform_permission() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "perm_nobody").await;
 
@@ -89,7 +89,7 @@ async fn regular_user_has_no_platform_permission() {
 }
 
 #[actix_web::test]
-async fn platform_hierarchy_super_admin_is_level_0() {
+pub(crate) async fn platform_hierarchy_super_admin_is_level_0() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "hier_super").await;
     let role_id = role_catalog_store::platform_role_id_by_name(&mut conn, "SUPER_ADMIN")
@@ -106,7 +106,7 @@ async fn platform_hierarchy_super_admin_is_level_0() {
 }
 
 #[actix_web::test]
-async fn unassigned_user_has_no_platform_level() {
+pub(crate) async fn unassigned_user_has_no_platform_level() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "hier_none").await;
 
@@ -119,7 +119,7 @@ async fn unassigned_user_has_no_platform_level() {
 // ── Organization ──
 
 #[actix_web::test]
-async fn org_admin_has_org_permission() {
+pub(crate) async fn org_admin_has_org_permission() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "org_admin_p").await;
     let org_role_id = role_catalog_store::organization_role_id_by_name(&mut conn, "ADMIN")
@@ -141,16 +141,18 @@ async fn org_admin_has_org_permission() {
 }
 
 #[actix_web::test]
-async fn org_stranger_has_no_org_permission() {
+pub(crate) async fn org_stranger_has_no_org_permission() {
     let mut conn = setup_conn().await;
     let u = user(&mut conn, "org_stranger").await;
 
-    assert!(!organization_role_records::organization_user_has_permission(
-        &mut conn,
-        u.id(),
-        999,
-        &Permissions::VIEW_ORGANIZATION.to_string(),
-    )
-    .await
-    .unwrap());
+    assert!(
+        !organization_role_records::organization_user_has_permission(
+            &mut conn,
+            u.id(),
+            999,
+            &Permissions::VIEW_ORGANIZATION.to_string(),
+        )
+        .await
+        .unwrap()
+    );
 }

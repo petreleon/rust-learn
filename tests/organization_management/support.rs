@@ -1,31 +1,33 @@
-use actix_web::{http::StatusCode, test, web, App};
-use chrono::NaiveDate;
-use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::application::organizations::manage_organizations::OrganizationManagementUseCase;
-use rust_learn::config::constants::{permissions::Permissions, roles::Roles};
-use rust_learn::db::schema::{courses, courses_organizations, delegated_permissions, organizations};
-use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_ORGANIZATION;
-use rust_learn::infra::postgres::organizations::organization_management_use_case::PostgresOrganizationManagementUseCase;
-use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::delegated_permission::NewDelegatedPermission;
-use rust_learn::models::organization::{NewOrganization, Organization};
-use rust_learn::infra::postgres::access_control::role_catalog_store;
-use rust_learn::models::user::User;
-use rust_learn::infra::postgres::access_control::organization_role_records;
-use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
-use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
-use rust_learn::infra::tokens::jwt::create_jwt;
-use serde_json::Value;
-use std::sync::{
+pub(crate) use actix_web::{http::StatusCode, test, web, App};
+pub(crate) use chrono::NaiveDate;
+pub(crate) use diesel::prelude::*;
+pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
+pub(crate) use rust_learn::application::organizations::manage_organizations::OrganizationManagementUseCase;
+pub(crate) use rust_learn::config::constants::{permissions::Permissions, roles::Roles};
+pub(crate) use rust_learn::db::schema::{
+    courses, courses_organizations, delegated_permissions, organizations,
+};
+pub(crate) use rust_learn::db::{establish_connection, DbPool};
+pub(crate) use rust_learn::domain::access_control::delegation::DELEGATED_SCOPE_ORGANIZATION;
+pub(crate) use rust_learn::infra::postgres::access_control::organization_role_records;
+pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
+pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
+pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::organizations::organization_management_use_case::PostgresOrganizationManagementUseCase;
+pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
+pub(crate) use rust_learn::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::models::delegated_permission::NewDelegatedPermission;
+pub(crate) use rust_learn::models::organization::{NewOrganization, Organization};
+pub(crate) use rust_learn::models::user::User;
+pub(crate) use serde_json::Value;
+pub(crate) use std::sync::{
     atomic::{AtomicU64, Ordering},
     Arc,
 };
 
 static UNIQUE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
-fn organization_management_use_case_data(
+pub(crate) fn organization_management_use_case_data(
     pool: &DbPool,
 ) -> web::Data<Arc<dyn OrganizationManagementUseCase>> {
     web::Data::new(Arc::new(PostgresOrganizationManagementUseCase::new(
@@ -33,13 +35,13 @@ fn organization_management_use_case_data(
     )))
 }
 
-async fn setup_conn(
+pub(crate) async fn setup_conn(
     pool: &DbPool,
 ) -> diesel_async::pooled_connection::deadpool::Object<AsyncPgConnection> {
     pool.get().await.expect("failed to get DB connection")
 }
 
-async fn create_test_user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
+pub(crate) async fn create_test_user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
     let email = format!("{}@example.com", unique_string(prefix));
     create_user(
         conn,
@@ -52,7 +54,7 @@ async fn create_test_user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
     .expect("failed to create user")
 }
 
-async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
+pub(crate) async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
     diesel::insert_into(courses::table)
         .values(NewCourse {
             title: format!("{} {}", title, unique_string("course")),
@@ -65,7 +67,7 @@ async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
         .expect("failed to create course")
 }
 
-async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organization {
+pub(crate) async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organization {
     diesel::insert_into(organizations::table)
         .values(NewOrganization {
             name: name.to_string(),
@@ -77,7 +79,7 @@ async fn create_organization(conn: &mut AsyncPgConnection, name: &str) -> Organi
         .expect("failed to create organization")
 }
 
-async fn assign_organization_role(
+pub(crate) async fn assign_organization_role(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     organization_id: i32,
@@ -86,12 +88,17 @@ async fn assign_organization_role(
     let role_id = role_catalog_store::organization_role_id_by_name(conn, role_name)
         .await
         .expect("organization role should exist");
-    organization_role_records::assign_organization_role_to_user(conn, user_id, organization_id, role_id)
-        .await
-        .expect("failed to assign organization role");
+    organization_role_records::assign_organization_role_to_user(
+        conn,
+        user_id,
+        organization_id,
+        role_id,
+    )
+    .await
+    .expect("failed to assign organization role");
 }
 
-async fn delegate_manage_org_settings(
+pub(crate) async fn delegate_manage_org_settings(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     organization_id: i32,
@@ -112,7 +119,11 @@ async fn delegate_manage_org_settings(
         .expect("failed to delegate organization settings permission");
 }
 
-async fn course_link_order(pool: &DbPool, organization_id: i32, course_id: i32) -> Option<i32> {
+pub(crate) async fn course_link_order(
+    pool: &DbPool,
+    organization_id: i32,
+    course_id: i32,
+) -> Option<i32> {
     let mut conn = setup_conn(pool).await;
     courses_organizations::table
         .filter(courses_organizations::organization_id.eq(organization_id))
@@ -124,11 +135,11 @@ async fn course_link_order(pool: &DbPool, organization_id: i32, course_id: i32) 
         .expect("failed to load course organization link")
 }
 
-fn token_for(user_id: i32) -> String {
+pub(crate) fn token_for(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to create JWT")
 }
 
-fn unique_string(prefix: &str) -> String {
+pub(crate) fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     let counter = UNIQUE_COUNTER.fetch_add(1, Ordering::Relaxed);
     format!("{}_{}_{}_{}", prefix, std::process::id(), ts, counter)

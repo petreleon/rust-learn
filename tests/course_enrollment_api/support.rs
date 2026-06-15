@@ -1,33 +1,33 @@
-use std::sync::Arc;
+pub(crate) use std::sync::Arc;
 
-use actix_web::{http::StatusCode, test, web, App};
-use chrono::NaiveDate;
-use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
-use rust_learn::application::learning::assign_course_role::CourseRoleAssignmentUseCase;
-use rust_learn::application::learning::course_enrollment::CourseEnrollmentUseCase;
-use rust_learn::application::notifications::delivery::NotificationDeliveryUseCase;
-use rust_learn::db::schema::{courses, notifications};
-use rust_learn::db::{establish_connection, DbPool};
-use rust_learn::domain::learning::enrollment::status::COURSE_JOIN_STATUS_APPROVED;
-use rust_learn::infra::notifications::NotificationsState;
-use rust_learn::infra::postgres::access_control::course_role_records;
-use rust_learn::infra::postgres::access_control::platform_role_records;
-use rust_learn::infra::postgres::access_control::role_catalog_store;
-use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
-use rust_learn::infra::postgres::learning::course_enrollment_use_case::PostgresCourseEnrollmentUseCase;
-use rust_learn::infra::postgres::learning::course_role_assignment_use_case::PostgresCourseRoleAssignmentUseCase;
-use rust_learn::infra::tokens::jwt::create_jwt;
-use rust_learn::models::course::{Course, NewCourse};
-use rust_learn::models::user::User;
-use serde_json::Value;
+pub(crate) use actix_web::{http::StatusCode, test, web, App};
+pub(crate) use chrono::NaiveDate;
+pub(crate) use diesel::prelude::*;
+pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
+pub(crate) use rust_learn::application::learning::assign_course_role::CourseRoleAssignmentUseCase;
+pub(crate) use rust_learn::application::learning::course_enrollment::CourseEnrollmentUseCase;
+pub(crate) use rust_learn::application::notifications::delivery::NotificationDeliveryUseCase;
+pub(crate) use rust_learn::db::schema::{courses, notifications};
+pub(crate) use rust_learn::db::{establish_connection, DbPool};
+pub(crate) use rust_learn::domain::learning::enrollment::status::COURSE_JOIN_STATUS_APPROVED;
+pub(crate) use rust_learn::infra::notifications::NotificationsState;
+pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
+pub(crate) use rust_learn::infra::postgres::access_control::platform_role_records;
+pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
+pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
+pub(crate) use rust_learn::infra::postgres::learning::course_enrollment_use_case::PostgresCourseEnrollmentUseCase;
+pub(crate) use rust_learn::infra::postgres::learning::course_role_assignment_use_case::PostgresCourseRoleAssignmentUseCase;
+pub(crate) use rust_learn::infra::tokens::jwt::create_jwt;
+pub(crate) use rust_learn::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::models::user::User;
+pub(crate) use serde_json::Value;
 
-fn unique_string(prefix: &str) -> String {
+pub(crate) fn unique_string(prefix: &str) -> String {
     let ts = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
     format!("{}_{}_{}", prefix, std::process::id(), ts)
 }
 
-async fn setup_conn(
+pub(crate) async fn setup_conn(
     pool: &DbPool,
 ) -> diesel_async::pooled_connection::deadpool::Object<AsyncPgConnection> {
     pool.get()
@@ -35,7 +35,7 @@ async fn setup_conn(
         .expect("failed to get DB connection from pool")
 }
 
-async fn create_test_user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
+pub(crate) async fn create_test_user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
     create_user(
         conn,
         &format!("{} Test", prefix),
@@ -47,7 +47,7 @@ async fn create_test_user(conn: &mut AsyncPgConnection, prefix: &str) -> User {
     .expect("failed to create user")
 }
 
-async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
+pub(crate) async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
     diesel::insert_into(courses::table)
         .values(NewCourse {
             title: title.to_string(),
@@ -60,7 +60,11 @@ async fn create_course(conn: &mut AsyncPgConnection, title: &str) -> Course {
         .expect("failed to create course")
 }
 
-async fn assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_name: &str) {
+pub(crate) async fn assign_platform_role(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    role_name: &str,
+) {
     let role_id = role_catalog_store::platform_role_id_by_name(conn, role_name)
         .await
         .expect("platform role should exist");
@@ -69,7 +73,7 @@ async fn assign_platform_role(conn: &mut AsyncPgConnection, user_id: i32, role_n
         .expect("failed to assign platform role");
 }
 
-async fn assign_course_role(
+pub(crate) async fn assign_course_role(
     conn: &mut AsyncPgConnection,
     user_id: i32,
     course_id: i32,
@@ -83,11 +87,11 @@ async fn assign_course_role(
         .expect("failed to assign course role");
 }
 
-fn token_for(user_id: i32) -> String {
+pub(crate) fn token_for(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to create JWT")
 }
 
-fn course_enrollment_test_app(
+pub(crate) fn course_enrollment_test_app(
     pool: DbPool,
 ) -> App<
     impl actix_service::ServiceFactory<
@@ -100,9 +104,7 @@ fn course_enrollment_test_app(
 > {
     App::new()
         .app_data(web::Data::new(pool.clone()))
-            .configure(|cfg| {
-                rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
-            })
+        .configure(|cfg| rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool))
         .app_data(course_enrollment_use_case_data(&pool))
         .app_data(course_role_assignment_use_case_data(&pool))
         .app_data(notification_delivery_use_case_data(&pool))
@@ -110,23 +112,31 @@ fn course_enrollment_test_app(
         .service(rust_learn::http::learning::course_scope())
 }
 
-fn course_enrollment_use_case_data(pool: &DbPool) -> web::Data<Arc<dyn CourseEnrollmentUseCase>> {
+pub(crate) fn course_enrollment_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn CourseEnrollmentUseCase>> {
     web::Data::new(Arc::new(PostgresCourseEnrollmentUseCase::new(pool.clone())))
 }
 
-fn course_role_assignment_use_case_data(
+pub(crate) fn course_role_assignment_use_case_data(
     pool: &DbPool,
 ) -> web::Data<Arc<dyn CourseRoleAssignmentUseCase>> {
-    web::Data::new(Arc::new(PostgresCourseRoleAssignmentUseCase::new(pool.clone())))
+    web::Data::new(Arc::new(PostgresCourseRoleAssignmentUseCase::new(
+        pool.clone(),
+    )))
 }
 
-fn notification_delivery_use_case_data(
+pub(crate) fn notification_delivery_use_case_data(
     pool: &DbPool,
 ) -> web::Data<Arc<dyn NotificationDeliveryUseCase>> {
     web::Data::new(Arc::new(NotificationsState::new(pool.clone())))
 }
 
-async fn notification_count(conn: &mut AsyncPgConnection, user_id: i32, title: &str) -> i64 {
+pub(crate) async fn notification_count(
+    conn: &mut AsyncPgConnection,
+    user_id: i32,
+    title: &str,
+) -> i64 {
     notifications::table
         .filter(notifications::user_id.eq(Some(user_id)))
         .filter(notifications::title.eq(title))
