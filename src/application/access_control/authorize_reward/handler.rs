@@ -1,6 +1,9 @@
 use crate::application::access_control::authorize_reward::{
     RewardAuthorizationAction, RewardAuthorizationError, RewardAuthorizationStore,
 };
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::domain::access_control::permission::Permission;
 
 pub async fn authorize_reward_action(
@@ -8,39 +11,30 @@ pub async fn authorize_reward_action(
     actor_user_id: i32,
     action: RewardAuthorizationAction,
 ) -> Result<bool, RewardAuthorizationError> {
+    let actor = AccessActor::user(actor_user_id);
     match action {
         RewardAuthorizationAction::ApproveRewardAmount => {
-            store
-                .has_platform_permission(actor_user_id, Permission::ApproveRewardAmount)
-                .await
+            can_platform(store, actor, Permission::ApproveRewardAmount).await
         }
         RewardAuthorizationAction::ApproveStudentRewardCandidate { course_id } => {
-            store
-                .has_course_permission(
-                    actor_user_id,
-                    course_id,
-                    Permission::ApproveStudentRewardCandidate,
-                )
-                .await
+            can_course(
+                store,
+                actor,
+                course_id,
+                Permission::ApproveStudentRewardCandidate,
+            )
+            .await
         }
         RewardAuthorizationAction::ExecuteRewardPayout => {
-            store
-                .has_platform_permission(actor_user_id, Permission::ExecuteRewardPayout)
-                .await
+            can_platform(store, actor, Permission::ExecuteRewardPayout).await
         }
         RewardAuthorizationAction::ManageCourseRewardRules { course_id } => {
-            store
-                .has_course_permission(
-                    actor_user_id,
-                    course_id,
-                    Permission::ManageCourseRewardRules,
-                )
-                .await
+            can_course(store, actor, course_id, Permission::ManageCourseRewardRules).await
         }
         RewardAuthorizationAction::ManageOrganizationRewardFraudBlock => {
             has_any_platform_permission(
                 store,
-                actor_user_id,
+                actor,
                 &[
                     Permission::BlockRewardOrganization,
                     Permission::ManageRewardFraudBlocks,
@@ -49,19 +43,15 @@ pub async fn authorize_reward_action(
             .await
         }
         RewardAuthorizationAction::ManageRewardFraudBlock => {
-            store
-                .has_platform_permission(actor_user_id, Permission::ManageRewardFraudBlocks)
-                .await
+            can_platform(store, actor, Permission::ManageRewardFraudBlocks).await
         }
         RewardAuthorizationAction::ManageRewardPolicy => {
-            store
-                .has_platform_permission(actor_user_id, Permission::SetRewardPolicy)
-                .await
+            can_platform(store, actor, Permission::SetRewardPolicy).await
         }
         RewardAuthorizationAction::ManageTeacherRewardFraudBlock => {
             has_any_platform_permission(
                 store,
-                actor_user_id,
+                actor,
                 &[
                     Permission::BlockRewardTeacher,
                     Permission::ManageRewardFraudBlocks,
@@ -72,7 +62,7 @@ pub async fn authorize_reward_action(
         RewardAuthorizationAction::RecordRewardCompensation => {
             has_any_platform_permission(
                 store,
-                actor_user_id,
+                actor,
                 &[Permission::ReconcileWallets, Permission::ManageWallets],
             )
             .await
@@ -80,7 +70,7 @@ pub async fn authorize_reward_action(
         RewardAuthorizationAction::SubmitCourseRewardEvent { course_id } => {
             has_any_course_permission(
                 store,
-                actor_user_id,
+                actor,
                 course_id,
                 &[
                     Permission::SubmitCourseRewardEvent,
@@ -90,23 +80,21 @@ pub async fn authorize_reward_action(
             .await
         }
         RewardAuthorizationAction::SubmitOrganizationCourseRewardEvent { organization_id } => {
-            store
-                .has_organization_permission(
-                    actor_user_id,
-                    organization_id,
-                    Permission::SubmitOrgCourseRewardEvent,
-                )
-                .await
+            can_organization(
+                store,
+                actor,
+                organization_id,
+                Permission::SubmitOrgCourseRewardEvent,
+            )
+            .await
         }
         RewardAuthorizationAction::ViewCourseRewardStatus { course_id } => {
-            store
-                .has_course_permission(actor_user_id, course_id, Permission::ViewCourseRewardStatus)
-                .await
+            can_course(store, actor, course_id, Permission::ViewCourseRewardStatus).await
         }
         RewardAuthorizationAction::ViewRewardFraudBlocks => {
             has_any_platform_permission(
                 store,
-                actor_user_id,
+                actor,
                 &[
                     Permission::ViewRewardAudit,
                     Permission::ManageRewardFraudBlocks,
@@ -115,23 +103,62 @@ pub async fn authorize_reward_action(
             .await
         }
         RewardAuthorizationAction::ViewRewardAudit => {
-            store
-                .has_platform_permission(actor_user_id, Permission::ViewRewardAudit)
-                .await
+            can_platform(store, actor, Permission::ViewRewardAudit).await
         }
     }
 }
 
+async fn can_platform(
+    store: &mut impl RewardAuthorizationStore,
+    actor: AccessActor,
+    permission: Permission,
+) -> Result<bool, RewardAuthorizationError> {
+    store
+        .can(
+            actor,
+            AccessAction::permission(permission.as_str()),
+            AccessScope::Platform,
+        )
+        .await
+}
+
+async fn can_course(
+    store: &mut impl RewardAuthorizationStore,
+    actor: AccessActor,
+    course_id: i32,
+    permission: Permission,
+) -> Result<bool, RewardAuthorizationError> {
+    store
+        .can(
+            actor,
+            AccessAction::permission(permission.as_str()),
+            AccessScope::Course { course_id },
+        )
+        .await
+}
+
+async fn can_organization(
+    store: &mut impl RewardAuthorizationStore,
+    actor: AccessActor,
+    organization_id: i32,
+    permission: Permission,
+) -> Result<bool, RewardAuthorizationError> {
+    store
+        .can(
+            actor,
+            AccessAction::permission(permission.as_str()),
+            AccessScope::Organization { organization_id },
+        )
+        .await
+}
+
 async fn has_any_platform_permission(
     store: &mut impl RewardAuthorizationStore,
-    actor_user_id: i32,
+    actor: AccessActor,
     permissions: &[Permission],
 ) -> Result<bool, RewardAuthorizationError> {
     for &permission in permissions {
-        if store
-            .has_platform_permission(actor_user_id, permission)
-            .await?
-        {
+        if can_platform(store, actor, permission).await? {
             return Ok(true);
         }
     }
@@ -140,15 +167,12 @@ async fn has_any_platform_permission(
 
 async fn has_any_course_permission(
     store: &mut impl RewardAuthorizationStore,
-    actor_user_id: i32,
+    actor: AccessActor,
     course_id: i32,
     permissions: &[Permission],
 ) -> Result<bool, RewardAuthorizationError> {
     for &permission in permissions {
-        if store
-            .has_course_permission(actor_user_id, course_id, permission)
-            .await?
-        {
+        if can_course(store, actor, course_id, permission).await? {
             return Ok(true);
         }
     }

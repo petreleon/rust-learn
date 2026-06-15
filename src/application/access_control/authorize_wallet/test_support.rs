@@ -3,6 +3,9 @@ use futures::future::{ready, BoxFuture, FutureExt};
 use crate::application::access_control::authorize_wallet::{
     WalletAuthorizationError, WalletAuthorizationStore,
 };
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::domain::access_control::permission::Permission;
 
 #[derive(Default)]
@@ -14,25 +17,42 @@ pub(crate) struct FakeWalletAuthorizationStore {
 }
 
 impl WalletAuthorizationStore for FakeWalletAuthorizationStore {
-    fn has_platform_permission(
+    fn can(
         &mut self,
-        _actor_user_id: i32,
-        permission: Permission,
+        _actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, WalletAuthorizationError>> {
-        self.platform_checks.push(permission);
-        ready(Ok(self.platform_permissions.contains(&permission))).boxed()
-    }
+        let permission = permission_from_action(&action);
+        let allowed = match scope {
+            AccessScope::Platform => {
+                self.platform_checks.push(permission);
+                self.platform_permissions.contains(&permission)
+            }
+            AccessScope::Organization { organization_id } => {
+                self.organization_checks.push((organization_id, permission));
+                self.organization_permissions
+                    .contains(&(organization_id, permission))
+            }
+            AccessScope::Course { .. } => false,
+        };
 
-    fn has_organization_permission(
-        &mut self,
-        _actor_user_id: i32,
-        organization_id: i32,
-        permission: Permission,
-    ) -> BoxFuture<'_, Result<bool, WalletAuthorizationError>> {
-        self.organization_checks.push((organization_id, permission));
-        ready(Ok(self
-            .organization_permissions
-            .contains(&(organization_id, permission))))
-        .boxed()
+        ready(Ok(allowed)).boxed()
+    }
+}
+
+fn permission_from_action(action: &AccessAction) -> Permission {
+    match action.permission_name() {
+        "CREATE_WALLET" => Permission::CreateWallet,
+        "MANAGE_ORG_REWARD_BUDGET" => Permission::ManageOrgRewardBudget,
+        "MANAGE_ORG_WALLETS" => Permission::ManageOrgWallets,
+        "MANAGE_WALLETS" => Permission::ManageWallets,
+        "RECONCILE_WALLETS" => Permission::ReconcileWallets,
+        "SET_DEPOSIT_TAX" => Permission::SetDepositTax,
+        "SET_RETIRE_TAX" => Permission::SetRetireTax,
+        "VIEW_ORG_REWARD_REPORTS" => Permission::ViewOrgRewardReports,
+        "VIEW_TRANSACTIONS" => Permission::ViewTransactions,
+        "VIEW_WALLET" => Permission::ViewWallet,
+        permission => panic!("unsupported fake wallet permission: {permission}"),
     }
 }

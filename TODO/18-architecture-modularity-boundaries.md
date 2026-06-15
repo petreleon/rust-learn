@@ -1613,6 +1613,35 @@ Batch 303: introduce the access-control `can(actor, action, scope)` API.
       still need to converge onto this vocabulary before permission behavior
       can be called one backend source of truth.
 
+Batch 304: move reward and wallet authorization stores onto `can(...)`.
+
+- [x] Replaced the reward authorization store's platform/course/organization
+      permission methods with one `can(AccessActor, AccessAction, AccessScope)`
+      decision method, while keeping reward use cases expressed in typed
+      `RewardAuthorizationAction` variants.
+- [x] Replaced the wallet authorization store's platform/organization
+      permission methods with the same `can(...)` decision method, while
+      keeping wallet use cases expressed in typed `WalletAuthorizationAction`
+      variants.
+- [x] Repointed the reward and wallet Postgres authorization adapters and their
+      fake stores to the shared actor/action/scope vocabulary; only the
+      adapter layer still calls the low-level Postgres permission queries.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::authorize_reward`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::authorize_wallet`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      reward/wallet authorization scans for old scope-specific store methods,
+      reward-context scans for direct `user_permission` and permission-query
+      calls, ring import-boundary scans, `git diff --check`, and touched
+      access-control file-size checks.
+- [x] Self-critique: this completes the reward/wallet action-authorization
+      convergence onto the new decision vocabulary, but it still leaves older
+      learning and teacher-application context-specific permission ports, plus
+      the final middleware/application single-service consolidation, for later
+      batches.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1725,7 +1754,7 @@ boundary checks from the matrix above to every canonical context.
       `application/access_control`, including payout, platform review/policy,
       compensation, course/organization reward actions, fraud-block actions,
       and notification recipient groups.
-- [ ] Move reward permission decisions through `application/access_control`
+- [x] Move reward permission decisions through `application/access_control`
       instead of calling `user_permission_*_request` directly from reward use
       cases.
 - [ ] Keep the old route paths stable while swapping internals.
@@ -1789,6 +1818,8 @@ boundary checks from the matrix above to every canonical context.
       permission service has been deleted.
 - [x] Create one access-control API for `can(actor, action, scope)` style
       decisions.
+- [x] Reward and wallet authorization stores use the same `AccessActor`,
+      `AccessAction`, and `AccessScope` vocabulary as route middleware.
 - [ ] Encode scope as types instead of loose strings where practical:
       `PlatformScope`, `OrganizationScope`, `CourseScope`, `DelegatedScope`.
 - [ ] Make middleware call the same access-control service as application use

@@ -3,6 +3,9 @@ use futures::future::{ready, BoxFuture, FutureExt};
 use crate::application::access_control::authorize_reward::{
     RewardAuthorizationError, RewardAuthorizationStore,
 };
+use crate::application::access_control::check_permission::{
+    AccessAction, AccessActor, AccessScope,
+};
 use crate::domain::access_control::permission::Permission;
 
 #[derive(Default)]
@@ -16,38 +19,50 @@ pub(crate) struct FakeRewardAuthorizationStore {
 }
 
 impl RewardAuthorizationStore for FakeRewardAuthorizationStore {
-    fn has_platform_permission(
+    fn can(
         &mut self,
-        _actor_user_id: i32,
-        permission: Permission,
+        _actor: AccessActor,
+        action: AccessAction,
+        scope: AccessScope,
     ) -> BoxFuture<'_, Result<bool, RewardAuthorizationError>> {
-        self.platform_checks.push(permission);
-        ready(Ok(self.platform_permissions.contains(&permission))).boxed()
-    }
+        let permission = permission_from_action(&action);
+        let allowed = match scope {
+            AccessScope::Platform => {
+                self.platform_checks.push(permission);
+                self.platform_permissions.contains(&permission)
+            }
+            AccessScope::Course { course_id } => {
+                self.course_checks.push((course_id, permission));
+                self.course_permissions.contains(&(course_id, permission))
+            }
+            AccessScope::Organization { organization_id } => {
+                self.organization_checks.push((organization_id, permission));
+                self.organization_permissions
+                    .contains(&(organization_id, permission))
+            }
+        };
 
-    fn has_course_permission(
-        &mut self,
-        _actor_user_id: i32,
-        course_id: i32,
-        permission: Permission,
-    ) -> BoxFuture<'_, Result<bool, RewardAuthorizationError>> {
-        self.course_checks.push((course_id, permission));
-        ready(Ok(self
-            .course_permissions
-            .contains(&(course_id, permission))))
-        .boxed()
+        ready(Ok(allowed)).boxed()
     }
+}
 
-    fn has_organization_permission(
-        &mut self,
-        _actor_user_id: i32,
-        organization_id: i32,
-        permission: Permission,
-    ) -> BoxFuture<'_, Result<bool, RewardAuthorizationError>> {
-        self.organization_checks.push((organization_id, permission));
-        ready(Ok(self
-            .organization_permissions
-            .contains(&(organization_id, permission))))
-        .boxed()
+fn permission_from_action(action: &AccessAction) -> Permission {
+    match action.permission_name() {
+        "APPROVE_REWARD_AMOUNT" => Permission::ApproveRewardAmount,
+        "APPROVE_STUDENT_REWARD_CANDIDATE" => Permission::ApproveStudentRewardCandidate,
+        "BLOCK_REWARD_ORGANIZATION" => Permission::BlockRewardOrganization,
+        "BLOCK_REWARD_TEACHER" => Permission::BlockRewardTeacher,
+        "CREATE_REWARDABLE_COURSE_EVENT" => Permission::CreateRewardableCourseEvent,
+        "EXECUTE_REWARD_PAYOUT" => Permission::ExecuteRewardPayout,
+        "MANAGE_COURSE_REWARD_RULES" => Permission::ManageCourseRewardRules,
+        "MANAGE_REWARD_FRAUD_BLOCKS" => Permission::ManageRewardFraudBlocks,
+        "MANAGE_WALLETS" => Permission::ManageWallets,
+        "RECONCILE_WALLETS" => Permission::ReconcileWallets,
+        "SET_REWARD_POLICY" => Permission::SetRewardPolicy,
+        "SUBMIT_COURSE_REWARD_EVENT" => Permission::SubmitCourseRewardEvent,
+        "SUBMIT_ORG_COURSE_REWARD_EVENT" => Permission::SubmitOrgCourseRewardEvent,
+        "VIEW_COURSE_REWARD_STATUS" => Permission::ViewCourseRewardStatus,
+        "VIEW_REWARD_AUDIT" => Permission::ViewRewardAudit,
+        permission => panic!("unsupported fake reward permission: {permission}"),
     }
 }
