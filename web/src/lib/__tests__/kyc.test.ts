@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchKycStatus, KycRequestError, submitKyc } from "@/lib/kyc";
+import { fetchKycStatus, submitKyc } from "@/lib/kyc";
 
 function mockJson(body: unknown, ok = true, status = 200) {
   return vi.fn().mockResolvedValue({
@@ -48,7 +48,7 @@ describe("KYC helpers", () => {
   it("raises request errors with status", async () => {
     vi.stubGlobal("fetch", mockJson("bad request", false, 400));
 
-    await expect(fetchKycStatus({ token: "token" })).rejects.toMatchObject<KycRequestError>({
+    await expect(fetchKycStatus({ token: "token" })).rejects.toMatchObject({
       message: "bad request",
       status: 400,
     });

@@ -8,7 +8,7 @@ const navigationMock = vi.hoisted(() => ({
   pathname: "/session",
   push: vi.fn(),
 }));
-const emptyScope = { delegated_permissions: [], direct_permissions: [], effective_permissions: [], roles: [] };
+const emptyScope = { capabilities: [], delegated_permissions: [], direct_permissions: [], effective_permissions: [], roles: [] };
 
 vi.mock("next/navigation", () => ({
   usePathname: () => navigationMock.pathname,
@@ -23,6 +23,13 @@ function makeSession({
   workspace?: boolean;
 } = {}): CurrentSession {
   return {
+    access: {
+      learner: true,
+      teacher: workspace,
+      teacher_application: false,
+      organization: workspace,
+      platform_admin: platformPermissions.length > 0,
+    },
     courses: workspace
       ? [{ ...emptyScope, id: 3, lifecycle_status: "published", title: "Rust 101" }]
       : [],
@@ -34,6 +41,9 @@ function makeSession({
       delegated_permissions: [],
       direct_permissions: platformPermissions,
       effective_permissions: platformPermissions,
+      capabilities: platformPermissions.length
+        ? [{ enabled: true, key: "delegations", label: "Delegations", permissions: platformPermissions }]
+        : [],
       roles: platformPermissions.length ? ["platform_admin"] : [],
     },
     user: {

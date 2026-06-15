@@ -5,4 +5,5 @@ export type OrganizationCapabilityKey =
   | "wallet"
   | "teacher_applications"
   | "course_rewards"
+  | "member_management"
   | "settings";

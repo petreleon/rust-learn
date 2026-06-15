@@ -12,7 +12,8 @@ pub async fn get_current_session(
 mod tests {
     use super::get_current_session;
     use crate::application::identity::current_session::{
-        CurrentSessionError, CurrentSessionOutput, CurrentSessionUser, PlatformSessionScope,
+        CurrentSessionAccess, CurrentSessionError, CurrentSessionOutput, CurrentSessionUser,
+        PlatformSessionScope,
     };
     use crate::application::identity::ports::CurrentSessionStore;
     use futures::future::{ready, BoxFuture, FutureExt};
@@ -45,6 +46,13 @@ mod tests {
     fn delegates_to_store_for_actor() {
         futures::executor::block_on(async {
             let expected = CurrentSessionOutput {
+                access: CurrentSessionAccess {
+                    learner: true,
+                    teacher: false,
+                    teacher_application: false,
+                    organization: false,
+                    platform_admin: false,
+                },
                 user: CurrentSessionUser {
                     id: 7,
                     name: "Ada".to_string(),
@@ -57,6 +65,7 @@ mod tests {
                     direct_permissions: Vec::new(),
                     delegated_permissions: Vec::new(),
                     effective_permissions: Vec::new(),
+                    capabilities: Vec::new(),
                 },
                 organizations: Vec::new(),
                 courses: Vec::new(),

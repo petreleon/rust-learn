@@ -4,6 +4,8 @@ export type { PlatformSessionScope } from "./session/PlatformSessionScope";
 export type { OrganizationSessionScope } from "./session/OrganizationSessionScope";
 export type { CourseSessionScope } from "./session/CourseSessionScope";
 export type { DelegatedPermissionSession } from "./session/DelegatedPermissionSession";
+export type { SessionAccessSummary } from "./session/SessionAccessSummary";
+export type { SessionCapability } from "./session/SessionCapability";
 export { SessionRequestError } from "./session/SessionRequestError";
 export type { FetchCurrentSessionOptions } from "./session/FetchCurrentSessionOptions";
 export { readStoredSessionToken } from "./session/readStoredSessionToken";

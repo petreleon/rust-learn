@@ -1175,47 +1175,50 @@ remaining gaps.
 | 277 | Routed platform and organization hierarchy middlewares through an application access-control hierarchy-check use case, moved hierarchy-level ordering semantics into pure domain, and made organization hierarchy middleware mountable with normal Actix route wrapping. |
 | 278 | Deleted the mixed `infra/postgres/access_control/authorization_checks` facade after splitting it into focused permission-query, hierarchy-query, and role-assignment modules and repointing integration fixtures to those owners. |
 | 279 | Moved access-control middleware app-state dependencies off concrete `DbPool` and onto application-owned permission/hierarchy check service app data, with bootstrap wiring registering the Postgres-backed implementations for production and route tests. |
+| 280 | Added backend-derived session access/capability facts for platform, organization, and course scopes, exposed them through `/api/me`, and removed frontend `web/src/lib` permission-group tables for admin, organization, and workspace capability checks. |
 
 ## Recent Slice Evidence
 
-Batch 279: move access-control middleware off concrete database app data.
+Batch 280: make frontend capability summaries come from the session API.
 
-- [x] Added application-owned Actix app-data aliases:
-      `PermissionCheckService` and `HierarchyCheckService`. Middleware now
-      consumes these application contracts instead of extracting `DbPool`.
-- [x] Extended access-control bootstrap wiring so production app-data registers
-      the Postgres-backed permission and hierarchy check implementations
-      alongside the existing access-control use-case bundle.
-- [x] Added a public bootstrap helper for integration tests to register the
-      same access-control check app data without exposing the private
-      `access_control_wiring` module.
-- [x] Rewired platform/course/organization permission middlewares and
-      platform/organization hierarchy middlewares to require application
-      permission/hierarchy services, leaving Postgres selection in bootstrap.
-- [x] Updated middleware, API-routing, and route-style integration test apps to
-      register the same access-control check app data and adjusted the missing
-      dependency smoke assertion to name the application service dependency.
-- [x] Boundary scans prove `src/middlewares` no longer mentions `DbPool`,
-      `crate::db`, `rust_learn::db`, `infra::postgres`,
-      `permission_checks::`, `hierarchy_records::`, or the old database-pool
-      app-data error path.
-- [x] Keep changed manual non-Markdown files under the 180-line ceiling; the
-      largest touched files are exactly 180 lines and all others are lower.
-- [x] Self-critique: middleware now calls the same application access-control
-      contracts that the rest of the Level 2 backend can share, but the broad
-      authorization item remains open until frontend capabilities come from the
-      backend and direct adapter-local authorization compositions are either
-      accepted by policy or folded behind one explicit authorization API.
+- [x] Added `SessionCapability` and `CurrentSessionAccess` output facts to the
+      identity current-session application contract, with capability definition
+      tables owned by the backend application layer.
+- [x] Added platform, organization, and course capability builders for `/api/me`
+      scopes: platform admin workspace capabilities, organization workspace
+      capabilities including member management, and course teaching access.
+- [x] Split current-session HTTP DTO serialization into a private response
+      child module so the expanded session response stays granular and under
+      the file-size ceiling.
+- [x] Updated the Postgres current-session builder to attach capabilities and a
+      top-level access summary after loading existing roles, direct
+      permissions, and active delegated permissions.
+- [x] Repointed `web/src/lib/access.ts`, platform admin workspace construction,
+      and organization workspace construction to consume backend session
+      capabilities instead of local permission-group tables.
+- [x] Deleted `web/src/lib/admin/platformCapabilityDefinitions.ts` and
+      `web/src/lib/organization/capabilityPermissions.ts`; scans prove the old
+      frontend capability table names and local access permission set names are
+      gone.
+- [x] Added backend current-session integration coverage proving `/api/me`
+      returns access booleans plus platform, organization, and course
+      capability facts.
+- [x] Self-critique: this closes the `web/src/lib` capability-group duplication
+      path, but the broader authorization source-of-truth item remains open
+      because several frontend route components still use raw permission names
+      for action-level button gating and some backend adapters still perform
+      adapter-local authorization composition.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
-      `./scripts/run-host-tests.sh bash -lc 'cargo test --test middleware_access_control --test api_routing'`,
-      a broad route batch covering reporting, course discovery/content/
-      enrollment/assessment, organization, rewards, current session, health,
-      video upload, wallet, authentication, and teacher dashboard tests,
+      `./scripts/run-host-tests.sh cargo test --test current_session_api`,
+      targeted frontend Vitest suites for access, organization workspace,
+      session scope summary, product shell, teacher rewards, admin delegations,
+      and admin KYC routes, `cd web && npx tsc --noEmit`,
+      `cd web && npm run lint` (warnings only in pre-existing unrelated files),
       `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
       `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
-      `git diff --check`, boundary scans, private-wiring scans, and file-size
-      checks.
+      `git diff --check`, ring-boundary scans, frontend capability-table scans,
+      and file-size checks.
 
 ## Legacy Transition Rules
 
@@ -1360,7 +1363,7 @@ boundary checks from the matrix above to every canonical context.
       cases.
 - [ ] Keep middleware as an early rejection optimization; do not make it the
       only place that protects business actions.
-- [ ] Return frontend capabilities from session endpoints so `web/src/lib`
+- [x] Return frontend capabilities from session endpoints so `web/src/lib`
       does not duplicate backend permission groupings.
 
 ## Identity Context

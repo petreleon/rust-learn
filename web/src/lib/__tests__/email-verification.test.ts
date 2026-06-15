@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AuthRequestError, requestEmailVerification } from "@/lib/auth";
+import { requestEmailVerification } from "@/lib/auth";
 
 function mockText(body: string, status = 200) {
   const fetchMock = vi.fn(async () => new Response(body, { status }));
@@ -35,7 +35,7 @@ describe("email verification helpers", () => {
 
     await expect(
       requestEmailVerification({ apiRoot: "http://api.test", email: "" }),
-    ).rejects.toMatchObject<Partial<AuthRequestError>>({
+    ).rejects.toMatchObject({
       code: "missing_email",
       message: "Email is required",
       status: 400,

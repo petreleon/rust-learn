@@ -9,6 +9,7 @@ function scope(overrides: Partial<PlatformSessionScope> = {}): PlatformSessionSc
     delegated_permissions: [],
     direct_permissions: [],
     effective_permissions: [],
+    capabilities: [],
     roles: [],
     ...overrides,
   };

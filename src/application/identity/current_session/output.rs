@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CurrentSessionOutput {
+    pub access: CurrentSessionAccess,
     pub user: CurrentSessionUser,
     pub platform: PlatformSessionScope,
     pub organizations: Vec<OrganizationSessionScope>,
@@ -19,11 +20,29 @@ pub struct CurrentSessionUser {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CurrentSessionAccess {
+    pub learner: bool,
+    pub teacher: bool,
+    pub teacher_application: bool,
+    pub organization: bool,
+    pub platform_admin: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SessionCapability {
+    pub key: String,
+    pub label: String,
+    pub permissions: Vec<String>,
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlatformSessionScope {
     pub roles: Vec<String>,
     pub direct_permissions: Vec<String>,
     pub delegated_permissions: Vec<String>,
     pub effective_permissions: Vec<String>,
+    pub capabilities: Vec<SessionCapability>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,6 +53,7 @@ pub struct OrganizationSessionScope {
     pub direct_permissions: Vec<String>,
     pub delegated_permissions: Vec<String>,
     pub effective_permissions: Vec<String>,
+    pub capabilities: Vec<SessionCapability>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,6 +65,7 @@ pub struct CourseSessionScope {
     pub direct_permissions: Vec<String>,
     pub delegated_permissions: Vec<String>,
     pub effective_permissions: Vec<String>,
+    pub capabilities: Vec<SessionCapability>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

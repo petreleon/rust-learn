@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::application::identity::current_session::{
-    CourseSessionScope, CurrentSessionUser, DelegatedPermissionSession, OrganizationSessionScope,
-    PlatformSessionScope,
+    capabilities, CourseSessionScope, CurrentSessionUser, DelegatedPermissionSession,
+    OrganizationSessionScope, PlatformSessionScope,
 };
 use crate::models::delegated_permission::DelegatedPermission;
 use crate::models::user::User;
@@ -93,12 +93,12 @@ impl From<User> for CurrentSessionUser {
 
 impl From<PlatformScopeBuilder> for PlatformSessionScope {
     fn from(builder: PlatformScopeBuilder) -> Self {
+        let effective_permissions =
+            effective_permissions(&builder.direct_permissions, &builder.delegated_permissions);
         Self {
             roles: sorted_vec(builder.roles),
-            effective_permissions: effective_permissions(
-                &builder.direct_permissions,
-                &builder.delegated_permissions,
-            ),
+            capabilities: capabilities::platform_capabilities(&effective_permissions),
+            effective_permissions,
             direct_permissions: sorted_vec(builder.direct_permissions),
             delegated_permissions: sorted_vec(builder.delegated_permissions),
         }
@@ -107,14 +107,14 @@ impl From<PlatformScopeBuilder> for PlatformSessionScope {
 
 impl From<OrganizationScopeBuilder> for OrganizationSessionScope {
     fn from(builder: OrganizationScopeBuilder) -> Self {
+        let effective_permissions =
+            effective_permissions(&builder.direct_permissions, &builder.delegated_permissions);
         Self {
             id: builder.id,
             name: builder.name,
             roles: sorted_vec(builder.roles),
-            effective_permissions: effective_permissions(
-                &builder.direct_permissions,
-                &builder.delegated_permissions,
-            ),
+            capabilities: capabilities::organization_capabilities(&effective_permissions),
+            effective_permissions,
             direct_permissions: sorted_vec(builder.direct_permissions),
             delegated_permissions: sorted_vec(builder.delegated_permissions),
         }
@@ -123,15 +123,15 @@ impl From<OrganizationScopeBuilder> for OrganizationSessionScope {
 
 impl From<CourseScopeBuilder> for CourseSessionScope {
     fn from(builder: CourseScopeBuilder) -> Self {
+        let effective_permissions =
+            effective_permissions(&builder.direct_permissions, &builder.delegated_permissions);
         Self {
             id: builder.id,
             title: builder.title,
             lifecycle_status: builder.lifecycle_status,
             roles: sorted_vec(builder.roles),
-            effective_permissions: effective_permissions(
-                &builder.direct_permissions,
-                &builder.delegated_permissions,
-            ),
+            capabilities: capabilities::course_capabilities(&effective_permissions),
+            effective_permissions,
             direct_permissions: sorted_vec(builder.direct_permissions),
             delegated_permissions: sorted_vec(builder.delegated_permissions),
         }

@@ -27,6 +27,13 @@ vi.mock("@/lib/admin", async (importOriginal) => {
 
 function session(permissions: string[]): CurrentSession {
   return {
+    access: {
+      learner: true,
+      teacher: false,
+      teacher_application: false,
+      organization: false,
+      platform_admin: permissions.length > 0,
+    },
     courses: [],
     delegated_permissions: [],
     organizations: [],
@@ -34,6 +41,9 @@ function session(permissions: string[]): CurrentSession {
       delegated_permissions: [],
       direct_permissions: permissions,
       effective_permissions: permissions,
+      capabilities: permissions.length
+        ? [{ enabled: true, key: "delegations", label: "Delegations", permissions }]
+        : [],
       roles: permissions.length ? ["platform_admin"] : [],
     },
     user: {

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AdminRequestError } from "@/lib/admin/AdminRequestError";
 import { fetchDelegations } from "@/lib/admin/fetchDelegations";
 import { type DelegationItem } from "@/lib/admin/DelegationItem";
 
@@ -94,7 +93,7 @@ describe("fetchDelegations", () => {
         apiRoot: "http://api.test",
         token: "admin-token",
       }),
-    ).rejects.toMatchObject<Partial<AdminRequestError>>({
+    ).rejects.toMatchObject({
       code: "invalid_response",
       message: "Delegation list response was malformed.",
     });

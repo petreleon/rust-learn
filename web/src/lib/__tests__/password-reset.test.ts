@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AuthRequestError, requestPasswordReset, resetPassword } from "@/lib/auth";
+import { requestPasswordReset, resetPassword } from "@/lib/auth";
 
 function mockText(body: string, status = 200) {
   const fetchMock = vi.fn(async () => new Response(body, { status }));
@@ -54,7 +54,7 @@ describe("password reset helpers", () => {
 
     await expect(
       resetPassword({ apiRoot: "http://api.test", password: "BetterPass123!", token: "bad" }),
-    ).rejects.toMatchObject<Partial<AuthRequestError>>({
+    ).rejects.toMatchObject({
       code: "invalid_reset_token",
       message: "Invalid password reset token",
       status: 400,

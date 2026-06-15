@@ -1,15 +1,29 @@
-import { type OrganizationSessionScope } from "@/lib/session";
-import { capabilityPermissions } from "./capabilityPermissions";
+import { type OrganizationSessionScope, type SessionCapability } from "@/lib/session";
+import { type OrganizationCapabilityKey } from "./OrganizationCapabilityKey";
 import { type OrganizationWorkspaceItem } from "./OrganizationWorkspaceItem";
+
+const organizationCapabilityKeys = new Set<string>([
+  "courses",
+  "members",
+  "reports",
+  "member_management",
+  "wallet",
+  "teacher_applications",
+  "course_rewards",
+  "settings",
+]);
+
+function hasOrganizationCapabilityKey(
+  capability: SessionCapability,
+): capability is SessionCapability & { key: OrganizationCapabilityKey } {
+  return organizationCapabilityKeys.has(capability.key);
+}
 
 export function buildOrganizationWorkspaceItem(organization: OrganizationSessionScope): OrganizationWorkspaceItem {
   return {
-    capabilities: capabilityPermissions.map((capability) => ({
-      enabled: capability.permissions.some((permission) => organization.effective_permissions.includes(permission)),
-      key: capability.key,
-      label: capability.label,
-      permissions: capability.permissions,
-    })),
+    capabilities: organization.capabilities
+      .filter(hasOrganizationCapabilityKey)
+      .map((capability) => ({ ...capability, key: capability.key })),
     delegatedPermissionCount: organization.delegated_permissions.length,
     directPermissionCount: organization.direct_permissions.length,
     effectivePermissions: [...organization.effective_permissions],
