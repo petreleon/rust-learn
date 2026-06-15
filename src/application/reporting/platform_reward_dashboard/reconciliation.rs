@@ -9,7 +9,7 @@ pub(crate) struct RewardReconciliationMismatchFacts {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum RewardReconciliationMismatchType {
+pub enum RewardReconciliationMismatchType {
     NeedsReconciliation,
     NeedsPayoutRecord,
     NeedsWalletCredit,
@@ -19,7 +19,7 @@ pub(crate) enum RewardReconciliationMismatchType {
 }
 
 impl RewardReconciliationMismatchType {
-    pub(crate) fn as_str(self) -> &'static str {
+    pub fn as_str(self) -> &'static str {
         match self {
             Self::NeedsReconciliation => "needs_reconciliation",
             Self::NeedsPayoutRecord => "needs_payout_record",

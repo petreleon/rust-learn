@@ -1,5 +1,11 @@
 use chrono::{DateTime, Utc};
 
+use crate::domain::rewards::candidate::event_type::RewardEventType;
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::domain::rewards::execution::RewardExecutionJobStatus;
+
+use super::RewardReconciliationMismatchType;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlatformRewardDashboardOutput {
     pub teacher_applications: TeacherApplicationDashboardSummaryOutput,
@@ -45,8 +51,8 @@ pub struct RewardCandidateDashboardRowOutput {
     pub student_user_id: i32,
     pub submitter_user_id: i32,
     pub source_organization_id: Option<i32>,
-    pub event_type: String,
-    pub status: String,
+    pub event_type: RewardEventType,
+    pub status: RewardCandidateStatus,
     pub approved_amount: Option<String>,
     pub updated_at: DateTime<Utc>,
 }
@@ -55,7 +61,7 @@ pub struct RewardCandidateDashboardRowOutput {
 pub struct RewardExecutionFailureRowOutput {
     pub reward_execution_job_id: i64,
     pub reward_candidate_id: i64,
-    pub status: String,
+    pub status: RewardExecutionJobStatus,
     pub attempts: i32,
     pub last_error: Option<String>,
     pub updated_at: DateTime<Utc>,
@@ -66,8 +72,8 @@ pub struct RewardReconciliationMismatchRowOutput {
     pub reward_candidate_id: i64,
     pub course_id: i32,
     pub student_user_id: i32,
-    pub status: String,
-    pub mismatch_type: String,
+    pub status: RewardCandidateStatus,
+    pub mismatch_type: RewardReconciliationMismatchType,
     pub approved_amount: Option<String>,
     pub updated_at: DateTime<Utc>,
 }

@@ -35,7 +35,10 @@ pub(super) async fn reward_reconciliation_mismatches(
 
     Ok(candidates
         .into_iter()
-        .filter_map(|candidate| mismatch_row(candidate, &payout_records, &credit_records))
+        .map(|candidate| mismatch_row(candidate, &payout_records, &credit_records))
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flatten()
         .take(50)
         .collect())
 }
@@ -81,19 +84,22 @@ fn mismatch_row(
     candidate: RewardCandidate,
     payout_records: &HashMap<i64, bool>,
     credit_records: &HashMap<i64, Option<i64>>,
-) -> Option<RewardReconciliationMismatchRowOutput> {
-    let status = RewardCandidateStatus::parse(&candidate.status).ok()?;
+) -> Result<Option<RewardReconciliationMismatchRowOutput>, PlatformRewardDashboardError> {
+    let status = RewardCandidateStatus::parse(&candidate.status)
+        .map_err(|error| PlatformRewardDashboardError::Database(error.to_string()))?;
     let has_payout_record = payout_records.contains_key(&candidate.id);
     let credit_notification_id = credit_records.get(&candidate.id).copied();
-    reward_reconciliation_mismatch_row(RewardReconciliationMismatchRowFact {
-        reward_candidate_id: candidate.id,
-        course_id: candidate.course_id,
-        student_user_id: candidate.student_user_id,
-        status,
-        approved_amount: candidate.approved_amount,
-        updated_at: candidate.updated_at,
-        has_payout_record,
-        has_wallet_credit_record: credit_notification_id.is_some(),
-        has_notification_record: credit_notification_id.flatten().is_some(),
-    })
+    Ok(reward_reconciliation_mismatch_row(
+        RewardReconciliationMismatchRowFact {
+            reward_candidate_id: candidate.id,
+            course_id: candidate.course_id,
+            student_user_id: candidate.student_user_id,
+            status,
+            approved_amount: candidate.approved_amount,
+            updated_at: candidate.updated_at,
+            has_payout_record,
+            has_wallet_credit_record: credit_notification_id.is_some(),
+            has_notification_record: credit_notification_id.flatten().is_some(),
+        },
+    ))
 }

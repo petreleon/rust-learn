@@ -6,7 +6,9 @@ use crate::application::reporting::platform_reward_dashboard::{
     RewardExecutionFailureRowOutput, RewardReconciliationMismatchFacts,
     RewardReconciliationMismatchRowOutput,
 };
+use crate::domain::rewards::candidate::event_type::RewardEventType;
 use crate::domain::rewards::candidate::status::RewardCandidateStatus;
+use crate::domain::rewards::execution::RewardExecutionJobStatus;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct RewardCandidateDashboardRowFact {
@@ -15,8 +17,8 @@ pub(crate) struct RewardCandidateDashboardRowFact {
     pub student_user_id: i32,
     pub submitter_user_id: i32,
     pub source_organization_id: Option<i32>,
-    pub event_type: String,
-    pub status: String,
+    pub event_type: RewardEventType,
+    pub status: RewardCandidateStatus,
     pub approved_amount: Option<BigDecimal>,
     pub updated_at: DateTime<Utc>,
 }
@@ -41,7 +43,7 @@ pub(crate) fn reward_candidate_dashboard_row(
 pub(crate) struct RewardExecutionFailureRowFact {
     pub reward_execution_job_id: i64,
     pub reward_candidate_id: i64,
-    pub status: String,
+    pub status: RewardExecutionJobStatus,
     pub attempts: i32,
     pub last_error: Option<String>,
     pub updated_at: DateTime<Utc>,
@@ -88,8 +90,8 @@ pub(crate) fn reward_reconciliation_mismatch_row(
         reward_candidate_id: fact.reward_candidate_id,
         course_id: fact.course_id,
         student_user_id: fact.student_user_id,
-        status: fact.status.as_str().to_string(),
-        mismatch_type: mismatch_type.as_str().to_string(),
+        status: fact.status,
+        mismatch_type,
         approved_amount: fact.approved_amount.as_ref().map(ToString::to_string),
         updated_at: fact.updated_at,
     })
@@ -109,13 +111,14 @@ mod tests {
             student_user_id: 9,
             submitter_user_id: 10,
             source_organization_id: Some(11),
-            event_type: "course_completion".to_string(),
-            status: "teacher_approved".to_string(),
+            event_type: RewardEventType::CourseCompletion,
+            status: RewardCandidateStatus::TeacherApproved,
             approved_amount: Some(BigDecimal::from(25)),
             updated_at: now,
         });
 
         assert_eq!(row.reward_candidate_id, 7);
+        assert_eq!(row.status, RewardCandidateStatus::TeacherApproved);
         assert_eq!(row.approved_amount, Some("25".to_string()));
     }
 
@@ -126,13 +129,14 @@ mod tests {
         let row = reward_execution_failure_row(RewardExecutionFailureRowFact {
             reward_execution_job_id: 1,
             reward_candidate_id: 2,
-            status: "failed".to_string(),
+            status: RewardExecutionJobStatus::Failed,
             attempts: 3,
             last_error: Some("boom".to_string()),
             updated_at: now,
         });
 
         assert_eq!(row.reward_execution_job_id, 1);
+        assert_eq!(row.status, RewardExecutionJobStatus::Failed);
         assert_eq!(row.last_error, Some("boom".to_string()));
     }
 
@@ -153,8 +157,8 @@ mod tests {
         })
         .expect("token confirmed without payout should be a mismatch");
 
-        assert_eq!(row.status, "token_confirmed");
-        assert_eq!(row.mismatch_type, "needs_payout_record");
+        assert_eq!(row.status, RewardCandidateStatus::TokenConfirmed);
+        assert_eq!(row.mismatch_type.as_str(), "needs_payout_record");
         assert_eq!(row.approved_amount, Some("10".to_string()));
     }
 }
