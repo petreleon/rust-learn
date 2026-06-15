@@ -1,3 +1,5 @@
+use crate::domain::wallet::owner::WalletOwnerType;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletAuditTarget {
     pub id: i32,
@@ -7,11 +9,7 @@ pub struct WalletAuditTarget {
 }
 
 impl WalletAuditTarget {
-    pub fn owner_type(&self) -> &'static str {
-        if self.user_id.is_some() {
-            "user"
-        } else {
-            "organization"
-        }
+    pub fn owner_type(&self) -> WalletOwnerType {
+        WalletOwnerType::from_user_id(self.user_id)
     }
 }

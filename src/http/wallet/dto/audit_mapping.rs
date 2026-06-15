@@ -40,7 +40,7 @@ impl From<WalletAuditWallet> for WalletAuditWalletResponse {
     fn from(wallet: WalletAuditWallet) -> Self {
         Self {
             id: wallet.id,
-            owner_type: wallet.owner_type,
+            owner_type: wallet.owner_type.as_str().to_string(),
             user_id: wallet.user_id,
             organization_id: wallet.organization_id,
             value: wallet.value,

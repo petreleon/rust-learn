@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Verified base before this changeset: `e5e3a578`.
-Latest verified changeset: platform fraud-dashboard scope vocabulary.
+Verified base before this changeset: `f8212c71`.
+Latest verified changeset: wallet owner-type vocabulary.
 
 Goal: move RustLearn to a Level 2 modular monolith with firm business
 boundaries. Ownership matters more than folder count; preserve behavior unless
@@ -51,12 +51,14 @@ Checked contexts: `access_control`, `content`, `identity`, `kyc`, `learning`,
 - `74811b12`: platform reward-approval CSV export vocabulary.
 - `285bdfcb`: platform teacher-application CSV export vocabulary.
 - `e5e3a578`: platform delegated-permission CSV export vocabulary.
-- This changeset: platform fraud-dashboard scope vocabulary.
+- `f8212c71`: platform fraud-dashboard scope vocabulary.
+- This changeset: wallet owner-type vocabulary for wallet read/audit and
+  platform wallet reconciliation outputs.
 
 Proof set for verified batches: focused host tests, fmt, Cargo lib/bin checks,
 integration no-run compile, `git diff --check`, line counts, string-field scans,
-and boundary scans. This changeset additionally passed fraud-dashboard focused
-tests and the reporting export integration path.
+and boundary scans. This changeset additionally passed wallet focused tests and
+the platform wallet reconciliation reporting path.
 
 ## Still Open
 

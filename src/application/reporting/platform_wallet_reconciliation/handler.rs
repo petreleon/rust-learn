@@ -20,6 +20,7 @@ mod tests {
         PlatformWalletReconciliationError, PlatformWalletReconciliationOutput,
         PlatformWalletReconciliationRowOutput,
     };
+    use crate::domain::wallet::owner::WalletOwnerType;
 
     #[test]
     fn loads_platform_wallet_reconciliation_through_store_port() {
@@ -54,7 +55,7 @@ mod tests {
                 total_needs_reconciliation: 0,
                 wallets: vec![PlatformWalletReconciliationRowOutput {
                     wallet_id: 10,
-                    owner_type: "user".to_string(),
+                    owner_type: WalletOwnerType::User,
                     user_id: Some(20),
                     organization_id: None,
                     balance: "50".to_string(),

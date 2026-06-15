@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
 
+use crate::domain::wallet::owner::WalletOwnerType;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletAudit {
     pub wallet: WalletAuditWallet,
@@ -12,7 +14,7 @@ pub struct WalletAudit {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletAuditWallet {
     pub id: i32,
-    pub owner_type: String,
+    pub owner_type: WalletOwnerType,
     pub user_id: Option<i32>,
     pub organization_id: Option<i32>,
     pub value: String,

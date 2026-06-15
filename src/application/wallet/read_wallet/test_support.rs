@@ -1,6 +1,7 @@
 use futures::future::{ready, BoxFuture, FutureExt};
 
 use crate::application::wallet::read_wallet::{WalletReadError, WalletReadStore, WalletView};
+use crate::domain::wallet::owner::WalletOwnerType;
 
 pub(crate) struct FakeWalletReadStore {
     pub checked_user_permission: bool,
@@ -61,7 +62,7 @@ impl WalletReadStore for FakeWalletReadStore {
     ) -> BoxFuture<'_, Result<Option<WalletView>, WalletReadError>> {
         ready(Ok(Some(WalletView {
             id: 10,
-            owner_type: "user",
+            owner_type: WalletOwnerType::User,
             user_id: Some(user_id),
             organization_id: None,
             value: "100".to_string(),
@@ -75,7 +76,7 @@ impl WalletReadStore for FakeWalletReadStore {
     ) -> BoxFuture<'_, Result<Option<WalletView>, WalletReadError>> {
         ready(Ok(Some(WalletView {
             id: 11,
-            owner_type: "organization",
+            owner_type: WalletOwnerType::Organization,
             user_id: None,
             organization_id: Some(organization_id),
             value: "200".to_string(),

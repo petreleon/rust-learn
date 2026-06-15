@@ -47,7 +47,7 @@ impl From<PlatformWalletReconciliationRowOutput> for PlatformWalletReconciliatio
     fn from(row: PlatformWalletReconciliationRowOutput) -> Self {
         Self {
             wallet_id: row.wallet_id,
-            owner_type: row.owner_type,
+            owner_type: row.owner_type.as_str().to_string(),
             user_id: row.user_id,
             organization_id: row.organization_id,
             balance: row.balance,
