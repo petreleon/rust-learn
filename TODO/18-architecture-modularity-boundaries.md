@@ -943,7 +943,7 @@ Wiring rule:
       instead of manually matching every service error to `HttpResponse`.
 - [ ] Domain/application errors do not implement Actix traits directly. The
       HTTP layer maps them into a local `ResponseError` type.
-- [ ] Configure JSON limits and JSON parse errors centrally so every route has
+- [x] Configure JSON limits and JSON parse errors centrally so every route has
       consistent bad-request behavior.
 
 ## First Low-Risk Building Blocks
@@ -1186,6 +1186,28 @@ remaining gaps.
 
 ## Recent Slice Evidence
 
+Batch 288: centralize JSON extractor limits and parse errors.
+
+- [x] Added `http::configure_json` as the HTTP-owned Actix extractor policy for
+      `web::Json<T>` payload limits, content-type failures, parse failures, and
+      unreadable payloads.
+- [x] Registered the JSON extractor policy from
+      `bootstrap::app_data::configure_app_data`, keeping production process
+      wiring in bootstrap while HTTP owns the error contract.
+- [x] Covered malformed JSON, non-JSON content type, and oversized JSON bodies
+      with focused unit tests that assert the shared `ApiError` JSON envelope.
+- [x] Proved behavior and wiring with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib json_config`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh cargo test --test api_routing`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      `JsonConfig`/`JsonPayloadError` scans, `git diff --check`, and touched
+      file-size checks.
+- [x] Self-critique: this centralizes `Json<T>` extraction failures only.
+      Manual handler `HttpResponse` mapping and non-JSON extractor failures
+      remain separate open HTTP refactor slices.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1201,8 +1223,7 @@ Batch 287: remove the final legacy request-auth helper.
       of route handlers, so a `DbConn` extractor is not needed for current HTTP
       routes.
 - [x] Self-critique: API handlers still manually map many application errors to
-      `HttpResponse`, and centralized JSON parse/limit configuration remains
-      open.
+      `HttpResponse`.
 - [x] Prove behavior with `cargo fmt --all --check`,
       `./scripts/run-host-tests.sh cargo check --lib`,
       `./scripts/run-host-tests.sh cargo test --lib extractors`,

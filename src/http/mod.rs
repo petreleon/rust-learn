@@ -3,6 +3,7 @@ pub mod content;
 pub mod errors;
 pub mod extractors;
 pub mod identity;
+mod json_config;
 pub mod kyc;
 pub mod learning;
 pub mod notifications;
@@ -15,4 +16,5 @@ mod routes;
 pub mod teacher_applications;
 pub mod wallet;
 
+pub use json_config::configure_json;
 pub use routes::api_scope;

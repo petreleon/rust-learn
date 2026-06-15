@@ -3,6 +3,8 @@ use actix_web::web;
 use crate::bootstrap::app_state::AppState;
 
 pub fn configure_app_data(cfg: &mut web::ServiceConfig, app_state: &AppState) {
+    crate::http::configure_json(cfg);
+
     cfg.app_data(web::Data::new(app_state.pool.clone()))
         .app_data(web::Data::new(app_state.s3.clone()))
         .app_data(web::Data::new(app_state.readiness_use_case.clone()));
