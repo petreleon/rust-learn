@@ -117,7 +117,7 @@ fn fake(payment_strategy: &str) -> FakeStore {
             id: 1,
             course_id: 2,
             event_type: "course_completion".to_string(),
-            status: RewardCandidateStatus::AmountApproved.as_str().to_string(),
+            status: RewardCandidateStatus::AmountApproved,
             approved_amount: Some(BigDecimal::from(10)),
         },
         policy: Some(RewardPayoutPolicy {

@@ -2,13 +2,14 @@ use bigdecimal::BigDecimal;
 use futures::future::BoxFuture;
 
 use crate::application::rewards::plan_payout::RewardPayoutPlanError;
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct RewardPayoutCandidate {
     pub id: i64,
     pub course_id: i32,
     pub event_type: String,
-    pub status: String,
+    pub status: RewardCandidateStatus,
     pub approved_amount: Option<BigDecimal>,
 }
 

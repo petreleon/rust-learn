@@ -86,7 +86,8 @@ Detailed history belongs in git; keep only proof that matters here.
 | 328 | `930d6586` | Converted `reward_candidates`; fixed idempotency keys and refreshed permission-envelope assertion. |
 | 329 | `fc018ef7` | Converted `reward_execution`; focused reward-execution tests, Cargo gates, scans, and line checks passed. |
 | 330 | `6b0092a2` | Converted `wallet_linking`; refreshed the stale KYC conflict assertion to the typed HTTP error envelope and proved with focused wallet tests, Cargo gates, scans, and line checks. |
-| 331 | this batch | Converted `video_upload_flow`; moved content app wiring and sample-video helpers behind explicit modules and proved with the focused video upload flow, Cargo gates, scans, and line checks. |
+| 331 | `57215a3c` | Converted `video_upload_flow`; moved content app wiring and sample-video helpers behind explicit modules and proved with the focused video upload flow, Cargo gates, scans, and line checks. |
+| 332 | this batch | Tightened reward payout planning so infra parses persisted reward candidate status into `RewardCandidateStatus` before application validation; proved with payout fake-port tests, mapper tests, Cargo gates, scans, and line checks. |
 
 Standard proof set used for recent batches:
 
@@ -121,8 +122,8 @@ Standard proof set used for recent batches:
 
 - Keep hardening authorization so middleware is an early rejection optimization
   and application use cases remain the real business guard.
-- Keep hardening rewards around statuses/events/newtypes, candidate transitions,
-  DTO leaks, Diesel adapter leaks, and fake-port use-case tests.
+- Keep hardening rewards around remaining events/newtypes, candidate
+  transitions, DTO leaks, Diesel adapter leaks, and fake-port use-case tests.
 - Continue auditing data boundaries so Diesel schema/model leaks stay in infra
   or persistence records and public API DTOs stay HTTP-owned.
 - Preserve route URLs and response semantics unless a migration note explicitly

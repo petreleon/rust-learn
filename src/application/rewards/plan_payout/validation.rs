@@ -22,7 +22,7 @@ pub fn approved_positive_amount(
 pub fn ensure_candidate_ready_for_payout(
     candidate: &RewardPayoutCandidate,
 ) -> Result<(), RewardPayoutPlanError> {
-    if candidate.status == RewardCandidateStatus::AmountApproved.as_str() {
+    if candidate.status == RewardCandidateStatus::AmountApproved {
         Ok(())
     } else {
         Err(RewardPayoutPlanError::InvalidStatus(
@@ -42,7 +42,7 @@ mod tests {
     #[test]
     fn amount_approved_candidate_with_positive_amount_is_ready() {
         let candidate = candidate(
-            RewardCandidateStatus::AmountApproved.as_str(),
+            RewardCandidateStatus::AmountApproved,
             Some(BigDecimal::from(10)),
         );
 
@@ -56,7 +56,11 @@ mod tests {
     #[test]
     fn non_amount_approved_candidate_is_not_ready() {
         assert_eq!(
-            ensure_candidate_ready_for_payout(&candidate("teacher_approved", None)).unwrap_err(),
+            ensure_candidate_ready_for_payout(&candidate(
+                RewardCandidateStatus::TeacherApproved,
+                None
+            ))
+            .unwrap_err(),
             RewardPayoutPlanError::InvalidStatus(
                 "reward candidate must be amount approved before payout planning".to_string()
             )
@@ -66,18 +70,15 @@ mod tests {
     #[test]
     fn missing_or_non_positive_amount_fails() {
         assert_eq!(
-            approved_positive_amount(&candidate(
-                RewardCandidateStatus::AmountApproved.as_str(),
-                None
-            ))
-            .unwrap_err(),
+            approved_positive_amount(&candidate(RewardCandidateStatus::AmountApproved, None))
+                .unwrap_err(),
             RewardPayoutPlanError::InvalidInput(
                 "reward candidate must have an approved amount".to_string()
             )
         );
         assert_eq!(
             approved_positive_amount(&candidate(
-                RewardCandidateStatus::AmountApproved.as_str(),
+                RewardCandidateStatus::AmountApproved,
                 Some(BigDecimal::from(0))
             ))
             .unwrap_err(),
@@ -87,12 +88,15 @@ mod tests {
         );
     }
 
-    fn candidate(status: &str, approved_amount: Option<BigDecimal>) -> RewardPayoutCandidate {
+    fn candidate(
+        status: RewardCandidateStatus,
+        approved_amount: Option<BigDecimal>,
+    ) -> RewardPayoutCandidate {
         RewardPayoutCandidate {
             id: 1,
             course_id: 2,
             event_type: "course_completion".to_string(),
-            status: status.to_string(),
+            status,
             approved_amount,
         }
     }

@@ -7,7 +7,9 @@ use crate::application::rewards::plan_payout::{
 use crate::infra::postgres::operations::persistent_state::get_persistent_state;
 use crate::infra::postgres::rewards::reward_authorization_access;
 use crate::infra::postgres::rewards::reward_candidate_records::find_candidate;
-use crate::infra::postgres::rewards::reward_payout_plan_mappers::map_reward_payout_plan_error;
+use crate::infra::postgres::rewards::reward_payout_plan_mappers::{
+    map_reward_payout_candidate, map_reward_payout_plan_error,
+};
 use crate::infra::postgres::rewards::reward_payout_plan_policy_lookup::active_reward_payout_policy;
 
 pub struct PostgresRewardPayoutPlanStore<'conn> {
@@ -40,8 +42,8 @@ impl RewardPayoutPlanStore for PostgresRewardPayoutPlanStore<'_> {
         async move {
             find_candidate(self.conn, candidate_id)
                 .await
-                .map(RewardPayoutCandidate::from)
                 .map_err(map_reward_payout_plan_error)
+                .and_then(map_reward_payout_candidate)
         }
         .boxed()
     }
