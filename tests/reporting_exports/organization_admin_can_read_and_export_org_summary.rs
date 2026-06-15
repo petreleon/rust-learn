@@ -21,7 +21,7 @@ async fn organization_admin_can_read_and_export_org_summary() {
                 rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
             })
             .app_data(organization_summary_use_case(&pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::reporting::configure_routes),
     )
     .await;

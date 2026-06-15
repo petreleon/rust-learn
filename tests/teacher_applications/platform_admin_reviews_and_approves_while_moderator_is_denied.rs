@@ -52,7 +52,7 @@ async fn platform_admin_reviews_and_approves_while_moderator_is_denied() {
     let list_app = test::init_service(
         App::new()
             .app_data(teacher_application_list_data())
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::teacher_applications::configure_routes),
     )
     .await;
@@ -78,7 +78,7 @@ async fn platform_admin_reviews_and_approves_while_moderator_is_denied() {
     let decision_app = test::init_service(
         App::new()
             .app_data(teacher_application_decision_data())
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::teacher_applications::configure_routes),
     )
     .await;
@@ -130,7 +130,7 @@ async fn platform_admin_reviews_and_approves_while_moderator_is_denied() {
     let app = test::init_service(
         App::new()
             .app_data(teacher_application_audit_data())
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::teacher_applications::configure_routes),
     )
     .await;

@@ -152,7 +152,7 @@ async fn platform_teacher_application_review_contract_returns_context_and_filter
     let app = test::init_service(
         App::new()
             .app_data(teacher_application_platform_review_data())
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::teacher_applications::configure_routes),
     )
     .await;

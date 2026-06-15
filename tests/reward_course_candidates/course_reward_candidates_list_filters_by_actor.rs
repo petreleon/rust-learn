@@ -21,7 +21,7 @@ async fn course_reward_candidates_list_filters_by_actor() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(course_reward_candidates_use_case(&pool)))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::rewards::course_reward_candidates_resource()),
     )
     .await;

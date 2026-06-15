@@ -19,7 +19,7 @@ async fn role_read_routes_require_view_role_assignments_permission() {
             .app_data(web::Data::new(pool.clone()))
             .app_data(permission_check_use_case_data(&pool))
             .app_data(role_catalog_use_case_data(&pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::access_control::configure_routes),
     )
     .await;

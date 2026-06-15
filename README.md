@@ -23,14 +23,13 @@ The target LearnToken reward flow is defined in
 ```text
 .
 ├── src/                    # Rust API, Level 2 rings, and bootstrap
-│   ├── http/               # Actix route handlers, route scopes, extractors, DTOs
+│   ├── http/               # Actix routes, middleware, extractors, DTOs
 │   ├── application/        # Use cases, ports, commands, outputs
 │   ├── domain/             # Pure domain vocabulary and rules
 │   ├── infra/              # PostgreSQL schema/models, storage, Ethereum, adapters
 │   ├── bootstrap/          # App state, app data, route wiring, startup
 │   ├── bin/worker.rs       # Background upload/video-processing worker
-│   ├── config/             # Role/permission constants and configuration helpers
-│   └── middlewares/        # JWT, hierarchy, and permission middleware
+│   └── config/             # Role/permission constants and configuration helpers
 ├── ethereum/               # Solidity contracts and generated ABI/bin artifacts
 ├── migrations/             # Diesel migrations
 ├── tests/                  # Integration and permission tests

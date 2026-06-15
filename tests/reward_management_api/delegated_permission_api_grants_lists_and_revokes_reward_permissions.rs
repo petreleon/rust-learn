@@ -19,7 +19,7 @@ async fn delegated_permission_api_grants_lists_and_revokes_reward_permissions() 
                 rust_learn::bootstrap::configure_access_control_check_app_data(cfg, &pool)
             })
             .app_data(web::Data::new(delegated_permission_use_case(&pool)))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::access_control::configure_routes),
     )
     .await;

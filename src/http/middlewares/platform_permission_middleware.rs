@@ -5,7 +5,7 @@ use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessDecisionError, AccessDecisionService, AccessScope,
 };
 use crate::domain::identity::UserJWT;
-use crate::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
+use crate::http::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
 
 pub struct PlatformPermissionMiddleware;
 

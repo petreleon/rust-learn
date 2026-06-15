@@ -1,4 +1,4 @@
-// src/middlewares/jwt_middleware.rs
+// src/http/middlewares/jwt_middleware.rs
 use actix_service::Service;
 use actix_web::{
     dev::{ServiceRequest, ServiceResponse, Transform},

@@ -6,6 +6,7 @@ pub mod identity;
 mod json_config;
 pub mod kyc;
 pub mod learning;
+pub mod middlewares;
 pub mod notifications;
 pub mod operations;
 pub mod organizations;

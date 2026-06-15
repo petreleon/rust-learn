@@ -19,7 +19,7 @@ RustLearn is an incentivized learning platform. The backend is a Rust/Actix Web 
   Ethereum integrations for migrated contexts.
 - `src/bootstrap/` — process wiring, app state, app data registration, startup,
   and top-level routes.
-- `src/middlewares/` — JWT, conditional access, hierarchy, and permission middleware.
+- `src/http/middlewares/` — JWT, conditional access, hierarchy, and permission middleware.
 - `src/config/` — role/permission constants and configuration helpers.
 - `src/bin/worker.rs` — background upload/video processing worker.
 - `ethereum/contracts/` — Solidity contracts; generated ABI/bin artifacts live in `ethereum/artifacts/`.

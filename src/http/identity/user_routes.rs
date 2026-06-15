@@ -2,7 +2,7 @@ use actix_web::web;
 
 use crate::config::constants::permissions::Permissions;
 use crate::http::identity::{platform_role_assignment, user_handlers, user_list};
-use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
+use crate::http::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 
 pub(super) fn user_scope() -> actix_web::Scope {
     web::scope("/user")

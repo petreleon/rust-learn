@@ -5,7 +5,7 @@ pub(crate) async fn assert_teacher_workspace(fixture: &TeacherDashboardFixture) 
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
             .app_data(teacher_workspace_use_case_data(&fixture.pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )
     .await;
@@ -64,7 +64,7 @@ pub(crate) async fn assert_teacher_enrollments(fixture: &TeacherDashboardFixture
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
             .app_data(teacher_enrollment_workspace_use_case_data(&fixture.pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )
     .await;
@@ -147,7 +147,7 @@ pub(crate) async fn assert_teacher_pending_filter(fixture: &TeacherDashboardFixt
         App::new()
             .app_data(web::Data::new(fixture.pool.clone()))
             .app_data(teacher_enrollment_workspace_use_case_data(&fixture.pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )
     .await;

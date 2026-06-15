@@ -1,14 +1,14 @@
 use actix_web::web;
 
 use crate::config::constants::permissions::Permissions;
+use crate::http::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
+use crate::http::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 use crate::http::reporting::handlers::{
     organization_reward_dashboard, organization_summary, platform_csv_exports,
     platform_fraud_dashboard, platform_reward_dashboard, platform_summary,
     platform_wallet_reconciliation,
 };
 use crate::http::request_params::ParamType;
-use crate::middlewares::organization_permission_middleware::OrganizationPermissionMiddleware;
-use crate::middlewares::platform_permission_middleware::PlatformPermissionMiddleware;
 
 pub(super) fn platform_summary_resource() -> actix_web::Resource {
     web::resource("/platform/summary").route(

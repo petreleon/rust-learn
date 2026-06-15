@@ -1,8 +1,8 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Latest verified pushed base before current batch: `2574c1c6`
-(`Move DB setup updates under Postgres infra`).
+Latest verified pushed base before current batch: `0dcd66e5`
+(`Make development commands primary for Diesel workflow`).
 
 Objective: finish RustLearn as a Level 2 modular monolith. Keep the main rings
 `domain`, `application`, `infra`, `http`, and `bootstrap`; use granular
@@ -49,6 +49,10 @@ submodules only where a context or use case has real ownership.
 - `2574c1c6`: DB setup/version updates moved from `src/config/db_setup` to
   `src/infra/postgres/operations/db_setup`; startup and docs now import DB
   versioning through Postgres infra.
+- `0dcd66e5`: Make targets are the primary development interface for Diesel
+  workflow; `make diesel-compose`, `make migration-generate`, `make
+  fmt-compose`, and `make mock-email` added; README/agent guidance no longer
+  requires host Diesel for schema generation.
 
 Proof for recent pushed batches:
 
@@ -66,50 +70,47 @@ Proof for recent pushed batches:
 
 Included problems:
 
-- Development docs still mixed Make targets with raw Docker Compose/host Cargo
-  examples as primary commands.
-- Migration guidance implied host Diesel was still an option, even though
-  schema generation should be driven by Compose Diesel.
-- The Makefile had `migrate`/`migrate-redo`, but no discoverable Make target for
-  arbitrary Diesel CLI work or migration generation.
-- Agent guidance still referenced old DB paths such as `src/db/schema.rs` and
-  `db::establish_connection()`.
+- `src/middlewares` was a top-level module even though all contents are Actix
+  HTTP middleware.
+- `src/lib.rs` and `src/main.rs` exposed `middlewares` as a non-ring root API.
+- HTTP routes and integration tests imported middleware through
+  `crate::middlewares` / `rust_learn::middlewares`.
+- README/AGENTS still documented middleware as top-level instead of HTTP-owned.
 
 Fixes:
 
-- Added `make diesel-compose DIESEL_ARGS='...'` as the Make-owned Diesel CLI
-  passthrough through the Compose tool container.
-- Added `make migration-generate NAME=...`, `make fmt-compose`, and
-  `make mock-email` helper targets.
-- Rewired `make migrate` and `make migrate-redo` to delegate to
-  `make diesel-compose`.
-- Fixed `make help` so targets from included `mk/*.mk` files display by target
-  name instead of include filename.
-- Updated README, AGENTS, and Copilot guidance so Make targets are primary,
-  host Diesel is not required, and schema generation writes
-  `src/infra/postgres/schema.rs`.
+- Moved all middleware files to `src/http/middlewares`.
+- Exported middleware through `src/http/mod.rs`.
+- Removed root `middlewares` exports from `src/lib.rs` and `src/main.rs`.
+- Updated HTTP route imports, middleware-internal imports, and test app imports
+  to use `http::middlewares`.
+- Updated README/AGENTS repository maps to show middleware as HTTP-owned.
 
 Deferred problems:
 
-- `make fmt`, `make dev-run`, and `make dev-worker` still use host toolchains by
-  design, but they are Make-owned entrypoints.
-- Runtime container migrations still use the Diesel binary inside the runtime
-  image with an empty runtime config; this is a deployment concern, not the
-  development schema-generation path.
+- Middleware still performs early rejection using application access-decision
+  services; deeper authorization must remain in use cases and should be audited
+  per product flow, not changed in this mechanical module move.
+- Top-level `src/config` still owns role/permission constants; moving constants
+  needs a separate policy-placement audit because seed migrations,
+  permissions docs, and middleware route wiring share those names.
 
 Proof:
 
-- Make dry-runs: `migrate`, `migrate-redo`, `diesel-compose
-  DIESEL_ARGS='print-schema'`, `migration-generate NAME=create_learning_paths`,
-  `fmt-compose`, and `mock-email`.
-- `make help` shows the new included targets by name.
-- `docker compose -f docker-compose.yml -f docker-compose.tools.yml config
-  --services` includes the `diesel` tool service.
+- `cargo fmt --all --check`.
+- `./scripts/run-host-tests.sh cargo check --lib`.
+- `./scripts/run-host-tests.sh cargo test --lib http::middlewares`.
+- `./scripts/run-host-tests.sh cargo test --test middleware_access_control`.
+- `./scripts/run-host-tests.sh cargo test --test api_routing`.
+- `./scripts/run-host-tests.sh cargo check --bin rust-learn --features
+  app-bin`.
+- `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`.
 - `git diff --check`.
-- Scans over README, AGENTS, Copilot guidance, Makefile, and `mk/`: no docs
-  still requiring host Diesel, no old `src/db/schema.rs`, no
-  `db::establish_connection()` guidance, and no raw Compose test/log commands
-  presented as the primary workflow.
+- Scans: no `src/middlewares` directory, no `crate::middlewares` /
+  `rust_learn::middlewares` / `src/middlewares` references in source/tests/docs,
+  root `pub mod middlewares` removed from `src/lib.rs` and `src/main.rs`, no
+  domain/application Actix/DB/HTTP leaks, no HTTP DB imports outside existing
+  middleware-excluded scan, and no maintained Rust file over 180 lines.
 
 ## Remaining Work
 
@@ -123,4 +124,4 @@ Proof:
   rejection.
 - Do not jump to Level 3 crates/microservices or abstractions that only move
   files around.
-- Rough remaining effort: 1-3 focused batches plus the final requirement audit.
+- Rough remaining effort: 1-2 focused batches plus the final requirement audit.

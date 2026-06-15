@@ -33,7 +33,7 @@ async fn course_read_routes_require_view_course_permission() {
             .app_data(course_discovery_use_case_data(&pool))
             .app_data(course_read_use_case_data(&pool))
             .app_data(course_organizations_use_case_data(&pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )
     .await;
@@ -98,12 +98,12 @@ async fn organization_read_routes_require_view_organization_permission() {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .app_data(permission_check_use_case_data(&pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(web::resource("/organizations").route(
                 web::get()
                     .to(|| async { actix_web::HttpResponse::Ok().finish() })
                     .wrap(
-                        rust_learn::middlewares::platform_permission_middleware::PlatformPermissionMiddleware::require(
+                        rust_learn::http::middlewares::platform_permission_middleware::PlatformPermissionMiddleware::require(
                             rust_learn::config::constants::permissions::Permissions::VIEW_ORGANIZATION.to_string(),
                         ),
                     ),
@@ -112,7 +112,7 @@ async fn organization_read_routes_require_view_organization_permission() {
                 web::get()
                     .to(|| async { actix_web::HttpResponse::Ok().finish() })
                     .wrap(
-                        rust_learn::middlewares::platform_permission_middleware::PlatformPermissionMiddleware::require(
+                        rust_learn::http::middlewares::platform_permission_middleware::PlatformPermissionMiddleware::require(
                             rust_learn::config::constants::permissions::Permissions::VIEW_ORGANIZATION.to_string(),
                         ),
                     ),

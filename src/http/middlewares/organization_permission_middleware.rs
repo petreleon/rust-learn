@@ -5,32 +5,29 @@ use crate::application::access_control::check_permission::{
     AccessAction, AccessActor, AccessDecisionError, AccessDecisionService, AccessScope,
 };
 use crate::domain::identity::UserJWT;
+use crate::http::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
 use crate::http::request_params::extract_param;
 use crate::http::request_params::ParamType;
-use crate::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
 
-pub struct CoursePermissionMiddleware;
+pub struct OrganizationPermissionMiddleware;
 
-impl CoursePermissionMiddleware {
+impl OrganizationPermissionMiddleware {
     pub fn require<S>(
         permission_name: String,
-        type_param_of_course: ParamType,
-        name_param_of_course: String,
+        type_param_of_organization: ParamType,
+        name_param_of_organization: String,
     ) -> ConditionalAccessMiddleware<S> {
         ConditionalAccessMiddleware::new(
             move |req: &ServiceRequest| {
                 let permission_name = permission_name.clone();
-                let type_param_of_course = type_param_of_course;
-                let name_param_of_course = name_param_of_course.clone();
-
-                // Extract data synchronously (as much as possible that doesn't need async)
-                // But we need to move it into the async block.
+                let type_param_of_organization = type_param_of_organization;
+                let name_param_of_organization = name_param_of_organization.clone();
 
                 let access_decision = match req.app_data::<web::Data<AccessDecisionService>>() {
                     Some(pool) => pool.get_ref().clone(),
                     None => {
                         log::error!(
-                            "event=permission_check_failed scope=course reason=missing_access_decision_service permission={}",
+                            "event=permission_check_failed scope=organization reason=missing_access_decision_service permission={}",
                             permission_name
                         );
                         return Box::pin(futures::future::ready(Err(
@@ -41,12 +38,11 @@ impl CoursePermissionMiddleware {
                     }
                 };
 
-                // 2. Get UserJWT
                 let user_jwt = match req.extensions().get::<UserJWT>().cloned() {
                     Some(u) => u,
                     None => {
                         log::warn!(
-                            "event=permission_denied scope=course reason=missing_jwt permission={}",
+                            "event=permission_denied scope=organization reason=missing_jwt permission={}",
                             permission_name
                         );
                         return Box::pin(futures::future::ready(Err(
@@ -55,30 +51,29 @@ impl CoursePermissionMiddleware {
                     }
                 };
 
-                // 3. Extract Course ID
-                let course_id_str_opt =
-                    extract_param(req, &name_param_of_course, type_param_of_course);
-                let course_id = match course_id_str_opt {
+                let org_id_str_opt =
+                    extract_param(req, &name_param_of_organization, type_param_of_organization);
+                let organization_id = match org_id_str_opt {
                     Some(id_str) => match id_str.parse::<i32>() {
                         Ok(id) => id,
                         Err(_) => {
                             log::warn!(
-                                "event=permission_denied scope=course reason=invalid_scope_id permission={} raw_scope_id={}",
+                                "event=permission_denied scope=organization reason=invalid_scope_id permission={} raw_scope_id={}",
                                 permission_name,
                                 id_str
                             );
                             return Box::pin(futures::future::ready(Err(
-                                actix_web::error::ErrorBadRequest("Invalid course ID format"),
+                                actix_web::error::ErrorBadRequest("Invalid organization ID format"),
                             )));
                         }
                     },
                     None => {
                         log::warn!(
-                            "event=permission_denied scope=course reason=missing_scope_id permission={}",
+                            "event=permission_denied scope=organization reason=missing_scope_id permission={}",
                             permission_name
                         );
                         return Box::pin(futures::future::ready(Err(
-                            actix_web::error::ErrorBadRequest("Missing course parameter"),
+                            actix_web::error::ErrorBadRequest("Missing organization parameter"),
                         )));
                     }
                 };
@@ -88,26 +83,26 @@ impl CoursePermissionMiddleware {
                         .can(
                             AccessActor::user(user_jwt.user_id),
                             AccessAction::permission(permission_name.clone()),
-                            AccessScope::course(course_id),
+                            AccessScope::organization(organization_id),
                         )
                         .await
                     {
                         Ok(true) => Ok(true),
                         Ok(false) => {
                             log::warn!(
-                                "event=permission_denied scope=course reason=missing_permission permission={} user_id={} course_id={}",
+                                "event=permission_denied scope=organization reason=missing_permission permission={} user_id={} organization_id={}",
                                 permission_name,
                                 user_jwt.user_id,
-                                course_id
+                                organization_id
                             );
                             Ok(false)
                         }
                         Err(AccessDecisionError::Connection(err)) => {
                             log::error!(
-                                "event=permission_check_failed scope=course reason=db_connection permission={} user_id={} course_id={} error={}",
+                                "event=permission_check_failed scope=organization reason=db_connection permission={} user_id={} organization_id={} error={}",
                                 permission_name,
                                 user_jwt.user_id,
-                                course_id,
+                                organization_id,
                                 err
                             );
                             Err(actix_web::error::ErrorInternalServerError(
@@ -116,14 +111,14 @@ impl CoursePermissionMiddleware {
                         }
                         Err(AccessDecisionError::Query(err)) => {
                             log::error!(
-                                "event=permission_check_failed scope=course reason=query permission={} user_id={} course_id={} error={}",
+                                "event=permission_check_failed scope=organization reason=query permission={} user_id={} organization_id={} error={}",
                                 permission_name,
                                 user_jwt.user_id,
-                                course_id,
+                                organization_id,
                                 err
                             );
                             Err(actix_web::error::ErrorInternalServerError(
-                                "Failed to check user permission within course",
+                                "Failed to check user permission within organization",
                             ))
                         }
                     }
@@ -132,7 +127,7 @@ impl CoursePermissionMiddleware {
             },
             || {
                 actix_web::error::ErrorForbidden(
-                    "User does not have the required permission within the course",
+                    "User does not have the required permission within the organization",
                 )
             },
         )

@@ -22,7 +22,7 @@ async fn test_course_content_lifecycle() {
             .app_data(chapter_use_cases_data(&pool))
             .app_data(content_item_use_cases_data(&pool))
             .app_data(content_processing_use_case_data(&pool))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::learning::course_scope()),
     )
     .await;

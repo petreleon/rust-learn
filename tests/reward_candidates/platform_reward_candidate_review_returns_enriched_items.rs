@@ -54,7 +54,7 @@ async fn platform_reward_candidate_review_returns_enriched_items() {
     let app = test::init_service(
         App::new()
             .app_data(web::Data::new(platform_reward_candidates_use_case(&pool)))
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .service(rust_learn::http::rewards::platform_reward_candidates_resource()),
     )
     .await;

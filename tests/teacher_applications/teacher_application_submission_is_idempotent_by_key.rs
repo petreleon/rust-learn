@@ -53,7 +53,7 @@ async fn teacher_application_submission_is_idempotent_by_key() {
     let app = test::init_service(
         App::new()
             .app_data(teacher_application_submit_data())
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::teacher_applications::configure_routes),
     )
     .await;
@@ -104,7 +104,7 @@ async fn applicant_can_read_latest_application_snapshot_without_review_permissio
     let app = test::init_service(
         App::new()
             .app_data(teacher_application_self_data())
-            .wrap(rust_learn::middlewares::jwt_middleware::JwtMiddleware)
+            .wrap(rust_learn::http::middlewares::jwt_middleware::JwtMiddleware)
             .configure(rust_learn::http::teacher_applications::configure_routes),
     )
     .await;
