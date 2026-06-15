@@ -1,7 +1,7 @@
 # TODO 18: Architecture Modularity And Firm Boundaries
 
 Last compacted: 2026-06-15.
-Last named verified base: `dbc5259f`.
+Last named verified base: `2287a1f9`.
 
 Objective: move RustLearn to a Level 2 modular monolith with firm business
 boundaries. The target is ownership, not folder volume: HTTP, use cases, domain
@@ -95,15 +95,16 @@ Detailed history belongs in git; this table keeps the architectural proof.
 | 333 | `247a5096` | Typed teacher reward decision output status; infra parses persisted status and HTTP maps it back to the public string. |
 | 334 | `a3a7bbbf` | Typed reward amount decision output status; infra parses persisted status and HTTP preserves the public string contract. |
 | 335 | `dbc5259f` | Typed reward candidate submission output status; creation and idempotent replay parse persisted status before use-case output. |
-| 336 | same commit as this TODO update | Typed course candidate, platform candidate, and student reward-history read-model status at the infra/application boundary; HTTP keeps public string DTOs. Proof: mapper known/unknown-status tests, course/platform/history use-case filters, `reward_course_candidates`, platform candidate integration, `student_reward_history`, `api_routing`, Cargo format/check gates, no-run integration compile, line checks, and boundary scans. |
+| 336 | `2287a1f9` | Typed course candidate, platform candidate, and student reward-history read-model status at the infra/application boundary; HTTP keeps public string DTOs. |
+| 337 | same commit as this TODO update | Typed reward candidate audit `from_status`/`to_status` and reconciliation `final_status` at the infra/application boundary; HTTP keeps public audit-status strings and DB audit inserts stay infra-owned. Proof: audit mapper known/unknown-status tests, candidate-audit and reconciliation use-case tests, `reward_candidate_audit`, `reward_candidates`, `reward_execution` reconciliation integration, `api_routing`, Cargo format/check gates, no-run integration compile, line checks, and boundary scans. |
 
 ## Active Remaining Work
 
-- Rewards: type remaining status/string boundaries such as candidate audit
-  `to_status`, reconciliation `final_status`, and any transition output that
-  still crosses application as a raw persisted status string.
 - Rewards: keep converting event/source/method strings into domain vocabulary
   where they represent business state rather than public query strings.
+- Rewards: inspect remaining audit/event outputs, payout/credit method outputs,
+  and transition records for business-state strings that should become domain
+  vocabulary before crossing into application.
 - Persistence: keep Diesel schema/model leakage inside infra or persistence
   records.
 - HTTP: keep public API DTOs HTTP-owned and separate from Diesel records.

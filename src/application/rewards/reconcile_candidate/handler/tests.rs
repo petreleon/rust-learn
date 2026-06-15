@@ -5,6 +5,7 @@ use crate::application::rewards::reconcile_candidate::{
     RewardReconciliation, RewardReconciliationError, RewardReconciliationOutput,
     RewardReconciliationStore,
 };
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[tokio::test]
 async fn direct_reconciliation_records_without_actor() {
@@ -89,7 +90,7 @@ impl RewardReconciliationStore for FakeStore {
                 notification_created: true,
                 external_transaction_link_repaired: false,
                 internal_transaction_link_repaired: false,
-                final_status: "notified".to_string(),
+                final_status: RewardCandidateStatus::Notified,
             })
         }
         .boxed()

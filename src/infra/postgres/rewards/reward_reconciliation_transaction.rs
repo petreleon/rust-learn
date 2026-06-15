@@ -3,6 +3,7 @@ use diesel_async::AsyncPgConnection;
 use crate::application::rewards::reconcile_candidate::{
     RewardReconciliation, RewardReconciliationError, RewardReconciliationOutput,
 };
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 use crate::infra::postgres::rewards::reward_candidate_records::find_candidate;
 use crate::infra::postgres::rewards::reward_payout_records::find_reward_payout_record_by_candidate;
 use crate::infra::postgres::rewards::reward_reconciliation_audit::{
@@ -122,12 +123,15 @@ async fn reconcile_candidate_transaction(
     )
     .await?;
 
+    let final_status = RewardCandidateStatus::parse(&candidate.status)
+        .map_err(|error| RewardReconciliationError::InvalidStatus(error.to_string()))?;
+
     Ok(RewardReconciliationOutput {
         candidate_id: candidate.id,
         wallet_credit_created,
         notification_created,
         external_transaction_link_repaired,
         internal_transaction_link_repaired,
-        final_status: candidate.status,
+        final_status,
     })
 }

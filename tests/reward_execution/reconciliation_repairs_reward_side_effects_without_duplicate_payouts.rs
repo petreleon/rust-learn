@@ -55,7 +55,7 @@ async fn reconciliation_repairs_reward_side_effects_without_duplicate_payouts() 
     assert!(first.wallet_credit_created);
     assert!(first.notification_created);
     assert!(!first.internal_transaction_link_repaired);
-    assert_eq!(first.final_status, REWARD_STATUS_NOTIFIED);
+    assert_eq!(first.final_status.as_str(), REWARD_STATUS_NOTIFIED);
 
     let wallet = wallets::table
         .filter(wallets::user_id.eq(Some(student.id())))
@@ -116,7 +116,7 @@ async fn reconciliation_repairs_reward_side_effects_without_duplicate_payouts() 
     assert!(!second.wallet_credit_created);
     assert!(!second.notification_created);
     assert!(second.internal_transaction_link_repaired);
-    assert_eq!(second.final_status, REWARD_STATUS_NOTIFIED);
+    assert_eq!(second.final_status.as_str(), REWARD_STATUS_NOTIFIED);
 
     let wallet_after_second_reconcile = wallets::table
         .find(wallet.id)
@@ -142,5 +142,5 @@ async fn reconciliation_repairs_reward_side_effects_without_duplicate_payouts() 
     assert!(!third.wallet_credit_created);
     assert!(!third.notification_created);
     assert!(!third.internal_transaction_link_repaired);
-    assert_eq!(third.final_status, REWARD_STATUS_NOTIFIED);
+    assert_eq!(third.final_status.as_str(), REWARD_STATUS_NOTIFIED);
 }

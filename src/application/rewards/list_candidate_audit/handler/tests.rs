@@ -8,6 +8,7 @@ use crate::application::rewards::list_candidate_audit::{
     RewardCandidateAuditError, RewardCandidateAuditEvent,
 };
 use crate::application::rewards::ports::RewardCandidateAuditStore;
+use crate::domain::rewards::candidate::status::RewardCandidateStatus;
 
 #[test]
 fn lists_events_after_permission_and_candidate_checks() {
@@ -94,7 +95,7 @@ impl RewardCandidateAuditStore for FakeRewardCandidateAuditStore {
             actor_user_id: Some(42),
             event_type: "candidate_submitted".to_string(),
             from_status: None,
-            to_status: "pending_teacher_approval".to_string(),
+            to_status: RewardCandidateStatus::PendingTeacherApproval,
             reason: Some("eligible".to_string()),
             metadata: json!({"source": "test"}),
             created_at: Utc::now(),
