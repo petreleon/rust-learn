@@ -2,7 +2,7 @@ use actix_web::{dev::ServiceRequest, web, HttpMessage};
 use futures::FutureExt;
 
 use crate::application::access_control::check_permission::{
-    PermissionCheckError, PermissionCheckService, PermissionScope,
+    AccessAction, AccessActor, AccessDecisionError, AccessScope, PermissionCheckService,
 };
 use crate::domain::identity::UserJWT;
 use crate::http::request_params::extract_param;
@@ -80,10 +80,10 @@ impl OrganizationPermissionMiddleware {
 
                 async move {
                     match permission_check
-                        .has_permission(
-                            user_jwt.user_id,
-                            PermissionScope::Organization { organization_id },
-                            permission_name.clone(),
+                        .can(
+                            AccessActor::user(user_jwt.user_id),
+                            AccessAction::permission(permission_name.clone()),
+                            AccessScope::Organization { organization_id },
                         )
                         .await
                     {
@@ -97,7 +97,7 @@ impl OrganizationPermissionMiddleware {
                             );
                             Ok(false)
                         }
-                        Err(PermissionCheckError::Connection(err)) => {
+                        Err(AccessDecisionError::Connection(err)) => {
                             log::error!(
                                 "event=permission_check_failed scope=organization reason=db_connection permission={} user_id={} organization_id={} error={}",
                                 permission_name,
@@ -109,7 +109,7 @@ impl OrganizationPermissionMiddleware {
                                 "Failed to get database connection",
                             ))
                         }
-                        Err(PermissionCheckError::Query(err)) => {
+                        Err(AccessDecisionError::Query(err)) => {
                             log::error!(
                                 "event=permission_check_failed scope=organization reason=query permission={} user_id={} organization_id={} error={}",
                                 permission_name,

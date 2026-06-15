@@ -2,7 +2,7 @@ use actix_web::{dev::ServiceRequest, web, HttpMessage};
 use futures::FutureExt;
 
 use crate::application::access_control::check_permission::{
-    PermissionCheckError, PermissionCheckService, PermissionScope,
+    AccessAction, AccessActor, AccessDecisionError, AccessScope, PermissionCheckService,
 };
 use crate::domain::identity::UserJWT;
 use crate::middlewares::conditional_access_middleware::ConditionalAccessMiddleware;
@@ -45,10 +45,10 @@ impl PlatformPermissionMiddleware {
 
                 async move {
                     match permission_check
-                        .has_permission(
-                            user_jwt.user_id,
-                            PermissionScope::Platform,
-                            permission_name.clone(),
+                        .can(
+                            AccessActor::user(user_jwt.user_id),
+                            AccessAction::permission(permission_name.clone()),
+                            AccessScope::Platform,
                         )
                         .await
                     {
@@ -61,7 +61,7 @@ impl PlatformPermissionMiddleware {
                             );
                             Ok(false)
                         }
-                        Err(PermissionCheckError::Connection(err)) => {
+                        Err(AccessDecisionError::Connection(err)) => {
                             log::error!(
                                 "event=permission_check_failed scope=platform reason=db_connection permission={} user_id={} error={}",
                                 permission_name,
@@ -72,7 +72,7 @@ impl PlatformPermissionMiddleware {
                                 "Failed to get database connection",
                             ))
                         }
-                        Err(PermissionCheckError::Query(err)) => {
+                        Err(AccessDecisionError::Query(err)) => {
                             log::error!(
                                 "event=permission_check_failed scope=platform reason=query permission={} user_id={} error={}",
                                 permission_name,

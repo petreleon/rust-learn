@@ -1586,6 +1586,33 @@ Batch 302: move learning handlers to typed HTTP results.
       central authorization, capability-contract cleanup, and residual legacy
       model/repository ownership, not handler-local response construction.
 
+Batch 303: introduce the access-control `can(actor, action, scope)` API.
+
+- [x] Added `AccessActor`, `AccessAction`, `AccessScope`, and
+      `AccessDecisionUseCase::can` to `application/access_control`, with the
+      old `PermissionCheckService` and `has_permission` surface kept as a
+      compatibility bridge for existing wiring and tests.
+- [x] Repointed the Postgres permission-check adapter from implementing
+      `has_permission(user, scope, permission)` directly to implementing the
+      new `can(actor, action, scope)` decision contract.
+- [x] Repointed platform, organization, and course permission middleware to
+      call `can(...)`, so early HTTP rejection now uses the same actor/action/
+      scope vocabulary that deeper application authorization can converge on.
+- [x] Proved behavior and boundaries with `cargo fmt --all --check`,
+      `./scripts/run-host-tests.sh cargo test --lib access_control::check_permission`,
+      `./scripts/run-host-tests.sh cargo test --test middleware_access_control`,
+      `./scripts/run-host-tests.sh cargo check --lib`,
+      `./scripts/run-host-tests.sh cargo check --bin rust-learn --features app-bin`,
+      `./scripts/run-host-tests.sh bash -lc 'cargo test --tests --no-run'`,
+      middleware/adapter scans proving direct `.has_permission(...)` calls were
+      removed from those call sites, ring import-boundary scans,
+      `git diff --check`, and touched file-size checks.
+- [x] Self-critique: this creates the shared decision API and moves middleware
+      onto it, but it does not finish central authorization. Reward/wallet
+      action-specific authorization and older context-specific permission ports
+      still need to converge onto this vocabulary before permission behavior
+      can be called one backend source of truth.
+
 Batch 287: remove the final legacy request-auth helper.
 
 - [x] Added a current-session-specific typed extractor beside the `/api/me`
@@ -1760,7 +1787,7 @@ boundary checks from the matrix above to every canonical context.
       adapter/use case, HTTP DTO mapping, bootstrap wiring, and
       delegated-permission/API tests; the legacy include-based delegated
       permission service has been deleted.
-- [ ] Create one access-control API for `can(actor, action, scope)` style
+- [x] Create one access-control API for `can(actor, action, scope)` style
       decisions.
 - [ ] Encode scope as types instead of loose strings where practical:
       `PlatformScope`, `OrganizationScope`, `CourseScope`, `DelegatedScope`.
