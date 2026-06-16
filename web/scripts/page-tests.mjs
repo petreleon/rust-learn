@@ -3,8 +3,10 @@
 import { spawn } from "node:child_process";
 
 const pageTestFiles = [
+  "src/app/__tests__/app-page-boundaries.test.tsx",
   "src/components/__tests__/product-shell-render.test.tsx",
   "src/components/__tests__/product-shell-mobile-layout.test.tsx",
+  "src/features/auth/login/model/__tests__/intendedLoginRoute.test.ts",
   "src/features/admin/dashboard/__tests__/AdminDashboardRoute.test.tsx",
   "src/features/admin/delegations/__tests__/AdminDelegationsRoute.test.tsx",
   "src/features/admin/fraud-blocks/__tests__/AdminFraudBlocksRoute.test.tsx",

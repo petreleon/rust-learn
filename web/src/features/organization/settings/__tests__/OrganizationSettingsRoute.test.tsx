@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readBrowserSessionToken } from "@/shared/session/browserSession";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
 import { type OrganizationDetail } from "@/lib/organization/OrganizationDetail";
+import { OrganizationRequestError } from "@/lib/organization/OrganizationRequestError";
 import { OrganizationSettingsRoute } from "../route/OrganizationSettingsRoute";
 import {
   loadCurrentOrganizationSession,
@@ -84,6 +85,17 @@ describe("OrganizationSettingsRoute", () => {
     render(<OrganizationSettingsRoute organizationId="4" />);
 
     expect((await screen.findAllByText("Organization settings could not be loaded.")).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Retry" })).toBeVisible();
+  });
+
+  it("shows a timeout state when settings cannot finish loading", async () => {
+    vi.mocked(loadOrganizationSettings).mockRejectedValue(
+      new OrganizationRequestError("Organization request timed out.", 0, "timeout"),
+    );
+
+    render(<OrganizationSettingsRoute organizationId="4" />);
+
+    expect((await screen.findAllByText("Organization request timed out.")).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "Retry" })).toBeVisible();
   });
 

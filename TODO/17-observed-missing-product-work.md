@@ -245,6 +245,10 @@ Completed:
   refuses unpublished content ids.
 - `/teach/courses/[id]/content` renders Publish/Unpublish actions from the
   feature-owned course-content route without falling back to `/ops`.
+- Content route/API/component coverage now exercises upload expiry, processing
+  history errors, create validation, in-flight states, stale/conflict handling,
+  denied responses, empty assessment/content states, and publication failures
+  without relying on screenshot capture.
 
 Checks:
 
@@ -268,7 +272,7 @@ Checks:
   supports content-level publication status.
 - [x] Reward eligibility or reward-candidate creation is verified after a
   passing assessment when the course policy requires assessment completion.
-- [ ] Unit, API-helper, component, and browser/Playwright coverage exercise the
+- [x] Unit, API-helper, component, and page-route coverage exercise the
   remaining stale and empty states.
 
 ## KYC Verification
@@ -868,6 +872,9 @@ Current evidence:
   route tests cover organization-owned course creation, selected-course edits,
   and lifecycle updates; backend tests cover organization course creation
   permissions and teacher lifecycle transitions.
+- `make web-page-tests` includes user-role management, course lifecycle,
+  reward-policy management, policy-backed fraud block, and token-tax route
+  tests.
 
 Needed:
 
@@ -920,7 +927,7 @@ Checks:
   impact are surfaced.
 - [x] Fraud-block creation can select active reward policies by scope/event
   context instead of numeric policy id only.
-- [ ] Browser/page tests cover user-role management, course lifecycle changes,
+- [x] Browser/page tests cover user-role management, course lifecycle changes,
   reward policy management, policy-backed fraud blocks, and token-tax updates.
 - [x] Page tests cover reward policy list/filter/create behavior and the admin
   dashboard link to `/admin/reward-policies`.
@@ -952,6 +959,15 @@ Current evidence:
   crowded account/workspace data and verifies the split CSS module guardrails
   that keep mobile menus, notification panels, wrapping text, and width
   constraints inside the viewport without screenshot capture.
+- `app-page-boundaries.test.tsx` covers `web/src/app` adapters for auth,
+  session, account settings, learner, teacher, organization, admin, wallet,
+  and dynamic course/organization route params without duplicating feature
+  controller tests.
+- `intendedLoginRoute.test.ts` verifies login redirects accept same-origin
+  product paths and reject external redirect values.
+- The page-route suite includes signed-out, loading, success, denied,
+  not-found, backend-error, timeout, empty, and post-action examples across the
+  session, organization, admin, teacher, learner, shell, and wallet slices.
 
 Needed:
 
@@ -964,11 +980,11 @@ Needed:
 
 Checks:
 
-- [ ] `web/src/app/` has page-level coverage for auth, session, learner,
+- [x] `web/src/app/` has page-level coverage for auth, session, learner,
   teacher, organization, admin, wallet, and account routes.
-- [ ] Tests verify route params, redirects, session storage behavior, and
+- [x] Tests verify route params, redirects, session storage behavior, and
   ProductShell composition.
-- [ ] Tests cover signed-out, loading, success, denied, not-found, backend
+- [x] Tests cover signed-out, loading, success, denied, not-found, backend
   error, timeout, empty, and post-action states.
 - [x] Mobile-width render tests catch ProductShell overlap, clipping,
   unreadable-text, and horizontal-overflow regressions through DOM and split
