@@ -7,6 +7,8 @@ import {
   type AssessmentItem,
 } from "@/lib/learner";
 
+export type { AssessmentAttemptResult } from "@/lib/learner";
+
 export type CourseAssessmentSnapshot = {
   assessments: AssessmentItem[];
   attemptsByAssessmentId: Record<number, AssessmentAttempt[]>;

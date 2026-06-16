@@ -1,6 +1,8 @@
 use chrono::Utc;
 
-use crate::application::learning::assessment::CompletedAssessmentAttempt;
+use crate::application::learning::assessment::{
+    AssessmentRewardHandoff, AssessmentRewardHandoffOutput, CompletedAssessmentAttempt,
+};
 use crate::application::learning::ports::AssessmentSubmissionStore;
 use crate::application::learning::submit_assessment_attempt::{
     AssessmentSubmissionError, SubmitAssessmentAttemptCommand, SubmitAssessmentAttemptOutput,
@@ -48,6 +50,25 @@ pub async fn submit_assessment_attempt(
             completed_at: Utc::now(),
         })
         .await?;
+    let reward_handoff = if passed {
+        store
+            .create_assessment_reward_handoff(AssessmentRewardHandoff {
+                course_id: command.course_id,
+                assessment_id: command.assessment_id,
+                attempt_id: attempt.id,
+                user_id: command.user_id,
+                score: score.score,
+                total_points: score.total_points,
+                percentage: score.percentage,
+                passing_score: assessment.passing_score,
+            })
+            .await
+            .unwrap_or_else(|error| {
+                AssessmentRewardHandoffOutput::failed(format!("Reward handoff failed: {error:?}"))
+            })
+    } else {
+        AssessmentRewardHandoffOutput::not_earned()
+    };
 
     Ok(SubmitAssessmentAttemptOutput {
         attempt,
@@ -55,5 +76,6 @@ pub async fn submit_assessment_attempt(
         total_points: score.total_points,
         percentage: score.percentage,
         passed,
+        reward_handoff,
     })
 }

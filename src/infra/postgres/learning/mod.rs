@@ -4,6 +4,7 @@ pub mod assessment_authoring_use_case;
 mod assessment_authoring_writes;
 pub mod assessment_read_store;
 pub mod assessment_read_use_case;
+mod assessment_reward_handoff;
 pub mod assessment_submission_store;
 pub mod assessment_submission_use_case;
 mod content_processing_queries;

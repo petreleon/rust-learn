@@ -76,6 +76,13 @@ describe("CourseAssessmentPanel", () => {
       },
       passed: true,
       percentage: 100,
+      reward_handoff: {
+        candidate_id: 91,
+        event_type: "assessment_completion",
+        message: "Reward review was queued for this assessment completion.",
+        policy_id: 12,
+        status: "created",
+      },
       score: 2,
       total_points: 2,
     });
@@ -93,7 +100,7 @@ describe("CourseAssessmentPanel", () => {
         token: "learner-token",
       }),
     );
-    expect(await screen.findByText("Assessment passed.")).toBeVisible();
+    expect(await screen.findByText("Assessment passed. Reward review queued.")).toBeVisible();
     expect(screen.getByText("Score 2")).toBeVisible();
   });
 

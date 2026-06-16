@@ -18,7 +18,7 @@ use crate::infra::postgres::rewards::reward_candidate_submission_mappers::{
 };
 use crate::infra::postgres::rewards::reward_candidate_submission_validation::normalize_idempotency_key;
 
-pub(super) async fn submit_reward_candidate(
+pub(in crate::infra::postgres) async fn submit_reward_candidate(
     conn: &mut AsyncPgConnection,
     submission: RewardCandidateSubmission,
 ) -> Result<RewardCandidateSubmissionOutput, RewardCandidateSubmissionError> {

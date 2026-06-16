@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::application::learning::assessment::{
-    AssessmentAttemptOutput, AssessmentOutput, LearnerAssessmentQuestionOutput,
+    AssessmentAttemptOutput, AssessmentOutput, AssessmentRewardHandoffOutput,
+    AssessmentRewardHandoffStatus, LearnerAssessmentQuestionOutput,
 };
 use crate::application::learning::submit_assessment_attempt::{
     SubmitAssessmentAttemptCommand, SubmitAssessmentAttemptOutput,
@@ -123,6 +124,7 @@ pub struct SubmitAssessmentAttemptResponse {
     pub total_points: i32,
     pub percentage: i32,
     pub passed: bool,
+    pub reward_handoff: AssessmentRewardHandoffResponse,
 }
 
 impl From<SubmitAssessmentAttemptOutput> for SubmitAssessmentAttemptResponse {
@@ -133,6 +135,38 @@ impl From<SubmitAssessmentAttemptOutput> for SubmitAssessmentAttemptResponse {
             total_points: output.total_points,
             percentage: output.percentage,
             passed: output.passed,
+            reward_handoff: AssessmentRewardHandoffResponse::from(output.reward_handoff),
         }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AssessmentRewardHandoffResponse {
+    pub status: &'static str,
+    pub event_type: String,
+    pub candidate_id: Option<i64>,
+    pub policy_id: Option<i64>,
+    pub message: String,
+}
+
+impl From<AssessmentRewardHandoffOutput> for AssessmentRewardHandoffResponse {
+    fn from(output: AssessmentRewardHandoffOutput) -> Self {
+        Self {
+            status: reward_handoff_status(output.status),
+            event_type: output.event_type,
+            candidate_id: output.candidate_id,
+            policy_id: output.policy_id,
+            message: output.message,
+        }
+    }
+}
+
+fn reward_handoff_status(status: AssessmentRewardHandoffStatus) -> &'static str {
+    match status {
+        AssessmentRewardHandoffStatus::NotEarned => "not_earned",
+        AssessmentRewardHandoffStatus::Created => "created",
+        AssessmentRewardHandoffStatus::AlreadyExists => "already_exists",
+        AssessmentRewardHandoffStatus::MissingPolicy => "missing_policy",
+        AssessmentRewardHandoffStatus::Failed => "failed",
     }
 }

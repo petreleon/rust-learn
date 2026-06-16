@@ -2,7 +2,8 @@ use futures::future::BoxFuture;
 
 use crate::application::learning::assessment::{
     AssessmentAttemptOutput, AssessmentOutput, AssessmentQuestionForScoring, AssessmentReadError,
-    CompletedAssessmentAttempt, LearnerAssessmentQuestionOutput,
+    AssessmentRewardHandoff, AssessmentRewardHandoffOutput, CompletedAssessmentAttempt,
+    LearnerAssessmentQuestionOutput,
 };
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionError;
 
@@ -46,4 +47,9 @@ pub trait AssessmentSubmissionStore {
         &mut self,
         attempt: CompletedAssessmentAttempt,
     ) -> BoxFuture<'_, Result<AssessmentAttemptOutput, AssessmentSubmissionError>>;
+
+    fn create_assessment_reward_handoff(
+        &mut self,
+        handoff: AssessmentRewardHandoff,
+    ) -> BoxFuture<'_, Result<AssessmentRewardHandoffOutput, AssessmentSubmissionError>>;
 }

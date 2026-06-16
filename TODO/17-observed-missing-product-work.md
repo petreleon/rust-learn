@@ -207,17 +207,23 @@ Current evidence:
   feature API boundary and renders a course-scoped authoring panel for creating
   drafts, adding multiple ordered questions, setting correct answers, editing
   existing assessments, publishing, and previewing draft/published state.
+- Passing learner assessments now trigger a Level 2 application reward handoff:
+  the learning use case calls a learning port, Postgres infra reuses active
+  reward-policy and candidate-submission rules, and the HTTP response returns
+  `reward_handoff` with `created`, `already_exists`, `missing_policy`,
+  `not_earned`, or `failed` status plus candidate/policy context.
+- The learner assessment panel now shows reward review queued/already queued
+  copy or the backend missing-policy explanation after a passed assessment.
 
 Needed:
 
-- Add reward eligibility handoff after passing learner assessments.
 - Finish the remaining content lifecycle controls: unpublish lesson once the
   backend supports content-level publication status, upload expiry recovery,
   processing audit/history, and richer processing-error recovery.
-- Add reward-trigger handoff tests and any richer assessment analytics the
-  product needs after authoring and learner attempts.
+- Add any richer assessment analytics the product needs after authoring,
+  learner attempts, and reward handoff.
 - Add tests for content processing states, max-attempt behavior beyond the
-  current route coverage, and reward-trigger handoff.
+  current route coverage.
 
 Checks:
 
@@ -236,7 +242,7 @@ Checks:
   failed-processing retry without falling back to `/ops`.
 - [ ] Content unpublish, upload-expiry recovery, processing audit/history, and
   richer processing-error recovery states render without falling back to `/ops`.
-- [ ] Reward eligibility or reward-candidate creation is verified after a
+- [x] Reward eligibility or reward-candidate creation is verified after a
   passing assessment when the course policy requires assessment completion.
 - [ ] Unit, API-helper, component, and browser/Playwright coverage exercise the
   remaining denied, stale, failed, and empty states.
@@ -526,7 +532,7 @@ Current evidence:
   assessments exist; enrolled learners see "Open assessments", while
   non-enrolled users with content access see "Preview assessments".
 - Teacher assessment authoring and reward eligibility handoff after passing
-  assessments are still missing.
+  assessments now exist in course-scoped product routes and HTTP responses.
 
 Needed:
 
@@ -824,7 +830,7 @@ Checks:
   selected by name/context wherever a numeric policy id is still required.
 - [x] Reward policies can be inspected from the loaded admin policy list
   without using `/ops`.
-- [ ] Reward candidate creation and assessment handoff surface the policy that
+- [x] Reward candidate creation and assessment handoff surface the policy that
   makes a reward event eligible, or explains which policy is missing.
 - [x] Teacher reward review surfaces active/missing policy coverage for the
   course and visible candidates.

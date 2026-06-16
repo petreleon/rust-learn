@@ -6,7 +6,7 @@ use crate::domain::rewards::policy::{
 };
 use crate::infra::postgres::schema::{courses_organizations, reward_policies};
 
-pub(super) async fn active_reward_policy_ids_for_course_event(
+pub(in crate::infra::postgres) async fn active_reward_policy_ids_for_course_event(
     conn: &mut AsyncPgConnection,
     course_id: i32,
     event_type: &str,

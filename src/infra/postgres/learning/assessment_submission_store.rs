@@ -4,10 +4,11 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::learning::assessment::{
     AssessmentAttemptOutput, AssessmentOutput, AssessmentQuestionForScoring,
-    CompletedAssessmentAttempt,
+    AssessmentRewardHandoff, AssessmentRewardHandoffOutput, CompletedAssessmentAttempt,
 };
 use crate::application::learning::ports::AssessmentSubmissionStore;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionError;
+use crate::infra::postgres::learning::assessment_reward_handoff::create_assessment_reward_handoff;
 use crate::infra::postgres::models::assessment::{
     Assessment, AssessmentAttempt, AssessmentQuestion,
 };
@@ -100,6 +101,13 @@ impl AssessmentSubmissionStore for PostgresAssessmentSubmissionStore<'_> {
                 .map_err(map_attempt_save_error)
         }
         .boxed()
+    }
+
+    fn create_assessment_reward_handoff(
+        &mut self,
+        handoff: AssessmentRewardHandoff,
+    ) -> BoxFuture<'_, Result<AssessmentRewardHandoffOutput, AssessmentSubmissionError>> {
+        async move { create_assessment_reward_handoff(self.conn, handoff).await }.boxed()
     }
 }
 

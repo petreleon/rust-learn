@@ -6,6 +6,7 @@ import { normalizeRouteError } from "../../components/normalizeRouteError";
 import {
   loadCourseAssessmentSnapshot,
   submitCourseAssessmentAttempt,
+  type AssessmentAttemptResult,
   type CourseAssessmentSnapshot,
 } from "../api/courseAssessmentApi";
 import { emptyAssessmentDraft, type AssessmentDraft } from "../model/assessmentState";
@@ -87,7 +88,7 @@ export function useCourseAssessments(courseId: number) {
         },
       });
       setDrafts((current) => ({ ...current, [assessmentId]: emptyAssessmentDraft(assessment) }));
-      setNotice(result.passed ? "Assessment passed." : "Attempt submitted.");
+      setNotice(submissionNotice(result));
     } catch (nextError) {
       const requestError = normalizeRouteError(nextError);
       if (requestError.status === 401) clearBrowserSession();
@@ -108,4 +109,20 @@ export function useCourseAssessments(courseId: number) {
     submitAssessment,
     updateAnswer,
   };
+}
+
+function submissionNotice(result: AssessmentAttemptResult): string {
+  if (!result.passed) return "Attempt submitted.";
+  switch (result.reward_handoff.status) {
+    case "created":
+      return "Assessment passed. Reward review queued.";
+    case "already_exists":
+      return "Assessment passed. Reward review already queued.";
+    case "missing_policy":
+      return result.reward_handoff.message;
+    case "failed":
+      return "Assessment passed. Reward handoff failed.";
+    case "not_earned":
+      return "Assessment passed.";
+  }
 }
