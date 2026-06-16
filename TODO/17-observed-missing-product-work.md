@@ -619,6 +619,10 @@ Current evidence:
   paths: draft an invite request for an existing organization, draft a new
   organization creation request for a platform admin, or review the session
   identity/permission scopes that must receive access.
+- Organization members now expose an access-workflow panel: add-by-email is
+  shown only when backend operator permissions include member invites, success
+  copy says existing-user access is immediate, and pending learner joins link
+  to organization courses where pending join counts already appear.
 
 Needed:
 
@@ -637,7 +641,7 @@ Checks:
   navigation.
 - [x] A user with no organizations sees a clear create/request/access path,
   not only an empty state.
-- [ ] Organization owners can invite/add members and see pending invite or join
+- [x] Organization owners can invite/add members and see pending invite or join
   states from product routes.
 - [ ] Organization routes preserve clear permission-denied, not-found, empty,
   loading, and backend-error states.

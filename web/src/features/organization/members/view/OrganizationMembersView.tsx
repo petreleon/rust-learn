@@ -9,6 +9,7 @@ import { MissingOrganizationState } from "@/features/organization/shared/route-k
 import { OrganizationStatus } from "@/features/organization/shared/route-kit/OrganizationStatus";
 import { SignedOutState } from "@/features/organization/shared/route-kit/SignedOutState";
 import { organizationNotice } from "@/features/organization/shared/route-kit/organizationNotice";
+import { MemberAccessWorkflowPanel } from "../components/MemberAccessWorkflowPanel";
 import { OrganizationMembersContent } from "../components/OrganizationMembersContent";
 import { organizationMembersTitle } from "../model/organizationMembersRouteModel";
 import { type OrganizationMembersRouteController } from "../route/useOrganizationMembersRoute";
@@ -48,17 +49,25 @@ export function OrganizationMembersView({
       {route.session && route.organization && !route.canViewMembers ? (
         <MembersDeniedState capability={route.membersCapability} organizationName={route.organization.name} />
       ) : null}
+      {route.session && route.organization && route.canViewMembers && route.members ? (
+        <MemberAccessWorkflowPanel
+          canInviteMembers={route.members.operator_permissions.can_invite_members}
+          organizationId={route.organization.id}
+        />
+      ) : null}
       {route.session && route.organization && route.canViewMembers ? (
         <>
-          <InviteMemberForm
-            email={route.inviteEmail}
-            inviteMessage={route.inviteMessage}
-            inviteState={route.inviteState}
-            onEmailChange={route.setInviteEmail}
-            onRoleChange={route.setInviteRole}
-            onSubmit={route.handleInviteMember}
-            roleName={route.inviteRole}
-          />
+          {route.members?.operator_permissions.can_invite_members ? (
+            <InviteMemberForm
+              email={route.inviteEmail}
+              inviteMessage={route.inviteMessage}
+              inviteState={route.inviteState}
+              onEmailChange={route.setInviteEmail}
+              onRoleChange={route.setInviteRole}
+              onSubmit={route.handleInviteMember}
+              roleName={route.inviteRole}
+            />
+          ) : null}
           <OrganizationMembersContent
             assignRoleMessage={route.assignRoleMessage}
             assignRoleState={route.assignRoleState}

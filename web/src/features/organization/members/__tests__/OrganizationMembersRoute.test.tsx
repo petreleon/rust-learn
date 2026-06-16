@@ -54,6 +54,12 @@ describe("OrganizationMembersRoute", () => {
 
     expect(await screen.findByRole("heading", { name: "Member directory" })).toBeVisible();
     expect(screen.getByText("Ada Operator")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Member access workflow" })).toBeVisible();
+    expect(screen.getByText("Pending joins live on courses")).toBeVisible();
+    expect(screen.getByRole("link", { name: /Review course joins/i })).toHaveAttribute(
+      "href",
+      "/organizations/4/courses",
+    );
     expect(loadOrganizationMembers).toHaveBeenCalledWith({
       limit: 8,
       offset: 0,
@@ -80,7 +86,23 @@ describe("OrganizationMembersRoute", () => {
       roleName: undefined,
       token: "org-token",
     });
-    expect(await screen.findByText("Member added.")).toBeVisible();
+    expect(await screen.findByText(/Existing-user access is active immediately/i)).toBeVisible();
+  });
+
+  it("hides add-member controls without invite permission", async () => {
+    vi.mocked(loadOrganizationMembers).mockResolvedValue({
+      ...memberListFixture(),
+      operator_permissions: {
+        ...memberListFixture().operator_permissions,
+        can_invite_members: false,
+      },
+    });
+
+    render(<OrganizationMembersRoute organizationId="4" />);
+
+    expect(await screen.findByRole("heading", { name: "Member access workflow" })).toBeVisible();
+    expect(screen.getByText("Invite permission needed")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Add member" })).not.toBeInTheDocument();
   });
 });
 

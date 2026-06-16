@@ -71,7 +71,7 @@ export function useOrganizationMemberActions({
       setInviteEmail("");
       setInviteRole("");
       setInviteState("success");
-      setInviteMessage("Member added.");
+      setInviteMessage("Member added. Existing-user access is active immediately; pending learner joins stay on Courses.");
       void loadMembers();
     } catch (nextError) {
       setInviteMessage(normalizeOrganizationMembersRouteError(nextError).message);
