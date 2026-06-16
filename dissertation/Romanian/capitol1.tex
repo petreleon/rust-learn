@@ -1,42 +1,49 @@
 \chapter{Introducere}
 
-\section{Context}
-Aceasta secțiune descrie contextul lucrării și motivele care au condus la necesitatea dezvoltării acestei cercetări. În ultimii ani, criptomonedele și tehnologia blockchain au înregistrat o creștere exponențială, devenind nu doar mijloace de investiție, ci și instrumente valoroase pentru inovare în diverse domenii, inclusiv educația digitală. Platformele care recompensează utilizatorii cu criptojetoane au apărut ca o soluție inovatoare în acest spațiu, oferind nu doar oportunități de învățare, ci și de câștig prin implicare activă.
+\section{Contextul lucrării}
+Digitalizarea educației a schimbat modul în care sunt proiectate cursurile, modul în care este urmărit progresul și modul în care sunt evaluate competențele. Platformele de eLearning au făcut posibilă distribuirea rapidă a materialelor, organizarea cursurilor în ritm asincron și extinderea accesului la comunități care nu pot participa constant la activități față în față. Totuși, o limitare importantă rămâne felul în care progresul educațional este perceput de cursant. În multe sisteme, rezultatele apar sub forma unor note, bare de progres sau certificate, dar recompensa este întârziată, dificil de verificat independent și rareori integrată într-un mecanism economic transparent.
 
-În acest context economic și tehnologic, a apărut necesitatea explorării modului în care aceste platforme pot fi extinse pentru a acoperi un spectru mai larg de subiecte educaționale, dincolo de sfera criptomonedelor și a blockchain-ului. Această lucrare își propune să investigheze potențialul și viabilitatea dezvoltării unei platforme educaționale de tip learn-to-earn care să recompenseze utilizatorii pentru participarea la cursuri din domenii variate, în special cele din sfera STEM (Știință, Tehnologie, Inginerie și Matematică).
+Tema lucrării, \textit{\titluLucrare}, pleacă de la ideea că activitatea educațională poate fi însoțită de un mecanism de recompensare verificabil, fără ca procesul didactic să fie redus la o simplă competiție pentru puncte. Tehnologia blockchain permite înregistrarea unor transferuri și evenimente într-un mod transparent, iar contractele inteligente pot automatiza reguli de emitere, transfer sau verificare a unor jetoane digitale \cite{ethereumWhitepaper,solidityDocs}. În același timp, o platformă educațională are nevoie de operații rapide, control al accesului, stocare eficientă a conținutului multimedia, fluxuri administrative și protecția datelor personale. Din acest motiv, soluția analizată în lucrare nu mută toate operațiile în blockchain, ci combină un nucleu web clasic cu un strat de recompense blockchain.
+
+Modelul \textit{learn-to-earn} a devenit vizibil prin platforme care recompensează utilizatorii pentru parcurgerea unor resurse educaționale sau pentru participarea la activități de învățare. Exemple precum BitDegree \cite{bitdegree} sau Phemex Learn Crypto \cite{phemex} arată interesul pentru legătura dintre învățare și recompense digitale, însă aceste soluții sunt frecvent concentrate în jurul conținutului despre criptomonede. Lucrarea propune extinderea acestei logici către o platformă generală de eLearning, în care cursurile, evaluările, organizațiile, rolurile și recompensele pot funcționa împreună într-un sistem coerent.
+
+\section{Motivația cercetării}
+Motivația principală este aceea de a proiecta o platformă în care progresul educațional să fie măsurabil, verificabil și util pentru mai mulți actori: cursanți, profesori, organizații și administratori. Pentru cursant, recompensa poate funcționa ca o confirmare imediată a efortului depus. Pentru profesor, sistemul oferă un mod de a defini activități eligibile pentru recompense și de a valida performanța. Pentru organizații, platforma poate susține programe educaționale interne, bugete de recompensare și rapoarte privind participarea. Pentru administratori, arhitectura trebuie să ofere audit, control al fraudelor, reconciliere și trasabilitate.
+
+Importanța socială a accesului la educație este legată de reducerea unor cercuri de vulnerabilitate. Lipsa educației reduce șansele de angajare, veniturile și participarea socială, iar aceste efecte pot întreține sărăcia și excluziunea. Figura \ref{fig:cerc_vicios_saracie} ilustrează relația dintre sărăcie, sănătate, educație și capital uman. În acest context, o platformă educațională accesibilă și stimulativă nu rezolvă singură aceste probleme, dar poate contribui la reducerea barierelor prin acces la cursuri, feedback și recunoașterea progresului.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{Figuri/The-impacts-from-the-vicious-circle-of-poverty.png}
-    \caption{Impacturile din cercul vicios al sărăciei.\protect\footnotemark}
+    \includegraphics[width=0.92\textwidth]{Figuri/The-impacts-from-the-vicious-circle-of-poverty.png}
+    \caption{Impacturi asociate cercului vicios al sărăciei.\protect\footnotemark}
     \label{fig:cerc_vicios_saracie}
 \end{figure}
-\footnotetext{Sursa: Bell, Victoria et al., "Community Health of Children and Adolescents in Sub-Saharan Africa", European Journal of Medical and Health Sciences, 2023. DOI:10.24018/ejmed.2023.5.3.1702.}
+\footnotetext{Sursa: Bell, Victoria et al., \textit{Community Health of Children and Adolescents in Sub-Saharan Africa}, European Journal of Medical and Health Sciences, 2023 \cite{EJMHS_5_2023}.}
 
+Recompensele cu jetoane digitale trebuie tratate cu prudență. Dacă sunt implementate superficial, ele pot încuraja comportamente oportuniste, colectarea artificială de puncte sau dependența de motivație extrinsecă. De aceea, lucrarea pune accent pe un flux de recompensare auditat: un eveniment educațional produce un candidat la recompensă, eligibilitatea este verificată, suma este aprobată, tranzacția este planificată, iar creditarea portofelului intern se face numai după confirmarea etapei relevante. În acest mod, recompensa devine o consecință a progresului educațional durabil, nu un substitut al învățării.
 
+\section{Problema abordată}
+Problema analizată constă în proiectarea și implementarea unui sistem de eLearning care să integreze recompense blockchain fără a compromite performanța, securitatea și controlul administrativ necesare unei platforme educaționale. Un sistem exclusiv descentralizat ar oferi transparență, dar ar fi costisitor, lent și dificil de adaptat pentru operații educaționale frecvente. Un sistem exclusiv centralizat ar fi mai simplu de operat, dar ar pierde valoarea auditabilă a transferurilor tokenizate și ar depinde complet de încrederea în operatorul platformei.
 
+Soluția propusă este o arhitectură hibridă. Backend-ul Rust/Actix Web gestionează autentificarea, permisiunile, cursurile, progresul, evaluările, organizațiile și operațiile administrative. PostgreSQL păstrează starea operațională și istoricul necesar raportării. Stocarea compatibilă S3 gestionează fișierele de curs, iar un worker separat procesează materialele video. Contractele Solidity și integrarea Ethereum gestionează LearnToken, importul de tokenuri și transferurile semnate. Frontend-ul Next.js oferă interfețe diferențiate pentru cursanți, profesori, organizații și administratori.
 
-Figura \ref{fig:cerc_vicios_saracie} ilustrează ``cercul vicios al sărăciei'', evidențiind cum diverse aspecte negative ale vieții socio-economice și de sănătate sunt legate între ele, formând un cerc vicios. Asta înseamnă că problemele precum sărăcia, malnutriția, lipsa de educație și sănătatea precară se influențează și se întăresc una pe alta. De exemplu, sărăcia poate duce la o alimentație slabă, care afectează sănătatea, iar o sănătate precară poate împiedica o persoană să muncească și să câștige bani, ceea ce menține sărăcia. Aceste probleme sunt atât de strâns legate încât este greu să le rezolvi separat; trebuie să le abordezi pe toate pentru a rupe acest cerc vicios.
+\section{Obiective}
+Obiectivul general al lucrării este realizarea unei platforme de eLearning bazate pe blockchain, capabilă să urmărească activitatea educațională și să susțină recompense tokenizate într-un mod controlat. Obiectivele specifice sunt:
 
-
-\subsection{Motivație}
-Motivația pentru această cercetare derivă din necesitatea de a depăși limitările platformelor existente și de a explora modalități noi și eficiente de a stimula învățarea într-un cadru mai larg, care să integreze domenii diverse din educația STEM. Prin extinderea aplicabilității recompenselor cu criptojetoane la o gamă variată de subiecte educaționale, această cercetare propune o abordare inovatoare care poate contribui la democratizarea accesului la educație de calitate și la creșterea interesului pentru domeniile STEM.
-
-\subsection{Cum o platformă educațională bazată pe criptojetoane ar putea contribui la spargerea acestui ciclu vicios}
-
-O platformă educațională care recompensează utilizatorii cu criptojetoane pentru finalizarea cursurilor și pentru implicarea activă ar putea aborda mai multe dintre elementele negative prezentate în figura \ref{fig:cerc_vicios_saracie}:
-
-\begin{itemize}
-    \item \textbf{Accesul la educație}: Sărăcia reduce accesul la educație, care la rândul său menține indivizii într-un cerc de excludere socială și oportunități limitate de angajare. O platformă care oferă acces gratuit sau la costuri reduse la cursuri online, recompensându-i pe utilizatori cu criptojetoane, ar putea crește accesul la educație, în special în regiunile defavorizate. Aceasta ar putea contribui la îmbunătățirea alfabetizării și a competențelor profesionale, sporind astfel șansele de angajare și veniturile.
-    
-    \item \textbf{Creșterea capitalului uman}: Sărăcia duce la o scădere a capitalului uman, reducând astfel șansele de a obține locuri de muncă bine plătite și de a ieși din sărăcie. Prin stimularea învățării și dezvoltării competențelor, platforma ar putea contribui la creșterea capitalului uman, oferind astfel utilizatorilor posibilitatea de a accesa joburi mai bine plătite sau de a iniția proiecte antreprenoriale. Recompensele în criptojetoane ar putea fi utilizate fie pentru investiții suplimentare în educație, fie pentru îmbunătățirea condițiilor de viață.
-    
-    \item \textbf{Îmbunătățirea sănătății și a gestionării acesteia}: Sărăcia și educația deficitară duc la o sănătate precară și la o gestionare ineficientă a resurselor de sănătate, ceea ce perpetuează starea de sărăcie. Platforma ar putea oferi cursuri de educație pentru sănătate, igienă și nutriție, contribuind astfel la creșterea alfabetizării în domeniul sănătății. Utilizatorii ar putea învăța cum să își gestioneze mai bine sănătatea și resursele, reducând astfel incidența bolilor și dependența de servicii de sănătate costisitoare.
-    
-    \item \textbf{Reducerea excluziunii sociale}: Sărăcia este adesea însoțită de excluderea socială și discriminare, care reduc șansele indivizilor de a participa activ în societate. Platforma poate construi o comunitate globală de învățare, în care utilizatorii să interacționeze, să colaboreze și să se sprijine reciproc, reducând astfel excluderea socială. Recompensele în criptojetoane pot oferi recunoaștere și stimulente pentru participarea activă, consolidând sentimentul de apartenență și valoare personală.
+\begin{itemize}[leftmargin=1.4cm]
+    \item analiza stadiului actual privind eLearning-ul, gamificarea și aplicațiile hibride Web2/Web3;
+    \item definirea unei arhitecturi care separă domeniul educațional, logica aplicației, infrastructura și interfața HTTP;
+    \item justificarea alegerilor tehnologice pentru backend, frontend, bază de date, stocare, worker și contracte inteligente;
+    \item implementarea unui model de roluri și permisiuni pe trei niveluri: platformă, organizație și curs;
+    \item proiectarea unui flux de recompensare cu stări auditate, reconciliere și protecție împotriva dublării recompenselor;
+    \item integrarea unui token ERC-20 cu suport pentru operații semnate și import de fonduri prin standarde Ethereum;
+    \item validarea soluției prin teste, migrații reversibile, verificări de readiness și scenarii de operare locală.
 \end{itemize}
 
-\subsection{Lucrări înrudite}
-În literatura de specialitate și în practica curentă, există diverse platforme de tip learn-to-earn, cum ar fi BitDegree \cite{bitdegree} și Phemex Learn Crypto \cite{phemex}, care recompensează utilizatorii pentru finalizarea cursurilor online. Acestea se concentrează în principal pe subiecte legate de criptomonede și tehnologia blockchain. Cu toate acestea, aceste platforme au o limitare semnificativă: restrângerea domeniului de aplicabilitate la teme crypto, fără a acoperi un spectru mai larg din domeniul STEM. Astfel, cercetarea de față propune o extindere a acestui model de recompensare către domenii educaționale mai diversificate, contribuind la o mai bună integrare a acestor tehnologii în educația generală.
+\section{Contribuții}
+Contribuțiile lucrării sunt atât conceptuale, cât și aplicative. Din punct de vedere conceptual, lucrarea arată de ce o arhitectură hibridă este mai potrivită pentru eLearning decât o descentralizare completă. Datele educaționale, permisiunile și procesele administrative rămân într-o bază relațională controlabilă, iar blockchain-ul este folosit pentru valoarea sa specifică: transferuri verificabile, audit public al tokenului și interoperabilitate cu portofele externe. Din punct de vedere aplicativ, lucrarea documentează proiectarea și implementarea platformei RustLearn, cu accent pe separarea responsabilităților, trasabilitate și extensibilitate.
 
-% Adaugă alte secțiuni/subsecțiuni după nevoie
+O contribuție importantă este modelarea recompenselor ca proces, nu ca simplă tranzacție. Între finalizarea unei activități de învățare și transferul efectiv al tokenurilor apar verificări, aprobări, stări intermediare și operații de reconciliere. Această abordare reduce riscul de fraudă, permite intervenții administrative și face posibilă explicarea fiecărei decizii. De asemenea, lucrarea evidențiază rolul worker-ului în mutarea operațiilor costisitoare în afara cererilor HTTP, precum procesarea video și indexarea depunerilor de tokenuri.
+
+\section{Structura lucrării}
+Lucrarea este organizată conform ghidului de elaborare pentru disertații. Capitolul 1 prezintă tema, motivația, problema abordată, obiectivele și contribuțiile. Partea I analizează stadiul cunoașterii: Capitolul 2 discută eLearning-ul, gamificarea, modelul learn-to-earn și aplicațiile hibride Web3, iar Capitolul 3 justifică tehnologiile utilizate și compară alternativele relevante. Partea a II-a prezintă rezultatele aplicative: Capitolul 4 descrie analiza și arhitectura sistemului RustLearn, Capitolul 5 detaliază implementarea backend-ului, frontend-ului, worker-ului și contractelor inteligente, iar Capitolul 6 descrie testarea, operarea și limitările. Capitolul 7 sintetizează concluziile și direcțiile de dezvoltare viitoare.

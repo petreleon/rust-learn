@@ -1,42 +1,69 @@
-\chapter{Aplicații hibride în contextul Web3}
+\chapter{Fundamente tehnologice și justificarea alegerilor}
 
-\section{Introducere în aplicațiile hibride}
-Aplicațiile hibride reprezintă o soluție inovatoare care combină beneficiile infrastructurilor centralizate din Web2 cu cele ale tehnologiilor descentralizate din Web3. Aceste aplicații sunt dezvoltate pentru a exploata avantajele ambelor paradigme, oferind o combinație de eficiență operațională și confidențialitate sporită pentru utilizatori.
+\section{Criterii de selecție}
+Alegerea tehnologiilor pentru un sistem de eLearning bazat pe blockchain trebuie să pornească de la cerințele reale ale produsului. Platforma gestionează utilizatori, autentificare, cursuri, conținut, evaluări, organizații, roluri, portofele, recompense și operații de audit. Aceste fluxuri cer consistență, securitate, performanță și posibilitatea de a evolua fără rescriere completă. Din acest motiv, criteriile de selecție folosite în lucrare sunt: siguranța și robustețea codului, suportul pentru operații asincrone, maturitatea ecosistemului, integrarea cu PostgreSQL, compatibilitatea cu stocare de obiecte, capacitatea de a interacționa cu Ethereum și ergonomia pentru dezvoltarea frontend-ului.
 
-\section{Brave Browser: Un exemplu de aplicație hibridă}
-\subsection{Prezentare generală}
-Brave Browser este un exemplu remarcabil de aplicație hibridă care îmbină caracteristicile unui browser tradițional cu funcționalitățile avansate ale Web3. Brave oferă utilizatorilor o experiență de navigare rapidă și sigură, integrând în același timp funcții de confidențialitate și suport pentru criptomonede \cite{brave2024wallet, cryptocurrency2024review}.
+Un criteriu esențial este separarea responsabilităților. Tehnologiile nu au fost alese pentru a produce un sistem spectaculos din punct de vedere tehnologic, ci pentru a susține o arhitectură explicabilă. Backend-ul trebuie să fie sursa de adevăr pentru reguli și permisiuni, baza de date trebuie să păstreze istoricul operațional, worker-ul trebuie să proceseze sarcini costisitoare în afara cererilor HTTP, iar blockchain-ul trebuie să gestioneze componentele care beneficiază de audit public.
 
-\subsection{Integrarea între Web2 și Web3}
-Brave funcționează ca un browser obișnuit, permițând utilizatorilor să acceseze site-uri web și să utilizeze internetul așa cum sunt obișnuiți. În același timp, Brave încorporează tehnologii Web3, cum ar fi un portofel integrat pentru criptomonede și accesul direct la aplicații descentralizate (DApps). Această integrare permite utilizatorilor să beneficieze de funcționalități avansate de securitate și confidențialitate fără a compromite performanța sau ușurința de utilizare \cite{brave2024wallet, coincodex2024brave}.
+\section{Rust pentru backend}
+Rust a fost ales pentru backend deoarece oferă un echilibru bun între performanță, siguranța memoriei și control asupra erorilor. Limbajul pune accent pe proprietate, împrumuturi și tipuri explicite, ceea ce reduce o categorie importantă de defecte întâlnite în aplicațiile server: acces invalid la memorie, date mutate accidental sau stări tratate incomplet \cite{rustBookOnline,rustProgramming}. Pentru o platformă care lucrează cu autentificare, permisiuni și tranzacții financiare interne, aceste proprietăți sunt relevante.
 
-\subsection{Utilitatea practică}
-Brave se distinge prin capacitatea sa de a proteja confidențialitatea utilizatorilor, blocând automat reclamele și urmărirea acestora pe internet. De asemenea, Brave introduce un model de recompensare prin intermediul criptomonedei BAT (Basic Attention Token), care permite utilizatorilor să câștige recompense pentru vizualizarea de reclame selectate. Această abordare oferă utilizatorilor o modalitate directă de a beneficia de pe urma navigării lor, fără a compromite securitatea datelor personale \cite{brave2024wallet, cryptocurrency2024review}.
+O alternativă ar fi fost Node.js, care are un ecosistem foarte matur pentru aplicații web și permite dezvoltare rapidă. Totuși, pentru logica de domeniu cu multe tipuri, stări și erori, Rust oferă o disciplină mai mare la compilare. Python sau Ruby ar fi redus costul inițial de dezvoltare, dar ar fi cerut mai multă atenție la validarea tipurilor și la performanță în fluxuri concurente. Java sau Kotlin ar fi fost opțiuni solide pentru backend enterprise, însă Rust oferă o amprentă de runtime mai mică și o integrare foarte bună cu sisteme asincrone moderne.
 
-\subsection{Beneficii în materie de control și securitate}
-Brave Browser oferă utilizatorilor control deplin asupra datelor și tranzacțiilor lor digitale prin intermediul portofelului Web3 integrat. Acest lucru, combinat cu funcționalitățile de blocare a reclamelor și a urmăririi, asigură un nivel ridicat de securitate și confidențialitate, transformând Brave într-o platformă ideală pentru utilizatorii care prioritizează protecția datelor \cite{brave2024wallet, coincodex2024brave}.
+\section{Actix Web pentru API}
+Actix Web a fost ales ca framework HTTP deoarece este matur, performant și integrat cu ecosistemul asincron Rust. Documentația oficială îl prezintă ca framework web pentru servicii HTTP, rutare, extractori și middleware \cite{actixDocs}. În RustLearn, Actix Web permite definirea unui API modular, cu rute grupate pe contexte: identitate, cursuri, organizații, recompense, portofele, raportare și operații. Middleware-ul este important deoarece autentificarea JWT și verificările de permisiuni trebuie aplicate consecvent pe rute.
 
+O alternativă posibilă ar fi fost Axum, bazat pe ecosistemul Tower. Axum are o integrare elegantă cu tipurile Rust și este foarte potrivit pentru servicii moderne. Alegerea Actix Web este justificată prin maturitate, exemple existente și potrivirea cu structura proiectului. Pentru lucrare, diferența critică nu este un benchmark între framework-uri, ci posibilitatea de a exprima clar straturi HTTP, extractori, middleware și state partajat.
 
-\section{Avantajele aplicațiilor hibride}
-Aplicațiile hibride combină eficient infrastructurile centralizate și descentralizate pentru a oferi soluții robuste și eficiente. Unul dintre principalele avantaje ale acestor aplicații este capacitatea lor de a optimiza costurile operaționale. Infrastructurile centralizate permit gestionarea eficientă a resurselor și reduc costurile de operare, în timp ce tehnologiile descentralizate, cum ar fi blockchain-ul, adaugă un nivel superior de securitate și confidențialitate pentru utilizatori \cite{equivix2024support,mdpi2023web3}.
+\section{PostgreSQL și Diesel}
+PostgreSQL a fost ales ca bază de date principală deoarece platforma are nevoie de relații complexe, tranzacții, constrângeri, indexuri și interogări pentru rapoarte. Datele educaționale și financiare interne nu sunt documente izolate, ci entități conectate: utilizatori, roluri, organizații, cursuri, înscrieri, progres, evaluări, candidați la recompense, tranzacții interne și evenimente de audit. Documentația PostgreSQL evidențiază suportul pentru un model relațional complet, extensibil și matur \cite{postgresDocs}.
 
-Un alt avantaj esențial al aplicațiilor hibride este capacitatea lor de a integra date și servicii din Web2 cu funcționalitățile avansate ale Web3, ceea ce îmbunătățește experiența utilizatorului și reduce barierele tehnice pentru adoptarea acestor tehnologii noi. Aceasta înseamnă că utilizatorii pot beneficia de performanțele ridicate ale infrastructurilor tradiționale, menținând în același timp controlul asupra datelor lor personale și beneficiind de transparența oferită de blockchain \cite{cointelegraph2024hybrid, moralis2024dapps}.
+Diesel a fost ales pentru accesul la date deoarece oferă interogări tipizate și migrații integrate în ecosistemul Rust \cite{dieselDocs}. Într-un proiect cu multe tabele și multe permisiuni, beneficiul tipurilor este semnificativ: erorile de nume de coloane, tipuri incompatibile sau rezultate așteptate incorect sunt detectate mai devreme. Diesel Async permite menținerea modelului tipizat și în operații asincrone, ceea ce se potrivește cu Actix Web.
 
-De asemenea, aplicațiile hibride pot sprijini scalabilitatea și adaptabilitatea sistemelor, permițând dezvoltatorilor să creeze aplicații care sunt nu doar eficiente și sigure, dar și capabile să se extindă rapid și să integreze noi tehnologii pe măsură ce acestea apar \cite{cointelegraph2024hybrid}.
+O alternativă ar fi fost o bază NoSQL, de exemplu MongoDB. Aceasta ar fi simplificat stocarea unor documente flexibile, dar ar fi complicat integritatea relațiilor dintre utilizatori, roluri, cursuri și tranzacții. Pentru RustLearn, consistența este mai importantă decât flexibilitatea documentelor. O altă alternativă ar fi fost un ORM mai dinamic, dar Diesel este preferabil tocmai pentru că impune o relație clară între schemă și cod.
 
+\section{Stocare S3 și worker pentru conținut multimedia}
+Conținutul educațional include materiale text, fișiere și video. Baza de date nu este potrivită pentru stocarea fișierelor mari, iar serverul HTTP nu trebuie să proceseze video în interiorul unei cereri. Din acest motiv, RustLearn folosește stocare compatibilă S3 pentru obiecte și un worker separat pentru procesare. Amazon S3 este un model consacrat de stocare de obiecte, organizat prin bucket-uri și chei, potrivit pentru fișiere distribuite și scalabile \cite{s3Docs}. În dezvoltarea locală, RustFS oferă o implementare compatibilă S3.
 
-\section{Provocările aplicațiilor hibride}
-Deși aplicațiile hibride oferă numeroase avantaje, integrarea funcționalităților centralizate și descentralizate nu este lipsită de provocări. Una dintre principalele provocări este compatibilitatea între cele două tipuri de infrastructuri, care poate ridica probleme semnificative de securitate și interoperabilitate \cite{equivix2024support, cointelegraph2024hybrid}.
+Worker-ul procesează sarcini precum transcodarea video, extragerea audio, retry-uri și indexarea depunerilor de tokenuri. Această separare este valoroasă deoarece cererile HTTP rămân rapide, iar operațiile costisitoare sunt executate asincron. Dacă transcodarea video ar fi făcută în request, utilizatorul ar aștepta inutil, iar serverul API ar fi expus la blocaje. Un worker dedicat permite limitarea concurenței, monitorizarea cozii și retry-uri controlate.
 
-În special, integrarea componentelor centralizate cu cele descentralizate poate crea vulnerabilități care sunt exploatabile de atacatori. De exemplu, aplicațiile hibride care utilizează infrastructuri centralizate pentru stocare sau procesare a datelor pot fi expuse la atacuri cibernetice care profită de slăbiciunile rețelelor tradiționale. În același timp, utilizarea tehnologiilor blockchain adaugă complexitate și poate introduce noi vectori de atac dacă nu este implementată corect \cite{equivix2024support}.
+\section{Next.js pentru frontend}
+Frontend-ul a fost realizat cu Next.js deoarece platforma are nevoie de rute clare, componente React, posibilitatea de a separa suprafețele pentru cursanți, profesori, organizații și administratori, precum și de integrare cu API-ul backend. Documentația Next.js evidențiază App Router ca mecanism de rutare bazat pe sistemul de fișiere și pe funcționalități moderne React \cite{nextAppDocs}. În RustLearn, această abordare permite rute precum \texttt{/learn}, \texttt{/teach}, \texttt{/organizations}, \texttt{/admin}, \texttt{/wallet} și \texttt{/rewards}.
 
-De asemenea, dezvoltatorii se confruntă cu provocarea de a găsi echilibrul corect între eficiență și protecția datelor. În timp ce infrastructurile centralizate pot oferi performanțe mai bune și costuri mai mici, acestea pot compromite confidențialitatea și securitatea datelor utilizatorilor. Pe de altă parte, tehnologiile descentralizate, deși mai sigure și transparente, pot fi mai lente și mai costisitoare în termeni de resurse \cite{moralis2024dapps}.
+O alternativă ar fi fost o aplicație React simplă cu Vite. Aceasta ar fi fost suficientă pentru o interfață mai mică, dar Next.js oferă structură de rutare și convenții utile pentru un produs cu multe ecrane. O altă alternativă ar fi fost Flutter pentru web, dar ecosistemul React/Next.js este mai potrivit pentru interfețe administrative web dense, formulare, tabele, filtre și integrare rapidă cu API-uri HTTP.
 
-Un alt aspect critic este asigurarea unei experiențe de utilizare coerente și fluente, indiferent de tehnologiile utilizate. Integrarea componentelor centralizate și descentralizate poate duce la inconsecvențe în performanță și utilizare, ceea ce poate afecta adoptarea pe scară largă a acestor aplicații \cite{cointelegraph2024hybrid}.
+\section{Ethereum, Solidity și OpenZeppelin}
+Componenta blockchain folosește Ethereum și contracte Solidity pentru LearnToken. Solidity este limbajul principal pentru contracte inteligente pe EVM \cite{solidityDocs}, iar OpenZeppelin oferă implementări verificate pentru standarde precum ERC-20 \cite{openzeppelinERC20}. LearnToken extinde ERC-20 cu opțiuni precum burn și permit, iar contractele auxiliare permit operații semnate și import de tokenuri.
 
-Astfel, deși aplicațiile hibride au potențialul de a combina avantajele infrastructurilor centralizate și descentralizate, ele vin cu un set unic de provocări care trebuie gestionate cu atenție pentru a oferi utilizatorilor cea mai bună experiență posibilă și pentru a asigura securitatea datelor.
+Standardul EIP-712 definește semnarea datelor structurate, ceea ce permite utilizatorilor să semneze mesaje mai clare decât octeți opaci \cite{eip712}. EIP-2612 extinde ERC-20 cu funcția \texttt{permit}, prin care o aprobare poate fi realizată prin semnătură, nu printr-o tranzacție separată \cite{eip2612}. Aceste standarde sunt importante pentru experiența utilizatorului, deoarece reduc numărul de pași on-chain și permit platformei să construiască fluxuri în care utilizatorul semnează o intenție, iar execuția poate fi finalizată controlat.
 
+Blockchain-ul nu este folosit pentru toate datele. Notele, lecțiile, profilurile, permisiunile și rapoartele rămân în baza de date. Această decizie este justificată de cost, performanță și protecția datelor. Blockchain-ul este folosit pentru tokenuri, tranzacții și evenimente în care transparența și interoperabilitatea sunt avantaje reale. Astfel, arhitectura evită atât centralizarea completă a recompenselor, cât și descentralizarea inutilă a datelor educaționale.
 
+\section{Arhitectură modulară monolitică}
+RustLearn adoptă o arhitectură modulară monolitică. Sistemul rulează ca o aplicație backend principală, dar codul este separat în contexte: \texttt{http}, \texttt{application}, \texttt{domain}, \texttt{infra} și \texttt{bootstrap}. Această organizare păstrează simplitatea operațională a unui monolit, dar introduce limite interne clare. În sistemele distribuite, împărțirea prematură în servicii poate aduce costuri de comunicare, consistență și observabilitate \cite{coulouris2001distributed}. Pentru un produs aflat în evoluție, monolitul modular este mai ușor de testat, migrat și refactorizat.
 
-\section{Impactul aplicațiilor hibride în ecosistemul digital}
-Aplicațiile hibride, cum ar fi Brave, joacă un rol esențial în diversificarea și adaptabilitatea ecosistemului digital modern. Acestea demonstrează cum pot fi combinate eficiența operațională și protecția confidențialității utilizatorilor, oferind soluții care profită de avantajele ambelor paradigme. Prin urmare, aplicațiile hibride contribuie semnificativ la dezvoltarea unui internet mai sigur, mai eficient și mai centrat pe utilizator.
+Valoarea acestei arhitecturi constă în faptul că domeniile sunt separate în cod înainte de a fi separate fizic. Dacă în viitor worker-ul de recompense, serviciul de conținut sau indexerul blockchain trebuie extrase în servicii independente, limitele conceptuale există deja. Până atunci, tranzacțiile locale, migrațiile și testele rămân mai simple.
+
+\section{Comparație sintetică}
+Tabelul \ref{tab:tehnologii} prezintă pe scurt tehnologiile folosite și motivele alegerii lor.
+
+\begin{table}[H]
+    \centering
+    \caption{Tehnologii folosite și justificarea alegerii (elaborare proprie).}
+    \label{tab:tehnologii}
+    \begin{tabular}{p{3cm}p{4.2cm}p{6.6cm}}
+        \toprule
+        Componentă & Tehnologie & Justificare \\
+        \midrule
+        Backend API & Rust și Actix Web & Siguranță la compilare, performanță, middleware, rutare modulară și potrivire cu aplicații asincrone. \\
+        Persistență & PostgreSQL și Diesel & Model relațional, tranzacții, migrații, tipare clare pentru date conectate și interogări tipizate. \\
+        Media & S3 compatibil și worker & Fișierele mari sunt separate de baza de date, iar procesarea video nu blochează cererile HTTP. \\
+        Frontend & Next.js și React & Rutare pe suprafețe de produs, componente reutilizabile și interfețe diferite pentru roluri diferite. \\
+        Blockchain & Solidity, Ethereum, OpenZeppelin & Token ERC-20, standarde mature, semnături EIP-712 și permit EIP-2612 pentru fluxuri Web3 controlate. \\
+        Operare & Docker Compose și Kubernetes & Aliniere între dezvoltare locală, testare și deploy, cu servicii pentru API, web, DB, S3, Anvil și worker. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Concluzie}
+Tehnologiile selectate susțin o arhitectură hibridă în care fiecare componentă are un rol clar. Rust și Actix Web oferă un backend robust, PostgreSQL și Diesel susțin consistența datelor, S3 și worker-ul gestionează conținutul multimedia, Next.js oferă suprafețe de produs moderne, iar Ethereum adaugă valoare acolo unde tokenizarea și auditul public contează. Alegerea nu urmărește maximizarea descentralizării, ci construirea unui sistem educațional util, sigur și extensibil.

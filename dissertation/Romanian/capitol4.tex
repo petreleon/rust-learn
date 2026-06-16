@@ -1,32 +1,157 @@
-\chapter{Fundamentele aplicațiilor web}
+\chapter{Analiza și arhitectura sistemului RustLearn}
 
-\section{Rolurile și Funcțiile Frontend-ului și Backend-ului în Aplicațiile Web}
+\section{Descriere generală}
+RustLearn este platforma aplicativă dezvoltată pentru tema \textit{\titluLucrare}. Sistemul combină funcții de eLearning cu mecanisme de recompensare bazate pe LearnToken. Din punct de vedere funcțional, platforma permite autentificarea utilizatorilor, administrarea cursurilor, publicarea conținutului, urmărirea progresului, gestionarea organizațiilor, evaluarea cursanților, administrarea portofelelor și operarea unui flux de recompense. Din punct de vedere tehnic, sistemul este format dintr-un backend Rust/Actix Web, o bază de date PostgreSQL, stocare compatibilă S3, un worker de procesare, contracte Solidity și un frontend Next.js.
 
-Frontend-ul și backend-ul reprezintă două componente esențiale ale oricărei aplicații web moderne \cite{frontendBackendWebDev}. Frontend-ul, denumit adesea „partea clientului”, este responsabil pentru interacțiunile utilizatorului și pentru tot ceea ce utilizatorul vede și cu care interacționează direct. Acesta include elementele vizuale, cum ar fi butoane, imagini, formulare și text, precum și funcționalitățile de interacțiune, cum ar fi validarea formularelor și navigarea între pagini. Tehnologiile utilizate frecvent în dezvoltarea frontend-ului includ HTML, CSS, JavaScript și framework-uri moderne precum React, Angular, Vue și Flutter \cite{flutterDev}.
+Arhitectura a fost proiectată pentru a evita două extreme. Prima extremă este platforma complet centralizată, în care toate recompensele sunt doar înregistrări interne. Aceasta ar fi simplă, dar ar reduce valoarea de transparență și interoperabilitate a tokenului. A doua extremă este platforma complet on-chain, în care fiecare progres, rol sau evaluare ar fi tranzacție blockchain. Aceasta ar fi costisitoare, lentă și nepotrivită pentru date educaționale sensibile. RustLearn folosește o cale intermediară: operațiile educaționale rămân off-chain, iar tokenurile și tranzacțiile relevante sunt integrate cu Ethereum.
 
-Pe de altă parte, backend-ul, cunoscut și sub numele de „partea serverului”, gestionează logica de afaceri, bazele de date, autentificarea utilizatorilor și comunicarea cu serverele externe. Backend-ul este responsabil pentru procesarea cererilor utilizatorului, accesarea și manipularea datelor stocate, precum și pentru securitatea și gestionarea aplicației. Limbajele comune utilizate pentru dezvoltarea backend-ului includ Node.js, Python, Ruby, Java și Rust \cite{rustProgramming}, fiecare oferind avantaje specifice în funcție de nevoile aplicației.
+\section{Actorii sistemului}
+Sistemul are patru categorii principale de actori. Cursantul consumă conținut, solicită înscrierea la cursuri, parcurge lecții, susține evaluări, urmărește recompensele și își gestionează portofelul. Profesorul creează conținut, administrează cursurile pe care le predă, verifică înscrieri, evaluează studenți și aprobă candidați la recompensă în limita permisiunilor primite. Organizația gestionează programe educaționale, membri, cursuri sponsorizate, rapoarte și bugete de recompensare. Administratorul platformei gestionează roluri globale, aplicații de profesor, politici de recompensare, blocaje antifraudă, exporturi, KYC, portofele și reconciliere.
 
-Această colaborare între frontend și backend este esențială pentru a crea o aplicație web eficientă și scalabilă. Frontend-ul oferă o interfață atractivă și intuitivă, în timp ce backend-ul asigură suportul necesar pentru funcționalitatea corectă și performanța aplicației. Comunicarea dintre cele două componente, de obicei realizată prin API-uri, contribuie la o arhitectură bine definită și la o scalabilitate ușoară a aplicației \cite{frontendBackendWebDev}.
+Acești actori nu sunt doar etichete de interfață. Ei corespund unor scopuri de permisiuni diferite: platformă, organizație și curs. Această separare este necesară deoarece același utilizator poate fi student într-un curs, profesor în alt curs și membru al unei organizații. Dacă sistemul ar folosi doar roluri globale, ar apărea fie privilegii excesive, fie restricții prea dure. Modelul pe scopuri permite exprimarea unei realități educaționale mai fine.
 
+\section{Cerințe funcționale}
+Cerințele funcționale principale sunt:
 
+\begin{itemize}[leftmargin=1.4cm]
+    \item autentificare cu token JWT, politici de parolă, verificare email și expunere JWKS pentru verificare externă;
+    \item administrarea cursurilor, capitolelor, conținutului și stărilor de publicare;
+    \item urmărirea progresului și susținerea evaluărilor cu scor și prag de promovare;
+    \item gestionarea organizațiilor, membrilor, cursurilor asociate și rapoartelor;
+    \item flux de aplicare și aprobare pentru profesori;
+    \item portofele interne pentru utilizatori și organizații, cu audit al tranzacțiilor;
+    \item candidați la recompensă, politici de recompensare, aprobări, plăți, creditare wallet și notificări;
+    \item blocaje antifraudă și reconciliere pentru stări inconsistente;
+    \item procesarea fișierelor video prin worker și stocare de obiecte;
+    \item health checks și readiness checks pentru baza de date, S3 și Ethereum.
+\end{itemize}
 
-\section{Frontend}
-% Aici vei descrie detaliat ce înseamnă frontend-ul unei aplicații. Menționează tehnologii folosite în mod obișnuit, cum ar fi HTML, CSS, JavaScript și framework-uri ca React, Angular, Vue, dar și Flutter, un framework popular pentru dezvoltarea de interfețe mobile și web.
+\section{Cerințe nefuncționale}
+Cerințele nefuncționale sunt la fel de importante ca funcțiile vizibile. Platforma trebuie să fie sigură, deoarece gestionează identitate, portofele și permisiuni. Trebuie să fie auditabilă, deoarece recompensele pot avea valoare economică și pot genera dispute. Trebuie să fie extensibilă, deoarece fluxurile educaționale și regulile de recompensare pot evolua. Trebuie să fie operabilă, adică să poată fi rulată local, testată, migrată și monitorizată. De asemenea, trebuie să fie rezilientă la eșecuri parțiale: o tranzacție blockchain eșuată nu trebuie să producă dublă creditare, iar un eșec de procesare video nu trebuie să blocheze API-ul.
 
-\subsection{Limbaje de programare și tehnologii folosite pentru Frontend}
-% Aici vei discuta despre limbajele și tehnologiile comune pentru dezvoltarea frontend-ului, precum HTML, CSS, JavaScript, Flutter și framework-uri moderne ca React și Angular.
+\section{Arhitectura de ansamblu}
+Figura \ref{fig:arhitectura_generala} prezintă arhitectura de ansamblu. Browserul comunică cu aplicația Next.js, iar aceasta consumă API-ul Actix Web. Backend-ul aplică middleware de autentificare și permisiuni, apoi direcționează cererile către use case-uri. Use case-urile lucrează cu reguli de domeniu și adaptoare de infrastructură. PostgreSQL păstrează starea aplicației, S3 păstrează obiectele media, iar Ethereum păstrează tokenul și evenimentele on-chain. Worker-ul preia sarcini din bază de date și interacționează cu S3 și Ethereum fără a bloca cererile utilizatorilor.
 
-\section{Backend}
-% Aici vei detalia partea de backend a aplicației, responsabilă de gestionarea logicii afacerii, bazelor de date și middleware. Limbaje precum Python, Node.js, Ruby, Java, și Rust sunt frecvent utilizate.
+\begin{figure}[H]
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tikzpicture}[node distance=1.7cm, every node/.style={font=\small}, bloc/.style={rectangle, rounded corners, draw=black, fill=gray!8, align=center, minimum width=3cm, minimum height=0.95cm}, store/.style={cylinder, shape border rotate=90, draw=black, fill=blue!8, align=center, minimum height=1.1cm, minimum width=1.4cm}, sageata/.style={-{Latex[length=2.2mm]}, thick}]
+        \node[bloc] (browser) {Browser};
+        \node[bloc, right=of browser] (web) {Next.js\\frontend};
+        \node[bloc, right=of web] (api) {Actix Web\\API};
+        \node[bloc, below=of api] (app) {Use case-uri\\aplicație};
+        \node[bloc, below=of app] (domain) {Reguli de\\domeniu};
+        \node[bloc, right=of app] (infra) {Adaptoare\\infrastructură};
+        \node[store, right=of infra] (pg) {PostgreSQL};
+        \node[store, below=of pg] (s3) {S3};
+        \node[store, above=of pg] (eth) {Ethereum};
+        \node[bloc, below=of infra] (worker) {Worker\\video și indexer};
+        \draw[sageata] (browser) -- (web);
+        \draw[sageata] (web) -- (api);
+        \draw[sageata] (api) -- (app);
+        \draw[sageata] (app) -- (domain);
+        \draw[sageata] (app) -- (infra);
+        \draw[sageata] (infra) -- (pg);
+        \draw[sageata] (infra) -- (s3);
+        \draw[sageata] (infra) -- (eth);
+        \draw[sageata] (worker) -- (infra);
+        \draw[sageata] (pg) -- (worker);
+    \end{tikzpicture}}
+    \caption{Arhitectura generală RustLearn (elaborare proprie).}
+    \label{fig:arhitectura_generala}
+\end{figure}
 
-\subsection{Limbaje de programare și tehnologii folosite pentru Backend}
-% Aici vei discuta despre limbajele și framework-urile comune în dezvoltarea backend-ului, precum Node.js, Python (Django/Flask), Ruby on Rails, Java (Spring), și Rust. Rust, cunoscut pentru performanța sa și siguranța memoriei, este din ce în ce mai folosit pentru backend-ul aplicațiilor web.
+\section{Straturile aplicației}
+Codul backend este separat în straturi. Directorul \texttt{src/http} conține rute, DTO-uri, extractori și middleware. Directorul \texttt{src/application} conține use case-uri, comenzi, porturi și rezultate. Directorul \texttt{src/domain} păstrează vocabularul de domeniu și regulile pure. Directorul \texttt{src/infra} conține adaptoare concrete pentru PostgreSQL, S3, Ethereum, JWT și notificări. Directorul \texttt{src/bootstrap} compune aplicația, configurează starea, înregistrează rutele și pornește contractele necesare.
 
-\subsection{Funcțiile Middleware}
-% În această secțiune vei explica rolul middleware-ului în cadrul backend-ului, cum middleware-ul gestionează cererile între client și aplicație și cum ajută la autentificare, logare, validarea datelor și gestionarea erorilor. Exemple de middleware includ autentificarea, gestionarea sesiunilor și optimizarea performanței.
+Această separare este valoroasă deoarece împiedică amestecarea logicii de business cu detaliile HTTP. De exemplu, o regulă privind validarea unei recompense nu trebuie să depindă de un handler Actix. Ea trebuie să poată fi testată ca serviciu de aplicație sau regulă de domeniu. La fel, interogările PostgreSQL trebuie încapsulate în adaptoare, nu scrise direct în rute. Rezultatul este un cod mai testabil și mai ușor de modificat.
 
-\section{Proiectarea Aplicațiilor}
-% În această secțiune vei acoperi principii de proiectare precum SOLID, DRY, KISS și YAGNI, care ajută la menținerea codului curat și ușor de întreținut. De asemenea, poți discuta despre arhitecturi de software cum ar fi MVC, MVP și microservicii. Aceste principii și arhitecturi asigură că aplicațiile web sunt scalabile, ușor de întreținut și că evoluează fără a introduce erori sau probleme de performanță.
+\begin{table}[H]
+    \centering
+    \caption{Responsabilitățile straturilor backend (elaborare proprie).}
+    \label{tab:straturi_backend}
+    \begin{tabular}{p{3.2cm}p{10.2cm}}
+        \toprule
+        Strat & Responsabilitate \\
+        \midrule
+        \texttt{http} & Expune API-ul, validează forma cererilor, aplică middleware și transformă răspunsurile în JSON. \\
+        \texttt{application} & Ordonează pașii unui caz de utilizare, verifică porturi, produce rezultate și erori controlate. \\
+        \texttt{domain} & Definește reguli și concepte independente de framework: roluri, permisiuni, statusuri, tipuri de recompensă. \\
+        \texttt{infra} & Implementează accesul concret la PostgreSQL, S3, Ethereum, JWT, email local și notificări. \\
+        \texttt{bootstrap} & Leagă modulele, construiește starea aplicației și configurează pornirea procesului. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-\section{Aspecte Cheie ale Aplicațiilor Web}
-% În această secțiune finală, vei rezuma principalele aspecte discutate, subliniind importanța unei colaborări eficiente între frontend și backend, precum și folosirea celor mai bune practici de proiectare a aplicațiilor. Discută despre modul în care tehnologiile moderne, cum ar fi Flutter pentru frontend și Rust pentru backend, contribuie la performanța și scalabilitatea aplicațiilor. Încheie prin evidențierea faptului că succesul unei aplicații web depinde de echilibrul între interfața de utilizator (UI/UX) și funcționalitățile de backend bine proiectate.
+\section{Modelul de permisiuni}
+Modelul de permisiuni este unul dintre elementele care dau valoare arhitecturii. RustLearn nu se limitează la roluri globale. Există roluri de platformă, roluri de organizație și roluri de curs. De exemplu, un utilizator poate avea permisiunea \texttt{VIEW\_COURSE} într-un curs, \texttt{MANAGE\_ORG\_MEMBERS} într-o organizație și nicio permisiune administrativă la nivel de platformă. Middleware-urile specializate verifică aceste scopuri înainte ca operațiile sensibile să fie executate.
+
+Figura \ref{fig:permisiuni} prezintă modelul conceptual. Permisiunea efectivă este rezultatul combinației dintre identitatea utilizatorului, rolurile directe, rolurile pe organizație, rolurile pe curs și eventualele permisiuni delegate. Acest model permite administrare fină și reduce riscul ca un actor să primească privilegii mai largi decât sunt necesare.
+
+\begin{figure}[H]
+    \centering
+    \resizebox{0.86\textwidth}{!}{%
+    \begin{tikzpicture}[node distance=1.5cm, every node/.style={font=\small}, bloc/.style={rectangle, rounded corners, draw=black, fill=gray!10, align=center, minimum width=3.3cm, minimum height=0.95cm}, sageata/.style={-{Latex[length=2.2mm]}, thick}]
+        \node[bloc] (user) {Utilizator};
+        \node[bloc, below left=of user] (platforma) {Roluri\\platformă};
+        \node[bloc, below=of user] (org) {Roluri\\organizație};
+        \node[bloc, below right=of user] (curs) {Roluri\\curs};
+        \node[bloc, below=of org] (delegari) {Permisiuni\\delegate};
+        \node[bloc, below=of delegari, fill=blue!8] (efective) {Permisiuni efective\\pentru o cerere};
+        \draw[sageata] (user) -- (platforma);
+        \draw[sageata] (user) -- (org);
+        \draw[sageata] (user) -- (curs);
+        \draw[sageata] (platforma) |- (efective);
+        \draw[sageata] (org) -- (delegari);
+        \draw[sageata] (curs) |- (efective);
+        \draw[sageata] (delegari) -- (efective);
+    \end{tikzpicture}}
+    \caption{Model conceptual al permisiunilor pe scopuri (elaborare proprie).}
+    \label{fig:permisiuni}
+\end{figure}
+
+\section{Fluxul de recompensare}
+Fluxul de recompensare este proiectat ca un proces auditat. Un eveniment educațional creează un candidat la recompensă. Profesorul sau sistemul verifică evenimentul, platforma poate aproba suma, apoi se planifică plata, se înregistrează confirmarea tokenului, se creditează portofelul intern, se trimite notificarea și se rulează reconcilierea. Această succesiune previne dublarea recompenselor și permite intervenție umană atunci când apar erori sau suspiciuni.
+
+Figura \ref{fig:reward_lifecycle} prezintă stările principale ale fluxului. Unele etape pot fi automate, iar altele pot necesita aprobare. Valoarea arhitecturii constă în faptul că fiecare tranziție are un motiv și poate fi auditată. Dacă tranzacția blockchain este confirmată, dar creditarea portofelului intern eșuează, sistemul nu trimite încă o tranzacție. Reconcilierea pornește de la starea confirmată și completează etapa lipsă.
+
+\begin{figure}[H]
+    \centering
+    \resizebox{\textwidth}{!}{%
+    \begin{tikzpicture}[node distance=1.2cm, every node/.style={font=\scriptsize}, stare/.style={rectangle, rounded corners, draw=black, fill=green!8, align=center, minimum width=2.3cm, minimum height=0.8cm}, sageata/.style={-{Latex[length=2mm]}, thick}]
+        \node[stare] (candidate) {candidate};
+        \node[stare, right=of candidate] (approved) {approved};
+        \node[stare, right=of approved] (pending) {token\\pending};
+        \node[stare, right=of pending] (confirmed) {token\\confirmed};
+        \node[stare, right=of confirmed] (credited) {wallet\\credited};
+        \node[stare, right=of credited] (notified) {notified};
+        \node[stare, right=of notified] (completed) {completed};
+        \node[stare, below=1.2cm of approved, fill=red!8] (rejected) {rejected};
+        \node[stare, below=1.2cm of confirmed, fill=yellow!18] (recon) {needs\\reconciliation};
+        \draw[sageata] (candidate) -- (approved);
+        \draw[sageata] (approved) -- (pending);
+        \draw[sageata] (pending) -- (confirmed);
+        \draw[sageata] (confirmed) -- (credited);
+        \draw[sageata] (credited) -- (notified);
+        \draw[sageata] (notified) -- (completed);
+        \draw[sageata] (candidate) -- (rejected);
+        \draw[sageata] (pending) -- (recon);
+        \draw[sageata] (confirmed) -- (recon);
+        \draw[sageata] (recon) -- (credited);
+    \end{tikzpicture}}
+    \caption{Fluxul de stări pentru recompensa LearnToken (elaborare proprie).}
+    \label{fig:reward_lifecycle}
+\end{figure}
+
+\section{Persistența datelor}
+Schema PostgreSQL include tabele pentru utilizatori, autentificări, cursuri, capitole, conținut, progres, evaluări, organizații, roluri, permisiuni, notificări, portofele, tranzacții interne și externe, candidați la recompense, politici de recompensare, audit, fraud blocks, compensări și token burns. Această structură arată că platforma nu tratează recompensa ca o coloană simplă atașată cursului, ci ca un domeniu de sine stătător.
+
+Persistența are două roluri. Primul este rolul operațional: aplicația trebuie să știe ce cursuri există, cine are acces, ce conținut este publicat și ce recompense sunt în așteptare. Al doilea este rolul de audit: platforma trebuie să poată explica de ce o recompensă a fost aprobată, cine a aprobat-o, ce politică era activă, ce tranzacție a fost creată și dacă portofelul a fost creditat. Pentru un sistem cu componente blockchain, baza de date nu concurează cu blockchain-ul, ci îl completează.
+
+\section{Valoarea arhitecturii}
+Arhitectura este valoroasă prin patru proprietăți. Prima este claritatea: fiecare strat are responsabilitate distinctă, iar fluxurile de business pot fi urmărite din HTTP către use case, domeniu și infrastructură. A doua este controlul: permisiunile pe scopuri și auditul permit administrare fină. A treia este reziliența: worker-ul, coada de joburi și reconcilierea reduc impactul eșecurilor parțiale. A patra este extensibilitatea: platforma poate adăuga noi tipuri de recompense, noi rute frontend, noi reguli de curs sau noi contracte fără a schimba fundamentul.
+
+Valoarea practică apare mai ales în fluxurile în care educația și tokenizarea se întâlnesc. O finalizare de curs nu devine automat transfer on-chain; ea devine o decizie verificabilă. Un token nu este doar un număr într-o bază de date; el are o reprezentare prin contract. O eroare nu este doar un mesaj pierdut; ea produce o stare ce poate fi reconciliată. Această combinație face sistemul mai potrivit pentru o platformă educațională reală decât o arhitectură simplificată în care toate aceste operații sunt tratate informal.
+
+\section{Concluzie}
+RustLearn folosește o arhitectură hibridă și modulară pentru a susține cerințe educaționale și blockchain în același sistem. Backend-ul rămâne responsabil pentru reguli, permisiuni și fluxuri, baza de date păstrează starea și auditul, worker-ul procesează activități asincrone, iar Ethereum adaugă transparență pentru tokenuri. Această arhitectură oferă un echilibru între performanță, control și verificabilitate.

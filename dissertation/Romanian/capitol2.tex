@@ -1,60 +1,80 @@
-\chapter{Design-ul aplicațiilor de eLearning existente}
+\chapter{Stadiul cunoașterii în eLearning și Web3}
 
-\section{Introducere în design-ul aplicațiilor de eLearning}
-Design-ul aplicațiilor de eLearning este esențial pentru asigurarea unei experiențe de învățare eficiente și plăcute. În acest capitol, vom explora principiile fundamentale care stau la baza acestor aplicații și vom analiza modul în care diferite elemente de design contribuie la atingerea obiectivelor educaționale, cum ar fi îmbunătățirea experienței de învățare, creșterea angajamentului utilizatorilor și personalizarea conținutului.
+\section{Evoluția aplicațiilor de eLearning}
+Aplicațiile de eLearning au evoluat de la simple depozite de fișiere și teste online către sisteme complexe care gestionează parcursuri educaționale, progres, evaluări, comunicare, notificări și rapoarte. Într-o platformă modernă, experiența de învățare nu este definită doar de conținut, ci și de felul în care utilizatorul primește feedback, își vede progresul, revine la materialele relevante și interacționează cu profesorii sau cu organizația care oferă cursul. De aceea, proiectarea aplicațiilor de eLearning trebuie analizată simultan din perspectivă pedagogică, tehnică și operațională.
 
-\section{Principii de bază ale design-ului aplicațiilor de eLearning}
+Un sistem educațional digital trebuie să rezolve mai multe nevoi. Cursantul are nevoie de acces rapid la lecții, de navigare clară, de feedback și de un mod de a înțelege ce trebuie făcut în continuare. Profesorul are nevoie de instrumente de creare și publicare a conținutului, de evaluare, de observare a progresului și de moderare. Organizațiile au nevoie de administrarea membrilor, cursurilor și rapoartelor. Administratorii platformei au nevoie de control asupra rolurilor, auditului, securității și integrărilor. Aceste cerințe duc la o concluzie importantă: eLearning-ul nu poate fi tratat ca o simplă interfață web, ci ca un sistem socio-tehnic cu fluxuri de lucru diferite.
 
-Principiile fundamentale ale design-ului aplicațiilor de eLearning includ:
+\section{Principii de proiectare pentru experiența educațională}
+O interfață de eLearning trebuie să fie ușor de înțeles, previzibilă și accesibilă. Principiile UI/UX discutate în literatura de specialitate pun accent pe claritatea navigării, reducerea efortului cognitiv și coerența componentelor vizuale \cite{uiux_basics,uiux_comprehensive_guide}. Într-un context educațional, aceste principii au o miză suplimentară: dacă interfața este confuză, cursantul consumă energie pentru orientare, nu pentru învățare. Astfel, ecranul principal trebuie să indice cursurile active, lecțiile următoare, statusul evaluărilor și eventualele notificări importante.
 
-\begin{itemize}
-    \item \textbf{Ușurința în utilizare (usability):} 
-    Ușurința în utilizare este unul dintre pilonii fundamentali ai design-ului UI/UX, asigurând că interfețele sunt accesibile și intuitive pentru utilizatori. Acest principiu este esențial pentru crearea unor produse digitale care nu doar arată bine, ci și funcționează eficient, permițând utilizatorilor să își îndeplinească sarcinile cu ușurință. Conform unui ghid cuprinzător despre UI/UX Design, ușurința în utilizare se concentrează pe minimizarea erorilor și maximizarea eficienței interacțiunilor dintre utilizatori și produsul digital, oferind o experiență fără efort și satisfăcătoare \cite{uiux_basics,uiux_comprehensive_guide}.
+Personalizarea este un alt principiu relevant. Platforma trebuie să afișeze informații diferite pentru un cursant, un profesor, un administrator de organizație sau un operator de platformă. Personalizarea nu înseamnă doar preferințe vizuale, ci adaptarea suprafeței de lucru la permisiunile reale ale utilizatorului. Dacă un profesor are acces la un curs, interfața trebuie să afișeze conținutul, înscrierile și coada de recompense pentru acel curs. Dacă utilizatorul are doar rol de cursant, aceeași platformă trebuie să ascundă operațiile administrative și să evidențieze lecțiile, progresul și istoricul recompenselor.
 
-    \item \textbf{Navigarea intuitivă:} 
-    Navigarea intuitivă joacă un rol crucial în asigurarea unei experiențe utilizator confortabilă și eficientă. Un sistem de navigare bine proiectat trebuie să fie logic și predictibil, aliniindu-se cu așteptările utilizatorilor pentru a minimiza confuzia și frustrarea. Un design de navigare intuitiv permite utilizatorilor să găsească rapid și ușor informațiile necesare și să îndeplinească sarcinile fără dificultate. Acest aspect al design-ului UI/UX este esențial pentru menținerea satisfacției și angajamentului utilizatorilor \cite{uiux_basics}.
+Un design eficient pentru eLearning trebuie să mențină echilibrul dintre densitatea informației și claritatea acțiunilor. Platformele educaționale sunt folosite repetat, iar utilizatorii au nevoie de interfețe stabile, cu filtre, stări goale explicite, mesaje de eroare inteligibile și confirmări pentru operații cu efect permanent. Aceste principii sunt relevante pentru RustLearn, deoarece sistemul include rute separate pentru cursanți, profesori, organizații și administratori, fiecare cu propriile decizii și responsabilități.
 
-    \item \textbf{Interfața prietenoasă cu utilizatorul (UI/UX design):} 
-    O interfață prietenoasă combină estetică plăcută cu funcționalitate ridicată, oferind utilizatorilor o experiență care este atât plăcută vizual, cât și ușor de utilizat. Acest echilibru între formă și funcție este esențial pentru dezvoltarea unor interfețe care nu doar atrag utilizatorii, ci și le facilitează interacțiunile, crescând astfel eficiența și satisfacția generală. Un design UI/UX de succes se bazează pe o înțelegere profundă a nevoilor utilizatorilor și pe aplicarea consecventă a principiilor de accesibilitate și responsivitate \cite{uiux_basics,uiux_comprehensive_guide}.
+\section{Gamificare și motivație}
+Gamificarea reprezintă utilizarea elementelor inspirate din jocuri în contexte care nu sunt jocuri. Deterding et al. definesc gamificarea ca folosire a elementelor de design de joc în contexte non-ludice \cite{deterding2011}. În eLearning, aceste elemente pot include puncte, niveluri, badge-uri, streak-uri, clasamente, provocări și feedback imediat. Scopul nu este transformarea cursului într-un joc, ci crearea unor repere motivaționale care să ajute cursantul să continue, să observe progresul și să primească recunoaștere.
 
-    \item \textbf{Personalizarea experienței de învățare:} 
-    Personalizarea interfeței este esențială pentru adaptarea experienței de utilizare la nevoile și preferințele individuale ale utilizatorilor. Prin înțelegerea comportamentului și așteptărilor utilizatorilor, design-ul UI/UX poate crea interfețe care nu doar răspund nevoilor generale, ci și oferă soluții personalizate care îmbunătățesc angajamentul și eficiența în utilizare. Această abordare centrată pe utilizator este un aspect crucial al design-ului modern de aplicații eLearning, contribuind la crearea unor experiențe educaționale mai eficiente și mai atractive \cite{uiux_comprehensive_guide}.
-\end{itemize}
+Mecanismele de recompensare trebuie proiectate atent. Un sistem bazat exclusiv pe puncte poate produce comportamente superficiale, în care utilizatorul optimizează pentru recompensă, nu pentru înțelegere. Cercetările privind învățarea online arată importanța angajamentului, a participării și a feedback-ului în menținerea activității educaționale \cite{paans2018,martin2018engagement,hrastinski2009diversity}. De aceea, recompensele trebuie legate de evenimente educaționale durabile: finalizarea unei evaluări, promovarea unui test, parcurgerea verificabilă a unui curs sau aprobarea manuală a unei activități relevante.
 
-\section{Gamificarea în aplicațiile de eLearning}
-Gamificarea reprezintă integrarea mecanicilor de joc în aplicațiile de eLearning pentru a motiva și a angaja utilizatorii. Această abordare utilizează elemente de design inspirate din jocuri, cum ar fi punctele, badge-urile, clasamentele și provocările, pentru a face procesul de învățare mai interactiv și mai plăcut. Printre mecanicile de joc utilizate se numără:
-\begin{itemize}
-    \item \textbf{Sisteme de recompense:} Sistemele de recompense, cum ar fi badge-urile, punctele și nivelurile, sunt esențiale pentru a motiva utilizatorii să își îmbunătățească performanțele. Acestea creează obiective tangibile pentru utilizatori, sporindu-le angajamentul și oferindu-le un sentiment de realizare la finalizarea sarcinilor \cite{deterding2011, paans2018, badashian2008}.
-    
-    \item \textbf{Elemente de competiție:} Introducerea competiției sănătoase în eLearning poate stimula motivația. Clasamentele și provocările între utilizatori pot crea un mediu competitiv care încurajează participarea activă și îmbunătățirea performanțelor individuale \cite{deterding2011, paans2018}.
-    
-    \item \textbf{Feedback instantaneu:} Feedback-ul instantaneu este esențial pentru a menține utilizatorii angajați și pentru a consolida legătura dintre acțiunile lor și rezultatele obținute. Acesta le permite să înțeleagă imediat ce au făcut corect sau greșit, facilitând astfel procesul de învățare \cite{paans2018}.
-\end{itemize}
+Figura \ref{fig:motivatie_recompensa} prezintă relația dintre activitatea de învățare și recompensa tokenizată. Elementul central este verificarea. Activitatea produce dovezi, dovezile sunt evaluate prin reguli și prin decizii autorizate, iar recompensa este acordată numai dacă rezultatul este valid. Astfel, gamificarea nu înlocuiește evaluarea, ci o face mai vizibilă și mai motivantă.
 
-Gamificarea nu doar că face învățarea mai plăcută, dar ajută și la crearea unei experiențe educaționale mai interactive și motivaționale, transformând astfel procesul de învățare într-o călătorie activă și captivantă pentru utilizatori \cite{deterding2011, paans2018}.
+\begin{figure}[H]
+    \centering
+    \resizebox{0.94\textwidth}{!}{%
+    \begin{tikzpicture}[node distance=2.2cm, every node/.style={font=\small}, etapa/.style={rectangle, rounded corners, draw=black, fill=gray!10, align=center, minimum width=3.2cm, minimum height=1cm}, decizie/.style={diamond, draw=black, fill=blue!8, align=center, aspect=2.2, inner sep=1pt}, sageata/.style={-{Latex[length=2.4mm]}, thick}]
+        \node[etapa] (invatare) {Activitate\\educațională};
+        \node[etapa, right=of invatare] (dovezi) {Dovezi de progres\\lecții, teste, curs};
+        \node[decizie, right=of dovezi] (validare) {Validare\\eligibilitate};
+        \node[etapa, right=of validare] (recompensa) {Recompensă\\LearnToken};
+        \node[etapa, below=1.4cm of validare] (audit) {Audit, raportare\\și reconciliere};
+        \draw[sageata] (invatare) -- (dovezi);
+        \draw[sageata] (dovezi) -- (validare);
+        \draw[sageata] (validare) -- node[above]{aprobat} (recompensa);
+        \draw[sageata] (validare) -- node[right]{urme} (audit);
+        \draw[sageata] (recompensa) |- (audit);
+    \end{tikzpicture}}
+    \caption{Legătura dintre învățare, validare și recompensă tokenizată (elaborare proprie).}
+    \label{fig:motivatie_recompensa}
+\end{figure}
 
-\section{Alte elemente de design relevante în eLearning}
-Pe lângă gamificare, există și alte elemente de design care îmbunătățesc aplicațiile de eLearning:
+\section{Modelul learn-to-earn}
+Modelul \textit{learn-to-earn} propune recompensarea cursanților pentru activitate educațională verificată. El este apropiat de gamificare, dar introduce o componentă economică explicită. În loc ca recompensa să fie doar un badge intern, aceasta poate lua forma unui jeton digital care are un istoric verificabil și care poate fi legat de portofele, bugete, reguli de transfer sau politici de retragere. Exemplele existente, precum BitDegree și Phemex Learn Crypto, arată că utilizatorii pot fi atrași de cursuri atunci când parcurgerea conținutului are o recompensă clară \cite{bitdegree,phemex}.
 
-\begin{itemize}
-    \item \textbf{Realitatea augmentată și virtuală (AR/VR)}: AR și VR sunt utilizate pentru a crea experiențe de învățare imersive, care permit utilizatorilor să exploreze conținutul într-un mod mai interactiv și să aplice cunoștințele într-un context aproape real. Aceste tehnologii sunt deosebit de eficiente în domenii precum medicină, inginerie și științe naturale, unde studenții pot beneficia de experiențe practice fără riscuri reale \cite{radianti2020systematic, freina2015literature}.
-    
-    \item \textbf{Simulările interactive și modulele de practică}: Simulările oferă utilizatorilor posibilitatea de a experimenta situații și probleme reale într-un mediu controlat. Acestea sunt utile pentru dezvoltarea competențelor practice și pentru consolidarea cunoștințelor teoretice prin aplicarea lor în scenarii virtuale \cite{squire2011video, instructional2022}.
-    
-    \item \textbf{Integrarea social learning (comunități de învățare, discuții între utilizatori)}: Social learning-ul implică învățarea prin interacțiune cu alți utilizatori, partajarea cunoștințelor și colaborarea în rezolvarea problemelor. Integrarea forumurilor, grupurilor de discuții și platformelor de colaborare în aplicațiile de eLearning permite utilizatorilor să își extindă cunoștințele prin schimburi active și să își dezvolte abilități sociale \cite{martin2018engagement, hrastinski2009diversity}.
-\end{itemize}
+Limitarea multor platforme learn-to-earn este concentrarea pe conținut legat de crypto. Această concentrare este firească în fazele inițiale ale ecosistemului, deoarece utilizatorii familiarizați cu portofele și tokenuri sunt mai dispuși să accepte astfel de mecanisme. Totuși, ideea poate fi extinsă la educația STEM, la programe de recalificare, la cursuri organizaționale și la programe de învățare continuă. În aceste cazuri, recompensa nu trebuie văzută ca speculație financiară, ci ca instrument de recunoaștere și stimulare.
 
-Aceste elemente sunt utilizate în diferite aplicații de succes pentru a crea medii de învățare mai realiste și mai colaborative.
+Un model matur learn-to-earn trebuie să includă controale împotriva abuzului. Dacă un cursant poate obține recompense repetate pentru același eveniment sau poate produce dovezi artificiale de progres, sistemul își pierde credibilitatea. De aceea, sunt necesare chei de idempotentă, politici de recompensare versionate, stări intermediare și mecanisme de blocare pentru profesori, organizații, cursuri sau politici suspecte. Aceste cerințe depășesc simpla gamificare și transformă recompensa într-un proces administrativ și tehnic.
 
-\section{Studiu de caz: Analiza aplicației \textit{Brilliant.org}}
+\section{Aplicații hibride Web2/Web3}
+O aplicație hibridă combină infrastructura centralizată a aplicațiilor web cu mecanisme descentralizate precum blockchain-ul, contractele inteligente și portofelele cripto. Literatura despre Web3 subliniază ideea de control asupra datelor, proprietate digitală și aplicații descentralizate \cite{mdpi2023web3,moralis2024dapps}. În practică, însă, multe aplicații au nevoie de componente Web2 pentru performanță, experiență de utilizare și conformitate operațională. Această combinație este valoroasă în special pentru eLearning, unde majoritatea operațiilor sunt frecvente, sensibile la latență și dependente de permisiuni.
 
-\textit{Brilliant.org} este o aplicație de eLearning care utilizează gamificarea și alte elemente de design inovative pentru a crea o experiență de învățare captivantă și eficientă. Aplicația se concentrează pe învățarea interactivă în domenii precum matematică, știință și informatică, oferind utilizatorilor probleme provocatoare și soluții detaliate.
+Brave Browser este un exemplu de aplicație hibridă: oferă o experiență web familiară, dar integrează portofel, mecanisme de confidențialitate și model de recompensare prin tokenuri \cite{brave2024wallet,coincodex2024brave}. Valoarea exemplului nu constă în identitatea exactă a produsului, ci în principiul arhitectural: utilizatorul nu trebuie forțat să înțeleagă toate detaliile blockchain pentru a beneficia de funcțiile Web3. În același mod, un cursant RustLearn trebuie să poată urmări lecții și recompense fără ca fiecare acțiune educațională să devină o tranzacție blockchain.
 
-Un aspect cheie al gamificării în \textit{Brilliant.org} este reprezentat de \textbf{„zile la rând”} (cunoscut și sub denumirea de \textit{streaks}), un sistem care încurajează utilizatorii să rezolve probleme zilnic pentru a menține un șir consecutiv de zile active. Această tehnică este eficientă în cultivarea unui obicei de învățare continuă și în menținerea angajamentului utilizatorilor pe termen lung.
+Tabelul \ref{tab:comparatie_hibrid} sintetizează diferențele dintre cele trei variante arhitecturale relevante pentru lucrare.
 
-Aplicația include și un sistem de \textbf{„ligi”} (\textit{leagues}), care reprezintă grupuri de utilizatori împărțiți în funcție de performanțele lor. În cadrul fiecărei ligi, utilizatorii concurează săptămânal pentru a urca în clasament. În \textbf{„clasamentele săptămânale”}, primii 5-10 utilizatori dintr-o ligă (în funcție de liga în care se află) avansează în liga superioară, în timp ce ultimii 5 coboară într-o ligă inferioară. Acest sistem creează o competiție sănătoasă și motivează utilizatorii să se implice activ în procesul de învățare pentru a-și îmbunătăți poziția în clasament.
+\begin{table}[H]
+    \centering
+    \caption{Comparație între abordări centralizate, descentralizate și hibride (elaborare proprie).}
+    \label{tab:comparatie_hibrid}
+    \begin{tabular}{p{3.1cm}p{3.8cm}p{3.8cm}p{3.8cm}}
+        \toprule
+        Criteriu & Sistem centralizat & Sistem descentralizat & Sistem hibrid \\
+        \midrule
+        Performanță & Foarte bună pentru operații frecvente și interogări complexe & Depinde de rețea, costuri și confirmări & Bună pentru fluxuri educaționale, cu blockchain folosit selectiv \\
+        Audit public & Limitat la logurile operatorului & Puternic pentru evenimente on-chain & Puternic pentru tokenuri, completat de audit intern \\
+        Cost operațional & Predictibil, mai ales pentru date și fișiere & Costuri pe tranzacții și contracte & Costuri controlate prin alegerea evenimentelor on-chain \\
+        Experiență utilizator & Familiară și rapidă & Poate necesita portofel și semnături dese & Familiară, cu opțiuni Web3 când sunt necesare \\
+        Control administrativ & Ridicat & Limitat de regulile contractului & Ridicat pentru educație, transparent pentru recompense \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-Prin integrarea acestor mecanici de joc, \textit{Brilliant.org} reușește să creeze o experiență de învățare interactivă și competitivă, menținând un nivel ridicat de angajament în rândul utilizatorilor săi.
+\section{Tehnologii imersive și învățare socială}
+Pe lângă gamificare și recompense, eLearning-ul modern folosește simulări, realitate augmentată, realitate virtuală și comunități de învățare. Studiile despre realitatea virtuală în educația superioară arată potențialul experiențelor imersive pentru domenii în care practica este greu de reprodus în siguranță sau la scară mare \cite{radianti2020systematic,freina2015literature}. Simulările și jocurile educaționale pot transforma concepte abstracte în situații aplicabile \cite{squire2011video,instructional2022}.
 
-\section{Perspective și reflecții}
-Analiza realizată în acest capitol subliniază importanța design-ului atent și inovativ în dezvoltarea aplicațiilor de eLearning. Elementele de design discutate, precum gamificarea, AR/VR și învățarea socială, joacă un rol esențial în crearea unor experiențe de învățare atractive și eficiente. În contextul evoluției continue a tehnologiei, inclusiv integrarea blockchain-ului, aceste perspective oferă o bază solidă pentru inovarea și îmbunătățirea constantă a platformelor de eLearning.
+În cazul RustLearn, lucrarea nu implementează AR/VR, dar arhitectura ia în calcul conținut multimedia, procesare video și stocare de obiecte. Această alegere este importantă deoarece o platformă de eLearning nu trebuie să fie limitată la text. Lecțiile video, fișierele atașate, resursele audio și materialele interactive pot fi integrate progresiv dacă infrastructura suportă încărcare, procesare și livrare eficientă.
+
+Învățarea socială completează componenta individuală. Forumurile, comentariile, discuțiile moderate și colaborarea între cursanți pot crește angajamentul și pot oferi contexte de aplicare a cunoștințelor \cite{hrastinski2009diversity,martin2018engagement}. Într-un sistem cu recompense, aceste funcții trebuie moderate cu grijă, deoarece activitatea socială poate deveni sursă de abuz dacă este recompensată fără verificare. De aceea, RustLearn tratează permisiunile, moderarea și auditul ca elemente de bază, nu ca funcții secundare.
+
+\section{Concluzii ale analizei}
+Analiza stadiului cunoașterii conduce la trei observații relevante pentru proiectarea platformei. În primul rând, eLearning-ul eficient are nevoie de interfețe clare, feedback și trasee adaptate rolului utilizatorului. În al doilea rând, gamificarea și recompensele pot crește motivația, dar trebuie legate de activități educaționale reale și de verificări antifraudă. În al treilea rând, blockchain-ul aduce valoare atunci când este folosit pentru ceea ce face bine: tokenuri, trasabilitate și interoperabilitate. Pentru cursuri, roluri, fișiere, rapoarte și administrare, o infrastructură web centralizată rămâne mai potrivită. Aceste observații fundamentează arhitectura hibridă prezentată în capitolele următoare.
