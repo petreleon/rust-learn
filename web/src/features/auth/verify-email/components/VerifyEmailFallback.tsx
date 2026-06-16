@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import styles from "../../auth.module.css";
+import styles from "../../shared/auth.module.css";
 
 export function VerifyEmailFallback() {
   return (

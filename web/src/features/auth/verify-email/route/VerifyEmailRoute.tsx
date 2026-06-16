@@ -2,9 +2,9 @@
 
 import { Suspense } from "react";
 import { VerifyEmailContent } from "./VerifyEmailContent";
-import { VerifyEmailFallback } from "./VerifyEmailFallback";
+import { VerifyEmailFallback } from "../components/VerifyEmailFallback";
 
-export default function VerifyEmailPage() {
+export default function VerifyEmailRoute() {
   return (
     <Suspense fallback={<VerifyEmailFallback />}>
       <VerifyEmailContent />

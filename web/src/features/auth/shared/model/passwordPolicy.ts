@@ -1,5 +1,4 @@
-"use client";
-export const policyChecks = [
+export const passwordPolicyChecks = [
   {
     key: "length",
     label: "At least 12 characters",
@@ -31,3 +30,10 @@ export const policyChecks = [
     test: (password: string) => new TextEncoder().encode(password).length <= 71,
   },
 ];
+
+export type PasswordPolicyCheck = (typeof passwordPolicyChecks)[number];
+export type PasswordPolicyResult = PasswordPolicyCheck & { met: boolean };
+
+export function evaluatePasswordPolicy(password: string) {
+  return passwordPolicyChecks.map((check) => ({ ...check, met: check.test(password) }));
+}

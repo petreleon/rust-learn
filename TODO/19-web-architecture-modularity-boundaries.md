@@ -189,12 +189,24 @@ Progress:
   and workflow-specific panels.
 - [x] Current strict architecture scan reports no long files, no dense lines,
   no API/UI import leaks, and no view side-effect leaks.
+- [x] Migrated auth entry routes into feature-owned slices:
+  `features/auth/{login,forgot-password,reset-password,register,verify-email}`
+  with thin Next route exports, route/controller hooks, typed views, shared auth
+  chrome, and shared password policy model helpers.
+- [x] Migrated the root product/session entry resolver into
+  `features/session/entry/{route,view}` with feature-owned CSS and a thin `/`
+  route export.
+- [x] Current strict architecture scan remains clean after the auth and session
+  entry migration.
 
 Latest pilot proof:
 
 - `make web-architecture-scan` passes with no findings.
 - `cd web && npm run architecture:scan:strict` passes with no findings.
 - `make web-lint` passes with 5 existing warnings.
+- Auth/session entry checkpoint:
+  `make web-architecture-scan`, `cd web && npm run architecture:scan:strict`,
+  `make web-lint`, `cd web && npm run test`, and `make web-build` pass.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/organization/members/__tests__/OrganizationMembersRoute.test.tsx`

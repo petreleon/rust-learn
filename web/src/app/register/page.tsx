@@ -1,2 +1,2 @@
 "use client";
-export { default } from "./page-parts/RegisterPage";
+export { default } from "@/features/auth/register/route/RegisterRoute";

@@ -1,28 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, CalendarDays, CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Mail, UserPlus, UserRound } from "lucide-react";
-import styles from "../../auth.module.css";
-import { type policyChecks } from "./policyChecks";
-import { type SubmitState } from "./SubmitState";
-
-type PolicyResult = (typeof policyChecks)[number] & { met: boolean };
+import { CalendarDays, CheckCircle2, Eye, EyeOff, KeyRound, Loader2, Mail, UserPlus, UserRound } from "lucide-react";
+import { type Dispatch, type SetStateAction } from "react";
+import { AuthErrorBox } from "../../shared/components/AuthErrorBox";
+import { type AuthFormError } from "../../shared/model/AuthFormError";
+import styles from "../../shared/auth.module.css";
+import { type PasswordPolicyResult } from "../../shared/model/passwordPolicy";
+import { type RegisterSubmitState } from "../model/RegisterSubmitState";
 
 type RegisterFormBodyProps = {
   canSubmit: boolean;
   dateOfBirth: string;
   email: string;
-  error: { code: string; message: string } | null;
+  error: AuthFormError | null;
   name: string;
   password: string;
-  policyResults: PolicyResult[];
+  policyResults: PasswordPolicyResult[];
   setDateOfBirth: (value: string) => void;
   setEmail: (value: string) => void;
   setName: (value: string) => void;
   setPassword: (value: string) => void;
-  setShowPassword: (update: (current: boolean) => boolean) => void;
+  setShowPassword: Dispatch<SetStateAction<boolean>>;
   showPassword: boolean;
-  submitState: SubmitState;
+  submitState: RegisterSubmitState;
 };
 
 export function RegisterFormBody({
@@ -92,14 +93,7 @@ export function RegisterFormBody({
           </span>
         ))}
       </div>
-      {error ? (
-        <div className={styles.errorBox} role="status">
-          <AlertCircle size={18} aria-hidden />
-          <span>
-            <strong>{error.code}</strong> {error.message}
-          </span>
-        </div>
-      ) : null}
+      {error ? <AuthErrorBox error={error} /> : null}
       <button className={styles.primaryButton} type="submit" disabled={!canSubmit}>
         {submitState === "loading" ? <Loader2 className={styles.spin} size={18} aria-hidden /> : <UserPlus size={18} aria-hidden />}
         Create account

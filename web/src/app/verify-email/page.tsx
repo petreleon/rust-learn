@@ -1,2 +1,2 @@
 "use client";
-export { default } from "./page-parts/VerifyEmailPage";
+export { default } from "@/features/auth/verify-email/route/VerifyEmailRoute";

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import styles from "../../auth.module.css";
-import { registrationSuccessMessages, registrationSuccessTitle } from "./registrationSuccessMessages";
+import styles from "../../shared/auth.module.css";
+import { registrationSuccessMessages, registrationSuccessTitle } from "../model/registrationSuccessMessages";
 
 export function RegistrationSuccessPanel() {
   return (
