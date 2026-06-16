@@ -69,8 +69,8 @@ Smells:
 
 - Route files mix token reads, session loading, API calls, permissions,
   mutations, filters, error normalization, and JSX.
-- Dense files still include `AdminTeacherApplicationsRoute.tsx`, teacher
-  route views, and `/ops/page-parts/Home.tsx`.
+- Dense files still include teacher route views, account/session pages, and
+  `/ops/page-parts/Home.tsx`.
 - Token reads still appear in many route/action modules.
 - Route controller hooks are inconsistent across contexts.
 - `src/lib/*.ts` barrels can hide large client import surfaces.
@@ -135,8 +135,12 @@ Progress:
   `features/admin/reward-amount-review/{api,components,model,route,view}` with
   candidate filters, audit, amount-decision controller hooks, focused route
   tests, and a compatibility route export.
-- [x] Current architecture scan reports 33 dense-line findings after the admin
-  reward amount review migration.
+- [x] Migrated teacher application review into
+  `features/admin/teacher-applications/{api,components,model,route,view}` with
+  application filters, audit, decision controller hooks, focused route tests,
+  and a compatibility route export.
+- [x] Current architecture scan reports 31 dense-line findings after the admin
+  teacher application review migration.
 
 Latest pilot proof:
 
@@ -158,11 +162,13 @@ Latest pilot proof:
   passes.
 - `npm run test -- src/features/admin/reward-amount-review/__tests__/AdminRewardAmountReviewRoute.test.tsx`
   passes.
+- `npm run test -- src/features/admin/teacher-applications/__tests__/AdminTeacherApplicationsRoute.test.tsx`
+  passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx src/components/__tests__/teacher-rewards-route.test.tsx src/components/__tests__/teacher-content-authoring-actions.test.tsx`
   passes.
-- `cd web && npm run test` passes with 37 files and 177 tests.
+- `cd web && npm run test` passes with 38 files and 182 tests.
 - `make web-api-helper-tests` passes.
 - `make web-build` passes.
 

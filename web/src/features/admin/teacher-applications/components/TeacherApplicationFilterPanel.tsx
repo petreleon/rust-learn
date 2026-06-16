@@ -1,29 +1,26 @@
 "use client";
 
 import { Loader2, RefreshCw, Search } from "lucide-react";
-import { type TeacherApplicationStatus } from "@/lib/admin";
-import styles from "../admin-routes.module.css";
-import { teacherApplicationStatusOptions } from "./teacherApplicationStatusOptions";
-import { type SectionState } from "./SectionState";
+import { type TeacherApplicationStatus } from "@/lib/admin/TeacherApplicationStatus";
+import { type LoadState } from "@/shared/route-state/LoadState";
+import styles from "@/components/admin-routes.module.css";
+import { type TeacherApplicationFilters } from "../model/TeacherApplicationFilters";
+import { teacherApplicationStatusOptions } from "../model/teacherApplicationDisplay";
 
 export function TeacherApplicationFilterPanel({
+  filters,
   onApply,
   onRefresh,
   onReset,
-  searchInput,
-  setSearchInput,
-  setStatusFilter,
+  onUpdate,
   state,
-  statusFilter,
 }: {
+  filters: TeacherApplicationFilters;
   onApply: () => void;
   onRefresh: () => void;
   onReset: () => void;
-  searchInput: string;
-  setSearchInput: (value: string) => void;
-  setStatusFilter: (value: TeacherApplicationStatus | "") => void;
-  state: SectionState;
-  statusFilter: TeacherApplicationStatus | "";
+  onUpdate: (patch: Partial<TeacherApplicationFilters>) => void;
+  state: LoadState;
 }) {
   return (
     <section className={styles.filterPanel} aria-label="Teacher application filters">
@@ -32,7 +29,7 @@ export function TeacherApplicationFilterPanel({
         <span className={styles.inputWithIcon}>
           <Search size={17} aria-hidden />
           <input
-            onChange={(event) => setSearchInput(event.target.value)}
+            onChange={(event) => onUpdate({ searchInput: event.target.value })}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
@@ -41,15 +38,15 @@ export function TeacherApplicationFilterPanel({
             }}
             placeholder="Applicant, email, sponsor, course, status"
             type="search"
-            value={searchInput}
+            value={filters.searchInput}
           />
         </span>
       </label>
       <label>
         <span>Status</span>
         <select
-          onChange={(event) => setStatusFilter(event.target.value as TeacherApplicationStatus | "")}
-          value={statusFilter}
+          onChange={(event) => onUpdate({ offset: 0, status: event.target.value as TeacherApplicationStatus | "" })}
+          value={filters.status}
         >
           {teacherApplicationStatusOptions.map((option) => (
             <option key={option.label} value={option.value}>

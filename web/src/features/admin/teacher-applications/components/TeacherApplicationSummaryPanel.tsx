@@ -1,17 +1,17 @@
 "use client";
 
 import { CheckCircle2, Clock3, FileText, UserCheck, XCircle } from "lucide-react";
-import { type PlatformTeacherApplicationsResponse } from "@/lib/admin";
-import styles from "../admin-routes.module.css";
-import { SummaryCard } from "./SummaryCard";
-import { type SectionState } from "./SectionState";
+import { type PlatformTeacherApplicationsResponse } from "@/lib/admin/PlatformTeacherApplicationsResponse";
+import { type LoadState } from "@/shared/route-state/LoadState";
+import styles from "@/components/admin-routes.module.css";
+import { SummaryCard } from "@/components/admin-routes/SummaryCard";
 
 export function TeacherApplicationSummaryPanel({
   response,
   state,
 }: {
   response: PlatformTeacherApplicationsResponse | null;
-  state: SectionState;
+  state: LoadState;
 }) {
   const summary = response?.summary;
 
