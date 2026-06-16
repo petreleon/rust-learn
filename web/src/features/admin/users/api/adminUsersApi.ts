@@ -1,9 +1,11 @@
 import {
   assignAdminUserRole,
+  fetchAdminUserRoleAssignmentAudit,
   fetchAdminPlatformRoles,
   fetchAdminUser,
   fetchAdminUsers,
   type AdminRole,
+  type AdminUserRoleAssignmentAuditEvent,
   type AdminUserProfile,
   type AdminUsersResponse,
 } from "@/lib/admin";
@@ -47,4 +49,14 @@ export function assignRoleToAdminUser({
   userId: number;
 }): Promise<string> {
   return assignAdminUserRole({ roleName, token, userId });
+}
+
+export function loadAdminUserRoleAssignmentAudit({
+  token,
+  userId,
+}: {
+  token: string;
+  userId: number;
+}): Promise<AdminUserRoleAssignmentAuditEvent[]> {
+  return fetchAdminUserRoleAssignmentAudit({ token, userId });
 }

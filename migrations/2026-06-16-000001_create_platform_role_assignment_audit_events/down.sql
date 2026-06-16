@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS platform_role_assignment_audit_events;

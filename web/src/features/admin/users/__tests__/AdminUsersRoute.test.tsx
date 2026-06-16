@@ -1,18 +1,18 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { type AdminRole, type AdminUserProfile } from "@/lib/admin";
 import { AdminRequestError } from "@/lib/admin";
-import { type CurrentSession } from "@/lib/session";
 import { readBrowserSessionToken } from "@/shared/session/browserSession";
 import {
   assignRoleToAdminUser,
+  loadAdminUserRoleAssignmentAudit,
   loadAdminPlatformRoles,
   loadAdminUserProfile,
   loadAdminUsersSession,
   searchAdminUsers,
 } from "../api/adminUsersApi";
 import { AdminUsersRoute } from "../route/AdminUsersRoute";
+import { adminSession, profile, role, roleAuditEvent } from "./adminUsersTestFixtures";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/admin/users",
@@ -26,6 +26,7 @@ vi.mock("@/shared/session/browserSession", () => ({
 
 vi.mock("../api/adminUsersApi", () => ({
   assignRoleToAdminUser: vi.fn(),
+  loadAdminUserRoleAssignmentAudit: vi.fn(),
   loadAdminPlatformRoles: vi.fn(),
   loadAdminUserProfile: vi.fn(),
   loadAdminUsersSession: vi.fn(),
@@ -47,6 +48,7 @@ describe("AdminUsersRoute", () => {
       }),
     );
     vi.mocked(assignRoleToAdminUser).mockResolvedValue("Role assigned successfully");
+    vi.mocked(loadAdminUserRoleAssignmentAudit).mockResolvedValue([roleAuditEvent()]);
   });
 
   it("shows signed-out state without loading admin users", async () => {
@@ -73,8 +75,12 @@ describe("AdminUsersRoute", () => {
     await user.click(await screen.findByRole("button", { name: /Ada Lovelace/ }));
 
     await waitFor(() => expect(loadAdminUserProfile).toHaveBeenCalledWith({ token: "admin-token", userId: 7 }));
+    await waitFor(() => expect(loadAdminUserRoleAssignmentAudit).toHaveBeenCalledWith({ token: "admin-token", userId: 7 }));
     expect(await screen.findByText("KYC status")).toBeVisible();
     expect(await screen.findByText("Platform roles")).toBeVisible();
+    expect(await screen.findByText("Role assignment history")).toBeVisible();
+    expect(await screen.findByText("Role Assigned")).toBeVisible();
+    await waitFor(() => expect(screen.getAllByText(/PLATFORM_ADMIN/).length).toBeGreaterThan(1));
     expect(await screen.findByText("ASSIGN ROLES TO USER")).toBeVisible();
     await user.selectOptions(screen.getByLabelText("Role"), "PLATFORM_ADMIN");
     await user.click(screen.getByRole("button", { name: "Assign role" }));
@@ -87,6 +93,7 @@ describe("AdminUsersRoute", () => {
       }),
     );
     expect(await screen.findByText("Role assigned successfully.")).toBeVisible();
+    expect(loadAdminUserRoleAssignmentAudit).toHaveBeenCalledTimes(2);
   });
 
   it("shows a gated panel when platform admin lacks user view permission", async () => {
@@ -111,7 +118,9 @@ describe("AdminUsersRoute", () => {
     await user.click(screen.getByRole("button", { name: "Assign role" }));
 
     expect(loadAdminPlatformRoles).not.toHaveBeenCalled();
+    expect(loadAdminUserRoleAssignmentAudit).not.toHaveBeenCalled();
     await waitFor(() => expect(assignRoleToAdminUser).toHaveBeenCalledWith(expect.objectContaining({ roleName: "SUPPORT_ADMIN" })));
+    expect(await screen.findByText("This session is missing VIEW_ROLE_ASSIGNMENTS.")).toBeVisible();
   });
 
   it("shows assignment backend errors without leaving the profile", async () => {
@@ -129,41 +138,3 @@ describe("AdminUsersRoute", () => {
     expect(screen.getAllByText("ada@example.com").length).toBeGreaterThan(0);
   });
 });
-
-function adminSession(permissions: string[]): CurrentSession {
-  return {
-    access: { learner: true, organization: false, platform_admin: permissions.length > 0, teacher: false, teacher_application: false },
-    courses: [],
-    delegated_permissions: [],
-    organizations: [],
-    platform: {
-      capabilities: [
-        { enabled: permissions.includes("VIEW_USER"), key: "users", label: "User management", permissions: ["VIEW_USER", "ASSIGN_ROLES_TO_USER", "VIEW_ROLE_ASSIGNMENTS"] },
-      ],
-      delegated_permissions: [],
-      direct_permissions: permissions,
-      effective_permissions: permissions,
-      roles: permissions.length ? ["platform_admin"] : [],
-    },
-    user: { email: "admin@example.com", email_verified: true, id: 1, kyc_verified: true, name: "Admin User" },
-  };
-}
-
-function profile(id: number, overrides: Partial<AdminUserProfile> = {}): AdminUserProfile {
-  return {
-    created_at: "2026-06-12 10:00:00",
-    date_of_birth: null,
-    email: "ada@example.com",
-    email_verified: true,
-    id,
-    kyc_verified: false,
-    name: "Ada Lovelace",
-    platform_permissions: [],
-    platform_roles: [],
-    ...overrides,
-  };
-}
-
-function role(name: string): AdminRole {
-  return { description: null, id: 3, name };
-}

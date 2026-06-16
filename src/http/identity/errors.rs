@@ -2,6 +2,7 @@ use actix_web::http::StatusCode;
 
 use crate::application::identity::assign_platform_role::AssignPlatformRoleError;
 use crate::application::identity::current_session::CurrentSessionError;
+use crate::application::identity::list_platform_role_assignment_audit::PlatformRoleAssignmentAuditError;
 use crate::application::identity::user_profile::UserProfileError;
 use crate::http::errors::ApiError;
 
@@ -121,6 +122,35 @@ pub(super) fn platform_role_assignment_error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "platform_role_assignment_failed",
                 "Failed to assign role",
+            )
+        }
+    }
+}
+
+pub(super) fn platform_role_assignment_audit_error(
+    target_user_id: i32,
+    error: PlatformRoleAssignmentAuditError,
+) -> ApiError {
+    match error {
+        PlatformRoleAssignmentAuditError::PermissionDenied(_) => ApiError::new(
+            StatusCode::FORBIDDEN,
+            "permission_denied",
+            REQUIRED_PERMISSION,
+        ),
+        PlatformRoleAssignmentAuditError::UserNotFound => {
+            ApiError::new(StatusCode::NOT_FOUND, "user_not_found", "User not found")
+        }
+        PlatformRoleAssignmentAuditError::Connection(message)
+        | PlatformRoleAssignmentAuditError::Database(message) => {
+            log::error!(
+                "event=platform_role_assignment_audit_failed target_user_id={} error={}",
+                target_user_id,
+                message
+            );
+            ApiError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "platform_role_assignment_audit_unavailable",
+                "Failed to load role assignment history",
             )
         }
     }

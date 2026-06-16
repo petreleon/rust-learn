@@ -12,6 +12,13 @@ pub(super) fn user_scope() -> actix_web::Scope {
             )),
         )
         .service(web::resource("/{id}").route(web::get().to(user_handlers::get_user)))
+        .service(web::resource("/{id}/role/audit").route(
+            web::get().to(platform_role_assignment::list_audit).wrap(
+                PlatformPermissionMiddleware::require(
+                    Permissions::VIEW_ROLE_ASSIGNMENTS.to_string(),
+                ),
+            ),
+        ))
         .service(web::resource("/{id}/role").route(
             web::post().to(platform_role_assignment::assign_role).wrap(
                 PlatformPermissionMiddleware::require(

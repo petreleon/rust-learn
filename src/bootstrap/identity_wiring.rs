@@ -7,6 +7,7 @@ use crate::application::identity::auth_token::AuthTokenVerifierService;
 use crate::application::identity::current_session::CurrentSessionUseCase;
 use crate::application::identity::get_user_profile::UserProfileReadUseCase;
 use crate::application::identity::jwks::JwksUseCase;
+use crate::application::identity::list_platform_role_assignment_audit::PlatformRoleAssignmentAuditUseCase;
 use crate::application::identity::list_users::UserListUseCase;
 use crate::application::identity::login::LoginUseCase;
 use crate::application::identity::register::RegisterUseCase;
@@ -16,6 +17,7 @@ use crate::application::identity::reset_password::ResetPasswordUseCase;
 use crate::application::identity::verify_email::VerifyEmailUseCase;
 use crate::infra::postgres::identity::current_session_use_case::PostgresCurrentSessionUseCase;
 use crate::infra::postgres::identity::login_use_case::PostgresLoginUseCase;
+use crate::infra::postgres::identity::platform_role_assignment_audit_use_case::PostgresPlatformRoleAssignmentAuditUseCase;
 use crate::infra::postgres::identity::platform_role_assignment_use_case::PostgresPlatformRoleAssignmentUseCase;
 use crate::infra::postgres::identity::registration_use_case::PostgresRegisterUseCase;
 use crate::infra::postgres::identity::request_password_reset_use_case::PostgresRequestPasswordResetUseCase;
@@ -32,6 +34,7 @@ pub struct IdentityUseCases {
     pub current_session: Arc<dyn CurrentSessionUseCase>,
     pub jwks: Arc<dyn JwksUseCase>,
     pub login: Arc<dyn LoginUseCase>,
+    pub platform_role_assignment_audit: Arc<dyn PlatformRoleAssignmentAuditUseCase>,
     pub platform_role_assignment: Arc<dyn PlatformRoleAssignmentUseCase>,
     pub register: Arc<dyn RegisterUseCase>,
     pub request_password_reset: Arc<dyn RequestPasswordResetUseCase>,
@@ -48,6 +51,9 @@ pub fn build_identity_use_cases(pool: &DbPool) -> IdentityUseCases {
         current_session: Arc::new(PostgresCurrentSessionUseCase::new(pool.clone())),
         jwks: Arc::new(crate::infra::tokens::jwt::EnvJwksUseCase),
         login: Arc::new(PostgresLoginUseCase::new(pool.clone())),
+        platform_role_assignment_audit: Arc::new(PostgresPlatformRoleAssignmentAuditUseCase::new(
+            pool.clone(),
+        )),
         platform_role_assignment: Arc::new(PostgresPlatformRoleAssignmentUseCase::new(
             pool.clone(),
             crate::infra::notifications::NotificationsState::new(pool.clone()),
@@ -67,6 +73,9 @@ pub fn configure_identity_app_data(cfg: &mut web::ServiceConfig, identity: &Iden
         .app_data(web::Data::new(identity.current_session.clone()))
         .app_data(web::Data::new(identity.jwks.clone()))
         .app_data(web::Data::new(identity.login.clone()))
+        .app_data(web::Data::new(
+            identity.platform_role_assignment_audit.clone(),
+        ))
         .app_data(web::Data::new(identity.platform_role_assignment.clone()))
         .app_data(web::Data::new(identity.register.clone()))
         .app_data(web::Data::new(identity.request_password_reset.clone()))

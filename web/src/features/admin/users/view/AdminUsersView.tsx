@@ -9,6 +9,7 @@ import { LoadingState } from "@/features/admin/shared/route-kit/LoadingState";
 import { SessionErrorState } from "@/features/admin/shared/route-kit/SessionErrorState";
 import { SignedOutState } from "@/features/admin/shared/route-kit/SignedOutState";
 import { StatusPill } from "@/features/admin/shared/route-kit/StatusPill";
+import { RoleAssignmentAuditPanel } from "../components/RoleAssignmentAuditPanel";
 import { RoleAssignmentPanel } from "../components/RoleAssignmentPanel";
 import { UserDetailPanel } from "../components/UserDetailPanel";
 import { UserListPanel } from "../components/UserListPanel";
@@ -70,6 +71,14 @@ export function AdminUsersView({ route }: { route: AdminUsersRouteController }) 
                 rolesError={route.rolesError}
                 rolesState={route.rolesState}
                 state={route.assignState}
+                user={route.profile}
+              />
+              <RoleAssignmentAuditPanel
+                canViewAudit={route.canViewRoleCatalog}
+                error={route.auditError}
+                events={route.auditEvents}
+                onRefresh={route.refreshAudit}
+                state={route.auditState}
                 user={route.profile}
               />
             </div>

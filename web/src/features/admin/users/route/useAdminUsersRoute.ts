@@ -21,6 +21,7 @@ import {
   emptyAdminUsersWorkspace,
   findUsersCapability,
 } from "../model/adminUserAccessModel";
+import { useAdminUserRoleAudit } from "./useAdminUserRoleAudit";
 import { normalizeAdminUsersRouteError } from "./normalizeAdminUsersRouteError";
 
 export function useAdminUsersRoute() {
@@ -46,6 +47,7 @@ export function useAdminUsersRoute() {
   const canViewRoleCatalog = canViewPlatformRoleCatalog(workspace);
   const canViewUsers = canViewAdminUsers(workspace);
   const usersCapability = findUsersCapability(workspace);
+  const audit = useAdminUserRoleAudit(canViewRoleCatalog);
 
   const clearRoute = useCallback((nextState: LoadState) => {
     setError(null);
@@ -113,6 +115,7 @@ export function useAdminUsersRoute() {
       const result = await searchAdminUsers({ search: trimmedSearch, token });
       setUsers(result.users);
       setProfile(null);
+      audit.resetAudit();
       setSearchState("success");
     } catch (nextError) {
       setSearchError(normalizeAdminUsersRouteError(nextError, "Users could not be loaded."));
@@ -124,8 +127,11 @@ export function useAdminUsersRoute() {
     const token = readBrowserSessionToken();
     if (!token) return;
     setSearchError(null);
+    audit.resetAudit();
     try {
-      setProfile(await loadAdminUserProfile({ token, userId }));
+      const nextProfile = await loadAdminUserProfile({ token, userId });
+      setProfile(nextProfile);
+      void audit.loadAudit(nextProfile.id, token);
     } catch (nextError) {
       setSearchError(normalizeAdminUsersRouteError(nextError, "User profile could not be loaded."));
     }
@@ -138,7 +144,9 @@ export function useAdminUsersRoute() {
     setAssignState("loading");
     try {
       await assignRoleToAdminUser({ roleName: roleName.trim(), token, userId: profile.id });
-      setProfile(await loadAdminUserProfile({ token, userId: profile.id }));
+      const nextProfile = await loadAdminUserProfile({ token, userId: profile.id });
+      setProfile(nextProfile);
+      void audit.loadAudit(nextProfile.id, token);
       setAssignState("success");
     } catch (nextError) {
       setAssignError(normalizeAdminUsersRouteError(nextError, "Role assignment failed."));
@@ -148,14 +156,21 @@ export function useAdminUsersRoute() {
 
   function signOut() {
     clearBrowserSession();
+    audit.resetAudit();
     clearRoute("idle");
   }
 
+  function refreshAudit() {
+    if (profile) void audit.loadAudit(profile.id);
+  }
+
   return {
-    allowed, assignError, assignRole, assignState, canAssignRoles, canViewRoleCatalog, canViewUsers,
-    error, hasToken, loadRoles, loadSession, loadState, profile, roleName, roles, rolesError,
-    rolesState, searchError, searchInput, searchState, selectUser, session, setRoleName,
-    setSearchInput, signOut, users, usersCapability, workspace, handleSearch,
+    allowed, assignError, assignRole, assignState, auditError: audit.error,
+    auditEvents: audit.events, auditState: audit.state, canAssignRoles, canViewRoleCatalog,
+    canViewUsers, error, hasToken, loadRoles, loadSession, loadState, profile, refreshAudit,
+    roleName, roles, rolesError, rolesState, searchError, searchInput, searchState,
+    selectUser, session, setRoleName, setSearchInput, signOut, users, usersCapability,
+    workspace, handleSearch,
   };
 }
 

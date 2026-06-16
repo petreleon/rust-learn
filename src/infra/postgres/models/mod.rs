@@ -20,6 +20,7 @@ pub mod path;
 pub mod path_course;
 pub mod pending_course_organization_invites;
 pub mod persistent_state;
+pub mod platform_role_assignment_audit_event;
 pub mod reward_audit_event;
 pub mod reward_candidate;
 pub mod reward_compensation_record;

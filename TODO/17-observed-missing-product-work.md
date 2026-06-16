@@ -703,10 +703,10 @@ Checks:
 
 Current evidence:
 
-- Backend APIs exist for platform users and role assignment:
-  `/api/user`, `/api/user/{id}`, `/api/user/{id}/role`, and `/api/roles`.
-  There is no matching platform user-management route in `web/src/app` and no
-  admin helper for listing users or assigning platform roles.
+- Backend APIs exist for platform users, role assignment, role catalogs, and
+  persisted role-assignment history:
+  `/api/user`, `/api/user/{id}`, `/api/user/{id}/role`,
+  `/api/user/{id}/role/audit`, and `/api/roles`.
 - Backend APIs exist for course creation, course update, and lifecycle changes:
   `POST /api/courses`, `PUT /api/courses/{id}`, and
   `PUT /api/courses/{id}/lifecycle`. Teacher and organization course routes
@@ -732,13 +732,16 @@ Current evidence:
   `VIEW_USER` can search users by name/email, inspect profile verification,
   platform roles, and platform permissions; admins with
   `ASSIGN_ROLES_TO_USER` can assign platform roles without returning to `/ops`.
+- Platform role assignment writes append-only audit rows in
+  `platform_role_assignment_audit_events`. Admins with `VIEW_ROLE_ASSIGNMENTS`
+  can load the selected user's role assignment history from `/admin/users`,
+  refresh it after assignment, and see a gated state when the permission is
+  missing.
 - The current session capability catalog now advertises a `users` platform
   capability so the admin dashboard can link to the user-management lane.
 
 Needed:
 
-- Add persisted role-assignment audit history to the platform user-management
-  route.
 - Add richer platform user filters beyond name/email search if operators need
   KYC, email-verification, role, or permission filtering.
 - Add teacher/organization course creation, course metadata editing, lifecycle
@@ -754,7 +757,7 @@ Checks:
 
 - [x] Platform admins can search users, inspect user roles/permissions, and
   assign roles without using `/ops`.
-- [ ] Platform admins can see persisted role-assignment audit history without
+- [x] Platform admins can see persisted role-assignment audit history without
   using `/ops`.
 - [ ] Teacher or organization operators with the right permissions can create a
   course, edit course metadata, and move lifecycle status through valid

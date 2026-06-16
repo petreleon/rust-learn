@@ -314,6 +314,20 @@ diesel::table! {
 }
 
 diesel::table! {
+    platform_role_assignment_audit_events (id) {
+        id -> Int8,
+        target_user_id -> Int4,
+        actor_user_id -> Nullable<Int4>,
+        platform_role_id -> Nullable<Int4>,
+        #[max_length = 255]
+        role_name -> Varchar,
+        #[max_length = 64]
+        event_type -> Varchar,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     platform_roles (id) {
         id -> Int4,
         name -> Varchar,
@@ -701,6 +715,7 @@ diesel::joinable!(paths_courses -> courses (course_id));
 diesel::joinable!(paths_courses -> paths (path_id));
 diesel::joinable!(pending_course_organization_invites -> courses (course_id));
 diesel::joinable!(pending_course_organization_invites -> organizations (organization_id));
+diesel::joinable!(platform_role_assignment_audit_events -> platform_roles (platform_role_id));
 diesel::joinable!(reward_audit_events -> reward_candidates (reward_candidate_id));
 diesel::joinable!(reward_audit_events -> users (actor_user_id));
 diesel::joinable!(reward_candidates -> courses (course_id));
@@ -785,6 +800,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     paths_courses,
     pending_course_organization_invites,
     persistent_states,
+    platform_role_assignment_audit_events,
     platform_roles,
     reward_audit_events,
     reward_candidates,

@@ -1,6 +1,7 @@
 use diesel::prelude::*;
-use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 
+use crate::infra::postgres::identity::platform_role_assignment_audit_records::record_role_assignment_audit;
 use crate::infra::postgres::schema::{platform_roles, role_platform_hierarchy, user_role_platform};
 
 pub async fn assign_platform_role_with_hierarchy(
@@ -9,30 +10,39 @@ pub async fn assign_platform_role_with_hierarchy(
     target_user_id: i32,
     role_name: &str,
 ) -> QueryResult<usize> {
-    let assigner_level = min_platform_hierarchy_level(conn, assigner_id)
-        .await?
-        .ok_or(diesel::result::Error::NotFound)?;
-    let target_level = min_platform_hierarchy_level(conn, target_user_id).await?;
-    let role_id = platform_role_id_by_name(conn, role_name).await?;
-    let target_role_level = platform_role_hierarchy_level(conn, role_id).await?;
+    let role_name = role_name.to_string();
+    conn.transaction::<_, diesel::result::Error, _>(|conn| {
+        Box::pin(async move {
+            let assigner_level = min_platform_hierarchy_level(conn, assigner_id)
+                .await?
+                .ok_or(diesel::result::Error::NotFound)?;
+            let target_level = min_platform_hierarchy_level(conn, target_user_id).await?;
+            let role_id = platform_role_id_by_name(conn, &role_name).await?;
+            let target_role_level = platform_role_hierarchy_level(conn, role_id).await?;
 
-    if assigner_level >= target_role_level {
-        return Err(diesel::result::Error::RollbackTransaction);
-    }
+            if assigner_level >= target_role_level {
+                return Err(diesel::result::Error::RollbackTransaction);
+            }
 
-    if let Some(target_level) = target_level {
-        if assigner_level >= target_level {
-            return Err(diesel::result::Error::RollbackTransaction);
-        }
-    }
+            if let Some(target_level) = target_level {
+                if assigner_level >= target_level {
+                    return Err(diesel::result::Error::RollbackTransaction);
+                }
+            }
 
-    diesel::insert_into(user_role_platform::table)
-        .values((
-            user_role_platform::user_id.eq(Some(target_user_id)),
-            user_role_platform::platform_role_id.eq(Some(role_id)),
-        ))
-        .execute(conn)
-        .await
+            let assigned = diesel::insert_into(user_role_platform::table)
+                .values((
+                    user_role_platform::user_id.eq(Some(target_user_id)),
+                    user_role_platform::platform_role_id.eq(Some(role_id)),
+                ))
+                .execute(conn)
+                .await?;
+            record_role_assignment_audit(conn, assigner_id, target_user_id, role_id, &role_name)
+                .await?;
+            Ok(assigned)
+        })
+    })
+    .await
 }
 
 async fn min_platform_hierarchy_level(
