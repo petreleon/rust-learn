@@ -3,12 +3,14 @@ use actix_web::http::StatusCode;
 use crate::http::errors::ApiError;
 
 mod audit;
+mod burn;
 mod link;
 mod read;
 mod tax;
 mod transfer;
 
 pub(super) use audit::wallet_audit_error;
+pub(super) use burn::token_burn_error;
 pub(super) use link::wallet_link_error;
 pub(super) use read::wallet_read_error;
 pub(super) use tax::wallet_token_tax_error;

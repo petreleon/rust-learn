@@ -55,6 +55,31 @@ pub(super) async fn can_link_organization_wallet(
     .await
 }
 
+pub(super) async fn can_burn_organization_tokens(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+    organization_id: i32,
+) -> Result<bool, WalletAuthorizationError> {
+    authorize_wallet(
+        conn,
+        actor_user_id,
+        WalletAuthorizationAction::BurnOrganizationTokens { organization_id },
+    )
+    .await
+}
+
+pub(super) async fn can_view_burn_leaderboard(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+) -> Result<bool, WalletAuthorizationError> {
+    authorize_wallet(
+        conn,
+        actor_user_id,
+        WalletAuthorizationAction::ViewBurnLeaderboard,
+    )
+    .await
+}
+
 async fn authorize_wallet(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,

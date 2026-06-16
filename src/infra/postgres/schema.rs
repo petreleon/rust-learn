@@ -618,6 +618,75 @@ diesel::table! {
 }
 
 diesel::table! {
+    token_burn_fee_records (id) {
+        id -> Int8,
+        burn_request_id -> Int8,
+        actor_user_id -> Int4,
+        #[max_length = 48]
+        fee_path -> Varchar,
+        amount -> Numeric,
+        transaction_id -> Nullable<Int8>,
+        deposit_intent_id -> Nullable<Int8>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    token_burn_leaderboard_events (id) {
+        id -> Int8,
+        burn_request_id -> Int8,
+        #[max_length = 32]
+        burner_type -> Varchar,
+        user_id -> Nullable<Int4>,
+        organization_id -> Nullable<Int4>,
+        amount -> Numeric,
+        occurred_at -> Timestamptz,
+        visible -> Bool,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    token_burn_requests (id) {
+        id -> Int8,
+        actor_user_id -> Int4,
+        #[max_length = 32]
+        burner_type -> Varchar,
+        user_id -> Nullable<Int4>,
+        organization_id -> Nullable<Int4>,
+        wallet_id -> Nullable<Int4>,
+        #[max_length = 48]
+        source -> Varchar,
+        #[max_length = 48]
+        fee_path -> Varchar,
+        #[max_length = 48]
+        status -> Varchar,
+        amount -> Numeric,
+        fee_amount -> Numeric,
+        #[max_length = 128]
+        idempotency_key -> Varchar,
+        deposit_intent_id -> Nullable<Int8>,
+        transaction_id -> Nullable<Int8>,
+        external_transaction_id -> Nullable<Int8>,
+        internal_transaction_id -> Nullable<Int8>,
+        #[max_length = 128]
+        permission_evidence -> Nullable<Varchar>,
+        #[max_length = 32]
+        wallet_provider -> Varchar,
+        metamask_required -> Bool,
+        #[max_length = 64]
+        wallet_action -> Varchar,
+        leaderboard_visible -> Bool,
+        last_error -> Nullable<Text>,
+        confirmed_at -> Nullable<Timestamptz>,
+        ledger_recorded_at -> Nullable<Timestamptz>,
+        leaderboard_indexed_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     transactions (id) {
         id -> Int8,
         #[sql_name = "type"]
@@ -826,6 +895,19 @@ diesel::joinable!(role_platform_hierarchy -> platform_roles (platform_role_id));
 diesel::joinable!(teacher_application_audit_events -> teacher_applications (application_id));
 diesel::joinable!(teacher_application_audit_events -> users (actor_user_id));
 diesel::joinable!(teacher_applications -> courses (requested_course_id));
+diesel::joinable!(token_burn_fee_records -> token_burn_requests (burn_request_id));
+diesel::joinable!(token_burn_fee_records -> transactions (transaction_id));
+diesel::joinable!(token_burn_fee_records -> users (actor_user_id));
+diesel::joinable!(token_burn_fee_records -> wallet_token_deposit_intents (deposit_intent_id));
+diesel::joinable!(token_burn_leaderboard_events -> organizations (organization_id));
+diesel::joinable!(token_burn_leaderboard_events -> token_burn_requests (burn_request_id));
+diesel::joinable!(token_burn_leaderboard_events -> users (user_id));
+diesel::joinable!(token_burn_requests -> external_transactions (external_transaction_id));
+diesel::joinable!(token_burn_requests -> internal_transactions (internal_transaction_id));
+diesel::joinable!(token_burn_requests -> organizations (organization_id));
+diesel::joinable!(token_burn_requests -> transactions (transaction_id));
+diesel::joinable!(token_burn_requests -> wallet_token_deposit_intents (deposit_intent_id));
+diesel::joinable!(token_burn_requests -> wallets (wallet_id));
 diesel::joinable!(transactions_external_transactions -> external_transactions (external_transaction_id));
 diesel::joinable!(transactions_external_transactions -> transactions (transaction_id));
 diesel::joinable!(transactions_internal_transactions -> internal_transactions (internal_transaction_id));
@@ -897,6 +979,9 @@ diesel::allow_tables_to_appear_in_same_query!(
     role_platform_hierarchy,
     teacher_application_audit_events,
     teacher_applications,
+    token_burn_fee_records,
+    token_burn_leaderboard_events,
+    token_burn_requests,
     transactions,
     transactions_external_transactions,
     transactions_internal_transactions,

@@ -1,4 +1,5 @@
 pub mod audit_wallet;
+pub mod burn_tokens;
 pub mod create_deposit_intent;
 pub mod index_deposit;
 pub mod link_wallet;

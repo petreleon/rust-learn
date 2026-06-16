@@ -43,6 +43,24 @@ pub async fn authorize_wallet_action(
             )
             .await
         }
+        WalletAuthorizationAction::BurnOrganizationTokens { organization_id } => {
+            if can_platform(store, actor, Permissions::MANAGE_WALLETS).await? {
+                return Ok(true);
+            }
+            can_organization(
+                store,
+                actor,
+                organization_id,
+                Permissions::BURN_ORGANIZATION_TOKENS,
+            )
+            .await
+        }
+        WalletAuthorizationAction::ViewBurnLeaderboard => {
+            has_any_platform_permission(store, actor, burn_leaderboard_permissions()).await
+        }
+        WalletAuthorizationAction::ReconcileTokenBurns => {
+            can_platform(store, actor, Permissions::RECONCILE_TOKEN_BURNS).await
+        }
         WalletAuthorizationAction::SetDepositTax => {
             can_platform(store, actor, Permissions::SET_DEPOSIT_TAX).await
         }
@@ -131,4 +149,12 @@ fn user_wallet_link_permissions() -> &'static [Permissions] {
 
 fn organization_wallet_link_permissions() -> &'static [Permissions] {
     &[Permissions::MANAGE_ORG_WALLETS]
+}
+
+fn burn_leaderboard_permissions() -> &'static [Permissions] {
+    &[
+        Permissions::VIEW_BURN_LEADERBOARD,
+        Permissions::VIEW_FINANCIAL_REPORTS,
+        Permissions::RECONCILE_WALLETS,
+    ]
 }

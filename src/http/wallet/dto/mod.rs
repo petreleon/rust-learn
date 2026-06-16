@@ -1,5 +1,6 @@
 mod audit;
 mod audit_mapping;
+mod burn;
 mod deposit_intent;
 mod link;
 mod retirement;
@@ -7,6 +8,10 @@ mod token_tax;
 mod wallet;
 
 pub use audit::WalletAuditResponse;
+pub use burn::{
+    TokenBurnLeaderboardQueryDto, TokenBurnLeaderboardResponse, TokenBurnRequestDto,
+    TokenBurnResponse,
+};
 pub use deposit_intent::{WalletDepositIntentRequestDto, WalletDepositIntentResponse};
 pub use link::WalletLinkResponse;
 pub use retirement::{WalletRetirementRequestDto, WalletRetirementResponse};
