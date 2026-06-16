@@ -3,25 +3,43 @@
 import { Filter, Search } from "lucide-react";
 import { type FormEvent } from "react";
 import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDashboardItem";
+import { type ActionState } from "@/shared/route-state/ActionState";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
+import { type CourseCreationDraft, type CourseCreationTarget } from "../model/courseCreationModel";
 import { type CourseQuery } from "../model/CourseQuery";
+import { CourseCreationPanel } from "./CourseCreationPanel";
 import { CourseGrid } from "./CourseGrid";
 
 export function CoursesView({
+  courseCreation,
   courses,
   onApplyFilters,
   onQueryChange,
   query,
   total,
 }: {
+  courseCreation: {
+    actionMessage: string | null;
+    actionState: ActionState;
+    submitCourseCreation: (draft: CourseCreationDraft) => void;
+    targets: CourseCreationTarget[];
+  };
   courses: TeacherCourseDashboardItem[];
   onApplyFilters: (event: FormEvent<HTMLFormElement>) => void;
   onQueryChange: (query: CourseQuery) => void;
   query: CourseQuery;
   total: number;
 }) {
+  const creationKey = courseCreation.targets.map((target) => target.value).join(":");
   return (
     <>
+      <CourseCreationPanel
+        actionMessage={courseCreation.actionMessage}
+        actionState={courseCreation.actionState}
+        key={creationKey}
+        onSubmit={courseCreation.submitCourseCreation}
+        targets={courseCreation.targets}
+      />
       <form className={styles.filterPanel} onSubmit={onApplyFilters}>
         <label>
           <span>Search</span>

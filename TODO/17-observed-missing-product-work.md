@@ -716,6 +716,9 @@ Current evidence:
   prerequisites from the backend read model and exposes teacher settings plus
   draft/submitted/published/archived lifecycle update controls through the
   course-scoped product route.
+- `/teach/courses` now exposes draft course creation for sessions with
+  platform or organization-scoped `CREATE_COURSE`, selecting the backend owner
+  target instead of requiring `/ops` or a raw organization id.
 - Organization course pages explicitly say editing, publishing, and
   organization-course ownership changes remain separate route work.
 - Backend APIs exist for reward policy creation/listing at
@@ -773,6 +776,8 @@ Checks:
   transitions.
 - [x] Teacher course workspace can edit persisted course metadata and submit
   lifecycle changes without using `/ops`.
+- [x] Teacher courses page can create draft personal/platform or
+  organization-owned courses from visible permission scope.
 - [ ] Invalid lifecycle transitions, missing permissions, stale updates, and
   archived/deleted course states are blocked with clear messages.
 - [ ] Reward policies can be created, listed, activated/deactivated, scoped,

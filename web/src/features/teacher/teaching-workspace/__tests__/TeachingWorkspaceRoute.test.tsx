@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearBrowserSession, readBrowserSessionToken } from "@/shared/session/browserSession";
 import { TeachingWorkspaceRoute } from "../route/TeachingWorkspaceRoute";
-import { loadTeachingWorkspaceData } from "../api/teachingWorkspaceApi";
+import { createTeachingCourse, loadTeachingWorkspaceData } from "../api/teachingWorkspaceApi";
 import {
   applicationSnapshot,
   teachingCourses,
@@ -21,6 +21,7 @@ vi.mock("@/shared/session/browserSession", () => ({
 }));
 
 vi.mock("../api/teachingWorkspaceApi", () => ({
+  createTeachingCourse: vi.fn(),
   loadTeachingWorkspaceData: vi.fn(),
 }));
 
@@ -32,6 +33,14 @@ describe("TeachingWorkspaceRoute", () => {
       applicationSnapshot: applicationSnapshot(),
       courses: teachingCourses(),
       session: teachingSession(),
+    });
+    vi.mocked(createTeachingCourse).mockResolvedValue({
+      description: null,
+      id: 21,
+      lifecycle_status: "draft",
+      prerequisites: null,
+      title: "Async Rust",
+      topics: null,
     });
   });
 
@@ -72,6 +81,37 @@ describe("TeachingWorkspaceRoute", () => {
       query: { lifecycleStatus: "published", search: "Rust" },
       token: "teacher-token",
     });
+  });
+
+  it("creates a draft course through the feature API boundary", async () => {
+    const user = userEvent.setup();
+    vi.mocked(loadTeachingWorkspaceData).mockResolvedValue({
+      applicationSnapshot: applicationSnapshot(),
+      courses: teachingCourses(),
+      session: teachingSession({
+        platform: {
+          capabilities: [],
+          delegated_permissions: [],
+          direct_permissions: ["CREATE_COURSE"],
+          effective_permissions: ["CREATE_COURSE"],
+          roles: ["PLATFORM_ADMIN"],
+        },
+      }),
+    });
+
+    render(<TeachingWorkspaceRoute view="courses" />);
+
+    await user.type(await screen.findByPlaceholderText("New course title"), "Async Rust");
+    await user.click(screen.getByRole("button", { name: "Create draft course" }));
+
+    await waitFor(() =>
+      expect(createTeachingCourse).toHaveBeenCalledWith({
+        draft: { targetValue: "platform", title: "Async Rust" },
+        token: "teacher-token",
+      }),
+    );
+    expect(await screen.findByText("Async Rust was created as draft.")).toBeVisible();
+    expect(loadTeachingWorkspaceData).toHaveBeenCalledTimes(2);
   });
 
   it("clears stored session when signing out", async () => {

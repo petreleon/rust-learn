@@ -53,6 +53,7 @@ function LoadedTeachingWorkspace({ route }: { route: TeachingWorkspaceRouteContr
         />
       ) : (
         <CoursesView
+          courseCreation={route.courseCreation}
           courses={route.previewCourses}
           onApplyFilters={(event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();

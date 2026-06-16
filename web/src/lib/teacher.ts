@@ -44,6 +44,8 @@ export type { TeacherCourseEnrollmentOptions } from "./teacher/TeacherCourseEnro
 export type { TeacherRewardCandidateListOptions } from "./teacher/TeacherRewardCandidateListOptions";
 export type { CreateTeacherChapterPayload } from "./teacher/CreateTeacherChapterPayload";
 export type { CreateTeacherChapterOptions } from "./teacher/CreateTeacherChapterOptions";
+export type { CreateTeacherCourseOptions } from "./teacher/CreateTeacherCourseOptions";
+export type { CreateTeacherCoursePayload } from "./teacher/CreateTeacherCoursePayload";
 export type { CreateTeacherContentPayload } from "./teacher/CreateTeacherContentPayload";
 export type { CreateTeacherContentOptions } from "./teacher/CreateTeacherContentOptions";
 export type { DecideTeacherJoinRequestPayload } from "./teacher/DecideTeacherJoinRequestPayload";
@@ -63,6 +65,7 @@ export { fetchTeachingCourseEnrollments } from "./teacher/fetchTeachingCourseEnr
 export { fetchTeachingCourseStudents } from "./teacher/fetchTeachingCourseStudents";
 export { fetchTeacherRewardCandidates } from "./teacher/fetchTeacherRewardCandidates";
 export { createTeacherChapter } from "./teacher/createTeacherChapter";
+export { createTeacherCourse } from "./teacher/createTeacherCourse";
 export type { UploadUrlResponse } from "./teacher/UploadUrlResponse";
 export type { FetchUploadUrlOptions } from "./teacher/FetchUploadUrlOptions";
 export { fetchUploadUrl } from "./teacher/fetchUploadUrl";

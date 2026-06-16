@@ -5,10 +5,16 @@ import { hasTeacherApplicationAccess } from "@/lib/access";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
 import { type TeacherApplicationSnapshot } from "@/lib/teacher/TeacherApplicationSnapshot";
 import { type TeacherCoursesResponse } from "@/lib/teacher/TeacherCoursesResponse";
+import { type ActionState } from "@/shared/route-state/ActionState";
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import { clearBrowserSession, readBrowserSessionToken } from "@/shared/session/browserSession";
-import { loadTeachingWorkspaceData } from "../api/teachingWorkspaceApi";
+import { createTeachingCourse, loadTeachingWorkspaceData } from "../api/teachingWorkspaceApi";
+import {
+  courseCreationTargets,
+  courseCreationValidation,
+  type CourseCreationDraft,
+} from "../model/courseCreationModel";
 import { defaultCourseQuery, type CourseQuery } from "../model/CourseQuery";
 import { dashboardTotals } from "../model/dashboardTotals";
 import { emptyApplicationSnapshot, emptyCourses } from "../model/emptyTeacherWorkspace";
@@ -24,6 +30,8 @@ export function useTeachingWorkspaceRoute({ view }: { view: TeacherRouteView }) 
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [query, setQuery] = useState<CourseQuery>(defaultCourseQuery);
   const [session, setSession] = useState<CurrentSession | null>(null);
+  const [courseActionMessage, setCourseActionMessage] = useState<string | null>(null);
+  const [courseActionState, setCourseActionState] = useState<ActionState>("idle");
 
   const clearRoute = useCallback((nextLoadState: LoadState) => {
     setApplicationSnapshot(emptyApplicationSnapshot);
@@ -74,6 +82,7 @@ export function useTeachingWorkspaceRoute({ view }: { view: TeacherRouteView }) 
   }, [loadTeacherRoute]);
 
   const totals = useMemo(() => dashboardTotals(courses.courses), [courses.courses]);
+  const creationTargets = useMemo(() => session ? courseCreationTargets(session) : [], [session]);
   const canSubmitApplication = session ? hasTeacherApplicationAccess(session) : false;
   const application = applicationSnapshot.application;
   const canUseTeacherSurface = courses.total > 0 || canSubmitApplication || Boolean(application);
@@ -88,12 +97,51 @@ export function useTeachingWorkspaceRoute({ view }: { view: TeacherRouteView }) 
     clearRoute("idle");
   }, [clearRoute]);
 
+  const submitCourseCreation = useCallback(
+    async (draft: CourseCreationDraft) => {
+      const validation = courseCreationValidation(draft);
+      if (validation) {
+        setCourseActionMessage(validation);
+        return;
+      }
+      const token = readBrowserSessionToken();
+      if (!token) {
+        clearRoute("idle");
+        return;
+      }
+
+      setCourseActionState("saving");
+      setCourseActionMessage(null);
+      try {
+        const created = await createTeachingCourse({ draft, token });
+        setCourseActionMessage(`${created.title} was created as ${created.lifecycle_status}.`);
+        await loadTeacherRoute(query);
+      } catch (nextError) {
+        const routeError = normalizeTeachingWorkspaceRouteError(nextError);
+        if (routeError.status === 401) {
+          clearBrowserSession();
+          clearRoute("idle");
+        }
+        setCourseActionMessage(routeError.message);
+      } finally {
+        setCourseActionState("idle");
+      }
+    },
+    [clearRoute, loadTeacherRoute, query],
+  );
+
   return {
     application,
     applicationSnapshot,
     applyFilters,
     canSubmitApplication,
     canUseTeacherSurface,
+    courseCreation: {
+      actionMessage: courseActionMessage,
+      actionState: courseActionState,
+      submitCourseCreation,
+      targets: creationTargets,
+    },
     courses,
     error,
     hasToken,
