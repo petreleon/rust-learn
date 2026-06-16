@@ -1,1 +1,1 @@
-export { AdminDelegationsRoute as default } from "@/components/admin-routes";
+export { AdminDelegationsRoute as default } from "@/features/admin/delegations/route/AdminDelegationsRoute";
