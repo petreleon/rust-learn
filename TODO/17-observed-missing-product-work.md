@@ -612,6 +612,9 @@ Current evidence:
 - Backend routes exist for organization creation, members, invitations/adding
   members, dashboard, courses, teacher applications, reports, wallet, and
   settings.
+- `/organizations` now loads a platform organization directory for platform
+  admins with `VIEW_ORGANIZATION`, supports name/id/URL search, and links
+  directly to existing organization dashboards without requiring known ids.
 
 Needed:
 
@@ -626,7 +629,7 @@ Needed:
 
 Checks:
 
-- [ ] A platform admin can search and open existing organizations from product
+- [x] A platform admin can search and open existing organizations from product
   navigation.
 - [ ] A user with no organizations sees a clear create/request/access path,
   not only an empty state.

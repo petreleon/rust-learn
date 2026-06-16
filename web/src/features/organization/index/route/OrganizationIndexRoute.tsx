@@ -1,9 +1,7 @@
 "use client";
 
 import { Building2, FileText, RefreshCw, Search, ShieldCheck, Users } from "lucide-react";
-import { useMemo, useState } from "react";
 import { ProductShell } from "@/components/product-shell";
-import { buildOrganizationWorkspace, filterOrganizationWorkspace } from "@/lib/organization";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 import { DeniedState } from "@/features/organization/shared/route-kit/DeniedState";
 import { ErrorState } from "@/features/organization/shared/route-kit/ErrorState";
@@ -13,23 +11,14 @@ import { OrganizationStatus } from "@/features/organization/shared/route-kit/Org
 import { SignedOutState } from "@/features/organization/shared/route-kit/SignedOutState";
 import { SummaryCard } from "@/features/organization/shared/route-kit/SummaryCard";
 import { capabilityFilters } from "@/features/organization/shared/route-kit/capabilityFilters";
-import { emptyWorkspace } from "@/features/organization/shared/route-kit/emptyWorkspace";
 import { type CapabilityFilter } from "@/features/organization/shared/route-kit/CapabilityFilter";
 import { organizationNotice } from "@/features/organization/shared/route-kit/organizationNotice";
-import { useOrganizationSession } from "@/features/organization/shared/route-kit/useOrganizationSession";
+import { PlatformOrganizationDirectory } from "../components/PlatformOrganizationDirectory";
+import { useOrganizationIndexRoute } from "./useOrganizationIndexRoute";
 
 export function OrganizationIndexRoute() {
-  const route = useOrganizationSession();
-  const [capability, setCapability] = useState<CapabilityFilter>("all");
-  const [search, setSearch] = useState("");
-  const workspace = useMemo(
-    () => (route.session ? buildOrganizationWorkspace(route.session) : emptyWorkspace),
-    [route.session],
-  );
-  const visibleOrganizations = useMemo(
-    () => filterOrganizationWorkspace(workspace.organizations, { capability, search }),
-    [capability, search, workspace.organizations],
-  );
+  const route = useOrganizationIndexRoute();
+  const workspace = route.workspace;
   const notice = organizationNotice(route.error);
 
   return (
@@ -48,7 +37,18 @@ export function OrganizationIndexRoute() {
       {route.loadState === "idle" && !route.session ? <SignedOutState redirect="/organizations" /> : null}
       {route.loadState === "loading" ? <LoadingState /> : null}
       {route.error ? <ErrorState error={route.error} redirect="/organizations" /> : null}
-      {route.session && workspace.total === 0 ? <DeniedState /> : null}
+      {route.session && workspace.total === 0 && !route.canBrowseDirectory ? <DeniedState /> : null}
+      {route.session && route.canBrowseDirectory ? (
+        <PlatformOrganizationDirectory
+          error={route.directoryError}
+          organizations={route.visiblePlatformOrganizations}
+          search={route.directorySearch}
+          state={route.directoryState}
+          total={route.platformOrganizations.length}
+          onChangeSearch={route.setDirectorySearch}
+          onRetry={() => route.loadPlatformDirectory()}
+        />
+      ) : null}
       {route.session && workspace.total > 0 ? (
         <>
           <section className={styles.summaryGrid}>
@@ -63,10 +63,10 @@ export function OrganizationIndexRoute() {
               <span className={styles.inputWithIcon}>
                 <Search size={17} aria-hidden />
                 <input
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) => route.setSearch(event.target.value)}
                   placeholder="Name, role, or permission"
                   type="search"
-                  value={search}
+                  value={route.search}
                 />
               </span>
             </label>
@@ -74,8 +74,8 @@ export function OrganizationIndexRoute() {
               <span>Capability</span>
               <select
                 aria-label="Organization capability filter"
-                onChange={(event) => setCapability(event.target.value as CapabilityFilter)}
-                value={capability}
+                onChange={(event) => route.setCapability(event.target.value as CapabilityFilter)}
+                value={route.capability}
               >
                 {capabilityFilters.map((filter) => (
                   <option key={filter.value} value={filter.value}>
@@ -86,17 +86,14 @@ export function OrganizationIndexRoute() {
             </label>
             <button
               className={styles.secondaryButton}
-              onClick={() => {
-                setCapability("all");
-                setSearch("");
-              }}
+              onClick={route.clearWorkspaceFilters}
               type="button"
             >
               <RefreshCw size={17} aria-hidden />
               Reset
             </button>
           </section>
-          <OrganizationList organizations={visibleOrganizations} total={workspace.organizations.length} />
+          <OrganizationList organizations={route.visibleOrganizations} total={workspace.organizations.length} />
         </>
       ) : null}
     </ProductShell>
