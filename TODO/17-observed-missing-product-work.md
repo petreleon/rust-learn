@@ -708,6 +708,9 @@ Current evidence:
   `/api/wallets/token-taxes`, `/api/wallets/token-taxes/deposit`, and
   `/api/wallets/token-taxes/retire`. There is no visible admin configuration UI
   for deposit/retirement tax values or effective policy history.
+- `/admin/wallets` now includes token-tax configuration for platform admins
+  with `SET_DEPOSIT_TAX` or `SET_RETIRE_TAX`; tax-only admins can update
+  configured tax values without loading wallet audit data.
 
 Needed:
 
@@ -719,9 +722,8 @@ Needed:
   create, list, inspect, activate/deactivate, validate coverage, and audit.
 - Add reward-policy picker/search to fraud-block creation and reward
   operations wherever a numeric policy id is currently required.
-- Add token-tax admin configuration with current values, proposed changes,
-  validation, audit trail, and clear user-facing impact on deposit/retirement
-  flows.
+- Add token-tax audit trail, effective history, and clear user-facing impact on
+  deposit/retirement flows.
 
 Checks:
 
@@ -736,8 +738,10 @@ Checks:
   audited, and selected by name/context instead of numeric id only.
 - [ ] Reward candidate creation surfaces the policy that makes a reward event
   eligible, or explains which policy is missing.
-- [ ] Deposit and retirement tax configuration can be viewed and changed only by
-  authorized admins, with audit rows and visible downstream wallet impact.
+- [x] Deposit and retirement tax configuration can be viewed and changed only by
+  authorized admins.
+- [ ] Token-tax audit rows, effective history, and visible downstream wallet
+  impact are surfaced.
 - [ ] Browser/page tests cover user-role management, course lifecycle changes,
   reward policy management, policy-backed fraud blocks, and token-tax updates.
 

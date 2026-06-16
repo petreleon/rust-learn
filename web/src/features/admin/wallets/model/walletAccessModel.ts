@@ -20,6 +20,18 @@ export function canExportWalletCredits(workspace: PlatformAdminWorkspace) {
   return platformCapabilityEnabled(workspace, "exports");
 }
 
+export function canSetDepositTax(workspace: PlatformAdminWorkspace) {
+  return workspace.effectivePermissions.includes("SET_DEPOSIT_TAX");
+}
+
+export function canSetRetireTax(workspace: PlatformAdminWorkspace) {
+  return workspace.effectivePermissions.includes("SET_RETIRE_TAX");
+}
+
+export function canManageTokenTaxes(workspace: PlatformAdminWorkspace) {
+  return canSetDepositTax(workspace) || canSetRetireTax(workspace);
+}
+
 export function findPlatformCapability(
   workspace: PlatformAdminWorkspace,
   key: PlatformCapabilityKey,

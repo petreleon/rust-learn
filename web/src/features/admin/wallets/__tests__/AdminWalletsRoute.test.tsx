@@ -8,9 +8,11 @@ import {
   loadAdminWalletReconciliation,
   loadAdminWalletSession,
   loadAdminWalletSummary,
+  loadWalletTokenTaxes,
+  saveWalletTokenTax,
 } from "../api/walletsApi";
 import { startWalletCreditsCsvDownload } from "../route/startWalletCreditsCsvDownload";
-import { adminWalletSession, walletReconciliation, walletSummary } from "./adminWalletsTestFixtures";
+import { adminWalletSession, walletReconciliation, walletSummary, walletTokenTaxes } from "./adminWalletsTestFixtures";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/admin/wallets",
@@ -27,6 +29,8 @@ vi.mock("../api/walletsApi", () => ({
   loadAdminWalletReconciliation: vi.fn(),
   loadAdminWalletSession: vi.fn(),
   loadAdminWalletSummary: vi.fn(),
+  loadWalletTokenTaxes: vi.fn(),
+  saveWalletTokenTax: vi.fn(),
 }));
 
 vi.mock("../route/startWalletCreditsCsvDownload", () => ({
@@ -46,6 +50,11 @@ describe("AdminWalletsRoute", () => {
     );
     vi.mocked(loadAdminWalletSummary).mockResolvedValue(walletSummary());
     vi.mocked(loadAdminWalletReconciliation).mockResolvedValue(walletReconciliation());
+    vi.mocked(loadWalletTokenTaxes).mockResolvedValue(walletTokenTaxes());
+    vi.mocked(saveWalletTokenTax).mockResolvedValue({
+      operation: "deposit",
+      tax_amount: "3",
+    });
     vi.mocked(downloadWalletCreditsCsv).mockResolvedValue({
       body: "wallet_id,balance\n10,150.00\n",
       filename: "wallet_credits.csv",
@@ -61,6 +70,7 @@ describe("AdminWalletsRoute", () => {
     expect(loadAdminWalletSession).not.toHaveBeenCalled();
     expect(loadAdminWalletSummary).not.toHaveBeenCalled();
     expect(loadAdminWalletReconciliation).not.toHaveBeenCalled();
+    expect(loadWalletTokenTaxes).not.toHaveBeenCalled();
   });
 
   it("loads wallet summary and reconciliation through the feature API", async () => {
@@ -74,6 +84,7 @@ describe("AdminWalletsRoute", () => {
     expect(loadAdminWalletSession).toHaveBeenCalledWith({ token: "admin-token" });
     expect(loadAdminWalletSummary).toHaveBeenCalledWith({ token: "admin-token" });
     expect(loadAdminWalletReconciliation).toHaveBeenCalledWith({ token: "admin-token" });
+    expect(loadWalletTokenTaxes).not.toHaveBeenCalled();
   });
 
   it("downloads wallet credits through the wallet action controller", async () => {
@@ -90,6 +101,43 @@ describe("AdminWalletsRoute", () => {
     });
   });
 
+  it("loads and saves token taxes for a tax administrator", async () => {
+    const user = userEvent.setup();
+    vi.mocked(loadAdminWalletSession).mockResolvedValue(
+      adminWalletSession(["VIEW_TRANSACTIONS", "SET_DEPOSIT_TAX", "SET_RETIRE_TAX"]),
+    );
+
+    render(<AdminWalletsRoute />);
+
+    expect(await screen.findByText("Token tax configuration")).toBeVisible();
+    expect(loadWalletTokenTaxes).toHaveBeenCalledWith({ token: "admin-token" });
+    const depositInput = await screen.findByLabelText("Deposit tax");
+    await user.clear(depositInput);
+    await user.type(depositInput, "3");
+    await user.click(screen.getByRole("button", { name: "Save deposit tax" }));
+
+    await waitFor(() =>
+      expect(saveWalletTokenTax).toHaveBeenCalledWith({
+        operation: "deposit",
+        taxAmount: "3",
+        token: "admin-token",
+      }),
+    );
+  });
+
+  it("shows token tax controls for tax-only admins without loading audit data", async () => {
+    vi.mocked(loadAdminWalletSession).mockResolvedValue(adminWalletSession(["SET_DEPOSIT_TAX"]));
+
+    render(<AdminWalletsRoute />);
+
+    expect(await screen.findByText("Token tax configuration")).toBeVisible();
+    expect(await screen.findByText("Requires SET_RETIRE_TAX.")).toBeVisible();
+    expect(loadWalletTokenTaxes).toHaveBeenCalledWith({ token: "admin-token" });
+    expect(loadAdminWalletSummary).not.toHaveBeenCalled();
+    expect(loadAdminWalletReconciliation).not.toHaveBeenCalled();
+    expect(screen.queryByText("Wallet audit unavailable")).not.toBeInTheDocument();
+  });
+
   it("shows the wallet permission gate before loading wallet data", async () => {
     vi.mocked(loadAdminWalletSession).mockResolvedValue(adminWalletSession(["EXPORT_DATA"]));
 
@@ -98,5 +146,6 @@ describe("AdminWalletsRoute", () => {
     expect(await screen.findByText("Wallet audit unavailable")).toBeVisible();
     expect(loadAdminWalletSummary).not.toHaveBeenCalled();
     expect(loadAdminWalletReconciliation).not.toHaveBeenCalled();
+    expect(loadWalletTokenTaxes).not.toHaveBeenCalled();
   });
 });

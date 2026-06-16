@@ -9,7 +9,10 @@ import { type RouteError } from "@/shared/route-state/RouteError";
 import { clearBrowserSession, readBrowserSessionToken } from "@/shared/session/browserSession";
 import { loadAdminWalletSession } from "../api/walletsApi";
 import {
+  canManageTokenTaxes,
   canExportWalletCredits,
+  canSetDepositTax,
+  canSetRetireTax,
   canViewWalletAudit,
   emptyPlatformWalletWorkspace,
   findPlatformCapability,
@@ -17,6 +20,7 @@ import {
 import { normalizeAdminWalletRouteError } from "./normalizeAdminWalletRouteError";
 import { useAdminWalletsData } from "./useAdminWalletsData";
 import { useWalletCreditsCsvDownload } from "./useWalletCreditsCsvDownload";
+import { useWalletTokenTaxes } from "./useWalletTokenTaxes";
 
 function isExpiredSession(error: RouteError) {
   return error.status === 401 || error.status === 404;
@@ -35,9 +39,13 @@ export function useAdminWalletsRoute() {
   const allowed = session ? hasPlatformAdminAccess(session) : false;
   const canView = canViewWalletAudit(workspace);
   const canExport = canExportWalletCredits(workspace);
+  const canSetDeposit = canSetDepositTax(workspace);
+  const canSetRetire = canSetRetireTax(workspace);
+  const canManageTaxes = canManageTokenTaxes(workspace);
   const walletCapability = findPlatformCapability(workspace, "wallets");
   const csv = useWalletCreditsCsvDownload({ canExport });
   const data = useAdminWalletsData({ allowed, canView, session });
+  const tokenTaxes = useWalletTokenTaxes({ allowed, canSetDeposit, canSetRetire });
   const { loadWalletAudit } = data;
 
   const clearRoute = useCallback((nextLoadState: LoadState) => {
@@ -97,6 +105,9 @@ export function useAdminWalletsRoute() {
   return {
     allowed,
     canExport,
+    canManageTaxes,
+    canSetDeposit,
+    canSetRetire,
     canView,
     error,
     hasToken,
@@ -108,6 +119,7 @@ export function useAdminWalletsRoute() {
     workspace,
     ...csv,
     ...data,
+    ...tokenTaxes,
   };
 }
 

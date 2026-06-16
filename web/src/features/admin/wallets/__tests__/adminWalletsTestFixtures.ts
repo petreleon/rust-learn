@@ -79,3 +79,16 @@ export function walletReconciliation(): PlatformWalletReconciliation {
     ],
   };
 }
+
+export function walletTokenTaxes() {
+  return {
+    deposit: {
+      operation: "deposit",
+      tax_amount: "2",
+    },
+    retire: {
+      operation: "retire",
+      tax_amount: "1",
+    },
+  };
+}
