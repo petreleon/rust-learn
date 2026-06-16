@@ -69,6 +69,15 @@ describe("OrganizationIndexRoute", () => {
     render(<OrganizationIndexRoute />);
 
     expect(await screen.findByText("No organization workspace yet")).toBeVisible();
+    expect(screen.getByRole("link", { name: /Draft invite request/i })).toHaveAttribute(
+      "href",
+      expect.stringContaining("RustLearn%20organization%20access%20request"),
+    );
+    expect(screen.getByRole("link", { name: /Draft creation request/i })).toHaveAttribute(
+      "href",
+      expect.stringContaining("RustLearn%20organization%20creation%20request"),
+    );
+    expect(screen.getByRole("link", { name: /Review session/i })).toHaveAttribute("href", "/session");
     expect(loadPlatformOrganizations).not.toHaveBeenCalled();
   });
 });

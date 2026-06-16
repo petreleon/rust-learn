@@ -615,6 +615,10 @@ Current evidence:
 - `/organizations` now loads a platform organization directory for platform
   admins with `VIEW_ORGANIZATION`, supports name/id/URL search, and links
   directly to existing organization dashboards without requiring known ids.
+- Signed-in users with no organization workspace now see concrete access
+  paths: draft an invite request for an existing organization, draft a new
+  organization creation request for a platform admin, or review the session
+  identity/permission scopes that must receive access.
 
 Needed:
 
@@ -631,7 +635,7 @@ Checks:
 
 - [x] A platform admin can search and open existing organizations from product
   navigation.
-- [ ] A user with no organizations sees a clear create/request/access path,
+- [x] A user with no organizations sees a clear create/request/access path,
   not only an empty state.
 - [ ] Organization owners can invite/add members and see pending invite or join
   states from product routes.

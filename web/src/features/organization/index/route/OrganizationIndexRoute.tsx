@@ -3,7 +3,6 @@
 import { Building2, FileText, RefreshCw, Search, ShieldCheck, Users } from "lucide-react";
 import { ProductShell } from "@/components/product-shell";
 import styles from "@/features/organization/shared/organization-routes.module.css";
-import { DeniedState } from "@/features/organization/shared/route-kit/DeniedState";
 import { ErrorState } from "@/features/organization/shared/route-kit/ErrorState";
 import { LoadingState } from "@/features/organization/shared/route-kit/LoadingState";
 import { OrganizationList } from "@/features/organization/shared/route-kit/OrganizationList";
@@ -13,6 +12,7 @@ import { SummaryCard } from "@/features/organization/shared/route-kit/SummaryCar
 import { capabilityFilters } from "@/features/organization/shared/route-kit/capabilityFilters";
 import { type CapabilityFilter } from "@/features/organization/shared/route-kit/CapabilityFilter";
 import { organizationNotice } from "@/features/organization/shared/route-kit/organizationNotice";
+import { OrganizationAccessEmptyState } from "../components/OrganizationAccessEmptyState";
 import { PlatformOrganizationDirectory } from "../components/PlatformOrganizationDirectory";
 import { useOrganizationIndexRoute } from "./useOrganizationIndexRoute";
 
@@ -37,7 +37,9 @@ export function OrganizationIndexRoute() {
       {route.loadState === "idle" && !route.session ? <SignedOutState redirect="/organizations" /> : null}
       {route.loadState === "loading" ? <LoadingState /> : null}
       {route.error ? <ErrorState error={route.error} redirect="/organizations" /> : null}
-      {route.session && workspace.total === 0 && !route.canBrowseDirectory ? <DeniedState /> : null}
+      {route.session && workspace.total === 0 && !route.canBrowseDirectory ? (
+        <OrganizationAccessEmptyState session={route.session} />
+      ) : null}
       {route.session && route.canBrowseDirectory ? (
         <PlatformOrganizationDirectory
           error={route.directoryError}
