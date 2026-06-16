@@ -1,13 +1,15 @@
+export type AssessmentAttempt = {
+  assessment_id: number;
+  completed_at: string | null;
+  id: number;
+  passed: boolean | null;
+  score: number | null;
+  started_at: string;
+  user_id: number;
+};
+
 export type AssessmentAttemptResult = {
-  attempt: {
-    assessment_id: number;
-    completed_at: string;
-    id: number;
-    passed: boolean;
-    score: number;
-    started_at: string;
-    user_id: number;
-  };
+  attempt: AssessmentAttempt;
   passed: boolean;
   percentage: number;
   score: number;

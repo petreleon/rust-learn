@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::learning::assessment::{
-    AssessmentAttemptOutput, AssessmentOutput, AssessmentReadError,
+    AssessmentAttemptOutput, AssessmentOutput, AssessmentReadError, LearnerAssessmentQuestionOutput,
 };
 use crate::application::learning::delete_course::{
     delete_course, CourseDeletionError, CourseDeletionOutcome, CourseDeletionStore,
@@ -19,8 +19,10 @@ use crate::application::learning::ports::AssessmentReadStore;
 struct FakeAssessmentReadStore {
     assessments: Vec<AssessmentOutput>,
     attempts: Vec<AssessmentAttemptOutput>,
+    questions: Vec<LearnerAssessmentQuestionOutput>,
     requested_course_id: Option<i32>,
     requested_attempts: Option<(i32, i32)>,
+    requested_question_ids: Vec<i32>,
 }
 
 #[derive(Default)]
@@ -75,6 +77,15 @@ impl AssessmentReadStore for FakeAssessmentReadStore {
         let attempts = self.attempts.clone();
         async move { Ok(attempts) }.boxed()
     }
+
+    fn list_questions_for_assessments(
+        &mut self,
+        assessment_ids: Vec<i32>,
+    ) -> BoxFuture<'_, Result<Vec<LearnerAssessmentQuestionOutput>, AssessmentReadError>> {
+        self.requested_question_ids = assessment_ids;
+        let questions = self.questions.clone();
+        async move { Ok(questions) }.boxed()
+    }
 }
 
 #[tokio::test]
@@ -90,18 +101,32 @@ async fn list_published_course_assessments_uses_assessment_read_port() {
         published: true,
         created_at: now,
         updated_at: now,
+        questions: Vec::new(),
+    };
+    let expected_question = LearnerAssessmentQuestionOutput {
+        id: 101,
+        assessment_id: 11,
+        text: "What does ownership prevent?".to_string(),
+        question_type: "short_text".to_string(),
+        options: None,
+        points: 1,
+        order: 0,
     };
     let mut store = FakeAssessmentReadStore {
         assessments: vec![expected.clone()],
+        questions: vec![expected_question.clone()],
         ..Default::default()
     };
 
     let result = list_published_course_assessments(&mut store, 7)
         .await
         .expect("assessments should load");
+    let mut expected_with_questions = expected;
+    expected_with_questions.questions = vec![expected_question];
 
-    assert_eq!(result, vec![expected]);
+    assert_eq!(result, vec![expected_with_questions]);
     assert_eq!(store.requested_course_id, Some(7));
+    assert_eq!(store.requested_question_ids, vec![11]);
 }
 
 #[tokio::test]

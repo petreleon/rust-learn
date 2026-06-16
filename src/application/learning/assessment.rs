@@ -1,5 +1,7 @@
 use chrono::{DateTime, Utc};
 
+use crate::domain::learning::assessment::AssessmentQuestionOptions;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AssessmentOutput {
     pub id: i32,
@@ -11,6 +13,7 @@ pub struct AssessmentOutput {
     pub published: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub questions: Vec<LearnerAssessmentQuestionOutput>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,6 +25,17 @@ pub struct AssessmentAttemptOutput {
     pub passed: Option<bool>,
     pub started_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LearnerAssessmentQuestionOutput {
+    pub id: i32,
+    pub assessment_id: i32,
+    pub text: String,
+    pub question_type: String,
+    pub options: Option<AssessmentQuestionOptions>,
+    pub points: i32,
+    pub order: i32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

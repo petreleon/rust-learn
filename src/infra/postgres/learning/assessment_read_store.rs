@@ -3,11 +3,13 @@ use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::learning::assessment::{
-    AssessmentAttemptOutput, AssessmentOutput, AssessmentReadError,
+    AssessmentAttemptOutput, AssessmentOutput, AssessmentReadError, LearnerAssessmentQuestionOutput,
 };
 use crate::application::learning::ports::AssessmentReadStore;
-use crate::infra::postgres::models::assessment::{Assessment, AssessmentAttempt};
-use crate::infra::postgres::schema::{assessment_attempts, assessments};
+use crate::infra::postgres::models::assessment::{
+    Assessment, AssessmentAttempt, AssessmentQuestion,
+};
+use crate::infra::postgres::schema::{assessment_attempts, assessment_questions, assessments};
 
 pub struct PostgresAssessmentReadStore<'conn> {
     conn: &'conn mut AsyncPgConnection,
@@ -57,6 +59,34 @@ impl AssessmentReadStore for PostgresAssessmentReadStore<'_> {
                     attempts
                         .into_iter()
                         .map(AssessmentAttemptOutput::from)
+                        .collect()
+                })
+                .map_err(map_assessment_read_error)
+        }
+        .boxed()
+    }
+
+    fn list_questions_for_assessments(
+        &mut self,
+        assessment_ids: Vec<i32>,
+    ) -> BoxFuture<'_, Result<Vec<LearnerAssessmentQuestionOutput>, AssessmentReadError>> {
+        async move {
+            if assessment_ids.is_empty() {
+                return Ok(Vec::new());
+            }
+
+            assessment_questions::table
+                .filter(assessment_questions::assessment_id.eq_any(assessment_ids))
+                .order((
+                    assessment_questions::assessment_id.asc(),
+                    assessment_questions::order.asc(),
+                ))
+                .load::<AssessmentQuestion>(self.conn)
+                .await
+                .map(|questions| {
+                    questions
+                        .into_iter()
+                        .map(LearnerAssessmentQuestionOutput::from)
                         .collect()
                 })
                 .map_err(map_assessment_read_error)

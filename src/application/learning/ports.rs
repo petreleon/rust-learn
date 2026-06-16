@@ -2,7 +2,7 @@ use futures::future::BoxFuture;
 
 use crate::application::learning::assessment::{
     AssessmentAttemptOutput, AssessmentOutput, AssessmentQuestionForScoring, AssessmentReadError,
-    CompletedAssessmentAttempt,
+    CompletedAssessmentAttempt, LearnerAssessmentQuestionOutput,
 };
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionError;
 
@@ -17,6 +17,11 @@ pub trait AssessmentReadStore {
         assessment_id: i32,
         user_id: i32,
     ) -> BoxFuture<'_, Result<Vec<AssessmentAttemptOutput>, AssessmentReadError>>;
+
+    fn list_questions_for_assessments(
+        &mut self,
+        assessment_ids: Vec<i32>,
+    ) -> BoxFuture<'_, Result<Vec<LearnerAssessmentQuestionOutput>, AssessmentReadError>>;
 }
 
 pub trait AssessmentSubmissionStore {

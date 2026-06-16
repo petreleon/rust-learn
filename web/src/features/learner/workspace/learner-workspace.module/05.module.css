@@ -1,0 +1,91 @@
+.assessmentSection {
+  gap: 14px;
+}
+
+.assessmentGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.assessmentCard {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
+}
+
+.assessmentNotice {
+  border: 1px solid #b6d8e2;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #1e4f5f;
+  background: #f2fbfc;
+  line-height: 1.5;
+}
+
+.questionList {
+  display: grid;
+  gap: 12px;
+}
+
+.questionField {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.questionField legend {
+  max-width: 100%;
+  color: #172033;
+  font-weight: 820;
+  overflow-wrap: anywhere;
+}
+
+.radioStack,
+.attemptList {
+  display: grid;
+  gap: 8px;
+}
+
+.radioStack label,
+.attemptRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.radioStack label {
+  min-height: 36px;
+  color: #334155;
+  font-weight: 720;
+}
+
+.radioStack input {
+  width: 16px;
+  height: 16px;
+  accent-color: #1f6f8b;
+}
+
+.assessmentInput {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #172033;
+  background: #ffffff;
+  font: inherit;
+}
+
+.attemptRow {
+  justify-content: space-between;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 10px;
+}

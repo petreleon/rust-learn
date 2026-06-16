@@ -1,5 +1,6 @@
 use crate::application::learning::assessment::{
     AssessmentAttemptOutput, AssessmentOutput, AssessmentQuestionForScoring,
+    LearnerAssessmentQuestionOutput,
 };
 use crate::application::learning::create_course::CourseCreationOutput;
 use crate::application::learning::learner_progress::LearnerProgressOutput;
@@ -46,6 +47,7 @@ impl From<Assessment> for AssessmentOutput {
             published: assessment.published,
             created_at: assessment.created_at,
             updated_at: assessment.updated_at,
+            questions: Vec::new(),
         }
     }
 }
@@ -70,6 +72,20 @@ impl From<AssessmentQuestion> for AssessmentQuestionForScoring {
             id: question.id,
             correct_answer: question.correct_answer,
             points: question.points,
+        }
+    }
+}
+
+impl From<AssessmentQuestion> for LearnerAssessmentQuestionOutput {
+    fn from(question: AssessmentQuestion) -> Self {
+        Self {
+            id: question.id,
+            assessment_id: question.assessment_id,
+            text: question.text,
+            question_type: question.question_type,
+            options: question.options,
+            points: question.points,
+            order: question.order,
         }
     }
 }

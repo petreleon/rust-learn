@@ -5,6 +5,13 @@
 .activeFilter { composes: activeFilter from './learner-workspace.module/03.module.css'; }
 .activeLesson { composes: activeLesson from './learner-workspace.module/02.module.css'; }
 .activeToggle { composes: activeToggle from './learner-workspace.module/03.module.css'; }
+.assessmentCard { composes: assessmentCard from './learner-workspace.module/05.module.css'; }
+.assessmentGrid { composes: assessmentGrid from './learner-workspace.module/05.module.css'; }
+.assessmentInput { composes: assessmentInput from './learner-workspace.module/05.module.css'; }
+.assessmentNotice { composes: assessmentNotice from './learner-workspace.module/05.module.css'; }
+.assessmentSection { composes: assessmentSection from './learner-workspace.module/05.module.css'; }
+.attemptList { composes: attemptList from './learner-workspace.module/05.module.css'; }
+.attemptRow { composes: attemptRow from './learner-workspace.module/05.module.css'; }
 .bad { composes: bad from './learner-workspace.module/03.module.css'; }
 .catalogPanel {
   composes: catalogPanel from './learner-workspace.module/01.module.css';
@@ -77,6 +84,9 @@
   composes: primaryLink from './learner-workspace.module/02.module.css';
   composes: primaryLink from './learner-workspace.module/04.module.css';
 }
+.questionField { composes: questionField from './learner-workspace.module/05.module.css'; }
+.questionList { composes: questionList from './learner-workspace.module/05.module.css'; }
+.radioStack { composes: radioStack from './learner-workspace.module/05.module.css'; }
 .searchField {
   composes: searchField from './learner-workspace.module/01.module.css';
   composes: searchField from './learner-workspace.module/02.module.css';

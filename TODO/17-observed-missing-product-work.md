@@ -186,18 +186,21 @@ Current evidence:
   and handles the plain-text backend response from processing retries.
 - Learners can read text lessons and open media/document content when ready.
 - Assessment API helpers exist in `web/src/lib/learner`, and backend routes
-  exist for listing published assessments, submitting attempts, and listing
-  attempts.
-- No route currently imports or renders those assessment helpers. There is no
-  learner assessment-taking UI and no teacher assessment-authoring UI.
+  exist for listing published assessments, learner-safe questions, submitting
+  attempts, and listing attempts.
+- `/courses/[id]/learn` now mounts a learner assessment panel through the
+  feature-owned learner workspace assessment slice. Learners can load published
+  assessments, answer learner-safe question prompts, submit attempts, see
+  pass/fail feedback, review recent attempts, and see remaining/max-attempt
+  state. Preview-mode course access shows assessments without allowing
+  submissions.
+- Teacher assessment-authoring UI is still not built.
 
 Needed:
 
 - Add teacher assessment authoring: create/edit/publish assessments, questions,
   correct answers, passing score, max attempts, and preview states.
-- Add learner assessment taking: attempt history, remaining attempts, answer
-  entry, submit flow, score/pass result, retry rules, and reward eligibility
-  handoff.
+- Add reward eligibility handoff after passing learner assessments.
 - Finish the remaining content lifecycle controls: unpublish lesson, upload
   progress/expiry recovery, processing audit/history, and richer
   processing-error recovery.
@@ -208,11 +211,11 @@ Checks:
 
 - [ ] A teacher can create, edit, publish, and preview an assessment from a
   course-scoped product route.
-- [ ] A learner can open an assessment from course learning, answer questions,
+- [x] A learner can open an assessment from course learning, answer questions,
   submit, and see pass/fail score feedback.
-- [ ] Attempt history and remaining-attempt counts match backend data after
+- [x] Attempt history and remaining-attempt counts match backend data after
   refresh.
-- [ ] Max-attempt and unpublished-assessment states are blocked with clear
+- [x] Max-attempt and unpublished-assessment states are blocked with clear
   copy.
 - [x] Text/article content edit and delete flows render in teacher authoring,
   prefill persisted lesson data after refresh, and pass component, API, and
@@ -496,8 +499,10 @@ Current evidence:
 - Teacher enrollment rosters now mark progress as tracked, and
   `/teach/courses/[id]/students` reports latest viewed lesson, saved activity
   time, saved lesson count, and completion percentage from `course_progress`.
-- Assessment endpoints and helpers exist, but there is still no route surface
-  for a learner to take assessments or for a teacher to author them.
+- `/courses/[id]/learn` now exposes learner assessment taking from published
+  assessment data and disables attempts in preview mode.
+- Teacher assessment authoring and reward eligibility handoff after passing
+  assessments are still missing.
 
 Needed:
 
@@ -511,8 +516,8 @@ Needed:
   content.
 - Add course catalog pagination or explicit "showing first N" controls if the
   catalog count is larger than the rendered list.
-- Add assessment entry points inside learner course detail/learn routes and
-  teacher course authoring routes.
+- Add assessment entry points inside learner course detail routes and teacher
+  course authoring routes.
 
 Checks:
 

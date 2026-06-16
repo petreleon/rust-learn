@@ -2,6 +2,7 @@
 
 import { ArrowLeft, BookOpen, CheckCircle, FileText } from "lucide-react";
 import { type CourseLearningContent, type CourseLearningResponse } from "@/lib/learner";
+import { CourseAssessmentPanel } from "../assessments/route/CourseAssessmentPanel";
 import styles from "../learner-workspace.module.css";
 import { EmptyState } from "./EmptyState";
 import { LessonContentBody } from "./LessonContentBody";
@@ -114,6 +115,10 @@ export function CourseLearningContentView({
           )}
         </section>
       </section>
+      <CourseAssessmentPanel
+        courseId={courseId}
+        submissionsEnabled={learning.progress_supported}
+      />
     </>
   );
 }

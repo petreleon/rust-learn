@@ -10,10 +10,12 @@ use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_p
 use rust_learn::infra::postgres::learning::assessment_read_use_case::PostgresAssessmentReadUseCase;
 use rust_learn::infra::postgres::models::course::{Course, NewCourse};
 use rust_learn::infra::postgres::models::user::User;
-use rust_learn::infra::postgres::schema::{assessment_attempts, assessments, courses};
+use rust_learn::infra::postgres::schema::{
+    assessment_attempts, assessment_questions, assessments, courses,
+};
 use rust_learn::infra::postgres::{establish_connection, DbPool};
 use rust_learn::infra::tokens::jwt::create_jwt;
-use serde_json::Value;
+use serde_json::{json, Value};
 
 fn unique_string(prefix: &str) -> String {
     let ts = Utc::now().timestamp_nanos_opt().unwrap_or(0);
@@ -97,6 +99,23 @@ async fn create_attempt(
         .expect("failed to create assessment attempt")
 }
 
+async fn create_question(conn: &mut AsyncPgConnection, assessment_id: i32) -> i32 {
+    diesel::insert_into(assessment_questions::table)
+        .values((
+            assessment_questions::assessment_id.eq(assessment_id),
+            assessment_questions::text.eq("Which Rust concept prevents aliasing bugs?"),
+            assessment_questions::question_type.eq("multiple_choice"),
+            assessment_questions::options.eq(Some(json!(["Ownership", "Prototype chains"]))),
+            assessment_questions::correct_answer.eq(Some("Ownership".to_string())),
+            assessment_questions::points.eq(2),
+            assessment_questions::order.eq(0),
+        ))
+        .returning(assessment_questions::id)
+        .get_result(conn)
+        .await
+        .expect("failed to create assessment question")
+}
+
 fn token_for(user_id: i32) -> String {
     create_jwt(user_id).expect("failed to create JWT")
 }
@@ -121,6 +140,7 @@ async fn assessment_read_routes_are_published_and_user_scoped() {
     let course = create_course(&mut conn, &unique_string("AssessmentCourse")).await;
     let published_id = create_assessment(&mut conn, course.id, "Published quiz", true).await;
     let draft_id = create_assessment(&mut conn, course.id, "Draft quiz", false).await;
+    let question_id = create_question(&mut conn, published_id).await;
     let older_attempt_id = create_attempt(&mut conn, published_id, learner.id(), 30).await;
     let newer_attempt_id = create_attempt(&mut conn, published_id, learner.id(), 10).await;
     create_attempt(&mut conn, published_id, other_user.id(), 5).await;
@@ -156,6 +176,21 @@ async fn assessment_read_routes_are_published_and_user_scoped() {
     assert_eq!(listed.len(), 1);
     assert_eq!(listed[0]["id"], published_id);
     assert_ne!(listed[0]["id"], draft_id);
+    let questions = listed[0]["questions"]
+        .as_array()
+        .expect("learner-safe questions should be listed");
+    assert_eq!(questions.len(), 1);
+    assert_eq!(questions[0]["id"], question_id);
+    assert_eq!(questions[0]["assessment_id"], published_id);
+    assert_eq!(
+        questions[0]["text"],
+        "Which Rust concept prevents aliasing bugs?"
+    );
+    assert_eq!(
+        questions[0]["options"],
+        json!(["Ownership", "Prototype chains"])
+    );
+    assert!(questions[0].get("correct_answer").is_none());
 
     let attempts_req = test::TestRequest::get()
         .uri(&format!(

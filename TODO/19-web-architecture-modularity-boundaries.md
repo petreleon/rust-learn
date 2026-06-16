@@ -174,6 +174,10 @@ Progress:
   pointed `/learn`, `/courses`, `/courses/[courseId]`, `/courses/[courseId]/learn`,
   `/rewards`, and `/wallet` at the feature route modules, moved learner route
   CSS, and replaced copied helper tests with feature tests against real helpers.
+- [x] Added learner course assessments as a feature-owned learner workspace
+  sub-slice with `{api,components,model,route,view}` ownership, learner-safe
+  backend calls behind the feature API, route-local submit state, and focused
+  route tests.
 - [x] Current architecture scan reports 5 dense-line findings after the learner
   workspace migration, with no long files and no API/view boundary
   violations.

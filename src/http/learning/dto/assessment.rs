@@ -2,10 +2,13 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::application::learning::assessment::{AssessmentAttemptOutput, AssessmentOutput};
+use crate::application::learning::assessment::{
+    AssessmentAttemptOutput, AssessmentOutput, LearnerAssessmentQuestionOutput,
+};
 use crate::application::learning::submit_assessment_attempt::{
     SubmitAssessmentAttemptCommand, SubmitAssessmentAttemptOutput,
 };
+use crate::domain::learning::assessment::AssessmentQuestionOptions;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct AssessmentResponse {
@@ -18,6 +21,7 @@ pub struct AssessmentResponse {
     pub published: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub questions: Vec<LearnerAssessmentQuestionResponse>,
 }
 
 impl From<AssessmentOutput> for AssessmentResponse {
@@ -32,6 +36,36 @@ impl From<AssessmentOutput> for AssessmentResponse {
             published: assessment.published,
             created_at: assessment.created_at,
             updated_at: assessment.updated_at,
+            questions: assessment
+                .questions
+                .into_iter()
+                .map(LearnerAssessmentQuestionResponse::from)
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LearnerAssessmentQuestionResponse {
+    pub id: i32,
+    pub assessment_id: i32,
+    pub text: String,
+    pub question_type: String,
+    pub options: Option<AssessmentQuestionOptions>,
+    pub points: i32,
+    pub order: i32,
+}
+
+impl From<LearnerAssessmentQuestionOutput> for LearnerAssessmentQuestionResponse {
+    fn from(question: LearnerAssessmentQuestionOutput) -> Self {
+        Self {
+            id: question.id,
+            assessment_id: question.assessment_id,
+            text: question.text,
+            question_type: question.question_type,
+            options: question.options,
+            points: question.points,
+            order: question.order,
         }
     }
 }
