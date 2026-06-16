@@ -1,6 +1,6 @@
 "use client";
 
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 
 export function StatusPill({
   label,

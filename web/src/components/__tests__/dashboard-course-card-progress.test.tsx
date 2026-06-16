@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { DashboardCourseCard } from "@/components/learner-routes/DashboardCourseCard";
+import { DashboardCourseCard } from "@/features/learner/workspace/components/DashboardCourseCard";
 import { type CourseCatalogItem } from "@/lib/learner";
 
 const course: CourseCatalogItem = {

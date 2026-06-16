@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { type LearnerDashboardSnapshot } from "@/lib/learner";
 import { type CurrentSession } from "@/lib/session";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { DashboardCourseCard } from "./DashboardCourseCard";
 import { DashboardRewardPanel } from "./DashboardRewardPanel";
 import { DashboardWalletPanel } from "./DashboardWalletPanel";

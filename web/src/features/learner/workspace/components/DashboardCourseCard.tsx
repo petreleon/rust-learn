@@ -3,7 +3,7 @@
 import { BookOpen } from "lucide-react";
 import Link from "next/link";
 import { type CourseCatalogItem, type CourseProgress } from "@/lib/learner";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { StatusPill } from "./StatusPill";
 import { courseContentLabel } from "./courseContentLabel";
 import { courseOrganizationLabel } from "./courseOrganizationLabel";

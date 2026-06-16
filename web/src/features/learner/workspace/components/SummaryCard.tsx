@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 
 export function SummaryCard({
   icon,

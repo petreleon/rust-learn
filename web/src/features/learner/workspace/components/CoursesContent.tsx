@@ -4,7 +4,7 @@ import { BookOpen, CheckCircle, RefreshCw, Search, Trophy } from "lucide-react";
 import { type FormEvent } from "react";
 import { type CourseCatalogItem, type CourseCatalogResponse } from "@/lib/learner";
 import { type CurrentSession } from "@/lib/session";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { CourseCatalogCard } from "./CourseCatalogCard";
 import { EmptyState } from "./EmptyState";
 import { StatusPill } from "./StatusPill";

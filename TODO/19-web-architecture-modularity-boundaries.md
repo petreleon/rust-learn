@@ -172,13 +172,17 @@ Progress:
   `features/session/account-settings/{api,components,model,route,view}` with
   account/wallet/preferences orchestration in the route, KYC API calls behind
   the feature API, moved readiness tests, and focused route tests.
-- [x] Current architecture scan reports 12 dense-line findings after the
-  account settings migration, with no long files and no API/view boundary
+- [x] Migrated learner workspace routes into `features/learner/workspace`,
+  pointed `/learn`, `/courses`, `/courses/[courseId]`, `/courses/[courseId]/learn`,
+  `/rewards`, and `/wallet` at the feature route modules, moved learner route
+  CSS, and replaced copied helper tests with feature tests against real helpers.
+- [x] Current architecture scan reports 5 dense-line findings after the learner
+  workspace migration, with no long files and no API/view boundary
   violations.
 
 Latest pilot proof:
 
-- `make web-architecture-scan` passes in reporting mode with 12 dense-line
+- `make web-architecture-scan` passes in reporting mode with 5 dense-line
   findings, no long files, and no API/view boundary violations.
 - `make web-lint` passes with existing warnings.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
@@ -211,11 +215,13 @@ Latest pilot proof:
   passes.
 - `npm run test -- src/features/session/account-settings/model/__tests__/kycReadiness.test.ts src/features/session/account-settings/__tests__/AccountSettingsRoute.test.tsx`
   passes.
+- `npm run test -- src/features/learner/workspace/__tests__/learnerWorkspaceModel.test.ts src/components/__tests__/wallet-kyc-gate.test.tsx src/components/__tests__/dashboard-course-card-progress.test.tsx src/components/__tests__/learning-access-notice.test.tsx`
+  passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx src/components/__tests__/teacher-rewards-route.test.tsx src/components/__tests__/teacher-content-authoring-actions.test.tsx`
   passes.
-- `cd web && npm run test` passes with 43 files and 206 tests.
+- `cd web && npm run test` passes with 43 files and 183 tests.
 - `make web-api-helper-tests` passes with 83 tests.
 - `make web-build` passes.
 

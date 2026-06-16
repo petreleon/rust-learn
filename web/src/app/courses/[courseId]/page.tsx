@@ -1,4 +1,4 @@
-import { LearnerCourseDetailRoute } from "@/components/learner-routes";
+import { LearnerCourseDetailRoute } from "@/features/learner/workspace/components/LearnerCourseDetailRoute";
 
 export default async function CourseDetailPage({
   params,

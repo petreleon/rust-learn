@@ -1,6 +1,6 @@
 "use client";
 
-export { LearnerDashboardRoute } from "./learner-routes/LearnerDashboardRoute";
-export { LearnerProductRoute } from "./learner-routes/LearnerProductRoute";
-export { LearnerCourseDetailRoute } from "./learner-routes/LearnerCourseDetailRoute";
-export { LearnerCourseLearnRoute } from "./learner-routes/LearnerCourseLearnRoute";
+export { LearnerCourseDetailRoute } from "@/features/learner/workspace/components/LearnerCourseDetailRoute";
+export { LearnerCourseLearnRoute } from "@/features/learner/workspace/components/LearnerCourseLearnRoute";
+export { LearnerDashboardRoute } from "@/features/learner/workspace/components/LearnerDashboardRoute";
+export { LearnerProductRoute } from "@/features/learner/workspace/components/LearnerProductRoute";

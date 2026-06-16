@@ -1,7 +1,7 @@
 "use client";
 
 import { type RewardHistoryEntry } from "@/lib/learner";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { StatusPill } from "./StatusPill";
 import { formatDate } from "./formatDate";
 import { humanRewardStatus } from "./humanRewardStatus";

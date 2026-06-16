@@ -2,7 +2,7 @@
 
 import { ArrowLeft, BookOpen, CheckCircle, FileText } from "lucide-react";
 import { type CourseLearningContent, type CourseLearningResponse } from "@/lib/learner";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { EmptyState } from "./EmptyState";
 import { LessonContentBody } from "./LessonContentBody";
 import { StatusPill } from "./StatusPill";

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { StatusPill } from "./StatusPill";
 import { summarizeRewards } from "./summarizeRewards";
 

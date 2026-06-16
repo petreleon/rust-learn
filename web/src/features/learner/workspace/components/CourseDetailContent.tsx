@@ -3,7 +3,7 @@
 import { ArrowLeft, BookOpen, CheckCircle, FileText, Loader2, Trophy } from "lucide-react";
 import Link from "next/link";
 import { type CourseCatalogDetail, type CourseCatalogItem } from "@/lib/learner";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { EmptyState } from "./EmptyState";
 import { StatusPill } from "./StatusPill";
 import { SummaryCard } from "./SummaryCard";

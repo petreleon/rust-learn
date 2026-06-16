@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { WalletContent } from "@/components/learner-routes/WalletContent";
+import { WalletContent } from "@/features/learner/workspace/components/WalletContent";
 
 describe("WalletContent KYC gate", () => {
   it("disables wallet linking until KYC is verified", () => {

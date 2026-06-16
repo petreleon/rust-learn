@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { type WalletSummary } from "@/lib/learner";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { StatusPill } from "./StatusPill";
 
 export function DashboardWalletPanel({ wallet }: { wallet: WalletSummary | null }) {

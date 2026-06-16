@@ -1,0 +1,121 @@
+.actionRow {
+  composes: actionRow from './learner-workspace.module/01.module.css';
+  composes: actionRow from './learner-workspace.module/04.module.css';
+}
+.activeFilter { composes: activeFilter from './learner-workspace.module/03.module.css'; }
+.activeLesson { composes: activeLesson from './learner-workspace.module/02.module.css'; }
+.activeToggle { composes: activeToggle from './learner-workspace.module/03.module.css'; }
+.bad { composes: bad from './learner-workspace.module/03.module.css'; }
+.catalogPanel {
+  composes: catalogPanel from './learner-workspace.module/01.module.css';
+  composes: catalogPanel from './learner-workspace.module/02.module.css';
+}
+.compactList { composes: compactList from './learner-workspace.module/03.module.css'; }
+.contentGrid {
+  composes: contentGrid from './learner-workspace.module/01.module.css';
+  composes: contentGrid from './learner-workspace.module/04.module.css';
+}
+.dashboardGrid {
+  composes: dashboardGrid from './learner-workspace.module/01.module.css';
+  composes: dashboardGrid from './learner-workspace.module/04.module.css';
+}
+.detailList { composes: detailList from './learner-workspace.module/03.module.css'; }
+.disabledSearch {
+  composes: disabledSearch from './learner-workspace.module/01.module.css';
+  composes: disabledSearch from './learner-workspace.module/02.module.css';
+  composes: disabledSearch from './learner-workspace.module/03.module.css';
+  composes: disabledSearch from './learner-workspace.module/04.module.css';
+}
+.errorPanel {
+  composes: errorPanel from './learner-workspace.module/01.module.css';
+  composes: errorPanel from './learner-workspace.module/03.module.css';
+}
+.filterBar { composes: filterBar from './learner-workspace.module/01.module.css'; }
+.filterButton {
+  composes: filterButton from './learner-workspace.module/01.module.css';
+  composes: filterButton from './learner-workspace.module/02.module.css';
+  composes: filterButton from './learner-workspace.module/03.module.css';
+}
+.filterToggle {
+  composes: filterToggle from './learner-workspace.module/01.module.css';
+  composes: filterToggle from './learner-workspace.module/02.module.css';
+  composes: filterToggle from './learner-workspace.module/03.module.css';
+}
+.good { composes: good from './learner-workspace.module/03.module.css'; }
+.iconAction {
+  composes: iconAction from './learner-workspace.module/01.module.css';
+  composes: iconAction from './learner-workspace.module/02.module.css';
+}
+.itemCard { composes: itemCard from './learner-workspace.module/01.module.css'; }
+.itemGrid {
+  composes: itemGrid from './learner-workspace.module/01.module.css';
+  composes: itemGrid from './learner-workspace.module/04.module.css';
+}
+.itemHeader {
+  composes: itemHeader from './learner-workspace.module/01.module.css';
+  composes: itemHeader from './learner-workspace.module/02.module.css';
+}
+.learningLayout {
+  composes: learningLayout from './learner-workspace.module/01.module.css';
+  composes: learningLayout from './learner-workspace.module/04.module.css';
+}
+.lessonButton { composes: lessonButton from './learner-workspace.module/01.module.css'; }
+.lessonChapter { composes: lessonChapter from './learner-workspace.module/01.module.css'; }
+.lessonList { composes: lessonList from './learner-workspace.module/01.module.css'; }
+.lessonOutline { composes: lessonOutline from './learner-workspace.module/01.module.css'; }
+.lessonReader { composes: lessonReader from './learner-workspace.module/01.module.css'; }
+.lessonText { composes: lessonText from './learner-workspace.module/02.module.css'; }
+.metaRow {
+  composes: metaRow from './learner-workspace.module/01.module.css';
+  composes: metaRow from './learner-workspace.module/03.module.css';
+}
+.muted { composes: muted from './learner-workspace.module/02.module.css'; }
+.neutral { composes: neutral from './learner-workspace.module/03.module.css'; }
+.panelHeader { composes: panelHeader from './learner-workspace.module/01.module.css'; }
+.primaryLink {
+  composes: primaryLink from './learner-workspace.module/01.module.css';
+  composes: primaryLink from './learner-workspace.module/02.module.css';
+  composes: primaryLink from './learner-workspace.module/04.module.css';
+}
+.searchField {
+  composes: searchField from './learner-workspace.module/01.module.css';
+  composes: searchField from './learner-workspace.module/02.module.css';
+}
+.searchForm {
+  composes: searchForm from './learner-workspace.module/02.module.css';
+  composes: searchForm from './learner-workspace.module/04.module.css';
+}
+.secondaryButton {
+  composes: secondaryButton from './learner-workspace.module/01.module.css';
+  composes: secondaryButton from './learner-workspace.module/02.module.css';
+  composes: secondaryButton from './learner-workspace.module/04.module.css';
+}
+.secondaryLink {
+  composes: secondaryLink from './learner-workspace.module/01.module.css';
+  composes: secondaryLink from './learner-workspace.module/02.module.css';
+  composes: secondaryLink from './learner-workspace.module/04.module.css';
+}
+.section { composes: section from './learner-workspace.module/01.module.css'; }
+.sectionHeader {
+  composes: sectionHeader from './learner-workspace.module/01.module.css';
+  composes: sectionHeader from './learner-workspace.module/02.module.css';
+}
+.skeleton { composes: skeleton from './learner-workspace.module/03.module.css'; }
+.skeletonGrid {
+  composes: skeletonGrid from './learner-workspace.module/03.module.css';
+  composes: skeletonGrid from './learner-workspace.module/04.module.css';
+}
+.spin { composes: spin from './learner-workspace.module/03.module.css'; }
+.srOnly { composes: srOnly from './learner-workspace.module/02.module.css'; }
+.statePanel { composes: statePanel from './learner-workspace.module/01.module.css'; }
+.statusPill {
+  composes: statusPill from './learner-workspace.module/01.module.css';
+  composes: statusPill from './learner-workspace.module/03.module.css';
+}
+.summaryCard { composes: summaryCard from './learner-workspace.module/01.module.css'; }
+.walletGrid {
+  composes: walletGrid from './learner-workspace.module/01.module.css';
+  composes: walletGrid from './learner-workspace.module/04.module.css';
+}
+.walletValue { composes: walletValue from './learner-workspace.module/03.module.css'; }
+.warn { composes: warn from './learner-workspace.module/03.module.css'; }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 
 export function LoadingState() {
   return (

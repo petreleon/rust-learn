@@ -2,7 +2,7 @@
 
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { loginHref } from "./loginHref";
 import { type RouteError } from "./RouteError";
 

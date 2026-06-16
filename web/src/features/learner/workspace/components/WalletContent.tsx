@@ -4,7 +4,7 @@ import { AlertTriangle, CheckCircle, CreditCard, Loader2, RefreshCw, ShieldCheck
 import Link from "next/link";
 import { useMemo } from "react";
 import { type RewardHistoryEntry, type WalletSummary } from "@/lib/learner";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { EmptyState } from "./EmptyState";
 import { StatusPill } from "./StatusPill";
 import { SummaryCard } from "./SummaryCard";

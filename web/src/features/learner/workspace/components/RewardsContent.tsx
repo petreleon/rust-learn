@@ -3,7 +3,7 @@
 import { AlertTriangle, CreditCard, Trophy } from "lucide-react";
 import { useMemo } from "react";
 import { type RewardHistoryEntry } from "@/lib/learner";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { EmptyState } from "./EmptyState";
 import { RewardCard } from "./RewardCard";
 import { StatusPill } from "./StatusPill";

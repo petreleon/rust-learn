@@ -4,7 +4,7 @@ import { AlertTriangle, ExternalLink, FileText, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchContentMediaUrl, type CourseLearningContent } from "@/lib/learner";
 import { readStoredSessionToken } from "@/lib/session";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { isReadableTextContent } from "./isReadableTextContent";
 import { lessonStateCopy } from "./lessonStateCopy";
 

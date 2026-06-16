@@ -3,7 +3,7 @@
 import { BookOpen, CheckCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { type CourseCatalogItem } from "@/lib/learner";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { StatusPill } from "./StatusPill";
 import { enrollmentTone } from "./enrollmentTone";
 import { humanize } from "./humanize";

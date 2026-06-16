@@ -1,6 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { type ShellNotice } from "@/components/product-shell";
-import { fetchCourseCatalog, fetchLearnerWallet, fetchRewardHistory, linkMyWallet, requestCourseJoin, type CourseCatalogItem, type CourseCatalogResponse, type RewardHistoryEntry, type WalletSummary } from "@/lib/learner";
+import { fetchCourseCatalog, fetchLearnerWallet, fetchRewardHistory, linkMyWallet, requestCourseJoin } from "@/lib/learner";
+import { type CourseCatalogItem, type CourseCatalogResponse, type RewardHistoryEntry, type WalletSummary } from "@/lib/learner";
 import { clearStoredSessionToken, fetchCurrentSession, readStoredSessionToken, type CurrentSession } from "@/lib/session";
 import { type EnrollmentStatusFilter } from "./EnrollmentStatusFilter";
 import { humanize } from "./humanize";

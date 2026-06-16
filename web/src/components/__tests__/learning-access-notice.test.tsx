@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { LearningAccessNotice } from "@/components/learner-routes/LearningAccessNotice";
+import { LearningAccessNotice } from "@/features/learner/workspace/components/LearningAccessNotice";
 import { type CourseLearningResponse } from "@/lib/learner";
 
 function makeLearning(state: string): CourseLearningResponse {

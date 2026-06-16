@@ -2,7 +2,7 @@
 
 import { Eye } from "lucide-react";
 import { type CourseLearningResponse } from "@/lib/learner";
-import styles from "../learner-routes.module.css";
+import styles from "../learner-workspace.module.css";
 import { enrollmentTone } from "./enrollmentTone";
 import { humanize } from "./humanize";
 import { StatusPill } from "./StatusPill";
