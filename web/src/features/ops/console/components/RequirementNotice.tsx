@@ -1,8 +1,8 @@
 "use client";
 
 import { FileCheck } from "lucide-react";
-import styles from "../page.module.css";
-import { formatFieldList } from "./formatFieldList";
+import styles from "../ops-console.module.css";
+import { formatFieldList } from "../model/formatFieldList";
 
 export function RequirementNotice({ action, fields }: { action: string; fields: string[] }) {
   if (fields.length === 0) {

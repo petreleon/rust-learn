@@ -1,7 +1,7 @@
 "use client";
 
 import { ShieldAlert } from "lucide-react";
-import styles from "../page.module.css";
+import styles from "../ops-console.module.css";
 
 export function PermissionNotice({ title, detail }: { title: string; detail: string }) {
   return (

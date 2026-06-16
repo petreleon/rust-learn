@@ -1,7 +1,5 @@
 "use client";
 
-import { History } from "lucide-react";
-
 export const workflowNavItems = [
   { href: "#teacher-workflow", label: "Applications" },
   { href: "#reward-workflow", label: "Rewards" },

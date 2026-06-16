@@ -1,2 +1,3 @@
 "use client";
-export { default } from "./page-parts/Home";
+
+export { default } from "@/features/ops/console/route/OpsConsoleRoute";

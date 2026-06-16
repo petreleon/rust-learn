@@ -183,13 +183,18 @@ Progress:
 - [x] Current architecture scan reports 2 dense-line findings after cleanup,
   both isolated to `/ops/page-parts/Home.tsx`, with no long files and no
   API/view boundary violations.
+- [x] Migrated the operations console into
+  `features/ops/console/{api,components,model,route,view}` with a thin `/ops`
+  route export, feature-owned CSS, split session/request/workflow controllers,
+  and workflow-specific panels.
+- [x] Current strict architecture scan reports no long files, no dense lines,
+  no API/UI import leaks, and no view side-effect leaks.
 
 Latest pilot proof:
 
-- `make web-architecture-scan` passes in reporting mode with 2 dense-line
-  findings isolated to `/ops/page-parts/Home.tsx`, no long files, and no
-  API/view boundary violations.
-- `make web-lint` passes with existing warnings.
+- `make web-architecture-scan` passes with no findings.
+- `cd web && npm run architecture:scan:strict` passes with no findings.
+- `make web-lint` passes with 5 existing warnings.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/organization/members/__tests__/OrganizationMembersRoute.test.tsx`
@@ -360,5 +365,5 @@ Deferred: product gaps stay in `TODO/02-backend-contracts.md` or
 - [ ] Remove transitional exports and duplicate helpers.
 - [x] Add architecture scans.
 - [x] Fix `make web-api-helper-tests` fixture drift.
-- [ ] Pay down remaining dense-line findings until strict scan passes.
+- [x] Pay down remaining dense-line findings until strict scan passes.
 - [ ] Run and record final verification proof.

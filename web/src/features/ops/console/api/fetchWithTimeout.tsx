@@ -1,6 +1,6 @@
 "use client";
 
-import { API_REQUEST_TIMEOUT_MS } from "./API_REQUEST_TIMEOUT_MS";
+import { API_REQUEST_TIMEOUT_MS } from "../model/API_REQUEST_TIMEOUT_MS";
 
 export async function fetchWithTimeout(input: string, init: RequestInit = {}) {
   const controller = new AbortController();
