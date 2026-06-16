@@ -485,6 +485,25 @@ Current evidence:
   permission checkboxes, disabled actions, and API-result output. The product
   routes cover much of this work now, but `/ops` remains an admin-gated
   fallback.
+- `/ops` action inventory is explicit:
+  - Teacher application submission lives at `/teach/apply`; platform review,
+    decisions, and audit live at `/admin/teacher-applications`; organization
+    tracking lives at `/organizations/{id}/teacher-applications`.
+  - Course reward candidate listing and teacher decisions live at
+    `/teach/courses/{id}/rewards`; learner reward history lives at `/rewards`;
+    platform amount review and audit live at `/admin/rewards/amount-review`.
+  - Organization reward reports and CSV live at
+    `/organizations/{id}/reports`; platform summaries, reward/fraud
+    dashboards, and exports live under `/admin`, `/admin/exports`,
+    `/admin/fraud-blocks`, and `/admin/wallets`.
+  - Fraud-block create/list/audit/revoke lives at `/admin/fraud-blocks`.
+  - Delegation grant/list/revoke lives at `/admin/delegations`.
+  - Remaining tracked ops/API-console gaps: manual course reward-candidate
+    submission (`POST /courses/{course_id}/reward-candidates`) and
+    organization-backed reward event submission
+    (`POST /organizations/{organization_id}/courses/{course_id}/reward-candidates`)
+    still need dedicated product forms if operators require manual reward
+    event entry beyond assessment/progress handoff.
 
 Needed:
 
@@ -505,7 +524,7 @@ Checks:
   `FraudBlockDetail` key warning after visiting admin subroutes.
 - [x] `/ops` is hidden from public/auth/account navigation unless an explicit
   development/admin gate is enabled.
-- [ ] Product routes cover every action still listed in `/ops`, or each
+- [x] Product routes cover every action still listed in `/ops`, or each
   remaining ops-only action has a tracked TODO item.
 
 ## Learner Course Lifecycle And Progress
