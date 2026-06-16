@@ -22,6 +22,9 @@ Implementation status checked before first push:
 - [x] Organization wallet web surface adds burn controls with permission/KYC
   gates, centralized/direct/platform-mediated sources, fee path display, and
   recent burn records.
+- [x] User wallet web surface adds burn controls with KYC/wallet gates,
+  centralized/direct/platform-mediated sources, fee path display, transaction
+  evidence, leaderboard visibility, and recent burn records.
 - [ ] Web surfaces from the Web Boundary Plan are still pending.
 - [ ] Reconciliation/admin failure handling still needs the next backend slice.
 

@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle, CreditCard, Loader2, RefreshCw, ShieldCheck
 import Link from "next/link";
 import { useMemo } from "react";
 import { type RewardHistoryEntry, type WalletDepositIntentAudit, type WalletSummary } from "@/lib/learner";
+import { WalletBurnPanel } from "../wallet-burns/route/WalletBurnPanel";
 import { WalletDepositIntentHistoryCard } from "../wallet-transfers/components/WalletDepositIntentHistoryCard";
 import { WalletTransferPanel } from "../wallet-transfers/route/WalletTransferPanel";
 import styles from "../learner-workspace.module.css";
@@ -114,6 +115,11 @@ export function WalletContent({
       {wallet ? metricsSection : walletSummarySection}
       {wallet ? walletSummarySection : metricsSection}
       <WalletTransferPanel
+        enabled={kycGate.ready}
+        onRefresh={onRefresh}
+        walletLinked={Boolean(wallet)}
+      />
+      <WalletBurnPanel
         enabled={kycGate.ready}
         onRefresh={onRefresh}
         walletLinked={Boolean(wallet)}
