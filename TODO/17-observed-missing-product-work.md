@@ -626,6 +626,9 @@ Current evidence:
 - Organization route controllers now silently refresh the current session when
   a browser tab becomes visible, so ProductShell workspace options reflect
   organization access grants or revokes without requiring a manual reload.
+- Organization route states are covered through shared state components and
+  focused settings-route tests for signed-out, success, missing organization,
+  permission denied, backend error, and save success.
 
 Needed:
 
@@ -646,7 +649,7 @@ Checks:
   not only an empty state.
 - [x] Organization owners can invite/add members and see pending invite or join
   states from product routes.
-- [ ] Organization routes preserve clear permission-denied, not-found, empty,
+- [x] Organization routes preserve clear permission-denied, not-found, empty,
   loading, and backend-error states.
 - [x] Workspace selector options update after organization access is granted or
   revoked.

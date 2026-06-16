@@ -59,6 +59,34 @@ describe("OrganizationSettingsRoute", () => {
     });
   });
 
+  it("shows a missing-organization state for unseen organization ids", async () => {
+    vi.mocked(loadCurrentOrganizationSession).mockResolvedValue(missingOrganizationSession());
+
+    render(<OrganizationSettingsRoute organizationId="4" />);
+
+    expect(await screen.findByRole("heading", { name: "Organization unavailable" })).toBeVisible();
+    expect(loadOrganizationSettings).not.toHaveBeenCalled();
+  });
+
+  it("shows a permission-denied state without settings permission", async () => {
+    vi.mocked(loadCurrentOrganizationSession).mockResolvedValue(viewOnlySession());
+
+    render(<OrganizationSettingsRoute organizationId="4" />);
+
+    expect(await screen.findByRole("heading", { name: "Settings unavailable" })).toBeVisible();
+    expect(screen.getByText(/MANAGE_ORG_SETTINGS/)).toBeVisible();
+    expect(loadOrganizationSettings).not.toHaveBeenCalled();
+  });
+
+  it("shows a backend-error state when settings cannot load", async () => {
+    vi.mocked(loadOrganizationSettings).mockRejectedValue(new Error("network down"));
+
+    render(<OrganizationSettingsRoute organizationId="4" />);
+
+    expect((await screen.findAllByText("Organization settings could not be loaded.")).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Retry" })).toBeVisible();
+  });
+
   it("saves settings through the controller", async () => {
     const user = userEvent.setup();
     render(<OrganizationSettingsRoute organizationId="4" />);
@@ -99,6 +127,24 @@ function sessionFixture(): CurrentSession {
     }],
     platform: emptyScope,
     user: { email: "operator@example.com", email_verified: true, id: 2, kyc_verified: true, name: "Org Operator" },
+  };
+}
+
+function missingOrganizationSession(): CurrentSession {
+  return { ...sessionFixture(), access: { ...sessionFixture().access, organization: false }, organizations: [] };
+}
+
+function viewOnlySession(): CurrentSession {
+  const organization = sessionFixture().organizations[0];
+  return {
+    ...sessionFixture(),
+    organizations: [{
+      ...organization,
+      capabilities: [{ enabled: false, key: "settings", label: "Settings", permissions: ["MANAGE_ORG_SETTINGS"] }],
+      direct_permissions: ["VIEW_ORGANIZATION"],
+      effective_permissions: ["VIEW_ORGANIZATION"],
+      roles: ["VIEWER"],
+    }],
   };
 }
 
