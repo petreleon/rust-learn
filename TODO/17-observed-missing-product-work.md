@@ -306,6 +306,10 @@ Current evidence:
   MetaMask requirement, and required wallet action.
 - Existing wallet integration proof covers platform-paid deposit crediting,
   retirement, wallet value, and audit rows.
+- Frontend wallet transfer route tests cover platform-paid deposits,
+  insufficient-balance retirements, and user-paid retirement MetaMask
+  messaging; backend application tests cover user-paid and platform-paid
+  gas-payer behavior for deposits and retirements.
 
 Needed:
 
@@ -324,7 +328,7 @@ Checks:
   and required external wallet action before confirmation.
 - [ ] Pending, credited, ambiguous, failed, and retry/recreate states are
   visible in wallet history.
-- [ ] User-paid and platform-paid flows are both covered, including MetaMask or
+- [x] User-paid and platform-paid flows are both covered, including MetaMask or
   permit-required messaging.
 - [x] Retirements fail gracefully when the wallet balance is insufficient.
 - [x] Compose proof verifies the wallet value and audit rows after a deposit or

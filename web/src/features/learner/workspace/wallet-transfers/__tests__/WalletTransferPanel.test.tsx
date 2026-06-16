@@ -92,4 +92,43 @@ describe("WalletTransferPanel", () => {
     expect(await screen.findByText("Insufficient wallet balance")).toBeVisible();
     expect(within(retireForm!).getByLabelText("Amount")).toHaveValue(999);
   });
+
+  it("submits user-paid retirement and shows MetaMask-required messaging", async () => {
+    const user = userEvent.setup();
+    vi.mocked(createWalletTransfer).mockResolvedValue({
+      amount: "5",
+      ethereum_address: "0xwallet",
+      external_transaction_id: 44,
+      gas_payer: "user",
+      internal_transaction_ids: [45],
+      metamask_required: true,
+      operation: "retire",
+      tax_amount: "0",
+      transaction_id: 46,
+      wallet_action: "metamask_transfer",
+      wallet_delta: "-5",
+      wallet_id: 3,
+      wallet_provider: "metamask",
+    });
+
+    render(<WalletTransferPanel enabled walletLinked onRefresh={vi.fn()} />);
+    const retireForm = screen.getByRole("heading", { name: "Retire tokens" }).closest("form");
+    expect(retireForm).not.toBeNull();
+
+    await user.type(within(retireForm!).getByLabelText("Amount"), "5");
+    await user.type(within(retireForm!).getByLabelText("Ethereum address"), "0xwallet");
+    await user.selectOptions(within(retireForm!).getByLabelText("Gas payer"), "user");
+    await user.click(within(retireForm!).getByRole("button", { name: "Create retirement" }));
+
+    await waitFor(() =>
+      expect(createWalletTransfer).toHaveBeenCalledWith({
+        draft: expect.objectContaining({ amount: "5", gasPayer: "user" }),
+        operation: "retire",
+        token: "wallet-token",
+      }),
+    );
+    expect(await screen.findByText("Retirement created")).toBeVisible();
+    expect(screen.getByText("External wallet action required before chain confirmation.")).toBeVisible();
+    expect(screen.getByText("metamask transfer")).toBeVisible();
+  });
 });
