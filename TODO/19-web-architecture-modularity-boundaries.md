@@ -104,8 +104,10 @@ Progress:
 - [x] Pointed the organization members Next route at the feature route while
   keeping the old `components/organization-routes/OrganizationMembersRoute`
   path as a compatibility export.
-- [x] Current architecture scan reports 49 dense-line findings after the
-  organization members slice.
+- [x] Split organization member directory content into feature-owned
+  components while keeping the old content path as a compatibility export.
+- [x] Current architecture scan reports 48 dense-line findings after the
+  organization members content cleanup.
 
 Latest pilot proof:
 

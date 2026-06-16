@@ -6,10 +6,10 @@ import { InviteMemberForm } from "@/components/organization-routes/InviteMemberF
 import { LoadingState } from "@/components/organization-routes/LoadingState";
 import { MembersDeniedState } from "@/components/organization-routes/MembersDeniedState";
 import { MissingOrganizationState } from "@/components/organization-routes/MissingOrganizationState";
-import { OrganizationMembersContent } from "@/components/organization-routes/OrganizationMembersContent";
 import { OrganizationStatus } from "@/components/organization-routes/OrganizationStatus";
 import { SignedOutState } from "@/components/organization-routes/SignedOutState";
 import { organizationNotice } from "@/components/organization-routes/organizationNotice";
+import { OrganizationMembersContent } from "../components/OrganizationMembersContent";
 import { organizationMembersTitle } from "../model/organizationMembersRouteModel";
 import { type OrganizationMembersRouteController } from "../route/useOrganizationMembersRoute";
 
