@@ -2,19 +2,20 @@
 
 import { ArrowLeft, BookOpen, FileText, ShieldCheck, Trophy, Users } from "lucide-react";
 import Link from "next/link";
-import { type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
-import { ChapterList } from "./ChapterList";
-import { DetailLine } from "./DetailLine";
-import { PermissionChip } from "./PermissionChip";
-import { SummaryCard } from "./SummaryCard";
+import { type TeacherCourseWorkspaceResponse } from "@/lib/teacher/TeacherCourseWorkspaceResponse";
+import { ChapterList } from "@/components/teacher-routes/ChapterList";
+import { DetailLine } from "@/components/teacher-routes/DetailLine";
+import { PermissionChip } from "@/components/teacher-routes/PermissionChip";
+import { SummaryCard } from "@/components/teacher-routes/SummaryCard";
+import { statusLabel } from "@/components/teacher-routes/statusLabel";
+import styles from "@/components/teacher-routes.module.css";
+import { workspaceSummary } from "../model/workspaceSummary";
 import { WorkspaceActionPanel } from "./WorkspaceActionPanel";
-import { statusLabel } from "./statusLabel";
-import { workspaceSummary } from "./workspaceSummary";
 
-export function WorkspaceView({ workspace }: { workspace: TeacherCourseWorkspaceResponse }) {
+export function WorkspaceContent({ workspace }: { workspace: TeacherCourseWorkspaceResponse }) {
   const totals = workspaceSummary(workspace);
-  const organizationNames = workspace.course.organizations.map((organization) => organization.name).join(", ") || "Personal course";
+  const organizationNames =
+    workspace.course.organizations.map((organization) => organization.name).join(", ") || "Personal course";
   const canViewRewards =
     workspace.course.permissions.can_view_reward_candidates ||
     workspace.course.permissions.can_approve_reward_candidates;
@@ -29,7 +30,8 @@ export function WorkspaceView({ workspace }: { workspace: TeacherCourseWorkspace
           <p className={styles.eyebrow}>{organizationNames}</p>
           <h2>{workspace.course.title}</h2>
           <p className={styles.muted}>
-            Course lifecycle is {statusLabel(workspace.course.lifecycle_status)}. Individual content publication state is not stored yet, so content inherits the course lifecycle.
+            Course lifecycle is {statusLabel(workspace.course.lifecycle_status)}. Individual content publication state
+            is not stored yet, so content inherits the course lifecycle.
           </p>
         </div>
         <div className={styles.permissionRow} aria-label="Workspace permissions">
@@ -41,10 +43,25 @@ export function WorkspaceView({ workspace }: { workspace: TeacherCourseWorkspace
       </section>
 
       <section className={styles.summaryGrid}>
-        <SummaryCard icon={<FileText size={20} aria-hidden />} label="Content items" value={totals.contentCount} tone={totals.contentCount ? "neutral" : "warn"} />
+        <SummaryCard
+          icon={<FileText size={20} aria-hidden />}
+          label="Content items"
+          tone={totals.contentCount ? "neutral" : "warn"}
+          value={totals.contentCount}
+        />
         <SummaryCard icon={<BookOpen size={20} aria-hidden />} label="Chapters" value={workspace.chapters.length} />
-        <SummaryCard icon={<Users size={20} aria-hidden />} label="Enrollment requests" value={workspace.course.roster.pending_join_request_count + workspace.course.roster.waitlisted_join_request_count} tone={workspace.course.roster.pending_join_request_count || workspace.course.roster.waitlisted_join_request_count ? "warn" : "neutral"} />
-        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Reward reviews" value={workspace.course.reward_queue.pending_teacher_count} tone={workspace.course.reward_queue.pending_teacher_count ? "warn" : "neutral"} />
+        <SummaryCard
+          icon={<Users size={20} aria-hidden />}
+          label="Enrollment requests"
+          tone={pendingEnrollmentCount(workspace) ? "warn" : "neutral"}
+          value={pendingEnrollmentCount(workspace)}
+        />
+        <SummaryCard
+          icon={<Trophy size={20} aria-hidden />}
+          label="Reward reviews"
+          tone={workspace.course.reward_queue.pending_teacher_count ? "warn" : "neutral"}
+          value={workspace.course.reward_queue.pending_teacher_count}
+        />
       </section>
 
       <section className={styles.twoColumn}>
@@ -58,7 +75,10 @@ export function WorkspaceView({ workspace }: { workspace: TeacherCourseWorkspace
             <DetailLine label="Lifecycle" value={statusLabel(workspace.publication.course_lifecycle_status)} />
             <DetailLine label="Teacher roles" value={workspace.teacher_roles.join(", ") || "Delegated permission"} />
             <DetailLine label="Organizations" value={organizationNames} />
-            <DetailLine label="Per-content publication" value={workspace.publication.content_publication_status_supported ? "Supported" : "Inherited from course"} />
+            <DetailLine
+              label="Per-content publication"
+              value={workspace.publication.content_publication_status_supported ? "Supported" : "Inherited from course"}
+            />
           </div>
         </section>
       </section>
@@ -67,11 +87,20 @@ export function WorkspaceView({ workspace }: { workspace: TeacherCourseWorkspace
         <div className={styles.sectionHeader}>
           <div>
             <h2>Course content</h2>
-            <p className={styles.muted}>Structured chapters, content types, stored-data presence, and latest processing state.</p>
+            <p className={styles.muted}>
+              Structured chapters, content types, stored-data presence, and latest processing state.
+            </p>
           </div>
         </div>
         <ChapterList chapters={workspace.chapters} />
       </section>
     </>
+  );
+}
+
+function pendingEnrollmentCount(workspace: TeacherCourseWorkspaceResponse) {
+  return (
+    workspace.course.roster.pending_join_request_count +
+    workspace.course.roster.waitlisted_join_request_count
   );
 }

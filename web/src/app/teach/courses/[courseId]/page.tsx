@@ -1,4 +1,4 @@
-import { TeacherCourseWorkspaceRoute } from "@/components/teacher-routes";
+import { TeacherCourseWorkspaceRoute } from "@/features/teacher/course-workspace/route/TeacherCourseWorkspaceRoute";
 
 export default async function TeachingCourseWorkspacePage({
   params,

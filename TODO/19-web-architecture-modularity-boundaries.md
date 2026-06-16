@@ -149,10 +149,17 @@ Progress:
 - [x] Current architecture scan reports 30 dense-line findings after the
   teacher workspace migration, with no long files and no API/view boundary
   violations.
+- [x] Migrated the teacher course workspace route into
+  `features/teacher/course-workspace/{api,components,model,route,view}` with
+  workspace loading, polling, route shell states, focused route tests, and a
+  compatibility route export.
+- [x] Current architecture scan reports 26 dense-line findings after the
+  teacher course workspace migration, with no long files and no API/view
+  boundary violations.
 
 Latest pilot proof:
 
-- `make web-architecture-scan` passes in reporting mode with 30 dense-line
+- `make web-architecture-scan` passes in reporting mode with 26 dense-line
   findings, no long files, and no API/view boundary violations.
 - `make web-lint` passes with existing warnings.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
@@ -175,11 +182,13 @@ Latest pilot proof:
   passes.
 - `npm run test -- src/features/teacher/teaching-workspace/__tests__/TeachingWorkspaceRoute.test.tsx`
   passes.
+- `npm run test -- src/features/teacher/course-workspace/__tests__/TeacherCourseWorkspaceRoute.test.tsx`
+  passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx src/components/__tests__/teacher-rewards-route.test.tsx src/components/__tests__/teacher-content-authoring-actions.test.tsx`
   passes.
-- `cd web && npm run test` passes with 39 files and 186 tests.
+- `cd web && npm run test` passes with 40 files and 190 tests.
 - `make web-api-helper-tests` passes.
 - `make web-build` passes.
 

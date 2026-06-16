@@ -2,8 +2,8 @@
 
 import { BriefcaseBusiness, FileText, Trophy, Users } from "lucide-react";
 import Link from "next/link";
-import { type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import { type TeacherCourseWorkspaceResponse } from "@/lib/teacher/TeacherCourseWorkspaceResponse";
+import styles from "@/components/teacher-routes.module.css";
 
 export function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspaceResponse }) {
   const canViewStudents =
@@ -61,7 +61,9 @@ export function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWo
       <div className={styles.priorityList}>
         {actions.map((action) => (
           <article className={styles.priorityItem} key={action.label}>
-            <span className={`${styles.smallIcon} ${action.enabled ? styles.good : styles.neutral}`}>{action.icon}</span>
+            <span className={`${styles.smallIcon} ${action.enabled ? styles.good : styles.neutral}`}>
+              {action.icon}
+            </span>
             <div>
               <strong>{action.label}</strong>
               <p>{action.detail}</p>
