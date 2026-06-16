@@ -19,6 +19,7 @@ export function adminSession(permissions: string[]): CurrentSession {
       capabilities: [
         { enabled: permissions.includes("VIEW_REPORT"), key: "summary", label: "Platform summary", permissions: ["VIEW_REPORT"] },
         { enabled: permissions.includes("VIEW_REWARD_AUDIT"), key: "reward_amount_review", label: "Reward audit", permissions: ["VIEW_REWARD_AUDIT"] },
+        { enabled: permissions.includes("SET_REWARD_POLICY"), key: "reward_policies", label: "Reward policies", permissions: ["SET_REWARD_POLICY"] },
         { enabled: permissions.includes("MANAGE_REWARD_FRAUD_BLOCKS"), key: "fraud_blocks", label: "Fraud blocks", permissions: ["MANAGE_REWARD_FRAUD_BLOCKS"] },
         { enabled: permissions.includes("EXPORT_DATA"), key: "exports", label: "Exports", permissions: ["EXPORT_DATA"] },
       ],

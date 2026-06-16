@@ -7,6 +7,7 @@ const pageTestFiles = [
   "src/features/admin/dashboard/__tests__/AdminDashboardRoute.test.tsx",
   "src/features/admin/delegations/__tests__/AdminDelegationsRoute.test.tsx",
   "src/features/admin/fraud-blocks/__tests__/AdminFraudBlocksRoute.test.tsx",
+  "src/features/admin/reward-policies/__tests__/AdminRewardPoliciesRoute.test.tsx",
   "src/features/admin/reward-amount-review/__tests__/AdminRewardAmountReviewRoute.test.tsx",
   "src/features/admin/teacher-applications/__tests__/AdminTeacherApplicationsRoute.test.tsx",
   "src/features/admin/fraud-blocks/__tests__/AdminFraudBlockRewardPolicyRoute.test.tsx",

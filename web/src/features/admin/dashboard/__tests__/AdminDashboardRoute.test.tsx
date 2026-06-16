@@ -46,7 +46,7 @@ describe("AdminDashboardRoute", () => {
     vi.clearAllMocks();
     mockToken("admin-token");
     vi.mocked(loadAdminDashboardSession).mockResolvedValue(
-      adminSession(["VIEW_REPORT", "VIEW_REWARD_AUDIT", "MANAGE_REWARD_FRAUD_BLOCKS", "EXPORT_DATA"]),
+      adminSession(["VIEW_REPORT", "VIEW_REWARD_AUDIT", "SET_REWARD_POLICY", "MANAGE_REWARD_FRAUD_BLOCKS", "EXPORT_DATA"]),
     );
     vi.mocked(loadPlatformSummary).mockResolvedValue({
       total_courses: 7,
@@ -81,6 +81,7 @@ describe("AdminDashboardRoute", () => {
     expect(await screen.findByText("Users")).toBeVisible();
     expect(await screen.findByText("42")).toBeVisible();
     expect(await screen.findByText("Reward operations")).toBeVisible();
+    expect(await screen.findByRole("link", { name: "Open Reward policies" })).toHaveAttribute("href", "/admin/reward-policies");
     expect((await screen.findAllByText("Fraud controls")).length).toBeGreaterThan(0);
     expect(await screen.findByText("System status")).toBeVisible();
     expect(loadAdminDashboardSession).toHaveBeenCalledWith({ token: "admin-token" });

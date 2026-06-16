@@ -75,6 +75,15 @@ export function ActionPanel({
       value: rewardDashboard?.pending_amount_approval_count ?? "Gated",
     },
     {
+      detail: "Create and review reward policy versions by platform, organization, course, and event.",
+      href: "/admin/reward-policies",
+      key: "reward_policies",
+      label: "Reward policies",
+      state: capabilityLabel(workspace, "reward_policies"),
+      tone: platformCapabilityEnabled(workspace, "reward_policies") ? "good" : "neutral",
+      value: platformCapabilityEnabled(workspace, "reward_policies") ? "Ready" : "Gated",
+    },
+    {
       detail: "Active reward fraud blocks across teachers, organizations, courses, and policies.",
       href: "/admin/fraud-blocks",
       key: "fraud_blocks",

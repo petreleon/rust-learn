@@ -29,6 +29,7 @@ pub(super) const PLATFORM: &[CapabilityDefinition] = &[
         "Reward amount review",
         &[APPROVE_REWARD_AMOUNT, VIEW_REWARD_AUDIT],
     ),
+    capability("reward_policies", "Reward policies", &[SET_REWARD_POLICY]),
     capability(
         "fraud_blocks",
         "Fraud controls",

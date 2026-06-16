@@ -725,10 +725,18 @@ Current evidence:
 - Organization course pages explicitly say editing, publishing, and
   organization-course ownership changes remain separate route work.
 - Backend APIs exist for reward policy creation/listing at
-  `/api/reward-policies`, but there is no product route/helper for reward policy
-  creation, policy scope, amount rules, active/inactive state, or policy audit.
-  Current learner/teacher/org pages mostly show counts such as "No active
-  policy" or "Reward policies".
+  `/api/reward-policies`. Web helpers and `/admin/reward-policies` now cover
+  creation, listing, policy scope, amount rules, and active/inactive filters;
+  dedicated detail inspection, activation/deactivation, coverage validation,
+  and policy audit remain.
+- `/admin/reward-policies` now exposes a product route for platform admins with
+  `SET_REWARD_POLICY`: operators can list active/inactive policies, filter by
+  scope and event type, and create platform, organization, or course scoped
+  policy versions with amount, multiplier, payout cap, cooldown, payment
+  strategy, and initial active state.
+- The current-session platform capability catalog now advertises
+  `reward_policies`, and the admin dashboard links to the policy lane instead
+  of forcing operators back through `/ops`.
 - Fraud blocks can target a `reward_policy_id`. `/admin/fraud-blocks` now loads
   active reward policies for operators with `SET_REWARD_POLICY` and lets them
   create reward-policy scoped blocks by policy context instead of raw id entry.
@@ -761,8 +769,9 @@ Needed:
   KYC, email-verification, role, or permission filtering.
 - Add teacher/organization course creation, course metadata editing, lifecycle
   transition, ownership/organization attachment, and publish/archive controls.
-- Add reward policy management for platform, organization, and course scopes:
-  create, list, inspect, activate/deactivate, validate coverage, and audit.
+- Finish reward policy management beyond the first product route: inspect
+  details, activate/deactivate existing versions if policy toggling remains a
+  separate operation, validate coverage, and expose policy audit.
 - Extend reward-policy picker/search into reward operations wherever a numeric
   policy id is still required.
 - Add deeper token-tax reporting if operators need filters beyond the latest
@@ -785,8 +794,11 @@ Checks:
   from visible permission scope.
 - [ ] Invalid lifecycle transitions, missing permissions, stale updates, and
   archived/deleted course states are blocked with clear messages.
-- [ ] Reward policies can be created, listed, activated/deactivated, scoped,
-  audited, and selected by name/context instead of numeric id only.
+- [x] Platform admins with `SET_REWARD_POLICY` can create and list platform,
+  organization, and course scoped reward policies from `/admin/reward-policies`
+  without using `/ops`.
+- [ ] Reward policies can be inspected, activated/deactivated, audited, and
+  selected by name/context wherever a numeric policy id is still required.
 - [ ] Reward candidate creation and assessment handoff surface the policy that
   makes a reward event eligible, or explains which policy is missing.
 - [x] Teacher reward review surfaces active/missing policy coverage for the
@@ -799,6 +811,8 @@ Checks:
   context instead of numeric policy id only.
 - [ ] Browser/page tests cover user-role management, course lifecycle changes,
   reward policy management, policy-backed fraud blocks, and token-tax updates.
+- [x] Page tests cover reward policy list/filter/create behavior and the admin
+  dashboard link to `/admin/reward-policies`.
 - [x] Page tests cover teacher course metadata save and lifecycle submit from
   the course workspace route.
 
