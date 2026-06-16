@@ -1,4 +1,4 @@
-import { AdminKycReviewRoute } from "@/components/admin-routes";
+import { AdminKycReviewRoute } from "@/features/admin/kyc-review/route/AdminKycReviewRoute";
 
 export default function AdminKycReviewPage() {
   return <AdminKycReviewRoute />;

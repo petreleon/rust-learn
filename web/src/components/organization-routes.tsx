@@ -1,10 +1,10 @@
 "use client";
 
-export { OrganizationIndexRoute } from "./organization-routes/OrganizationIndexRoute";
-export { OrganizationDashboardRoute } from "./organization-routes/OrganizationDashboardRoute";
+export { OrganizationIndexRoute } from "@/features/organization/index/route/OrganizationIndexRoute";
+export { OrganizationDashboardRoute } from "@/features/organization/dashboard/route/OrganizationDashboardRoute";
 export { OrganizationMembersRoute } from "./organization-routes/OrganizationMembersRoute";
-export { OrganizationCoursesRoute } from "./organization-routes/OrganizationCoursesRoute";
-export { OrganizationTeacherApplicationsRoute } from "./organization-routes/OrganizationTeacherApplicationsRoute";
-export { OrganizationReportsRoute } from "./organization-routes/OrganizationReportsRoute";
-export { OrganizationWalletRoute } from "./organization-routes/OrganizationWalletRoute";
+export { OrganizationCoursesRoute } from "@/features/organization/courses/route/OrganizationCoursesRoute";
+export { OrganizationTeacherApplicationsRoute } from "@/features/organization/teacher-applications/route/OrganizationTeacherApplicationsRoute";
+export { OrganizationReportsRoute } from "@/features/organization/reports/route/OrganizationReportsRoute";
+export { OrganizationWalletRoute } from "@/features/organization/wallet/route/OrganizationWalletRoute";
 export { OrganizationSettingsRoute } from "./organization-routes/OrganizationSettingsRoute";

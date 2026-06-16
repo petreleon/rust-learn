@@ -205,6 +205,10 @@ Progress:
   `features/teacher/application`.
 - [x] Removed old feature imports of app-owned CSS and component route CSS
   modules while preserving compatibility component rendering.
+- [x] Moved remaining app-facing admin, organization, and teacher route modules
+  out of `components/*-routes` into feature-owned `route/` folders and pointed
+  the Next route entrypoints directly at those feature routes. The old route
+  files left under `components/*-routes` are compatibility exports only.
 
 Latest pilot proof:
 
@@ -217,6 +221,8 @@ Latest pilot proof:
 - Style-boundary checkpoint:
   `make web-architecture-scan`, `cd web && npm run architecture:scan:strict`,
   `make web-lint`, and `make web-build` pass.
+- Route-ownership checkpoint:
+  `make web-architecture-scan`, `make web-lint`, and `make web-build` pass.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/organization/members/__tests__/OrganizationMembersRoute.test.tsx`

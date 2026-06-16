@@ -1,4 +1,4 @@
-import { OrganizationIndexRoute } from "@/components/organization-routes";
+import { OrganizationIndexRoute } from "@/features/organization/index/route/OrganizationIndexRoute";
 
 export default function OrganizationWorkspacePage() {
   return <OrganizationIndexRoute />;

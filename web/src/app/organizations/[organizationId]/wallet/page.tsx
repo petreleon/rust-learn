@@ -1,4 +1,4 @@
-import { OrganizationWalletRoute } from "@/components/organization-routes";
+import { OrganizationWalletRoute } from "@/features/organization/wallet/route/OrganizationWalletRoute";
 
 export default async function OrganizationWalletPage({
   params,

@@ -1,4 +1,4 @@
-import { OrganizationTeacherApplicationsRoute } from "@/components/organization-routes";
+import { OrganizationTeacherApplicationsRoute } from "@/features/organization/teacher-applications/route/OrganizationTeacherApplicationsRoute";
 
 export default async function OrganizationTeacherApplicationsPage({
   params,

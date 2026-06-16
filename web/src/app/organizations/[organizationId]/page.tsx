@@ -1,4 +1,4 @@
-import { OrganizationDashboardRoute } from "@/components/organization-routes";
+import { OrganizationDashboardRoute } from "@/features/organization/dashboard/route/OrganizationDashboardRoute";
 
 export default async function OrganizationDashboardPage({
   params,

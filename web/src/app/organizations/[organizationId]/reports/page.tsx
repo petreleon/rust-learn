@@ -1,4 +1,4 @@
-import { OrganizationReportsRoute } from "@/components/organization-routes";
+import { OrganizationReportsRoute } from "@/features/organization/reports/route/OrganizationReportsRoute";
 
 export default async function OrganizationReportsPage({
   params,

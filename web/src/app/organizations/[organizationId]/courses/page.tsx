@@ -1,4 +1,4 @@
-import { OrganizationCoursesRoute } from "@/components/organization-routes";
+import { OrganizationCoursesRoute } from "@/features/organization/courses/route/OrganizationCoursesRoute";
 
 export default async function OrganizationCoursesPage({
   params,

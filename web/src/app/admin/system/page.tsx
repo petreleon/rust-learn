@@ -1,1 +1,1 @@
-export { AdminSystemRoute as default } from "@/components/admin-routes";
+export { AdminSystemRoute as default } from "@/features/admin/system/route/AdminSystemRoute";

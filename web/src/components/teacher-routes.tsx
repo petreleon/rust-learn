@@ -2,7 +2,7 @@
 
 export { TeacherRoute } from "./teacher-routes/TeacherRoute";
 export { TeacherCourseWorkspaceRoute } from "./teacher-routes/TeacherCourseWorkspaceRoute";
-export { TeacherCourseContentRoute } from "./teacher-routes/TeacherCourseContentRoute";
+export { TeacherCourseContentRoute } from "@/features/teacher/course-content/route/TeacherCourseContentRoute";
 export { TeacherCourseEnrollmentsRoute } from "./teacher-routes/TeacherCourseEnrollmentsRoute";
-export { TeacherCourseStudentsRoute } from "./teacher-routes/TeacherCourseStudentsRoute";
+export { TeacherCourseStudentsRoute } from "@/features/teacher/course-students/route/TeacherCourseStudentsRoute";
 export { TeacherCourseRewardsRoute } from "./teacher-routes/TeacherCourseRewardsRoute";
