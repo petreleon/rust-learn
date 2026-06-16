@@ -100,6 +100,7 @@ impl WalletAuditStore for FakeWalletAuditStore {
             },
             internal_transactions: Vec::new(),
             external_transactions: Vec::new(),
+            deposit_intents: Vec::new(),
             reward_records: Vec::new(),
             compensation_records: Vec::new(),
         }))

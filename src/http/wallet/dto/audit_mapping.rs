@@ -1,11 +1,11 @@
 use crate::application::wallet::audit_wallet::{
-    WalletAudit, WalletAuditWallet, WalletCompensationRecordAudit, WalletExternalTransactionAudit,
-    WalletInternalTransactionAudit, WalletRewardRecordAudit,
+    WalletAudit, WalletAuditWallet, WalletCompensationRecordAudit, WalletDepositIntentAudit,
+    WalletExternalTransactionAudit, WalletInternalTransactionAudit, WalletRewardRecordAudit,
 };
 use crate::http::wallet::dto::audit::{
     WalletAuditResponse, WalletAuditWalletResponse, WalletCompensationRecordAuditResponse,
-    WalletExternalTransactionAuditResponse, WalletInternalTransactionAuditResponse,
-    WalletRewardRecordAuditResponse,
+    WalletDepositIntentAuditResponse, WalletExternalTransactionAuditResponse,
+    WalletInternalTransactionAuditResponse, WalletRewardRecordAuditResponse,
 };
 
 impl From<WalletAudit> for WalletAuditResponse {
@@ -21,6 +21,11 @@ impl From<WalletAudit> for WalletAuditResponse {
                 .external_transactions
                 .into_iter()
                 .map(WalletExternalTransactionAuditResponse::from)
+                .collect(),
+            deposit_intents: audit
+                .deposit_intents
+                .into_iter()
+                .map(WalletDepositIntentAuditResponse::from)
                 .collect(),
             reward_records: audit
                 .reward_records
@@ -77,6 +82,38 @@ impl From<WalletExternalTransactionAudit> for WalletExternalTransactionAuditResp
                 .map(|event_type| event_type.as_str().to_string()),
             from_address: transaction.from_address,
             to_address: transaction.to_address,
+        }
+    }
+}
+
+impl From<WalletDepositIntentAudit> for WalletDepositIntentAuditResponse {
+    fn from(intent: WalletDepositIntentAudit) -> Self {
+        Self {
+            id: intent.id,
+            user_id: intent.user_id,
+            wallet_id: intent.wallet_id,
+            ethereum_address: intent.ethereum_address,
+            platform_address: intent.platform_address,
+            amount: intent.amount,
+            tax_amount: intent.tax_amount,
+            gas_payer: intent.gas_payer,
+            status: intent.status.as_str().to_string(),
+            chain_id: intent.chain_id,
+            contract_address: intent.contract_address,
+            transaction_hash: intent.transaction_hash,
+            log_index: intent.log_index,
+            event_type: intent
+                .event_type
+                .map(|event_type| event_type.as_str().to_string()),
+            external_transaction_id: intent.external_transaction_id,
+            transaction_id: intent.transaction_id,
+            wallet_provider: intent.wallet_provider,
+            metamask_required: intent.metamask_required,
+            wallet_action: intent.wallet_action,
+            last_error: intent.last_error,
+            created_at: intent.created_at,
+            updated_at: intent.updated_at,
+            credited_at: intent.credited_at,
         }
     }
 }

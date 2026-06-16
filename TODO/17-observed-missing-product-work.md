@@ -299,8 +299,12 @@ Current evidence:
 - Account settings repeats that deposits and retirements are managed from the
   wallet route when available.
 - User deposit and retirement service calls now enforce verified KYC before
-  creating wallet intents or ledger entries, but the learner-facing
-  transfer history still needs persisted pending-intent listing after refresh.
+  creating wallet intents or ledger entries.
+- Wallet audit now includes persisted deposit intents, and the learner wallet
+  snapshot loads `/wallets/me/audit` so transfer history survives refresh.
+- The learner wallet route shows pending, credited, ambiguous, and failed
+  deposit-intent states with retry/recreate guidance for failed or ambiguous
+  reconciliation.
 - Newly created wallet intents render session-local history rows with tax,
   wallet delta, gas payer, platform receiver when returned by the backend,
   MetaMask requirement, and required wallet action.
@@ -313,10 +317,6 @@ Current evidence:
 
 Needed:
 
-- Add persisted learner wallet history for pending deposit intents so
-  session-local intent rows survive refresh.
-- Broaden transfer history to show credited, ambiguous, and failed states after
-  indexer/reconciliation updates.
 - Add frontend tests and Compose proof for both platform-paid and user-paid
   flows.
 
@@ -326,7 +326,7 @@ Checks:
   wallet route.
 - [x] UI shows tax amount, gas payer, expected wallet delta, platform address,
   and required external wallet action before confirmation.
-- [ ] Pending, credited, ambiguous, failed, and retry/recreate states are
+- [x] Pending, credited, ambiguous, failed, and retry/recreate states are
   visible in wallet history.
 - [x] User-paid and platform-paid flows are both covered, including MetaMask or
   permit-required messaging.

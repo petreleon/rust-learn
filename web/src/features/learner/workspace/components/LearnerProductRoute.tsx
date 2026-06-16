@@ -64,6 +64,7 @@ export function LearnerProductRoute({ kind }: { kind: LearnerProductRouteKind })
           onRefresh={route.loadRoute}
           rewards={route.rewards}
           wallet={route.wallet}
+          walletHistory={route.walletHistory}
         />
       ) : null}
     </ProductShell>

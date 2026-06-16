@@ -1,0 +1,25 @@
+export type WalletDepositIntentAudit = {
+  amount: string;
+  chain_id: number | null;
+  contract_address: string | null;
+  created_at: string;
+  credited_at: string | null;
+  ethereum_address: string;
+  event_type: string | null;
+  external_transaction_id: number | null;
+  gas_payer: string;
+  id: number;
+  last_error: string | null;
+  log_index: number | null;
+  metamask_required: boolean;
+  platform_address: string;
+  status: string;
+  tax_amount: string;
+  transaction_hash: string | null;
+  transaction_id: number | null;
+  updated_at: string;
+  user_id: number;
+  wallet_action: string;
+  wallet_id: number;
+  wallet_provider: string;
+};

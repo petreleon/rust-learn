@@ -11,8 +11,8 @@ pub(crate) mod test_support;
 pub use error::WalletAuditError;
 pub use handler::{audit_wallet, audit_wallet_for_actor};
 pub use output::{
-    WalletAudit, WalletAuditWallet, WalletCompensationRecordAudit, WalletExternalTransactionAudit,
-    WalletInternalTransactionAudit, WalletRewardRecordAudit,
+    WalletAudit, WalletAuditWallet, WalletCompensationRecordAudit, WalletDepositIntentAudit,
+    WalletExternalTransactionAudit, WalletInternalTransactionAudit, WalletRewardRecordAudit,
 };
 pub use service::WalletAuditUseCase;
 pub use store::WalletAuditStore;

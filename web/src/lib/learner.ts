@@ -1,5 +1,7 @@
 export type { RewardHistoryEntry } from "./learner/RewardHistoryEntry";
 export type { WalletSummary } from "./learner/WalletSummary";
+export type { WalletAudit } from "./learner/WalletAudit";
+export type { WalletDepositIntentAudit } from "./learner/WalletDepositIntentAudit";
 export type { WalletLinkResult } from "./learner/WalletLinkResult";
 export type { CourseCatalogResponse } from "./learner/CourseCatalogResponse";
 export type { CourseCatalogItem } from "./learner/CourseCatalogItem";
@@ -41,4 +43,5 @@ export { saveCourseProgress } from "./learner/saveCourseProgress";
 export { requestCourseJoin } from "./learner/requestCourseJoin";
 export { fetchRewardHistory } from "./learner/fetchRewardHistory";
 export { fetchMyWallet } from "./learner/fetchMyWallet";
+export { fetchMyWalletAudit } from "./learner/fetchMyWalletAudit";
 export { linkMyWallet } from "./learner/linkMyWallet";

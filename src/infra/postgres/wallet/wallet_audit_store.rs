@@ -9,6 +9,7 @@ use crate::infra::postgres::wallet::wallet_access::{
 };
 use crate::infra::postgres::wallet::wallet_audit_candidate_ids::load_wallet_reward_candidate_ids;
 use crate::infra::postgres::wallet::wallet_audit_compensation_records::load_compensation_records;
+use crate::infra::postgres::wallet::wallet_audit_deposit_intents::load_deposit_intents;
 use crate::infra::postgres::wallet::wallet_audit_external_transactions::load_external_transactions;
 use crate::infra::postgres::wallet::wallet_audit_internal_transactions::load_internal_transactions;
 use crate::infra::postgres::wallet::wallet_audit_reward_records::load_reward_records;
@@ -91,6 +92,7 @@ async fn load_wallet_audit(
 ) -> Result<WalletAudit, WalletAuditError> {
     let wallet_id = target.id;
     let internal_transactions = load_internal_transactions(conn, wallet_id).await?;
+    let deposit_intents = load_deposit_intents(conn, wallet_id).await?;
     let wallet_transaction_ids = internal_transactions
         .iter()
         .map(|row| row.transaction_id)
@@ -115,6 +117,7 @@ async fn load_wallet_audit(
         },
         internal_transactions,
         external_transactions,
+        deposit_intents,
         reward_records,
         compensation_records,
     })

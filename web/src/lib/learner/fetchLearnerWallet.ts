@@ -1,5 +1,6 @@
 import { DEFAULT_TIMEOUT_MS } from "./DEFAULT_TIMEOUT_MS";
 import { DEFAULT_WALLET_REWARD_LIMIT } from "./DEFAULT_WALLET_REWARD_LIMIT";
+import { fetchMyWalletAudit } from "./fetchMyWalletAudit";
 import { fetchMyWallet } from "./fetchMyWallet";
 import { fetchRewardHistory } from "./fetchRewardHistory";
 import { type LearnerRequestOptions } from "./LearnerRequestOptions";
@@ -23,9 +24,17 @@ export async function fetchLearnerWallet({
       token,
     }),
   ]);
+  const walletAudit = wallet
+    ? await fetchMyWalletAudit({
+        apiRoot,
+        timeoutMs,
+        token,
+      })
+    : null;
 
   return {
     reward_history: rewardHistory,
+    wallet_history: walletAudit?.deposit_intents || [],
     wallet,
   };
 }

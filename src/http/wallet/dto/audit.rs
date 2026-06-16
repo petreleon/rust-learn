@@ -6,6 +6,7 @@ pub struct WalletAuditResponse {
     pub wallet: WalletAuditWalletResponse,
     pub internal_transactions: Vec<WalletInternalTransactionAuditResponse>,
     pub external_transactions: Vec<WalletExternalTransactionAuditResponse>,
+    pub deposit_intents: Vec<WalletDepositIntentAuditResponse>,
     pub reward_records: Vec<WalletRewardRecordAuditResponse>,
     pub compensation_records: Vec<WalletCompensationRecordAuditResponse>,
 }
@@ -42,6 +43,33 @@ pub struct WalletExternalTransactionAuditResponse {
     pub event_type: Option<String>,
     pub from_address: Option<String>,
     pub to_address: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct WalletDepositIntentAuditResponse {
+    pub id: i64,
+    pub user_id: i32,
+    pub wallet_id: i32,
+    pub ethereum_address: String,
+    pub platform_address: String,
+    pub amount: String,
+    pub tax_amount: String,
+    pub gas_payer: String,
+    pub status: String,
+    pub chain_id: Option<i64>,
+    pub contract_address: Option<String>,
+    pub transaction_hash: Option<String>,
+    pub log_index: Option<i64>,
+    pub event_type: Option<String>,
+    pub external_transaction_id: Option<i64>,
+    pub transaction_id: Option<i64>,
+    pub wallet_provider: String,
+    pub metamask_required: bool,
+    pub wallet_action: String,
+    pub last_error: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub credited_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize)]

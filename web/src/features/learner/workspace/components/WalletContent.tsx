@@ -3,7 +3,8 @@
 import { AlertTriangle, CheckCircle, CreditCard, Loader2, RefreshCw, ShieldCheck, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
-import { type RewardHistoryEntry, type WalletSummary } from "@/lib/learner";
+import { type RewardHistoryEntry, type WalletDepositIntentAudit, type WalletSummary } from "@/lib/learner";
+import { WalletDepositIntentHistoryCard } from "../wallet-transfers/components/WalletDepositIntentHistoryCard";
 import { WalletTransferPanel } from "../wallet-transfers/route/WalletTransferPanel";
 import styles from "../learner-workspace.module.css";
 import { EmptyState } from "./EmptyState";
@@ -21,6 +22,7 @@ export function WalletContent({
   onRefresh,
   rewards,
   wallet,
+  walletHistory = [],
 }: {
   kycVerified: boolean;
   linking: boolean;
@@ -28,6 +30,7 @@ export function WalletContent({
   onRefresh: () => void;
   rewards: RewardHistoryEntry[];
   wallet: WalletSummary | null;
+  walletHistory?: WalletDepositIntentAudit[];
 }) {
   const summary = useMemo(() => summarizeRewards(rewards), [rewards]);
   const kycGate = walletKycGateCopy(kycVerified);
@@ -115,6 +118,25 @@ export function WalletContent({
         onRefresh={onRefresh}
         walletLinked={Boolean(wallet)}
       />
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2>Transfer history</h2>
+          <StatusPill label={`${walletHistory.length} recent`} tone={walletHistory.length ? "good" : "neutral"} />
+        </div>
+        {walletHistory.length ? (
+          <div className={styles.transferResultGrid}>
+            {walletHistory.slice(0, 6).map((intent) => (
+              <WalletDepositIntentHistoryCard key={intent.id} intent={intent} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            detail="Persisted deposit intents appear here after you create wallet transfers."
+            title="No transfer history yet"
+          />
+        )}
+      </section>
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>

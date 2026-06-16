@@ -1,7 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { type ShellNotice } from "@/components/product-shell";
 import { fetchCourseCatalog, fetchLearnerWallet, fetchRewardHistory, linkMyWallet, requestCourseJoin } from "@/lib/learner";
-import { type CourseCatalogItem, type CourseCatalogResponse, type RewardHistoryEntry, type WalletSummary } from "@/lib/learner";
+import { type CourseCatalogItem, type CourseCatalogResponse, type RewardHistoryEntry, type WalletDepositIntentAudit, type WalletSummary } from "@/lib/learner";
 import { clearStoredSessionToken, fetchCurrentSession, readStoredSessionToken, type CurrentSession } from "@/lib/session";
 import { type EnrollmentStatusFilter } from "./EnrollmentStatusFilter";
 import { humanize } from "./humanize";
@@ -26,6 +26,7 @@ export function useLearnerProductRoute(kind: LearnerProductRouteKind) {
   const [rewards, setRewards] = useState<RewardHistoryEntry[]>([]);
   const [rewardStatus, setRewardStatus] = useState<RewardStatusFilter>("all");
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
+  const [walletHistory, setWalletHistory] = useState<WalletDepositIntentAudit[]>([]);
   const [walletLinking, setWalletLinking] = useState(false);
 
   const loadRoute = useCallback(async () => {
@@ -37,6 +38,7 @@ export function useLearnerProductRoute(kind: LearnerProductRouteKind) {
       setCatalog(null);
       setRewards([]);
       setWallet(null);
+      setWalletHistory([]);
       setLoadState("idle");
       return;
     }
@@ -66,6 +68,7 @@ export function useLearnerProductRoute(kind: LearnerProductRouteKind) {
       ]);
       setSession(nextSession);
       setRewards(kind === "wallet" ? nextWalletSnapshot?.reward_history || [] : nextRewards);
+      setWalletHistory(nextWalletSnapshot?.wallet_history || []);
       setCatalog(nextCatalog);
       setWallet(nextWalletSnapshot?.wallet || null);
       setLoadState("success");
@@ -95,6 +98,7 @@ export function useLearnerProductRoute(kind: LearnerProductRouteKind) {
     setCatalog(null);
     setRewards([]);
     setWallet(null);
+    setWalletHistory([]);
     setLoadState("idle");
   }
 
@@ -171,5 +175,6 @@ export function useLearnerProductRoute(kind: LearnerProductRouteKind) {
   return { actionNotice, applyCourseSearch, catalog, clearCourseFilters, courseEnrollmentFilter,
     courseRewardOnly, courseSearch, courseSearchInput, error, hasToken, joiningCourseId, linkWallet,
     loadRoute, loadState, requestJoin, rewardStatus, rewards, session, setCourseEnrollmentFilter,
-    setCourseRewardOnly, setCourseSearchInput, setRewardStatus, signOut, wallet, walletLinking };
+    setCourseRewardOnly, setCourseSearchInput, setRewardStatus, signOut, wallet, walletHistory,
+    walletLinking };
 }

@@ -3,6 +3,7 @@ pub mod token_reconciliation_records;
 pub mod wallet_access;
 pub mod wallet_audit_candidate_ids;
 pub mod wallet_audit_compensation_records;
+pub mod wallet_audit_deposit_intents;
 pub mod wallet_audit_external_reward_transactions;
 pub mod wallet_audit_external_rows;
 pub mod wallet_audit_external_transactions;
