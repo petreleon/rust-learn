@@ -722,7 +722,9 @@ Current evidence:
 - `/organizations/{id}/courses` now exposes draft organization course creation
   for operators with organization-scoped `CREATE_COURSE` and refreshes the
   organization course list after creation.
-- Organization course pages explicitly say editing, publishing, and
+- `/organizations/{id}/courses` now exposes selected-course title editing and
+  draft/submitted/published/archived lifecycle controls for courses where the
+  operator has `can_manage_course_settings`; richer metadata fields and
   organization-course ownership changes remain separate route work.
 - Backend APIs exist for reward policy creation/listing at
   `/api/reward-policies`. Web helpers and `/admin/reward-policies` now cover
@@ -767,8 +769,8 @@ Needed:
 
 - Add richer platform user filters beyond name/email search if operators need
   KYC, email-verification, role, or permission filtering.
-- Add teacher/organization course creation, course metadata editing, lifecycle
-  transition, ownership/organization attachment, and publish/archive controls.
+- Finish richer organization course metadata editing, ownership/organization
+  attachment, invalid-transition handling, and publish/archive edge states.
 - Finish reward policy management beyond the first product route: inspect
   details, activate/deactivate existing versions if policy toggling remains a
   separate operation, validate coverage, and expose policy audit.
@@ -792,6 +794,8 @@ Checks:
   organization-owned courses from visible permission scope.
 - [x] Organization courses page can create draft organization-owned courses
   from visible permission scope.
+- [x] Organization courses page can edit a selected course title and submit
+  lifecycle changes from visible manage-settings permission scope.
 - [ ] Invalid lifecycle transitions, missing permissions, stale updates, and
   archived/deleted course states are blocked with clear messages.
 - [x] Platform admins with `SET_REWARD_POLICY` can create and list platform,
@@ -815,6 +819,8 @@ Checks:
   dashboard link to `/admin/reward-policies`.
 - [x] Page tests cover teacher course metadata save and lifecycle submit from
   the course workspace route.
+- [x] Page tests cover organization course title save and lifecycle submit from
+  the organization course route.
 
 ## Page-Level Product Tests
 

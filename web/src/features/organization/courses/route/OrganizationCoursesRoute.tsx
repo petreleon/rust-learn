@@ -21,6 +21,7 @@ import { useOrganizationSession } from "@/features/organization/shared/route-kit
 import { loadOrganizationCourses } from "../api/courseApi";
 import { canCreateOrganizationCourse } from "../model/courseCreationModel";
 import { useOrganizationCourseCreation } from "./useOrganizationCourseCreation";
+import { useOrganizationCourseManagement } from "./useOrganizationCourseManagement";
 
 export function OrganizationCoursesRoute({ organizationId }: { organizationId: string }) {
   const route = useOrganizationSession();
@@ -87,6 +88,7 @@ export function OrganizationCoursesRoute({ organizationId }: { organizationId: s
     loadCourses,
     organizationId: organization?.id ?? null,
   });
+  const courseManagement = useOrganizationCourseManagement({ loadCourses });
 
   useEffect(() => {
     if (route.session && organization && canViewCourses) {
@@ -146,6 +148,7 @@ export function OrganizationCoursesRoute({ organizationId }: { organizationId: s
       {route.session && organization && canViewCourses ? (
         <OrganizationCoursesContent
           courseCreation={courseCreation}
+          courseManagement={courseManagement}
           courses={courses}
           canCreateCourses={canCreateCourses}
           draftSearch={draftSearch}

@@ -14,6 +14,7 @@ import { CourseCreationPanel } from "./CourseCreationPanel";
 import { CourseDirectoryHero } from "./CourseDirectoryHero";
 import { CourseFilterPanel, type CourseRewardFilter } from "./CourseFilterPanel";
 import { CourseListPanel } from "./CourseListPanel";
+import { CourseManagementPanel, type CourseManagementPanelController } from "./CourseManagementPanel";
 import { organizationCourseCounts } from "./courseCounts";
 
 type Props = {
@@ -25,6 +26,7 @@ type Props = {
     setTitleDraft: (value: string) => void;
     titleDraft: string;
   };
+  courseManagement: CourseManagementPanelController;
   courses: OrganizationCourseList | null;
   draftSearch: string;
   lifecycleStatus: string;
@@ -69,6 +71,7 @@ export function OrganizationCoursesContent(props: Props) {
         organizationName={props.organization.name}
         titleDraft={props.courseCreation.titleDraft}
       />
+      <CourseManagementPanel courses={props.courses.courses} management={props.courseManagement} />
       <section className={styles.summaryGrid}>
         <SummaryCard icon={<BookOpen size={20} aria-hidden />} label="Matching courses" value={props.courses.total} />
         <SummaryCard icon={<FileText size={20} aria-hidden />} label="Reward policies" value={counts.activePolicyCount} />
