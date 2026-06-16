@@ -2,7 +2,8 @@
 
 import { ArrowLeft, BookOpen, CheckCircle, FileText, Loader2, Trophy } from "lucide-react";
 import Link from "next/link";
-import { type CourseCatalogDetail, type CourseCatalogItem } from "@/lib/learner";
+import { type AssessmentItem, type CourseCatalogDetail, type CourseCatalogItem } from "@/lib/learner";
+import { CourseAssessmentEntryPanel } from "../assessments/components/CourseAssessmentEntryPanel";
 import styles from "../learner-workspace.module.css";
 import { EmptyState } from "./EmptyState";
 import { StatusPill } from "./StatusPill";
@@ -12,10 +13,12 @@ import { plural } from "./plural";
 
 export function CourseDetailContent({
   detail,
+  assessments,
   joining,
   onRequestJoin,
 }: {
   detail: CourseCatalogDetail;
+  assessments: AssessmentItem[];
   joining: boolean;
   onRequestJoin: (course: CourseCatalogItem) => void;
 }) {
@@ -78,6 +81,8 @@ export function CourseDetailContent({
           ) : null}
         </div>
       </section>
+
+      <CourseAssessmentEntryPanel assessments={assessments} course={course} />
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>

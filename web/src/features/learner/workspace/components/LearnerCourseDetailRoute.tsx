@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ProductShell, type ShellNotice } from "@/components/product-shell";
-import { fetchCourseDetail, requestCourseJoin, type CourseCatalogDetail, type CourseCatalogItem } from "@/lib/learner";
+import { fetchCourseDetail, requestCourseJoin, type AssessmentItem, type CourseCatalogDetail, type CourseCatalogItem } from "@/lib/learner";
 import { clearStoredSessionToken, fetchCurrentSession, readStoredSessionToken, type CurrentSession, SessionRequestError } from "@/lib/session";
+import { loadCourseAssessmentList } from "../assessments/api/courseAssessmentApi";
 import { CourseDetailContent } from "./CourseDetailContent";
 import { ErrorState } from "./ErrorState";
 import { LoadingState } from "./LoadingState";
@@ -22,6 +23,7 @@ export function LearnerCourseDetailRoute({ courseId }: { courseId: string }) {
   const [hasToken, setHasToken] = useState(false);
   const [session, setSession] = useState<CurrentSession | null>(null);
   const [detail, setDetail] = useState<CourseCatalogDetail | null>(null);
+  const [assessments, setAssessments] = useState<AssessmentItem[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [error, setError] = useState<RouteError | null>(null);
   const [actionNotice, setActionNotice] = useState<ShellNotice | null>(null);
@@ -33,6 +35,7 @@ export function LearnerCourseDetailRoute({ courseId }: { courseId: string }) {
       setHasToken(false);
       setSession(null);
       setDetail(null);
+      setAssessments([]);
       setError(null);
       setLoadState("idle");
       return;
@@ -42,6 +45,7 @@ export function LearnerCourseDetailRoute({ courseId }: { courseId: string }) {
       setHasToken(true);
       setSession(null);
       setDetail(null);
+      setAssessments([]);
       setError({
         code: "not_found",
         message: "Course not found.",
@@ -59,8 +63,12 @@ export function LearnerCourseDetailRoute({ courseId }: { courseId: string }) {
       const nextSession = await fetchCurrentSession({ token });
       setSession(nextSession);
 
-      const nextDetail = await fetchCourseDetail({ courseId: numericCourseId, token });
+      const [nextDetail, nextAssessments] = await Promise.all([
+        fetchCourseDetail({ courseId: numericCourseId, token }),
+        loadCourseAssessmentList({ courseId: numericCourseId, token }),
+      ]);
       setDetail(nextDetail);
+      setAssessments(nextAssessments);
       setLoadState("success");
     } catch (nextError) {
       const requestError = normalizeRouteError(nextError);
@@ -73,6 +81,7 @@ export function LearnerCourseDetailRoute({ courseId }: { courseId: string }) {
         setSession(null);
       }
       setDetail(null);
+      setAssessments([]);
       setError({
         code: requestError.code,
         message: requestError.message,
@@ -92,6 +101,7 @@ export function LearnerCourseDetailRoute({ courseId }: { courseId: string }) {
     setHasToken(false);
     setSession(null);
     setDetail(null);
+    setAssessments([]);
     setError(null);
     setActionNotice(null);
     setLoadState("idle");
@@ -155,7 +165,12 @@ export function LearnerCourseDetailRoute({ courseId }: { courseId: string }) {
       {loadState === "loading" ? <LoadingState /> : null}
       {error ? <ErrorState error={error} onRetry={loadRoute} redirect={`/courses/${courseId}`} /> : null}
       {loadState === "success" && detail ? (
-        <CourseDetailContent detail={detail} joining={joining} onRequestJoin={requestJoin} />
+        <CourseDetailContent
+          assessments={assessments}
+          detail={detail}
+          joining={joining}
+          onRequestJoin={requestJoin}
+        />
       ) : null}
     </ProductShell>
   );

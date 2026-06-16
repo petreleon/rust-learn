@@ -501,6 +501,9 @@ Current evidence:
   time, saved lesson count, and completion percentage from `course_progress`.
 - `/courses/[id]/learn` now exposes learner assessment taking from published
   assessment data and disables attempts in preview mode.
+- `/courses/[id]` now shows an assessment entry point only when published
+  assessments exist; enrolled learners see "Open assessments", while
+  non-enrolled users with content access see "Preview assessments".
 - Teacher assessment authoring and reward eligibility handoff after passing
   assessments are still missing.
 
@@ -531,8 +534,9 @@ Checks:
   smoke data.
 - [ ] Large catalogs have pagination, load-more, or a clear visible count that
   matches the rendered set.
-- [ ] Assessment links appear only when assessments exist and handle not
-  started, in progress, passed, failed, max-attempts, and unpublished states.
+- [x] Assessment links appear only when assessments exist and handle not
+  started, passed, failed, max-attempts, unpublished/empty, and preview-disabled
+  states. A separate long-running in-progress attempt state does not exist yet.
 
 ## Teacher Course Workflow Gaps
 

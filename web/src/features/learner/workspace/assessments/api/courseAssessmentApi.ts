@@ -33,6 +33,16 @@ export async function loadCourseAssessmentSnapshot({
   };
 }
 
+export async function loadCourseAssessmentList({
+  courseId,
+  token,
+}: {
+  courseId: number;
+  token: string;
+}): Promise<AssessmentItem[]> {
+  return fetchCourseAssessments({ courseId, token });
+}
+
 export async function submitCourseAssessmentAttempt({
   answers,
   assessmentId,
