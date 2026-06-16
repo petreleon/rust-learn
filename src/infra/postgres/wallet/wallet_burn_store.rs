@@ -6,13 +6,13 @@ use std::str::FromStr;
 
 use crate::application::wallet::burn_tokens::{
     TokenBurnDraft, TokenBurnError, TokenBurnLeaderboard, TokenBurnLeaderboardQuery,
-    TokenBurnStore, TokenBurnView,
+    TokenBurnReconciliationCommand, TokenBurnStore, TokenBurnView,
 };
 use crate::domain::wallet::burn::{TokenBurnLeaderboardScope, TokenBurnLeaderboardWindow};
 use crate::infra::postgres::operations::persistent_state::get_persistent_state;
 use crate::infra::postgres::schema::{organizations, users};
 use crate::infra::postgres::wallet::wallet_access::{
-    can_burn_organization_tokens, can_view_burn_leaderboard,
+    can_burn_organization_tokens, can_reconcile_token_burns, can_view_burn_leaderboard,
 };
 
 const TOKEN_DEPOSIT_TAX_KEY: &str = "wallet.deposit_tax_tokens";
@@ -82,6 +82,18 @@ impl TokenBurnStore for PostgresTokenBurnStore<'_> {
         .boxed()
     }
 
+    fn can_reconcile_token_burns(
+        &mut self,
+        actor_user_id: i32,
+    ) -> BoxFuture<'_, Result<bool, TokenBurnError>> {
+        async move {
+            can_reconcile_token_burns(self.conn, actor_user_id)
+                .await
+                .map_err(|error| TokenBurnError::PermissionCheck(error.to_string()))
+        }
+        .boxed()
+    }
+
     fn load_platform_deposit_tax(&mut self) -> BoxFuture<'_, Result<BigDecimal, TokenBurnError>> {
         async move {
             let Some(value) = get_persistent_state(self.conn, TOKEN_DEPOSIT_TAX_KEY)
@@ -131,6 +143,33 @@ impl TokenBurnStore for PostgresTokenBurnStore<'_> {
     ) -> BoxFuture<'_, Result<TokenBurnLeaderboard, TokenBurnError>> {
         async move {
             super::wallet_burn_leaderboard::load_leaderboard(self.conn, query, window, scope).await
+        }
+        .boxed()
+    }
+
+    fn list_reconciliation_burns(
+        &mut self,
+    ) -> BoxFuture<'_, Result<Vec<TokenBurnView>, TokenBurnError>> {
+        async move { super::wallet_burn_reconciliation::list_reconciliation_burns(self.conn).await }
+            .boxed()
+    }
+
+    fn list_failed_burns(&mut self) -> BoxFuture<'_, Result<Vec<TokenBurnView>, TokenBurnError>> {
+        async move { super::wallet_burn_reconciliation::list_failed_burns(self.conn).await }.boxed()
+    }
+
+    fn reconcile_burn_request(
+        &mut self,
+        burn_request_id: i64,
+        command: TokenBurnReconciliationCommand,
+    ) -> BoxFuture<'_, Result<TokenBurnView, TokenBurnError>> {
+        async move {
+            super::wallet_burn_reconciliation::reconcile_burn_request(
+                self.conn,
+                burn_request_id,
+                command,
+            )
+            .await
         }
         .boxed()
     }

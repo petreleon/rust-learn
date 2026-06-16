@@ -80,6 +80,18 @@ pub(super) async fn can_view_burn_leaderboard(
     .await
 }
 
+pub(super) async fn can_reconcile_token_burns(
+    conn: &mut AsyncPgConnection,
+    actor_user_id: i32,
+) -> Result<bool, WalletAuthorizationError> {
+    authorize_wallet(
+        conn,
+        actor_user_id,
+        WalletAuthorizationAction::ReconcileTokenBurns,
+    )
+    .await
+}
+
 async fn authorize_wallet(
     conn: &mut AsyncPgConnection,
     actor_user_id: i32,

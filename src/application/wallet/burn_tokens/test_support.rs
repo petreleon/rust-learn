@@ -3,7 +3,7 @@ use futures::future::{ready, BoxFuture, FutureExt};
 
 use crate::application::wallet::burn_tokens::{
     TokenBurnDraft, TokenBurnError, TokenBurnLeaderboard, TokenBurnLeaderboardQuery,
-    TokenBurnStore, TokenBurnView,
+    TokenBurnReconciliationCommand, TokenBurnStore, TokenBurnView,
 };
 use crate::domain::wallet::burn::{TokenBurnLeaderboardScope, TokenBurnLeaderboardWindow};
 
@@ -13,8 +13,10 @@ pub(crate) struct FakeTokenBurnStore {
     pub organization_exists: bool,
     pub can_burn_organization: bool,
     pub can_view_leaderboard: bool,
+    pub can_reconcile: bool,
     pub deposit_tax: BigDecimal,
     pub created_draft: Option<TokenBurnDraft>,
+    pub reconciled_burn: Option<(i64, TokenBurnReconciliationCommand)>,
 }
 
 impl TokenBurnStore for FakeTokenBurnStore {
@@ -36,6 +38,10 @@ impl TokenBurnStore for FakeTokenBurnStore {
 
     fn can_view_burn_leaderboard(&mut self, _: i32) -> BoxFuture<'_, Result<bool, TokenBurnError>> {
         ready(Ok(self.can_view_leaderboard)).boxed()
+    }
+
+    fn can_reconcile_token_burns(&mut self, _: i32) -> BoxFuture<'_, Result<bool, TokenBurnError>> {
+        ready(Ok(self.can_reconcile)).boxed()
     }
 
     fn load_platform_deposit_tax(&mut self) -> BoxFuture<'_, Result<BigDecimal, TokenBurnError>> {
@@ -77,6 +83,28 @@ impl TokenBurnStore for FakeTokenBurnStore {
         }))
         .boxed()
     }
+
+    fn list_reconciliation_burns(
+        &mut self,
+    ) -> BoxFuture<'_, Result<Vec<TokenBurnView>, TokenBurnError>> {
+        ready(Ok(vec![sample_burn_view()])).boxed()
+    }
+
+    fn list_failed_burns(&mut self) -> BoxFuture<'_, Result<Vec<TokenBurnView>, TokenBurnError>> {
+        let mut failed = sample_burn_view();
+        failed.status = "failed".to_string();
+        failed.last_error = Some("indexer timeout".to_string());
+        ready(Ok(vec![failed])).boxed()
+    }
+
+    fn reconcile_burn_request(
+        &mut self,
+        burn_request_id: i64,
+        command: TokenBurnReconciliationCommand,
+    ) -> BoxFuture<'_, Result<TokenBurnView, TokenBurnError>> {
+        self.reconciled_burn = Some((burn_request_id, command));
+        ready(Ok(sample_burn_view())).boxed()
+    }
 }
 
 fn sample_burn_view() -> TokenBurnView {
@@ -99,6 +127,7 @@ fn sample_burn_view() -> TokenBurnView {
         external_transaction_id: None,
         internal_transaction_id: Some(1),
         permission_evidence: None,
+        last_error: None,
         wallet_provider: "metamask".to_string(),
         metamask_required: false,
         wallet_action: "platform_burn_from_allowance".to_string(),

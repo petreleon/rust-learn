@@ -19,6 +19,8 @@ pub mod wallet_burn_external;
 pub mod wallet_burn_leaderboard;
 pub mod wallet_burn_ledger;
 pub mod wallet_burn_mappers;
+pub mod wallet_burn_reconciliation;
+pub mod wallet_burn_reconciliation_state;
 pub mod wallet_burn_records;
 pub mod wallet_burn_store;
 pub mod wallet_burn_use_case;

@@ -13,6 +13,8 @@ pub enum TokenBurnError {
     WalletCreate(String),
     BurnCreate(String),
     BurnLoad(String),
+    BurnNotFound,
+    BurnReconcile(String),
     LeaderboardLoad(String),
     Connection(String),
 }

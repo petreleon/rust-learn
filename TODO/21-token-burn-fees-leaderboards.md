@@ -29,7 +29,8 @@ Implementation status checked before first push:
   user, organization, and all-burner scopes.
 - [x] Web Boundary Plan burn controls and leaderboard surfaces are implemented
   across user, organization, and admin wallet routes.
-- [ ] Reconciliation/admin failure handling still needs the next backend slice.
+- [x] Reconciliation/admin failure handling exposes admin-only queue, failed
+  burn inspection, and idempotent leaderboard repair routes.
 
 Objective: replace owner-arbitrary token burning with allowance-based burns and
 add rolling leaderboards for users and organizations that burn LearnToken.

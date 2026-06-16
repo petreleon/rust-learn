@@ -86,6 +86,7 @@ function sampleBurn({ amount }: { amount: string }) {
     fee_path: "none",
     id: Number(amount),
     internal_transaction_id: 9,
+    last_error: null,
     leaderboard_visible: true,
     metamask_required: false,
     source: "centralized_wallet",

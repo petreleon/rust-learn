@@ -4,7 +4,8 @@ use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::wallet::burn_tokens::{
     self, OrganizationTokenBurnPermissions, TokenBurnCommand, TokenBurnError, TokenBurnLeaderboard,
-    TokenBurnLeaderboardQuery, TokenBurnSubject, TokenBurnUseCase, TokenBurnView,
+    TokenBurnLeaderboardQuery, TokenBurnReconciliationCommand, TokenBurnSubject, TokenBurnUseCase,
+    TokenBurnView,
 };
 use crate::infra::postgres::wallet::wallet_burn_store::PostgresTokenBurnStore;
 use crate::infra::postgres::DbPool;
@@ -75,6 +76,45 @@ impl TokenBurnUseCase for PostgresTokenBurnUseCase {
                 organization_id,
             )
             .await
+        }
+        .boxed()
+    }
+
+    fn list_token_burn_reconciliation_queue(
+        &self,
+        actor_user_id: i32,
+    ) -> BoxFuture<'_, Result<Vec<TokenBurnView>, TokenBurnError>> {
+        async move {
+            let mut conn = self.connection().await?;
+            let mut store = PostgresTokenBurnStore::new(&mut conn);
+            burn_tokens::list_token_burn_reconciliation_queue(&mut store, actor_user_id).await
+        }
+        .boxed()
+    }
+
+    fn list_failed_token_burns(
+        &self,
+        actor_user_id: i32,
+    ) -> BoxFuture<'_, Result<Vec<TokenBurnView>, TokenBurnError>> {
+        async move {
+            let mut conn = self.connection().await?;
+            let mut store = PostgresTokenBurnStore::new(&mut conn);
+            burn_tokens::list_failed_token_burns(&mut store, actor_user_id).await
+        }
+        .boxed()
+    }
+
+    fn reconcile_token_burn(
+        &self,
+        actor_user_id: i32,
+        burn_request_id: i64,
+        command: TokenBurnReconciliationCommand,
+    ) -> BoxFuture<'_, Result<TokenBurnView, TokenBurnError>> {
+        async move {
+            let mut conn = self.connection().await?;
+            let mut store = PostgresTokenBurnStore::new(&mut conn);
+            burn_tokens::reconcile_token_burn(&mut store, actor_user_id, burn_request_id, command)
+                .await
         }
         .boxed()
     }

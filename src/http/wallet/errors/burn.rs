@@ -13,6 +13,11 @@ pub(in crate::http::wallet) fn token_burn_error(error: TokenBurnError) -> ApiErr
             "User does not have token burn permission",
         ),
         TokenBurnError::OrganizationNotFound => super::organization_not_found(),
+        TokenBurnError::BurnNotFound => ApiError::new(
+            StatusCode::NOT_FOUND,
+            "token_burn_not_found",
+            "Token burn request was not found",
+        ),
         TokenBurnError::InvalidInput(message) => super::invalid_input(message),
         TokenBurnError::InsufficientFunds => ApiError::new(
             StatusCode::CONFLICT,
@@ -27,6 +32,7 @@ pub(in crate::http::wallet) fn token_burn_error(error: TokenBurnError) -> ApiErr
         | TokenBurnError::WalletCreate(message)
         | TokenBurnError::BurnCreate(message)
         | TokenBurnError::BurnLoad(message)
+        | TokenBurnError::BurnReconcile(message)
         | TokenBurnError::LeaderboardLoad(message) => super::logged_internal(
             "token_burn_api_failed",
             "Failed to process token burn",

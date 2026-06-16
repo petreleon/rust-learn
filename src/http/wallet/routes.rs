@@ -1,7 +1,7 @@
 use actix_web::web;
 
 use crate::http::wallet::handlers::{
-    audit, burn, deposit_intent, link, read, retirement, token_tax,
+    audit, burn, burn_admin, deposit_intent, link, read, retirement, token_tax,
 };
 
 pub(super) fn configure_wallet_routes(cfg: &mut web::ServiceConfig) {
@@ -20,6 +20,18 @@ pub(super) fn configure_wallet_routes(cfg: &mut web::ServiceConfig) {
         .service(
             web::resource("/burns/leaderboard")
                 .route(web::get().to(burn::get_token_burn_leaderboard)),
+        )
+        .service(
+            web::resource("/burns/reconciliation")
+                .route(web::get().to(burn_admin::list_token_burn_reconciliation_queue)),
+        )
+        .service(
+            web::resource("/burns/failed")
+                .route(web::get().to(burn_admin::list_failed_token_burns)),
+        )
+        .service(
+            web::resource("/burns/{id}/reconcile")
+                .route(web::post().to(burn_admin::reconcile_token_burn)),
         )
         .service(web::resource("/me/link").route(web::post().to(link::link_my_wallet)))
         .service(web::resource("/me/audit").route(web::get().to(audit::get_my_wallet_audit)))

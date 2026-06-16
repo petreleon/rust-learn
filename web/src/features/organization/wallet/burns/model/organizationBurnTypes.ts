@@ -31,6 +31,7 @@ export type OrganizationTokenBurn = {
   fee_path: string;
   id: number;
   internal_transaction_id: number | null;
+  last_error: string | null;
   leaderboard_visible: boolean;
   organization_id: number | null;
   source: string;

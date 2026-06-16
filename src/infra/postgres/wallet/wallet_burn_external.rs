@@ -24,16 +24,37 @@ pub(super) async fn maybe_create_burn_external_transaction(
         return Ok(None);
     };
 
-    let external_transaction_id = diesel::insert_into(external_transactions::table)
-        .values(NewExternalTransaction {
+    create_burn_external_transaction(
+        conn,
+        transaction_id,
+        BurnExternalTransactionEvidence {
             amount: draft.amount.clone(),
-            blockchain_address: address,
+            address,
             chain_id: draft.chain_id,
             contract_address: draft.contract_address.as_deref(),
             transaction_hash: draft.transaction_hash.as_deref(),
             log_index: draft.log_index,
+        },
+    )
+    .await
+    .map(Some)
+}
+
+pub(super) async fn create_burn_external_transaction(
+    conn: &mut AsyncPgConnection,
+    transaction_id: i64,
+    evidence: BurnExternalTransactionEvidence<'_>,
+) -> Result<i64, TokenBurnError> {
+    let external_transaction_id = diesel::insert_into(external_transactions::table)
+        .values(NewExternalTransaction {
+            amount: evidence.amount,
+            blockchain_address: evidence.address,
+            chain_id: evidence.chain_id,
+            contract_address: evidence.contract_address,
+            transaction_hash: evidence.transaction_hash,
+            log_index: evidence.log_index,
             event_type: Some(BURN_EXTERNAL_EVENT_TYPE),
-            from_address: Some(address),
+            from_address: Some(evidence.address),
             to_address: None,
         })
         .returning(external_transactions::id)
@@ -50,5 +71,14 @@ pub(super) async fn maybe_create_burn_external_transaction(
         .await
         .map_err(|error| TokenBurnError::BurnCreate(error.to_string()))?;
 
-    Ok(Some(external_transaction_id))
+    Ok(external_transaction_id)
+}
+
+pub(super) struct BurnExternalTransactionEvidence<'a> {
+    pub amount: bigdecimal::BigDecimal,
+    pub address: &'a str,
+    pub chain_id: Option<i64>,
+    pub contract_address: Option<&'a str>,
+    pub transaction_hash: Option<&'a str>,
+    pub log_index: Option<i64>,
 }

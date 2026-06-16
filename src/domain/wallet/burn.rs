@@ -10,7 +10,9 @@ pub const TOKEN_BURN_SOURCE_CENTRALIZED: &str = "centralized_wallet";
 pub const TOKEN_BURN_SOURCE_DECENTRALIZED_DIRECT: &str = "decentralized_direct";
 pub const TOKEN_BURN_SOURCE_PLATFORM_MEDIATED: &str = "decentralized_platform_mediated";
 pub const TOKEN_BURN_STATUS_DEPOSIT_PENDING: &str = "deposit_pending";
+pub const TOKEN_BURN_STATUS_FAILED: &str = "failed";
 pub const TOKEN_BURN_STATUS_LEADERBOARD_INDEXED: &str = "leaderboard_indexed";
+pub const TOKEN_BURN_STATUS_NEEDS_RECONCILIATION: &str = "needs_reconciliation";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenBurnerType {

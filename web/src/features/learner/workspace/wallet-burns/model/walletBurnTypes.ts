@@ -24,6 +24,7 @@ export type WalletBurnResult = {
   fee_path: string;
   id: number;
   internal_transaction_id: number | null;
+  last_error: string | null;
   leaderboard_visible: boolean;
   metamask_required: boolean;
   source: string;

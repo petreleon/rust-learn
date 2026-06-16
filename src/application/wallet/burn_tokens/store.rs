@@ -2,7 +2,8 @@ use bigdecimal::BigDecimal;
 use futures::future::BoxFuture;
 
 use crate::application::wallet::burn_tokens::{
-    TokenBurnDraft, TokenBurnError, TokenBurnLeaderboard, TokenBurnLeaderboardQuery, TokenBurnView,
+    TokenBurnDraft, TokenBurnError, TokenBurnLeaderboard, TokenBurnLeaderboardQuery,
+    TokenBurnReconciliationCommand, TokenBurnView,
 };
 use crate::domain::wallet::burn::{TokenBurnLeaderboardScope, TokenBurnLeaderboardWindow};
 
@@ -21,6 +22,11 @@ pub trait TokenBurnStore {
     ) -> BoxFuture<'_, Result<bool, TokenBurnError>>;
 
     fn can_view_burn_leaderboard(
+        &mut self,
+        actor_user_id: i32,
+    ) -> BoxFuture<'_, Result<bool, TokenBurnError>>;
+
+    fn can_reconcile_token_burns(
         &mut self,
         actor_user_id: i32,
     ) -> BoxFuture<'_, Result<bool, TokenBurnError>>;
@@ -48,4 +54,16 @@ pub trait TokenBurnStore {
         window: TokenBurnLeaderboardWindow,
         scope: TokenBurnLeaderboardScope,
     ) -> BoxFuture<'_, Result<TokenBurnLeaderboard, TokenBurnError>>;
+
+    fn list_reconciliation_burns(
+        &mut self,
+    ) -> BoxFuture<'_, Result<Vec<TokenBurnView>, TokenBurnError>>;
+
+    fn list_failed_burns(&mut self) -> BoxFuture<'_, Result<Vec<TokenBurnView>, TokenBurnError>>;
+
+    fn reconcile_burn_request(
+        &mut self,
+        burn_request_id: i64,
+        command: TokenBurnReconciliationCommand,
+    ) -> BoxFuture<'_, Result<TokenBurnView, TokenBurnError>>;
 }

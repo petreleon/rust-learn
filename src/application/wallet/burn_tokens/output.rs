@@ -19,6 +19,7 @@ pub struct TokenBurnView {
     pub external_transaction_id: Option<i64>,
     pub internal_transaction_id: Option<i64>,
     pub permission_evidence: Option<String>,
+    pub last_error: Option<String>,
     pub wallet_provider: String,
     pub metamask_required: bool,
     pub wallet_action: String,

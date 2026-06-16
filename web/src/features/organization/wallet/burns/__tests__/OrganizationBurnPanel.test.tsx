@@ -94,6 +94,7 @@ function sampleBurn({ amount }: { amount: string }) {
     fee_path: "none",
     id: Number(amount),
     internal_transaction_id: 9,
+    last_error: null,
     leaderboard_visible: true,
     organization_id: 3,
     source: "centralized_wallet",

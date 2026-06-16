@@ -20,6 +20,7 @@ pub(super) fn token_burn_view(record: TokenBurnRequest) -> TokenBurnView {
         external_transaction_id: record.external_transaction_id,
         internal_transaction_id: record.internal_transaction_id,
         permission_evidence: record.permission_evidence,
+        last_error: record.last_error,
         wallet_provider: record.wallet_provider,
         metamask_required: record.metamask_required,
         wallet_action: record.wallet_action,

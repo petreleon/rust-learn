@@ -1,5 +1,6 @@
 pub mod audit;
 pub mod burn;
+pub mod burn_admin;
 pub mod deposit_intent;
 pub mod link;
 pub mod read;

@@ -95,6 +95,27 @@ fn set_retire_tax_checks_exact_platform_permission() {
 }
 
 #[test]
+fn reconcile_token_burns_checks_exact_platform_permission() {
+    let mut store = FakeWalletAuthorizationStore {
+        platform_permissions: vec![Permissions::RECONCILE_TOKEN_BURNS],
+        ..Default::default()
+    };
+
+    let allowed = block_on(authorize_wallet_action(
+        &mut store,
+        7,
+        WalletAuthorizationAction::ReconcileTokenBurns,
+    ))
+    .unwrap();
+
+    assert!(allowed);
+    assert_eq!(
+        store.platform_checks,
+        vec![Permissions::RECONCILE_TOKEN_BURNS]
+    );
+}
+
+#[test]
 fn link_user_wallet_denies_when_no_permission_matches() {
     let mut store = FakeWalletAuthorizationStore::default();
 
