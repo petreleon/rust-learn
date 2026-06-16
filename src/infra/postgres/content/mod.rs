@@ -7,6 +7,8 @@ pub mod content_item_use_cases;
 mod mappers;
 pub mod media_object_store;
 pub mod media_url_use_case;
+pub mod processing_history_store;
+pub mod processing_history_use_case;
 pub mod processing_use_case;
 pub mod upload_job_queue;
 pub mod upload_job_store;

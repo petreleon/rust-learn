@@ -106,6 +106,17 @@ fn configure_content_item_routes(cfg: &mut web::ServiceConfig) {
         ),
     )
     .service(
+        web::resource("/{course_id}/chapters/{chapter_id}/contents/{id}/processing-history").route(
+            web::get().to(handlers::get_processing_history).wrap(
+                CoursePermissionMiddleware::require(
+                    Permissions::MODIFY_CONTENT.to_string(),
+                    ParamType::Path,
+                    "course_id".to_string(),
+                ),
+            ),
+        ),
+    )
+    .service(
         web::resource("/{course_id}/chapters/{chapter_id}/contents/{id}/media").route(
             web::get()
                 .to(handlers::get_media_url)

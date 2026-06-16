@@ -12,7 +12,7 @@
     "test:watch": "vitest",
     "architecture:scan": "node scripts/architecture-scan.mjs",
     "architecture:scan:strict": "node scripts/architecture-scan.mjs --strict",
-    "test:api-helpers": "node --test scripts/api-helper-tests.mjs",
+    "test:api-helpers": "node --test scripts/api-helper-tests.mjs scripts/api-helper-content-tests.mjs",
     "test:e2e": "playwright test",
     "test:all": "npm run test && npm run test:api-helpers"
   },

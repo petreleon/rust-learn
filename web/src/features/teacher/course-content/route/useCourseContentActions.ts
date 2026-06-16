@@ -4,10 +4,16 @@ import { type FormEvent, useState } from "react";
 import { type TeacherCourseWorkspaceContent } from "@/lib/teacher";
 import { readBrowserSessionToken } from "@/shared/session/browserSession";
 import { contentDraftOrder, findContentChapter } from "@/features/teacher/shared/route-kit/contentAuthoringHelpers";
+import {
+  idleProcessingHistoryState,
+  type ContentProcessingHistoryState,
+} from "@/features/teacher/shared/route-kit/ContentProcessingHistoryState";
 import { defaultContentDraft } from "@/features/teacher/shared/route-kit/defaultContentDraft";
 import { isEditableTextContent } from "@/features/teacher/shared/route-kit/isEditableTextContent";
+import { normalizeRouteError } from "@/features/teacher/shared/route-kit/normalizeRouteError";
 import {
   deleteTeacherCourseContentItem,
+  loadTeacherContentProcessingHistory,
   processTeacherCourseContentItem,
 } from "../api/courseContentApi";
 import {
@@ -21,7 +27,17 @@ import {
 export function useCourseContentActions(args: CourseContentActionArgs) {
   const [deleteConfirmContentId, setDeleteConfirmContentId] = useState<number | null>(null);
   const [editingContentId, setEditingContentId] = useState<number | null>(null);
+  const [processingHistoryByContentId, setProcessingHistoryByContentId] =
+    useState<Record<number, ContentProcessingHistoryState>>({});
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
+  function forgetProcessingHistory(contentId: number) {
+    setProcessingHistoryByContentId((current) => {
+      const next = { ...current };
+      delete next[contentId];
+      return next;
+    });
+  }
 
   function cancelContentEdit() {
     setEditingContentId(null);
@@ -69,7 +85,42 @@ export function useCourseContentActions(args: CourseContentActionArgs) {
         args.setContentDraft(defaultContentDraft);
       }
       setDeleteConfirmContentId(null);
+      forgetProcessingHistory(content.id);
     });
+  }
+
+  async function inspectProcessingHistory(content: TeacherCourseWorkspaceContent) {
+    const chapter = findContentChapter(args.workspace, content);
+    const token = readBrowserSessionToken();
+    if (!token || !chapter) {
+      args.setActionMessage("Chapter not found for this content item.");
+      return;
+    }
+    setProcessingHistoryByContentId((current) => ({
+      ...current,
+      [content.id]: { ...idleProcessingHistoryState, status: "loading" },
+    }));
+    try {
+      const history = await loadTeacherContentProcessingHistory({
+        chapterId: chapter.id,
+        contentId: content.id,
+        courseId: args.courseId,
+        token,
+      });
+      setProcessingHistoryByContentId((current) => ({
+        ...current,
+        [content.id]: { history, message: null, status: "success" },
+      }));
+    } catch (nextError) {
+      setProcessingHistoryByContentId((current) => ({
+        ...current,
+        [content.id]: {
+          history: null,
+          message: normalizeRouteError(nextError).message,
+          status: "error",
+        },
+      }));
+    }
   }
 
   async function triggerProcessing(content: TeacherCourseWorkspaceContent) {
@@ -81,6 +132,7 @@ export function useCourseContentActions(args: CourseContentActionArgs) {
     }
     await runContentAction(args, "Processing queued. Refresh to check status.", async () => {
       const response = await processTeacherCourseContentItem({ chapterId: chapter.id, contentId: content.id, courseId: args.courseId, token });
+      forgetProcessingHistory(content.id);
       return response.message;
     });
   }
@@ -107,7 +159,9 @@ export function useCourseContentActions(args: CourseContentActionArgs) {
     deleteContent,
     editContent,
     editingContentId,
+    inspectProcessingHistory,
     isContentDraftDirty: isContentDraftDirty(args.contentDraft, editingContentId),
+    processingHistoryByContentId,
     submitContent,
     triggerProcessing,
     uploadProgress,

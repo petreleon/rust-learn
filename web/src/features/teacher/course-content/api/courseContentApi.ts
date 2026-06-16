@@ -3,6 +3,7 @@ import {
   createTeacherChapter,
   createTeacherContent,
   deleteTeacherContent,
+  fetchTeacherContentProcessingHistory,
   fetchTeacherAssessments,
   fetchTeachingCourseWorkspace,
   fetchUploadUrl,
@@ -10,6 +11,7 @@ import {
   updateTeacherContent,
   type CreateTeacherContentPayload,
   type TeacherAssessment,
+  type TeacherContentProcessingHistory,
   type TeacherContent,
   type TeacherCourseWorkspaceResponse,
 } from "@/lib/teacher";
@@ -104,6 +106,24 @@ export function processTeacherCourseContentItem({
   token: string;
 }) {
   return processContent({ chapterId, contentId, courseId: Number(courseId), token });
+}
+export function loadTeacherContentProcessingHistory({
+  chapterId,
+  contentId,
+  courseId,
+  token,
+}: {
+  chapterId: number;
+  contentId: number;
+  courseId: string;
+  token: string;
+}): Promise<TeacherContentProcessingHistory> {
+  return fetchTeacherContentProcessingHistory({
+    chapterId,
+    contentId,
+    courseId: Number(courseId),
+    token,
+  });
 }
 
 export function requestTeacherContentUploadUrl({

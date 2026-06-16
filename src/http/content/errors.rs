@@ -1,5 +1,6 @@
 use actix_web::http::StatusCode;
 
+use crate::application::content::inspect_processing_history::ContentProcessingHistoryError;
 use crate::application::content::manage_chapter::ChapterError;
 use crate::application::content::manage_content_item::ContentItemError;
 use crate::http::errors::ApiError;
@@ -32,6 +33,28 @@ pub(super) fn content_item_error(
         ContentItemError::ContentNotFound => content_not_found(),
         ContentItemError::Connection(_) => db_connection_failed(),
         ContentItemError::Database(error) => logged_internal(event, &context, message, error),
+    }
+}
+
+pub(super) fn processing_history_error(
+    course_id: i32,
+    chapter_id: i32,
+    content_id: i32,
+    error: ContentProcessingHistoryError,
+) -> ApiError {
+    match error {
+        ContentProcessingHistoryError::ChapterNotFound => chapter_not_found(),
+        ContentProcessingHistoryError::ContentNotFound => content_not_found(),
+        ContentProcessingHistoryError::Connection(_) => db_connection_failed(),
+        ContentProcessingHistoryError::Database(error) => logged_internal(
+            "content_processing_history_failed",
+            &format!(
+                "course_id={} chapter_id={} content_id={}",
+                course_id, chapter_id, content_id
+            ),
+            "Failed to inspect content processing history",
+            error,
+        ),
     }
 }
 

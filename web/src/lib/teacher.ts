@@ -6,6 +6,8 @@ export type { TeacherApplicationSnapshot } from "./teacher/TeacherApplicationSna
 export type { TeacherCoursesResponse } from "./teacher/TeacherCoursesResponse";
 export type { TeacherCourseDashboardItem } from "./teacher/TeacherCourseDashboardItem";
 export type { TeacherCourseWorkspaceResponse } from "./teacher/TeacherCourseWorkspaceResponse";
+export type { TeacherContentProcessingHistory } from "./teacher/TeacherContentProcessingHistory";
+export type { TeacherContentProcessingJob } from "./teacher/TeacherContentProcessingJob";
 export type { TeacherCourseEnrollmentWorkspaceResponse } from "./teacher/TeacherCourseEnrollmentWorkspaceResponse";
 export type { TeacherCourseStudentsResponse } from "./teacher/TeacherCourseStudentsResponse";
 export type { TeacherCourseStudentProgressItem } from "./teacher/TeacherCourseStudentProgressItem";
@@ -56,6 +58,7 @@ export type { CreateTeacherCourseOptions } from "./teacher/CreateTeacherCourseOp
 export type { CreateTeacherCoursePayload } from "./teacher/CreateTeacherCoursePayload";
 export type { CreateTeacherContentPayload } from "./teacher/CreateTeacherContentPayload";
 export type { CreateTeacherContentOptions } from "./teacher/CreateTeacherContentOptions";
+export type { FetchTeacherContentProcessingHistoryOptions } from "./teacher/FetchTeacherContentProcessingHistoryOptions";
 export type { DecideTeacherJoinRequestPayload } from "./teacher/DecideTeacherJoinRequestPayload";
 export type { DecideTeacherJoinRequestOptions } from "./teacher/DecideTeacherJoinRequestOptions";
 export type { RemoveTeacherEnrollmentOptions } from "./teacher/RemoveTeacherEnrollmentOptions";
@@ -82,6 +85,7 @@ export { createTeacherCourse } from "./teacher/createTeacherCourse";
 export type { UploadUrlResponse } from "./teacher/UploadUrlResponse";
 export type { FetchUploadUrlOptions } from "./teacher/FetchUploadUrlOptions";
 export { fetchUploadUrl } from "./teacher/fetchUploadUrl";
+export { fetchTeacherContentProcessingHistory } from "./teacher/fetchTeacherContentProcessingHistory";
 export { processContent } from "./teacher/processContent";
 export { createTeacherContent } from "./teacher/createTeacherContent";
 export { deleteTeacherContent } from "./teacher/deleteTeacherContent";

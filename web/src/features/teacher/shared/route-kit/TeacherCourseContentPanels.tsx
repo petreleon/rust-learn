@@ -7,6 +7,7 @@ import { type TeacherCourseWorkspaceContent, type TeacherCourseWorkspaceResponse
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type ActionState } from "./ActionState";
 import { type ChapterDraft } from "./ChapterDraft";
+import { type ContentProcessingHistoryState } from "./ContentProcessingHistoryState";
 import { ContentAuthoringView } from "./ContentAuthoringView";
 import { type ContentDraft } from "./ContentDraft";
 import { type LoadState } from "./LoadState";
@@ -18,7 +19,9 @@ type ContentActions = {
   deleteContent: (content: TeacherCourseWorkspaceContent) => void;
   editContent: (content: TeacherCourseWorkspaceContent) => void;
   editingContentId: number | null;
+  inspectProcessingHistory: (content: TeacherCourseWorkspaceContent) => void;
   isContentDraftDirty: boolean;
+  processingHistoryByContentId: Record<number, ContentProcessingHistoryState>;
   submitContent: (event: FormEvent<HTMLFormElement>) => void;
   triggerProcessing: (content: TeacherCourseWorkspaceContent) => void;
   uploadProgress: number | null;
@@ -110,9 +113,11 @@ export function TeacherCourseContentPanels({
       onContentDraftChange={setContentDraft}
       onDeleteContent={contentActions.deleteContent}
       onEditContent={contentActions.editContent}
+      onInspectProcessingHistory={contentActions.inspectProcessingHistory}
       onSubmitChapter={submitChapter}
       onSubmitContent={contentActions.submitContent}
       onTriggerProcessing={contentActions.triggerProcessing}
+      processingHistoryByContentId={contentActions.processingHistoryByContentId}
       uploadProgress={contentActions.uploadProgress}
       workspace={workspace}
     />

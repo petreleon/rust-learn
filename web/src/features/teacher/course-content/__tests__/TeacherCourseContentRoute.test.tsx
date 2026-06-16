@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readBrowserSessionToken } from "@/shared/session/browserSession";
 import {
   createTeacherCourseContentItem,
+  loadTeacherContentProcessingHistory,
   loadTeacherCourseContentWorkspace,
   processTeacherCourseContentItem,
   requestTeacherContentUploadUrl,
@@ -30,6 +31,7 @@ vi.mock("../api/courseContentApi", () => ({
   createTeacherCourseContentChapter: vi.fn(),
   createTeacherCourseContentItem: vi.fn(),
   deleteTeacherCourseContentItem: vi.fn(),
+  loadTeacherContentProcessingHistory: vi.fn(),
   loadTeacherCourseContentWorkspace: vi.fn(),
   processTeacherCourseContentItem: vi.fn(),
   requestTeacherContentUploadUrl: vi.fn(),
@@ -54,6 +56,11 @@ describe("TeacherCourseContentRoute", () => {
       order: 1,
     });
     vi.mocked(processTeacherCourseContentItem).mockResolvedValue({ message: "Processing queued." });
+    vi.mocked(loadTeacherContentProcessingHistory).mockResolvedValue({
+      content_id: 12,
+      jobs: [],
+      object_key: "courses/9/intro.mp4",
+    });
     vi.mocked(requestTeacherContentUploadUrl).mockResolvedValue({
       object_key: "courses/9/intro.mp4",
       upload_url: "https://upload.example.test/intro.mp4",

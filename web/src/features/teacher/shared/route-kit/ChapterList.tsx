@@ -4,6 +4,7 @@ import { BookOpen } from "lucide-react";
 import { type TeacherCourseWorkspaceContent, type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type ActionState } from "./ActionState";
+import { type ContentProcessingHistoryState } from "./ContentProcessingHistoryState";
 import { ContentRow } from "./ContentRow";
 
 export function ChapterList({
@@ -14,7 +15,9 @@ export function ChapterList({
   editingContentId = null,
   onDeleteContent,
   onEditContent,
+  onInspectProcessingHistory,
   onTriggerProcessing,
+  processingHistoryByContentId = {},
 }: {
   actionState?: ActionState;
   canManageContent?: boolean;
@@ -23,7 +26,9 @@ export function ChapterList({
   editingContentId?: number | null;
   onDeleteContent?: (content: TeacherCourseWorkspaceContent) => void;
   onEditContent?: (content: TeacherCourseWorkspaceContent) => void;
+  onInspectProcessingHistory?: (content: TeacherCourseWorkspaceContent) => void;
   onTriggerProcessing?: (content: TeacherCourseWorkspaceContent) => void;
+  processingHistoryByContentId?: Record<number, ContentProcessingHistoryState>;
 }) {
   if (!chapters.length) {
     return (
@@ -60,7 +65,9 @@ export function ChapterList({
                   key={content.id}
                   onDeleteContent={onDeleteContent}
                   onEditContent={onEditContent}
+                  onInspectProcessingHistory={onInspectProcessingHistory}
                   onTriggerProcessing={onTriggerProcessing}
+                  processingHistory={processingHistoryByContentId[content.id]}
                 />
               ))}
             </div>

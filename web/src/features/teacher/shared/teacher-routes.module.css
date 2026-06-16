@@ -3,6 +3,7 @@
 .chapterCard { composes: chapterCard from './teacher-routes.module/02.module.css'; }
 .chapterList { composes: chapterList from './teacher-routes.module/02.module.css'; }
 .contentList { composes: contentList from './teacher-routes.module/02.module.css'; }
+.contentHistory { composes: contentHistory from './teacher-routes.module/02.module.css'; }
 .contentRow { composes: contentRow from './teacher-routes.module/02.module.css'; }
 .courseCard { composes: courseCard from './teacher-routes.module/01.module.css'; }
 .courseGrid { composes: courseGrid from './teacher-routes.module/02.module.css'; }

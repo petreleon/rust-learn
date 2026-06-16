@@ -188,6 +188,10 @@ Current evidence:
   with visible file-upload progress, feature API coverage for content
   mutations, and route tests for text creation, upload progress, failed
   processing recovery, and signed-out/loading states.
+- Content processing history now has a Level 2 backend/product path:
+  application use case, Postgres adapter, HTTP DTO/route, teacher API helper,
+  and a row-level History action that renders queued/failed/done attempts and
+  backend errors without sending teachers to `/ops`.
 - Learners can read text lessons and open media/document content when ready.
 - Assessment API helpers exist in `web/src/lib/learner`, and backend routes
   exist for listing published assessments, learner-safe questions, submitting
@@ -218,8 +222,7 @@ Current evidence:
 Needed:
 
 - Finish the remaining content lifecycle controls: unpublish lesson once the
-  backend supports content-level publication status, upload expiry recovery,
-  processing audit/history, and richer processing-error recovery.
+  backend supports content-level publication status and upload expiry recovery.
 - Add any richer assessment analytics the product needs after authoring,
   learner attempts, and reward handoff.
 - Add tests for content processing states, max-attempt behavior beyond the
@@ -240,12 +243,14 @@ Checks:
   browser checks.
 - [x] Content route tests cover text creation, visible upload progress, and
   failed-processing retry without falling back to `/ops`.
-- [ ] Content unpublish, upload-expiry recovery, processing audit/history, and
-  richer processing-error recovery states render without falling back to `/ops`.
+- [x] Content processing audit/history and richer processing-error recovery
+  states render without falling back to `/ops`.
+- [ ] Content unpublish and upload-expiry recovery render without falling back
+  to `/ops`.
 - [x] Reward eligibility or reward-candidate creation is verified after a
   passing assessment when the course policy requires assessment completion.
 - [ ] Unit, API-helper, component, and browser/Playwright coverage exercise the
-  remaining denied, stale, failed, and empty states.
+  remaining stale and empty states.
 
 ## KYC Verification
 
@@ -593,11 +598,14 @@ Current evidence:
   content authoring. Teachers can create/edit draft assessments, add ordered
   questions with answer keys, publish valid assessments, and preview
   draft/published state from the same course-scoped product route.
+- `/teach/courses/[id]/content` now lets teachers inspect video processing
+  history from the product route, with success, denied, failed-job, and
+  backend-error coverage across backend, API-helper, and route tests.
 
 Needed:
 
-- Finish remaining teacher content lifecycle controls: unpublish, upload
-  expiry/recovery, processing-error inspection, and audit history.
+- Finish remaining teacher content lifecycle controls: unpublish and upload
+  expiry/recovery.
 - Add broader denied/stale/empty-state assessment authoring coverage if those
   states need product-specific copy beyond the current validation path.
 
@@ -605,8 +613,10 @@ Checks:
 
 - [x] Content text/article edit and delete flows have component, backend, and
   browser coverage, including persisted edit prefill and two-click delete.
-- [ ] Content create/unpublish/retry flows have success, loading,
-  validation, conflict, denied, and backend-error tests.
+- [x] Content retry and processing-inspection flows have success, denied,
+  failed-job, and backend-error tests.
+- [ ] Content create/unpublish flows have loading, validation, conflict,
+  denied, and backend-error tests.
 - [x] Enrollment and student routes show persisted progress from backend data
   after refresh.
 - [x] Enrollment and student routes show reward eligibility from backend data

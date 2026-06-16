@@ -3,6 +3,7 @@ pub(crate) use actix_web::{test, web, App};
 pub(crate) use chrono::NaiveDate;
 pub(crate) use diesel::{ExpressionMethods, QueryDsl};
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
+pub(crate) use rust_learn::application::content::inspect_processing_history::ContentProcessingHistoryUseCase;
 pub(crate) use rust_learn::application::content::manage_chapter::ChapterUseCases;
 pub(crate) use rust_learn::application::content::manage_content_item::ContentItemUseCases;
 pub(crate) use rust_learn::application::content::process_upload_job::ContentProcessingUseCase;
@@ -10,11 +11,13 @@ pub(crate) use rust_learn::infra::postgres::access_control::course_role_records;
 pub(crate) use rust_learn::infra::postgres::access_control::role_catalog_store;
 pub(crate) use rust_learn::infra::postgres::content::chapter_use_cases::PostgresChapterUseCases;
 pub(crate) use rust_learn::infra::postgres::content::content_item_use_cases::PostgresContentItemUseCases;
+pub(crate) use rust_learn::infra::postgres::content::processing_history_use_case::PostgresContentProcessingHistoryUseCase;
 pub(crate) use rust_learn::infra::postgres::content::processing_use_case::PostgresContentProcessingUseCase;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;
 pub(crate) use rust_learn::infra::postgres::models::chapter::{Chapter, NewChapter};
-pub(crate) use rust_learn::infra::postgres::models::content::Content;
+pub(crate) use rust_learn::infra::postgres::models::content::{Content, NewContent};
 pub(crate) use rust_learn::infra::postgres::models::course::{Course, NewCourse};
+pub(crate) use rust_learn::infra::postgres::models::upload_job::{NewUploadJob, UploadJob};
 pub(crate) use rust_learn::infra::postgres::models::user::User;
 pub(crate) use rust_learn::infra::postgres::schema::{chapters, courses, upload_jobs};
 pub(crate) use rust_learn::infra::postgres::{establish_connection, DbPool};
@@ -65,6 +68,14 @@ pub(crate) fn content_processing_use_case_data(
     pool: &DbPool,
 ) -> web::Data<Arc<dyn ContentProcessingUseCase>> {
     web::Data::new(Arc::new(PostgresContentProcessingUseCase::new(
+        pool.clone(),
+    )))
+}
+
+pub(crate) fn processing_history_use_case_data(
+    pool: &DbPool,
+) -> web::Data<Arc<dyn ContentProcessingHistoryUseCase>> {
+    web::Data::new(Arc::new(PostgresContentProcessingHistoryUseCase::new(
         pool.clone(),
     )))
 }

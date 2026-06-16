@@ -1,5 +1,8 @@
 use futures::future::BoxFuture;
 
+use crate::application::content::inspect_processing_history::{
+    ContentProcessingHistoryError, ContentProcessingHistoryOutput, ContentProcessingHistoryQuery,
+};
 use crate::application::content::manage_chapter::{
     ChapterError, ChapterOutput, CreateChapterCommand, UpdateChapterCommand,
 };
@@ -123,4 +126,11 @@ pub trait ContentProcessingJobStore {
         object_key: String,
         user_id: i32,
     ) -> BoxFuture<'_, Result<(), ProcessUploadJobError>>;
+}
+
+pub trait ContentProcessingHistoryStore {
+    fn processing_history(
+        &mut self,
+        query: ContentProcessingHistoryQuery,
+    ) -> BoxFuture<'_, Result<ContentProcessingHistoryOutput, ContentProcessingHistoryError>>;
 }

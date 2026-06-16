@@ -1,9 +1,11 @@
 "use client";
 
-import { Pencil, Trash2, Video } from "lucide-react";
+import { History, Pencil, Trash2, Video } from "lucide-react";
 import { type TeacherCourseWorkspaceContent } from "@/lib/teacher";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type ActionState } from "./ActionState";
+import { ContentProcessingHistoryPanel } from "./ContentProcessingHistoryPanel";
+import { type ContentProcessingHistoryState } from "./ContentProcessingHistoryState";
 import { isEditableTextContent } from "./isEditableTextContent";
 import { statusLabel } from "./statusLabel";
 
@@ -15,7 +17,9 @@ export function ContentRow({
   editingContentId = null,
   onDeleteContent,
   onEditContent,
+  onInspectProcessingHistory,
   onTriggerProcessing,
+  processingHistory,
 }: {
   actionState?: ActionState;
   canManageContent?: boolean;
@@ -24,11 +28,14 @@ export function ContentRow({
   editingContentId?: number | null;
   onDeleteContent?: (content: TeacherCourseWorkspaceContent) => void;
   onEditContent?: (content: TeacherCourseWorkspaceContent) => void;
+  onInspectProcessingHistory?: (content: TeacherCourseWorkspaceContent) => void;
   onTriggerProcessing?: (content: TeacherCourseWorkspaceContent) => void;
+  processingHistory?: ContentProcessingHistoryState;
 }) {
   const tone = content.display_state === "failed_processing" ? "warn" : content.display_state === "ready" ? "good" : "neutral";
-  const isVideoLike = content.content_type.startsWith("video/");
+  const isVideoLike = content.content_type === "video" || content.content_type.startsWith("video/");
   const canProcess = isVideoLike && content.data_present && (content.display_state === "uploaded" || content.display_state === "failed_processing");
+  const canInspect = canManageContent && isVideoLike && content.data_present && Boolean(onInspectProcessingHistory);
   const canEdit = canManageContent && isEditableTextContent(content.content_type) && Boolean(onEditContent);
   const canDelete = canManageContent && Boolean(onDeleteContent);
   const disabled = actionState === "saving";
@@ -69,6 +76,18 @@ export function ContentRow({
             Process
           </button>
         ) : null}
+        {canInspect ? (
+          <button
+            className={styles.secondaryButton}
+            disabled={disabled || processingHistory?.status === "loading"}
+            onClick={() => onInspectProcessingHistory?.(content)}
+            title="Inspect processing history"
+            type="button"
+          >
+            <History size={16} aria-hidden />
+            History
+          </button>
+        ) : null}
         {canDelete ? (
           <button
             className={styles.secondaryButton}
@@ -84,6 +103,7 @@ export function ContentRow({
       </div>
       {content.processing_status ? <small>{statusLabel(content.processing_status)}</small> : null}
       {content.processing_error ? <p className={styles.reviewNote}>{content.processing_error}</p> : null}
+      {processingHistory ? <ContentProcessingHistoryPanel state={processingHistory} /> : null}
     </article>
   );
 }

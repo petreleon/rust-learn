@@ -4,3 +4,5 @@ mod content_lifecycle_helpers;
 mod support;
 #[path = "course_content_management/test_course_content_lifecycle.rs"]
 mod test_course_content_lifecycle;
+#[path = "course_content_management/test_processing_history.rs"]
+mod test_processing_history;

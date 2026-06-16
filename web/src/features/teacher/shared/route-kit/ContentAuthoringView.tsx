@@ -11,6 +11,7 @@ import { ContentAuthoringForm } from "./ContentAuthoringForm";
 import { statusLabel } from "./statusLabel";
 import { type ActionState } from "./ActionState";
 import { type ChapterDraft } from "./ChapterDraft";
+import { type ContentProcessingHistoryState } from "./ContentProcessingHistoryState";
 import { type ContentDraft } from "./ContentDraft";
 
 export function ContentAuthoringView({
@@ -26,9 +27,11 @@ export function ContentAuthoringView({
   onContentDraftChange,
   onDeleteContent,
   onEditContent,
+  onInspectProcessingHistory,
   onSubmitChapter,
   onSubmitContent,
   onTriggerProcessing,
+  processingHistoryByContentId,
   uploadProgress,
   workspace,
 }: {
@@ -44,9 +47,11 @@ export function ContentAuthoringView({
   onContentDraftChange: (draft: ContentDraft) => void;
   onDeleteContent: (content: TeacherCourseWorkspaceContent) => void;
   onEditContent: (content: TeacherCourseWorkspaceContent) => void;
+  onInspectProcessingHistory: (content: TeacherCourseWorkspaceContent) => void;
   onSubmitChapter: (event: FormEvent<HTMLFormElement>) => void;
   onSubmitContent: (event: FormEvent<HTMLFormElement>) => void;
   onTriggerProcessing: (content: TeacherCourseWorkspaceContent) => void;
+  processingHistoryByContentId: Record<number, ContentProcessingHistoryState>;
   uploadProgress: number | null;
   workspace: TeacherCourseWorkspaceResponse;
 }) {
@@ -110,7 +115,9 @@ export function ContentAuthoringView({
           editingContentId={editingContentId}
           onDeleteContent={onDeleteContent}
           onEditContent={onEditContent}
+          onInspectProcessingHistory={onInspectProcessingHistory}
           onTriggerProcessing={onTriggerProcessing}
+          processingHistoryByContentId={processingHistoryByContentId}
         />
       </section>
       {assessmentPanel}

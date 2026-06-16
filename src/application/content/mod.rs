@@ -1,3 +1,4 @@
+pub mod inspect_processing_history;
 pub mod manage_chapter;
 pub mod manage_content_item;
 pub mod ports;
