@@ -6,12 +6,14 @@ import { type OrganizationRequestOptions } from "./OrganizationRequestOptions";
 export async function organizationRawRequest({
   accept = "application/json, text/plain",
   apiRoot = "/api",
+  body,
   method = "GET",
   path,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   token,
 }: OrganizationRequestOptions & {
   accept?: string;
+  body?: string;
   method?: string;
   path: string;
 }): Promise<Response> {
@@ -28,7 +30,9 @@ export async function organizationRawRequest({
       headers: {
         Accept: accept,
         Authorization: `Bearer ${trimmedToken}`,
+        ...(body ? { "Content-Type": "application/json" } : {}),
       },
+      body,
       method,
       signal: controller.signal,
     });

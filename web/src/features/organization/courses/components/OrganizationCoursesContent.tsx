@@ -1,19 +1,30 @@
 "use client";
 
 import { BookOpen, FileText, Loader2, Trophy, Users } from "lucide-react";
+import { type FormEvent } from "react";
 import { type OrganizationCourseList } from "@/lib/organization/OrganizationCourseList";
 import { type OrganizationWorkspaceItem } from "@/lib/organization/OrganizationWorkspaceItem";
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
+import { type ActionState } from "@/shared/route-state/ActionState";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 import { CourseErrorState } from "@/features/organization/shared/route-kit/CourseErrorState";
 import { SummaryCard } from "@/features/organization/shared/route-kit/SummaryCard";
+import { CourseCreationPanel } from "./CourseCreationPanel";
 import { CourseDirectoryHero } from "./CourseDirectoryHero";
 import { CourseFilterPanel, type CourseRewardFilter } from "./CourseFilterPanel";
 import { CourseListPanel } from "./CourseListPanel";
 import { organizationCourseCounts } from "./courseCounts";
 
 type Props = {
+  canCreateCourses: boolean;
+  courseCreation: {
+    actionMessage: string | null;
+    actionState: ActionState;
+    handleCreateCourse: (event: FormEvent<HTMLFormElement>) => void;
+    setTitleDraft: (value: string) => void;
+    titleDraft: string;
+  };
   courses: OrganizationCourseList | null;
   draftSearch: string;
   lifecycleStatus: string;
@@ -49,6 +60,15 @@ export function OrganizationCoursesContent(props: Props) {
   return (
     <>
       <CourseDirectoryHero onRefresh={props.onRefresh} organization={props.organization} />
+      <CourseCreationPanel
+        actionMessage={props.courseCreation.actionMessage}
+        actionState={props.courseCreation.actionState}
+        canCreate={props.canCreateCourses}
+        onSubmit={props.courseCreation.handleCreateCourse}
+        onTitleChange={props.courseCreation.setTitleDraft}
+        organizationName={props.organization.name}
+        titleDraft={props.courseCreation.titleDraft}
+      />
       <section className={styles.summaryGrid}>
         <SummaryCard icon={<BookOpen size={20} aria-hidden />} label="Matching courses" value={props.courses.total} />
         <SummaryCard icon={<FileText size={20} aria-hidden />} label="Reward policies" value={counts.activePolicyCount} />

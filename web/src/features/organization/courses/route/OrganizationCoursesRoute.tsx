@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProductShell } from "@/components/product-shell";
-import { buildOrganizationWorkspace, fetchOrganizationCourses, findOrganizationWorkspaceItem, type OrganizationCourseList } from "@/lib/organization";
+import { buildOrganizationWorkspace, findOrganizationWorkspaceItem, type OrganizationCourseList } from "@/lib/organization";
 import { clearStoredSessionToken, readStoredSessionToken } from "@/lib/session";
 import { CoursesDeniedState } from "@/features/organization/shared/route-kit/CoursesDeniedState";
 import { ErrorState } from "@/features/organization/shared/route-kit/ErrorState";
@@ -18,6 +18,9 @@ import { type RouteError } from "@/features/organization/shared/route-kit/RouteE
 import { normalizeRouteError } from "@/features/organization/shared/route-kit/normalizeRouteError";
 import { organizationNotice } from "@/features/organization/shared/route-kit/organizationNotice";
 import { useOrganizationSession } from "@/features/organization/shared/route-kit/useOrganizationSession";
+import { loadOrganizationCourses } from "../api/courseApi";
+import { canCreateOrganizationCourse } from "../model/courseCreationModel";
+import { useOrganizationCourseCreation } from "./useOrganizationCourseCreation";
 
 export function OrganizationCoursesRoute({ organizationId }: { organizationId: string }) {
   const route = useOrganizationSession();
@@ -36,6 +39,7 @@ export function OrganizationCoursesRoute({ organizationId }: { organizationId: s
   );
   const coursesCapability = organization?.capabilities.find((capability) => capability.key === "courses");
   const canViewCourses = Boolean(coursesCapability?.enabled);
+  const canCreateCourses = canCreateOrganizationCourse(organization);
   const [courseError, setCourseError] = useState<RouteError | null>(null);
   const [courseLoadState, setCourseLoadState] = useState<CourseLoadState>("idle");
   const [courses, setCourses] = useState<OrganizationCourseList | null>(null);
@@ -56,7 +60,7 @@ export function OrganizationCoursesRoute({ organizationId }: { organizationId: s
     setCourseLoadState("loading");
 
     try {
-      const nextCourses = await fetchOrganizationCourses({
+      const nextCourses = await loadOrganizationCourses({
         lifecycleStatus,
         limit: ORGANIZATION_COURSE_PAGE_SIZE,
         offset: page * ORGANIZATION_COURSE_PAGE_SIZE,
@@ -78,6 +82,11 @@ export function OrganizationCoursesRoute({ organizationId }: { organizationId: s
       setCourseLoadState("error");
     }
   }, [canViewCourses, invalidOrganizationId, lifecycleStatus, organization, page, rewardFilter, search]);
+  const courseCreation = useOrganizationCourseCreation({
+    canCreate: canCreateCourses,
+    loadCourses,
+    organizationId: organization?.id ?? null,
+  });
 
   useEffect(() => {
     if (route.session && organization && canViewCourses) {
@@ -136,7 +145,9 @@ export function OrganizationCoursesRoute({ organizationId }: { organizationId: s
       ) : null}
       {route.session && organization && canViewCourses ? (
         <OrganizationCoursesContent
+          courseCreation={courseCreation}
           courses={courses}
+          canCreateCourses={canCreateCourses}
           draftSearch={draftSearch}
           lifecycleStatus={lifecycleStatus}
           loadState={courseLoadState}

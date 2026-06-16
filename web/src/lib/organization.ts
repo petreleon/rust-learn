@@ -38,6 +38,9 @@ export type { OrganizationCourseRewardQueueSummary } from "./organization/Organi
 export type { OrganizationCoursePermissionSummary } from "./organization/OrganizationCoursePermissionSummary";
 export type { OrganizationCourseListItem } from "./organization/OrganizationCourseListItem";
 export type { OrganizationCourseList } from "./organization/OrganizationCourseList";
+export type { OrganizationCourseResponse } from "./organization/OrganizationCourseResponse";
+export type { CreateOrganizationCourseOptions } from "./organization/CreateOrganizationCourseOptions";
+export type { CreateOrganizationCoursePayload } from "./organization/CreateOrganizationCoursePayload";
 export type { OrganizationMemberOperatorPermissions } from "./organization/OrganizationMemberOperatorPermissions";
 export type { OrganizationMemberListItem } from "./organization/OrganizationMemberListItem";
 export type { OrganizationMemberList } from "./organization/OrganizationMemberList";
@@ -74,6 +77,7 @@ export { nominateTeacherApplication } from "./organization/nominateTeacherApplic
 export { fetchOrganizationWalletAudit } from "./organization/fetchOrganizationWalletAudit";
 export { linkOrganizationWallet } from "./organization/linkOrganizationWallet";
 export { downloadOrganizationRewardDashboardCsv } from "./organization/downloadOrganizationRewardDashboardCsv";
+export { createOrganizationCourse } from "./organization/createOrganizationCourse";
 export { fetchOrganizationCourses } from "./organization/fetchOrganizationCourses";
 export { fetchOrganizationMembers } from "./organization/fetchOrganizationMembers";
 export type { OrganizationMemberAuditEvent } from "./organization/OrganizationMemberAuditEvent";

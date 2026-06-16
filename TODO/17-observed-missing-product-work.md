@@ -719,6 +719,9 @@ Current evidence:
 - `/teach/courses` now exposes draft course creation for sessions with
   platform or organization-scoped `CREATE_COURSE`, selecting the backend owner
   target instead of requiring `/ops` or a raw organization id.
+- `/organizations/{id}/courses` now exposes draft organization course creation
+  for operators with organization-scoped `CREATE_COURSE` and refreshes the
+  organization course list after creation.
 - Organization course pages explicitly say editing, publishing, and
   organization-course ownership changes remain separate route work.
 - Backend APIs exist for reward policy creation/listing at
@@ -778,6 +781,8 @@ Checks:
   lifecycle changes without using `/ops`.
 - [x] Teacher courses page can create draft personal/platform or
   organization-owned courses from visible permission scope.
+- [x] Organization courses page can create draft organization-owned courses
+  from visible permission scope.
 - [ ] Invalid lifecycle transitions, missing permissions, stale updates, and
   archived/deleted course states are blocked with clear messages.
 - [ ] Reward policies can be created, listed, activated/deactivated, scoped,

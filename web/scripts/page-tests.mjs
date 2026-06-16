@@ -16,6 +16,7 @@ const pageTestFiles = [
   "src/features/learner/workspace/assessments/__tests__/CourseAssessmentPanel.test.tsx",
   "src/features/learner/workspace/wallet-transfers/__tests__/WalletTransferPanel.test.tsx",
   "src/features/organization/index/__tests__/OrganizationIndexRoute.test.tsx",
+  "src/features/organization/courses/__tests__/OrganizationCoursesRoute.test.tsx",
   "src/features/organization/members/__tests__/OrganizationMembersRoute.test.tsx",
   "src/features/organization/settings/__tests__/OrganizationSettingsRoute.test.tsx",
   "src/features/session/account-settings/__tests__/AccountSettingsRoute.test.tsx",
