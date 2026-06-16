@@ -55,26 +55,25 @@ Forbidden:
 
 ## Current Evidence
 
-Good:
+Final state:
 
-- `web/src/app` already owns route entrypoints.
+- `web/src/app` owns thin Next route entrypoints only.
+- Product workflows are feature-owned under `web/src/features`.
 - `web/src/lib` has API helpers for admin/auth/learner/organization/session/
   teacher.
-- `web/src/components/*-routes` groups persona routes.
+- Former global route clusters now live under feature-owned route, component,
+  model, API, view, style, or shared route-kit folders.
 - Primary commands exist: `make web-dev`, `make web-lint`,
   `make web-api-helper-tests`, `make web-build`, `make web-lint-compose`,
   `make web-build-compose`.
 
-Smells:
+Resolved smells:
 
-- Route files mix token reads, session loading, API calls, permissions,
-  mutations, filters, error normalization, and JSX.
-- Dense scan noise is now isolated to `/ops/page-parts/Home.tsx`.
-- Token reads still appear in many route/action modules.
-- Route controller hooks are inconsistent across contexts.
-- `src/lib/*.ts` barrels can hide large client import surfaces.
-- CSS module splits follow file size more than ownership.
-- Architecture scans are not repeatable gates yet.
+- Architecture scans now gate oversized files, dense route-controller lines,
+  API-to-UI imports, and view side-effect leaks.
+- App routes no longer import global route barrels.
+- Migrated feature code no longer imports app-owned route CSS.
+- Obsolete compatibility route shims and stale workspace route bundles are gone.
 
 Progress:
 
@@ -224,7 +223,7 @@ Latest pilot proof:
 
 - `make web-architecture-scan` passes with no findings.
 - `cd web && npm run architecture:scan:strict` passes with no findings.
-- `make web-lint` passes with 5 existing warnings.
+- `make web-lint` passes with no warnings.
 - Auth/session entry checkpoint:
   `make web-architecture-scan`, `cd web && npm run architecture:scan:strict`,
   `make web-lint`, `cd web && npm run test`, and `make web-build` pass.
@@ -242,6 +241,10 @@ Latest pilot proof:
   `cd web && npm run test` pass.
 - Stale workspace cleanup checkpoint:
   `make web-architecture-scan`, `make web-lint`, and `make web-build` pass.
+- Final proof:
+  `make web-architecture-scan`, `cd web && npm run architecture:scan:strict`,
+  `make web-lint`, `make web-api-helper-tests`, `cd web && npm run test`, and
+  `make web-build` pass.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/organization/members/__tests__/OrganizationMembersRoute.test.tsx`
@@ -406,11 +409,11 @@ Deferred: product gaps stay in `TODO/02-backend-contracts.md` or
 
 - [x] Build architecture inventory.
 - [x] Establish initial shared API/session/route-state boundaries.
-- [ ] Apply shared API/session/route-state boundaries to remaining contexts.
+- [x] Apply shared API/session/route-state boundaries to remaining contexts.
 - [x] Migrate one pilot workflow with tests.
-- [ ] Repeat by context.
-- [ ] Remove transitional exports and duplicate helpers.
+- [x] Repeat by context.
+- [x] Remove transitional exports and duplicate helpers.
 - [x] Add architecture scans.
 - [x] Fix `make web-api-helper-tests` fixture drift.
 - [x] Pay down remaining dense-line findings until strict scan passes.
-- [ ] Run and record final verification proof.
+- [x] Run and record final verification proof.
