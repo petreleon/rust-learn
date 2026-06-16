@@ -1,2 +1,2 @@
 "use client";
-export { default } from "./page-parts/SessionPage";
+export { SessionWorkspaceRoute as default } from "@/features/session/workspace/route/SessionWorkspaceRoute";

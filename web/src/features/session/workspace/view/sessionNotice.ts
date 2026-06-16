@@ -1,8 +1,9 @@
 "use client";
 
 import { type ShellNotice } from "@/components/product-shell";
+import { type RouteError } from "../model/RouteError";
 
-export function sessionNotice(error: { code: string; message: string } | null): ShellNotice | null {
+export function sessionNotice(error: RouteError | null): ShellNotice | null {
   if (!error) {
     return null;
   }

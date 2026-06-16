@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import styles from "../page.module.css";
+import styles from "@/app/session/page.module.css";
 
 export function SectionTitle({ icon, title }: { icon: ReactNode; title: string }) {
   return (

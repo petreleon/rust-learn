@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ScopeSummary } from "../ScopeSummary";
-import { type PlatformSessionScope } from "@/lib/session";
+import { type PlatformSessionScope } from "@/lib/session/PlatformSessionScope";
 
 function scope(overrides: Partial<PlatformSessionScope> = {}): PlatformSessionScope {
   return {

@@ -1,8 +1,8 @@
 "use client";
 
-import { type PlatformSessionScope } from "@/lib/session";
-import styles from "../page.module.css";
-import { formatAccessLabel, pluralize } from "./formatAccessLabel";
+import { type PlatformSessionScope } from "@/lib/session/PlatformSessionScope";
+import styles from "@/app/session/page.module.css";
+import { formatAccessLabel, pluralize } from "../model/formatAccessLabel";
 
 export function ScopeSummary({ title, scope }: { title: string; scope: PlatformSessionScope }) {
   const permissionCount = scope.effective_permissions.length;
