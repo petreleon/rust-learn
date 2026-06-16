@@ -642,6 +642,9 @@ Current evidence:
 - Expired or rejected upload URLs now render a teacher-facing recovery message
   and keep the next upload submit on the product route, where it requests a
   fresh presigned URL.
+- Content create and unpublish flows now have route coverage for validation,
+  in-flight disabled controls, permission denied, stale/conflict, and backend
+  failure states.
 
 Needed:
 
@@ -661,7 +664,7 @@ Checks:
 - [x] Content retry and processing-inspection flows have success, denied,
   failed-job, and backend-error tests.
 - [x] Content upload-expiry recovery has feature API and route tests.
-- [ ] Content create/unpublish flows have loading, validation, conflict,
+- [x] Content create/unpublish flows have loading, validation, conflict,
   denied, and backend-error tests.
 - [x] Enrollment and student routes show persisted progress from backend data
   after refresh.
