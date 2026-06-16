@@ -1,14 +1,14 @@
 "use client";
 
-import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, RefreshCw, ShieldCheck, Users } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, RefreshCw, Users } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent } from "react";
 import { type TeacherCourseEnrollmentWorkspaceResponse, type TeacherCourseJoinRequestItem, type TeacherCourseRosterLearner } from "@/lib/teacher";
 import styles from "../teacher-routes.module.css";
 import { EnrollmentRequestCard } from "./EnrollmentRequestCard";
+import { EnrollmentWorkspaceSummaryGrid } from "./EnrollmentWorkspaceSummaryGrid";
 import { RosterLearnerCard } from "./RosterLearnerCard";
 import { StatePanel } from "./StatePanel";
-import { SummaryCard } from "./SummaryCard";
 import { defaultDecisionDraft } from "./defaultDecisionDraft";
 import { enrollmentStatusOptions } from "./enrollmentStatusOptions";
 import { statusLabel } from "./statusLabel";
@@ -59,12 +59,7 @@ export function EnrollmentWorkspaceView({
         </div>
       </section>
 
-      <section className={styles.summaryGrid}>
-        <SummaryCard icon={<Clock3 size={20} aria-hidden />} label="Open requests" value={openRequestCount} tone={openRequestCount ? "warn" : "neutral"} />
-        <SummaryCard icon={<Users size={20} aria-hidden />} label="Enrolled learners" value={workspace.roster.total} tone={workspace.roster.total ? "good" : "neutral"} />
-        <SummaryCard icon={<CheckCircle2 size={20} aria-hidden />} label="Pending shown" value={workspace.join_requests.requests.filter((request) => request.status === "pending").length} tone="neutral" />
-        <SummaryCard icon={<ShieldCheck size={20} aria-hidden />} label="Reward policies" value={workspace.reward_eligibility.active_policy_count} tone={workspace.reward_eligibility.active_policy_count ? "good" : "neutral"} />
-      </section>
+      <EnrollmentWorkspaceSummaryGrid openRequestCount={openRequestCount} workspace={workspace} />
 
       {actionMessage ? (
         <section className={`${styles.warningPanel} ${styles.singlePanel}`} role="status">

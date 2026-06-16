@@ -69,8 +69,7 @@ Smells:
 
 - Route files mix token reads, session loading, API calls, permissions,
   mutations, filters, error normalization, and JSX.
-- Dense files still include deeper teacher course route views,
-  account/session pages, and `/ops/page-parts/Home.tsx`.
+- Dense scan noise is now isolated to `/ops/page-parts/Home.tsx`.
 - Token reads still appear in many route/action modules.
 - Route controller hooks are inconsistent across contexts.
 - `src/lib/*.ts` barrels can hide large client import surfaces.
@@ -179,11 +178,17 @@ Progress:
 - [x] Current architecture scan reports 5 dense-line findings after the learner
   workspace migration, with no long files and no API/view boundary
   violations.
+- [x] Cleaned remaining non-ops scan noise by expanding the dense admin CSS
+  compose aliases and extracting the teacher enrollment summary grid.
+- [x] Current architecture scan reports 2 dense-line findings after cleanup,
+  both isolated to `/ops/page-parts/Home.tsx`, with no long files and no
+  API/view boundary violations.
 
 Latest pilot proof:
 
-- `make web-architecture-scan` passes in reporting mode with 5 dense-line
-  findings, no long files, and no API/view boundary violations.
+- `make web-architecture-scan` passes in reporting mode with 2 dense-line
+  findings isolated to `/ops/page-parts/Home.tsx`, no long files, and no
+  API/view boundary violations.
 - `make web-lint` passes with existing warnings.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
