@@ -216,6 +216,9 @@ Progress:
   helper directories into feature-owned shared route kits under
   `features/{admin,organization,teacher}/shared/route-kit` and rewired imports
   away from the global component route clusters.
+- [x] Deleted stale `components/learner-routes` and `components/workspace-route`
+  compatibility bundles after confirming active learner/session routes use
+  feature-owned modules directly.
 
 Latest pilot proof:
 
@@ -237,6 +240,8 @@ Latest pilot proof:
 - Route-kit owner checkpoint:
   `make web-architecture-scan`, `make web-lint`, `make web-build`, and
   `cd web && npm run test` pass.
+- Stale workspace cleanup checkpoint:
+  `make web-architecture-scan`, `make web-lint`, and `make web-build` pass.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/organization/members/__tests__/OrganizationMembersRoute.test.tsx`
