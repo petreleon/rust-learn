@@ -1,4 +1,4 @@
-import { TeacherCourseEnrollmentsRoute } from "@/components/teacher-routes";
+import { TeacherCourseEnrollmentsRoute } from "@/features/teacher/course-enrollments/route/TeacherCourseEnrollmentsRoute";
 
 export default async function TeachingCourseEnrollmentsPage({
   params,

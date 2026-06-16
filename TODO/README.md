@@ -57,6 +57,10 @@ application.
   backend modular-monolith refactor plan for Actix/Rust boundaries,
   authorization centralization, DTO separation, and context-by-context
   migration.
+- [19-web-architecture-modularity-boundaries.md](19-web-architecture-modularity-boundaries.md) -
+  frontend modular-monolith plan for Next.js route entrypoints, feature
+  boundaries, shared API/session ownership, presentational UI, and architecture
+  scans.
 
 ## Current Frontend Baseline
 
@@ -107,5 +111,8 @@ application.
 - Use [18-architecture-modularity-boundaries.md](18-architecture-modularity-boundaries.md)
   before large backend refactors that touch API, services, repositories,
   permissions, or infrastructure adapters.
+- Use [19-web-architecture-modularity-boundaries.md](19-web-architecture-modularity-boundaries.md)
+  before large frontend refactors that touch Next routes, feature ownership,
+  API helpers, session storage, or shared UI.
 - Keep completed checks honest: mark an item done only when current code and
   runtime evidence prove it.
