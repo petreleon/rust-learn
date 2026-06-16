@@ -526,6 +526,9 @@ Needed:
   content.
 - Course catalog now shows an explicit visible range such as "2 of 8 shown"
   and "Showing 1-2 of 8 matches" when total matches exceed rendered courses.
+- Learner catalog normal browse now hides generated test-style titles such as
+  `LifecycleCourse_*` when they are merely available courses, while explicit
+  search and direct learner access can still surface the exact course.
 - Add assessment entry points inside learner course detail routes and teacher
   course authoring routes.
 
@@ -537,7 +540,7 @@ Checks:
   mode is explicitly allowed.
 - [x] Persisted progress updates survive refresh and appear consistently on the
   learner dashboard, course learn route, and teacher student route.
-- [ ] Catalog pages do not expose generated/test-like names in normal product
+- [x] Catalog pages do not expose generated/test-like names in normal product
   smoke data.
 - [x] Large catalogs have pagination, load-more, or a clear visible count that
   matches the rendered set.

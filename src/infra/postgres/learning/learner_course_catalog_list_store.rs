@@ -7,6 +7,7 @@ use crate::application::learning::learner_course_catalog::LearnerCourseCatalogEr
 use crate::application::learning::list_learner_course_catalog::{
     LearnerCourseCatalogListStore, LearnerCourseCatalogOutput, LearnerCourseCatalogQuery,
 };
+use crate::domain::learning::course::is_generated_course_title;
 use crate::infra::postgres::learning::{
     learner_course_access_queries, learner_course_catalog_item_queries,
 };
@@ -85,6 +86,13 @@ impl LearnerCourseCatalogListStore for PostgresLearnerCourseCatalogListStore<'_>
                 {
                     continue;
                 }
+                if should_hide_generated_available_course(
+                    &query,
+                    &item.title,
+                    &item.enrollment.state,
+                ) {
+                    continue;
+                }
                 items.push(item);
             }
 
@@ -108,6 +116,14 @@ impl LearnerCourseCatalogListStore for PostgresLearnerCourseCatalogListStore<'_>
         }
         .boxed()
     }
+}
+
+fn should_hide_generated_available_course(
+    query: &LearnerCourseCatalogQuery,
+    title: &str,
+    enrollment_state: &str,
+) -> bool {
+    query.search.is_none() && enrollment_state == "available" && is_generated_course_title(title)
 }
 
 fn course_title_search_pattern(search: &str) -> String {

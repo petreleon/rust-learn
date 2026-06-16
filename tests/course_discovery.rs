@@ -6,6 +6,8 @@ mod course_search_treats_like_wildcards_as_literal_text;
 mod create_course_reward_policy;
 #[path = "course_discovery/create_organization.rs"]
 mod create_organization;
+#[path = "course_discovery/learner_catalog_hides_generated_available_titles_from_normal_browse.rs"]
+mod learner_catalog_hides_generated_available_titles_from_normal_browse;
 #[path = "course_discovery/learner_catalog_includes_own_draft_but_hides_unscoped_draft_detail.rs"]
 mod learner_catalog_includes_own_draft_but_hides_unscoped_draft_detail;
 #[path = "course_discovery/learner_catalog_returns_published_course_summaries_and_pending_state.rs"]
