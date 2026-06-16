@@ -1,8 +1,8 @@
 "use client";
 
 import { type OrganizationWalletBalanceRow } from "@/lib/organization/OrganizationWalletBalanceRow";
-import { StatusPill } from "@/components/organization-routes/StatusPill";
-import { formatTokenAmount } from "@/components/organization-routes/formatTokenAmount";
+import { StatusPill } from "@/features/organization/shared/route-kit/StatusPill";
+import { formatTokenAmount } from "@/features/organization/shared/route-kit/formatTokenAmount";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function WalletBalancesPanel({ wallets }: { wallets: OrganizationWalletBalanceRow[] }) {

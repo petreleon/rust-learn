@@ -1,9 +1,9 @@
 "use client";
 
 import { type OrganizationCourseRewardDashboardRow } from "@/lib/organization/OrganizationCourseRewardDashboardRow";
-import { Metric } from "@/components/organization-routes/Metric";
-import { StatusPill } from "@/components/organization-routes/StatusPill";
-import { formatTokenAmount } from "@/components/organization-routes/formatTokenAmount";
+import { Metric } from "@/features/organization/shared/route-kit/Metric";
+import { StatusPill } from "@/features/organization/shared/route-kit/StatusPill";
+import { formatTokenAmount } from "@/features/organization/shared/route-kit/formatTokenAmount";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function CourseRewardVolumePanel({

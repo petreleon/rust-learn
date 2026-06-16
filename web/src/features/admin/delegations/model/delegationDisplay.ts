@@ -1,6 +1,6 @@
 import { type DelegationItem } from "@/lib/admin/DelegationItem";
 import { type DelegationStatus } from "@/lib/admin/DelegationStatus";
-import { formatUnderscoreLabel } from "@/components/admin-routes/formatUnderscoreLabel";
+import { formatUnderscoreLabel } from "@/features/admin/shared/route-kit/formatUnderscoreLabel";
 
 export function delegationStatus(delegation: DelegationItem): DelegationStatus {
   if (delegation.revoked_at) return "revoked";

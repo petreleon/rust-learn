@@ -2,8 +2,8 @@
 
 import { RefreshCw, Search } from "lucide-react";
 import styles from "@/features/organization/shared/organization-routes.module.css";
-import { organizationMemberPermissionOptions } from "@/components/organization-routes/organizationMemberPermissionOptions";
-import { organizationMemberRoleOptions } from "@/components/organization-routes/organizationMemberRoleOptions";
+import { organizationMemberPermissionOptions } from "@/features/organization/shared/route-kit/organizationMemberPermissionOptions";
+import { organizationMemberRoleOptions } from "@/features/organization/shared/route-kit/organizationMemberRoleOptions";
 
 export function MemberFilterPanel({
   draftSearch,

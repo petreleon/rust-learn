@@ -1,13 +1,13 @@
 "use client";
 
 import { ProductShell } from "@/components/product-shell";
-import { ErrorState } from "@/components/organization-routes/ErrorState";
-import { LoadingState } from "@/components/organization-routes/LoadingState";
-import { MissingOrganizationState } from "@/components/organization-routes/MissingOrganizationState";
-import { OrganizationStatus } from "@/components/organization-routes/OrganizationStatus";
-import { SettingsDeniedState } from "@/components/organization-routes/SettingsDeniedState";
-import { SignedOutState } from "@/components/organization-routes/SignedOutState";
-import { organizationNotice } from "@/components/organization-routes/organizationNotice";
+import { ErrorState } from "@/features/organization/shared/route-kit/ErrorState";
+import { LoadingState } from "@/features/organization/shared/route-kit/LoadingState";
+import { MissingOrganizationState } from "@/features/organization/shared/route-kit/MissingOrganizationState";
+import { OrganizationStatus } from "@/features/organization/shared/route-kit/OrganizationStatus";
+import { SettingsDeniedState } from "@/features/organization/shared/route-kit/SettingsDeniedState";
+import { SignedOutState } from "@/features/organization/shared/route-kit/SignedOutState";
+import { organizationNotice } from "@/features/organization/shared/route-kit/organizationNotice";
 import { OrganizationSettingsPanel } from "../components/OrganizationSettingsPanel";
 import { organizationSettingsTitle } from "../model/settingsRouteModel";
 import { type OrganizationSettingsRouteController } from "../route/useOrganizationSettingsRoute";

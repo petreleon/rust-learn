@@ -6,8 +6,8 @@ import { type OrganizationWorkspaceItem } from "@/lib/organization/OrganizationW
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import styles from "@/features/organization/shared/organization-routes.module.css";
-import { MemberErrorState } from "@/components/organization-routes/MemberErrorState";
-import { SummaryCard } from "@/components/organization-routes/SummaryCard";
+import { MemberErrorState } from "@/features/organization/shared/route-kit/MemberErrorState";
+import { SummaryCard } from "@/features/organization/shared/route-kit/SummaryCard";
 import { type MemberActionState } from "../model/MemberActionState";
 import { MemberDirectoryHero } from "./MemberDirectoryHero";
 import { MemberFilterPanel } from "./MemberFilterPanel";

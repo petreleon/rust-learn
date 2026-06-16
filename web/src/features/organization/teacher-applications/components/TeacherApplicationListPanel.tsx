@@ -1,8 +1,8 @@
 "use client";
 
 import { type OrganizationTeacherApplicationList } from "@/lib/organization/OrganizationTeacherApplicationList";
-import { OrganizationTeacherApplicationCard } from "@/components/organization-routes/OrganizationTeacherApplicationCard";
-import { StatusPill } from "@/components/organization-routes/StatusPill";
+import { OrganizationTeacherApplicationCard } from "@/features/organization/shared/route-kit/OrganizationTeacherApplicationCard";
+import { StatusPill } from "@/features/organization/shared/route-kit/StatusPill";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 import { teacherApplicationCounts } from "./applicationCounts";
 

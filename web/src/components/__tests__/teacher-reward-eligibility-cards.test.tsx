@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { RosterLearnerCard } from "@/components/teacher-routes/RosterLearnerCard";
-import { StudentProgressCard } from "@/components/teacher-routes/StudentProgressCard";
+import { RosterLearnerCard } from "@/features/teacher/shared/route-kit/RosterLearnerCard";
+import { StudentProgressCard } from "@/features/teacher/shared/route-kit/StudentProgressCard";
 import { type TeacherCourseRosterLearner, type TeacherCourseStudentProgressItem } from "@/lib/teacher";
 
 const user = {

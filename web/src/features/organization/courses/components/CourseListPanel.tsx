@@ -2,8 +2,8 @@
 
 import { type OrganizationCourseList } from "@/lib/organization/OrganizationCourseList";
 import styles from "@/features/organization/shared/organization-routes.module.css";
-import { OrganizationCourseCard } from "@/components/organization-routes/OrganizationCourseCard";
-import { StatusPill } from "@/components/organization-routes/StatusPill";
+import { OrganizationCourseCard } from "@/features/organization/shared/route-kit/OrganizationCourseCard";
+import { StatusPill } from "@/features/organization/shared/route-kit/StatusPill";
 import { organizationCourseCounts } from "./courseCounts";
 
 export function CourseListPanel({

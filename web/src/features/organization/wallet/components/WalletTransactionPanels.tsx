@@ -1,11 +1,11 @@
 "use client";
 
 import { type OrganizationWalletAudit } from "@/lib/organization/OrganizationWalletAudit";
-import { StatusPill } from "@/components/organization-routes/StatusPill";
-import { formatDateTime } from "@/components/organization-routes/formatDateTime";
-import { formatTokenAmount } from "@/components/organization-routes/formatTokenAmount";
-import { formatUnderscoreLabel } from "@/components/organization-routes/formatUnderscoreLabel";
-import { shortHash } from "@/components/organization-routes/shortHash";
+import { StatusPill } from "@/features/organization/shared/route-kit/StatusPill";
+import { formatDateTime } from "@/features/organization/shared/route-kit/formatDateTime";
+import { formatTokenAmount } from "@/features/organization/shared/route-kit/formatTokenAmount";
+import { formatUnderscoreLabel } from "@/features/organization/shared/route-kit/formatUnderscoreLabel";
+import { shortHash } from "@/features/organization/shared/route-kit/shortHash";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function WalletTransactionPanels({ audit }: { audit: OrganizationWalletAudit }) {

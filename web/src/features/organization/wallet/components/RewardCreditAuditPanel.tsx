@@ -1,8 +1,8 @@
 "use client";
 
 import { type OrganizationWalletAudit } from "@/lib/organization/OrganizationWalletAudit";
-import { OrganizationWalletRewardCard } from "@/components/organization-routes/OrganizationWalletRewardCard";
-import { StatusPill } from "@/components/organization-routes/StatusPill";
+import { OrganizationWalletRewardCard } from "@/features/organization/shared/route-kit/OrganizationWalletRewardCard";
+import { StatusPill } from "@/features/organization/shared/route-kit/StatusPill";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 import { walletAuditSummary } from "../model/walletAuditSummary";
 

@@ -1,8 +1,8 @@
 "use client";
 
 import { type TeacherApplicationDashboardSummary } from "@/lib/organization/TeacherApplicationDashboardSummary";
-import { Metric } from "@/components/organization-routes/Metric";
-import { StatusPill } from "@/components/organization-routes/StatusPill";
+import { Metric } from "@/features/organization/shared/route-kit/Metric";
+import { StatusPill } from "@/features/organization/shared/route-kit/StatusPill";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function SponsoredApplicationsPanel({

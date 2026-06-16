@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { ActionPanel } from "@/components/admin-routes/ActionPanel";
+import { ActionPanel } from "@/features/admin/shared/route-kit/ActionPanel";
 import { type PlatformAdminWorkspace } from "@/lib/admin/PlatformAdminWorkspace";
 import { type PlatformCapabilityKey } from "@/lib/admin/PlatformCapabilityKey";
 import { type PlatformFraudDashboard } from "@/lib/admin/PlatformFraudDashboard";

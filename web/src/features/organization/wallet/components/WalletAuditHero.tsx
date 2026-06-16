@@ -4,7 +4,7 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, CreditCard, Loader2, RefreshCw 
 import Link from "next/link";
 import { type OrganizationWorkspaceItem } from "@/lib/organization/OrganizationWorkspaceItem";
 import { type RouteError } from "@/shared/route-state/RouteError";
-import { StatusPill } from "@/components/organization-routes/StatusPill";
+import { StatusPill } from "@/features/organization/shared/route-kit/StatusPill";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 import { type WalletLinkState } from "../model/WalletLinkState";
 

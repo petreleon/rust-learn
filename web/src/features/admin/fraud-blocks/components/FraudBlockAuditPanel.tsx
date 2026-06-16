@@ -5,9 +5,9 @@ import { type FraudBlockAuditEvent } from "@/lib/admin/FraudBlockAuditEvent";
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import styles from "@/features/admin/shared/admin-routes.module.css";
-import { EmptyState } from "@/components/admin-routes/EmptyState";
-import { formatDate } from "@/components/admin-routes/formatDate";
-import { formatUnderscoreLabel } from "@/components/admin-routes/formatUnderscoreLabel";
+import { EmptyState } from "@/features/admin/shared/route-kit/EmptyState";
+import { formatDate } from "@/features/admin/shared/route-kit/formatDate";
+import { formatUnderscoreLabel } from "@/features/admin/shared/route-kit/formatUnderscoreLabel";
 
 export function FraudBlockAuditPanel({
   error,

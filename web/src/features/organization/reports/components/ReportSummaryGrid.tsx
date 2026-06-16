@@ -2,8 +2,8 @@
 
 import { Building2, CheckCircle2, CreditCard, Trophy } from "lucide-react";
 import { type OrganizationRewardDashboard } from "@/lib/organization/OrganizationRewardDashboard";
-import { SummaryCard } from "@/components/organization-routes/SummaryCard";
-import { formatTokenAmount } from "@/components/organization-routes/formatTokenAmount";
+import { SummaryCard } from "@/features/organization/shared/route-kit/SummaryCard";
+import { formatTokenAmount } from "@/features/organization/shared/route-kit/formatTokenAmount";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function ReportSummaryGrid({ report }: { report: OrganizationRewardDashboard }) {

@@ -4,8 +4,8 @@ import { AlertCircle, BookOpen, Loader2, LogIn, RefreshCw, ShieldCheck, Trophy, 
 import Link from "next/link";
 import { type FormEvent } from "react";
 import { ProductShell } from "@/components/product-shell";
-import { StatePanel } from "@/components/teacher-routes/StatePanel";
-import { StatusLine } from "@/components/teacher-routes/StatusLine";
+import { StatePanel } from "@/features/teacher/shared/route-kit/StatePanel";
+import { StatusLine } from "@/features/teacher/shared/route-kit/StatusLine";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { CoursesView } from "../components/CoursesView";
 import { DashboardView } from "../components/DashboardView";

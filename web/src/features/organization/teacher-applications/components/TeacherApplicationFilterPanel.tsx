@@ -1,7 +1,7 @@
 "use client";
 
 import { RefreshCw, Search } from "lucide-react";
-import { organizationTeacherApplicationStatusOptions } from "@/components/organization-routes/organizationTeacherApplicationStatusOptions";
+import { organizationTeacherApplicationStatusOptions } from "@/features/organization/shared/route-kit/organizationTeacherApplicationStatusOptions";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function TeacherApplicationFilterPanel({

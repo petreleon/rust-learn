@@ -1,9 +1,9 @@
 "use client";
 
 import { type OrganizationWalletAudit } from "@/lib/organization/OrganizationWalletAudit";
-import { Metric } from "@/components/organization-routes/Metric";
-import { StatusPill } from "@/components/organization-routes/StatusPill";
-import { formatTokenAmount } from "@/components/organization-routes/formatTokenAmount";
+import { Metric } from "@/features/organization/shared/route-kit/Metric";
+import { StatusPill } from "@/features/organization/shared/route-kit/StatusPill";
+import { formatTokenAmount } from "@/features/organization/shared/route-kit/formatTokenAmount";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 import { walletAuditSummary } from "../model/walletAuditSummary";
 

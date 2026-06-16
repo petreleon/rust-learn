@@ -3,9 +3,9 @@
 import { AlertCircle, Clock3, Loader2, LogIn, RefreshCw, Trophy } from "lucide-react";
 import Link from "next/link";
 import { ProductShell } from "@/components/product-shell";
-import { StatePanel } from "@/components/teacher-routes/StatePanel";
-import { StatusLine } from "@/components/teacher-routes/StatusLine";
-import { routeNotice } from "@/components/teacher-routes/routeNotice";
+import { StatePanel } from "@/features/teacher/shared/route-kit/StatePanel";
+import { StatusLine } from "@/features/teacher/shared/route-kit/StatusLine";
+import { routeNotice } from "@/features/teacher/shared/route-kit/routeNotice";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { RewardReviewContent } from "../components/RewardReviewContent";
 import { type TeacherCourseRewardsRouteController } from "../route/useTeacherCourseRewardsRoute";

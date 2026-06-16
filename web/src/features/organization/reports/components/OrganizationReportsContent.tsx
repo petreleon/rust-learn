@@ -5,7 +5,7 @@ import { type OrganizationRewardDashboard } from "@/lib/organization/Organizatio
 import { type OrganizationWorkspaceItem } from "@/lib/organization/OrganizationWorkspaceItem";
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
-import { ReportErrorState } from "@/components/organization-routes/ReportErrorState";
+import { ReportErrorState } from "@/features/organization/shared/route-kit/ReportErrorState";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 import { type CsvState } from "../model/CsvState";
 import { CourseRewardVolumePanel } from "./CourseRewardVolumePanel";

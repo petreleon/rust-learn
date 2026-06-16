@@ -2,17 +2,17 @@
 
 import { ProductShell, type ShellNotice } from "@/components/product-shell";
 import styles from "@/features/admin/shared/admin-routes.module.css";
-import { ActionPanel } from "@/components/admin-routes/ActionPanel";
-import { AdminDeniedState } from "@/components/admin-routes/AdminDeniedState";
-import { ExportPanel } from "@/components/admin-routes/ExportPanel";
-import { FraudPanel } from "@/components/admin-routes/FraudPanel";
-import { LoadingState } from "@/components/admin-routes/LoadingState";
-import { RewardPanel } from "@/components/admin-routes/RewardPanel";
-import { SessionErrorState } from "@/components/admin-routes/SessionErrorState";
-import { SignedOutState } from "@/components/admin-routes/SignedOutState";
-import { StatusPill } from "@/components/admin-routes/StatusPill";
-import { SummaryPanel } from "@/components/admin-routes/SummaryPanel";
-import { SystemPanel } from "@/components/admin-routes/SystemPanel";
+import { ActionPanel } from "@/features/admin/shared/route-kit/ActionPanel";
+import { AdminDeniedState } from "@/features/admin/shared/route-kit/AdminDeniedState";
+import { ExportPanel } from "@/features/admin/shared/route-kit/ExportPanel";
+import { FraudPanel } from "@/features/admin/shared/route-kit/FraudPanel";
+import { LoadingState } from "@/features/admin/shared/route-kit/LoadingState";
+import { RewardPanel } from "@/features/admin/shared/route-kit/RewardPanel";
+import { SessionErrorState } from "@/features/admin/shared/route-kit/SessionErrorState";
+import { SignedOutState } from "@/features/admin/shared/route-kit/SignedOutState";
+import { StatusPill } from "@/features/admin/shared/route-kit/StatusPill";
+import { SummaryPanel } from "@/features/admin/shared/route-kit/SummaryPanel";
+import { SystemPanel } from "@/features/admin/shared/route-kit/SystemPanel";
 import { type AdminDashboardRouteController } from "../route/useAdminDashboardRoute";
 
 function dashboardNotice(route: AdminDashboardRouteController): ShellNotice | null {

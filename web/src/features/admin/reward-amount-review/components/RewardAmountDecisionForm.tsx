@@ -5,7 +5,7 @@ import { type PlatformRewardCandidateItem } from "@/lib/admin/PlatformRewardCand
 import { type RewardCandidateAmountDecisionStatus } from "@/lib/admin/RewardCandidateAmountDecisionStatus";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import styles from "@/features/admin/shared/admin-routes.module.css";
-import { StatusPill } from "@/components/admin-routes/StatusPill";
+import { StatusPill } from "@/features/admin/shared/route-kit/StatusPill";
 import { type RewardAmountDecisionDraft } from "../model/RewardAmountDecisionDraft";
 import { canSubmitRewardAmountDecision } from "../model/RewardAmountDecisionDraft";
 import { type RewardAmountDecisionState } from "../model/RewardAmountDecisionState";

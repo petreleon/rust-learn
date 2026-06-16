@@ -3,10 +3,10 @@
 import { AlertCircle, Clock3, Loader2, LogIn, RefreshCw, Users } from "lucide-react";
 import Link from "next/link";
 import { ProductShell } from "@/components/product-shell";
-import { EnrollmentWorkspaceView } from "@/components/teacher-routes/EnrollmentWorkspaceView";
-import { StatePanel } from "@/components/teacher-routes/StatePanel";
-import { StatusLine } from "@/components/teacher-routes/StatusLine";
-import { routeNotice } from "@/components/teacher-routes/routeNotice";
+import { EnrollmentWorkspaceView } from "@/features/teacher/shared/route-kit/EnrollmentWorkspaceView";
+import { StatePanel } from "@/features/teacher/shared/route-kit/StatePanel";
+import { StatusLine } from "@/features/teacher/shared/route-kit/StatusLine";
+import { routeNotice } from "@/features/teacher/shared/route-kit/routeNotice";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import {
   courseEnrollmentTitle,

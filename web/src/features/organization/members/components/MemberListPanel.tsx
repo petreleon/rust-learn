@@ -2,8 +2,8 @@
 
 import { type OrganizationMemberList } from "@/lib/organization/OrganizationMemberList";
 import styles from "@/features/organization/shared/organization-routes.module.css";
-import { OrganizationMemberCard } from "@/components/organization-routes/OrganizationMemberCard";
-import { StatusPill } from "@/components/organization-routes/StatusPill";
+import { OrganizationMemberCard } from "@/features/organization/shared/route-kit/OrganizationMemberCard";
+import { StatusPill } from "@/features/organization/shared/route-kit/StatusPill";
 import { memberDirectoryCounts } from "./memberCounts";
 
 export function MemberListPanel({

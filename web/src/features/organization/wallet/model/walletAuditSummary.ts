@@ -1,7 +1,7 @@
 import { type OrganizationWalletAudit } from "@/lib/organization/OrganizationWalletAudit";
-import { numericAmount } from "@/components/organization-routes/numericAmount";
-import { sumAmounts } from "@/components/organization-routes/sumAmounts";
-import { walletRewardNeedsAttention } from "@/components/organization-routes/walletRewardNeedsAttention";
+import { numericAmount } from "@/features/organization/shared/route-kit/numericAmount";
+import { sumAmounts } from "@/features/organization/shared/route-kit/sumAmounts";
+import { walletRewardNeedsAttention } from "@/features/organization/shared/route-kit/walletRewardNeedsAttention";
 
 export function walletAuditSummary(audit: OrganizationWalletAudit) {
   const walletBalance = numericAmount(audit.wallet.value);

@@ -5,8 +5,8 @@ import { type OrganizationTeacherApplicationList } from "@/lib/organization/Orga
 import { type OrganizationWorkspaceItem } from "@/lib/organization/OrganizationWorkspaceItem";
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
-import { NominationPanel } from "@/components/organization-routes/NominationPanel";
-import { TeacherApplicationErrorState } from "@/components/organization-routes/TeacherApplicationErrorState";
+import { NominationPanel } from "@/features/organization/shared/route-kit/NominationPanel";
+import { TeacherApplicationErrorState } from "@/features/organization/shared/route-kit/TeacherApplicationErrorState";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 import { TeacherApplicationFilterPanel } from "./TeacherApplicationFilterPanel";
 import { TeacherApplicationListPanel } from "./TeacherApplicationListPanel";

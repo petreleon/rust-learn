@@ -4,7 +4,7 @@ import { ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { type OrganizationTeacherApplicationList } from "@/lib/organization/OrganizationTeacherApplicationList";
 import { type OrganizationWorkspaceItem } from "@/lib/organization/OrganizationWorkspaceItem";
-import { StatusPill } from "@/components/organization-routes/StatusPill";
+import { StatusPill } from "@/features/organization/shared/route-kit/StatusPill";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function TeacherApplicationTrackingHero({

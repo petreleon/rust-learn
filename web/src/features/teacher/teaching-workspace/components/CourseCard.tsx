@@ -3,9 +3,9 @@
 import { BriefcaseBusiness, Trophy, Users } from "lucide-react";
 import Link from "next/link";
 import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDashboardItem";
-import { DetailLine } from "@/components/teacher-routes/DetailLine";
-import { Metric } from "@/components/teacher-routes/Metric";
-import { PermissionChip } from "@/components/teacher-routes/PermissionChip";
+import { DetailLine } from "@/features/teacher/shared/route-kit/DetailLine";
+import { Metric } from "@/features/teacher/shared/route-kit/Metric";
+import { PermissionChip } from "@/features/teacher/shared/route-kit/PermissionChip";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { lifecycleTone, organizationNames, statusLabel } from "../model/courseDisplay";
 

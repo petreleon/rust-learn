@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { ContentAuthoringForm } from "@/components/teacher-routes/ContentAuthoringForm";
-import { ContentRow } from "@/components/teacher-routes/ContentRow";
-import { type ContentDraft } from "@/components/teacher-routes/ContentDraft";
+import { ContentAuthoringForm } from "@/features/teacher/shared/route-kit/ContentAuthoringForm";
+import { ContentRow } from "@/features/teacher/shared/route-kit/ContentRow";
+import { type ContentDraft } from "@/features/teacher/shared/route-kit/ContentDraft";
 import {
   type TeacherCourseWorkspaceContent,
   type TeacherCourseWorkspaceResponse,

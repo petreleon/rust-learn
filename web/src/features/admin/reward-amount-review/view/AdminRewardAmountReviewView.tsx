@@ -3,12 +3,12 @@
 import { Landmark } from "lucide-react";
 import { ProductShell, type ShellNotice } from "@/components/product-shell";
 import styles from "@/features/admin/shared/admin-routes.module.css";
-import { AdminDeniedState } from "@/components/admin-routes/AdminDeniedState";
-import { GatedPanel } from "@/components/admin-routes/GatedPanel";
-import { LoadingState } from "@/components/admin-routes/LoadingState";
-import { SessionErrorState } from "@/components/admin-routes/SessionErrorState";
-import { SignedOutState } from "@/components/admin-routes/SignedOutState";
-import { StatusPill } from "@/components/admin-routes/StatusPill";
+import { AdminDeniedState } from "@/features/admin/shared/route-kit/AdminDeniedState";
+import { GatedPanel } from "@/features/admin/shared/route-kit/GatedPanel";
+import { LoadingState } from "@/features/admin/shared/route-kit/LoadingState";
+import { SessionErrorState } from "@/features/admin/shared/route-kit/SessionErrorState";
+import { SignedOutState } from "@/features/admin/shared/route-kit/SignedOutState";
+import { StatusPill } from "@/features/admin/shared/route-kit/StatusPill";
 import { RewardCandidateDetailPanel } from "../components/RewardCandidateDetailPanel";
 import { RewardCandidateFiltersPanel } from "../components/RewardCandidateFiltersPanel";
 import { RewardCandidateListPanel } from "../components/RewardCandidateListPanel";

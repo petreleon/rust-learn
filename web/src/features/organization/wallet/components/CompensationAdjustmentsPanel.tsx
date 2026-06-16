@@ -1,10 +1,10 @@
 "use client";
 
 import { type OrganizationWalletCompensationRecordAudit } from "@/lib/organization/OrganizationWalletCompensationRecordAudit";
-import { Metric } from "@/components/organization-routes/Metric";
-import { StatusPill } from "@/components/organization-routes/StatusPill";
-import { formatDateTime } from "@/components/organization-routes/formatDateTime";
-import { formatTokenAmount } from "@/components/organization-routes/formatTokenAmount";
+import { Metric } from "@/features/organization/shared/route-kit/Metric";
+import { StatusPill } from "@/features/organization/shared/route-kit/StatusPill";
+import { formatDateTime } from "@/features/organization/shared/route-kit/formatDateTime";
+import { formatTokenAmount } from "@/features/organization/shared/route-kit/formatTokenAmount";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function CompensationAdjustmentsPanel({

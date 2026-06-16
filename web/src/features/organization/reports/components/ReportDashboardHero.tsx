@@ -5,7 +5,7 @@ import Link from "next/link";
 import { type OrganizationWorkspaceItem } from "@/lib/organization/OrganizationWorkspaceItem";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import styles from "@/features/organization/shared/organization-routes.module.css";
-import { StatusPill } from "@/components/organization-routes/StatusPill";
+import { StatusPill } from "@/features/organization/shared/route-kit/StatusPill";
 import { type CsvState } from "../model/CsvState";
 
 export function ReportDashboardHero({

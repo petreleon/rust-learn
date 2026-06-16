@@ -6,8 +6,8 @@ import { type OrganizationWorkspaceItem } from "@/lib/organization/OrganizationW
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import styles from "@/features/organization/shared/organization-routes.module.css";
-import { CourseErrorState } from "@/components/organization-routes/CourseErrorState";
-import { SummaryCard } from "@/components/organization-routes/SummaryCard";
+import { CourseErrorState } from "@/features/organization/shared/route-kit/CourseErrorState";
+import { SummaryCard } from "@/features/organization/shared/route-kit/SummaryCard";
 import { CourseDirectoryHero } from "./CourseDirectoryHero";
 import { CourseFilterPanel, type CourseRewardFilter } from "./CourseFilterPanel";
 import { CourseListPanel } from "./CourseListPanel";

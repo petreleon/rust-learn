@@ -212,6 +212,10 @@ Progress:
 - [x] Removed the obsolete route compatibility barrels/shims from
   `components/{admin,organization,teacher}-routes`, moved the KYC route test to
   the feature route import, and cleaned the remaining web lint warnings.
+- [x] Moved the old global `components/{admin,organization,teacher}-routes`
+  helper directories into feature-owned shared route kits under
+  `features/{admin,organization,teacher}/shared/route-kit` and rewired imports
+  away from the global component route clusters.
 
 Latest pilot proof:
 
@@ -230,6 +234,9 @@ Latest pilot proof:
   `make web-architecture-scan`, `make web-lint` with no warnings,
   `make web-build`, and
   `npm run test -- src/components/__tests__/admin-kyc-route.test.tsx` pass.
+- Route-kit owner checkpoint:
+  `make web-architecture-scan`, `make web-lint`, `make web-build`, and
+  `cd web && npm run test` pass.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/organization/members/__tests__/OrganizationMembersRoute.test.tsx`

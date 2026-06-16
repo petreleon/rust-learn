@@ -4,7 +4,7 @@ import { BookOpen, BriefcaseBusiness, FileText, Trophy, Users } from "lucide-rea
 import Link from "next/link";
 import { type TeacherApplication } from "@/lib/teacher/TeacherApplication";
 import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDashboardItem";
-import { SummaryCard } from "@/components/teacher-routes/SummaryCard";
+import { SummaryCard } from "@/features/teacher/shared/route-kit/SummaryCard";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type TeacherDashboardTotals } from "../model/dashboardTotals";
 import { ApplicationPanel } from "./ApplicationPanel";

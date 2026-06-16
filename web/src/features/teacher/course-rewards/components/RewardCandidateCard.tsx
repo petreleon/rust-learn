@@ -6,10 +6,10 @@ import { type TeacherEnrollmentUserSummary } from "@/lib/teacher/TeacherEnrollme
 import { type TeacherRewardCandidate } from "@/lib/teacher/TeacherRewardCandidate";
 import { type TeacherRewardCandidateDecisionStatus } from "@/lib/teacher/TeacherRewardCandidateDecisionStatus";
 import { type ActionState } from "@/shared/route-state/ActionState";
-import { DetailLine } from "@/components/teacher-routes/DetailLine";
-import { formatDateTime } from "@/components/teacher-routes/formatDateTime";
-import { statusLabel } from "@/components/teacher-routes/statusLabel";
-import { summarizeEvidence } from "@/components/teacher-routes/summarizeEvidence";
+import { DetailLine } from "@/features/teacher/shared/route-kit/DetailLine";
+import { formatDateTime } from "@/features/teacher/shared/route-kit/formatDateTime";
+import { statusLabel } from "@/features/teacher/shared/route-kit/statusLabel";
+import { summarizeEvidence } from "@/features/teacher/shared/route-kit/summarizeEvidence";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { rewardCandidateTone } from "../model/rewardCandidateTone";
 import { type RewardDecisionDraft } from "../model/RewardDecisionDraft";

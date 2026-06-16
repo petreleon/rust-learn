@@ -5,9 +5,9 @@ import { type PlatformReportSummary } from "@/lib/admin/PlatformReportSummary";
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import styles from "@/features/admin/shared/admin-routes.module.css";
-import { PanelError } from "@/components/admin-routes/PanelError";
-import { PanelLoading } from "@/components/admin-routes/PanelLoading";
-import { SummaryCard } from "@/components/admin-routes/SummaryCard";
+import { PanelError } from "@/features/admin/shared/route-kit/PanelError";
+import { PanelLoading } from "@/features/admin/shared/route-kit/PanelLoading";
+import { SummaryCard } from "@/features/admin/shared/route-kit/SummaryCard";
 
 export function WalletSummaryPanel({
   error,

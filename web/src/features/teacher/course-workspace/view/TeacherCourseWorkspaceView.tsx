@@ -3,11 +3,11 @@
 import { AlertCircle, FileText, Loader2, LogIn, RefreshCw, ShieldCheck, Trophy } from "lucide-react";
 import Link from "next/link";
 import { ProductShell } from "@/components/product-shell";
-import { StatePanel } from "@/components/teacher-routes/StatePanel";
-import { StatusLine } from "@/components/teacher-routes/StatusLine";
-import { lifecycleTone } from "@/components/teacher-routes/lifecycleTone";
-import { routeNotice } from "@/components/teacher-routes/routeNotice";
-import { statusLabel } from "@/components/teacher-routes/statusLabel";
+import { StatePanel } from "@/features/teacher/shared/route-kit/StatePanel";
+import { StatusLine } from "@/features/teacher/shared/route-kit/StatusLine";
+import { lifecycleTone } from "@/features/teacher/shared/route-kit/lifecycleTone";
+import { routeNotice } from "@/features/teacher/shared/route-kit/routeNotice";
+import { statusLabel } from "@/features/teacher/shared/route-kit/statusLabel";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { workspaceSummary } from "../model/workspaceSummary";
 import { type TeacherCourseWorkspaceRouteController } from "../route/useTeacherCourseWorkspaceRoute";

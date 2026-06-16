@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminKycReviewRoute } from "@/features/admin/kyc-review/route/AdminKycReviewRoute";
-import { useAdminSession } from "@/components/admin-routes/useAdminSession";
+import { useAdminSession } from "@/features/admin/shared/route-kit/useAdminSession";
 import { decideKycSubmission, fetchKycReviewQueue, fetchKycSubmissionAudit, type KycSubmission } from "@/lib/admin";
 import { type CurrentSession } from "@/lib/session";
 
@@ -11,7 +11,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
-vi.mock("@/components/admin-routes/useAdminSession", () => ({
+vi.mock("@/features/admin/shared/route-kit/useAdminSession", () => ({
   useAdminSession: vi.fn(),
 }));
 

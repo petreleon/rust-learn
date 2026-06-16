@@ -4,7 +4,7 @@ import { CheckCircle2, Clock3, FileText, UserCheck, XCircle } from "lucide-react
 import { type PlatformRewardCandidatesResponse } from "@/lib/admin/PlatformRewardCandidatesResponse";
 import { type LoadState } from "@/shared/route-state/LoadState";
 import styles from "@/features/admin/shared/admin-routes.module.css";
-import { SummaryCard } from "@/components/admin-routes/SummaryCard";
+import { SummaryCard } from "@/features/admin/shared/route-kit/SummaryCard";
 import { countCandidatesByStatus } from "../model/rewardCandidateDisplay";
 
 export function RewardCandidateSummaryPanel({

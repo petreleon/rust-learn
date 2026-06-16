@@ -6,10 +6,10 @@ import { type TeacherApplicationAuditEvent } from "@/lib/admin/TeacherApplicatio
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import styles from "@/features/admin/shared/admin-routes.module.css";
-import { ContextRow } from "@/components/admin-routes/ContextRow";
-import { formatDate } from "@/components/admin-routes/formatDate";
-import { formatUnderscoreLabel } from "@/components/admin-routes/formatUnderscoreLabel";
-import { StatusPill } from "@/components/admin-routes/StatusPill";
+import { ContextRow } from "@/features/admin/shared/route-kit/ContextRow";
+import { formatDate } from "@/features/admin/shared/route-kit/formatDate";
+import { formatUnderscoreLabel } from "@/features/admin/shared/route-kit/formatUnderscoreLabel";
+import { StatusPill } from "@/features/admin/shared/route-kit/StatusPill";
 import { type TeacherApplicationDecisionDraft } from "../model/TeacherApplicationDecisionDraft";
 import { type TeacherApplicationDecisionState } from "../model/TeacherApplicationDecisionState";
 import {

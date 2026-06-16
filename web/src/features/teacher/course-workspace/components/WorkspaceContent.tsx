@@ -3,11 +3,11 @@
 import { ArrowLeft, BookOpen, FileText, ShieldCheck, Trophy, Users } from "lucide-react";
 import Link from "next/link";
 import { type TeacherCourseWorkspaceResponse } from "@/lib/teacher/TeacherCourseWorkspaceResponse";
-import { ChapterList } from "@/components/teacher-routes/ChapterList";
-import { DetailLine } from "@/components/teacher-routes/DetailLine";
-import { PermissionChip } from "@/components/teacher-routes/PermissionChip";
-import { SummaryCard } from "@/components/teacher-routes/SummaryCard";
-import { statusLabel } from "@/components/teacher-routes/statusLabel";
+import { ChapterList } from "@/features/teacher/shared/route-kit/ChapterList";
+import { DetailLine } from "@/features/teacher/shared/route-kit/DetailLine";
+import { PermissionChip } from "@/features/teacher/shared/route-kit/PermissionChip";
+import { SummaryCard } from "@/features/teacher/shared/route-kit/SummaryCard";
+import { statusLabel } from "@/features/teacher/shared/route-kit/statusLabel";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { workspaceSummary } from "../model/workspaceSummary";
 import { WorkspaceActionPanel } from "./WorkspaceActionPanel";

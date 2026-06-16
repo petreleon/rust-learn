@@ -7,13 +7,13 @@ import { ProductShell } from "@/components/product-shell";
 import { clearStoredSessionToken, fetchCurrentSession, readStoredSessionToken, type CurrentSession } from "@/lib/session";
 import { fetchTeachingCourseStudents, type TeacherCourseStudentsResponse } from "@/lib/teacher";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
-import { StatePanel } from "@/components/teacher-routes/StatePanel";
-import { StatusLine } from "@/components/teacher-routes/StatusLine";
-import { StudentProgressView } from "@/components/teacher-routes/StudentProgressView";
-import { normalizeRouteError } from "@/components/teacher-routes/normalizeRouteError";
-import { routeNotice } from "@/components/teacher-routes/routeNotice";
-import { type LoadState } from "@/components/teacher-routes/LoadState";
-import { type RouteError } from "@/components/teacher-routes/RouteError";
+import { StatePanel } from "@/features/teacher/shared/route-kit/StatePanel";
+import { StatusLine } from "@/features/teacher/shared/route-kit/StatusLine";
+import { StudentProgressView } from "@/features/teacher/shared/route-kit/StudentProgressView";
+import { normalizeRouteError } from "@/features/teacher/shared/route-kit/normalizeRouteError";
+import { routeNotice } from "@/features/teacher/shared/route-kit/routeNotice";
+import { type LoadState } from "@/features/teacher/shared/route-kit/LoadState";
+import { type RouteError } from "@/features/teacher/shared/route-kit/RouteError";
 
 export function TeacherCourseStudentsRoute({ courseId }: { courseId: string }) {
   const [error, setError] = useState<RouteError | null>(null);

@@ -6,12 +6,12 @@ import { type PlatformTeacherApplicationsResponse } from "@/lib/admin/PlatformTe
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import styles from "@/features/admin/shared/admin-routes.module.css";
-import { EmptyState } from "@/components/admin-routes/EmptyState";
-import { formatDate } from "@/components/admin-routes/formatDate";
-import { formatUnderscoreLabel } from "@/components/admin-routes/formatUnderscoreLabel";
-import { PanelError } from "@/components/admin-routes/PanelError";
-import { PanelLoading } from "@/components/admin-routes/PanelLoading";
-import { StatusPill } from "@/components/admin-routes/StatusPill";
+import { EmptyState } from "@/features/admin/shared/route-kit/EmptyState";
+import { formatDate } from "@/features/admin/shared/route-kit/formatDate";
+import { formatUnderscoreLabel } from "@/features/admin/shared/route-kit/formatUnderscoreLabel";
+import { PanelError } from "@/features/admin/shared/route-kit/PanelError";
+import { PanelLoading } from "@/features/admin/shared/route-kit/PanelLoading";
+import { StatusPill } from "@/features/admin/shared/route-kit/StatusPill";
 import { type TeacherApplicationFilters } from "../model/TeacherApplicationFilters";
 import {
   teacherApplicationScopeTargetLabel,

@@ -1,14 +1,14 @@
 "use client";
 
 import { ProductShell } from "@/components/product-shell";
-import { ErrorState } from "@/components/organization-routes/ErrorState";
-import { InviteMemberForm } from "@/components/organization-routes/InviteMemberForm";
-import { LoadingState } from "@/components/organization-routes/LoadingState";
-import { MembersDeniedState } from "@/components/organization-routes/MembersDeniedState";
-import { MissingOrganizationState } from "@/components/organization-routes/MissingOrganizationState";
-import { OrganizationStatus } from "@/components/organization-routes/OrganizationStatus";
-import { SignedOutState } from "@/components/organization-routes/SignedOutState";
-import { organizationNotice } from "@/components/organization-routes/organizationNotice";
+import { ErrorState } from "@/features/organization/shared/route-kit/ErrorState";
+import { InviteMemberForm } from "@/features/organization/shared/route-kit/InviteMemberForm";
+import { LoadingState } from "@/features/organization/shared/route-kit/LoadingState";
+import { MembersDeniedState } from "@/features/organization/shared/route-kit/MembersDeniedState";
+import { MissingOrganizationState } from "@/features/organization/shared/route-kit/MissingOrganizationState";
+import { OrganizationStatus } from "@/features/organization/shared/route-kit/OrganizationStatus";
+import { SignedOutState } from "@/features/organization/shared/route-kit/SignedOutState";
+import { organizationNotice } from "@/features/organization/shared/route-kit/organizationNotice";
 import { OrganizationMembersContent } from "../components/OrganizationMembersContent";
 import { organizationMembersTitle } from "../model/organizationMembersRouteModel";
 import { type OrganizationMembersRouteController } from "../route/useOrganizationMembersRoute";
