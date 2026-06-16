@@ -14,6 +14,14 @@ export function normalizeRouteError(error: unknown): RouteError {
   }
 
   if (error instanceof OrganizationRequestError) {
+    if (error.status === 404 && error.code === "course_not_found") {
+      return {
+        code: "course_not_found",
+        message: "This course no longer exists. It may have been deleted; reload the course list before continuing.",
+        status: 404,
+      };
+    }
+
     return {
       code: error.code,
       message: error.message,

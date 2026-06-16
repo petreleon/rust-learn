@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { OrganizationRequestError } from "@/lib/organization";
 import { readStoredSessionToken } from "@/lib/session";
 import { useOrganizationSession } from "@/features/organization/shared/route-kit/useOrganizationSession";
 import { OrganizationCoursesRoute } from "../route/OrganizationCoursesRoute";
@@ -141,5 +142,23 @@ describe("OrganizationCoursesRoute", () => {
       }),
     );
     expect(await screen.findByText("Course lifecycle updated.")).toBeVisible();
+  });
+
+  it("explains when a selected organization course was deleted", async () => {
+    const user = userEvent.setup();
+    vi.mocked(saveOrganizationCourseLifecycle).mockRejectedValue(
+      new OrganizationRequestError("Course not found", 404, "course_not_found"),
+    );
+    render(<OrganizationCoursesRoute organizationId="4" />);
+
+    await user.selectOptions(await screen.findByLabelText("Course to manage"), "9");
+    await user.selectOptions(screen.getByLabelText("Lifecycle target"), "archived");
+    await user.click(screen.getByRole("button", { name: "Update lifecycle" }));
+
+    expect(
+      await screen.findByText(
+        "This course no longer exists. It may have been deleted; reload the course list before continuing.",
+      ),
+    ).toBeVisible();
   });
 });

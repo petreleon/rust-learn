@@ -144,4 +144,21 @@ describe("TeacherCourseWorkspaceRoute", () => {
     expect((await screen.findAllByText("Teacher session expired")).length).toBeGreaterThan(0);
     expect(clearBrowserSession).toHaveBeenCalled();
   });
+
+  it("shows a deleted-course message without clearing the session", async () => {
+    vi.mocked(loadTeacherCourseWorkspace).mockRejectedValue(
+      new TeacherRequestError("Course not found", 404, "course_not_found"),
+    );
+
+    render(<TeacherCourseWorkspaceRoute courseId="9" />);
+
+    expect(
+      (
+        await screen.findAllByText(
+          "This course no longer exists. It may have been deleted; return to your teaching courses before continuing.",
+        )
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(clearBrowserSession).not.toHaveBeenCalled();
+  });
 });

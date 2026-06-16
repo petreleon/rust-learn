@@ -793,13 +793,16 @@ Current evidence:
   validate target transitions through domain policy, treat archived courses as
   terminal, and use an optimistic current-status write so stale updates return
   a refresh-and-retry conflict instead of overwriting silently.
+- Teacher and organization course routes now translate backend
+  `course_not_found` responses into clear deleted-course product messages
+  without treating the user's session as expired.
 
 Needed:
 
 - Add richer platform user filters beyond name/email search if operators need
   KYC, email-verification, role, or permission filtering.
-- Finish richer organization course metadata editing, ownership/organization
-  attachment, and deleted-course edge-state coverage.
+- Finish richer organization course metadata editing and ownership/organization
+  attachment.
 - Finish reward policy management beyond the first product route: inspect
   details, activate/deactivate existing versions if policy toggling remains a
   separate operation, validate coverage, and expose policy audit.
@@ -827,8 +830,8 @@ Checks:
   lifecycle changes from visible manage-settings permission scope.
 - [x] Invalid lifecycle transitions, missing permissions, stale updates, and
   archived course states are blocked with clear messages.
-- [ ] Deleted course states are blocked with clear product-route messages after
-  hard-delete or future soft-delete behavior.
+- [x] Deleted course states are blocked with clear product-route messages after
+  hard-delete/not-found responses.
 - [x] Platform admins with `SET_REWARD_POLICY` can create and list platform,
   organization, and course scoped reward policies from `/admin/reward-policies`
   without using `/ops`.
