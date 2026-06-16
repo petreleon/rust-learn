@@ -112,8 +112,11 @@ Progress:
   components while keeping the old content path as a compatibility export.
 - [x] Split organization wallet audit content into feature-owned components
   while keeping the old content path as a compatibility export.
-- [x] Current architecture scan reports 45 dense-line findings after the
-  organization wallet content cleanup.
+- [x] Split organization teacher-application tracking content into
+  feature-owned components while keeping the old content path as a
+  compatibility export.
+- [x] Current architecture scan reports 44 dense-line findings after the
+  organization teacher-applications content cleanup.
 
 Latest pilot proof:
 
