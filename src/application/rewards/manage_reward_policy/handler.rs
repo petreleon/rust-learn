@@ -2,7 +2,8 @@ use crate::application::rewards::manage_reward_policy::validation::{
     validated_draft, validated_filter,
 };
 use crate::application::rewards::manage_reward_policy::{
-    CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyError, RewardPolicyOutput,
+    CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyAuditEventOutput,
+    RewardPolicyError, RewardPolicyOutput, UpdateRewardPolicyActivationCommand,
 };
 use crate::application::rewards::ports::RewardPolicyStore;
 use crate::domain::access_control::permissions::Permissions;
@@ -26,6 +27,27 @@ pub async fn list_reward_policies(
     store.list_policies(validated_filter(query)?).await
 }
 
+pub async fn update_reward_policy_activation(
+    store: &mut impl RewardPolicyStore,
+    actor_user_id: i32,
+    command: UpdateRewardPolicyActivationCommand,
+) -> Result<RewardPolicyOutput, RewardPolicyError> {
+    ensure_can_manage(store, actor_user_id).await?;
+    ensure_positive_policy_id(command.policy_id)?;
+    store.update_policy_activation(actor_user_id, command).await
+}
+
+pub async fn list_reward_policy_audit(
+    store: &mut impl RewardPolicyStore,
+    actor_user_id: i32,
+    policy_id: i64,
+) -> Result<Vec<RewardPolicyAuditEventOutput>, RewardPolicyError> {
+    ensure_can_manage(store, actor_user_id).await?;
+    ensure_positive_policy_id(policy_id)?;
+    store.reward_policy_exists(policy_id).await?;
+    store.list_policy_audit_events(policy_id).await
+}
+
 async fn ensure_can_manage(
     store: &mut impl RewardPolicyStore,
     actor_user_id: i32,
@@ -35,6 +57,16 @@ async fn ensure_can_manage(
     } else {
         Err(RewardPolicyError::PermissionDenied(
             Permissions::SET_REWARD_POLICY.into(),
+        ))
+    }
+}
+
+fn ensure_positive_policy_id(policy_id: i64) -> Result<(), RewardPolicyError> {
+    if policy_id > 0 {
+        Ok(())
+    } else {
+        Err(RewardPolicyError::InvalidInput(
+            "reward policy id must be positive".to_string(),
         ))
     }
 }

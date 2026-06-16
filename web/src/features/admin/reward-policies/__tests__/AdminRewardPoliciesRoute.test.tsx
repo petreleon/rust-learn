@@ -4,11 +4,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readBrowserSessionToken } from "@/shared/session/browserSession";
 import {
   createAdminRewardPolicy,
+  loadAdminRewardPolicyAudit,
   loadAdminRewardPolicySession,
   loadRewardPolicyItems,
 } from "../api/rewardPoliciesApi";
 import { AdminRewardPoliciesRoute } from "../route/AdminRewardPoliciesRoute";
-import { adminRewardPolicySession, rewardPolicy } from "./adminRewardPoliciesTestFixtures";
+import {
+  adminRewardPolicySession,
+  rewardPolicy,
+  rewardPolicyAuditEvent,
+} from "./adminRewardPoliciesTestFixtures";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/admin/reward-policies",
@@ -22,8 +27,10 @@ vi.mock("@/shared/session/browserSession", () => ({
 
 vi.mock("../api/rewardPoliciesApi", () => ({
   createAdminRewardPolicy: vi.fn(),
+  loadAdminRewardPolicyAudit: vi.fn(),
   loadAdminRewardPolicySession: vi.fn(),
   loadRewardPolicyItems: vi.fn(),
+  updateAdminRewardPolicyActivation: vi.fn(),
 }));
 
 describe("AdminRewardPoliciesRoute", () => {
@@ -32,6 +39,7 @@ describe("AdminRewardPoliciesRoute", () => {
     vi.mocked(readBrowserSessionToken).mockReturnValue("admin-token");
     vi.mocked(loadAdminRewardPolicySession).mockResolvedValue(adminRewardPolicySession(["SET_REWARD_POLICY"]));
     vi.mocked(loadRewardPolicyItems).mockResolvedValue([rewardPolicy()]);
+    vi.mocked(loadAdminRewardPolicyAudit).mockResolvedValue([rewardPolicyAuditEvent()]);
     vi.mocked(createAdminRewardPolicy).mockResolvedValue(rewardPolicy({ id: 99, scope_type: "course" }));
   });
 
@@ -52,9 +60,17 @@ describe("AdminRewardPoliciesRoute", () => {
     expect(await screen.findByText("Platform policy #41")).toBeVisible();
     expect(await screen.findByText("Policy inspection")).toBeVisible();
     expect(screen.getByText("#41")).toBeVisible();
+    expect(await screen.findByText("Policy audit")).toBeVisible();
+    expect((await screen.findAllByText("Created")).length).toBeGreaterThan(0);
     await waitFor(() =>
       expect(loadRewardPolicyItems).toHaveBeenCalledWith({
         filters: { active: true, eventType: "", offset: 0, scopeType: "" },
+        token: "admin-token",
+      }),
+    );
+    await waitFor(() =>
+      expect(loadAdminRewardPolicyAudit).toHaveBeenCalledWith({
+        policyId: 41,
         token: "admin-token",
       }),
     );
@@ -87,6 +103,12 @@ describe("AdminRewardPoliciesRoute", () => {
     expect(screen.getByText("Assessment Completion")).toBeVisible();
     expect(screen.getByText("100 tokens")).toBeVisible();
     expect(screen.getByText("Historical version")).toBeVisible();
+    await waitFor(() =>
+      expect(loadAdminRewardPolicyAudit).toHaveBeenCalledWith({
+        policyId: 42,
+        token: "admin-token",
+      }),
+    );
   });
 
   it("filters policies and creates a course-scoped policy", async () => {
@@ -144,5 +166,6 @@ describe("AdminRewardPoliciesRoute", () => {
 
     expect(await screen.findByText("Reward policies unavailable")).toBeVisible();
     expect(loadRewardPolicyItems).not.toHaveBeenCalled();
+    expect(loadAdminRewardPolicyAudit).not.toHaveBeenCalled();
   });
 });

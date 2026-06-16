@@ -3,10 +3,11 @@ pub(crate) use chrono::NaiveDate;
 pub(crate) use diesel_async::{AsyncPgConnection, RunQueryDsl};
 pub(crate) use rust_learn::application::rewards::manage_reward_policy::{
     CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyError, RewardPolicyUseCase,
+    UpdateRewardPolicyActivationCommand,
 };
 pub(crate) use rust_learn::domain::access_control::roles::Roles;
 pub(crate) use rust_learn::domain::rewards::policy::{
-    RewardPaymentStrategy, RewardPolicyEventType, RewardPolicyScope,
+    RewardPaymentStrategy, RewardPolicyAuditEventType, RewardPolicyEventType, RewardPolicyScope,
 };
 pub(crate) use rust_learn::infra::postgres::access_control::role_assignments::assign_platform_role_to_user;
 pub(crate) use rust_learn::infra::postgres::identity::bootstrap_accounts::create_verified_password_user as create_user;

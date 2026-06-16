@@ -1,8 +1,9 @@
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::rewards::manage_reward_policy::{
-    self, CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyError,
-    RewardPolicyOutput, RewardPolicyUseCase,
+    self, CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyAuditEventOutput,
+    RewardPolicyError, RewardPolicyOutput, RewardPolicyUseCase,
+    UpdateRewardPolicyActivationCommand,
 };
 use crate::infra::postgres::rewards::reward_policy_store::PostgresRewardPolicyStore;
 use crate::infra::postgres::DbPool;
@@ -41,6 +42,38 @@ impl RewardPolicyUseCase for PostgresRewardPolicyUseCase {
             let mut conn = self.connection().await?;
             let mut store = PostgresRewardPolicyStore::new(&mut conn);
             manage_reward_policy::list_reward_policies(&mut store, actor_user_id, query).await
+        }
+        .boxed()
+    }
+
+    fn update_reward_policy_activation(
+        &self,
+        actor_user_id: i32,
+        command: UpdateRewardPolicyActivationCommand,
+    ) -> BoxFuture<'_, Result<RewardPolicyOutput, RewardPolicyError>> {
+        async move {
+            let mut conn = self.connection().await?;
+            let mut store = PostgresRewardPolicyStore::new(&mut conn);
+            manage_reward_policy::update_reward_policy_activation(
+                &mut store,
+                actor_user_id,
+                command,
+            )
+            .await
+        }
+        .boxed()
+    }
+
+    fn list_reward_policy_audit(
+        &self,
+        actor_user_id: i32,
+        policy_id: i64,
+    ) -> BoxFuture<'_, Result<Vec<RewardPolicyAuditEventOutput>, RewardPolicyError>> {
+        async move {
+            let mut conn = self.connection().await?;
+            let mut store = PostgresRewardPolicyStore::new(&mut conn);
+            manage_reward_policy::list_reward_policy_audit(&mut store, actor_user_id, policy_id)
+                .await
         }
         .boxed()
     }

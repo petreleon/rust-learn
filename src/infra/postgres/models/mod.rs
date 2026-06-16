@@ -28,6 +28,7 @@ pub mod reward_execution_job;
 pub mod reward_fraud_block;
 pub mod reward_payout_record;
 pub mod reward_policy;
+pub mod reward_policy_audit_event;
 pub mod reward_wallet_credit_record;
 pub mod role;
 pub mod role_course_hierarchy;

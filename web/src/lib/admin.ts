@@ -47,6 +47,8 @@ export type { PlatformRewardCandidatePermissions } from "./admin/PlatformRewardC
 export type { PlatformRewardCandidatesResponse } from "./admin/PlatformRewardCandidatesResponse";
 export type { RewardAuditEvent } from "./admin/RewardAuditEvent";
 export type { RewardCandidateAmountDecisionStatus } from "./admin/RewardCandidateAmountDecisionStatus";
+export type { RewardPolicyActivationOptions } from "./admin/RewardPolicyActivationOptions";
+export type { RewardPolicyAuditEvent } from "./admin/RewardPolicyAuditEvent";
 export type { RewardPolicyCreateOptions, RewardPolicyCreatePayload } from "./admin/RewardPolicyCreateOptions";
 export type { RewardPolicyItem } from "./admin/RewardPolicyItem";
 export type { RewardPolicyListOptions } from "./admin/RewardPolicyListOptions";
@@ -85,6 +87,8 @@ export { decideRewardAmount } from "./admin/decideRewardAmount";
 export { fetchRewardCandidateAudit } from "./admin/fetchRewardCandidateAudit";
 export { createRewardPolicy } from "./admin/createRewardPolicy";
 export { fetchRewardPolicies } from "./admin/fetchRewardPolicies";
+export { fetchRewardPolicyAudit } from "./admin/fetchRewardPolicyAudit";
+export { updateRewardPolicyActivation } from "./admin/updateRewardPolicyActivation";
 export type { PlatformWalletReconciliationRow } from "./admin/PlatformWalletReconciliationRow";
 export type { PlatformWalletReconciliation } from "./admin/PlatformWalletReconciliation";
 export { downloadPlatformCsv } from "./admin/downloadPlatformCsv";

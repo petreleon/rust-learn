@@ -1,19 +1,19 @@
-use chrono::Utc;
 use diesel::prelude::*;
-use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
+use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::rewards::manage_reward_policy::{
-    RewardPolicyDraft, RewardPolicyError, RewardPolicyListFilter, RewardPolicyOutput,
+    RewardPolicyAuditEventOutput, RewardPolicyDraft, RewardPolicyError, RewardPolicyListFilter,
+    RewardPolicyOutput, UpdateRewardPolicyActivationCommand,
 };
 use crate::application::rewards::ports::RewardPolicyStore;
 use crate::infra::postgres::rewards::reward_authorization_access;
-use crate::infra::postgres::rewards::reward_policy_activation::deactivate_active_policies;
-use crate::infra::postgres::rewards::reward_policy_mappers::{
-    map_reward_policy_error, new_reward_policy,
-};
+use crate::infra::postgres::rewards::reward_policy_activation_update::update_policy_activation;
+use crate::infra::postgres::rewards::reward_policy_audit_records::list_policy_audit_events;
+use crate::infra::postgres::rewards::reward_policy_creation::create_versioned_policy;
+use crate::infra::postgres::rewards::reward_policy_mappers::map_reward_policy_error;
 use crate::infra::postgres::rewards::reward_policy_records::{
-    create_policy, list_policies, next_policy_version, RewardPolicyFilter,
+    find_policy, list_policies, RewardPolicyFilter,
 };
 use crate::infra::postgres::schema::{courses, organizations};
 
@@ -88,42 +88,41 @@ impl RewardPolicyStore for PostgresRewardPolicyStore<'_> {
         }
         .boxed()
     }
-}
 
-async fn create_versioned_policy(
-    conn: &mut AsyncPgConnection,
-    draft: RewardPolicyDraft,
-) -> Result<RewardPolicyOutput, RewardPolicyError> {
-    let policy = conn
-        .transaction::<_, diesel::result::Error, _>(|conn| {
-            Box::pin(async move {
-                let scope_type = draft.scope_type.as_str();
-                let event_type = draft.event_type.as_str();
-                let version = next_policy_version(
-                    conn,
-                    scope_type,
-                    draft.organization_id,
-                    draft.course_id,
-                    event_type,
-                )
-                .await?;
+    fn update_policy_activation(
+        &mut self,
+        actor_user_id: i32,
+        command: UpdateRewardPolicyActivationCommand,
+    ) -> BoxFuture<'_, Result<RewardPolicyOutput, RewardPolicyError>> {
+        async move { update_policy_activation(self.conn, actor_user_id, command).await }.boxed()
+    }
 
-                if draft.active {
-                    deactivate_active_policies(
-                        conn,
-                        scope_type,
-                        draft.organization_id,
-                        draft.course_id,
-                        event_type,
-                        Utc::now(),
-                    )
-                    .await?;
-                }
+    fn reward_policy_exists(
+        &mut self,
+        policy_id: i64,
+    ) -> BoxFuture<'_, Result<(), RewardPolicyError>> {
+        async move {
+            find_policy(self.conn, policy_id)
+                .await
+                .map(|_| ())
+                .map_err(map_reward_policy_error)
+        }
+        .boxed()
+    }
 
-                create_policy(conn, new_reward_policy(draft, version)).await
-            })
-        })
-        .await
-        .map_err(map_reward_policy_error)?;
-    RewardPolicyOutput::try_from(policy)
+    fn list_policy_audit_events(
+        &mut self,
+        policy_id: i64,
+    ) -> BoxFuture<'_, Result<Vec<RewardPolicyAuditEventOutput>, RewardPolicyError>> {
+        async move {
+            let events = list_policy_audit_events(self.conn, policy_id)
+                .await
+                .map_err(map_reward_policy_error)?;
+            events
+                .into_iter()
+                .map(RewardPolicyAuditEventOutput::try_from)
+                .collect()
+        }
+        .boxed()
+    }
 }

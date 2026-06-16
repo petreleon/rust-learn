@@ -750,9 +750,13 @@ Current evidence:
   organization-course ownership changes remain separate route work.
 - Backend APIs exist for reward policy creation/listing at
   `/api/reward-policies`. Web helpers and `/admin/reward-policies` now cover
-  creation, listing, policy scope, amount rules, and active/inactive filters;
-  dedicated detail inspection, activation/deactivation, coverage validation,
-  and policy audit remain.
+  creation, listing, policy scope, amount rules, active/inactive filters,
+  activation/deactivation, and persisted policy audit. Coverage validation
+  remains.
+- Backend reward-policy activation uses `PUT
+  /api/reward-policies/{policy_id}/activation`; policy audit uses `GET
+  /api/reward-policies/{policy_id}/audit` backed by
+  `reward_policy_audit_events`.
 - `/admin/reward-policies` now exposes a product route for platform admins with
   `SET_REWARD_POLICY`: operators can list active/inactive policies, filter by
   scope and event type, and create platform, organization, or course scoped
@@ -761,6 +765,10 @@ Current evidence:
 - `/admin/reward-policies` now lets operators select a loaded policy version
   and inspect scope identifiers, amount rules, activation state, version,
   actor, and timestamps from the product route.
+- `/admin/reward-policies` now lets operators activate/deactivate existing
+  policy versions and inspect policy audit history from the selected policy
+  panel. Activating an older version deactivates any overlapping active version
+  inside the reward-policy use case.
 - The current-session platform capability catalog now advertises
   `reward_policies`, and the admin dashboard links to the policy lane instead
   of forcing operators back through `/ops`.
@@ -803,11 +811,10 @@ Needed:
   KYC, email-verification, role, or permission filtering.
 - Finish richer organization course metadata editing and ownership/organization
   attachment.
-- Finish reward policy management beyond the first product route: inspect
-  details, activate/deactivate existing versions if policy toggling remains a
-  separate operation, validate coverage, and expose policy audit.
-- Extend reward-policy picker/search into reward operations wherever a numeric
-  policy id is still required.
+- Finish reward policy coverage validation if operators need a dedicated
+  report for missing platform, organization, or course event policies.
+- Extend reward-policy picker/search into future product reward operations if
+  they introduce new policy targets outside fraud blocks.
 - Add deeper token-tax reporting if operators need filters beyond the latest
   effective history.
 
@@ -835,8 +842,8 @@ Checks:
 - [x] Platform admins with `SET_REWARD_POLICY` can create and list platform,
   organization, and course scoped reward policies from `/admin/reward-policies`
   without using `/ops`.
-- [ ] Reward policies can be inspected, activated/deactivated, audited, and
-  selected by name/context wherever a numeric policy id is still required.
+- [x] Reward policies can be inspected, activated/deactivated, and audited
+  from `/admin/reward-policies`.
 - [x] Reward policies can be inspected from the loaded admin policy list
   without using `/ops`.
 - [x] Reward candidate creation and assessment handoff surface the policy that
@@ -855,6 +862,8 @@ Checks:
   dashboard link to `/admin/reward-policies`.
 - [x] Page tests cover reward policy selection and inspection from the admin
   policy route.
+- [x] Page tests cover reward policy activation/deactivation controls and
+  policy audit loading from the admin policy route.
 - [x] Page tests cover teacher course metadata save and lifecycle submit from
   the course workspace route.
 - [x] Page tests cover organization course title save and lifecycle submit from

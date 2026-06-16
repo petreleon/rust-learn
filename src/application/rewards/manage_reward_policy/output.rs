@@ -2,7 +2,7 @@ use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 
 use crate::domain::rewards::policy::{
-    RewardPaymentStrategy, RewardPolicyEventType, RewardPolicyScope,
+    RewardPaymentStrategy, RewardPolicyAuditEventType, RewardPolicyEventType, RewardPolicyScope,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,4 +22,15 @@ pub struct RewardPolicyOutput {
     pub created_by_user_id: Option<i32>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RewardPolicyAuditEventOutput {
+    pub id: i64,
+    pub reward_policy_id: i64,
+    pub actor_user_id: Option<i32>,
+    pub event_type: RewardPolicyAuditEventType,
+    pub previous_active: Option<bool>,
+    pub new_active: bool,
+    pub created_at: DateTime<Utc>,
 }

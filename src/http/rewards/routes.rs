@@ -18,11 +18,20 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
 }
 
 pub fn reward_policy_scope() -> actix_web::Scope {
-    web::scope("/reward-policies").service(
-        web::resource("")
-            .route(web::post().to(reward_policy::create_reward_policy))
-            .route(web::get().to(reward_policy::list_reward_policies)),
-    )
+    web::scope("/reward-policies")
+        .service(
+            web::resource("")
+                .route(web::post().to(reward_policy::create_reward_policy))
+                .route(web::get().to(reward_policy::list_reward_policies)),
+        )
+        .service(
+            web::resource("/{policy_id}/activation")
+                .route(web::put().to(reward_policy::update_reward_policy_activation)),
+        )
+        .service(
+            web::resource("/{policy_id}/audit")
+                .route(web::get().to(reward_policy::list_reward_policy_audit)),
+        )
 }
 
 pub fn reward_fraud_block_scope() -> actix_web::Scope {

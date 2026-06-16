@@ -1,4 +1,5 @@
 import { type RewardPolicyItem } from "@/lib/admin/RewardPolicyItem";
+import { type RewardPolicyAuditEvent } from "@/lib/admin/RewardPolicyAuditEvent";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
 
 export function adminRewardPolicySession(permissions: string[]): CurrentSession {
@@ -46,6 +47,21 @@ export function rewardPolicy(overrides: Partial<RewardPolicyItem> = {}): RewardP
     token_amount: "10",
     updated_at: "2026-06-16T09:15:00Z",
     version: 1,
+    ...overrides,
+  };
+}
+
+export function rewardPolicyAuditEvent(
+  overrides: Partial<RewardPolicyAuditEvent> = {},
+): RewardPolicyAuditEvent {
+  return {
+    actor_user_id: 1,
+    created_at: "2026-06-16T09:20:00Z",
+    event_type: "created",
+    id: 501,
+    new_active: true,
+    previous_active: null,
+    reward_policy_id: 41,
     ...overrides,
   };
 }

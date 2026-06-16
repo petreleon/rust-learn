@@ -15,7 +15,8 @@ use crate::application::rewards::manage_fraud_block::{
     RewardFraudBlockOutput,
 };
 use crate::application::rewards::manage_reward_policy::{
-    RewardPolicyDraft, RewardPolicyError, RewardPolicyListFilter, RewardPolicyOutput,
+    RewardPolicyAuditEventOutput, RewardPolicyDraft, RewardPolicyError, RewardPolicyListFilter,
+    RewardPolicyOutput, UpdateRewardPolicyActivationCommand,
 };
 use crate::domain::rewards::fraud_block::{RewardFraudBlockAuditEventType, RewardFraudBlockScope};
 
@@ -41,6 +42,22 @@ pub trait RewardPolicyStore {
         &mut self,
         filter: RewardPolicyListFilter,
     ) -> BoxFuture<'_, Result<Vec<RewardPolicyOutput>, RewardPolicyError>>;
+
+    fn update_policy_activation(
+        &mut self,
+        actor_user_id: i32,
+        command: UpdateRewardPolicyActivationCommand,
+    ) -> BoxFuture<'_, Result<RewardPolicyOutput, RewardPolicyError>>;
+
+    fn reward_policy_exists(
+        &mut self,
+        policy_id: i64,
+    ) -> BoxFuture<'_, Result<(), RewardPolicyError>>;
+
+    fn list_policy_audit_events(
+        &mut self,
+        policy_id: i64,
+    ) -> BoxFuture<'_, Result<Vec<RewardPolicyAuditEventOutput>, RewardPolicyError>>;
 }
 
 pub trait RewardFraudBlockStore {

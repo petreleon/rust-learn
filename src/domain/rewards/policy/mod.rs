@@ -1,9 +1,16 @@
 use std::fmt;
 
+mod audit;
+
 pub use crate::domain::rewards::candidate::event_type::{
     RewardEventType as RewardPolicyEventType, REWARD_EVENT_ADMINISTRATIVE_ADJUSTMENT,
     REWARD_EVENT_ASSESSMENT_COMPLETION, REWARD_EVENT_COURSE_COMPLETION,
     REWARD_EVENT_MANUAL_COMPLETION,
+};
+pub use audit::{
+    PolicyAuditEventTypeParseError, RewardPolicyAuditEventType,
+    REWARD_POLICY_AUDIT_EVENT_ACTIVATED, REWARD_POLICY_AUDIT_EVENT_CREATED,
+    REWARD_POLICY_AUDIT_EVENT_DEACTIVATED,
 };
 
 pub const REWARD_POLICY_SCOPE_PLATFORM: &str = "platform";

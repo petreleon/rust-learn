@@ -16,6 +16,20 @@ import { RewardPolicyListPanel } from "../components/RewardPolicyListPanel";
 import { type AdminRewardPoliciesRouteController } from "../route/useAdminRewardPoliciesRoute";
 
 function rewardPolicyNotice(route: AdminRewardPoliciesRouteController): ShellNotice | null {
+  if (route.activationState === "success" && route.updatedPolicy) {
+    return {
+      message: `Policy #${route.updatedPolicy.id} is now ${route.updatedPolicy.active ? "active" : "inactive"}.`,
+      title: "Policy updated",
+      tone: "success",
+    };
+  }
+  if (route.activationState === "error" && route.activationError) {
+    return {
+      message: route.activationError.message,
+      title: "Activation failed",
+      tone: route.activationError.status === 403 ? "warn" : "error",
+    };
+  }
   if (route.createState === "success" && route.createdPolicy) {
     return {
       message: `Policy #${route.createdPolicy.id} is ready for ${route.createdPolicy.scope_type} scope.`,
@@ -89,7 +103,19 @@ function RewardPolicyWorkspace({ route }: { route: AdminRewardPoliciesRouteContr
           state={route.policiesState}
         />
         <div className={styles.stack}>
-          <RewardPolicyInspectionPanel policy={route.selectedPolicy} />
+          <RewardPolicyInspectionPanel
+            auditError={route.auditError}
+            auditEvents={route.auditEvents}
+            auditState={route.auditState}
+            onRefreshAudit={() => {
+              if (route.selectedPolicyId) void route.loadPolicyAudit(route.selectedPolicyId);
+            }}
+            onSetActive={(active) => {
+              if (route.selectedPolicyId) void route.setPolicyActive(route.selectedPolicyId, active);
+            }}
+            policy={route.selectedPolicy}
+            policyActionState={route.activationState}
+          />
           <RewardPolicyCreatePanel
             draft={route.draft}
             error={route.createError}

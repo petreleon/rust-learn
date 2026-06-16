@@ -15,6 +15,8 @@ import {
   findRewardPolicyCapability,
 } from "../model/rewardPolicyAccessModel";
 import { useRewardPolicyCreation } from "./useRewardPolicyCreation";
+import { useRewardPolicyActivation } from "./useRewardPolicyActivation";
+import { useRewardPolicyAudit } from "./useRewardPolicyAudit";
 import { useRewardPolicyList } from "./useRewardPolicyList";
 
 function expiredSession(error: RouteError) {
@@ -37,6 +39,15 @@ export function useAdminRewardPoliciesRoute() {
   const list = useRewardPolicyList({ canManage });
   const { loadPolicies } = list;
   const create = useRewardPolicyCreation({ canManage, onCreated: loadPolicies });
+  const audit = useRewardPolicyAudit({ canManage });
+  const { loadPolicyAudit, resetPolicyAudit } = audit;
+  const activation = useRewardPolicyActivation({
+    canManage,
+    onUpdated: (policy) => {
+      void loadPolicies();
+      void loadPolicyAudit(policy.id);
+    },
+  });
 
   const clearRoute = useCallback((nextLoadState: LoadState) => {
     setError(null);
@@ -82,6 +93,15 @@ export function useAdminRewardPoliciesRoute() {
     return undefined;
   }, [allowed, canManage, loadPolicies, session]);
 
+  useEffect(() => {
+    if (session && allowed && canManage && list.selectedPolicyId) {
+      const timeout = window.setTimeout(() => void loadPolicyAudit(list.selectedPolicyId), 0);
+      return () => window.clearTimeout(timeout);
+    }
+    resetPolicyAudit();
+    return undefined;
+  }, [allowed, canManage, list.selectedPolicyId, loadPolicyAudit, resetPolicyAudit, session]);
+
   function signOut() {
     clearBrowserSession();
     clearRoute("idle");
@@ -100,6 +120,8 @@ export function useAdminRewardPoliciesRoute() {
     workspace,
     ...list,
     ...create,
+    ...audit,
+    ...activation,
   };
 }
 

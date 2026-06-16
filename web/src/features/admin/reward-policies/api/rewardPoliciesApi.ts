@@ -1,6 +1,9 @@
 import { createRewardPolicy } from "@/lib/admin/createRewardPolicy";
+import { fetchRewardPolicyAudit } from "@/lib/admin/fetchRewardPolicyAudit";
 import { fetchRewardPolicies } from "@/lib/admin/fetchRewardPolicies";
+import { updateRewardPolicyActivation } from "@/lib/admin/updateRewardPolicyActivation";
 import { type RewardPolicyCreatePayload } from "@/lib/admin/RewardPolicyCreateOptions";
+import { type RewardPolicyAuditEvent } from "@/lib/admin/RewardPolicyAuditEvent";
 import { type RewardPolicyItem } from "@/lib/admin/RewardPolicyItem";
 import { fetchCurrentSession } from "@/lib/session/fetchCurrentSession";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
@@ -38,4 +41,26 @@ export function createAdminRewardPolicy({
   token: string;
 }): Promise<RewardPolicyItem> {
   return createRewardPolicy({ payload, token });
+}
+
+export function updateAdminRewardPolicyActivation({
+  active,
+  policyId,
+  token,
+}: {
+  active: boolean;
+  policyId: number;
+  token: string;
+}): Promise<RewardPolicyItem> {
+  return updateRewardPolicyActivation({ active, policyId, token });
+}
+
+export function loadAdminRewardPolicyAudit({
+  policyId,
+  token,
+}: {
+  policyId: number;
+  token: string;
+}): Promise<RewardPolicyAuditEvent[]> {
+  return fetchRewardPolicyAudit({ policyId, token });
 }

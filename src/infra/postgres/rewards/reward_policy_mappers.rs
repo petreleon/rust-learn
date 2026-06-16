@@ -1,7 +1,12 @@
 use crate::application::rewards::manage_reward_policy::{
-    RewardPolicyDraft, RewardPolicyError, RewardPolicyListFilter, RewardPolicyOutput,
+    RewardPolicyAuditEventOutput, RewardPolicyDraft, RewardPolicyError, RewardPolicyListFilter,
+    RewardPolicyOutput,
 };
+use crate::domain::rewards::policy::RewardPolicyAuditEventType;
 use crate::infra::postgres::models::reward_policy::{NewRewardPolicy, RewardPolicy};
+use crate::infra::postgres::models::reward_policy_audit_event::{
+    NewRewardPolicyAuditEvent, RewardPolicyAuditEvent,
+};
 use crate::infra::postgres::rewards::reward_policy_records::RewardPolicyFilter;
 use crate::infra::postgres::rewards::reward_vocabulary::{
     parse_payment_strategy, parse_policy_scope, parse_reward_event_type,
@@ -21,6 +26,22 @@ pub(super) fn new_reward_policy(draft: RewardPolicyDraft, version: i32) -> NewRe
         payment_strategy: draft.payment_strategy.as_str().to_string(),
         active: draft.active,
         created_by_user_id: Some(draft.actor_user_id),
+    }
+}
+
+pub(super) fn new_reward_policy_audit_event(
+    reward_policy_id: i64,
+    actor_user_id: i32,
+    event_type: RewardPolicyAuditEventType,
+    previous_active: Option<bool>,
+    new_active: bool,
+) -> NewRewardPolicyAuditEvent {
+    NewRewardPolicyAuditEvent {
+        reward_policy_id,
+        actor_user_id: Some(actor_user_id),
+        event_type: event_type.as_str().to_string(),
+        previous_active,
+        new_active,
     }
 }
 
@@ -65,6 +86,23 @@ impl TryFrom<RewardPolicy> for RewardPolicyOutput {
             created_by_user_id: policy.created_by_user_id,
             created_at: policy.created_at,
             updated_at: policy.updated_at,
+        })
+    }
+}
+
+impl TryFrom<RewardPolicyAuditEvent> for RewardPolicyAuditEventOutput {
+    type Error = RewardPolicyError;
+
+    fn try_from(event: RewardPolicyAuditEvent) -> Result<Self, Self::Error> {
+        Ok(Self {
+            id: event.id,
+            reward_policy_id: event.reward_policy_id,
+            actor_user_id: event.actor_user_id,
+            event_type: RewardPolicyAuditEventType::parse(&event.event_type)
+                .map_err(|error| RewardPolicyError::Database(error.to_string()))?,
+            previous_active: event.previous_active,
+            new_active: event.new_active,
+            created_at: event.created_at,
         })
     }
 }

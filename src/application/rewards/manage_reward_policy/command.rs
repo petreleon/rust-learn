@@ -19,6 +19,12 @@ pub struct CreateRewardPolicyCommand {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateRewardPolicyActivationCommand {
+    pub policy_id: i64,
+    pub active: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RewardPolicyDraft {
     pub actor_user_id: i32,
     pub scope_type: RewardPolicyScope,

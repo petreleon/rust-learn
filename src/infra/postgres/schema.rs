@@ -462,6 +462,19 @@ diesel::table! {
 }
 
 diesel::table! {
+    reward_policy_audit_events (id) {
+        id -> Int8,
+        reward_policy_id -> Int8,
+        actor_user_id -> Nullable<Int4>,
+        #[max_length = 32]
+        event_type -> Varchar,
+        previous_active -> Nullable<Bool>,
+        new_active -> Bool,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     reward_wallet_credit_records (id) {
         id -> Int8,
         reward_candidate_id -> Int8,
@@ -747,6 +760,8 @@ diesel::joinable!(reward_payout_records -> transactions (transaction_id));
 diesel::joinable!(reward_policies -> courses (course_id));
 diesel::joinable!(reward_policies -> organizations (organization_id));
 diesel::joinable!(reward_policies -> users (created_by_user_id));
+diesel::joinable!(reward_policy_audit_events -> reward_policies (reward_policy_id));
+diesel::joinable!(reward_policy_audit_events -> users (actor_user_id));
 diesel::joinable!(reward_wallet_credit_records -> internal_transactions (internal_transaction_id));
 diesel::joinable!(reward_wallet_credit_records -> notifications (notification_id));
 diesel::joinable!(reward_wallet_credit_records -> reward_candidates (reward_candidate_id));
@@ -822,6 +837,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     reward_fraud_blocks,
     reward_payout_records,
     reward_policies,
+    reward_policy_audit_events,
     reward_wallet_credit_records,
     role_course_hierarchy,
     role_organization_hierarchy,

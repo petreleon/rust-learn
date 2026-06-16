@@ -40,6 +40,16 @@ pub async fn create_policy(
         .await
 }
 
+pub async fn find_policy(
+    conn: &mut AsyncPgConnection,
+    policy_id: i64,
+) -> QueryResult<RewardPolicy> {
+    reward_policies::table
+        .find(policy_id)
+        .first::<RewardPolicy>(conn)
+        .await
+}
+
 pub async fn list_policies(
     conn: &mut AsyncPgConnection,
     filter: RewardPolicyFilter,

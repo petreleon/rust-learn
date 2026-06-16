@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::application::rewards::manage_reward_policy::{
     CreateRewardPolicyCommand, ListRewardPoliciesQuery, RewardPolicyError, RewardPolicyOutput,
+    UpdateRewardPolicyActivationCommand,
 };
 use crate::domain::rewards::policy::{
     RewardPaymentStrategy, RewardPolicyEventType, RewardPolicyScope,
@@ -32,6 +33,11 @@ pub struct ListRewardPoliciesRequest {
     pub active: Option<bool>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateRewardPolicyActivationRequest {
+    pub active: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -69,6 +75,18 @@ impl CreateRewardPolicyRequest {
             payment_strategy: reward_payment_strategy(&self.payment_strategy)?,
             active: self.active,
         })
+    }
+}
+
+impl UpdateRewardPolicyActivationRequest {
+    pub(in crate::http::rewards) fn into_command(
+        self,
+        policy_id: i64,
+    ) -> UpdateRewardPolicyActivationCommand {
+        UpdateRewardPolicyActivationCommand {
+            policy_id,
+            active: self.active,
+        }
     }
 }
 
