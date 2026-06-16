@@ -22,11 +22,20 @@ export function accessSummary(session?: CurrentSession | null): AccessSummary {
     };
   }
 
+  if (session.access) {
+    return {
+      learner: session.access.learner,
+      teacher: session.access.teacher,
+      organization: session.access.organization,
+      platformAdmin: session.access.platform_admin,
+    };
+  }
+
   return {
-    learner: session.access.learner,
-    teacher: session.access.teacher,
-    organization: session.access.organization,
-    platformAdmin: session.access.platform_admin,
+    learner: true,
+    teacher: hasLegacyTeacherAccess(session),
+    organization: session.organizations.some(hasOrganizationAccess),
+    platformAdmin: hasLegacyPlatformAdminAccess(session),
   };
 }
 
@@ -39,7 +48,7 @@ export function hasTeacherApplicationAccess(session: CurrentSession) {
 }
 
 export function hasTeacherCourseAccess(course: CourseSessionScope) {
-  return course.capabilities.some((capability) => capability.key === "teaching" && capability.enabled);
+  return (course.capabilities ?? []).some((capability) => capability.key === "teaching" && capability.enabled);
 }
 
 export function hasOrganizationAccess(organization: OrganizationSessionScope) {
@@ -47,7 +56,7 @@ export function hasOrganizationAccess(organization: OrganizationSessionScope) {
     organization.roles.length > 0 ||
     organization.direct_permissions.length > 0 ||
     organization.delegated_permissions.length > 0 ||
-    organization.capabilities.some((capability) => capability.enabled)
+    (organization.capabilities ?? []).some((capability) => capability.enabled)
   );
 }
 
@@ -57,4 +66,15 @@ export function hasPlatformAdminAccess(session: CurrentSession) {
 
 export function countDelegatedPermissions(session?: CurrentSession | null) {
   return session?.delegated_permissions.length || 0;
+}
+
+function hasLegacyTeacherAccess(session: CurrentSession) {
+  return (
+    session.platform.effective_permissions.includes("SUBMIT_TEACHER_APPLICATION") ||
+    session.courses.some(hasTeacherCourseAccess)
+  );
+}
+
+function hasLegacyPlatformAdminAccess(session: CurrentSession) {
+  return session.platform.effective_permissions.some((permission) => permission !== "SUBMIT_TEACHER_APPLICATION");
 }

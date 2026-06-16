@@ -26,5 +26,15 @@ export async function processContent({
     throw await teacherErrorFromResponse(response, "Failed to process content.");
   }
 
-  return { message: await response.text() };
+  const body = await response.text();
+  try {
+    const parsed = JSON.parse(body) as { message?: unknown };
+    if (typeof parsed.message === "string") {
+      return { message: parsed.message };
+    }
+  } catch {
+    return { message: body };
+  }
+
+  return { message: body };
 }
