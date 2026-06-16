@@ -19,7 +19,9 @@ export function RewardPolicyListPanel({
   hasNextPage,
   onPageOffset,
   onRefresh,
+  onSelectPolicy,
   policies,
+  selectedPolicyId,
   state,
 }: {
   error: RouteError | null;
@@ -27,7 +29,9 @@ export function RewardPolicyListPanel({
   hasNextPage: boolean;
   onPageOffset: (offset: number) => void;
   onRefresh: () => void;
+  onSelectPolicy: (policyId: number) => void;
   policies: RewardPolicyItem[];
+  selectedPolicyId: number | null;
   state: LoadState;
 }) {
   if (state === "loading" || state === "idle") return <PanelLoading title="Loading reward policies" />;
@@ -46,7 +50,12 @@ export function RewardPolicyListPanel({
       {policies.length ? (
         <div className={styles.rowList}>
           {policies.map((policy) => (
-            <PolicyRow key={policy.id} policy={policy} />
+            <PolicyRow
+              key={policy.id}
+              onSelectPolicy={onSelectPolicy}
+              policy={policy}
+              selected={policy.id === selectedPolicyId}
+            />
           ))}
         </div>
       ) : (
@@ -57,9 +66,17 @@ export function RewardPolicyListPanel({
   );
 }
 
-function PolicyRow({ policy }: { policy: RewardPolicyItem }) {
+function PolicyRow({
+  onSelectPolicy,
+  policy,
+  selected,
+}: {
+  onSelectPolicy: (policyId: number) => void;
+  policy: RewardPolicyItem;
+  selected: boolean;
+}) {
   return (
-    <article className={styles.compactRow}>
+    <article className={`${styles.compactRow} ${selected ? styles.selectedRow : ""}`}>
       <div>
         <strong>{rewardPolicyContext(policy)} policy #{policy.id}</strong>
         <span>
@@ -72,6 +89,15 @@ function PolicyRow({ policy }: { policy: RewardPolicyItem }) {
       <div className={styles.rowMeta}>
         <StatusPill label={policy.active ? "Active" : "Inactive"} tone={policy.active ? "good" : "neutral"} />
         <span>{formatDate(policy.updated_at)}</span>
+        <button
+          aria-label={`Inspect policy #${policy.id}`}
+          aria-pressed={selected}
+          className={styles.secondaryButton}
+          onClick={() => onSelectPolicy(policy.id)}
+          type="button"
+        >
+          Inspect
+        </button>
       </div>
     </article>
   );

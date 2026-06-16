@@ -1,8 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { type RewardPolicyItem } from "@/lib/admin/RewardPolicyItem";
-import { type CurrentSession } from "@/lib/session/CurrentSession";
 import { readBrowserSessionToken } from "@/shared/session/browserSession";
 import {
   createAdminRewardPolicy,
@@ -10,6 +8,7 @@ import {
   loadRewardPolicyItems,
 } from "../api/rewardPoliciesApi";
 import { AdminRewardPoliciesRoute } from "../route/AdminRewardPoliciesRoute";
+import { adminRewardPolicySession, rewardPolicy } from "./adminRewardPoliciesTestFixtures";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/admin/reward-policies",
@@ -51,12 +50,43 @@ describe("AdminRewardPoliciesRoute", () => {
 
     expect(await screen.findByText("Policy versions")).toBeVisible();
     expect(await screen.findByText("Platform policy #41")).toBeVisible();
+    expect(await screen.findByText("Policy inspection")).toBeVisible();
+    expect(screen.getByText("#41")).toBeVisible();
     await waitFor(() =>
       expect(loadRewardPolicyItems).toHaveBeenCalledWith({
         filters: { active: true, eventType: "", offset: 0, scopeType: "" },
         token: "admin-token",
       }),
     );
+  });
+
+  it("inspects a selected policy version from the loaded list", async () => {
+    const user = userEvent.setup();
+    vi.mocked(loadRewardPolicyItems).mockResolvedValue([
+      rewardPolicy(),
+      rewardPolicy({
+        active: false,
+        cooldown_seconds: 60,
+        course_id: 9,
+        event_type: "assessment_completion",
+        id: 42,
+        max_payout: "100",
+        payment_strategy: "off_chain",
+        scope_type: "course",
+        version: 2,
+      }),
+    ]);
+
+    render(<AdminRewardPoliciesRoute />);
+
+    expect(await screen.findByText("#41")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Inspect policy #42" }));
+
+    expect(await screen.findByText("#42")).toBeVisible();
+    expect(screen.getAllByText("Course 9").length).toBeGreaterThan(0);
+    expect(screen.getByText("Assessment Completion")).toBeVisible();
+    expect(screen.getByText("100 tokens")).toBeVisible();
+    expect(screen.getByText("Historical version")).toBeVisible();
   });
 
   it("filters policies and creates a course-scoped policy", async () => {
@@ -116,41 +146,3 @@ describe("AdminRewardPoliciesRoute", () => {
     expect(loadRewardPolicyItems).not.toHaveBeenCalled();
   });
 });
-
-function adminRewardPolicySession(permissions: string[]): CurrentSession {
-  return {
-    access: { learner: true, organization: false, platform_admin: permissions.length > 0, teacher: false, teacher_application: false },
-    courses: [],
-    delegated_permissions: [],
-    organizations: [],
-    platform: {
-      capabilities: [{ enabled: permissions.includes("SET_REWARD_POLICY"), key: "reward_policies", label: "Reward policies", permissions: ["SET_REWARD_POLICY"] }],
-      delegated_permissions: [],
-      direct_permissions: permissions,
-      effective_permissions: permissions,
-      roles: permissions.length ? ["platform_admin"] : [],
-    },
-    user: { email: "admin@example.com", email_verified: true, id: 1, kyc_verified: true, name: "Admin User" },
-  };
-}
-
-function rewardPolicy(overrides: Partial<RewardPolicyItem> = {}): RewardPolicyItem {
-  return {
-    active: true,
-    cooldown_seconds: 0,
-    course_id: null,
-    created_at: "2026-06-16T09:00:00Z",
-    created_by_user_id: 1,
-    event_type: "course_completion",
-    id: 41,
-    max_payout: null,
-    multiplier: "1",
-    organization_id: null,
-    payment_strategy: "treasury_transfer",
-    scope_type: "platform",
-    token_amount: "10",
-    updated_at: "2026-06-16T09:15:00Z",
-    version: 1,
-    ...overrides,
-  };
-}

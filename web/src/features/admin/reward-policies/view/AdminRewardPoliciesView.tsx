@@ -11,6 +11,7 @@ import { SignedOutState } from "@/features/admin/shared/route-kit/SignedOutState
 import { StatusPill } from "@/features/admin/shared/route-kit/StatusPill";
 import { RewardPolicyCreatePanel } from "../components/RewardPolicyCreatePanel";
 import { RewardPolicyFiltersPanel } from "../components/RewardPolicyFiltersPanel";
+import { RewardPolicyInspectionPanel } from "../components/RewardPolicyInspectionPanel";
 import { RewardPolicyListPanel } from "../components/RewardPolicyListPanel";
 import { type AdminRewardPoliciesRouteController } from "../route/useAdminRewardPoliciesRoute";
 
@@ -82,16 +83,21 @@ function RewardPolicyWorkspace({ route }: { route: AdminRewardPoliciesRouteContr
           hasNextPage={route.hasNextPage}
           onPageOffset={route.setPageOffset}
           onRefresh={route.loadPolicies}
+          onSelectPolicy={route.selectPolicy}
           policies={route.policies}
+          selectedPolicyId={route.selectedPolicyId}
           state={route.policiesState}
         />
-        <RewardPolicyCreatePanel
-          draft={route.draft}
-          error={route.createError}
-          onDraftChange={route.updateDraft}
-          onSubmit={route.createPolicy}
-          state={route.createState}
-        />
+        <div className={styles.stack}>
+          <RewardPolicyInspectionPanel policy={route.selectedPolicy} />
+          <RewardPolicyCreatePanel
+            draft={route.draft}
+            error={route.createError}
+            onDraftChange={route.updateDraft}
+            onSubmit={route.createPolicy}
+            state={route.createState}
+          />
+        </div>
       </div>
     </div>
   );

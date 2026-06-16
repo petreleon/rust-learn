@@ -736,6 +736,9 @@ Current evidence:
   scope and event type, and create platform, organization, or course scoped
   policy versions with amount, multiplier, payout cap, cooldown, payment
   strategy, and initial active state.
+- `/admin/reward-policies` now lets operators select a loaded policy version
+  and inspect scope identifiers, amount rules, activation state, version,
+  actor, and timestamps from the product route.
 - The current-session platform capability catalog now advertises
   `reward_policies`, and the admin dashboard links to the policy lane instead
   of forcing operators back through `/ops`.
@@ -803,6 +806,8 @@ Checks:
   without using `/ops`.
 - [ ] Reward policies can be inspected, activated/deactivated, audited, and
   selected by name/context wherever a numeric policy id is still required.
+- [x] Reward policies can be inspected from the loaded admin policy list
+  without using `/ops`.
 - [ ] Reward candidate creation and assessment handoff surface the policy that
   makes a reward event eligible, or explains which policy is missing.
 - [x] Teacher reward review surfaces active/missing policy coverage for the
@@ -817,6 +822,8 @@ Checks:
   reward policy management, policy-backed fraud blocks, and token-tax updates.
 - [x] Page tests cover reward policy list/filter/create behavior and the admin
   dashboard link to `/admin/reward-policies`.
+- [x] Page tests cover reward policy selection and inspection from the admin
+  policy route.
 - [x] Page tests cover teacher course metadata save and lifecycle submit from
   the course workspace route.
 - [x] Page tests cover organization course title save and lifecycle submit from
