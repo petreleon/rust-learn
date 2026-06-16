@@ -44,3 +44,12 @@ pub struct TokenBurnLeaderboardRow {
     pub burn_count: i64,
     pub latest_burn_at: DateTime<Utc>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OrganizationTokenBurnPermissions {
+    pub organization_id: i32,
+    pub required_permission: String,
+    pub can_burn: bool,
+    pub kyc_verified: bool,
+    pub can_request_burn: bool,
+}

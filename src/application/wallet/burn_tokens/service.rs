@@ -1,8 +1,8 @@
 use futures::future::BoxFuture;
 
 use crate::application::wallet::burn_tokens::{
-    TokenBurnCommand, TokenBurnError, TokenBurnLeaderboard, TokenBurnLeaderboardQuery,
-    TokenBurnSubject, TokenBurnView,
+    OrganizationTokenBurnPermissions, TokenBurnCommand, TokenBurnError, TokenBurnLeaderboard,
+    TokenBurnLeaderboardQuery, TokenBurnSubject, TokenBurnView,
 };
 
 pub trait TokenBurnUseCase: Send + Sync {
@@ -24,4 +24,10 @@ pub trait TokenBurnUseCase: Send + Sync {
         actor_user_id: i32,
         query: TokenBurnLeaderboardQuery,
     ) -> BoxFuture<'_, Result<TokenBurnLeaderboard, TokenBurnError>>;
+
+    fn load_organization_token_burn_permissions(
+        &self,
+        actor_user_id: i32,
+        organization_id: i32,
+    ) -> BoxFuture<'_, Result<OrganizationTokenBurnPermissions, TokenBurnError>>;
 }

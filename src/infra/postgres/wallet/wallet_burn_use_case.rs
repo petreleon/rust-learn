@@ -3,8 +3,8 @@ use diesel_async::AsyncPgConnection;
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::wallet::burn_tokens::{
-    self, TokenBurnCommand, TokenBurnError, TokenBurnLeaderboard, TokenBurnLeaderboardQuery,
-    TokenBurnSubject, TokenBurnUseCase, TokenBurnView,
+    self, OrganizationTokenBurnPermissions, TokenBurnCommand, TokenBurnError, TokenBurnLeaderboard,
+    TokenBurnLeaderboardQuery, TokenBurnSubject, TokenBurnUseCase, TokenBurnView,
 };
 use crate::infra::postgres::wallet::wallet_burn_store::PostgresTokenBurnStore;
 use crate::infra::postgres::DbPool;
@@ -57,6 +57,24 @@ impl TokenBurnUseCase for PostgresTokenBurnUseCase {
             let mut conn = self.connection().await?;
             let mut store = PostgresTokenBurnStore::new(&mut conn);
             burn_tokens::load_token_burn_leaderboard(&mut store, actor_user_id, query).await
+        }
+        .boxed()
+    }
+
+    fn load_organization_token_burn_permissions(
+        &self,
+        actor_user_id: i32,
+        organization_id: i32,
+    ) -> BoxFuture<'_, Result<OrganizationTokenBurnPermissions, TokenBurnError>> {
+        async move {
+            let mut conn = self.connection().await?;
+            let mut store = PostgresTokenBurnStore::new(&mut conn);
+            burn_tokens::load_organization_token_burn_permissions(
+                &mut store,
+                actor_user_id,
+                organization_id,
+            )
+            .await
         }
         .boxed()
     }

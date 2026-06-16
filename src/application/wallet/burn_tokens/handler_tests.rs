@@ -2,8 +2,8 @@ use bigdecimal::BigDecimal;
 use futures::executor::block_on;
 
 use crate::application::wallet::burn_tokens::{
-    request_token_burn, test_support::FakeTokenBurnStore, TokenBurnCommand, TokenBurnError,
-    TokenBurnSubject,
+    load_organization_token_burn_permissions, request_token_burn, test_support::FakeTokenBurnStore,
+    TokenBurnCommand, TokenBurnError, TokenBurnSubject,
 };
 use crate::domain::wallet::burn::{
     TokenBurnFeePath, TokenBurnSource, TOKEN_BURN_STATUS_DEPOSIT_PENDING,
@@ -99,6 +99,40 @@ fn platform_mediated_without_burn_tx_stays_deposit_pending() {
     let draft = store.created_draft.expect("draft");
     assert_eq!(draft.status.as_str(), TOKEN_BURN_STATUS_DEPOSIT_PENDING);
     assert_eq!(draft.fee_amount, BigDecimal::from(2));
+}
+
+#[test]
+fn organization_burn_permissions_include_kyc_and_permission_state() {
+    let mut store = FakeTokenBurnStore {
+        kyc_verified: true,
+        organization_exists: true,
+        can_burn_organization: true,
+        ..Default::default()
+    };
+
+    let permissions =
+        block_on(load_organization_token_burn_permissions(&mut store, 7, 3)).expect("permissions");
+
+    assert_eq!(permissions.organization_id, 3);
+    assert_eq!(permissions.required_permission, "BURN_ORGANIZATION_TOKENS");
+    assert!(permissions.can_burn);
+    assert!(permissions.kyc_verified);
+    assert!(permissions.can_request_burn);
+}
+
+#[test]
+fn organization_burn_permissions_require_existing_organization() {
+    let mut store = FakeTokenBurnStore {
+        kyc_verified: true,
+        organization_exists: false,
+        can_burn_organization: true,
+        ..Default::default()
+    };
+
+    let error = block_on(load_organization_token_burn_permissions(&mut store, 7, 3))
+        .expect_err("missing organization should fail");
+
+    assert_eq!(error, TokenBurnError::OrganizationNotFound);
 }
 
 fn burn_command(source: &str, fee_path: &str) -> TokenBurnCommand {

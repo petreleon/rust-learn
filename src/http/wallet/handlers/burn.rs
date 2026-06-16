@@ -6,8 +6,8 @@ use crate::application::wallet::burn_tokens::{TokenBurnSubject, TokenBurnUseCase
 use crate::http::errors::ApiError;
 use crate::http::extractors::auth_user::AuthUser;
 use crate::http::wallet::dto::{
-    TokenBurnLeaderboardQueryDto, TokenBurnLeaderboardResponse, TokenBurnRequestDto,
-    TokenBurnResponse,
+    OrganizationTokenBurnPermissionsResponse, TokenBurnLeaderboardQueryDto,
+    TokenBurnLeaderboardResponse, TokenBurnRequestDto, TokenBurnResponse,
 };
 use crate::http::wallet::errors::token_burn_error;
 
@@ -58,6 +58,19 @@ pub async fn list_organization_token_burns(
         TokenBurnSubject::Organization(path.into_inner()),
     )
     .await
+}
+
+pub async fn get_organization_token_burn_permissions(
+    requester: AuthUser,
+    path: web::Path<i32>,
+    burns: web::Data<Arc<dyn TokenBurnUseCase>>,
+) -> Result<web::Json<OrganizationTokenBurnPermissionsResponse>, ApiError> {
+    burns
+        .load_organization_token_burn_permissions(requester.user_id(), path.into_inner())
+        .await
+        .map(OrganizationTokenBurnPermissionsResponse::from)
+        .map(web::Json)
+        .map_err(token_burn_error)
 }
 
 pub async fn get_token_burn_leaderboard(

@@ -57,5 +57,9 @@ pub(super) fn configure_wallet_routes(cfg: &mut web::ServiceConfig) {
             web::resource("/organizations/{id}/burns")
                 .route(web::get().to(burn::list_organization_token_burns))
                 .route(web::post().to(burn::request_organization_token_burn)),
+        )
+        .service(
+            web::resource("/organizations/{id}/burns/permissions")
+                .route(web::get().to(burn::get_organization_token_burn_permissions)),
         );
 }

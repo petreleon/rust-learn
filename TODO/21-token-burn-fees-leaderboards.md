@@ -17,6 +17,8 @@ Implementation status checked before first push:
   burn to `burn` / `burnFrom` allowance semantics.
 - [x] Tracked LearnToken ABI/bin regenerated and verified by host and Docker
   Compose Ethereum utility tests.
+- [x] Organization burn permissions API exposes burn permission, KYC state, and
+  request readiness for web controls.
 - [ ] Web surfaces from the Web Boundary Plan are still pending.
 - [ ] Reconciliation/admin failure handling still needs the next backend slice.
 

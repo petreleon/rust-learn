@@ -4,9 +4,11 @@ use crate::application::wallet::burn_tokens::validation::{
     ensure_fee_path_matches_source, status_for_source, validate_command,
 };
 use crate::application::wallet::burn_tokens::{
-    TokenBurnCommand, TokenBurnDraft, TokenBurnError, TokenBurnLeaderboard,
-    TokenBurnLeaderboardQuery, TokenBurnStore, TokenBurnSubject, TokenBurnView,
+    OrganizationTokenBurnPermissions, TokenBurnCommand, TokenBurnDraft, TokenBurnError,
+    TokenBurnLeaderboard, TokenBurnLeaderboardQuery, TokenBurnStore, TokenBurnSubject,
+    TokenBurnView,
 };
+use crate::domain::access_control::permissions::Permissions;
 use crate::domain::wallet::burn::{
     TokenBurnFeePath, TokenBurnLeaderboardScope, TokenBurnLeaderboardWindow, TokenBurnSource,
     TokenBurnerType,
@@ -92,6 +94,29 @@ pub async fn load_token_burn_leaderboard(
     let scope = TokenBurnLeaderboardScope::parse(query.scope.as_deref())
         .map_err(|error| TokenBurnError::InvalidInput(error.to_string()))?;
     store.load_leaderboard(query, window, scope).await
+}
+
+pub async fn load_organization_token_burn_permissions(
+    store: &mut impl TokenBurnStore,
+    actor_user_id: i32,
+    organization_id: i32,
+) -> Result<OrganizationTokenBurnPermissions, TokenBurnError> {
+    if !store.organization_exists(organization_id).await? {
+        return Err(TokenBurnError::OrganizationNotFound);
+    }
+
+    let can_burn = store
+        .can_burn_organization_tokens(actor_user_id, organization_id)
+        .await?;
+    let kyc_verified = store.user_kyc_verified(actor_user_id).await?;
+
+    Ok(OrganizationTokenBurnPermissions {
+        organization_id,
+        required_permission: Permissions::BURN_ORGANIZATION_TOKENS.to_string(),
+        can_burn,
+        kyc_verified,
+        can_request_burn: can_burn && kyc_verified,
+    })
 }
 
 async fn ensure_subject_allowed(
