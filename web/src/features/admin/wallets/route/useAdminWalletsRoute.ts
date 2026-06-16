@@ -13,12 +13,14 @@ import {
   canExportWalletCredits,
   canSetDepositTax,
   canSetRetireTax,
+  canViewBurnLeaderboard,
   canViewWalletAudit,
   emptyPlatformWalletWorkspace,
   findPlatformCapability,
 } from "../model/walletAccessModel";
 import { normalizeAdminWalletRouteError } from "./normalizeAdminWalletRouteError";
 import { useAdminWalletsData } from "./useAdminWalletsData";
+import { useBurnLeaderboard } from "./useBurnLeaderboard";
 import { useWalletCreditsCsvDownload } from "./useWalletCreditsCsvDownload";
 import { useWalletTokenTaxes } from "./useWalletTokenTaxes";
 
@@ -42,9 +44,11 @@ export function useAdminWalletsRoute() {
   const canSetDeposit = canSetDepositTax(workspace);
   const canSetRetire = canSetRetireTax(workspace);
   const canManageTaxes = canManageTokenTaxes(workspace);
+  const canViewBurns = canViewBurnLeaderboard(workspace);
   const walletCapability = findPlatformCapability(workspace, "wallets");
   const csv = useWalletCreditsCsvDownload({ canExport });
   const data = useAdminWalletsData({ allowed, canView, session });
+  const burnLeaderboard = useBurnLeaderboard({ allowed, canView: canViewBurns });
   const tokenTaxes = useWalletTokenTaxes({ allowed, canSetDeposit, canSetRetire });
   const { loadWalletAudit } = data;
 
@@ -109,6 +113,7 @@ export function useAdminWalletsRoute() {
     canSetDeposit,
     canSetRetire,
     canView,
+    canViewBurns,
     error,
     hasToken,
     loadSession,
@@ -119,6 +124,7 @@ export function useAdminWalletsRoute() {
     workspace,
     ...csv,
     ...data,
+    ...burnLeaderboard,
     ...tokenTaxes,
   };
 }

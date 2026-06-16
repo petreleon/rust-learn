@@ -32,6 +32,10 @@ export function canManageTokenTaxes(workspace: PlatformAdminWorkspace) {
   return canSetDepositTax(workspace) || canSetRetireTax(workspace);
 }
 
+export function canViewBurnLeaderboard(workspace: PlatformAdminWorkspace) {
+  return workspace.effectivePermissions.includes("VIEW_BURN_LEADERBOARD");
+}
+
 export function findPlatformCapability(
   workspace: PlatformAdminWorkspace,
   key: PlatformCapabilityKey,

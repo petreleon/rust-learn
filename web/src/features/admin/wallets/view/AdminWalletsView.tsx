@@ -9,6 +9,7 @@ import { LoadingState } from "@/features/admin/shared/route-kit/LoadingState";
 import { SessionErrorState } from "@/features/admin/shared/route-kit/SessionErrorState";
 import { SignedOutState } from "@/features/admin/shared/route-kit/SignedOutState";
 import { StatusPill } from "@/features/admin/shared/route-kit/StatusPill";
+import { BurnLeaderboardPanel } from "../components/BurnLeaderboardPanel";
 import { WalletCreditsCsvPanel } from "../components/WalletCreditsCsvPanel";
 import { WalletReconciliationPanel } from "../components/WalletReconciliationPanel";
 import { WalletSummaryPanel } from "../components/WalletSummaryPanel";
@@ -35,7 +36,7 @@ export function AdminWalletsView({ route }: { route: AdminWalletsRouteController
             label={
               route.loadState === "loading"
                 ? "Resolving session"
-                : route.canView || route.canManageTaxes
+                : route.canView || route.canManageTaxes || route.canViewBurns
                   ? "Wallet access"
                   : "Wallet gated"
             }
@@ -51,11 +52,23 @@ export function AdminWalletsView({ route }: { route: AdminWalletsRouteController
       {route.loadState === "loading" ? <LoadingState /> : null}
       {route.error ? <SessionErrorState error={route.error} /> : null}
       {route.session && !route.allowed ? <AdminDeniedState workspace={route.workspace} /> : null}
-      {route.session && route.allowed && !route.canView && !route.canManageTaxes ? (
+      {route.session && route.allowed && !route.canView && !route.canManageTaxes && !route.canViewBurns ? (
         <GatedPanel capability={route.walletCapability} icon={<WalletCards size={20} aria-hidden />} title="Wallet audit unavailable" />
       ) : null}
-      {route.session && route.allowed && (route.canView || route.canManageTaxes) ? (
+      {route.session && route.allowed && (route.canView || route.canManageTaxes || route.canViewBurns) ? (
         <div className={styles.stack}>
+          {route.canViewBurns ? (
+            <BurnLeaderboardPanel
+              error={route.burnLeaderboardError}
+              leaderboard={route.burnLeaderboard}
+              scope={route.burnLeaderboardScope}
+              state={route.burnLeaderboardState}
+              windowRange={route.burnLeaderboardWindow}
+              onRetry={route.loadBurnLeaderboard}
+              onScopeChange={route.setBurnLeaderboardScope}
+              onWindowChange={route.setBurnLeaderboardWindow}
+            />
+          ) : null}
           {route.canManageTaxes ? (
             <>
               <WalletTokenTaxPanel

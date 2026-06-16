@@ -8,6 +8,11 @@ import { type PlatformWalletReconciliation } from "@/lib/admin/PlatformWalletRec
 import { fetchCurrentSession } from "@/lib/session/fetchCurrentSession";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
 import {
+  type BurnLeaderboard,
+  type BurnLeaderboardScope,
+  type BurnLeaderboardWindow,
+} from "../model/BurnLeaderboard";
+import {
   type WalletTokenTax,
   type WalletTokenTaxAuditEvent,
   type WalletTokenTaxOperation,
@@ -28,6 +33,23 @@ export function loadAdminWalletReconciliation({
   token: string;
 }): Promise<PlatformWalletReconciliation> {
   return fetchPlatformWalletReconciliation({ token });
+}
+
+export function loadBurnLeaderboard({
+  scope,
+  token,
+  window,
+}: {
+  scope: BurnLeaderboardScope;
+  token: string;
+  window: BurnLeaderboardWindow;
+}): Promise<BurnLeaderboard> {
+  const params = new URLSearchParams({ scope, window });
+  return adminJsonRequest({
+    apiRoot: "/api",
+    path: `/wallet/burns/leaderboard?${params.toString()}`,
+    token,
+  });
 }
 
 export function downloadWalletCreditsCsv({ token }: { token: string }): Promise<PlatformCsvDownload> {

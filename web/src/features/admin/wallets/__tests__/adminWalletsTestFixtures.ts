@@ -1,6 +1,7 @@
 import { type PlatformReportSummary } from "@/lib/admin/PlatformReportSummary";
 import { type PlatformWalletReconciliation } from "@/lib/admin/PlatformWalletReconciliation";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
+import { type BurnLeaderboard } from "../model/BurnLeaderboard";
 
 export function adminWalletSession(permissions: string[]): CurrentSession {
   return {
@@ -77,6 +78,24 @@ export function walletReconciliation(): PlatformWalletReconciliation {
         wallet_id: 10,
       },
     ],
+  };
+}
+
+export function burnLeaderboard(): BurnLeaderboard {
+  return {
+    rows: [
+      {
+        burn_count: 2,
+        burner_type: "user",
+        latest_burn_at: "2026-06-17T00:00:00Z",
+        organization_id: null,
+        rank: 1,
+        total_burned: "25",
+        user_id: 44,
+      },
+    ],
+    scope: "all",
+    window_days: 7,
   };
 }
 

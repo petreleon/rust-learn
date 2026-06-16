@@ -25,7 +25,10 @@ Implementation status checked before first push:
 - [x] User wallet web surface adds burn controls with KYC/wallet gates,
   centralized/direct/platform-mediated sources, fee path display, transaction
   evidence, leaderboard visibility, and recent burn records.
-- [ ] Web surfaces from the Web Boundary Plan are still pending.
+- [x] Admin wallet web surface exposes rolling 7/30/365 burn leaderboards with
+  user, organization, and all-burner scopes.
+- [x] Web Boundary Plan burn controls and leaderboard surfaces are implemented
+  across user, organization, and admin wallet routes.
 - [ ] Reconciliation/admin failure handling still needs the next backend slice.
 
 Objective: replace owner-arbitrary token burning with allowance-based burns and

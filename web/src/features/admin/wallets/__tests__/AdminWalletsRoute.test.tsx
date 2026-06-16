@@ -5,6 +5,7 @@ import { readBrowserSessionToken } from "@/shared/session/browserSession";
 import { AdminWalletsRoute } from "../route/AdminWalletsRoute";
 import {
   downloadWalletCreditsCsv,
+  loadBurnLeaderboard,
   loadAdminWalletReconciliation,
   loadAdminWalletSession,
   loadAdminWalletSummary,
@@ -15,6 +16,7 @@ import {
 import { startWalletCreditsCsvDownload } from "../route/startWalletCreditsCsvDownload";
 import {
   adminWalletSession,
+  burnLeaderboard,
   walletReconciliation,
   walletSummary,
   walletTokenTaxAudit,
@@ -33,6 +35,7 @@ vi.mock("@/shared/session/browserSession", () => ({
 
 vi.mock("../api/walletsApi", () => ({
   downloadWalletCreditsCsv: vi.fn(),
+  loadBurnLeaderboard: vi.fn(),
   loadAdminWalletReconciliation: vi.fn(),
   loadAdminWalletSession: vi.fn(),
   loadAdminWalletSummary: vi.fn(),
@@ -58,6 +61,7 @@ describe("AdminWalletsRoute", () => {
     );
     vi.mocked(loadAdminWalletSummary).mockResolvedValue(walletSummary());
     vi.mocked(loadAdminWalletReconciliation).mockResolvedValue(walletReconciliation());
+    vi.mocked(loadBurnLeaderboard).mockResolvedValue(burnLeaderboard());
     vi.mocked(loadWalletTokenTaxAudit).mockResolvedValue(walletTokenTaxAudit());
     vi.mocked(loadWalletTokenTaxes).mockResolvedValue(walletTokenTaxes());
     vi.mocked(saveWalletTokenTax).mockResolvedValue({
@@ -81,6 +85,7 @@ describe("AdminWalletsRoute", () => {
     expect(loadAdminWalletReconciliation).not.toHaveBeenCalled();
     expect(loadWalletTokenTaxAudit).not.toHaveBeenCalled();
     expect(loadWalletTokenTaxes).not.toHaveBeenCalled();
+    expect(loadBurnLeaderboard).not.toHaveBeenCalled();
   });
 
   it("loads wallet summary and reconciliation through the feature API", async () => {
@@ -94,6 +99,7 @@ describe("AdminWalletsRoute", () => {
     expect(loadAdminWalletSession).toHaveBeenCalledWith({ token: "admin-token" });
     expect(loadAdminWalletSummary).toHaveBeenCalledWith({ token: "admin-token" });
     expect(loadAdminWalletReconciliation).toHaveBeenCalledWith({ token: "admin-token" });
+    expect(loadBurnLeaderboard).not.toHaveBeenCalled();
     expect(loadWalletTokenTaxAudit).not.toHaveBeenCalled();
     expect(loadWalletTokenTaxes).not.toHaveBeenCalled();
   });
@@ -126,6 +132,7 @@ describe("AdminWalletsRoute", () => {
     expect(await screen.findByText("1 to 2")).toBeVisible();
     expect(loadWalletTokenTaxAudit).toHaveBeenCalledWith({ token: "admin-token" });
     expect(loadWalletTokenTaxes).toHaveBeenCalledWith({ token: "admin-token" });
+    expect(loadBurnLeaderboard).not.toHaveBeenCalled();
     const depositInput = await screen.findByLabelText("Deposit tax");
     await user.clear(depositInput);
     await user.type(depositInput, "3");
@@ -152,6 +159,7 @@ describe("AdminWalletsRoute", () => {
     expect(loadWalletTokenTaxAudit).toHaveBeenCalledWith({ token: "admin-token" });
     expect(loadAdminWalletSummary).not.toHaveBeenCalled();
     expect(loadAdminWalletReconciliation).not.toHaveBeenCalled();
+    expect(loadBurnLeaderboard).not.toHaveBeenCalled();
     expect(screen.queryByText("Wallet audit unavailable")).not.toBeInTheDocument();
   });
 
@@ -163,6 +171,7 @@ describe("AdminWalletsRoute", () => {
     expect(await screen.findByText("Wallet audit unavailable")).toBeVisible();
     expect(loadAdminWalletSummary).not.toHaveBeenCalled();
     expect(loadAdminWalletReconciliation).not.toHaveBeenCalled();
+    expect(loadBurnLeaderboard).not.toHaveBeenCalled();
     expect(loadWalletTokenTaxAudit).not.toHaveBeenCalled();
     expect(loadWalletTokenTaxes).not.toHaveBeenCalled();
   });
