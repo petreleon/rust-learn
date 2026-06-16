@@ -773,6 +773,10 @@ Current evidence:
   composition, route-level loading/error states, and browser navigation.
 - Playwright route smoke now covers auth pages plus signed-out `/session`,
   `/admin`, and `/admin/delegations`, including mobile overflow checks.
+- `make web-page-tests` now runs fast Vitest page/route-level suites through
+  `web/scripts/page-tests.mjs` for ProductShell, admin, learner, organization,
+  session, and teacher routes without Playwright, screenshots, Docker Compose,
+  or persisted browser state.
 
 Needed:
 
@@ -793,7 +797,7 @@ Checks:
   error, timeout, empty, and post-action states.
 - [ ] Mobile-width render tests or Playwright screenshots catch overlap,
   clipping, unreadable text, and horizontal overflow.
-- [ ] The page-level test command is documented and runs without depending on
+- [x] The page-level test command is documented and runs without depending on
   the full Docker Compose stack.
 
 ## Build Order

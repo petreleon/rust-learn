@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:pages": "node scripts/page-tests.mjs",
     "test:watch": "vitest",
     "architecture:scan": "node scripts/architecture-scan.mjs",
     "architecture:scan:strict": "node scripts/architecture-scan.mjs --strict",

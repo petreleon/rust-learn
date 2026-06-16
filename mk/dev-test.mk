@@ -64,6 +64,9 @@ web-build: ## Build the frontend
 web-api-helper-tests: ## Run frontend API helper contract tests
 	cd web && npm run test:api-helpers
 
+web-page-tests: ## Run frontend page and route-level tests without browser state
+	cd web && npm run test:pages
+
 web-architecture-scan: ## Report frontend architecture boundary findings
 	cd web && npm run architecture:scan
 
