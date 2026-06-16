@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TeacherRequestError } from "@/lib/teacher/TeacherRequestError";
+import { loadCourseCompletionTerms } from "@/features/teacher/course-completion-terms/api/completionTermsApi";
 import { clearBrowserSession, readBrowserSessionToken } from "@/shared/session/browserSession";
 import {
   loadTeacherCourseWorkspace,
@@ -27,6 +28,10 @@ vi.mock("../api/courseWorkspaceApi", () => ({
   saveTeacherCourseSettings: vi.fn(),
 }));
 
+vi.mock("@/features/teacher/course-completion-terms/api/completionTermsApi", () => ({
+  loadCourseCompletionTerms: vi.fn(),
+}));
+
 describe("TeacherCourseWorkspaceRoute", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -34,6 +39,11 @@ describe("TeacherCourseWorkspaceRoute", () => {
     vi.mocked(loadTeacherCourseWorkspace).mockResolvedValue({
       session: courseWorkspaceSession(),
       workspace: courseWorkspace(),
+    });
+    vi.mocked(loadCourseCompletionTerms).mockResolvedValue({
+      active_terms: null,
+      audit_events: [],
+      terms: [],
     });
     vi.mocked(saveTeacherCourseLifecycle).mockResolvedValue({
       description: "Borrow checking fundamentals.",
@@ -67,6 +77,7 @@ describe("TeacherCourseWorkspaceRoute", () => {
 
     expect((await screen.findAllByRole("heading", { name: "Rust Safety" })).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Course settings" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Completion terms" })).toBeVisible();
     expect(screen.getAllByRole("link", { name: "Open" })[0]).toHaveAttribute(
       "href",
       "/teach/courses/9/content",

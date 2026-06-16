@@ -1,5 +1,6 @@
 mod assessments;
 mod catalog;
+mod completion_terms;
 mod dto;
 mod enrollment;
 mod errors;

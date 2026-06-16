@@ -57,6 +57,16 @@ pub trait CourseEnrollmentStore {
         course_id: i32,
     ) -> BoxFuture<'_, Result<(), CourseEnrollmentError>>;
 
+    fn active_completion_terms_capacity(
+        &mut self,
+        course_id: i32,
+    ) -> BoxFuture<'_, Result<Option<i32>, CourseEnrollmentError>>;
+
+    fn enrolled_student_count(
+        &mut self,
+        course_id: i32,
+    ) -> BoxFuture<'_, Result<i64, CourseEnrollmentError>>;
+
     fn remove_student_role(
         &mut self,
         user_id: i32,

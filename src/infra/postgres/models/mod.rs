@@ -3,6 +3,8 @@ pub mod authentication;
 pub mod chapter;
 pub mod content;
 pub mod course;
+pub mod course_completion_term_audit_event;
+pub mod course_completion_terms;
 pub mod course_join_request;
 pub mod course_progress;
 pub mod courses_organizations;

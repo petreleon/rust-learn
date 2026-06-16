@@ -94,8 +94,9 @@ export function useAdminRewardPoliciesRoute() {
   }, [allowed, canManage, loadPolicies, session]);
 
   useEffect(() => {
-    if (session && allowed && canManage && list.selectedPolicyId) {
-      const timeout = window.setTimeout(() => void loadPolicyAudit(list.selectedPolicyId), 0);
+    const selectedPolicyId = list.selectedPolicyId;
+    if (session && allowed && canManage && selectedPolicyId) {
+      const timeout = window.setTimeout(() => void loadPolicyAudit(selectedPolicyId), 0);
       return () => window.clearTimeout(timeout);
     }
     resetPolicyAudit();

@@ -6,8 +6,8 @@ use crate::http::middlewares::platform_permission_middleware::PlatformPermission
 use crate::http::request_params::ParamType;
 
 use super::{
-    assessments, catalog, enrollment, lifecycle, management, organizations, progress, roles,
-    teaching,
+    assessments, catalog, completion_terms, enrollment, lifecycle, management, organizations,
+    progress, roles, teaching,
 };
 
 pub fn course_scope() -> actix_web::Scope {
@@ -29,6 +29,30 @@ pub fn course_scope() -> actix_web::Scope {
         .service(
             web::resource("/teaching/{id}/students")
                 .route(web::get().to(teaching::get_teacher_course_students_route)),
+        )
+        .service(
+            web::resource("/teaching/{id}/completion-terms")
+                .route(web::get().to(completion_terms::list_course_completion_terms)),
+        )
+        .service(
+            web::resource("/teaching/{id}/completion-terms/proposals")
+                .route(web::post().to(completion_terms::submit_course_completion_terms)),
+        )
+        .service(
+            web::resource("/teaching/{id}/completion-terms/{terms_id}/counter")
+                .route(web::put().to(completion_terms::counter_course_completion_terms)),
+        )
+        .service(
+            web::resource("/teaching/{id}/completion-terms/{terms_id}/accept")
+                .route(web::put().to(completion_terms::accept_course_completion_terms)),
+        )
+        .service(
+            web::resource("/teaching/{id}/completion-terms/{terms_id}/reject")
+                .route(web::put().to(completion_terms::reject_course_completion_terms)),
+        )
+        .service(
+            web::resource("/teaching/{id}/completion-terms/{terms_id}/withdraw")
+                .route(web::put().to(completion_terms::withdraw_course_completion_terms)),
         )
         .service(
             web::resource("/teaching/{id}")

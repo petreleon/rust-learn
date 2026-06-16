@@ -2,7 +2,9 @@
 
 import { ArrowLeft, BookOpen, FileText, Trophy, Users } from "lucide-react";
 import Link from "next/link";
+import { type CurrentSession } from "@/lib/session/CurrentSession";
 import { type TeacherCourseWorkspaceResponse } from "@/lib/teacher/TeacherCourseWorkspaceResponse";
+import { CourseCompletionTermsRoute } from "@/features/teacher/course-completion-terms/route/CourseCompletionTermsRoute";
 import { ChapterList } from "@/features/teacher/shared/route-kit/ChapterList";
 import { PermissionChip } from "@/features/teacher/shared/route-kit/PermissionChip";
 import { SummaryCard } from "@/features/teacher/shared/route-kit/SummaryCard";
@@ -16,6 +18,7 @@ import { WorkspaceActionPanel } from "./WorkspaceActionPanel";
 
 export function WorkspaceContent({
   courseAction,
+  session,
   workspace,
 }: {
   courseAction: {
@@ -24,6 +27,7 @@ export function WorkspaceContent({
     submitCourseLifecycle: (status: string) => void;
     submitCourseSettings: (draft: CourseSettingsDraft) => void;
   };
+  session: CurrentSession | null;
   workspace: TeacherCourseWorkspaceResponse;
 }) {
   const totals = workspaceSummary(workspace);
@@ -97,6 +101,8 @@ export function WorkspaceContent({
           workspace={workspace}
         />
       </section>
+
+      <CourseCompletionTermsRoute session={session} workspace={workspace} />
 
       <section className={styles.courseSection}>
         <div className={styles.sectionHeader}>

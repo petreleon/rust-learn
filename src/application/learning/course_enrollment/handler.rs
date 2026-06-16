@@ -89,6 +89,8 @@ pub async fn decide_course_join_request(
     )
     .await?;
 
+    ensure_capacity_available(store, command.course_id, &target_status).await?;
+
     let updated = store
         .update_join_request_decision(
             command.request_id,
@@ -104,6 +106,24 @@ pub async fn decide_course_join_request(
         join_request: updated,
         enrollment_notification,
     })
+}
+
+async fn ensure_capacity_available(
+    store: &mut impl CourseEnrollmentStore,
+    course_id: i32,
+    target_status: &str,
+) -> Result<(), CourseEnrollmentError> {
+    if target_status != COURSE_JOIN_STATUS_APPROVED {
+        return Ok(());
+    }
+    let Some(max) = store.active_completion_terms_capacity(course_id).await? else {
+        return Ok(());
+    };
+    let current = store.enrolled_student_count(course_id).await?;
+    if current >= i64::from(max) {
+        return Err(CourseEnrollmentError::CourseCapacityFull { max, current });
+    }
+    Ok(())
 }
 
 pub async fn remove_course_enrollment(

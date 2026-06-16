@@ -1,4 +1,4 @@
-use diesel::dsl::{exists, select};
+use diesel::dsl::{count_star, exists, select};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
@@ -8,9 +8,12 @@ use crate::application::access_control::check_permission::{
 use crate::application::learning::course_enrollment::{
     CourseEnrollmentError, CourseJoinRequestOutput,
 };
+use crate::domain::learning::course::COURSE_TERMS_STATUS_ACTIVE;
 use crate::infra::postgres::access_control::permission_checks;
 use crate::infra::postgres::models::course_join_request::CourseJoinRequest;
-use crate::infra::postgres::schema::{course_roles, courses_organizations, user_role_course};
+use crate::infra::postgres::schema::{
+    course_completion_terms, course_roles, courses_organizations, user_role_course,
+};
 
 const COURSE_ROLE_STUDENT: &str = "STUDENT";
 
@@ -108,6 +111,34 @@ pub async fn assign_student_role(
         .execute(conn)
         .await
         .map(|_| ())
+        .map_err(map_enrollment_error)
+}
+
+pub async fn active_completion_terms_capacity(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+) -> Result<Option<i32>, CourseEnrollmentError> {
+    course_completion_terms::table
+        .filter(course_completion_terms::course_id.eq(course_id))
+        .filter(course_completion_terms::status.eq(COURSE_TERMS_STATUS_ACTIVE))
+        .select(course_completion_terms::max_enrolled_students)
+        .first(conn)
+        .await
+        .optional()
+        .map_err(map_enrollment_error)
+}
+
+pub async fn enrolled_student_count(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+) -> Result<i64, CourseEnrollmentError> {
+    let role_id = student_role_id(conn).await?;
+    user_role_course::table
+        .filter(user_role_course::course_id.eq(course_id))
+        .filter(user_role_course::course_role_id.eq(role_id))
+        .select(count_star())
+        .first(conn)
+        .await
         .map_err(map_enrollment_error)
 }
 

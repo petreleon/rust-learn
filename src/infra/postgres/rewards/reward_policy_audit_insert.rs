@@ -4,7 +4,7 @@ use crate::domain::rewards::policy::RewardPolicyAuditEventType;
 use crate::infra::postgres::rewards::reward_policy_audit_records::insert_policy_audit_event;
 use crate::infra::postgres::rewards::reward_policy_mappers::new_reward_policy_audit_event;
 
-pub(super) async fn insert_policy_audit(
+pub(crate) async fn insert_policy_audit(
     conn: &mut AsyncPgConnection,
     policy_id: i64,
     actor_user_id: i32,

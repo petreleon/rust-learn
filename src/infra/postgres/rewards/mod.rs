@@ -50,7 +50,7 @@ pub mod reward_payout_plan_use_case;
 pub mod reward_payout_records;
 pub mod reward_policy_activation;
 mod reward_policy_activation_update;
-mod reward_policy_audit_insert;
+pub(crate) mod reward_policy_audit_insert;
 pub mod reward_policy_audit_records;
 mod reward_policy_creation;
 pub mod reward_policy_mappers;

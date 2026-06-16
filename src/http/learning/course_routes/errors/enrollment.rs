@@ -10,6 +10,11 @@ pub(in crate::http::learning::course_routes) fn course_enrollment_error(
             super::permission_denied("User does not have permission to manage enrollment")
         }
         CourseEnrollmentError::InvalidStatus(message) => super::invalid_input(message),
+        CourseEnrollmentError::CourseCapacityFull { max, current } => ApiError::new(
+            actix_web::http::StatusCode::CONFLICT,
+            "course_capacity_full",
+            format!("Course capacity is full: {current} of {max} seats are already enrolled"),
+        ),
         CourseEnrollmentError::NotFound => ApiError::new(
             actix_web::http::StatusCode::NOT_FOUND,
             "course_enrollment_not_found",

@@ -7,7 +7,8 @@ use crate::application::learning::course_enrollment::{
 };
 use crate::infra::postgres::learning::course_enrollment_join_queries;
 use crate::infra::postgres::learning::course_enrollment_queries::{
-    assign_student_role, has_course_context_permission, has_student_role,
+    active_completion_terms_capacity, assign_student_role, enrolled_student_count,
+    has_course_context_permission, has_student_role,
 };
 
 pub struct PostgresCourseEnrollmentStore<'conn> {
@@ -124,6 +125,20 @@ impl CourseEnrollmentStore for PostgresCourseEnrollmentStore<'_> {
             Ok(())
         }
         .boxed()
+    }
+
+    fn active_completion_terms_capacity(
+        &mut self,
+        course_id: i32,
+    ) -> BoxFuture<'_, Result<Option<i32>, CourseEnrollmentError>> {
+        async move { active_completion_terms_capacity(self.conn, course_id).await }.boxed()
+    }
+
+    fn enrolled_student_count(
+        &mut self,
+        course_id: i32,
+    ) -> BoxFuture<'_, Result<i64, CourseEnrollmentError>> {
+        async move { enrolled_student_count(self.conn, course_id).await }.boxed()
     }
 
     fn remove_student_role(

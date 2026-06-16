@@ -71,6 +71,47 @@ diesel::table! {
 }
 
 diesel::table! {
+    course_completion_term_audit_events (id) {
+        id -> Int8,
+        terms_id -> Int8,
+        course_id -> Int4,
+        actor_user_id -> Int4,
+        #[max_length = 32]
+        event_type -> Varchar,
+        #[max_length = 32]
+        previous_status -> Nullable<Varchar>,
+        #[max_length = 32]
+        new_status -> Varchar,
+        completion_reward_amount -> Numeric,
+        max_enrolled_students -> Int4,
+        note -> Nullable<Text>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    course_completion_terms (id) {
+        id -> Int8,
+        course_id -> Int4,
+        teacher_user_id -> Int4,
+        organization_id -> Nullable<Int4>,
+        version -> Int4,
+        #[max_length = 32]
+        status -> Varchar,
+        completion_reward_amount -> Numeric,
+        max_enrolled_students -> Int4,
+        reward_policy_id -> Nullable<Int8>,
+        proposed_by_user_id -> Int4,
+        accepted_by_user_id -> Nullable<Int4>,
+        accepted_at -> Nullable<Timestamptz>,
+        activated_at -> Nullable<Timestamptz>,
+        superseded_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     course_join_requests (id) {
         id -> Int8,
         course_id -> Int4,
@@ -722,6 +763,12 @@ diesel::joinable!(assessments -> courses (course_id));
 diesel::joinable!(authentications -> users (user_id));
 diesel::joinable!(chapters -> courses (course_id));
 diesel::joinable!(contents -> chapters (chapter_id));
+diesel::joinable!(course_completion_term_audit_events -> course_completion_terms (terms_id));
+diesel::joinable!(course_completion_term_audit_events -> courses (course_id));
+diesel::joinable!(course_completion_term_audit_events -> users (actor_user_id));
+diesel::joinable!(course_completion_terms -> courses (course_id));
+diesel::joinable!(course_completion_terms -> organizations (organization_id));
+diesel::joinable!(course_completion_terms -> reward_policies (reward_policy_id));
 diesel::joinable!(course_join_requests -> courses (course_id));
 diesel::joinable!(course_progress -> contents (content_id));
 diesel::joinable!(course_progress -> courses (course_id));
@@ -808,6 +855,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     authentications,
     chapters,
     contents,
+    course_completion_term_audit_events,
+    course_completion_terms,
     course_join_requests,
     course_progress,
     course_roles,

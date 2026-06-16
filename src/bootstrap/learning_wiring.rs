@@ -20,12 +20,14 @@ use crate::application::learning::list_course_organizations::CourseOrganizations
 use crate::application::learning::list_learner_course_catalog::LearnerCourseCatalogListUseCase;
 use crate::application::learning::list_teacher_course_dashboard::TeacherCourseDashboardListUseCase;
 use crate::application::learning::manage_assessments::AssessmentAuthoringUseCase;
+use crate::application::learning::manage_course_completion_terms::CourseCompletionTermsUseCase;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionUseCase;
 use crate::application::learning::update_course::CourseUpdateUseCase;
 use crate::application::learning::update_course_lifecycle::CourseLifecycleUseCase;
 use crate::infra::postgres::learning::assessment_authoring_use_case::PostgresAssessmentAuthoringUseCase;
 use crate::infra::postgres::learning::assessment_read_use_case::PostgresAssessmentReadUseCase;
 use crate::infra::postgres::learning::assessment_submission_use_case::PostgresAssessmentSubmissionUseCase;
+use crate::infra::postgres::learning::course_completion_terms_use_case::PostgresCourseCompletionTermsUseCase;
 use crate::infra::postgres::learning::course_creation_use_case::PostgresCourseCreationUseCase;
 use crate::infra::postgres::learning::course_deletion_use_case::PostgresCourseDeletionUseCase;
 use crate::infra::postgres::learning::course_discovery_use_case::PostgresCourseDiscoveryUseCase;
@@ -55,6 +57,7 @@ pub struct LearningUseCases {
     pub course_deletion: Arc<dyn CourseDeletionUseCase>,
     pub course_discovery: Arc<dyn CourseDiscoveryUseCase>,
     pub course_enrollment: Arc<dyn CourseEnrollmentUseCase>,
+    pub course_completion_terms: Arc<dyn CourseCompletionTermsUseCase>,
     pub course_lifecycle: Arc<dyn CourseLifecycleUseCase>,
     pub course_organizations: Arc<dyn CourseOrganizationsUseCase>,
     pub course_read: Arc<dyn CourseReadUseCase>,
@@ -80,6 +83,7 @@ pub fn build_learning_use_cases(pool: &DbPool) -> LearningUseCases {
         course_deletion: Arc::new(PostgresCourseDeletionUseCase::new(pool.clone())),
         course_discovery: Arc::new(PostgresCourseDiscoveryUseCase::new(pool.clone())),
         course_enrollment: Arc::new(PostgresCourseEnrollmentUseCase::new(pool.clone())),
+        course_completion_terms: Arc::new(PostgresCourseCompletionTermsUseCase::new(pool.clone())),
         course_lifecycle: Arc::new(PostgresCourseLifecycleUseCase::new(pool.clone())),
         course_organizations: Arc::new(PostgresCourseOrganizationsUseCase::new(pool.clone())),
         course_read: Arc::new(PostgresCourseReadUseCase::new(pool.clone())),
@@ -113,6 +117,7 @@ pub fn configure_learning_app_data(cfg: &mut web::ServiceConfig, use_cases: &Lea
         .app_data(web::Data::new(use_cases.course_deletion.clone()))
         .app_data(web::Data::new(use_cases.course_discovery.clone()))
         .app_data(web::Data::new(use_cases.course_enrollment.clone()))
+        .app_data(web::Data::new(use_cases.course_completion_terms.clone()))
         .app_data(web::Data::new(use_cases.course_lifecycle.clone()))
         .app_data(web::Data::new(use_cases.course_organizations.clone()))
         .app_data(web::Data::new(use_cases.course_read.clone()))

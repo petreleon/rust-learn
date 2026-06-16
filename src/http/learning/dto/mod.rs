@@ -1,6 +1,7 @@
 mod assessment;
 mod assessment_authoring;
 mod course;
+mod course_completion_terms;
 mod course_creation;
 mod course_discovery;
 mod course_enrollment;
@@ -25,6 +26,10 @@ pub use assessment::{
 };
 pub use assessment_authoring::{AssessmentAuthoringRequest, AssessmentAuthoringResponse};
 pub use course::CourseResponse;
+pub use course_completion_terms::{
+    CourseCompletionTermsDecisionRequest, CourseCompletionTermsHistoryResponse,
+    CourseCompletionTermsProposalRequest, CourseCompletionTermsResponse,
+};
 pub use course_creation::CreateCourseRequest;
 pub use course_discovery::CourseDiscoveryResponse;
 pub use course_enrollment::{
