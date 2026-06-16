@@ -105,5 +105,7 @@ fn profile(id: i32) -> UserProfileOutput {
             .unwrap(),
         kyc_verified: false,
         email_verified: true,
+        platform_roles: vec!["LEARNER".to_string()],
+        platform_permissions: vec!["VIEW_COURSE".to_string()],
     }
 }

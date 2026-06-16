@@ -36,6 +36,8 @@ pub struct UserProfileResponse {
     pub created_at: String,
     pub kyc_verified: bool,
     pub email_verified: bool,
+    pub platform_roles: Vec<String>,
+    pub platform_permissions: Vec<String>,
 }
 
 impl From<UserProfileOutput> for UserProfileResponse {
@@ -48,6 +50,8 @@ impl From<UserProfileOutput> for UserProfileResponse {
             created_at: user.created_at.to_string(),
             kyc_verified: user.kyc_verified,
             email_verified: user.email_verified,
+            platform_roles: user.platform_roles,
+            platform_permissions: user.platform_permissions,
         }
     }
 }

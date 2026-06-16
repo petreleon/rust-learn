@@ -1,6 +1,9 @@
 export type { PlatformCapabilityKey } from "./admin/PlatformCapabilityKey";
 export type { PlatformCapability } from "./admin/PlatformCapability";
 export type { PlatformAdminWorkspace } from "./admin/PlatformAdminWorkspace";
+export type { AdminRole } from "./admin/AdminRole";
+export type { AdminUserProfile } from "./admin/AdminUserProfile";
+export type { AdminUsersResponse } from "./admin/AdminUsersResponse";
 export type { KycDecisionStatus } from "./admin/KycDecisionStatus";
 export type { KycSubmission } from "./admin/KycSubmission";
 export type { KycAuditEvent } from "./admin/KycAuditEvent";
@@ -81,3 +84,7 @@ export type { PlatformWalletReconciliation } from "./admin/PlatformWalletReconci
 export { downloadPlatformCsv } from "./admin/downloadPlatformCsv";
 export { fetchPlatformWalletReconciliation } from "./admin/fetchPlatformWalletReconciliation";
 export { fetchPlatformSystemStatus } from "./admin/fetchPlatformSystemStatus";
+export { assignAdminUserRole } from "./admin/assignAdminUserRole";
+export { fetchAdminPlatformRoles } from "./admin/fetchAdminPlatformRoles";
+export { fetchAdminUser } from "./admin/fetchAdminUser";
+export { fetchAdminUsers } from "./admin/fetchAdminUsers";

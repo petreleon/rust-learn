@@ -9,6 +9,7 @@ const pageTestFiles = [
   "src/features/admin/fraud-blocks/__tests__/AdminFraudBlocksRoute.test.tsx",
   "src/features/admin/reward-amount-review/__tests__/AdminRewardAmountReviewRoute.test.tsx",
   "src/features/admin/teacher-applications/__tests__/AdminTeacherApplicationsRoute.test.tsx",
+  "src/features/admin/users/__tests__/AdminUsersRoute.test.tsx",
   "src/features/admin/wallets/__tests__/AdminWalletsRoute.test.tsx",
   "src/features/learner/workspace/assessments/__tests__/CourseAssessmentEntryPanel.test.tsx",
   "src/features/learner/workspace/assessments/__tests__/CourseAssessmentPanel.test.tsx",

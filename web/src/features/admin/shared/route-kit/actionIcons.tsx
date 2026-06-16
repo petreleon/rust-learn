@@ -1,6 +1,6 @@
 "use client";
 
-import { Database, FileSpreadsheet, Gauge, Landmark, ShieldAlert, ShieldCheck, UserCheck, WalletCards, type LucideIcon } from "lucide-react";
+import { Database, FileSpreadsheet, Gauge, Landmark, ShieldAlert, ShieldCheck, UserCheck, Users, WalletCards, type LucideIcon } from "lucide-react";
 import { type PlatformCapabilityKey } from "@/lib/admin";
 
 export const actionIcons: Record<PlatformCapabilityKey, LucideIcon> = {
@@ -12,5 +12,6 @@ export const actionIcons: Record<PlatformCapabilityKey, LucideIcon> = {
   summary: Gauge,
   system: Database,
   teacher_applications: UserCheck,
+  users: Users,
   wallets: WalletCards,
 };

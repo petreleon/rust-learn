@@ -4,6 +4,7 @@ import { type PlatformCapabilityKey } from "./PlatformCapabilityKey";
 
 const platformCapabilityKeys = new Set<string>([
   "summary",
+  "users",
   "kyc_reviews",
   "teacher_applications",
   "reward_amount_review",
@@ -42,6 +43,7 @@ function legacyPlatformCapabilities(permissions: string[]): SessionCapability[] 
   const enabled = new Set(permissions);
   return [
     capability("summary", "Platform summary", ["VIEW_REPORT"], enabled),
+    capability("users", "User management", ["VIEW_USER", "ASSIGN_ROLES_TO_USER", "VIEW_ROLE_ASSIGNMENTS"], enabled),
     capability("kyc_reviews", "KYC review", ["REVIEW_KYC_SUBMISSIONS"], enabled),
     capability("teacher_applications", "Teacher applications", ["REVIEW_TEACHER_APPLICATIONS"], enabled),
     capability("reward_amount_review", "Reward amount review", ["APPROVE_REWARD_AMOUNT"], enabled),

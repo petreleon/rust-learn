@@ -728,11 +728,19 @@ Current evidence:
 - `/admin/wallets` now includes token-tax configuration for platform admins
   with `SET_DEPOSIT_TAX` or `SET_RETIRE_TAX`; tax-only admins can update
   configured tax values without loading wallet audit data.
+- `/admin/users` now exposes a platform user-management route. Admins with
+  `VIEW_USER` can search users by name/email, inspect profile verification,
+  platform roles, and platform permissions; admins with
+  `ASSIGN_ROLES_TO_USER` can assign platform roles without returning to `/ops`.
+- The current session capability catalog now advertises a `users` platform
+  capability so the admin dashboard can link to the user-management lane.
 
 Needed:
 
-- Add platform user and role management routes with search, filters, role
-  assignment, permission preview, audit history, and permission-denied states.
+- Add persisted role-assignment audit history to the platform user-management
+  route.
+- Add richer platform user filters beyond name/email search if operators need
+  KYC, email-verification, role, or permission filtering.
 - Add teacher/organization course creation, course metadata editing, lifecycle
   transition, ownership/organization attachment, and publish/archive controls.
 - Add reward policy management for platform, organization, and course scopes:
@@ -744,8 +752,10 @@ Needed:
 
 Checks:
 
-- [ ] Platform admins can search users, inspect user roles/permissions, assign
-  roles, and see audit feedback without using `/ops`.
+- [x] Platform admins can search users, inspect user roles/permissions, and
+  assign roles without using `/ops`.
+- [ ] Platform admins can see persisted role-assignment audit history without
+  using `/ops`.
 - [ ] Teacher or organization operators with the right permissions can create a
   course, edit course metadata, and move lifecycle status through valid
   transitions.

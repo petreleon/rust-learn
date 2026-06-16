@@ -9,6 +9,11 @@ pub(super) struct CapabilityDefinition {
 
 pub(super) const PLATFORM: &[CapabilityDefinition] = &[
     capability("summary", "Platform summary", &[VIEW_REPORT]),
+    capability(
+        "users",
+        "User management",
+        &[VIEW_USER, ASSIGN_ROLES_TO_USER, VIEW_ROLE_ASSIGNMENTS],
+    ),
     capability("kyc_reviews", "KYC review", &[REVIEW_KYC_SUBMISSIONS]),
     capability(
         "teacher_applications",

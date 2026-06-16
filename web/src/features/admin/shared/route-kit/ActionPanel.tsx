@@ -39,6 +39,15 @@ export function ActionPanel({
     value: string | number;
   }> = [
     {
+      detail: "Search users, inspect verification state, and assign platform roles.",
+      href: "/admin/users",
+      key: "users",
+      label: "User management",
+      state: capabilityLabel(workspace, "users"),
+      tone: platformCapabilityEnabled(workspace, "users") ? "good" : "neutral",
+      value: platformCapabilityEnabled(workspace, "users") ? "Ready" : "Gated",
+    },
+    {
       detail: "KYC submissions waiting for platform identity review.",
       href: "/admin/kyc",
       key: "kyc_reviews",
