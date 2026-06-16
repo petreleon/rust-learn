@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle, CreditCard, Loader2, RefreshCw, ShieldCheck
 import Link from "next/link";
 import { useMemo } from "react";
 import { type RewardHistoryEntry, type WalletSummary } from "@/lib/learner";
+import { WalletTransferPanel } from "../wallet-transfers/route/WalletTransferPanel";
 import styles from "../learner-workspace.module.css";
 import { EmptyState } from "./EmptyState";
 import { StatusPill } from "./StatusPill";
@@ -56,7 +57,7 @@ export function WalletContent({
             <h3>{walletScope}</h3>
             <StatusPill label="Ready for credits" tone="good" />
           </div>
-          <p className={styles.muted}>Approved rewards can be credited here. Deposits and retirements are not available in this UI yet.</p>
+          <p className={styles.muted}>Approved rewards, deposit intents, and token retirements are managed from this wallet route.</p>
           <strong className={styles.walletValue}>{wallet.value}</strong>
           <div className={styles.metaRow}>
             <span>{wallet.owner_type}</span>
@@ -109,6 +110,11 @@ export function WalletContent({
       {kycSection}
       {wallet ? metricsSection : walletSummarySection}
       {wallet ? walletSummarySection : metricsSection}
+      <WalletTransferPanel
+        enabled={kycGate.ready}
+        onRefresh={onRefresh}
+        walletLinked={Boolean(wallet)}
+      />
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>

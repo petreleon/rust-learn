@@ -178,6 +178,10 @@ Progress:
   sub-slice with `{api,components,model,route,view}` ownership, learner-safe
   backend calls behind the feature API, route-local submit state, and focused
   route tests.
+- [x] Added learner wallet transfers as a feature-owned learner workspace
+  sub-slice with `{api,components,model,route,view}` ownership, typed
+  deposit/retirement API calls, route-local draft/result state, and focused
+  route tests.
 - [x] Current architecture scan reports 5 dense-line findings after the learner
   workspace migration, with no long files and no API/view boundary
   violations.

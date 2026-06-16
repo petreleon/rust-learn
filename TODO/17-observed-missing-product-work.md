@@ -294,37 +294,40 @@ Current evidence:
 
 - Backend wallet endpoints exist for `/wallets/me/deposits`,
   `/wallets/me/retirements`, and token-tax configuration.
-- The learner wallet UI says deposits and retirements are not available in the
-  UI yet.
+- The learner wallet UI now exposes deposit and retirement intent forms when a
+  wallet is linked and KYC is verified.
 - Account settings repeats that deposits and retirements are managed from the
   wallet route when available.
 - User deposit and retirement service calls now enforce verified KYC before
   creating wallet intents or ledger entries, but the learner-facing
-  deposit/retirement forms are still not built.
+  transfer history still needs persisted pending-intent listing after refresh.
+- Newly created wallet intents render session-local history rows with tax,
+  wallet delta, gas payer, platform receiver when returned by the backend,
+  MetaMask requirement, and required wallet action.
+- Existing wallet integration proof covers platform-paid deposit crediting,
+  retirement, wallet value, and audit rows.
 
 Needed:
 
-- Add learner wallet actions for deposit and retirement intents.
-- Show gas-payer mode, tax amount, expected wallet delta, platform receiver,
-  MetaMask/permit requirements, pending confirmation, credited, ambiguous, and
-  failed states.
-- Add wallet-history rows for deposit/retirement intents alongside reward
-  credits.
+- Add persisted learner wallet history for pending deposit intents so
+  session-local intent rows survive refresh.
+- Broaden transfer history to show credited, ambiguous, and failed states after
+  indexer/reconciliation updates.
 - Add frontend tests and Compose proof for both platform-paid and user-paid
   flows.
 
 Checks:
 
-- [ ] A linked learner wallet can create deposit and retirement intents from the
+- [x] A linked learner wallet can create deposit and retirement intents from the
   wallet route.
-- [ ] UI shows tax amount, gas payer, expected wallet delta, platform address,
+- [x] UI shows tax amount, gas payer, expected wallet delta, platform address,
   and required external wallet action before confirmation.
 - [ ] Pending, credited, ambiguous, failed, and retry/recreate states are
   visible in wallet history.
 - [ ] User-paid and platform-paid flows are both covered, including MetaMask or
   permit-required messaging.
-- [ ] Retirements fail gracefully when the wallet balance is insufficient.
-- [ ] Compose proof verifies the wallet value and audit rows after a deposit or
+- [x] Retirements fail gracefully when the wallet balance is insufficient.
+- [x] Compose proof verifies the wallet value and audit rows after a deposit or
   retirement path.
 
 ## Session And Permission Display

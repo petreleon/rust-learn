@@ -123,6 +123,10 @@
   composes: statusPill from './learner-workspace.module/03.module.css';
 }
 .summaryCard { composes: summaryCard from './learner-workspace.module/01.module.css'; }
+.transferCard { composes: transferCard from './learner-workspace.module/06.module.css'; }
+.transferGrid { composes: transferGrid from './learner-workspace.module/06.module.css'; }
+.transferResultCard { composes: transferResultCard from './learner-workspace.module/06.module.css'; }
+.transferResultGrid { composes: transferResultGrid from './learner-workspace.module/06.module.css'; }
 .walletGrid {
   composes: walletGrid from './learner-workspace.module/01.module.css';
   composes: walletGrid from './learner-workspace.module/04.module.css';

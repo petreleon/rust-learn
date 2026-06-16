@@ -1,0 +1,64 @@
+.transferGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.transferCard,
+.transferResultCard {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.06);
+}
+
+.transferCard label,
+.transferCard details {
+  display: grid;
+  gap: 6px;
+  color: #334155;
+  font-weight: 760;
+}
+
+.transferCard input,
+.transferCard select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 10px;
+  color: #172033;
+  background: #ffffff;
+  font: inherit;
+}
+
+.transferCard input:disabled,
+.transferCard select:disabled {
+  color: #94a3b8;
+  background: #f8fafc;
+}
+
+.transferCard summary {
+  cursor: pointer;
+  color: #1f6f8b;
+  font-weight: 820;
+}
+
+.transferCard details[open] {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 10px;
+}
+
+.transferResultGrid {
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 860px) {
+  .transferGrid {
+    grid-template-columns: 1fr;
+  }
+}

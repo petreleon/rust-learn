@@ -9,7 +9,7 @@ export type WalletKycGateCopy = {
 export function walletKycGateCopy(kycVerified: boolean): WalletKycGateCopy {
   if (kycVerified) {
     return {
-      actionDetail: "Wallet link, deposit, and retirement actions can be offered when their route contracts are ready.",
+      actionDetail: "Wallet link, deposit, and retirement actions are available from the learner wallet route.",
       detail: "Identity verification is complete for wallet and payout operations.",
       label: "KYC verified",
       ready: true,
