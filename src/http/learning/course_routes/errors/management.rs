@@ -68,6 +68,8 @@ pub(in crate::http::learning::course_routes) fn lifecycle_error(
             super::permission_denied("User does not have permission to update course status")
         }
         CourseLifecycleError::InvalidStatus(message) => super::invalid_input(message),
+        CourseLifecycleError::InvalidTransition(message) => super::invalid_input(message),
+        CourseLifecycleError::StaleUpdate(message) => super::conflict(message),
         CourseLifecycleError::NotFound => super::course_not_found(),
         CourseLifecycleError::Connection(message) => {
             super::db_connection_failed("course_lifecycle_connection_failed", message)

@@ -23,18 +23,40 @@ impl<'conn> PostgresCourseLifecycleStore<'conn> {
 }
 
 impl CourseLifecycleStore for PostgresCourseLifecycleStore<'_> {
+    fn lifecycle_status(
+        &mut self,
+        course_id: i32,
+    ) -> BoxFuture<'_, Result<String, CourseLifecycleError>> {
+        async move {
+            courses::table
+                .find(course_id)
+                .select(courses::lifecycle_status)
+                .first::<String>(self.conn)
+                .await
+                .map_err(map_lifecycle_error)
+        }
+        .boxed()
+    }
+
     fn update_status(
         &mut self,
         course_id: i32,
+        current_status: String,
         status: String,
     ) -> BoxFuture<'_, Result<CourseLifecycleOutput, CourseLifecycleError>> {
         async move {
-            diesel::update(courses::table.find(course_id))
+            let target = courses::table
+                .filter(courses::id.eq(course_id))
+                .filter(courses::lifecycle_status.eq(current_status));
+
+            match diesel::update(target)
                 .set(courses::lifecycle_status.eq(status))
                 .get_result::<Course>(self.conn)
                 .await
-                .map(course_lifecycle_output_from_model)
-                .map_err(map_lifecycle_error)
+            {
+                Ok(course) => Ok(course_lifecycle_output_from_model(course)),
+                Err(error) => Err(map_update_error(self.conn, course_id, error).await),
+            }
         }
         .boxed()
     }
@@ -63,6 +85,40 @@ fn map_lifecycle_error(error: diesel::result::Error) -> CourseLifecycleError {
         diesel::result::Error::NotFound => CourseLifecycleError::NotFound,
         other => CourseLifecycleError::Database(other.to_string()),
     }
+}
+
+async fn map_update_error(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+    error: diesel::result::Error,
+) -> CourseLifecycleError {
+    match error {
+        diesel::result::Error::NotFound => {
+            let exists = course_exists(conn, course_id).await;
+            if matches!(exists, Ok(true)) {
+                CourseLifecycleError::StaleUpdate(
+                    "course lifecycle changed; refresh and retry".to_string(),
+                )
+            } else {
+                exists.err().unwrap_or(CourseLifecycleError::NotFound)
+            }
+        }
+        other => CourseLifecycleError::Database(other.to_string()),
+    }
+}
+
+async fn course_exists(
+    conn: &mut AsyncPgConnection,
+    course_id: i32,
+) -> Result<bool, CourseLifecycleError> {
+    courses::table
+        .find(course_id)
+        .select(courses::id)
+        .first::<i32>(conn)
+        .await
+        .optional()
+        .map(|id| id.is_some())
+        .map_err(map_lifecycle_error)
 }
 
 fn course_lifecycle_output_from_model(course: Course) -> CourseLifecycleOutput {

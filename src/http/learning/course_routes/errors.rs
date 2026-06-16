@@ -59,6 +59,10 @@ pub(in crate::http::learning::course_routes) fn invalid_input(
     ApiError::new(StatusCode::BAD_REQUEST, "invalid_input", message)
 }
 
+pub(in crate::http::learning::course_routes) fn conflict(message: impl Into<String>) -> ApiError {
+    ApiError::new(StatusCode::CONFLICT, "conflict", message)
+}
+
 pub(in crate::http::learning::course_routes) fn course_not_found() -> ApiError {
     ApiError::new(
         StatusCode::NOT_FOUND,

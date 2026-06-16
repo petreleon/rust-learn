@@ -5,7 +5,7 @@ use rust_learn::application::learning::update_course_lifecycle::{
     CourseLifecycleCommand, CourseLifecycleError, CourseLifecycleUseCase,
 };
 use rust_learn::domain::learning::course::status::{
-    COURSE_STATUS_DRAFT, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
+    COURSE_STATUS_ARCHIVED, COURSE_STATUS_DRAFT, COURSE_STATUS_PUBLISHED, COURSE_STATUS_SUBMITTED,
 };
 use rust_learn::infra::postgres::access_control::course_role_records;
 use rust_learn::infra::postgres::access_control::role_catalog_store;
@@ -145,4 +145,35 @@ async fn invalid_course_lifecycle_status_is_rejected() {
         .await
         .expect_err("invalid lifecycle status should be rejected");
     assert!(matches!(rejected, CourseLifecycleError::InvalidStatus(_)));
+}
+
+#[actix_web::test]
+async fn archived_course_cannot_be_published_again() {
+    let pool = setup_pool();
+    let mut conn = setup_conn(&pool).await;
+    let teacher = create_user_helper(&mut conn, "course_lifecycle_archived").await;
+    let course = create_course(&mut conn, &unique_string("LifecycleArchivedCourse")).await;
+    force_assign_course_role(&mut conn, teacher.id(), course.id, "TEACHER").await;
+    drop(conn);
+
+    let use_case = lifecycle_use_case(&pool);
+    let archived = use_case
+        .update_course_lifecycle(CourseLifecycleCommand {
+            actor_user_id: teacher.id(),
+            course_id: course.id,
+            status: COURSE_STATUS_ARCHIVED.to_string(),
+        })
+        .await
+        .expect("teacher should archive course");
+    assert_eq!(archived.lifecycle_status, COURSE_STATUS_ARCHIVED);
+
+    let denied = use_case
+        .update_course_lifecycle(CourseLifecycleCommand {
+            actor_user_id: teacher.id(),
+            course_id: course.id,
+            status: COURSE_STATUS_PUBLISHED.to_string(),
+        })
+        .await
+        .expect_err("archived course should not publish again");
+    assert!(matches!(denied, CourseLifecycleError::InvalidTransition(_)));
 }

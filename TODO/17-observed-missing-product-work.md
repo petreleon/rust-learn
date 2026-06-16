@@ -789,13 +789,17 @@ Current evidence:
   missing.
 - The current session capability catalog now advertises a `users` platform
   capability so the admin dashboard can link to the user-management lane.
+- Course lifecycle updates now read the current lifecycle before writing,
+  validate target transitions through domain policy, treat archived courses as
+  terminal, and use an optimistic current-status write so stale updates return
+  a refresh-and-retry conflict instead of overwriting silently.
 
 Needed:
 
 - Add richer platform user filters beyond name/email search if operators need
   KYC, email-verification, role, or permission filtering.
 - Finish richer organization course metadata editing, ownership/organization
-  attachment, invalid-transition handling, and publish/archive edge states.
+  attachment, and deleted-course edge-state coverage.
 - Finish reward policy management beyond the first product route: inspect
   details, activate/deactivate existing versions if policy toggling remains a
   separate operation, validate coverage, and expose policy audit.
@@ -821,8 +825,10 @@ Checks:
   from visible permission scope.
 - [x] Organization courses page can edit a selected course title and submit
   lifecycle changes from visible manage-settings permission scope.
-- [ ] Invalid lifecycle transitions, missing permissions, stale updates, and
-  archived/deleted course states are blocked with clear messages.
+- [x] Invalid lifecycle transitions, missing permissions, stale updates, and
+  archived course states are blocked with clear messages.
+- [ ] Deleted course states are blocked with clear product-route messages after
+  hard-delete or future soft-delete behavior.
 - [x] Platform admins with `SET_REWARD_POLICY` can create and list platform,
   organization, and course scoped reward policies from `/admin/reward-policies`
   without using `/ops`.

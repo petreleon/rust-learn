@@ -36,8 +36,23 @@ pub async fn update_course_lifecycle(
         ));
     }
 
+    let current_status = store.lifecycle_status(command.course_id).await?;
+    let current_lifecycle =
+        CourseLifecycleStatus::normalize(&current_status).map_err(|_| invalid_current_status())?;
+    if !current_lifecycle.can_transition_to(target_status) {
+        return Err(CourseLifecycleError::InvalidTransition(format!(
+            "cannot transition course lifecycle from '{}' to '{}'",
+            current_lifecycle.as_str(),
+            target_status.as_str()
+        )));
+    }
+
     store
-        .update_status(command.course_id, target_status.as_str().to_string())
+        .update_status(
+            command.course_id,
+            current_lifecycle.as_str().to_string(),
+            target_status.as_str().to_string(),
+        )
         .await
 }
 
@@ -56,4 +71,8 @@ fn required_course_permission(status: CourseLifecycleStatus) -> Permissions {
 
 fn invalid_status_error() -> CourseLifecycleError {
     CourseLifecycleError::InvalidStatus("unsupported course lifecycle status".to_string())
+}
+
+fn invalid_current_status() -> CourseLifecycleError {
+    CourseLifecycleError::InvalidStatus("course has unsupported lifecycle status".to_string())
 }

@@ -56,6 +56,39 @@ impl CourseLifecycleStatus {
         let normalized = value.trim().to_ascii_lowercase();
         Self::parse(&normalized)
     }
+
+    pub fn can_transition_to(self, target: Self) -> bool {
+        use CourseLifecycleStatus as Status;
+
+        if self == target {
+            return true;
+        }
+
+        match self {
+            Status::Draft => matches!(
+                target,
+                Status::Submitted | Status::Published | Status::Archived
+            ),
+            Status::Submitted => matches!(
+                target,
+                Status::NeedsChanges | Status::Approved | Status::Published | Status::Archived
+            ),
+            Status::NeedsChanges => {
+                matches!(target, Status::Draft | Status::Submitted | Status::Archived)
+            }
+            Status::Approved => {
+                matches!(
+                    target,
+                    Status::Published | Status::NeedsChanges | Status::Archived
+                )
+            }
+            Status::Published => {
+                matches!(target, Status::Draft | Status::Archived | Status::Suspended)
+            }
+            Status::Suspended => matches!(target, Status::Archived),
+            Status::Archived => false,
+        }
+    }
 }
 
 impl fmt::Display for CourseLifecycleStatus {
@@ -101,5 +134,22 @@ mod tests {
     #[test]
     fn rejects_unknown_status() {
         assert!(CourseLifecycleStatus::normalize("launched").is_err());
+    }
+
+    #[test]
+    fn guards_terminal_archived_transitions() {
+        assert!(CourseLifecycleStatus::Published.can_transition_to(CourseLifecycleStatus::Archived));
+        assert!(
+            !CourseLifecycleStatus::Archived.can_transition_to(CourseLifecycleStatus::Published)
+        );
+    }
+
+    #[test]
+    fn preserves_existing_teacher_lifecycle_shortcuts() {
+        assert!(CourseLifecycleStatus::Draft.can_transition_to(CourseLifecycleStatus::Submitted));
+        assert!(CourseLifecycleStatus::Draft.can_transition_to(CourseLifecycleStatus::Published));
+        assert!(
+            CourseLifecycleStatus::Submitted.can_transition_to(CourseLifecycleStatus::Published)
+        );
     }
 }

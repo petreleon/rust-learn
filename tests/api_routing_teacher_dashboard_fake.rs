@@ -118,6 +118,9 @@ fn route_course() -> TeacherCourseDashboardItemOutput {
         id: 12,
         title: "Route smoke".to_string(),
         lifecycle_status: "draft".to_string(),
+        description: None,
+        topics: None,
+        prerequisites: None,
         organizations: Vec::new(),
         content: TeacherCourseContentSummaryOutput {
             chapter_count: 0,
