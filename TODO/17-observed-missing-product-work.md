@@ -719,8 +719,9 @@ Current evidence:
   creation, policy scope, amount rules, active/inactive state, or policy audit.
   Current learner/teacher/org pages mostly show counts such as "No active
   policy" or "Reward policies".
-- Fraud blocks can target a `reward_policy_id`, but the UI gives operators no
-  way to search/select a reward policy by name/context before blocking it.
+- Fraud blocks can target a `reward_policy_id`. `/admin/fraud-blocks` now loads
+  active reward policies for operators with `SET_REWARD_POLICY` and lets them
+  create reward-policy scoped blocks by policy context instead of raw id entry.
 - Backend APIs exist for token-tax configuration and persisted tax history:
   `/api/wallets/token-taxes`, `/api/wallets/token-taxes/audit`,
   `/api/wallets/token-taxes/deposit`, and `/api/wallets/token-taxes/retire`.
@@ -749,8 +750,8 @@ Needed:
   transition, ownership/organization attachment, and publish/archive controls.
 - Add reward policy management for platform, organization, and course scopes:
   create, list, inspect, activate/deactivate, validate coverage, and audit.
-- Add reward-policy picker/search to fraud-block creation and reward
-  operations wherever a numeric policy id is currently required.
+- Extend reward-policy picker/search into reward operations wherever a numeric
+  policy id is still required.
 - Add deeper token-tax reporting if operators need filters beyond the latest
   effective history.
 
@@ -773,6 +774,8 @@ Checks:
   authorized admins.
 - [x] Token-tax audit rows, effective history, and visible downstream wallet
   impact are surfaced.
+- [x] Fraud-block creation can select active reward policies by scope/event
+  context instead of numeric policy id only.
 - [ ] Browser/page tests cover user-role management, course lifecycle changes,
   reward policy management, policy-backed fraud blocks, and token-tax updates.
 

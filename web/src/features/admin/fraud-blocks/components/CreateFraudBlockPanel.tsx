@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle, Loader2, Send, ShieldAlert } from "lucide-react";
+import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import styles from "@/features/admin/shared/admin-routes.module.css";
 import { type FraudBlockActionState } from "../model/FraudBlockActionState";
@@ -9,18 +10,29 @@ import {
   type FraudBlockCreateDraft,
 } from "../model/FraudBlockCreateDraft";
 import { fraudBlockCreateScopeOptions } from "../model/fraudBlockDisplay";
+import { type RewardPolicyOption } from "../model/RewardPolicyOption";
 
 export function CreateFraudBlockPanel({
+  canListRewardPolicies,
   draft,
   error,
   onDraftChange,
+  onRewardPolicyRetry,
   onSubmit,
+  rewardPolicyError,
+  rewardPolicyOptions,
+  rewardPolicyState,
   state,
 }: {
+  canListRewardPolicies: boolean;
   draft: FraudBlockCreateDraft;
   error: RouteError | null;
   onDraftChange: (patch: Partial<FraudBlockCreateDraft>) => void;
+  onRewardPolicyRetry: () => void;
   onSubmit: () => void;
+  rewardPolicyError: RouteError | null;
+  rewardPolicyOptions: RewardPolicyOption[];
+  rewardPolicyState: LoadState;
   state: FraudBlockActionState;
 }) {
   return (
@@ -40,7 +52,10 @@ export function CreateFraudBlockPanel({
       </div>
       <label>
         <span>Scope type</span>
-        <select onChange={(event) => onDraftChange({ scopeType: event.target.value })} value={draft.scopeType}>
+        <select
+          onChange={(event) => onDraftChange({ scopeType: event.target.value, targetId: "" })}
+          value={draft.scopeType}
+        >
           {fraudBlockCreateScopeOptions.map((option) => (
             <option key={option.label} value={option.value}>
               {option.label}
@@ -48,15 +63,18 @@ export function CreateFraudBlockPanel({
           ))}
         </select>
       </label>
-      <label>
-        <span>Target ID</span>
-        <input
-          onChange={(event) => onDraftChange({ targetId: event.target.value })}
-          placeholder="Optional numeric ID for the scope target"
-          type="text"
+      {draft.scopeType === "reward_policy" && canListRewardPolicies ? (
+        <RewardPolicySelect
+          error={rewardPolicyError}
+          onChange={(targetId) => onDraftChange({ targetId })}
+          onRetry={onRewardPolicyRetry}
+          options={rewardPolicyOptions}
+          state={rewardPolicyState}
           value={draft.targetId}
         />
-      </label>
+      ) : (
+        <TargetIdInput draft={draft} onDraftChange={onDraftChange} />
+      )}
       <label>
         <span>Reason</span>
         <textarea
@@ -86,5 +104,63 @@ export function CreateFraudBlockPanel({
         Create block
       </button>
     </form>
+  );
+}
+
+function RewardPolicySelect({
+  error,
+  onChange,
+  onRetry,
+  options,
+  state,
+  value,
+}: {
+  error: RouteError | null;
+  onChange: (targetId: string) => void;
+  onRetry: () => void;
+  options: RewardPolicyOption[];
+  state: LoadState;
+  value: string;
+}) {
+  return (
+    <>
+      <label>
+        <span>Reward policy</span>
+        <select disabled={state === "loading"} onChange={(event) => onChange(event.target.value)} value={value}>
+          <option value="">{state === "loading" ? "Loading policies..." : "Select active policy..."}</option>
+          {options.map((option) => (
+            <option key={option.id} value={String(option.id)}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {state === "error" && error ? (
+        <button className={styles.secondaryButton} type="button" onClick={onRetry}>
+          Retry policy list
+        </button>
+      ) : null}
+      {state === "success" && !options.length ? <span className={styles.muted}>No active reward policies.</span> : null}
+    </>
+  );
+}
+
+function TargetIdInput({
+  draft,
+  onDraftChange,
+}: {
+  draft: FraudBlockCreateDraft;
+  onDraftChange: (patch: Partial<FraudBlockCreateDraft>) => void;
+}) {
+  return (
+    <label>
+      <span>{draft.scopeType === "reward_policy" ? "Reward policy ID" : "Target ID"}</span>
+      <input
+        onChange={(event) => onDraftChange({ targetId: event.target.value })}
+        placeholder="Numeric ID for the scope target"
+        type="text"
+        value={draft.targetId}
+      />
+    </label>
   );
 }

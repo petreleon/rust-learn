@@ -1,5 +1,6 @@
 import { type FraudBlockAuditEvent } from "@/lib/admin/FraudBlockAuditEvent";
 import { type FraudBlockItem } from "@/lib/admin/FraudBlockItem";
+import { type RewardPolicyItem } from "@/lib/admin/RewardPolicyItem";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
 
 const fraudBlockPermissions = [
@@ -75,6 +76,27 @@ export function fraudBlockAuditEvent(
     fraud_block_id: 11,
     id: 8,
     reason: "Created by audit rule",
+    ...overrides,
+  };
+}
+
+export function rewardPolicy(overrides: Partial<RewardPolicyItem> = {}): RewardPolicyItem {
+  return {
+    active: true,
+    cooldown_seconds: 3600,
+    course_id: 9,
+    created_at: "2026-06-12T09:00:00Z",
+    created_by_user_id: 1,
+    event_type: "assessment_passed",
+    id: 401,
+    max_payout: null,
+    multiplier: "1",
+    organization_id: null,
+    payment_strategy: "off_chain",
+    scope_type: "course",
+    token_amount: "25",
+    updated_at: "2026-06-12T09:00:00Z",
+    version: 2,
     ...overrides,
   };
 }

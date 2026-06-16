@@ -23,6 +23,10 @@ export function canCreateFraudBlocks(workspace: PlatformAdminWorkspace) {
   ]);
 }
 
+export function canListRewardPoliciesForBlocks(workspace: PlatformAdminWorkspace) {
+  return workspace.effectivePermissions.includes("SET_REWARD_POLICY");
+}
+
 export function canRevokeFraudBlocks(workspace: PlatformAdminWorkspace) {
   return platformPermissionEnabled(workspace, "MANAGE_REWARD_FRAUD_BLOCKS");
 }

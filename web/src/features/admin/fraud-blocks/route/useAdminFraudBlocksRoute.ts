@@ -10,6 +10,7 @@ import { clearBrowserSession, readBrowserSessionToken } from "@/shared/session/b
 import { loadAdminFraudBlockSession } from "../api/fraudBlocksApi";
 import {
   canCreateFraudBlocks,
+  canListRewardPoliciesForBlocks,
   canRevokeFraudBlocks,
   canViewFraudBlocks,
   emptyFraudBlockWorkspace,
@@ -18,6 +19,7 @@ import {
 import { useAdminFraudBlockActions } from "./useAdminFraudBlockActions";
 import { useAdminFraudBlockAudit } from "./useAdminFraudBlockAudit";
 import { useAdminFraudBlockList } from "./useAdminFraudBlockList";
+import { useAdminRewardPolicyOptions } from "./useAdminRewardPolicyOptions";
 import { normalizeAdminFraudBlockRouteError } from "./normalizeAdminFraudBlockRouteError";
 
 function isExpiredSession(error: RouteError) {
@@ -36,10 +38,12 @@ export function useAdminFraudBlocksRoute() {
   );
   const allowed = session ? hasPlatformAdminAccess(session) : false;
   const canCreate = canCreateFraudBlocks(workspace);
+  const canListRewardPolicies = canListRewardPoliciesForBlocks(workspace);
   const canRevoke = canRevokeFraudBlocks(workspace);
   const canView = canViewFraudBlocks(workspace);
   const fraudBlockCapability = findFraudBlockCapability(workspace);
   const list = useAdminFraudBlockList({ allowed, canView, session });
+  const rewardPolicyOptions = useAdminRewardPolicyOptions({ allowed, canListPolicies: canListRewardPolicies });
   const audit = useAdminFraudBlockAudit({ canView });
   const { loadAudit, resetAudit } = audit;
   const { loadBlocks, selectedBlock, selectedBlockId } = list;
@@ -117,6 +121,7 @@ export function useAdminFraudBlocksRoute() {
   return {
     allowed,
     canCreate,
+    canListRewardPolicies,
     canRevoke,
     canView,
     error,
@@ -130,6 +135,7 @@ export function useAdminFraudBlocksRoute() {
     ...list,
     ...audit,
     ...actions,
+    ...rewardPolicyOptions,
   };
 }
 

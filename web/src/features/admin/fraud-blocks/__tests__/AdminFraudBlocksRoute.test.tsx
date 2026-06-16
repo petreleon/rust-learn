@@ -5,6 +5,7 @@ import { readBrowserSessionToken } from "@/shared/session/browserSession";
 import { AdminFraudBlocksRoute } from "../route/AdminFraudBlocksRoute";
 import {
   createAdminFraudBlock,
+  loadActiveRewardPolicies,
   loadAdminFraudBlockAudit,
   loadAdminFraudBlocks,
   loadAdminFraudBlockSession,
@@ -28,6 +29,7 @@ vi.mock("@/shared/session/browserSession", () => ({
 
 vi.mock("../api/fraudBlocksApi", () => ({
   createAdminFraudBlock: vi.fn(),
+  loadActiveRewardPolicies: vi.fn(),
   loadAdminFraudBlockAudit: vi.fn(),
   loadAdminFraudBlocks: vi.fn(),
   loadAdminFraudBlockSession: vi.fn(),
@@ -52,6 +54,7 @@ describe("AdminFraudBlocksRoute", () => {
       total: 0,
     });
     vi.mocked(loadAdminFraudBlockAudit).mockResolvedValue([]);
+    vi.mocked(loadActiveRewardPolicies).mockResolvedValue([]);
   });
 
   it("shows the signed-out state without loading fraud block APIs", async () => {
@@ -61,6 +64,7 @@ describe("AdminFraudBlocksRoute", () => {
 
     expect(await screen.findByText("Sign in required")).toBeVisible();
     expect(loadAdminFraudBlockSession).not.toHaveBeenCalled();
+    expect(loadActiveRewardPolicies).not.toHaveBeenCalled();
     expect(loadAdminFraudBlocks).not.toHaveBeenCalled();
   });
 
@@ -152,6 +156,7 @@ describe("AdminFraudBlocksRoute", () => {
     render(<AdminFraudBlocksRoute />);
 
     expect(await screen.findByText("Fraud blocks unavailable")).toBeVisible();
+    expect(loadActiveRewardPolicies).not.toHaveBeenCalled();
     expect(loadAdminFraudBlocks).not.toHaveBeenCalled();
   });
 });

@@ -105,5 +105,8 @@ function validateCreateDraft(draft: FraudBlockCreateDraft): RouteError | null {
   if (!draft.scopeType) {
     return { code: "validation_error", message: "Select a scope type.", status: 400 };
   }
+  if (!draft.targetId.trim()) {
+    return { code: "validation_error", message: "Select or enter a target.", status: 400 };
+  }
   return null;
 }

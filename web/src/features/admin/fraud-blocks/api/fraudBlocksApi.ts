@@ -1,9 +1,11 @@
 import { createFraudBlock } from "@/lib/admin/createFraudBlock";
 import { fetchFraudBlockAudit } from "@/lib/admin/fetchFraudBlockAudit";
 import { fetchFraudBlocks } from "@/lib/admin/fetchFraudBlocks";
+import { fetchRewardPolicies } from "@/lib/admin/fetchRewardPolicies";
 import { revokeFraudBlock } from "@/lib/admin/revokeFraudBlock";
 import { type FraudBlockAuditEvent } from "@/lib/admin/FraudBlockAuditEvent";
 import { type FraudBlockItem } from "@/lib/admin/FraudBlockItem";
+import { type RewardPolicyItem } from "@/lib/admin/RewardPolicyItem";
 import { fetchCurrentSession } from "@/lib/session/fetchCurrentSession";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
 import { ADMIN_FRAUD_BLOCK_PAGE_SIZE } from "../model/fraudBlockPagination";
@@ -47,6 +49,10 @@ export function loadAdminFraudBlockAudit({
   token: string;
 }): Promise<FraudBlockAuditEvent[]> {
   return fetchFraudBlockAudit({ blockId, token });
+}
+
+export function loadActiveRewardPolicies({ token }: { token: string }): Promise<RewardPolicyItem[]> {
+  return fetchRewardPolicies({ active: true, limit: 100, token });
 }
 
 export function createAdminFraudBlock({

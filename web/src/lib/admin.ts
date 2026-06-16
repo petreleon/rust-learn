@@ -47,6 +47,8 @@ export type { PlatformRewardCandidatePermissions } from "./admin/PlatformRewardC
 export type { PlatformRewardCandidatesResponse } from "./admin/PlatformRewardCandidatesResponse";
 export type { RewardAuditEvent } from "./admin/RewardAuditEvent";
 export type { RewardCandidateAmountDecisionStatus } from "./admin/RewardCandidateAmountDecisionStatus";
+export type { RewardPolicyItem } from "./admin/RewardPolicyItem";
+export type { RewardPolicyListOptions } from "./admin/RewardPolicyListOptions";
 export type { SystemLiveness } from "./admin/SystemLiveness";
 export type { SystemDependencyCheck } from "./admin/SystemDependencyCheck";
 export type { SystemReadiness } from "./admin/SystemReadiness";
@@ -80,6 +82,7 @@ export { decideTeacherApplication } from "./admin/decideTeacherApplication";
 export { fetchPlatformRewardCandidates } from "./admin/fetchPlatformRewardCandidates";
 export { decideRewardAmount } from "./admin/decideRewardAmount";
 export { fetchRewardCandidateAudit } from "./admin/fetchRewardCandidateAudit";
+export { fetchRewardPolicies } from "./admin/fetchRewardPolicies";
 export type { PlatformWalletReconciliationRow } from "./admin/PlatformWalletReconciliationRow";
 export type { PlatformWalletReconciliation } from "./admin/PlatformWalletReconciliation";
 export { downloadPlatformCsv } from "./admin/downloadPlatformCsv";

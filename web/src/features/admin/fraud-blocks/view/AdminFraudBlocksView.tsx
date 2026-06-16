@@ -139,10 +139,15 @@ function FraudBlockSidePanel({ route }: { route: AdminFraudBlocksRouteController
   if (route.canCreate) {
     return (
       <CreateFraudBlockPanel
+        canListRewardPolicies={route.canListRewardPolicies}
         draft={route.createDraft}
         error={route.createError}
         onDraftChange={route.updateCreateDraft}
+        onRewardPolicyRetry={route.loadRewardPolicyOptions}
         onSubmit={route.handleCreate}
+        rewardPolicyError={route.rewardPolicyOptionsError}
+        rewardPolicyOptions={route.rewardPolicyOptions}
+        rewardPolicyState={route.rewardPolicyOptionsState}
         state={route.createState}
       />
     );
