@@ -91,6 +91,7 @@ describe("teacher content authoring actions", () => {
         onCancelEdit={onCancel}
         onContentDraftChange={vi.fn()}
         onSubmitContent={vi.fn()}
+        uploadProgress={null}
         workspace={workspace()}
       />,
     );

@@ -23,6 +23,7 @@ const pageTestFiles = [
   "src/features/session/account-settings/__tests__/AccountSettingsRoute.test.tsx",
   "src/features/session/workspace/__tests__/SessionWorkspaceRoute.test.tsx",
   "src/features/teacher/application/__tests__/TeacherApplicationRoute.test.tsx",
+  "src/features/teacher/course-content/__tests__/TeacherCourseContentRoute.test.tsx",
   "src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx",
   "src/components/__tests__/teacher-rewards-route.test.tsx",
   "src/features/teacher/course-rewards/__tests__/RewardPolicyCoverage.test.tsx",

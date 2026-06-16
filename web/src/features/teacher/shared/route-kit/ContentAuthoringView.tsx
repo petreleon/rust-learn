@@ -28,6 +28,7 @@ export function ContentAuthoringView({
   onSubmitChapter,
   onSubmitContent,
   onTriggerProcessing,
+  uploadProgress,
   workspace,
 }: {
   actionMessage: string | null;
@@ -44,6 +45,7 @@ export function ContentAuthoringView({
   onSubmitChapter: (event: FormEvent<HTMLFormElement>) => void;
   onSubmitContent: (event: FormEvent<HTMLFormElement>) => void;
   onTriggerProcessing: (content: TeacherCourseWorkspaceContent) => void;
+  uploadProgress: number | null;
   workspace: TeacherCourseWorkspaceResponse;
 }) {
   const canManageContent = workspace.course.permissions.can_manage_content;
@@ -87,6 +89,7 @@ export function ContentAuthoringView({
           onCancelEdit={onCancelEdit}
           onContentDraftChange={onContentDraftChange}
           onSubmitContent={onSubmitContent}
+          uploadProgress={uploadProgress}
           workspace={workspace}
         />
       </section>

@@ -15,6 +15,7 @@ export function ContentAuthoringForm({
   onCancelEdit,
   onContentDraftChange,
   onSubmitContent,
+  uploadProgress,
   workspace,
 }: {
   actionState: ActionState;
@@ -24,6 +25,7 @@ export function ContentAuthoringForm({
   onCancelEdit: () => void;
   onContentDraftChange: (draft: ContentDraft) => void;
   onSubmitContent: (event: FormEvent<HTMLFormElement>) => void;
+  uploadProgress: number | null;
   workspace: TeacherCourseWorkspaceResponse;
 }) {
   const isEditing = editingContentId !== null;
@@ -147,6 +149,12 @@ export function ContentAuthoringForm({
       {!hasChapters ? <p className={styles.muted}>Create a chapter first so content can be assigned to it.</p> : null}
       {contentDraft.uploadKind === "file" && hasChapters ? (
         <p className={styles.muted}>The presigned upload URL expires after 1 hour. Use Process after the record is created.</p>
+      ) : null}
+      {uploadProgress !== null ? (
+        <div className={styles.statusRow} role="status">
+          <progress aria-label="Upload progress" max={100} value={uploadProgress} />
+          <span>{uploadProgress}% uploaded</span>
+        </div>
       ) : null}
     </form>
   );

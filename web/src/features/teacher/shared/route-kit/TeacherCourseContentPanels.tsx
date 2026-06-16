@@ -3,7 +3,7 @@
 import { AlertCircle, Loader2, LogIn, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { type Dispatch, type FormEvent, type SetStateAction } from "react";
-import { type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
+import { type TeacherCourseWorkspaceContent, type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type ActionState } from "./ActionState";
 import { type ChapterDraft } from "./ChapterDraft";
@@ -12,9 +12,17 @@ import { type ContentDraft } from "./ContentDraft";
 import { type LoadState } from "./LoadState";
 import { type RouteError } from "./RouteError";
 import { StatePanel } from "./StatePanel";
-import { type useContentAuthoringActions } from "./useContentAuthoringActions";
-
-type ContentActions = ReturnType<typeof useContentAuthoringActions>;
+type ContentActions = {
+  cancelContentEdit: () => void;
+  deleteConfirmContentId: number | null;
+  deleteContent: (content: TeacherCourseWorkspaceContent) => void;
+  editContent: (content: TeacherCourseWorkspaceContent) => void;
+  editingContentId: number | null;
+  isContentDraftDirty: boolean;
+  submitContent: (event: FormEvent<HTMLFormElement>) => void;
+  triggerProcessing: (content: TeacherCourseWorkspaceContent) => void;
+  uploadProgress: number | null;
+};
 
 export function TeacherCourseContentPanels({
   actionMessage,
@@ -102,6 +110,7 @@ export function TeacherCourseContentPanels({
       onSubmitChapter={submitChapter}
       onSubmitContent={contentActions.submitContent}
       onTriggerProcessing={contentActions.triggerProcessing}
+      uploadProgress={contentActions.uploadProgress}
       workspace={workspace}
     />
   );

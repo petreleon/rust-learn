@@ -184,6 +184,10 @@ Current evidence:
 - Teacher content authoring now exposes text/article content data to the
   teacher workspace, pre-fills the edit form, supports update/delete actions,
   and handles the plain-text backend response from processing retries.
+- `/teach/courses/{id}/content` is now a feature-owned route/API/view slice
+  with visible file-upload progress, feature API coverage for content
+  mutations, and route tests for text creation, upload progress, failed
+  processing recovery, and signed-out/loading states.
 - Learners can read text lessons and open media/document content when ready.
 - Assessment API helpers exist in `web/src/lib/learner`, and backend routes
   exist for listing published assessments, learner-safe questions, submitting
@@ -201,9 +205,9 @@ Needed:
 - Add teacher assessment authoring: create/edit/publish assessments, questions,
   correct answers, passing score, max attempts, and preview states.
 - Add reward eligibility handoff after passing learner assessments.
-- Finish the remaining content lifecycle controls: unpublish lesson, upload
-  progress/expiry recovery, processing audit/history, and richer
-  processing-error recovery.
+- Finish the remaining content lifecycle controls: unpublish lesson once the
+  backend supports content-level publication status, upload expiry recovery,
+  processing audit/history, and richer processing-error recovery.
 - Add tests for assessment helpers, assessment UI, content processing states,
   max-attempt behavior, and reward-trigger handoff.
 
@@ -220,8 +224,10 @@ Checks:
 - [x] Text/article content edit and delete flows render in teacher authoring,
   prefill persisted lesson data after refresh, and pass component, API, and
   browser checks.
-- [ ] Content unpublish, upload progress, processing retry, and
-  processing-error recovery states render without falling back to `/ops`.
+- [x] Content route tests cover text creation, visible upload progress, and
+  failed-processing retry without falling back to `/ops`.
+- [ ] Content unpublish, upload-expiry recovery, processing audit/history, and
+  richer processing-error recovery states render without falling back to `/ops`.
 - [ ] Reward eligibility or reward-candidate creation is verified after a
   passing assessment when the course policy requires assessment completion.
 - [ ] Unit, API-helper, component, and browser/Playwright coverage exercise the
