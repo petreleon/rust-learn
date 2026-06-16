@@ -1,9 +1,50 @@
 "use client";
 
 import { AlertCircle, CheckCircle2, Clock3, FileText, Send } from "lucide-react";
-import { type TeacherApplication } from "@/lib/teacher";
+import Link from "next/link";
+import { type ReactNode } from "react";
+import { type TeacherApplication } from "@/lib/teacher/TeacherApplication";
+import styles from "@/components/teacher-routes.module.css";
 
-export function applicationConfig(application: TeacherApplication | null, canSubmitApplication: boolean) {
+type ApplicationPanelConfig = {
+  action: string;
+  detail: string;
+  href: string | null;
+  icon: ReactNode;
+  title: string;
+};
+
+export function ApplicationPanel({
+  application,
+  canSubmitApplication,
+}: {
+  application: TeacherApplication | null;
+  canSubmitApplication: boolean;
+}) {
+  const config = applicationPanelConfig(application, canSubmitApplication);
+
+  return (
+    <section className={styles.panel}>
+      <div className={styles.panelHeader}>
+        {config.icon}
+        <h2>{config.title}</h2>
+      </div>
+      <p className={styles.muted}>{config.detail}</p>
+      {application?.decision_reason ? <p className={styles.reviewNote}>{application.decision_reason}</p> : null}
+      {config.href ? (
+        <Link className={styles.primaryLink} href={config.href}>
+          <Send size={17} aria-hidden />
+          {config.action}
+        </Link>
+      ) : null}
+    </section>
+  );
+}
+
+function applicationPanelConfig(
+  application: TeacherApplication | null,
+  canSubmitApplication: boolean,
+): ApplicationPanelConfig {
   if (!application) {
     return {
       action: "Apply to teach",

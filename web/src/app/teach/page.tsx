@@ -1,5 +1,5 @@
-import { TeacherRoute } from "@/components/teacher-routes";
+import { TeachingWorkspaceRoute } from "@/features/teacher/teaching-workspace/route/TeachingWorkspaceRoute";
 
 export default function TeacherWorkspacePage() {
-  return <TeacherRoute view="dashboard" />;
+  return <TeachingWorkspaceRoute view="dashboard" />;
 }

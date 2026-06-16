@@ -1,10 +1,10 @@
 "use client";
 
 import { ShieldCheck, Trophy, Users } from "lucide-react";
-import styles from "../teacher-routes.module.css";
-import { dashboardTotals } from "./dashboardTotals";
+import styles from "@/components/teacher-routes.module.css";
+import { type TeacherDashboardTotals } from "../model/dashboardTotals";
 
-export function PriorityList({ totals }: { totals: ReturnType<typeof dashboardTotals> }) {
+export function PriorityList({ totals }: { totals: TeacherDashboardTotals }) {
   const items = [
     {
       detail: totals.pendingEnrollmentCount
@@ -41,7 +41,9 @@ export function PriorityList({ totals }: { totals: ReturnType<typeof dashboardTo
         <article className={styles.priorityItem} key={item.label}>
           <span className={`${styles.smallIcon} ${styles[item.tone]}`}>{item.icon}</span>
           <div>
-            <strong>{item.value} {item.label}</strong>
+            <strong>
+              {item.value} {item.label}
+            </strong>
             <p>{item.detail}</p>
           </div>
         </article>

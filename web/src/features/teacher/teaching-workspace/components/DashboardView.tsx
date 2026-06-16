@@ -2,13 +2,14 @@
 
 import { BookOpen, BriefcaseBusiness, FileText, Trophy, Users } from "lucide-react";
 import Link from "next/link";
-import { type TeacherApplication, type TeacherCourseDashboardItem } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import { type TeacherApplication } from "@/lib/teacher/TeacherApplication";
+import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDashboardItem";
+import { SummaryCard } from "@/components/teacher-routes/SummaryCard";
+import styles from "@/components/teacher-routes.module.css";
+import { type TeacherDashboardTotals } from "../model/dashboardTotals";
 import { ApplicationPanel } from "./ApplicationPanel";
 import { CourseGrid } from "./CourseGrid";
 import { PriorityList } from "./PriorityList";
-import { SummaryCard } from "./SummaryCard";
-import { dashboardTotals } from "./dashboardTotals";
 
 export function DashboardView({
   application,
@@ -21,7 +22,7 @@ export function DashboardView({
   canSubmitApplication: boolean;
   courses: TeacherCourseDashboardItem[];
   hasMoreCourses: boolean;
-  totals: ReturnType<typeof dashboardTotals>;
+  totals: TeacherDashboardTotals;
 }) {
   return (
     <>
@@ -31,7 +32,6 @@ export function DashboardView({
         <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Reward reviews" value={totals.pendingRewardCount} tone={totals.pendingRewardCount ? "warn" : "neutral"} />
         <SummaryCard icon={<FileText size={20} aria-hidden />} label="Course content" value={totals.contentCount} />
       </section>
-
       <section className={styles.twoColumn}>
         <ApplicationPanel application={application} canSubmitApplication={canSubmitApplication} />
         <section className={styles.panel}>
@@ -42,7 +42,6 @@ export function DashboardView({
           <PriorityList totals={totals} />
         </section>
       </section>
-
       <section className={styles.courseSection}>
         <div className={styles.sectionHeader}>
           <div>

@@ -1,8 +1,8 @@
 "use client";
 
 import { BookOpen } from "lucide-react";
-import { type TeacherCourseDashboardItem } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDashboardItem";
+import styles from "@/components/teacher-routes.module.css";
 import { CourseCard } from "./CourseCard";
 
 export function CourseGrid({

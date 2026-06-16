@@ -1,6 +1,7 @@
-"use client";
-
-import { type CourseQuery } from "./CourseQuery";
+export type CourseQuery = {
+  lifecycleStatus: string;
+  search: string;
+};
 
 export const defaultCourseQuery: CourseQuery = {
   lifecycleStatus: "all",

@@ -69,8 +69,8 @@ Smells:
 
 - Route files mix token reads, session loading, API calls, permissions,
   mutations, filters, error normalization, and JSX.
-- Dense files still include teacher route views, account/session pages, and
-  `/ops/page-parts/Home.tsx`.
+- Dense files still include deeper teacher course route views,
+  account/session pages, and `/ops/page-parts/Home.tsx`.
 - Token reads still appear in many route/action modules.
 - Route controller hooks are inconsistent across contexts.
 - `src/lib/*.ts` barrels can hide large client import surfaces.
@@ -141,10 +141,19 @@ Progress:
   and a compatibility route export.
 - [x] Current architecture scan reports 31 dense-line findings after the admin
   teacher application review migration.
+- [x] Migrated the top-level teacher dashboard/courses workflow into
+  `features/teacher/teaching-workspace/{api,components,model,route,view}`.
+- [x] Pointed `/teach` and `/teach/courses` at the feature route, kept
+  `components/teacher-routes/TeacherRoute` as a compatibility export, and
+  deleted the old dashboard/courses cluster from `components/teacher-routes`.
+- [x] Current architecture scan reports 30 dense-line findings after the
+  teacher workspace migration, with no long files and no API/view boundary
+  violations.
 
 Latest pilot proof:
 
-- `make web-architecture-scan` passes in reporting mode.
+- `make web-architecture-scan` passes in reporting mode with 30 dense-line
+  findings, no long files, and no API/view boundary violations.
 - `make web-lint` passes with existing warnings.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
@@ -164,11 +173,13 @@ Latest pilot proof:
   passes.
 - `npm run test -- src/features/admin/teacher-applications/__tests__/AdminTeacherApplicationsRoute.test.tsx`
   passes.
+- `npm run test -- src/features/teacher/teaching-workspace/__tests__/TeachingWorkspaceRoute.test.tsx`
+  passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx src/components/__tests__/teacher-rewards-route.test.tsx src/components/__tests__/teacher-content-authoring-actions.test.tsx`
   passes.
-- `cd web && npm run test` passes with 38 files and 182 tests.
+- `cd web && npm run test` passes with 39 files and 186 tests.
 - `make web-api-helper-tests` passes.
 - `make web-build` passes.
 

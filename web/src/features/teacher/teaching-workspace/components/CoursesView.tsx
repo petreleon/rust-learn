@@ -2,10 +2,10 @@
 
 import { Filter, Search } from "lucide-react";
 import { type FormEvent } from "react";
-import { type TeacherCourseDashboardItem } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDashboardItem";
+import styles from "@/components/teacher-routes.module.css";
+import { type CourseQuery } from "../model/CourseQuery";
 import { CourseGrid } from "./CourseGrid";
-import { type CourseQuery } from "./CourseQuery";
 
 export function CoursesView({
   courses,
@@ -28,18 +28,18 @@ export function CoursesView({
           <div className={styles.inputWithIcon}>
             <Search size={17} aria-hidden />
             <input
-              type="search"
-              value={query.search}
               onChange={(event) => onQueryChange({ ...query, search: event.target.value })}
               placeholder="Course title"
+              type="search"
+              value={query.search}
             />
           </div>
         </label>
         <label>
           <span>Lifecycle</span>
           <select
-            value={query.lifecycleStatus}
             onChange={(event) => onQueryChange({ ...query, lifecycleStatus: event.target.value })}
+            value={query.lifecycleStatus}
           >
             <option value="all">All states</option>
             <option value="draft">Draft</option>
@@ -56,7 +56,6 @@ export function CoursesView({
           Apply filters
         </button>
       </form>
-
       <section className={styles.courseSection}>
         <div className={styles.sectionHeader}>
           <div>

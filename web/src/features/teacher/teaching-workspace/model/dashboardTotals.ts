@@ -1,6 +1,6 @@
-"use client";
+import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDashboardItem";
 
-import { type TeacherCourseDashboardItem } from "@/lib/teacher";
+const unhealthyLifecycleStatuses = new Set(["archived", "needs_changes", "suspended"]);
 
 export function dashboardTotals(courses: TeacherCourseDashboardItem[]) {
   return courses.reduce(
@@ -11,7 +11,7 @@ export function dashboardTotals(courses: TeacherCourseDashboardItem[]) {
       totals.contentCount += course.content.content_count;
       totals.pendingEnrollmentCount += pendingEnrollmentCount;
       totals.pendingRewardCount += course.reward_queue.pending_teacher_count;
-      if (!course.content.has_content || course.lifecycle_status === "archived" || course.lifecycle_status === "suspended") {
+      if (!course.content.has_content || unhealthyLifecycleStatuses.has(course.lifecycle_status)) {
         totals.unhealthyCourseCount += 1;
       }
       return totals;
@@ -25,3 +25,5 @@ export function dashboardTotals(courses: TeacherCourseDashboardItem[]) {
     },
   );
 }
+
+export type TeacherDashboardTotals = ReturnType<typeof dashboardTotals>;

@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CourseCard } from "@/components/teacher-routes/CourseCard";
+import { CourseCard } from "@/features/teacher/teaching-workspace/components/CourseCard";
 import { TeacherCourseRewardsRoute } from "@/components/teacher-routes/TeacherCourseRewardsRoute";
 import { fetchCurrentSession, readStoredSessionToken, type CurrentSession } from "@/lib/session";
 import {
