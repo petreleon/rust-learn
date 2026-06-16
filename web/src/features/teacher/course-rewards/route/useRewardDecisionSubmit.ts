@@ -1,12 +1,13 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
-import { readStoredSessionToken } from "@/lib/session";
-import { decideTeacherRewardCandidate, type TeacherRewardCandidate } from "@/lib/teacher";
-import { defaultRewardDecisionDraft } from "./defaultRewardDecisionDraft";
-import { normalizeRouteError } from "./normalizeRouteError";
-import { type ActionState } from "./ActionState";
-import { type RewardDecisionDraft } from "./RewardDecisionDraft";
+import { type TeacherRewardCandidate } from "@/lib/teacher/TeacherRewardCandidate";
+import { type ActionState } from "@/shared/route-state/ActionState";
+import { readBrowserSessionToken } from "@/shared/session/browserSession";
+import { decideCourseRewardCandidate } from "../api/courseRewardsApi";
+import { defaultRewardDecisionDraft } from "../model/defaultRewardDecisionDraft";
+import { type RewardDecisionDraft } from "../model/RewardDecisionDraft";
+import { normalizeRewardRouteError } from "./normalizeRewardRouteError";
 
 export function useRewardDecisionSubmit({
   courseId,
@@ -25,7 +26,7 @@ export function useRewardDecisionSubmit({
 
   async function submitRewardDecision(candidate: TeacherRewardCandidate, event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const token = readStoredSessionToken();
+    const token = readBrowserSessionToken();
     const draft = decisionDrafts[candidate.id] || defaultRewardDecisionDraft;
     if (!token) {
       setActionMessage("Sign in again before deciding reward candidates.");
@@ -34,7 +35,7 @@ export function useRewardDecisionSubmit({
     setActionState("saving");
     setActionMessage(null);
     try {
-      await decideTeacherRewardCandidate({
+      await decideCourseRewardCandidate({
         candidateId: candidate.id,
         courseId,
         payload: { decision_reason: draft.reason.trim() || null, status: draft.status },
@@ -48,8 +49,12 @@ export function useRewardDecisionSubmit({
       setActionMessage("Reward candidate decision saved.");
       await onReload();
     } catch (nextError) {
-      const routeError = normalizeRouteError(nextError);
-      setActionMessage(routeError.status === 409 ? `${routeError.message} The queue has been refreshed.` : routeError.message);
+      const routeError = normalizeRewardRouteError(nextError);
+      setActionMessage(
+        routeError.status === 409
+          ? `${routeError.message} The queue has been refreshed.`
+          : routeError.message,
+      );
       if (routeError.status === 409) await onReload();
     } finally {
       setActionState("idle");

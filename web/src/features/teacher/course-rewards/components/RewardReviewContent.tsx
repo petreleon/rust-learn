@@ -3,19 +3,20 @@
 import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, RefreshCw, ShieldCheck, Trophy } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useMemo } from "react";
-import { type TeacherCourseStudentsResponse, type TeacherRewardCandidate, type TeacherRewardCandidateStatusFilter } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
-import { PermissionChip } from "./PermissionChip";
+import { type TeacherCourseStudentsResponse } from "@/lib/teacher/TeacherCourseStudentsResponse";
+import { type TeacherRewardCandidate } from "@/lib/teacher/TeacherRewardCandidate";
+import { type TeacherRewardCandidateStatusFilter } from "@/lib/teacher/TeacherRewardCandidateStatusFilter";
+import { type ActionState } from "@/shared/route-state/ActionState";
+import { PermissionChip } from "@/components/teacher-routes/PermissionChip";
+import { StatePanel } from "@/components/teacher-routes/StatePanel";
+import { SummaryCard } from "@/components/teacher-routes/SummaryCard";
+import { statusLabel } from "@/components/teacher-routes/statusLabel";
+import styles from "@/components/teacher-routes.module.css";
+import { defaultRewardDecisionDraft } from "../model/defaultRewardDecisionDraft";
+import { rewardStatusOptions } from "../model/rewardStatusOptions";
+import { type RewardDecisionDraft } from "../model/RewardDecisionDraft";
 import { RewardCandidateCard } from "./RewardCandidateCard";
-import { StatePanel } from "./StatePanel";
-import { SummaryCard } from "./SummaryCard";
-import { defaultRewardDecisionDraft } from "./defaultRewardDecisionDraft";
-import { rewardStatusOptions } from "./rewardStatusOptions";
-import { statusLabel } from "./statusLabel";
-import { type ActionState } from "./ActionState";
-import { type RewardDecisionDraft } from "./RewardDecisionDraft";
-
-export function RewardReviewView({
+export function RewardReviewContent({
   actionMessage,
   actionState,
   candidates,
@@ -48,7 +49,6 @@ export function RewardReviewView({
   const decidedShown = candidates.filter(
     (candidate) => candidate.status === "teacher_approved" || candidate.status === "teacher_rejected",
   ).length;
-
   return (
     <>
       <section className={styles.workspaceHero}>
@@ -60,7 +60,8 @@ export function RewardReviewView({
           <p className={styles.eyebrow}>{statusLabel(students.course.lifecycle_status)}</p>
           <h2>Reward review</h2>
           <p className={styles.muted}>
-            Review learner evidence for this course and apply the teacher decision. Platform payout controls stay in admin workflows.
+            Review learner evidence for this course and apply the teacher decision. Platform payout controls stay in
+            admin workflows.
           </p>
         </div>
         <div className={styles.permissionRow} aria-label="Reward permissions">
@@ -70,10 +71,30 @@ export function RewardReviewView({
       </section>
 
       <section className={styles.summaryGrid}>
-        <SummaryCard icon={<Clock3 size={20} aria-hidden />} label="Pending queue" value={students.course.reward_queue.pending_teacher_count} tone={students.course.reward_queue.pending_teacher_count ? "warn" : "neutral"} />
-        <SummaryCard icon={<Trophy size={20} aria-hidden />} label="Shown now" value={candidates.length} tone={candidates.length ? "good" : "neutral"} />
-        <SummaryCard icon={<CheckCircle2 size={20} aria-hidden />} label="Decided shown" value={decidedShown} tone={decidedShown ? "good" : "neutral"} />
-        <SummaryCard icon={<AlertCircle size={20} aria-hidden />} label="Failed queue" value={students.course.reward_queue.failed_count} tone={students.course.reward_queue.failed_count ? "warn" : "neutral"} />
+        <SummaryCard
+          icon={<Clock3 size={20} aria-hidden />}
+          label="Pending queue"
+          tone={students.course.reward_queue.pending_teacher_count ? "warn" : "neutral"}
+          value={students.course.reward_queue.pending_teacher_count}
+        />
+        <SummaryCard
+          icon={<Trophy size={20} aria-hidden />}
+          label="Shown now"
+          tone={candidates.length ? "good" : "neutral"}
+          value={candidates.length}
+        />
+        <SummaryCard
+          icon={<CheckCircle2 size={20} aria-hidden />}
+          label="Decided shown"
+          tone={decidedShown ? "good" : "neutral"}
+          value={decidedShown}
+        />
+        <SummaryCard
+          icon={<AlertCircle size={20} aria-hidden />}
+          label="Failed queue"
+          tone={students.course.reward_queue.failed_count ? "warn" : "neutral"}
+          value={students.course.reward_queue.failed_count}
+        />
       </section>
 
       <section className={`${styles.warningPanel} ${styles.singlePanel}`}>
@@ -121,7 +142,9 @@ export function RewardReviewView({
           <div>
             <h2>Reward candidates</h2>
             <p className={styles.muted}>
-              {statusFilter === "all" ? "Showing all visible candidates." : `Showing ${statusLabel(statusFilter)} candidates.`}
+              {statusFilter === "all"
+                ? "Showing all visible candidates."
+                : `Showing ${statusLabel(statusFilter)} candidates.`}
             </p>
           </div>
           <span className={`${styles.statusPill} ${pendingShown ? styles.warn : styles.neutral}`}>

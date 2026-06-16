@@ -2,15 +2,17 @@
 
 import { Send } from "lucide-react";
 import { type FormEvent } from "react";
-import { type TeacherEnrollmentUserSummary, type TeacherRewardCandidate, type TeacherRewardCandidateDecisionStatus } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
-import { DetailLine } from "./DetailLine";
-import { formatDateTime } from "./formatDateTime";
-import { rewardCandidateTone } from "./rewardCandidateTone";
-import { statusLabel } from "./statusLabel";
-import { summarizeEvidence } from "./summarizeEvidence";
-import { type ActionState } from "./ActionState";
-import { type RewardDecisionDraft } from "./RewardDecisionDraft";
+import { type TeacherEnrollmentUserSummary } from "@/lib/teacher/TeacherEnrollmentUserSummary";
+import { type TeacherRewardCandidate } from "@/lib/teacher/TeacherRewardCandidate";
+import { type TeacherRewardCandidateDecisionStatus } from "@/lib/teacher/TeacherRewardCandidateDecisionStatus";
+import { type ActionState } from "@/shared/route-state/ActionState";
+import { DetailLine } from "@/components/teacher-routes/DetailLine";
+import { formatDateTime } from "@/components/teacher-routes/formatDateTime";
+import { statusLabel } from "@/components/teacher-routes/statusLabel";
+import { summarizeEvidence } from "@/components/teacher-routes/summarizeEvidence";
+import styles from "@/components/teacher-routes.module.css";
+import { rewardCandidateTone } from "../model/rewardCandidateTone";
+import { type RewardDecisionDraft } from "../model/RewardDecisionDraft";
 
 export function RewardCandidateCard({
   actionState,
@@ -48,7 +50,9 @@ export function RewardCandidateCard({
         <DetailLine label="Source" value={statusLabel(candidate.source_scope)} />
         <DetailLine label="Created" value={formatDateTime(candidate.created_at)} />
         <DetailLine label="Updated" value={formatDateTime(candidate.updated_at)} />
-        {candidate.teacher_decided_at ? <DetailLine label="Teacher decided" value={formatDateTime(candidate.teacher_decided_at)} /> : null}
+        {candidate.teacher_decided_at ? (
+          <DetailLine label="Teacher decided" value={formatDateTime(candidate.teacher_decided_at)} />
+        ) : null}
         {candidate.teacher_decision_reason ? <DetailLine label="Teacher reason" value={candidate.teacher_decision_reason} /> : null}
       </div>
 

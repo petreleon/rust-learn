@@ -1,4 +1,4 @@
-import { TeacherCourseRewardsRoute } from "@/components/teacher-routes";
+import { TeacherCourseRewardsRoute } from "@/features/teacher/course-rewards/route/TeacherCourseRewardsRoute";
 
 export default async function TeachingCourseRewardsPage({
   params,

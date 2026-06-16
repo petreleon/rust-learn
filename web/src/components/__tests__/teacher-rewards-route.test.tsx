@@ -1,39 +1,32 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TeacherCourseRewardsRoute } from "@/features/teacher/course-rewards/route/TeacherCourseRewardsRoute";
 import { CourseCard } from "@/features/teacher/teaching-workspace/components/CourseCard";
-import { TeacherCourseRewardsRoute } from "@/components/teacher-routes/TeacherCourseRewardsRoute";
-import { fetchCurrentSession, readStoredSessionToken, type CurrentSession } from "@/lib/session";
+import { type CurrentSession } from "@/lib/session/CurrentSession";
+import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDashboardItem";
+import { type TeacherCourseStudentsResponse } from "@/lib/teacher/TeacherCourseStudentsResponse";
+import { TeacherRequestError } from "@/lib/teacher/TeacherRequestError";
+import { readBrowserSessionToken } from "@/shared/session/browserSession";
 import {
-  fetchTeacherRewardCandidates,
-  fetchTeachingCourseStudents,
-  TeacherRequestError,
-  type TeacherCourseDashboardItem,
-  type TeacherCourseStudentsResponse,
-} from "@/lib/teacher";
+  loadCourseRewardCandidates,
+  loadCourseRewardContext,
+} from "@/features/teacher/course-rewards/api/courseRewardsApi";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/teach/courses/9/rewards",
   useRouter: () => ({ push: vi.fn() }),
 }));
 
-vi.mock("@/lib/session", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/session")>();
-  return {
-    ...actual,
-    clearStoredSessionToken: vi.fn(),
-    fetchCurrentSession: vi.fn(),
-    readStoredSessionToken: vi.fn(),
-  };
-});
+vi.mock("@/shared/session/browserSession", () => ({
+  clearBrowserSession: vi.fn(),
+  readBrowserSessionToken: vi.fn(),
+}));
 
-vi.mock("@/lib/teacher", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/teacher")>();
-  return {
-    ...actual,
-    fetchTeacherRewardCandidates: vi.fn(),
-    fetchTeachingCourseStudents: vi.fn(),
-  };
-});
+vi.mock("@/features/teacher/course-rewards/api/courseRewardsApi", () => ({
+  decideCourseRewardCandidate: vi.fn(),
+  loadCourseRewardCandidates: vi.fn(),
+  loadCourseRewardContext: vi.fn(),
+}));
 
 const emptyScope = { capabilities: [], delegated_permissions: [], direct_permissions: [], effective_permissions: [], roles: [] };
 
@@ -91,10 +84,42 @@ function students(canViewRewards: boolean): TeacherCourseStudentsResponse {
 describe("TeacherCourseRewardsRoute", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(readStoredSessionToken).mockReturnValue("teacher-token");
-    vi.mocked(fetchCurrentSession).mockResolvedValue(session());
-    vi.mocked(fetchTeachingCourseStudents).mockResolvedValue(students(false));
-    vi.mocked(fetchTeacherRewardCandidates).mockResolvedValue([]);
+    vi.mocked(readBrowserSessionToken).mockReturnValue("teacher-token");
+    vi.mocked(loadCourseRewardContext).mockResolvedValue({
+      session: session(),
+      students: students(false),
+    });
+    vi.mocked(loadCourseRewardCandidates).mockResolvedValue([]);
+  });
+
+  it("shows the signed-out state without loading reward APIs", async () => {
+    vi.mocked(readBrowserSessionToken).mockReturnValue(null);
+
+    render(<TeacherCourseRewardsRoute courseId="9" />);
+
+    expect(await screen.findByRole("heading", { name: "Sign in required" })).toBeVisible();
+    expect(loadCourseRewardContext).not.toHaveBeenCalled();
+    expect(loadCourseRewardCandidates).not.toHaveBeenCalled();
+  });
+
+  it("loads reward candidates through the feature API boundary", async () => {
+    vi.mocked(loadCourseRewardContext).mockResolvedValue({
+      session: session(),
+      students: students(true),
+    });
+
+    render(<TeacherCourseRewardsRoute courseId="9" />);
+
+    expect(await screen.findByRole("heading", { name: "No matching candidates" })).toBeVisible();
+    expect(loadCourseRewardContext).toHaveBeenCalledWith({
+      courseId: "9",
+      token: "teacher-token",
+    });
+    expect(loadCourseRewardCandidates).toHaveBeenCalledWith({
+      courseId: "9",
+      status: "pending_teacher_approval",
+      token: "teacher-token",
+    });
   });
 
   it("keeps course shell context when reward review permission is missing", async () => {
@@ -104,19 +129,22 @@ describe("TeacherCourseRewardsRoute", () => {
     expect(screen.getAllByText("Rust Safety").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Teacher User").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Course workspace" })).toHaveAttribute("href", "/teach/courses/9");
-    expect(fetchTeacherRewardCandidates).not.toHaveBeenCalled();
+    expect(loadCourseRewardCandidates).not.toHaveBeenCalled();
   });
 
   it("keeps course shell context when the reward API denies direct navigation", async () => {
-    vi.mocked(fetchTeachingCourseStudents).mockResolvedValue(students(true));
-    vi.mocked(fetchTeacherRewardCandidates).mockRejectedValue(
+    vi.mocked(loadCourseRewardContext).mockResolvedValue({
+      session: session(),
+      students: students(true),
+    });
+    vi.mocked(loadCourseRewardCandidates).mockRejectedValue(
       new TeacherRequestError("User does not have reward candidate permission", 403, "permission_denied"),
     );
 
     render(<TeacherCourseRewardsRoute courseId="9" />);
 
     expect((await screen.findAllByText("User does not have reward candidate permission")).length).toBeGreaterThan(0);
-    await waitFor(() => expect(fetchTeacherRewardCandidates).toHaveBeenCalled());
+    await waitFor(() => expect(loadCourseRewardCandidates).toHaveBeenCalled());
     expect(screen.getAllByText("Rust Safety").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Teacher User").length).toBeGreaterThan(0);
   });
