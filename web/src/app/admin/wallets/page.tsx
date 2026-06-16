@@ -1,1 +1,1 @@
-export { AdminWalletsRoute as default } from "@/components/admin-routes";
+export { AdminWalletsRoute as default } from "@/features/admin/wallets/route/AdminWalletsRoute";
