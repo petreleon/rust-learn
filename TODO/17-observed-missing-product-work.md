@@ -945,6 +945,10 @@ Current evidence:
   `web/scripts/page-tests.mjs` for ProductShell, admin, learner, organization,
   session, and teacher routes without Playwright, screenshots, Docker Compose,
   or persisted browser state.
+- `product-shell-mobile-layout.test.tsx` renders ProductShell at 390px with
+  crowded account/workspace data and verifies the split CSS module guardrails
+  that keep mobile menus, notification panels, wrapping text, and width
+  constraints inside the viewport without screenshot capture.
 
 Needed:
 
@@ -963,8 +967,9 @@ Checks:
   ProductShell composition.
 - [ ] Tests cover signed-out, loading, success, denied, not-found, backend
   error, timeout, empty, and post-action states.
-- [ ] Mobile-width render tests or Playwright screenshots catch overlap,
-  clipping, unreadable text, and horizontal overflow.
+- [x] Mobile-width render tests catch ProductShell overlap, clipping,
+  unreadable-text, and horizontal-overflow regressions through DOM and split
+  CSS guardrail assertions without screenshot capture.
 - [x] The page-level test command is documented and runs without depending on
   the full Docker Compose stack.
 
