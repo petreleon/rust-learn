@@ -46,24 +46,72 @@ contract LearnTokenTest is Test {
         assertEq(token.totalSupply(), 80 ether);
     }
 
-    function test_burn_by_owner() public {
+    function test_burn_burns_only_sender_balance() public {
         token.mint(alice, 100 ether);
-        token.burn(alice, 40 ether);
+
+        vm.prank(alice);
+        token.burn(40 ether);
+
         assertEq(token.balanceOf(alice), 60 ether);
         assertEq(token.totalSupply(), 60 ether);
     }
 
-    function test_burn_reverts_for_non_owner() public {
+    function test_owner_cannot_burn_arbitrary_user_balance() public {
+        token.mint(alice, 100 ether);
+
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC20InsufficientBalance(address,uint256,uint256)",
+                address(this),
+                0,
+                50 ether
+            )
+        );
+        token.burn(50 ether);
+
+        assertEq(token.balanceOf(alice), 100 ether);
+        assertEq(token.totalSupply(), 100 ether);
+    }
+
+    function test_burnFrom_spends_allowance_then_burns() public {
         token.mint(alice, 100 ether);
         vm.prank(alice);
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", alice));
-        token.burn(alice, 50 ether);
+        token.approve(bob, 40 ether);
+
+        vm.prank(bob);
+        token.burnFrom(alice, 30 ether);
+
+        assertEq(token.balanceOf(alice), 70 ether);
+        assertEq(token.allowance(alice, bob), 10 ether);
+        assertEq(token.totalSupply(), 70 ether);
+    }
+
+    function test_burnFrom_reverts_without_allowance() public {
+        token.mint(alice, 100 ether);
+        vm.prank(bob);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC20InsufficientAllowance(address,uint256,uint256)",
+                bob,
+                0,
+                30 ether
+            )
+        );
+        token.burnFrom(alice, 30 ether);
     }
 
     function test_burn_reverts_if_insufficient_balance() public {
         token.mint(alice, 50 ether);
-        vm.expectRevert(abi.encodeWithSignature("ERC20InsufficientBalance(address,uint256,uint256)", alice, 50 ether, 60 ether));
-        token.burn(alice, 60 ether);
+        vm.prank(alice);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "ERC20InsufficientBalance(address,uint256,uint256)",
+                alice,
+                50 ether,
+                60 ether
+            )
+        );
+        token.burn(60 ether);
     }
 
     function test_transfer() public {

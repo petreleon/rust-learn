@@ -4,6 +4,17 @@ use rust_learn::infra::ethereum::operations::deployer::try_deploy_contract;
 use rust_learn::infra::ethereum::operations::provider::try_get_provider;
 use rust_learn::infra::ethereum::operations::wallet::try_load_wallet_from_env;
 
+#[test]
+fn test_learn_token_artifact_exposes_allowance_burns() {
+    let abi_json = std::fs::read_to_string("ethereum/artifacts/LearnToken.abi").unwrap();
+    let abi: serde_json::Value = serde_json::from_str(&abi_json).unwrap();
+    let functions = abi.as_array().unwrap();
+
+    assert!(has_function(functions, "burn", &["uint256"]));
+    assert!(has_function(functions, "burnFrom", &["address", "uint256"]));
+    assert!(!has_function(functions, "burn", &["address", "uint256"]));
+}
+
 #[tokio::test(flavor = "multi_thread")]
 async fn test_compile_learn_token_from_source() {
     let _ = dotenvy::dotenv();
@@ -63,4 +74,21 @@ async fn test_deploy_learn_token_to_anvil() {
     .await;
 
     assert!(result.is_ok(), "deploy failed: {:?}", result.err());
+}
+
+fn has_function(functions: &[serde_json::Value], name: &str, inputs: &[&str]) -> bool {
+    functions.iter().any(|item| {
+        item.get("type").and_then(serde_json::Value::as_str) == Some("function")
+            && item.get("name").and_then(serde_json::Value::as_str) == Some(name)
+            && item
+                .get("inputs")
+                .and_then(serde_json::Value::as_array)
+                .map(|abi_inputs| {
+                    abi_inputs
+                        .iter()
+                        .filter_map(|input| input.get("type").and_then(serde_json::Value::as_str))
+                        .eq(inputs.iter().copied())
+                })
+                .unwrap_or(false)
+    })
 }

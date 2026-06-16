@@ -13,8 +13,10 @@ Implementation status checked before first push:
   idempotency keys, and rolling leaderboard queries.
 - [x] Organization/platform burn permissions are seeded for the initial roles.
 - [x] Focused host and Docker Compose burn-token tests pass.
-- [ ] Smart contract burn semantics still need to move from owner-arbitrary
+- [x] Smart contract burn semantics moved from owner-arbitrary
   burn to `burn` / `burnFrom` allowance semantics.
+- [x] Tracked LearnToken ABI/bin regenerated and verified by host and Docker
+  Compose Ethereum utility tests.
 - [ ] Web surfaces from the Web Boundary Plan are still pending.
 - [ ] Reconciliation/admin failure handling still needs the next backend slice.
 
