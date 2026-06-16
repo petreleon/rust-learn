@@ -1,4 +1,4 @@
-import { OrganizationMembersRoute } from "@/components/organization-routes";
+import { OrganizationMembersRoute } from "@/features/organization/members/route/OrganizationMembersRoute";
 
 export default async function OrganizationMembersPage({
   params,

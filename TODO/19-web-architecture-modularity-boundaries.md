@@ -99,6 +99,13 @@ Progress:
   `shared/route-state/*`.
 - [x] Moved the pilot route to shared session/route-state contracts and a
   feature-owned enrollment route model/error adapter.
+- [x] Migrated organization members into the second workflow slice:
+  `features/organization/members/{api,model,route,view}`.
+- [x] Pointed the organization members Next route at the feature route while
+  keeping the old `components/organization-routes/OrganizationMembersRoute`
+  path as a compatibility export.
+- [x] Current architecture scan reports 49 dense-line findings after the
+  organization members slice.
 
 Latest pilot proof:
 
@@ -106,11 +113,13 @@ Latest pilot proof:
 - `make web-lint` passes with existing warnings.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
+- `npm run test -- src/features/organization/members/__tests__/OrganizationMembersRoute.test.tsx`
+  passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx src/components/__tests__/teacher-rewards-route.test.tsx src/components/__tests__/teacher-content-authoring-actions.test.tsx`
   passes.
-- `cd web && npm run test` passes.
+- `cd web && npm run test` passes with 32 files and 155 tests.
 - `make web-api-helper-tests` passes.
 - `make web-build` passes.
 
