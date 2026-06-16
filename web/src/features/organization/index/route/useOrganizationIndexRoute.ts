@@ -49,7 +49,7 @@ export function useOrganizationIndexRoute() {
     }
   }, []);
 
-  const loadSession = useCallback(async () => {
+  const loadSession = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     const token = readStoredSessionToken();
     if (!token) {
       setError(null);
@@ -62,7 +62,7 @@ export function useOrganizationIndexRoute() {
 
     setError(null);
     setHasToken(true);
-    setLoadState("loading");
+    if (!silent) setLoadState("loading");
 
     try {
       const nextSession = await loadOrganizationIndexSession({ token });
@@ -71,6 +71,7 @@ export function useOrganizationIndexRoute() {
       if (canBrowsePlatformOrganizations(nextSession)) {
         void loadPlatformDirectory(token);
       } else {
+        setDirectoryError(null);
         setDirectoryState("idle");
         setPlatformOrganizations([]);
       }
@@ -90,6 +91,17 @@ export function useOrganizationIndexRoute() {
   useEffect(() => {
     const timeout = window.setTimeout(() => void loadSession(), 0);
     return () => window.clearTimeout(timeout);
+  }, [loadSession]);
+
+  useEffect(() => {
+    function handleVisible() {
+      if (document.visibilityState === "visible") {
+        void loadSession({ silent: true });
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisible);
+    return () => document.removeEventListener("visibilitychange", handleVisible);
   }, [loadSession]);
 
   function clearWorkspaceFilters() {

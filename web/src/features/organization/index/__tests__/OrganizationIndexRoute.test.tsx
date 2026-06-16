@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { readStoredSessionToken } from "@/lib/session";
@@ -80,6 +80,24 @@ describe("OrganizationIndexRoute", () => {
     expect(screen.getByRole("link", { name: /Review session/i })).toHaveAttribute("href", "/session");
     expect(loadPlatformOrganizations).not.toHaveBeenCalled();
   });
+
+  it("refreshes workspace options when organization access changes on tab focus", async () => {
+    vi.mocked(loadOrganizationIndexSession)
+      .mockResolvedValueOnce(ordinarySession())
+      .mockResolvedValueOnce(organizationSession());
+
+    render(<OrganizationIndexRoute />);
+
+    expect(await screen.findByText("No organization workspace yet")).toBeVisible();
+
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    expect(await screen.findByRole("heading", { name: "Ferris Org" })).toBeVisible();
+    await waitFor(() => expect(loadOrganizationIndexSession).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("combobox", { name: /^Workspace$/ })).toHaveTextContent("Ferris Org");
+  });
 });
 
 function platformAdminSession(): CurrentSession {
@@ -110,6 +128,22 @@ function ordinarySession(): CurrentSession {
       effective_permissions: [],
       roles: [],
     },
+  };
+}
+
+function organizationSession(): CurrentSession {
+  return {
+    ...ordinarySession(),
+    access: { learner: true, organization: true, platform_admin: false, teacher: false, teacher_application: false },
+    organizations: [{
+      capabilities: [{ enabled: true, key: "members", label: "Members", permissions: ["VIEW_ORGANIZATION"] }],
+      delegated_permissions: [],
+      direct_permissions: ["VIEW_ORGANIZATION"],
+      effective_permissions: ["VIEW_ORGANIZATION"],
+      id: 4,
+      name: "Ferris Org",
+      roles: ["ADMIN"],
+    }],
   };
 }
 

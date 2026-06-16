@@ -623,6 +623,9 @@ Current evidence:
   shown only when backend operator permissions include member invites, success
   copy says existing-user access is immediate, and pending learner joins link
   to organization courses where pending join counts already appear.
+- Organization route controllers now silently refresh the current session when
+  a browser tab becomes visible, so ProductShell workspace options reflect
+  organization access grants or revokes without requiring a manual reload.
 
 Needed:
 
@@ -645,7 +648,7 @@ Checks:
   states from product routes.
 - [ ] Organization routes preserve clear permission-denied, not-found, empty,
   loading, and backend-error states.
-- [ ] Workspace selector options update after organization access is granted or
+- [x] Workspace selector options update after organization access is granted or
   revoked.
 
 ## Account Verification And Session Persistence

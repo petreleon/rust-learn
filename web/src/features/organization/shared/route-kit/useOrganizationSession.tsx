@@ -12,7 +12,7 @@ export function useOrganizationSession() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [session, setSession] = useState<CurrentSession | null>(null);
 
-  const loadSession = useCallback(async () => {
+  const loadSession = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     const token = readStoredSessionToken();
     if (!token) {
       setError(null);
@@ -24,7 +24,7 @@ export function useOrganizationSession() {
 
     setError(null);
     setHasToken(true);
-    setLoadState("loading");
+    if (!silent) setLoadState("loading");
 
     try {
       const nextSession = await fetchCurrentSession({ token });
@@ -45,6 +45,17 @@ export function useOrganizationSession() {
   useEffect(() => {
     const timeout = window.setTimeout(() => void loadSession(), 0);
     return () => window.clearTimeout(timeout);
+  }, [loadSession]);
+
+  useEffect(() => {
+    function handleVisible() {
+      if (document.visibilityState === "visible") {
+        void loadSession({ silent: true });
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisible);
+    return () => document.removeEventListener("visibilitychange", handleVisible);
   }, [loadSession]);
 
   function signOut() {

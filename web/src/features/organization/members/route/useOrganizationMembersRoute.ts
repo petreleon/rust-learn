@@ -49,7 +49,7 @@ export function useOrganizationMembersRoute(organizationId: string) {
     setSession(null);
   }, []);
 
-  const loadSession = useCallback(async () => {
+  const loadSession = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     const token = readBrowserSessionToken();
     if (!token) {
       clearRoute("idle");
@@ -58,7 +58,7 @@ export function useOrganizationMembersRoute(organizationId: string) {
 
     setError(null);
     setHasToken(true);
-    setLoadState("loading");
+    if (!silent) setLoadState("loading");
 
     try {
       setSession(await loadCurrentOrganizationSession({ token }));
@@ -109,6 +109,17 @@ export function useOrganizationMembersRoute(organizationId: string) {
   useEffect(() => {
     const timeout = window.setTimeout(() => void loadSession(), 0);
     return () => window.clearTimeout(timeout);
+  }, [loadSession]);
+
+  useEffect(() => {
+    function handleVisible() {
+      if (document.visibilityState === "visible") {
+        void loadSession({ silent: true });
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisible);
+    return () => document.removeEventListener("visibilitychange", handleVisible);
   }, [loadSession]);
 
   useEffect(() => {
@@ -166,5 +177,4 @@ export function useOrganizationMembersRoute(organizationId: string) {
     ...memberActions,
   };
 }
-
 export type OrganizationMembersRouteController = ReturnType<typeof useOrganizationMembersRoute>;
