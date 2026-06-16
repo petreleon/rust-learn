@@ -618,6 +618,7 @@ Frontend checks:
 ```bash
 make web-lint
 make web-api-helper-tests
+make web-architecture-scan
 make web-build
 ```
 
@@ -656,6 +657,7 @@ make test-integration
 make web-dev
 make web-lint
 make web-api-helper-tests
+make web-architecture-scan
 make web-build
 make web-lint-compose
 make web-build-compose
@@ -681,6 +683,7 @@ Test dependency notes:
 | `make test-compose` | Docker plus a valid `.env`; starts PostgreSQL, RustFS, and Anvil, then runs Cargo in the `test-runner` profile so host native libraries are not required. |
 | `make web-lint-compose` | Docker; runs ESLint in a one-shot Compose web container after `npm ci`, so stale anonymous `node_modules` volumes cannot hide missing dependencies. |
 | `make web-api-helper-tests` | Local Node toolchain; runs frontend API helper contract tests for session/auth JSON success, text errors, `401`, `403`, timeout, network failure, and verification-token states. |
+| `make web-architecture-scan` | Local Node toolchain; reports frontend file-size, dense-line, API-boundary, and view-side-effect findings for the TODO/19 modularity migration. |
 | `make web-build-compose` | Docker; builds the `web` image through the production Dockerfile, which is the supported Compose production-build check for the frontend. |
 | `make runtime-log-scan` | Running Docker Compose stack and Kubernetes `rust-learn` namespace; scans recent app, worker, and web logs for warning/error patterns, explicit HTTP 500 statuses, `status=500` fields, and standalone `500` status tokens without matching routine counters such as `failed=0`, config values such as `batch_blocks=500`, or timings such as `500ms`. Override the window with `LOG_SCAN_SINCE=10m`. Fails if a matching log line is found or a required log source is unreachable. |
 | `cargo test --test s3` | RustFS/S3-compatible storage reachable through the `S3_*` settings. With Compose, run from the container network or set `S3_INTERNAL_DOMAIN`/`S3_EXTERNAL_DOMAIN` appropriately for the host. |

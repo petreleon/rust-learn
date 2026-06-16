@@ -64,6 +64,9 @@ web-build: ## Build the frontend
 web-api-helper-tests: ## Run frontend API helper contract tests
 	cd web && npm run test:api-helpers
 
+web-architecture-scan: ## Report frontend architecture boundary findings
+	cd web && npm run architecture:scan
+
 web-lint-compose: ## Run frontend lint checks inside the Docker Compose web service
 	$(DOCKER_COMPOSE) run --rm --no-deps web sh -c 'npm ci --no-audit --no-fund && npm run lint'
 
