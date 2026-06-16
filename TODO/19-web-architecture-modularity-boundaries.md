@@ -117,8 +117,11 @@ Progress:
   compatibility export.
 - [x] Split organization settings panel into feature-owned components while
   keeping the old panel path as a compatibility export.
-- [x] Current architecture scan reports 43 dense-line findings after the
-  organization settings panel cleanup.
+- [x] Migrated organization settings into
+  `features/organization/settings/{api,model,route,view}` with shared
+  session/route-state boundaries and a compatibility route export.
+- [x] Current architecture scan reports 42 dense-line findings after the
+  organization settings route migration.
 
 Latest pilot proof:
 
@@ -128,11 +131,13 @@ Latest pilot proof:
   passes.
 - `npm run test -- src/features/organization/members/__tests__/OrganizationMembersRoute.test.tsx`
   passes.
+- `npm run test -- src/features/organization/settings/__tests__/OrganizationSettingsRoute.test.tsx`
+  passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx src/components/__tests__/teacher-rewards-route.test.tsx src/components/__tests__/teacher-content-authoring-actions.test.tsx`
   passes.
-- `cd web && npm run test` passes with 32 files and 155 tests.
+- `cd web && npm run test` passes with 33 files and 158 tests.
 - `make web-api-helper-tests` passes.
 - `make web-build` passes.
 

@@ -1,4 +1,4 @@
-import { OrganizationSettingsRoute } from "@/components/organization-routes";
+import { OrganizationSettingsRoute } from "@/features/organization/settings/route/OrganizationSettingsRoute";
 
 export default async function OrganizationSettingsPage({
   params,
