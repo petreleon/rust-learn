@@ -209,6 +209,9 @@ Progress:
   out of `components/*-routes` into feature-owned `route/` folders and pointed
   the Next route entrypoints directly at those feature routes. The old route
   files left under `components/*-routes` are compatibility exports only.
+- [x] Removed the obsolete route compatibility barrels/shims from
+  `components/{admin,organization,teacher}-routes`, moved the KYC route test to
+  the feature route import, and cleaned the remaining web lint warnings.
 
 Latest pilot proof:
 
@@ -223,6 +226,10 @@ Latest pilot proof:
   `make web-lint`, and `make web-build` pass.
 - Route-ownership checkpoint:
   `make web-architecture-scan`, `make web-lint`, and `make web-build` pass.
+- Compatibility cleanup checkpoint:
+  `make web-architecture-scan`, `make web-lint` with no warnings,
+  `make web-build`, and
+  `npm run test -- src/components/__tests__/admin-kyc-route.test.tsx` pass.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/organization/members/__tests__/OrganizationMembersRoute.test.tsx`

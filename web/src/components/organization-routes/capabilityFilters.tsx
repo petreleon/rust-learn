@@ -1,6 +1,5 @@
 "use client";
 
-import { Settings } from "lucide-react";
 import { type CapabilityFilter } from "./CapabilityFilter";
 
 export const capabilityFilters: Array<{ label: string; value: CapabilityFilter }> = [

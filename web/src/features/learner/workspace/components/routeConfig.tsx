@@ -1,7 +1,5 @@
 "use client";
 
-import { Search } from "lucide-react";
-
 export const routeConfig = {
   dashboard: {
     description: "Continue learning, inspect rewards, and keep your wallet ready.",

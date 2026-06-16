@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import { missingOrganizationPermissions, type OrganizationCapability } from "@/lib/organization";
 import styles from "@/features/organization/shared/organization-routes.module.css";
 

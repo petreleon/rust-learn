@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AdminKycReviewRoute } from "@/components/admin-routes";
+import { AdminKycReviewRoute } from "@/features/admin/kyc-review/route/AdminKycReviewRoute";
 import { useAdminSession } from "@/components/admin-routes/useAdminSession";
 import { decideKycSubmission, fetchKycReviewQueue, fetchKycSubmissionAudit, type KycSubmission } from "@/lib/admin";
 import { type CurrentSession } from "@/lib/session";

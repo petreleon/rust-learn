@@ -63,7 +63,7 @@ function resolveLocalSource(sourcePath, specifier) {
     try {
       readFileSync(candidate);
       return candidate;
-    } catch (_error) {}
+    } catch {}
   }
   throw new Error(`Unable to resolve local import ${specifier} from ${sourcePath}`);
 }
