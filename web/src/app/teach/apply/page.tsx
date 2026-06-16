@@ -1,2 +1,2 @@
 "use client";
-export { default } from "./page-parts/TeacherApplicationPage";
+export { TeacherApplicationRoute as default } from "@/features/teacher/application/route/TeacherApplicationRoute";

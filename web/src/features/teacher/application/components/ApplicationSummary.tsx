@@ -1,12 +1,12 @@
 "use client";
 
 import { type TeacherApplication } from "@/lib/teacher";
-import styles from "../page.module.css";
+import styles from "@/app/teach/apply/page.module.css";
+import { formatDate } from "../model/formatDate";
+import { normalizePortfolioLinks } from "../model/normalizePortfolioLinks";
+import { scopeLabel } from "../model/scopeLabel";
 import { ContextRow } from "./ContextRow";
 import { PortfolioLink } from "./PortfolioLink";
-import { formatDate } from "./formatDate";
-import { normalizePortfolioLinks } from "./normalizePortfolioLinks";
-import { scopeLabel } from "./scopeLabel";
 
 export function ApplicationSummary({ application }: { application: TeacherApplication }) {
   const portfolioLinks = normalizePortfolioLinks(application.portfolio_links);

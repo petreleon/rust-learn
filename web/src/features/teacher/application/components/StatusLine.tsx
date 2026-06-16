@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import styles from "../page.module.css";
+import styles from "@/app/teach/apply/page.module.css";
 
 export function StatusLine({
   icon,

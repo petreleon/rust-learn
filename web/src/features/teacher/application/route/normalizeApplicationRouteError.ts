@@ -2,9 +2,9 @@
 
 import { SessionRequestError } from "@/lib/session";
 import { TeacherRequestError } from "@/lib/teacher";
-import { type RouteError } from "./RouteError";
+import { type RouteError } from "../model/RouteError";
 
-export function normalizeRouteError(error: unknown): RouteError {
+export function normalizeApplicationRouteError(error: unknown): RouteError {
   if (error instanceof TeacherRequestError || error instanceof SessionRequestError) {
     return {
       code: error.code,

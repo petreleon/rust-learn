@@ -2,9 +2,9 @@
 
 import { Clock3 } from "lucide-react";
 import { type TeacherApplicationAuditEvent } from "@/lib/teacher";
-import styles from "../page.module.css";
-import { formatDate } from "./formatDate";
-import { statusLabel } from "./statusLabel";
+import styles from "@/app/teach/apply/page.module.css";
+import { formatDate } from "../model/formatDate";
+import { statusLabel } from "../model/statusLabel";
 
 export function AuditTimeline({
   auditEvents,

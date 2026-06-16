@@ -1,8 +1,8 @@
 "use client";
 
 import { ExternalLink } from "lucide-react";
-import styles from "../page.module.css";
-import { isSafeHttpUrl } from "./isSafeHttpUrl";
+import styles from "@/app/teach/apply/page.module.css";
+import { isSafeHttpUrl } from "../model/isSafeHttpUrl";
 
 export function PortfolioLink({ link }: { link: string }) {
   if (!isSafeHttpUrl(link)) {

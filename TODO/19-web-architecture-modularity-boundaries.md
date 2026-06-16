@@ -160,13 +160,17 @@ Progress:
   `features/teacher/course-rewards/{api,components,model,route,view}` with
   reward context loading, permission gates, decision submission, focused route
   tests, and a compatibility route export.
-- [x] Current architecture scan reports 22 dense-line findings after the
-  teacher course reward review migration, with no long files and no API/view
-  boundary violations.
+- [x] Migrated teacher self-application into
+  `features/teacher/application/{api,components,model,route,view}` with draft
+  storage lifecycle hooks, submission orchestration, focused route tests, and a
+  thin `/teach/apply` route export.
+- [x] Current architecture scan reports 21 dense-line findings after the
+  teacher application migration, with no long files and no API/view boundary
+  violations.
 
 Latest pilot proof:
 
-- `make web-architecture-scan` passes in reporting mode with 22 dense-line
+- `make web-architecture-scan` passes in reporting mode with 21 dense-line
   findings, no long files, and no API/view boundary violations.
 - `make web-lint` passes with existing warnings.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
@@ -193,12 +197,14 @@ Latest pilot proof:
   passes.
 - `npm run test -- src/components/__tests__/teacher-rewards-route.test.tsx`
   passes.
+- `npm run test -- src/features/teacher/application/__tests__/TeacherApplicationRoute.test.tsx`
+  passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx src/components/__tests__/teacher-rewards-route.test.tsx src/components/__tests__/teacher-content-authoring-actions.test.tsx`
   passes.
-- `cd web && npm run test` passes with 40 files and 192 tests.
-- `make web-api-helper-tests` passes.
+- `cd web && npm run test` passes with 41 files and 196 tests.
+- `make web-api-helper-tests` passes with 83 tests.
 - `make web-build` passes.
 
 ## Target Shape

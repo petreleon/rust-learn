@@ -3,12 +3,12 @@
 import { AlertCircle, Loader2, RotateCcw, Send } from "lucide-react";
 import { type FormEvent } from "react";
 import { type CurrentSession } from "@/lib/session";
-import styles from "../page.module.css";
+import styles from "@/app/teach/apply/page.module.css";
+import { clearDraft } from "../model/clearDraft";
+import { defaultDraft } from "../model/defaultDraft";
+import { type ApplicationDraft } from "../model/ApplicationDraft";
+import { type SubmitState } from "../model/SubmitState";
 import { ScopeOption } from "./ScopeOption";
-import { clearDraft } from "./clearDraft";
-import { defaultDraft } from "./defaultDraft";
-import { type ApplicationDraft } from "./ApplicationDraft";
-import { type SubmitState } from "./SubmitState";
 
 export function ApplicationForm({
   draft,
