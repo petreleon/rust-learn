@@ -2,6 +2,7 @@
 
 import { Send } from "lucide-react";
 import { type FormEvent } from "react";
+import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDashboardItem";
 import { type TeacherEnrollmentUserSummary } from "@/lib/teacher/TeacherEnrollmentUserSummary";
 import { type TeacherRewardCandidate } from "@/lib/teacher/TeacherRewardCandidate";
 import { type TeacherRewardCandidateDecisionStatus } from "@/lib/teacher/TeacherRewardCandidateDecisionStatus";
@@ -12,12 +13,14 @@ import { statusLabel } from "@/features/teacher/shared/route-kit/statusLabel";
 import { summarizeEvidence } from "@/features/teacher/shared/route-kit/summarizeEvidence";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { rewardCandidateTone } from "../model/rewardCandidateTone";
+import { rewardCandidatePolicyExplanation } from "../model/rewardPolicyCoverage";
 import { type RewardDecisionDraft } from "../model/RewardDecisionDraft";
 
 export function RewardCandidateCard({
   actionState,
   canApprove,
   candidate,
+  course,
   draft,
   learner,
   onDraftChange,
@@ -26,6 +29,7 @@ export function RewardCandidateCard({
   actionState: ActionState;
   canApprove: boolean;
   candidate: TeacherRewardCandidate;
+  course: TeacherCourseDashboardItem;
   draft: RewardDecisionDraft;
   learner: TeacherEnrollmentUserSummary | null;
   onDraftChange: (draft: RewardDecisionDraft) => void;
@@ -46,6 +50,7 @@ export function RewardCandidateCard({
 
       <div className={styles.detailList}>
         <DetailLine label="Event" value={statusLabel(candidate.event_type)} />
+        <DetailLine label="Policy" value={rewardCandidatePolicyExplanation(candidate, course)} />
         <DetailLine label="Evidence" value={summarizeEvidence(candidate.evidence)} />
         <DetailLine label="Source" value={statusLabel(candidate.source_scope)} />
         <DetailLine label="Created" value={formatDateTime(candidate.created_at)} />

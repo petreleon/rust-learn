@@ -22,6 +22,8 @@ const pageTestFiles = [
   "src/features/session/workspace/__tests__/SessionWorkspaceRoute.test.tsx",
   "src/features/teacher/application/__tests__/TeacherApplicationRoute.test.tsx",
   "src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx",
+  "src/components/__tests__/teacher-rewards-route.test.tsx",
+  "src/features/teacher/course-rewards/__tests__/RewardPolicyCoverage.test.tsx",
   "src/features/teacher/course-workspace/__tests__/TeacherCourseWorkspaceRoute.test.tsx",
   "src/features/teacher/teaching-workspace/__tests__/TeachingWorkspaceRoute.test.tsx",
 ];

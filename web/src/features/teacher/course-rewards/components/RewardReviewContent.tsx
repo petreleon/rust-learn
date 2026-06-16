@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, RefreshCw, ShieldCheck, Trophy } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, Clock3, RefreshCw, Trophy } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useMemo } from "react";
 import { type TeacherCourseStudentsResponse } from "@/lib/teacher/TeacherCourseStudentsResponse";
@@ -16,6 +16,7 @@ import { defaultRewardDecisionDraft } from "../model/defaultRewardDecisionDraft"
 import { rewardStatusOptions } from "../model/rewardStatusOptions";
 import { type RewardDecisionDraft } from "../model/RewardDecisionDraft";
 import { RewardCandidateCard } from "./RewardCandidateCard";
+import { RewardPolicyCoveragePanel } from "./RewardPolicyCoveragePanel";
 export function RewardReviewContent({
   actionMessage,
   actionState,
@@ -97,15 +98,7 @@ export function RewardReviewContent({
         />
       </section>
 
-      <section className={`${styles.warningPanel} ${styles.singlePanel}`}>
-        <div className={styles.panelHeader}>
-          <ShieldCheck size={18} aria-hidden />
-          <h2>Review boundary</h2>
-        </div>
-        <p>
-          This page records teacher approval or rejection only. Financial review remains separated from the course workspace.
-        </p>
-      </section>
+      <RewardPolicyCoveragePanel course={students.course} />
 
       {actionMessage ? (
         <section className={`${styles.warningPanel} ${styles.singlePanel}`} role="status">
@@ -158,6 +151,7 @@ export function RewardReviewContent({
                 actionState={actionState}
                 canApprove={canApprove}
                 candidate={candidate}
+                course={students.course}
                 draft={decisionDrafts[candidate.id] || defaultRewardDecisionDraft}
                 key={candidate.id}
                 learner={learnersById.get(candidate.student_user_id) || null}

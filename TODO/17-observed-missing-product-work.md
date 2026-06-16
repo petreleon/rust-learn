@@ -722,6 +722,9 @@ Current evidence:
 - Fraud blocks can target a `reward_policy_id`. `/admin/fraud-blocks` now loads
   active reward policies for operators with `SET_REWARD_POLICY` and lets them
   create reward-policy scoped blocks by policy context instead of raw id entry.
+- Teacher reward review now shows active/missing policy coverage for the course,
+  including covered event types, token amounts, payment strategies, and visible
+  candidate-level policy explanations.
 - Backend APIs exist for token-tax configuration and persisted tax history:
   `/api/wallets/token-taxes`, `/api/wallets/token-taxes/audit`,
   `/api/wallets/token-taxes/deposit`, and `/api/wallets/token-taxes/retire`.
@@ -768,8 +771,10 @@ Checks:
   archived/deleted course states are blocked with clear messages.
 - [ ] Reward policies can be created, listed, activated/deactivated, scoped,
   audited, and selected by name/context instead of numeric id only.
-- [ ] Reward candidate creation surfaces the policy that makes a reward event
-  eligible, or explains which policy is missing.
+- [ ] Reward candidate creation and assessment handoff surface the policy that
+  makes a reward event eligible, or explains which policy is missing.
+- [x] Teacher reward review surfaces active/missing policy coverage for the
+  course and visible candidates.
 - [x] Deposit and retirement tax configuration can be viewed and changed only by
   authorized admins.
 - [x] Token-tax audit rows, effective history, and visible downstream wallet
