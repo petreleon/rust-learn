@@ -1,0 +1,1 @@
+export const ADMIN_REWARD_CANDIDATE_PAGE_SIZE = 8;

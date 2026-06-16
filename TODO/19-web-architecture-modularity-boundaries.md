@@ -69,9 +69,8 @@ Smells:
 
 - Route files mix token reads, session loading, API calls, permissions,
   mutations, filters, error normalization, and JSX.
-- Dense files still include `AdminTeacherApplicationsRoute.tsx`,
-  `AdminRewardAmountReviewRoute.tsx`, teacher route views, and
-  `/ops/page-parts/Home.tsx`.
+- Dense files still include `AdminTeacherApplicationsRoute.tsx`, teacher
+  route views, and `/ops/page-parts/Home.tsx`.
 - Token reads still appear in many route/action modules.
 - Route controller hooks are inconsistent across contexts.
 - `src/lib/*.ts` barrels can hide large client import surfaces.
@@ -132,8 +131,12 @@ Progress:
   `features/admin/fraud-blocks/{api,components,model,route,view}` with
   list/filter/audit/create/revoke controller hooks, focused route tests, and a
   compatibility route export.
-- [x] Current architecture scan reports 35 dense-line findings after the admin
-  fraud-block route migration.
+- [x] Migrated reward amount review into
+  `features/admin/reward-amount-review/{api,components,model,route,view}` with
+  candidate filters, audit, amount-decision controller hooks, focused route
+  tests, and a compatibility route export.
+- [x] Current architecture scan reports 33 dense-line findings after the admin
+  reward amount review migration.
 
 Latest pilot proof:
 
@@ -153,11 +156,13 @@ Latest pilot proof:
   passes.
 - `npm run test -- src/features/admin/fraud-blocks/__tests__/AdminFraudBlocksRoute.test.tsx`
   passes.
+- `npm run test -- src/features/admin/reward-amount-review/__tests__/AdminRewardAmountReviewRoute.test.tsx`
+  passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx src/components/__tests__/teacher-rewards-route.test.tsx src/components/__tests__/teacher-content-authoring-actions.test.tsx`
   passes.
-- `cd web && npm run test` passes with 36 files and 172 tests.
+- `cd web && npm run test` passes with 37 files and 177 tests.
 - `make web-api-helper-tests` passes.
 - `make web-build` passes.
 
