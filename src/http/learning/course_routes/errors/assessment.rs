@@ -1,6 +1,7 @@
 use actix_web::http::StatusCode;
 
 use crate::application::learning::assessment::AssessmentReadError;
+use crate::application::learning::manage_assessments::AssessmentAuthoringError;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionError;
 use crate::http::errors::ApiError;
 
@@ -71,5 +72,37 @@ pub(in crate::http::learning::course_routes) fn assessment_submission_error(
             "Failed to save attempt",
             message,
         ),
+    }
+}
+
+pub(in crate::http::learning::course_routes) fn assessment_authoring_error(
+    course_id: i32,
+    error: AssessmentAuthoringError,
+) -> ApiError {
+    match error {
+        AssessmentAuthoringError::Connection(message) => super::db_unavailable(
+            "assessment_authoring_connection_failed",
+            &format!("course_id={course_id}"),
+            message,
+        ),
+        AssessmentAuthoringError::Database(message) => super::logged_internal(
+            "assessment_authoring_failed",
+            &format!("course_id={course_id}"),
+            "Failed to save assessment",
+            message,
+        ),
+        AssessmentAuthoringError::NotFound => ApiError::new(
+            StatusCode::NOT_FOUND,
+            "assessment_not_found",
+            "Assessment not found",
+        ),
+        AssessmentAuthoringError::PermissionDenied(permission) => ApiError::new(
+            StatusCode::FORBIDDEN,
+            "permission_denied",
+            format!("Missing required permission: {permission}"),
+        ),
+        AssessmentAuthoringError::Validation(message) => {
+            ApiError::new(StatusCode::BAD_REQUEST, "invalid_assessment", message)
+        }
     }
 }

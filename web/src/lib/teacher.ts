@@ -28,6 +28,14 @@ export type { TeacherCourseWorkspaceChapter } from "./teacher/TeacherCourseWorks
 export type { TeacherCourseWorkspaceContent } from "./teacher/TeacherCourseWorkspaceContent";
 export type { TeacherChapter } from "./teacher/TeacherChapter";
 export type { TeacherContent } from "./teacher/TeacherContent";
+export type {
+  TeacherAssessment,
+  TeacherAssessmentQuestion,
+} from "./teacher/TeacherAssessment";
+export type {
+  TeacherAssessmentPayload,
+  TeacherAssessmentQuestionPayload,
+} from "./teacher/TeacherAssessmentPayload";
 export type { TeacherCourseOrganization } from "./teacher/TeacherCourseOrganization";
 export type { TeacherCourseContentSummary } from "./teacher/TeacherCourseContentSummary";
 export type { TeacherCourseRewardSummary } from "./teacher/TeacherCourseRewardSummary";
@@ -58,6 +66,11 @@ export type { SubmitTeacherApplicationOptions } from "./teacher/SubmitTeacherApp
 export type { UpdateTeacherCourseLifecycleOptions } from "./teacher/UpdateTeacherCourseLifecycleOptions";
 export type { UpdateTeacherCourseOptions } from "./teacher/UpdateTeacherCourseOptions";
 export type { UpdateTeacherCoursePayload } from "./teacher/UpdateTeacherCoursePayload";
+export type {
+  TeacherAssessmentCreateOptions,
+  TeacherAssessmentListOptions,
+  TeacherAssessmentUpdateOptions,
+} from "./teacher/TeacherAssessmentOptions";
 export { fetchMyTeacherApplication } from "./teacher/fetchMyTeacherApplication";
 export { fetchTeachingCourses } from "./teacher/fetchTeachingCourses";
 export { fetchTeachingCourseWorkspace } from "./teacher/fetchTeachingCourseWorkspace";
@@ -75,6 +88,9 @@ export { deleteTeacherContent } from "./teacher/deleteTeacherContent";
 export { updateTeacherContent } from "./teacher/updateTeacherContent";
 export { updateTeacherCourse } from "./teacher/updateTeacherCourse";
 export { updateTeacherCourseLifecycle } from "./teacher/updateTeacherCourseLifecycle";
+export { createTeacherAssessment } from "./teacher/createTeacherAssessment";
+export { fetchTeacherAssessments } from "./teacher/fetchTeacherAssessments";
+export { updateTeacherAssessment } from "./teacher/updateTeacherAssessment";
 export { decideTeacherJoinRequest } from "./teacher/decideTeacherJoinRequest";
 export { decideTeacherRewardCandidate } from "./teacher/decideTeacherRewardCandidate";
 export { removeTeacherEnrollment } from "./teacher/removeTeacherEnrollment";

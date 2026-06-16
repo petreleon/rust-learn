@@ -9,7 +9,8 @@ mod management;
 mod teaching;
 
 pub(super) use assessment::{
-    assessment_attempts_error, assessment_submission_error, course_assessments_error,
+    assessment_attempts_error, assessment_authoring_error, assessment_submission_error,
+    course_assessments_error,
 };
 pub(super) use catalog::{
     course_discovery_error, course_organizations_error, course_read_error,

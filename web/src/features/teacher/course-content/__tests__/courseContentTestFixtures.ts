@@ -1,5 +1,5 @@
 import { type CurrentSession } from "@/lib/session/CurrentSession";
-import { type TeacherCourseWorkspaceContent, type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
+import { type TeacherAssessment, type TeacherCourseWorkspaceContent, type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
 
 export function courseContentSession(): CurrentSession {
   return {
@@ -37,6 +37,36 @@ export function failedVideoContent(): TeacherCourseWorkspaceContent {
     processing_error: "Transcode failed",
     processing_status: "failed",
     publication_status: "inherits_course_published",
+  };
+}
+
+export function courseContentAssessment({
+  published = false,
+  title = "Draft quiz",
+}: {
+  published?: boolean;
+  title?: string;
+} = {}): TeacherAssessment {
+  return {
+    course_id: 9,
+    created_at: "2026-06-16T08:00:00Z",
+    description: "Ownership check",
+    id: 31,
+    max_attempts: 3,
+    passing_score: 70,
+    published,
+    questions: [{
+      assessment_id: 31,
+      correct_answer: "Ownership",
+      id: 41,
+      options: ["Ownership", "Prototype chains"],
+      order: 0,
+      points: 2,
+      question_type: "multiple_choice",
+      text: "Which concept prevents aliasing bugs?",
+    }],
+    title,
+    updated_at: "2026-06-16T08:00:00Z",
   };
 }
 

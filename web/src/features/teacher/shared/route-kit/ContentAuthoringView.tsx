@@ -2,7 +2,7 @@
 
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { type FormEvent } from "react";
+import { type FormEvent, type ReactNode } from "react";
 import { type TeacherCourseWorkspaceContent, type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { ChapterAuthoringForm } from "./ChapterAuthoringForm";
@@ -16,6 +16,7 @@ import { type ContentDraft } from "./ContentDraft";
 export function ContentAuthoringView({
   actionMessage,
   actionState,
+  assessmentPanel,
   chapterDraft,
   contentDraft,
   deleteConfirmContentId,
@@ -33,6 +34,7 @@ export function ContentAuthoringView({
 }: {
   actionMessage: string | null;
   actionState: ActionState;
+  assessmentPanel: ReactNode;
   chapterDraft: ChapterDraft;
   contentDraft: ContentDraft;
   deleteConfirmContentId: number | null;
@@ -111,6 +113,7 @@ export function ContentAuthoringView({
           onTriggerProcessing={onTriggerProcessing}
         />
       </section>
+      {assessmentPanel}
     </>
   );
 }

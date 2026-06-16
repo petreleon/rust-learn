@@ -3,16 +3,19 @@ import {
   createTeacherChapter,
   createTeacherContent,
   deleteTeacherContent,
+  fetchTeacherAssessments,
   fetchTeachingCourseWorkspace,
   fetchUploadUrl,
   processContent,
   updateTeacherContent,
   type CreateTeacherContentPayload,
+  type TeacherAssessment,
   type TeacherContent,
   type TeacherCourseWorkspaceResponse,
 } from "@/lib/teacher";
 
 export type TeacherCourseContentLoadResult = {
+  assessments: TeacherAssessment[];
   session: CurrentSession;
   workspace: TeacherCourseWorkspaceResponse;
 };
@@ -26,8 +29,9 @@ export function loadTeacherCourseContentWorkspace({
 }): Promise<TeacherCourseContentLoadResult> {
   return Promise.all([
     fetchCurrentSession({ token }),
+    fetchTeacherAssessments({ courseId, token }),
     fetchTeachingCourseWorkspace({ courseId, token }),
-  ]).then(([session, workspace]) => ({ session, workspace }));
+  ]).then(([session, assessments, workspace]) => ({ assessments, session, workspace }));
 }
 
 export function createTeacherCourseContentChapter({

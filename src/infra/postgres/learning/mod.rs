@@ -1,3 +1,7 @@
+mod assessment_authoring_queries;
+pub mod assessment_authoring_store;
+pub mod assessment_authoring_use_case;
+mod assessment_authoring_writes;
 pub mod assessment_read_store;
 pub mod assessment_read_use_case;
 pub mod assessment_submission_store;

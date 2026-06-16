@@ -2,6 +2,7 @@
 
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
+import { type TeacherAssessment } from "@/lib/teacher";
 import { type TeacherCourseWorkspaceResponse } from "@/lib/teacher/TeacherCourseWorkspaceResponse";
 import { clearBrowserSession, readBrowserSessionToken } from "@/shared/session/browserSession";
 import { type ActionState } from "@/features/teacher/shared/route-kit/ActionState";
@@ -14,11 +15,13 @@ import { normalizeRouteError } from "@/features/teacher/shared/route-kit/normali
 import { type RouteError } from "@/features/teacher/shared/route-kit/RouteError";
 import { contentDraftOrder } from "@/features/teacher/shared/route-kit/contentAuthoringHelpers";
 import { loadTeacherCourseContentWorkspace, createTeacherCourseContentChapter } from "../api/courseContentApi";
+import { useAssessmentAuthoringActions } from "./useAssessmentAuthoringActions";
 import { useCourseContentActions } from "./useCourseContentActions";
 
 export function useTeacherCourseContentRoute(courseId: string) {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionState, setActionState] = useState<ActionState>("idle");
+  const [assessments, setAssessments] = useState<TeacherAssessment[]>([]);
   const [chapterDraft, setChapterDraft] = useState<ChapterDraft>(defaultChapterDraft);
   const [contentDraft, setContentDraft] = useState<ContentDraft>(defaultContentDraft);
   const [error, setError] = useState<RouteError | null>(null);
@@ -30,6 +33,7 @@ export function useTeacherCourseContentRoute(courseId: string) {
   const clearRoute = useCallback((nextLoadState: LoadState) => {
     setError(null);
     setLoadState(nextLoadState);
+    setAssessments([]);
     setSession(null);
     setWorkspace(null);
   }, []);
@@ -46,6 +50,7 @@ export function useTeacherCourseContentRoute(courseId: string) {
     setError(null);
     try {
       const next = await loadTeacherCourseContentWorkspace({ courseId, token });
+      setAssessments(next.assessments);
       setSession(next.session);
       setWorkspace(next.workspace);
       setContentDraft((current) => ({
@@ -75,7 +80,18 @@ export function useTeacherCourseContentRoute(courseId: string) {
     setContentDraft,
     workspace,
   });
-  const isDraftDirty = chapterDraft.title.trim() !== "" || contentActions.isContentDraftDirty;
+  const assessmentActions = useAssessmentAuthoringActions({
+    assessments,
+    courseId,
+    loadContentRoute,
+    setActionMessage,
+    setActionState,
+    setAssessments,
+  });
+  const isDraftDirty =
+    chapterDraft.title.trim() !== "" ||
+    contentActions.isContentDraftDirty ||
+    assessmentActions.isAssessmentDraftDirty;
 
   async function submitChapter(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -134,6 +150,7 @@ export function useTeacherCourseContentRoute(courseId: string) {
   return {
     actionMessage,
     actionState,
+    assessmentActions,
     chapterDraft,
     contentActions,
     contentDraft,

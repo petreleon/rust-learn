@@ -80,6 +80,15 @@ pub fn course_scope() -> actix_web::Scope {
                 .route(web::get().to(assessments::list_course_assessments)),
         )
         .service(
+            web::resource("/{id}/assessments/authoring")
+                .route(web::get().to(assessments::list_authoring_assessments))
+                .route(web::post().to(assessments::create_authoring_assessment)),
+        )
+        .service(
+            web::resource("/{id}/assessments/{assessment_id}/authoring")
+                .route(web::put().to(assessments::update_authoring_assessment)),
+        )
+        .service(
             web::resource("/{id}/assessments/{assessment_id}/submit")
                 .route(web::post().to(assessments::submit_assessment_attempt)),
         )

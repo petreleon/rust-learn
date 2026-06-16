@@ -1,4 +1,5 @@
 mod assessment;
+mod assessment_authoring;
 mod course;
 mod course_creation;
 mod course_discovery;
@@ -22,6 +23,7 @@ pub use assessment::{
     AssessmentAttemptResponse, AssessmentResponse, SubmitAssessmentAttemptRequest,
     SubmitAssessmentAttemptResponse,
 };
+pub use assessment_authoring::{AssessmentAuthoringRequest, AssessmentAuthoringResponse};
 pub use course::CourseResponse;
 pub use course_creation::CreateCourseRequest;
 pub use course_discovery::CourseDiscoveryResponse;

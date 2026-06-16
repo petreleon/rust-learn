@@ -19,9 +19,11 @@ use crate::application::learning::list_course_assessments::CourseAssessmentsUseC
 use crate::application::learning::list_course_organizations::CourseOrganizationsUseCase;
 use crate::application::learning::list_learner_course_catalog::LearnerCourseCatalogListUseCase;
 use crate::application::learning::list_teacher_course_dashboard::TeacherCourseDashboardListUseCase;
+use crate::application::learning::manage_assessments::AssessmentAuthoringUseCase;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionUseCase;
 use crate::application::learning::update_course::CourseUpdateUseCase;
 use crate::application::learning::update_course_lifecycle::CourseLifecycleUseCase;
+use crate::infra::postgres::learning::assessment_authoring_use_case::PostgresAssessmentAuthoringUseCase;
 use crate::infra::postgres::learning::assessment_read_use_case::PostgresAssessmentReadUseCase;
 use crate::infra::postgres::learning::assessment_submission_use_case::PostgresAssessmentSubmissionUseCase;
 use crate::infra::postgres::learning::course_creation_use_case::PostgresCourseCreationUseCase;
@@ -46,6 +48,7 @@ use crate::infra::postgres::DbPool;
 #[derive(Clone)]
 pub struct LearningUseCases {
     pub assessment_attempts: Arc<dyn AssessmentAttemptsUseCase>,
+    pub assessment_authoring: Arc<dyn AssessmentAuthoringUseCase>,
     pub assessment_submission: Arc<dyn AssessmentSubmissionUseCase>,
     pub course_assessments: Arc<dyn CourseAssessmentsUseCase>,
     pub course_creation: Arc<dyn CourseCreationUseCase>,
@@ -70,6 +73,7 @@ pub struct LearningUseCases {
 pub fn build_learning_use_cases(pool: &DbPool) -> LearningUseCases {
     LearningUseCases {
         assessment_attempts: Arc::new(PostgresAssessmentReadUseCase::new(pool.clone())),
+        assessment_authoring: Arc::new(PostgresAssessmentAuthoringUseCase::new(pool.clone())),
         assessment_submission: Arc::new(PostgresAssessmentSubmissionUseCase::new(pool.clone())),
         course_assessments: Arc::new(PostgresAssessmentReadUseCase::new(pool.clone())),
         course_creation: Arc::new(PostgresCourseCreationUseCase::new(pool.clone())),
@@ -102,6 +106,7 @@ pub fn build_learning_use_cases(pool: &DbPool) -> LearningUseCases {
 
 pub fn configure_learning_app_data(cfg: &mut web::ServiceConfig, use_cases: &LearningUseCases) {
     cfg.app_data(web::Data::new(use_cases.assessment_attempts.clone()))
+        .app_data(web::Data::new(use_cases.assessment_authoring.clone()))
         .app_data(web::Data::new(use_cases.assessment_submission.clone()))
         .app_data(web::Data::new(use_cases.course_assessments.clone()))
         .app_data(web::Data::new(use_cases.course_creation.clone()))

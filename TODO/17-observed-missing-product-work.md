@@ -198,22 +198,30 @@ Current evidence:
   pass/fail feedback, review recent attempts, and see remaining/max-attempt
   state. Preview-mode course access shows assessments without allowing
   submissions.
-- Teacher assessment-authoring UI is still not built.
+- Teacher assessment authoring now has a Level 2 backend path:
+  `/courses/{id}/assessments/authoring` lists draft/published assessments with
+  answer keys for course-authoring users, creates drafts, updates assessments,
+  replaces ordered questions, and publishes only after validation. Learner-safe
+  assessment responses still omit correct answers.
+- `/teach/courses/{id}/content` now loads assessment authoring data through its
+  feature API boundary and renders a course-scoped authoring panel for creating
+  drafts, adding multiple ordered questions, setting correct answers, editing
+  existing assessments, publishing, and previewing draft/published state.
 
 Needed:
 
-- Add teacher assessment authoring: create/edit/publish assessments, questions,
-  correct answers, passing score, max attempts, and preview states.
 - Add reward eligibility handoff after passing learner assessments.
 - Finish the remaining content lifecycle controls: unpublish lesson once the
   backend supports content-level publication status, upload expiry recovery,
   processing audit/history, and richer processing-error recovery.
-- Add tests for assessment helpers, assessment UI, content processing states,
-  max-attempt behavior, and reward-trigger handoff.
+- Add reward-trigger handoff tests and any richer assessment analytics the
+  product needs after authoring and learner attempts.
+- Add tests for content processing states, max-attempt behavior beyond the
+  current route coverage, and reward-trigger handoff.
 
 Checks:
 
-- [ ] A teacher can create, edit, publish, and preview an assessment from a
+- [x] A teacher can create, edit, publish, and preview an assessment from a
   course-scoped product route.
 - [x] A learner can open an assessment from course learning, answer questions,
   submit, and see pass/fail score feedback.
@@ -231,7 +239,7 @@ Checks:
 - [ ] Reward eligibility or reward-candidate creation is verified after a
   passing assessment when the course policy requires assessment completion.
 - [ ] Unit, API-helper, component, and browser/Playwright coverage exercise the
-  happy path plus denied, stale, failed, and empty states.
+  remaining denied, stale, failed, and empty states.
 
 ## KYC Verification
 
@@ -575,15 +583,17 @@ Current evidence:
   signed-in shell, workspace selector, breadcrumbs, account menu, and course
   title visible; desktop and mobile checks also verify the denial panel does
   not join the error code into the message or create horizontal overflow.
-- The teacher course workflow mixes real actions, honest placeholder copy, and
-  permission-gated dead ends, so users can click into a route that looks like a
-  product feature but cannot be used from the visible role state.
+- `/teach/courses/[id]/content` now includes assessment authoring beside
+  content authoring. Teachers can create/edit draft assessments, add ordered
+  questions with answer keys, publish valid assessments, and preview
+  draft/published state from the same course-scoped product route.
 
 Needed:
 
 - Finish remaining teacher content lifecycle controls: unpublish, upload
   expiry/recovery, processing-error inspection, and audit history.
-- Add assessment-authoring routes alongside content authoring.
+- Add broader denied/stale/empty-state assessment authoring coverage if those
+  states need product-specific copy beyond the current validation path.
 
 Checks:
 
@@ -601,7 +611,7 @@ Checks:
 - [x] `/teach/courses/[id]/rewards` denial keeps the normal signed-in shell,
   workspace selector, breadcrumbs, account menu, readable error text, and no
   desktop/mobile horizontal overflow.
-- [ ] Teacher routes include assessment authoring and preview checks for draft,
+- [x] Teacher routes include assessment authoring and preview checks for draft,
   published, unpublished, and no-assessment states.
 
 ## Organization Workspace Onboarding

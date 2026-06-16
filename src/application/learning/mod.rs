@@ -17,6 +17,7 @@ pub mod list_course_assessments;
 pub mod list_course_organizations;
 pub mod list_learner_course_catalog;
 pub mod list_teacher_course_dashboard;
+pub mod manage_assessments;
 pub mod ports;
 pub mod submit_assessment_attempt;
 pub mod teacher_course_dashboard;

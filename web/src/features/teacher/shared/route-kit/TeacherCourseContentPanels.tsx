@@ -2,7 +2,7 @@
 
 import { AlertCircle, Loader2, LogIn, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { type Dispatch, type FormEvent, type SetStateAction } from "react";
+import { type Dispatch, type FormEvent, type ReactNode, type SetStateAction } from "react";
 import { type TeacherCourseWorkspaceContent, type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type ActionState } from "./ActionState";
@@ -27,6 +27,7 @@ type ContentActions = {
 export function TeacherCourseContentPanels({
   actionMessage,
   actionState,
+  assessmentPanel,
   chapterDraft,
   contentActions,
   contentDraft,
@@ -41,6 +42,7 @@ export function TeacherCourseContentPanels({
 }: {
   actionMessage: string | null;
   actionState: ActionState;
+  assessmentPanel: ReactNode;
   chapterDraft: ChapterDraft;
   contentActions: ContentActions;
   contentDraft: ContentDraft;
@@ -98,6 +100,7 @@ export function TeacherCourseContentPanels({
     <ContentAuthoringView
       actionMessage={actionMessage}
       actionState={actionState}
+      assessmentPanel={assessmentPanel}
       chapterDraft={chapterDraft}
       contentDraft={contentDraft}
       deleteConfirmContentId={contentActions.deleteConfirmContentId}

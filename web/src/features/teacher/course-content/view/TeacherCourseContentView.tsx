@@ -7,6 +7,7 @@ import { StatusLine } from "@/features/teacher/shared/route-kit/StatusLine";
 import { TeacherCourseContentPanels } from "@/features/teacher/shared/route-kit/TeacherCourseContentPanels";
 import { workspaceSummary } from "@/features/teacher/shared/route-kit/workspaceSummary";
 import { type TeacherCourseContentRouteController } from "../route/useTeacherCourseContentRoute";
+import { AssessmentAuthoringPanel } from "./AssessmentAuthoringPanel";
 
 export function TeacherCourseContentView({
   courseId,
@@ -38,6 +39,15 @@ export function TeacherCourseContentView({
       <TeacherCourseContentPanels
         actionMessage={route.actionMessage}
         actionState={route.actionState}
+        assessmentPanel={
+          route.workspace ? (
+            <AssessmentAuthoringPanel
+              actionState={route.actionState}
+              assessmentActions={route.assessmentActions}
+              canManageContent={route.workspace.course.permissions.can_manage_content}
+            />
+          ) : null
+        }
         chapterDraft={route.chapterDraft}
         contentActions={route.contentActions}
         contentDraft={route.contentDraft}

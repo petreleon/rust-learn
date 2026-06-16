@@ -42,6 +42,7 @@ describe("TeacherCourseContentRoute", () => {
     vi.clearAllMocks();
     vi.mocked(readBrowserSessionToken).mockReturnValue("teacher-token");
     vi.mocked(loadTeacherCourseContentWorkspace).mockResolvedValue({
+      assessments: [],
       session: courseContentSession(),
       workspace: courseContentWorkspace(),
     });
@@ -76,7 +77,9 @@ describe("TeacherCourseContentRoute", () => {
     render(<TeacherCourseContentRoute courseId="9" />);
 
     expect(await screen.findByRole("heading", { name: "Content authoring" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Assessment authoring" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Create text content" })).toBeVisible();
+    expect(screen.getByText("No assessments yet.")).toBeVisible();
     await waitFor(() =>
       expect(loadTeacherCourseContentWorkspace).toHaveBeenCalledWith({
         courseId: "9",
@@ -125,6 +128,7 @@ describe("TeacherCourseContentRoute", () => {
   it("queues processing retry for failed uploaded content", async () => {
     const user = userEvent.setup();
     vi.mocked(loadTeacherCourseContentWorkspace).mockResolvedValue({
+      assessments: [],
       session: courseContentSession(),
       workspace: courseContentWorkspace([failedVideoContent()]),
     });

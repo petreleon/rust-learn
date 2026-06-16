@@ -4,16 +4,18 @@ use actix_web::web;
 
 use crate::application::learning::list_assessment_attempts::AssessmentAttemptsUseCase;
 use crate::application::learning::list_course_assessments::CourseAssessmentsUseCase;
+use crate::application::learning::manage_assessments::AssessmentAuthoringUseCase;
 use crate::application::learning::submit_assessment_attempt::AssessmentSubmissionUseCase;
 use crate::http::errors::ApiError;
 use crate::http::extractors::auth_user::AuthUserId;
 use crate::http::learning::dto::{
-    AssessmentAttemptResponse, AssessmentResponse, SubmitAssessmentAttemptRequest,
-    SubmitAssessmentAttemptResponse,
+    AssessmentAttemptResponse, AssessmentAuthoringRequest, AssessmentAuthoringResponse,
+    AssessmentResponse, SubmitAssessmentAttemptRequest, SubmitAssessmentAttemptResponse,
 };
 
 use super::errors::{
-    assessment_attempts_error, assessment_submission_error, course_assessments_error,
+    assessment_attempts_error, assessment_authoring_error, assessment_submission_error,
+    course_assessments_error,
 };
 
 pub(super) async fn list_course_assessments(
@@ -28,6 +30,62 @@ pub(super) async fn list_course_assessments(
         .map(assessment_responses)
         .map(web::Json)
         .map_err(|error| course_assessments_error(course_id, error))
+}
+
+pub(super) async fn list_authoring_assessments(
+    user: AuthUserId,
+    path: web::Path<i32>,
+    use_case: web::Data<Arc<dyn AssessmentAuthoringUseCase>>,
+) -> Result<web::Json<Vec<AssessmentAuthoringResponse>>, ApiError> {
+    let actor_user_id = user.into_inner();
+    let course_id = path.into_inner();
+
+    use_case
+        .list_course_assessments_for_authoring(actor_user_id, course_id)
+        .await
+        .map(authoring_responses)
+        .map(web::Json)
+        .map_err(|error| assessment_authoring_error(course_id, error))
+}
+
+pub(super) async fn create_authoring_assessment(
+    user: AuthUserId,
+    path: web::Path<i32>,
+    body: web::Json<AssessmentAuthoringRequest>,
+    use_case: web::Data<Arc<dyn AssessmentAuthoringUseCase>>,
+) -> Result<web::Json<AssessmentAuthoringResponse>, ApiError> {
+    let actor_user_id = user.into_inner();
+    let course_id = path.into_inner();
+    let command = body
+        .into_inner()
+        .into_create_command(actor_user_id, course_id);
+
+    use_case
+        .create_assessment(command)
+        .await
+        .map(AssessmentAuthoringResponse::from)
+        .map(web::Json)
+        .map_err(|error| assessment_authoring_error(course_id, error))
+}
+
+pub(super) async fn update_authoring_assessment(
+    user: AuthUserId,
+    path: web::Path<(i32, i32)>,
+    body: web::Json<AssessmentAuthoringRequest>,
+    use_case: web::Data<Arc<dyn AssessmentAuthoringUseCase>>,
+) -> Result<web::Json<AssessmentAuthoringResponse>, ApiError> {
+    let actor_user_id = user.into_inner();
+    let (course_id, assessment_id) = path.into_inner();
+    let command = body
+        .into_inner()
+        .into_update_command(actor_user_id, course_id, assessment_id);
+
+    use_case
+        .update_assessment(command)
+        .await
+        .map(AssessmentAuthoringResponse::from)
+        .map(web::Json)
+        .map_err(|error| assessment_authoring_error(course_id, error))
 }
 
 pub(super) async fn submit_assessment_attempt(
@@ -70,6 +128,14 @@ fn assessment_responses(
     list: Vec<crate::application::learning::assessment::AssessmentOutput>,
 ) -> Vec<AssessmentResponse> {
     list.into_iter().map(AssessmentResponse::from).collect()
+}
+
+fn authoring_responses(
+    list: Vec<crate::application::learning::manage_assessments::AuthoredAssessmentOutput>,
+) -> Vec<AssessmentAuthoringResponse> {
+    list.into_iter()
+        .map(AssessmentAuthoringResponse::from)
+        .collect()
 }
 
 fn attempt_responses(
