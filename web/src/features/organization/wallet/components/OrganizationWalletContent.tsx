@@ -16,6 +16,7 @@ import { WalletAuditHero } from "./WalletAuditHero";
 import { WalletBudgetCoveragePanels } from "./WalletBudgetCoveragePanels";
 import { WalletSummaryGrid } from "./WalletSummaryGrid";
 import { WalletTransactionPanels } from "./WalletTransactionPanels";
+import { OrganizationBurnPanel } from "../burns/route/OrganizationBurnPanel";
 
 type Props = {
   audit: OrganizationWalletAudit | null;
@@ -71,6 +72,11 @@ export function OrganizationWalletContent(props: Props) {
       />
       <WalletSummaryGrid audit={props.audit} attentionCount={summary.attentionRecords.length} />
       <WalletBudgetCoveragePanels audit={props.audit} />
+      <OrganizationBurnPanel
+        onRefresh={props.onRefresh}
+        organizationId={props.organization.id}
+        walletLinked={Boolean(props.audit.wallet)}
+      />
       <RewardCreditAuditPanel audit={props.audit} />
       <WalletTransactionPanels audit={props.audit} />
       <CompensationAdjustmentsPanel records={props.audit.compensation_records} />

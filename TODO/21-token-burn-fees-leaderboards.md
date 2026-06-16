@@ -19,6 +19,9 @@ Implementation status checked before first push:
   Compose Ethereum utility tests.
 - [x] Organization burn permissions API exposes burn permission, KYC state, and
   request readiness for web controls.
+- [x] Organization wallet web surface adds burn controls with permission/KYC
+  gates, centralized/direct/platform-mediated sources, fee path display, and
+  recent burn records.
 - [ ] Web surfaces from the Web Boundary Plan are still pending.
 - [ ] Reconciliation/admin failure handling still needs the next backend slice.
 
