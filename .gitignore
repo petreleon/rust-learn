@@ -10,6 +10,25 @@
 # OS/editor noise
 **/.DS_Store
 
+# Local temporary files
+/tmp/
+
+# LaTeX auxiliary/build output
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+/dissertation/Romanian/build/
+
 # Generated local Kubernetes development secrets
 k8s/overlays/dev/secrets.patch.yaml
 .playwright-mcp/

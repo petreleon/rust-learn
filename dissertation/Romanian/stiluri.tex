@@ -1,0 +1,121 @@
+\usepackage{graphicx}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper,left=2.5cm,right=2cm,top=2.5cm,bottom=2cm]{geometry}
+\usepackage{times}
+\usepackage{tocloft}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,shapes.symbols,fit}
+\usepackage[bottom]{footmisc} % Plasează notele de subsol la baza paginii
+\usepackage[backend=biber,style=numeric,sorting=nyt,giveninits=true,maxbibnames=99,defernumbers=true]{biblatex}
+\usepackage{threeparttable} % Permite adăugarea de note de subsol la figuri și tabele
+
+% Use the Romanian language for the document
+\usepackage[romanian]{babel}
+
+% Load csquotes for better quoting support
+\usepackage{csquotes}
+
+\newcommand{\numeStudent}{MACAMETE Petre Leonard}
+\newcommand{\numeStudentHeader}{Petre Leonard Macamete}
+\newcommand{\numeCoordonator}{Prof. univ. dr. Mirel Coșulschi}
+\newcommand{\titluLucrare}{Sistem de eLearning bazat pe blockchain}
+\newcommand{\anLucrare}{2026}
+
+% Customizations for Table of Contents
+\renewcommand{\cftchapfont}{\normalfont\bfseries\large} 
+\renewcommand{\cftsecfont}{\normalfont}
+\renewcommand{\cftsubsecfont}{\normalfont}
+\renewcommand{\cftsecnumwidth}{2.5em}
+\renewcommand{\cftsubsecnumwidth}{3em}
+\renewcommand{\cftdotsep}{1.5}
+
+\renewcommand{\cftpartfont}{\fontsize{12}{14.4}\selectfont}
+\renewcommand{\cftchapfont}{\fontsize{12}{14.4}\selectfont}
+\renewcommand{\cftsecfont}{\fontsize{12}{14.4}\selectfont}
+\renewcommand{\cftsubsecfont}{\fontsize{12}{14.4}\selectfont}
+
+% Set line spacing
+\setstretch{1.5}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+\setlength{\headheight}{15pt}
+
+% Numbering style for chapters and sections
+\renewcommand{\thechapter}{\arabic{chapter}}
+\renewcommand{\thesection}{\thechapter.\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+
+\usepackage[hyperfootnotes=false]{hyperref} % Dezactivează hyperfootnotes
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue,
+    pdftitle={\titluLucrare},
+    pdfauthor={\numeStudentHeader}
+}
+
+% Bibliography configuration
+\addbibresource{referinte.bib}
+\addbibresource{referinte-web.bib}
+\setcounter{biburllcpenalty}{7000}
+\setcounter{biburlucpenalty}{8000}
+
+% Attempt to force footnotes to display properly
+\setlength{\skip\footins}{0.5cm} % Adjust space between text and footnotes
+\setlength{\footnotesep}{0.4cm}  % Space between footnotes
+
+% Redefine the figure name to "Figura"
+\renewcommand{\figurename}{Figura}
+\captionsetup[figure]{justification=centering,labelsep=period}
+\captionsetup[table]{position=top,justification=centering,labelsep=period}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\numeStudentHeader}
+\fancyhead[R]{\nouppercase{\leftmark}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\chaptermark}[1]{\markboth{\thechapter.\ #1}{}}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{%
+    \fancyhf{}
+    \fancyhead[L]{\numeStudentHeader}
+    \fancyhead[R]{\nouppercase{\leftmark}}
+    \fancyfoot[C]{\thepage}
+    \renewcommand{\headrulewidth}{0.4pt}
+}
+
+\usepackage{float}
+
+\newcommand{\partea}[1]{
+    \cleardoublepage
+    \thispagestyle{empty}
+    \vspace*{5cm}
+    \begin{center}
+        {\Huge \textbf{#1}}
+    \end{center}
+    \vspace{2cm}
+    \addcontentsline{toc}{chapter}{#1}
+    \clearpage
+}
+
+\hyphenation{frontend backend}
+
+\lstdefinestyle{cod}{%
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    columns=fullflexible,
+    keepspaces=true,
+    showstringspaces=false
+}
