@@ -11,4 +11,5 @@ pub struct UpdateContentItemCommand {
     pub order: Option<i32>,
     pub content_type: Option<String>,
     pub data: Option<String>,
+    pub publication_status: Option<String>,
 }

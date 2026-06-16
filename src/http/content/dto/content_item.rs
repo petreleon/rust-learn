@@ -11,6 +11,7 @@ pub struct ContentItemResponse {
     pub order: i32,
     pub content_type: String,
     pub data: Option<String>,
+    pub publication_status: String,
 }
 
 impl From<ContentItemOutput> for ContentItemResponse {
@@ -21,6 +22,7 @@ impl From<ContentItemOutput> for ContentItemResponse {
             order: content.order,
             content_type: content.content_type,
             data: content.data,
+            publication_status: content.publication_status,
         }
     }
 }
@@ -48,6 +50,7 @@ pub struct UpdateContentItemRequest {
     pub order: Option<i32>,
     pub content_type: Option<String>,
     pub data: Option<String>,
+    pub publication_status: Option<String>,
 }
 
 impl From<UpdateContentItemRequest> for UpdateContentItemCommand {
@@ -56,6 +59,7 @@ impl From<UpdateContentItemRequest> for UpdateContentItemCommand {
             order: request.order,
             content_type: request.content_type,
             data: request.data,
+            publication_status: request.publication_status,
         }
     }
 }

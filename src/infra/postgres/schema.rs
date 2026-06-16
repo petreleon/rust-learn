@@ -66,6 +66,7 @@ diesel::table! {
         order -> Int4,
         content_type -> Varchar,
         data -> Nullable<Text>,
+        publication_status -> Varchar,
     }
 }
 

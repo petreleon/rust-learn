@@ -23,6 +23,7 @@ import {
   submitTextContent,
   submitUploadContent,
 } from "./courseContentActionHelpers";
+import { updateContentPublicationStatus } from "./contentPublicationAction";
 
 export function useCourseContentActions(args: CourseContentActionArgs) {
   const [deleteConfirmContentId, setDeleteConfirmContentId] = useState<number | null>(null);
@@ -137,6 +138,13 @@ export function useCourseContentActions(args: CourseContentActionArgs) {
     });
   }
 
+  async function setContentPublicationStatus(
+    content: TeacherCourseWorkspaceContent,
+    publicationStatus: "published" | "unpublished",
+  ) {
+    await updateContentPublicationStatus(args, content, publicationStatus);
+  }
+
   async function submitContent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const token = readBrowserSessionToken();
@@ -162,6 +170,7 @@ export function useCourseContentActions(args: CourseContentActionArgs) {
     inspectProcessingHistory,
     isContentDraftDirty: isContentDraftDirty(args.contentDraft, editingContentId),
     processingHistoryByContentId,
+    setContentPublicationStatus,
     submitContent,
     triggerProcessing,
     uploadProgress,

@@ -16,6 +16,7 @@ export function ChapterList({
   onDeleteContent,
   onEditContent,
   onInspectProcessingHistory,
+  onSetContentPublicationStatus,
   onTriggerProcessing,
   processingHistoryByContentId = {},
 }: {
@@ -27,6 +28,7 @@ export function ChapterList({
   onDeleteContent?: (content: TeacherCourseWorkspaceContent) => void;
   onEditContent?: (content: TeacherCourseWorkspaceContent) => void;
   onInspectProcessingHistory?: (content: TeacherCourseWorkspaceContent) => void;
+  onSetContentPublicationStatus?: (content: TeacherCourseWorkspaceContent, status: "published" | "unpublished") => void;
   onTriggerProcessing?: (content: TeacherCourseWorkspaceContent) => void;
   processingHistoryByContentId?: Record<number, ContentProcessingHistoryState>;
 }) {
@@ -66,6 +68,7 @@ export function ChapterList({
                   onDeleteContent={onDeleteContent}
                   onEditContent={onEditContent}
                   onInspectProcessingHistory={onInspectProcessingHistory}
+                  onSetContentPublicationStatus={onSetContentPublicationStatus}
                   onTriggerProcessing={onTriggerProcessing}
                   processingHistory={processingHistoryByContentId[content.id]}
                 />

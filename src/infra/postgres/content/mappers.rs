@@ -21,5 +21,6 @@ pub(super) fn content_item_output_from_record(content: Content) -> ContentItemOu
         order: content.order,
         content_type: content.content_type,
         data: content.data,
+        publication_status: content.publication_status,
     })
 }

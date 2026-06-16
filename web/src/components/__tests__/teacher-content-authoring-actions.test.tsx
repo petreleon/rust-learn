@@ -17,7 +17,7 @@ const content: TeacherCourseWorkspaceContent = {
   order: 0,
   processing_error: null,
   processing_status: null,
-  publication_status: "inherits_course_published",
+  publication_status: "published",
 };
 
 const draft: ContentDraft = {
@@ -52,7 +52,7 @@ function workspace(): TeacherCourseWorkspaceResponse {
       title: "Rust Safety",
     },
     publication: {
-      content_publication_status_supported: false,
+      content_publication_status_supported: true,
       course_lifecycle_status: "published",
     },
     teacher_roles: ["TEACHER"],
@@ -78,6 +78,20 @@ describe("teacher content authoring actions", () => {
 
     expect(onEdit).toHaveBeenCalledWith(content);
     expect(onDelete).toHaveBeenCalledWith(content);
+  });
+
+  it("shows publication toggle for manageable content", () => {
+    const onSetContentPublicationStatus = vi.fn();
+    render(
+      <ContentRow
+        canManageContent
+        content={content}
+        onSetContentPublicationStatus={onSetContentPublicationStatus}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Unpublish" }));
+    expect(onSetContentPublicationStatus).toHaveBeenCalledWith(content, "unpublished");
   });
 
   it("locks chapter and upload kind while editing text content", () => {

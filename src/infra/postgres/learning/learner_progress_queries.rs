@@ -2,6 +2,7 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 
 use crate::application::learning::learner_progress::ProgressCourse;
+use crate::domain::content::content_item::CONTENT_PUBLICATION_STATUS_PUBLISHED;
 use crate::infra::postgres::models::course_progress::{CourseProgress, NewCourseProgress};
 use crate::infra::postgres::schema::{
     chapters, contents, course_join_requests, course_progress, course_roles, courses,
@@ -79,6 +80,7 @@ pub async fn content_belongs_to_course(
     contents::table
         .inner_join(chapters::table.on(contents::chapter_id.eq(chapters::id)))
         .filter(contents::id.eq(content_id))
+        .filter(contents::publication_status.eq(CONTENT_PUBLICATION_STATUS_PUBLISHED))
         .select(chapters::course_id)
         .first::<i32>(conn)
         .await

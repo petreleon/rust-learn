@@ -5,6 +5,7 @@ use crate::application::content::manage_content_item::{
     ContentItemError, ContentItemOutput, CreateContentItemCommand, UpdateContentItemCommand,
 };
 use crate::application::content::ports::ContentItemStore;
+use crate::domain::content::content_item::CONTENT_PUBLICATION_STATUS_PUBLISHED;
 use crate::infra::postgres::content::content_item_records::{
     create_content_item, delete_content_item, list_content_items, list_course_content_recipients,
     update_content_item,
@@ -49,6 +50,7 @@ impl ContentItemStore for PostgresContentItemStore<'_> {
                 order: command.order,
                 content_type: command.content_type,
                 data: command.data,
+                publication_status: CONTENT_PUBLICATION_STATUS_PUBLISHED.to_string(),
             };
 
             create_content_item(self.conn, new_content).await
@@ -77,6 +79,7 @@ impl ContentItemStore for PostgresContentItemStore<'_> {
                 order: command.order,
                 content_type: command.content_type,
                 data: command.data,
+                publication_status: command.publication_status,
             };
 
             update_content_item(self.conn, content_id, update).await

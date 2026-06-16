@@ -11,7 +11,7 @@ use crate::infra::postgres::schema::{chapters, contents, course_roles, user_role
 pub async fn load_teacher_course_workspace_chapters(
     conn: &mut AsyncPgConnection,
     course_id: i32,
-    course_lifecycle_status: &str,
+    _course_lifecycle_status: &str,
 ) -> Result<Vec<TeacherCourseWorkspaceChapterOutput>, TeacherCourseDashboardError> {
     let rows = chapters::table
         .filter(chapters::course_id.eq(course_id))
@@ -28,7 +28,7 @@ pub async fn load_teacher_course_workspace_chapters(
             id,
             title,
             order,
-            contents: load_workspace_contents(conn, id, course_lifecycle_status).await?,
+            contents: load_workspace_contents(conn, id).await?,
         });
     }
 
@@ -60,7 +60,6 @@ pub async fn load_actor_course_roles(
 async fn load_workspace_contents(
     conn: &mut AsyncPgConnection,
     chapter_id: i32,
-    course_lifecycle_status: &str,
 ) -> Result<Vec<TeacherCourseWorkspaceContentOutput>, TeacherCourseDashboardError> {
     let rows = contents::table
         .filter(contents::chapter_id.eq(chapter_id))
@@ -71,13 +70,14 @@ async fn load_workspace_contents(
             contents::order,
             contents::content_type,
             contents::data,
+            contents::publication_status,
         ))
-        .load::<(i32, i32, String, Option<String>)>(conn)
+        .load::<(i32, i32, String, Option<String>, String)>(conn)
         .await
         .map_err(map_dashboard_error)?;
 
     let mut contents = Vec::with_capacity(rows.len());
-    for (id, order, content_type, data) in rows {
+    for (id, order, content_type, data, publication_status) in rows {
         let processing =
             content_processing_queries::load_latest_content_processing(conn, data.as_deref())
                 .await
@@ -91,7 +91,7 @@ async fn load_workspace_contents(
                 .as_deref()
                 .map(str::trim)
                 .is_some_and(|value| !value.is_empty()),
-            publication_status: teacher_content_publication_status(course_lifecycle_status),
+            publication_status,
             display_state: content_processing_queries::content_display_state(
                 &content_type,
                 data.as_deref(),
@@ -103,10 +103,6 @@ async fn load_workspace_contents(
     }
 
     Ok(contents)
-}
-
-fn teacher_content_publication_status(course_lifecycle_status: &str) -> String {
-    format!("inherits_course_{}", course_lifecycle_status)
 }
 
 fn map_dashboard_error(error: diesel::result::Error) -> TeacherCourseDashboardError {

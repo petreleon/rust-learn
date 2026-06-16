@@ -5,6 +5,7 @@ use crate::application::learning::get_learner_course_learning::{
     LearnerCourseLearningChapterOutput, LearnerCourseLearningContentOutput,
     LearnerCourseLearningError,
 };
+use crate::domain::content::content_item::CONTENT_PUBLICATION_STATUS_PUBLISHED;
 use crate::infra::postgres::learning::content_processing_queries;
 use crate::infra::postgres::schema::{chapters, contents};
 
@@ -41,6 +42,7 @@ async fn load_learning_contents(
 ) -> Result<Vec<LearnerCourseLearningContentOutput>, LearnerCourseLearningError> {
     let rows = contents::table
         .filter(contents::chapter_id.eq(chapter_id))
+        .filter(contents::publication_status.eq(CONTENT_PUBLICATION_STATUS_PUBLISHED))
         .order(contents::order.asc())
         .then_order_by(contents::id.asc())
         .select((

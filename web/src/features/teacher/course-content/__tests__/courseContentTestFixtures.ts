@@ -22,7 +22,7 @@ export function textContent(): TeacherCourseWorkspaceContent {
     order: 0,
     processing_error: null,
     processing_status: null,
-    publication_status: "inherits_course_published",
+    publication_status: "published",
   };
 }
 
@@ -36,7 +36,7 @@ export function failedVideoContent(): TeacherCourseWorkspaceContent {
     order: 1,
     processing_error: "Transcode failed",
     processing_status: "failed",
-    publication_status: "inherits_course_published",
+    publication_status: "published",
   };
 }
 
@@ -91,7 +91,7 @@ export function courseContentWorkspace(contents: TeacherCourseWorkspaceContent[]
       roster: { enrolled_student_count: 0, pending_join_request_count: 0, waitlisted_join_request_count: 0 },
       title: "Rust Safety",
     },
-    publication: { content_publication_status_supported: false, course_lifecycle_status: "published" },
+    publication: { content_publication_status_supported: true, course_lifecycle_status: "published" },
     teacher_roles: ["TEACHER"],
   };
 }

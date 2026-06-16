@@ -4,4 +4,5 @@ pub enum ContentItemError {
     ContentNotFound,
     Connection(String),
     Database(String),
+    InvalidPublicationStatus(String),
 }

@@ -14,6 +14,8 @@ mod learner_catalog_includes_own_draft_but_hides_unscoped_draft_detail;
 mod learner_catalog_returns_published_course_summaries_and_pending_state;
 #[path = "course_discovery/learner_learning_endpoint_returns_content_states_and_denies_unscoped_content.rs"]
 mod learner_learning_endpoint_returns_content_states_and_denies_unscoped_content;
+#[path = "course_discovery/learner_learning_hides_unpublished_content.rs"]
+mod learner_learning_hides_unpublished_content;
 #[path = "course_discovery/learner_progress_requires_enrollment_and_course_content.rs"]
 mod learner_progress_requires_enrollment_and_course_content;
 #[path = "course_discovery/organization_course_list_uses_org_scope_and_returns_operator_summaries.rs"]

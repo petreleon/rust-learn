@@ -28,6 +28,7 @@ export function ContentAuthoringView({
   onDeleteContent,
   onEditContent,
   onInspectProcessingHistory,
+  onSetContentPublicationStatus,
   onSubmitChapter,
   onSubmitContent,
   onTriggerProcessing,
@@ -48,6 +49,7 @@ export function ContentAuthoringView({
   onDeleteContent: (content: TeacherCourseWorkspaceContent) => void;
   onEditContent: (content: TeacherCourseWorkspaceContent) => void;
   onInspectProcessingHistory: (content: TeacherCourseWorkspaceContent) => void;
+  onSetContentPublicationStatus: (content: TeacherCourseWorkspaceContent, status: "published" | "unpublished") => void;
   onSubmitChapter: (event: FormEvent<HTMLFormElement>) => void;
   onSubmitContent: (event: FormEvent<HTMLFormElement>) => void;
   onTriggerProcessing: (content: TeacherCourseWorkspaceContent) => void;
@@ -56,6 +58,9 @@ export function ContentAuthoringView({
   workspace: TeacherCourseWorkspaceResponse;
 }) {
   const canManageContent = workspace.course.permissions.can_manage_content;
+  const publicationAction = workspace.publication.content_publication_status_supported
+    ? onSetContentPublicationStatus
+    : undefined;
   return (
     <>
       <section className={styles.workspaceHero}>
@@ -116,6 +121,7 @@ export function ContentAuthoringView({
           onDeleteContent={onDeleteContent}
           onEditContent={onEditContent}
           onInspectProcessingHistory={onInspectProcessingHistory}
+          onSetContentPublicationStatus={publicationAction}
           onTriggerProcessing={onTriggerProcessing}
           processingHistoryByContentId={processingHistoryByContentId}
         />

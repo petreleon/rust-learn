@@ -65,7 +65,7 @@ export function courseWorkspace(): TeacherCourseWorkspaceResponse {
     ],
     course: workspaceCourse(),
     publication: {
-      content_publication_status_supported: false,
+      content_publication_status_supported: true,
       course_lifecycle_status: "published",
     },
     teacher_roles: ["TEACHER"],

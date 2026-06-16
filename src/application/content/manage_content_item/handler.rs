@@ -3,6 +3,7 @@ use crate::application::content::manage_content_item::{
     UpdateContentItemCommand,
 };
 use crate::application::content::ports::ContentItemStore;
+use crate::domain::content::content_item::ContentPublicationStatus;
 
 pub async fn list_content_items(
     store: &mut impl ContentItemStore,
@@ -39,6 +40,7 @@ pub async fn update_content_item(
     content_id: i32,
     command: UpdateContentItemCommand,
 ) -> Result<ContentItemOutput, ContentItemError> {
+    let command = normalize_update_command(command)?;
     store
         .update(course_id, chapter_id, content_id, command)
         .await
@@ -51,4 +53,21 @@ pub async fn delete_content_item(
     content_id: i32,
 ) -> Result<bool, ContentItemError> {
     store.delete(course_id, chapter_id, content_id).await
+}
+
+fn normalize_update_command(
+    command: UpdateContentItemCommand,
+) -> Result<UpdateContentItemCommand, ContentItemError> {
+    let publication_status = command
+        .publication_status
+        .as_deref()
+        .map(ContentPublicationStatus::normalize)
+        .transpose()
+        .map_err(|error| ContentItemError::InvalidPublicationStatus(error.value))?
+        .map(|status| status.as_str().to_string());
+
+    Ok(UpdateContentItemCommand {
+        publication_status,
+        ..command
+    })
 }

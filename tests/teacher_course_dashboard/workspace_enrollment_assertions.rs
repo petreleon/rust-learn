@@ -31,7 +31,7 @@ pub(crate) async fn assert_teacher_workspace(fixture: &TeacherDashboardFixture) 
     );
     assert_eq!(
         body["publication"]["content_publication_status_supported"].as_bool(),
-        Some(false)
+        Some(true)
     );
     assert_eq!(body["teacher_roles"][0].as_str(), Some("TEACHER"));
     assert_eq!(
@@ -52,7 +52,7 @@ pub(crate) async fn assert_teacher_workspace(fixture: &TeacherDashboardFixture) 
     );
     assert_eq!(
         body["chapters"][0]["contents"][0]["publication_status"].as_str(),
-        Some("inherits_course_published")
+        Some("published")
     );
     assert_eq!(
         body["chapters"][0]["contents"][0]["display_state"].as_str(),

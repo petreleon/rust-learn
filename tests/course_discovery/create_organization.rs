@@ -69,6 +69,7 @@ pub(crate) async fn create_content_with_data(
             order,
             content_type: content_type.to_string(),
             data: data.map(ToString::to_string),
+            publication_status: "published".to_string(),
         })
         .returning(contents::id)
         .get_result(conn)

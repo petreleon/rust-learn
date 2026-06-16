@@ -28,6 +28,7 @@ vi.mock("../api/courseContentApi", () => ({
   loadTeacherCourseContentWorkspace: vi.fn(),
   processTeacherCourseContentItem: vi.fn(),
   requestTeacherContentUploadUrl: vi.fn(),
+  setTeacherCourseContentPublicationStatus: vi.fn(),
   updateTeacherCourseContentItem: vi.fn(),
   uploadTeacherContentFile: vi.fn(),
 }));

@@ -22,6 +22,7 @@ type ContentActions = {
   inspectProcessingHistory: (content: TeacherCourseWorkspaceContent) => void;
   isContentDraftDirty: boolean;
   processingHistoryByContentId: Record<number, ContentProcessingHistoryState>;
+  setContentPublicationStatus: (content: TeacherCourseWorkspaceContent, status: "published" | "unpublished") => void;
   submitContent: (event: FormEvent<HTMLFormElement>) => void;
   triggerProcessing: (content: TeacherCourseWorkspaceContent) => void;
   uploadProgress: number | null;
@@ -114,6 +115,7 @@ export function TeacherCourseContentPanels({
       onDeleteContent={contentActions.deleteContent}
       onEditContent={contentActions.editContent}
       onInspectProcessingHistory={contentActions.inspectProcessingHistory}
+      onSetContentPublicationStatus={contentActions.setContentPublicationStatus}
       onSubmitChapter={submitChapter}
       onSubmitContent={contentActions.submitContent}
       onTriggerProcessing={contentActions.triggerProcessing}

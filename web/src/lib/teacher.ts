@@ -69,6 +69,9 @@ export type { SubmitTeacherApplicationOptions } from "./teacher/SubmitTeacherApp
 export type { UpdateTeacherCourseLifecycleOptions } from "./teacher/UpdateTeacherCourseLifecycleOptions";
 export type { UpdateTeacherCourseOptions } from "./teacher/UpdateTeacherCourseOptions";
 export type { UpdateTeacherCoursePayload } from "./teacher/UpdateTeacherCoursePayload";
+export type { UpdateTeacherContentOptions } from "./teacher/UpdateTeacherContentOptions";
+export type { UpdateTeacherContentPayload } from "./teacher/UpdateTeacherContentPayload";
+export type { UpdateTeacherContentPublicationStatusOptions } from "./teacher/UpdateTeacherContentPublicationStatusOptions";
 export type {
   TeacherAssessmentCreateOptions,
   TeacherAssessmentListOptions,
@@ -90,6 +93,7 @@ export { processContent } from "./teacher/processContent";
 export { createTeacherContent } from "./teacher/createTeacherContent";
 export { deleteTeacherContent } from "./teacher/deleteTeacherContent";
 export { updateTeacherContent } from "./teacher/updateTeacherContent";
+export { updateTeacherContentPublicationStatus } from "./teacher/updateTeacherContentPublicationStatus";
 export { updateTeacherCourse } from "./teacher/updateTeacherCourse";
 export { updateTeacherCourseLifecycle } from "./teacher/updateTeacherCourseLifecycle";
 export { createTeacherAssessment } from "./teacher/createTeacherAssessment";

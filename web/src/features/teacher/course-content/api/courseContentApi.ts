@@ -9,6 +9,7 @@ import {
   fetchUploadUrl,
   processContent,
   updateTeacherContent,
+  updateTeacherContentPublicationStatus,
   type CreateTeacherContentPayload,
   type TeacherAssessment,
   type TeacherContentProcessingHistory,
@@ -79,6 +80,28 @@ export function updateTeacherCourseContentItem({
   token: string;
 }): Promise<TeacherContent> {
   return updateTeacherContent({ chapterId, contentId, courseId, payload, token });
+}
+
+export function setTeacherCourseContentPublicationStatus({
+  chapterId,
+  contentId,
+  courseId,
+  publicationStatus,
+  token,
+}: {
+  chapterId: number;
+  contentId: number;
+  courseId: string;
+  publicationStatus: "published" | "unpublished";
+  token: string;
+}): Promise<TeacherContent> {
+  return updateTeacherContentPublicationStatus({
+    chapterId,
+    contentId,
+    courseId,
+    publicationStatus,
+    token,
+  });
 }
 
 export function deleteTeacherCourseContentItem({

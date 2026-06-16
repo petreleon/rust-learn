@@ -54,6 +54,7 @@ describe("TeacherCourseContentRoute", () => {
       data: "New lesson body",
       id: 21,
       order: 1,
+      publication_status: "published",
     });
     vi.mocked(processTeacherCourseContentItem).mockResolvedValue({ message: "Processing queued." });
     vi.mocked(loadTeacherContentProcessingHistory).mockResolvedValue({
@@ -155,4 +156,5 @@ describe("TeacherCourseContentRoute", () => {
     );
     expect(await screen.findByText("Processing queued.")).toBeVisible();
   });
+
 });

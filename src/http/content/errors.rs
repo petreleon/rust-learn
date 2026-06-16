@@ -33,6 +33,7 @@ pub(super) fn content_item_error(
         ContentItemError::ContentNotFound => content_not_found(),
         ContentItemError::Connection(_) => db_connection_failed(),
         ContentItemError::Database(error) => logged_internal(event, &context, message, error),
+        ContentItemError::InvalidPublicationStatus(_) => bad_request("Invalid publication status"),
     }
 }
 

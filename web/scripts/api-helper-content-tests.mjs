@@ -40,6 +40,32 @@ test("fetchTeacherContentProcessingHistory sends content-scoped GET", async () =
   assert.equal(result.jobs[0].last_error, "transcode timed out");
 });
 
+test("updateTeacherContentPublicationStatus sends content-scoped PUT", async () => {
+  const calls = mockFetch((url, init) => {
+    assert.equal(url, "/api/courses/5/chapters/3/contents/10");
+    assert.equal(init.method, "PUT");
+    assert.equal(init.headers.Authorization, "Bearer teacher-token");
+    assert.deepEqual(JSON.parse(init.body), { publication_status: "unpublished" });
+    return jsonResponse({
+      chapter_id: 3,
+      content_type: "article",
+      data: "Lesson",
+      id: 10,
+      order: 1,
+      publication_status: "unpublished",
+    });
+  });
+  const result = await teacher.updateTeacherContentPublicationStatus({
+    chapterId: 3,
+    contentId: 10,
+    courseId: 5,
+    publicationStatus: "unpublished",
+    token: "teacher-token",
+  });
+  assert.equal(calls.length, 1);
+  assert.equal(result.publication_status, "unpublished");
+});
+
 async function importTranspiled(relativePath) {
   return import(pathToFileURL(transpileSourceFile(path.join(repoRoot, relativePath))));
 }

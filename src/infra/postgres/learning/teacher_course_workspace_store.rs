@@ -56,7 +56,7 @@ impl TeacherCourseWorkspaceStore for PostgresTeacherCourseWorkspaceStore<'_> {
             .await?;
             let publication = TeacherCoursePublicationSummaryOutput {
                 course_lifecycle_status: course.lifecycle_status.clone(),
-                content_publication_status_supported: false,
+                content_publication_status_supported: true,
             };
             let chapters =
                 teacher_course_workspace_queries::load_teacher_course_workspace_chapters(

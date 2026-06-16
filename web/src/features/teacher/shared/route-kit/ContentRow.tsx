@@ -1,6 +1,6 @@
 "use client";
 
-import { History, Pencil, Trash2, Video } from "lucide-react";
+import { Eye, EyeOff, History, Pencil, Trash2, Video } from "lucide-react";
 import { type TeacherCourseWorkspaceContent } from "@/lib/teacher";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type ActionState } from "./ActionState";
@@ -18,6 +18,7 @@ export function ContentRow({
   onDeleteContent,
   onEditContent,
   onInspectProcessingHistory,
+  onSetContentPublicationStatus,
   onTriggerProcessing,
   processingHistory,
 }: {
@@ -29,6 +30,7 @@ export function ContentRow({
   onDeleteContent?: (content: TeacherCourseWorkspaceContent) => void;
   onEditContent?: (content: TeacherCourseWorkspaceContent) => void;
   onInspectProcessingHistory?: (content: TeacherCourseWorkspaceContent) => void;
+  onSetContentPublicationStatus?: (content: TeacherCourseWorkspaceContent, status: "published" | "unpublished") => void;
   onTriggerProcessing?: (content: TeacherCourseWorkspaceContent) => void;
   processingHistory?: ContentProcessingHistoryState;
 }) {
@@ -38,9 +40,11 @@ export function ContentRow({
   const canInspect = canManageContent && isVideoLike && content.data_present && Boolean(onInspectProcessingHistory);
   const canEdit = canManageContent && isEditableTextContent(content.content_type) && Boolean(onEditContent);
   const canDelete = canManageContent && Boolean(onDeleteContent);
+  const canPublishToggle = canManageContent && Boolean(onSetContentPublicationStatus);
   const disabled = actionState === "saving";
   const isConfirmingDelete = deleteConfirmContentId === content.id;
   const isEditing = editingContentId === content.id;
+  const isUnpublished = content.publication_status === "unpublished";
   return (
     <article className={styles.contentRow}>
       <div>
@@ -86,6 +90,18 @@ export function ContentRow({
           >
             <History size={16} aria-hidden />
             History
+          </button>
+        ) : null}
+        {canPublishToggle ? (
+          <button
+            className={styles.secondaryButton}
+            disabled={disabled}
+            onClick={() => onSetContentPublicationStatus?.(content, isUnpublished ? "published" : "unpublished")}
+            title={isUnpublished ? "Publish content" : "Unpublish content"}
+            type="button"
+          >
+            {isUnpublished ? <Eye size={16} aria-hidden /> : <EyeOff size={16} aria-hidden />}
+            {isUnpublished ? "Publish" : "Unpublish"}
           </button>
         ) : null}
         {canDelete ? (

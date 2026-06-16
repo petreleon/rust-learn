@@ -1,12 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { TeacherRequestError } from "@/lib/teacher";
 import { readBrowserSessionToken } from "@/shared/session/browserSession";
 import {
   loadTeacherCourseContentWorkspace,
-  requestTeacherContentUploadUrl,
-  uploadTeacherContentFile,
+  setTeacherCourseContentPublicationStatus,
 } from "../api/courseContentApi";
 import { TeacherCourseContentRoute } from "../route/TeacherCourseContentRoute";
 import { courseContentSession, courseContentWorkspace } from "./courseContentTestFixtures";
@@ -34,7 +32,7 @@ vi.mock("../api/courseContentApi", () => ({
   uploadTeacherContentFile: vi.fn(),
 }));
 
-describe("TeacherCourseContentRoute upload recovery", () => {
+describe("TeacherCourseContentRoute publication", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(readBrowserSessionToken).mockReturnValue("teacher-token");
@@ -43,34 +41,31 @@ describe("TeacherCourseContentRoute upload recovery", () => {
       session: courseContentSession(),
       workspace: courseContentWorkspace(),
     });
-    vi.mocked(requestTeacherContentUploadUrl).mockResolvedValue({
-      object_key: "courses/9/chapters/3/intro.mp4",
-      upload_url: "https://upload.example.test/intro.mp4",
+    vi.mocked(setTeacherCourseContentPublicationStatus).mockResolvedValue({
+      chapter_id: 3,
+      content_type: "article",
+      data: "Original lesson",
+      id: 11,
+      order: 0,
+      publication_status: "unpublished",
     });
   });
 
-  it("shows an actionable message when a presigned upload URL expires", async () => {
+  it("unpublishes content from the course content route", async () => {
     const user = userEvent.setup();
-    vi.mocked(uploadTeacherContentFile).mockRejectedValue(
-      new TeacherRequestError(
-        "Upload URL expired or was rejected. Select Upload content again to request a fresh URL.",
-        403,
-        "upload_url_expired",
-      ),
-    );
     render(<TeacherCourseContentRoute courseId="9" />);
 
-    await user.selectOptions(await screen.findByLabelText("Kind"), "file");
-    await user.upload(screen.getByLabelText("File"), new File(["video"], "intro.mp4", { type: "video/mp4" }));
-    await user.click(screen.getByRole("button", { name: "Upload content" }));
+    await user.click(await screen.findByRole("button", { name: "Unpublish" }));
 
-    expect(await screen.findByText(/Upload URL expired or was rejected/)).toBeVisible();
-    expect(requestTeacherContentUploadUrl).toHaveBeenCalledWith({
-      chapterId: "3",
-      contentType: "video/mp4",
-      courseId: "9",
-      filename: "intro.mp4",
-      token: "teacher-token",
-    });
+    await waitFor(() =>
+      expect(setTeacherCourseContentPublicationStatus).toHaveBeenCalledWith({
+        chapterId: 3,
+        contentId: 11,
+        courseId: "9",
+        publicationStatus: "unpublished",
+        token: "teacher-token",
+      }),
+    );
+    expect(await screen.findByText("Content item unpublished.")).toBeVisible();
   });
 });

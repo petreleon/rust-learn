@@ -103,6 +103,9 @@ fn map_content_item_error(error: ContentItemError) -> ContentProcessingHistoryEr
         ContentItemError::ContentNotFound => ContentProcessingHistoryError::ContentNotFound,
         ContentItemError::Connection(message) => ContentProcessingHistoryError::Connection(message),
         ContentItemError::Database(message) => ContentProcessingHistoryError::Database(message),
+        ContentItemError::InvalidPublicationStatus(message) => {
+            ContentProcessingHistoryError::Database(message)
+        }
     }
 }
 

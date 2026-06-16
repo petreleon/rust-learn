@@ -62,7 +62,9 @@ P2 - Build the learning loop:
   surfaces.
 - Add assessment authoring, publishing, learner attempts, scoring, max-attempt
   handling, and reward eligibility handoff.
-- Finish content edit/delete/unpublish/upload retry/processing-error flows.
+- Keep hardening content authoring stale, empty, and backend-error states now
+  that edit/delete/unpublish/upload retry/processing-error flows live on the
+  product route.
 
 P3 - Build rewards and wallet operations:
 
@@ -225,12 +227,24 @@ Current evidence:
 
 Needed:
 
-- Finish the remaining content lifecycle control: unpublish lesson once the
-  backend supports content-level publication status.
 - Add any richer assessment analytics the product needs after authoring,
   learner attempts, and reward handoff.
 - Add tests for content processing states, max-attempt behavior beyond the
   current route coverage.
+
+Completed:
+
+- Content-level publication status now lives on `contents.publication_status`
+  with `published`/`unpublished` domain validation, a reversible Diesel
+  migration, regenerated schema, and a `PUT /courses/{course_id}/chapters/{chapter_id}/contents/{id}`
+  update path protected by `MODIFY_CONTENT`.
+- Teacher workspace responses now advertise per-content publication support and
+  return direct `published`/`unpublished` item status instead of inherited
+  course labels.
+- Learner course learning filters unpublished content, and learner progress
+  refuses unpublished content ids.
+- `/teach/courses/[id]/content` renders Publish/Unpublish actions from the
+  feature-owned course-content route without falling back to `/ops`.
 
 Checks:
 
@@ -250,7 +264,7 @@ Checks:
 - [x] Content processing audit/history and richer processing-error recovery
   states render without falling back to `/ops`.
 - [x] Content upload-expiry recovery renders without falling back to `/ops`.
-- [ ] Content unpublish renders without falling back to `/ops` once the backend
+- [x] Content unpublish renders without falling back to `/ops` once the backend
   supports content-level publication status.
 - [x] Reward eligibility or reward-candidate creation is verified after a
   passing assessment when the course policy requires assessment completion.
@@ -631,10 +645,14 @@ Current evidence:
 
 Needed:
 
-- Finish remaining teacher content lifecycle control: unpublish once
-  content-level publication status exists.
 - Add broader denied/stale/empty-state assessment authoring coverage if those
   states need product-specific copy beyond the current validation path.
+
+Completed:
+
+- Content unpublish has backend route coverage, learner visibility/progress
+  coverage, API-helper coverage, route-level coverage, and component-level
+  button coverage.
 
 Checks:
 

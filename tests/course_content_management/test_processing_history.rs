@@ -28,6 +28,7 @@ async fn teacher_can_inspect_content_processing_history() {
             content_type: "video".to_string(),
             data: Some(object_key.clone()),
             order: 1,
+            publication_status: "published".to_string(),
         })
         .get_result::<Content>(&mut conn)
         .await

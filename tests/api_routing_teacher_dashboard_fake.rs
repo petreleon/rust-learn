@@ -73,7 +73,7 @@ impl TeacherCourseWorkspaceUseCase for RouteOnlyTeacherWorkspaceUseCase {
             teacher_roles: Vec::new(),
             publication: TeacherCoursePublicationSummaryOutput {
                 course_lifecycle_status: "draft".to_string(),
-                content_publication_status_supported: false,
+                content_publication_status_supported: true,
             },
             chapters: Vec::new(),
         }))

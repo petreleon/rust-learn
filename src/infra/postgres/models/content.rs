@@ -11,6 +11,7 @@ pub struct Content {
     pub order: i32,
     pub content_type: String,
     pub data: Option<String>,
+    pub publication_status: String,
 }
 
 #[derive(Insertable, Deserialize)]
@@ -20,6 +21,7 @@ pub struct NewContent {
     pub order: i32,
     pub content_type: String,
     pub data: Option<String>,
+    pub publication_status: String,
 }
 
 #[derive(AsChangeset, Deserialize)]
@@ -28,4 +30,5 @@ pub struct UpdateContent {
     pub order: Option<i32>,
     pub content_type: Option<String>,
     pub data: Option<String>,
+    pub publication_status: Option<String>,
 }

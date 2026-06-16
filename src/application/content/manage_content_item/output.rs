@@ -5,6 +5,7 @@ pub struct ContentItemOutput {
     pub order: i32,
     pub content_type: String,
     pub data: Option<String>,
+    pub publication_status: String,
 }
 
 pub(crate) struct ContentItemFact {
@@ -13,6 +14,7 @@ pub(crate) struct ContentItemFact {
     pub order: i32,
     pub content_type: String,
     pub data: Option<String>,
+    pub publication_status: String,
 }
 
 pub(crate) fn content_item_output(fact: ContentItemFact) -> ContentItemOutput {
@@ -22,6 +24,7 @@ pub(crate) fn content_item_output(fact: ContentItemFact) -> ContentItemOutput {
         order: fact.order,
         content_type: fact.content_type,
         data: fact.data,
+        publication_status: fact.publication_status,
     }
 }
 

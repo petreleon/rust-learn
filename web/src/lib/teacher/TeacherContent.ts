@@ -4,4 +4,5 @@ export type TeacherContent = {
   data: string | null;
   id: number;
   order: number;
+  publication_status: string;
 };
