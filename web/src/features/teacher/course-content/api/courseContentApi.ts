@@ -15,6 +15,7 @@ import {
   type TeacherContent,
   type TeacherCourseWorkspaceResponse,
 } from "@/lib/teacher";
+export { uploadTeacherContentFile } from "./uploadTeacherContentFile";
 
 export type TeacherCourseContentLoadResult = {
   assessments: TeacherAssessment[];
@@ -145,36 +146,5 @@ export function requestTeacherContentUploadUrl({
     courseId: Number(courseId),
     filename,
     token,
-  });
-}
-
-export function uploadTeacherContentFile({
-  file,
-  onProgress,
-  uploadUrl,
-}: {
-  file: File;
-  onProgress: (progress: number) => void;
-  uploadUrl: string;
-}): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const request = new XMLHttpRequest();
-    request.open("PUT", uploadUrl);
-    request.upload.onprogress = (event) => {
-      if (event.lengthComputable && event.total > 0) {
-        onProgress(Math.round((event.loaded / event.total) * 100));
-      }
-    };
-    request.onload = () => {
-      if (request.status >= 200 && request.status < 300) {
-        onProgress(100);
-        resolve();
-        return;
-      }
-      reject(new Error(`Upload failed: ${request.status} ${request.statusText}`.trim()));
-    };
-    request.onerror = () => reject(new Error("Upload failed: network error"));
-    onProgress(0);
-    request.send(file);
   });
 }

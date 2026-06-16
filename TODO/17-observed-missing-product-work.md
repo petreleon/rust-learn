@@ -192,6 +192,10 @@ Current evidence:
   application use case, Postgres adapter, HTTP DTO/route, teacher API helper,
   and a row-level History action that renders queued/failed/done attempts and
   backend errors without sending teachers to `/ops`.
+- Upload expiry recovery now stays inside the teacher content feature API:
+  expired or rejected presigned PUTs surface an actionable product error, and
+  retrying the upload action requests a fresh URL instead of falling back to
+  `/ops`.
 - Learners can read text lessons and open media/document content when ready.
 - Assessment API helpers exist in `web/src/lib/learner`, and backend routes
   exist for listing published assessments, learner-safe questions, submitting
@@ -221,8 +225,8 @@ Current evidence:
 
 Needed:
 
-- Finish the remaining content lifecycle controls: unpublish lesson once the
-  backend supports content-level publication status and upload expiry recovery.
+- Finish the remaining content lifecycle control: unpublish lesson once the
+  backend supports content-level publication status.
 - Add any richer assessment analytics the product needs after authoring,
   learner attempts, and reward handoff.
 - Add tests for content processing states, max-attempt behavior beyond the
@@ -245,8 +249,9 @@ Checks:
   failed-processing retry without falling back to `/ops`.
 - [x] Content processing audit/history and richer processing-error recovery
   states render without falling back to `/ops`.
-- [ ] Content unpublish and upload-expiry recovery render without falling back
-  to `/ops`.
+- [x] Content upload-expiry recovery renders without falling back to `/ops`.
+- [ ] Content unpublish renders without falling back to `/ops` once the backend
+  supports content-level publication status.
 - [x] Reward eligibility or reward-candidate creation is verified after a
   passing assessment when the course policy requires assessment completion.
 - [ ] Unit, API-helper, component, and browser/Playwright coverage exercise the
@@ -601,11 +606,14 @@ Current evidence:
 - `/teach/courses/[id]/content` now lets teachers inspect video processing
   history from the product route, with success, denied, failed-job, and
   backend-error coverage across backend, API-helper, and route tests.
+- Expired or rejected upload URLs now render a teacher-facing recovery message
+  and keep the next upload submit on the product route, where it requests a
+  fresh presigned URL.
 
 Needed:
 
-- Finish remaining teacher content lifecycle controls: unpublish and upload
-  expiry/recovery.
+- Finish remaining teacher content lifecycle control: unpublish once
+  content-level publication status exists.
 - Add broader denied/stale/empty-state assessment authoring coverage if those
   states need product-specific copy beyond the current validation path.
 
@@ -615,6 +623,7 @@ Checks:
   browser coverage, including persisted edit prefill and two-click delete.
 - [x] Content retry and processing-inspection flows have success, denied,
   failed-job, and backend-error tests.
+- [x] Content upload-expiry recovery has feature API and route tests.
 - [ ] Content create/unpublish flows have loading, validation, conflict,
   denied, and backend-error tests.
 - [x] Enrollment and student routes show persisted progress from backend data
