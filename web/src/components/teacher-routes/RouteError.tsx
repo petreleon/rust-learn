@@ -1,6 +1,2 @@
 "use client";
-export type RouteError = {
-  code: string;
-  message: string;
-  status: number;
-};
+export type { RouteError } from "@/shared/route-state/RouteError";

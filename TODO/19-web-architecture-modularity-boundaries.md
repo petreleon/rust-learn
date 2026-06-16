@@ -94,11 +94,18 @@ Progress:
   path as a compatibility export.
 - [x] Added route tests for signed-out state, feature API loading, decision
   submission, and sign-out behavior.
+- [x] Added initial shared API/session/route-state boundaries:
+  `shared/api/RequestError`, `shared/session/browserSession`, and
+  `shared/route-state/*`.
+- [x] Moved the pilot route to shared session/route-state contracts and a
+  feature-owned enrollment route model/error adapter.
 
 Latest pilot proof:
 
 - `make web-architecture-scan` passes in reporting mode.
 - `make web-lint` passes with existing warnings.
+- `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
+  passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx src/components/__tests__/teacher-rewards-route.test.tsx src/components/__tests__/teacher-content-authoring-actions.test.tsx`
@@ -230,7 +237,8 @@ Deferred: product gaps stay in `TODO/02-backend-contracts.md` or
 ## Remaining Work
 
 - [x] Build architecture inventory.
-- [ ] Establish shared API/session/route-state boundaries.
+- [x] Establish initial shared API/session/route-state boundaries.
+- [ ] Apply shared API/session/route-state boundaries to remaining contexts.
 - [x] Migrate one pilot workflow with tests.
 - [ ] Repeat by context.
 - [ ] Remove transitional exports and duplicate helpers.

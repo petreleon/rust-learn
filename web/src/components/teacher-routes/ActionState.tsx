@@ -1,2 +1,2 @@
 "use client";
-export type ActionState = "idle" | "saving";
+export type { ActionState } from "@/shared/route-state/ActionState";

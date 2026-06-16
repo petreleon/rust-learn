@@ -1,24 +1,23 @@
 "use client";
 
 import { type FormEvent, useCallback, useEffect, useState } from "react";
-import { clearStoredSessionToken } from "@/lib/session/clearStoredSessionToken";
-import { readStoredSessionToken } from "@/lib/session/readStoredSessionToken";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
 import { type TeacherCourseEnrollmentWorkspaceResponse } from "@/lib/teacher/TeacherCourseEnrollmentWorkspaceResponse";
 import { type TeacherCourseJoinRequestItem } from "@/lib/teacher/TeacherCourseJoinRequestItem";
 import { type TeacherCourseRosterLearner } from "@/lib/teacher/TeacherCourseRosterLearner";
-import { type ActionState } from "@/components/teacher-routes/ActionState";
-import { type DecisionDraft } from "@/components/teacher-routes/DecisionDraft";
-import { type EnrollmentStatusFilter } from "@/components/teacher-routes/EnrollmentStatusFilter";
-import { type LoadState } from "@/components/teacher-routes/LoadState";
-import { type RouteError } from "@/components/teacher-routes/RouteError";
-import { defaultDecisionDraft } from "@/components/teacher-routes/defaultDecisionDraft";
-import { normalizeRouteError } from "@/components/teacher-routes/normalizeRouteError";
+import { clearBrowserSession, readBrowserSessionToken } from "@/shared/session/browserSession";
+import { type ActionState } from "@/shared/route-state/ActionState";
+import { type LoadState } from "@/shared/route-state/LoadState";
+import { type RouteError } from "@/shared/route-state/RouteError";
+import { type DecisionDraft } from "../model/DecisionDraft";
+import { type EnrollmentStatusFilter } from "../model/EnrollmentStatusFilter";
+import { defaultDecisionDraft } from "../model/defaultDecisionDraft";
 import {
   decideEnrollmentRequest,
   loadTeacherCourseEnrollments,
   removeEnrollmentLearner,
 } from "../api/enrollmentApi";
+import { normalizeEnrollmentRouteError } from "./normalizeEnrollmentRouteError";
 
 export function useTeacherCourseEnrollmentsRoute(courseId: string) {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -40,7 +39,7 @@ export function useTeacherCourseEnrollmentsRoute(courseId: string) {
   }, []);
 
   const loadEnrollmentRoute = useCallback(async () => {
-    const token = readStoredSessionToken();
+    const token = readBrowserSessionToken();
     if (!token) {
       setHasToken(false);
       clearRoute("idle");
@@ -57,9 +56,9 @@ export function useTeacherCourseEnrollmentsRoute(courseId: string) {
       setWorkspace(next.workspace);
       setLoadState("success");
     } catch (nextError) {
-      const routeError = normalizeRouteError(nextError);
+      const routeError = normalizeEnrollmentRouteError(nextError);
       if (routeError.status === 401) {
-        clearStoredSessionToken();
+        clearBrowserSession();
         setHasToken(false);
       }
       setSession(null);
@@ -86,7 +85,7 @@ export function useTeacherCourseEnrollmentsRoute(courseId: string) {
   }, [loadEnrollmentRoute]);
 
   function signOut() {
-    clearStoredSessionToken();
+    clearBrowserSession();
     setHasToken(false);
     clearRoute("idle");
   }
@@ -97,7 +96,7 @@ export function useTeacherCourseEnrollmentsRoute(courseId: string) {
 
   async function submitDecision(request: TeacherCourseJoinRequestItem, event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const token = readStoredSessionToken();
+    const token = readBrowserSessionToken();
     const draft = decisionDrafts[request.id] || defaultDecisionDraft;
     if (!token) {
       setActionMessage("Sign in again before deciding enrollment requests.");
@@ -122,14 +121,14 @@ export function useTeacherCourseEnrollmentsRoute(courseId: string) {
       setActionMessage("Enrollment request updated.");
       await loadEnrollmentRoute();
     } catch (nextError) {
-      setActionMessage(normalizeRouteError(nextError).message);
+      setActionMessage(normalizeEnrollmentRouteError(nextError).message);
     } finally {
       setActionState("idle");
     }
   }
 
   async function removeLearner(learner: TeacherCourseRosterLearner) {
-    const token = readStoredSessionToken();
+    const token = readBrowserSessionToken();
     if (!token) {
       setActionMessage("Sign in again before changing roster access.");
       return;
@@ -150,7 +149,7 @@ export function useTeacherCourseEnrollmentsRoute(courseId: string) {
       setActionMessage("Learner removed from the course roster.");
       await loadEnrollmentRoute();
     } catch (nextError) {
-      setActionMessage(normalizeRouteError(nextError).message);
+      setActionMessage(normalizeEnrollmentRouteError(nextError).message);
     } finally {
       setActionState("idle");
     }

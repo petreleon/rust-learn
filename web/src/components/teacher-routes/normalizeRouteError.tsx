@@ -1,21 +1,12 @@
 "use client";
 
-import { SessionRequestError } from "@/lib/session";
-import { TeacherRequestError } from "@/lib/teacher";
+import { normalizeRouteError as normalizeSharedRouteError } from "@/shared/route-state/normalizeRouteError";
 import { type RouteError } from "./RouteError";
 
 export function normalizeRouteError(error: unknown): RouteError {
-  if (error instanceof TeacherRequestError || error instanceof SessionRequestError) {
-    return {
-      code: error.code,
-      message: error.message,
-      status: error.status,
-    };
-  }
-
-  return {
+  return normalizeSharedRouteError(error, {
     code: "unexpected_error",
     message: "The teaching workspace request failed before RustLearn could finish loading.",
     status: 0,
-  };
+  });
 }

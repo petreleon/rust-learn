@@ -1,8 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { clearStoredSessionToken } from "@/lib/session/clearStoredSessionToken";
-import { readStoredSessionToken } from "@/lib/session/readStoredSessionToken";
+import { clearBrowserSession, readBrowserSessionToken } from "@/shared/session/browserSession";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
 import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDashboardItem";
 import { type TeacherCourseEnrollmentWorkspaceResponse } from "@/lib/teacher/TeacherCourseEnrollmentWorkspaceResponse";
@@ -17,8 +16,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 
-vi.mock("@/lib/session/readStoredSessionToken", () => ({ readStoredSessionToken: vi.fn() }));
-vi.mock("@/lib/session/clearStoredSessionToken", () => ({ clearStoredSessionToken: vi.fn() }));
+vi.mock("@/shared/session/browserSession", () => ({
+  clearBrowserSession: vi.fn(),
+  readBrowserSessionToken: vi.fn(),
+}));
 vi.mock("../api/enrollmentApi", () => ({
   decideEnrollmentRequest: vi.fn(),
   loadTeacherCourseEnrollments: vi.fn(),
@@ -30,7 +31,7 @@ const emptyScope = { capabilities: [], delegated_permissions: [], direct_permiss
 describe("TeacherCourseEnrollmentsRoute", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(readStoredSessionToken).mockReturnValue("teacher-token");
+    vi.mocked(readBrowserSessionToken).mockReturnValue("teacher-token");
     vi.mocked(loadTeacherCourseEnrollments).mockResolvedValue({
       session: sessionFixture(),
       workspace: workspaceFixture(),
@@ -43,7 +44,7 @@ describe("TeacherCourseEnrollmentsRoute", () => {
   });
 
   it("shows the signed-out state without loading the workflow", async () => {
-    vi.mocked(readStoredSessionToken).mockReturnValue(null);
+    vi.mocked(readBrowserSessionToken).mockReturnValue(null);
 
     render(<TeacherCourseEnrollmentsRoute courseId="9" />);
 
@@ -88,7 +89,7 @@ describe("TeacherCourseEnrollmentsRoute", () => {
     await screen.findByRole("heading", { name: "Enrollment queue" });
     await user.click(screen.getAllByRole("button", { name: "Sign out" })[0]);
 
-    expect(clearStoredSessionToken).toHaveBeenCalled();
+    expect(clearBrowserSession).toHaveBeenCalled();
     expect(await screen.findByRole("heading", { name: "Sign in required" })).toBeVisible();
   });
 });

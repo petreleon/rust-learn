@@ -1,2 +1,2 @@
 "use client";
-export type LoadState = "idle" | "loading" | "success" | "error";
+export type { LoadState } from "@/shared/route-state/LoadState";
