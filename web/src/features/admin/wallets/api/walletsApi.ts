@@ -7,7 +7,12 @@ import { type PlatformReportSummary } from "@/lib/admin/PlatformReportSummary";
 import { type PlatformWalletReconciliation } from "@/lib/admin/PlatformWalletReconciliation";
 import { fetchCurrentSession } from "@/lib/session/fetchCurrentSession";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
-import { type WalletTokenTax, type WalletTokenTaxOperation, type WalletTokenTaxSettings } from "../model/WalletTokenTax";
+import {
+  type WalletTokenTax,
+  type WalletTokenTaxAuditEvent,
+  type WalletTokenTaxOperation,
+  type WalletTokenTaxSettings,
+} from "../model/WalletTokenTax";
 
 export function loadAdminWalletSession({ token }: { token: string }): Promise<CurrentSession> {
   return fetchCurrentSession({ token });
@@ -31,6 +36,10 @@ export function downloadWalletCreditsCsv({ token }: { token: string }): Promise<
 
 export function loadWalletTokenTaxes({ token }: { token: string }): Promise<WalletTokenTaxSettings> {
   return adminJsonRequest({ apiRoot: "/api", path: "/wallets/token-taxes", token });
+}
+
+export function loadWalletTokenTaxAudit({ token }: { token: string }): Promise<WalletTokenTaxAuditEvent[]> {
+  return adminJsonRequest({ apiRoot: "/api", path: "/wallets/token-taxes/audit", token });
 }
 
 export function saveWalletTokenTax({

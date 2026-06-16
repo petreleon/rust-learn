@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import { readBrowserSessionToken } from "@/shared/session/browserSession";
-import { loadWalletTokenTaxes, saveWalletTokenTax } from "../api/walletsApi";
+import { loadWalletTokenTaxAudit, loadWalletTokenTaxes, saveWalletTokenTax } from "../api/walletsApi";
 import {
+  type WalletTokenTaxAuditEvent,
   type WalletTokenTaxDraft,
   type WalletTokenTaxOperation,
   type WalletTokenTaxSettings,
@@ -24,6 +25,7 @@ export function useWalletTokenTaxes({
   canSetRetire: boolean;
 }) {
   const canManage = canSetDeposit || canSetRetire;
+  const [auditEvents, setAuditEvents] = useState<WalletTokenTaxAuditEvent[]>([]);
   const [draft, setDraft] = useState<WalletTokenTaxDraft>(emptyDraft);
   const [error, setError] = useState<RouteError | null>(null);
   const [savingOperation, setSavingOperation] = useState<WalletTokenTaxOperation | null>(null);
@@ -37,14 +39,19 @@ export function useWalletTokenTaxes({
     setState("loading");
     setError(null);
     try {
-      const nextSettings = await loadWalletTokenTaxes({ token });
+      const [nextSettings, nextAuditEvents] = await Promise.all([
+        loadWalletTokenTaxes({ token }),
+        loadWalletTokenTaxAudit({ token }),
+      ]);
       setSettings(nextSettings);
+      setAuditEvents(nextAuditEvents);
       setDraft({
         deposit: nextSettings.deposit.tax_amount,
         retire: nextSettings.retire.tax_amount,
       });
       setState("success");
     } catch (nextError) {
+      setAuditEvents([]);
       setSettings(null);
       setError(normalizeAdminWalletRouteError(nextError, "Wallet token taxes could not be loaded."));
       setState("error");
@@ -82,6 +89,7 @@ export function useWalletTokenTaxes({
         deposit: operation === "deposit" ? nextTax : current?.deposit ?? fallbackSettings.deposit,
         retire: operation === "retire" ? nextTax : current?.retire ?? fallbackSettings.retire,
       }));
+      setAuditEvents(await loadWalletTokenTaxAudit({ token }));
       setDraft((current) => ({ ...current, [operation]: nextTax.tax_amount }));
       setState("success");
     } catch (nextError) {
@@ -95,6 +103,7 @@ export function useWalletTokenTaxes({
     changeTokenTax,
     loadTokenTaxes,
     saveTokenTax,
+    tokenTaxAuditEvents: auditEvents,
     tokenTaxDraft: draft,
     tokenTaxError: error,
     tokenTaxSavingOperation: savingOperation,

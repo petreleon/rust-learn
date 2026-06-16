@@ -4,8 +4,8 @@ use diesel_async::AsyncPgConnection;
 use futures::future::{BoxFuture, FutureExt};
 
 use crate::application::wallet::manage_token_tax::{
-    self, WalletTokenTaxError, WalletTokenTaxOperation, WalletTokenTaxSettings,
-    WalletTokenTaxUseCase, WalletTokenTaxView,
+    self, WalletTokenTaxAuditEventView, WalletTokenTaxError, WalletTokenTaxOperation,
+    WalletTokenTaxSettings, WalletTokenTaxUseCase, WalletTokenTaxView,
 };
 use crate::infra::postgres::wallet::wallet_token_tax_store::PostgresWalletTokenTaxStore;
 use crate::infra::postgres::DbPool;
@@ -24,11 +24,24 @@ impl PostgresWalletTokenTaxUseCase {
 impl WalletTokenTaxUseCase for PostgresWalletTokenTaxUseCase {
     fn list_token_taxes(
         &self,
+        actor_user_id: i32,
     ) -> BoxFuture<'_, Result<WalletTokenTaxSettings, WalletTokenTaxError>> {
         async move {
             let mut conn = self.connection().await?;
             let mut store = PostgresWalletTokenTaxStore::new(&mut conn);
-            manage_token_tax::list_token_taxes(&mut store).await
+            manage_token_tax::list_token_taxes(&mut store, actor_user_id).await
+        }
+        .boxed()
+    }
+
+    fn list_token_tax_audit(
+        &self,
+        actor_user_id: i32,
+    ) -> BoxFuture<'_, Result<Vec<WalletTokenTaxAuditEventView>, WalletTokenTaxError>> {
+        async move {
+            let mut conn = self.connection().await?;
+            let mut store = PostgresWalletTokenTaxStore::new(&mut conn);
+            manage_token_tax::list_token_tax_audit(&mut store, actor_user_id).await
         }
         .boxed()
     }

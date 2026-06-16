@@ -1,17 +1,27 @@
 use bigdecimal::BigDecimal;
 
 use crate::application::wallet::manage_token_tax::{
-    WalletTokenTaxError, WalletTokenTaxOperation, WalletTokenTaxSettings, WalletTokenTaxStore,
-    WalletTokenTaxView,
+    WalletTokenTaxAuditEventView, WalletTokenTaxError, WalletTokenTaxOperation,
+    WalletTokenTaxSettings, WalletTokenTaxStore, WalletTokenTaxView,
 };
 
 pub async fn list_token_taxes(
     store: &mut impl WalletTokenTaxStore,
+    actor_user_id: i32,
 ) -> Result<WalletTokenTaxSettings, WalletTokenTaxError> {
+    ensure_can_view_token_tax_configuration(store, actor_user_id).await?;
     let deposit = load_token_tax(store, WalletTokenTaxOperation::Deposit).await?;
     let retire = load_token_tax(store, WalletTokenTaxOperation::Retire).await?;
 
     Ok(WalletTokenTaxSettings { deposit, retire })
+}
+
+pub async fn list_token_tax_audit(
+    store: &mut impl WalletTokenTaxStore,
+    actor_user_id: i32,
+) -> Result<Vec<WalletTokenTaxAuditEventView>, WalletTokenTaxError> {
+    ensure_can_view_token_tax_configuration(store, actor_user_id).await?;
+    store.list_token_tax_audit().await
 }
 
 pub async fn set_token_tax(
@@ -25,7 +35,11 @@ pub async fn set_token_tax(
     }
 
     validate_non_negative_amount(&amount, "tax_amount")?;
-    store.save_token_tax(operation, amount.clone()).await?;
+    let previous_amount = store.load_token_tax(operation).await?;
+    validate_non_negative_amount(&previous_amount, "stored tax amount")?;
+    store
+        .save_token_tax(actor_user_id, operation, previous_amount, amount.clone())
+        .await?;
     Ok(token_tax_view(operation, amount))
 }
 
@@ -50,6 +64,20 @@ fn validate_non_negative_amount(
     }
 
     Ok(())
+}
+
+async fn ensure_can_view_token_tax_configuration(
+    store: &mut impl WalletTokenTaxStore,
+    actor_user_id: i32,
+) -> Result<(), WalletTokenTaxError> {
+    if store
+        .can_view_token_tax_configuration(actor_user_id)
+        .await?
+    {
+        Ok(())
+    } else {
+        Err(WalletTokenTaxError::PermissionDenied)
+    }
 }
 
 fn token_tax_view(operation: WalletTokenTaxOperation, amount: BigDecimal) -> WalletTokenTaxView {

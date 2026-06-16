@@ -92,3 +92,16 @@ export function walletTokenTaxes() {
     },
   };
 }
+
+export function walletTokenTaxAudit() {
+  return [
+    {
+      actor_user_id: 1,
+      created_at: "2026-06-16T10:00:00Z",
+      id: 55,
+      new_tax_amount: "2",
+      operation: "deposit",
+      previous_tax_amount: "1",
+    },
+  ];
+}

@@ -681,6 +681,18 @@ diesel::table! {
 }
 
 diesel::table! {
+    wallet_token_tax_audit_events (id) {
+        id -> Int8,
+        actor_user_id -> Nullable<Int4>,
+        #[max_length = 16]
+        operation -> Varchar,
+        previous_tax_amount -> Numeric,
+        new_tax_amount -> Numeric,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     wallets (id) {
         id -> Int4,
         user_id -> Nullable<Int4>,
@@ -769,6 +781,7 @@ diesel::joinable!(wallet_token_deposit_intents -> external_transactions (externa
 diesel::joinable!(wallet_token_deposit_intents -> transactions (transaction_id));
 diesel::joinable!(wallet_token_deposit_intents -> users (user_id));
 diesel::joinable!(wallet_token_deposit_intents -> wallets (wallet_id));
+diesel::joinable!(wallet_token_tax_audit_events -> users (actor_user_id));
 diesel::joinable!(wallets -> organizations (organization_id));
 diesel::joinable!(wallets -> users (user_id));
 
@@ -828,5 +841,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     user_role_platform,
     users,
     wallet_token_deposit_intents,
+    wallet_token_tax_audit_events,
     wallets,
 );

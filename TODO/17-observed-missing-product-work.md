@@ -721,13 +721,14 @@ Current evidence:
   policy" or "Reward policies".
 - Fraud blocks can target a `reward_policy_id`, but the UI gives operators no
   way to search/select a reward policy by name/context before blocking it.
-- Backend APIs exist for token-tax configuration:
-  `/api/wallets/token-taxes`, `/api/wallets/token-taxes/deposit`, and
-  `/api/wallets/token-taxes/retire`. There is no visible admin configuration UI
-  for deposit/retirement tax values or effective policy history.
+- Backend APIs exist for token-tax configuration and persisted tax history:
+  `/api/wallets/token-taxes`, `/api/wallets/token-taxes/audit`,
+  `/api/wallets/token-taxes/deposit`, and `/api/wallets/token-taxes/retire`.
 - `/admin/wallets` now includes token-tax configuration for platform admins
   with `SET_DEPOSIT_TAX` or `SET_RETIRE_TAX`; tax-only admins can update
-  configured tax values without loading wallet audit data.
+  configured tax values without loading wallet audit data. The same route shows
+  effective tax history and downstream wallet impact for deposit/retirement
+  flows.
 - `/admin/users` now exposes a platform user-management route. Admins with
   `VIEW_USER` can search users by name/email, inspect profile verification,
   platform roles, and platform permissions; admins with
@@ -750,8 +751,8 @@ Needed:
   create, list, inspect, activate/deactivate, validate coverage, and audit.
 - Add reward-policy picker/search to fraud-block creation and reward
   operations wherever a numeric policy id is currently required.
-- Add token-tax audit trail, effective history, and clear user-facing impact on
-  deposit/retirement flows.
+- Add deeper token-tax reporting if operators need filters beyond the latest
+  effective history.
 
 Checks:
 
@@ -770,7 +771,7 @@ Checks:
   eligible, or explains which policy is missing.
 - [x] Deposit and retirement tax configuration can be viewed and changed only by
   authorized admins.
-- [ ] Token-tax audit rows, effective history, and visible downstream wallet
+- [x] Token-tax audit rows, effective history, and visible downstream wallet
   impact are surfaced.
 - [ ] Browser/page tests cover user-role management, course lifecycle changes,
   reward policy management, policy-backed fraud blocks, and token-tax updates.

@@ -16,6 +16,10 @@ pub(super) fn configure_wallet_routes(cfg: &mut web::ServiceConfig) {
             web::resource("/token-taxes").route(web::get().to(token_tax::list_wallet_token_taxes)),
         )
         .service(
+            web::resource("/token-taxes/audit")
+                .route(web::get().to(token_tax::list_wallet_token_tax_audit)),
+        )
+        .service(
             web::resource("/token-taxes/deposit").route(web::put().to(token_tax::set_deposit_tax)),
         )
         .service(

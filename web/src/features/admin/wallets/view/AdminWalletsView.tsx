@@ -12,6 +12,7 @@ import { StatusPill } from "@/features/admin/shared/route-kit/StatusPill";
 import { WalletCreditsCsvPanel } from "../components/WalletCreditsCsvPanel";
 import { WalletReconciliationPanel } from "../components/WalletReconciliationPanel";
 import { WalletSummaryPanel } from "../components/WalletSummaryPanel";
+import { WalletTokenTaxAuditPanel } from "../components/WalletTokenTaxAuditPanel";
 import { WalletTokenTaxPanel } from "../components/WalletTokenTaxPanel";
 import { type AdminWalletsRouteController } from "../route/useAdminWalletsRoute";
 
@@ -56,18 +57,26 @@ export function AdminWalletsView({ route }: { route: AdminWalletsRouteController
       {route.session && route.allowed && (route.canView || route.canManageTaxes) ? (
         <div className={styles.stack}>
           {route.canManageTaxes ? (
-            <WalletTokenTaxPanel
-              canSetDeposit={route.canSetDeposit}
-              canSetRetire={route.canSetRetire}
-              draft={route.tokenTaxDraft}
-              error={route.tokenTaxError}
-              savingOperation={route.tokenTaxSavingOperation}
-              settings={route.tokenTaxSettings}
-              state={route.tokenTaxState}
-              onChange={route.changeTokenTax}
-              onRetry={route.loadTokenTaxes}
-              onSave={route.saveTokenTax}
-            />
+            <>
+              <WalletTokenTaxPanel
+                canSetDeposit={route.canSetDeposit}
+                canSetRetire={route.canSetRetire}
+                draft={route.tokenTaxDraft}
+                error={route.tokenTaxError}
+                savingOperation={route.tokenTaxSavingOperation}
+                settings={route.tokenTaxSettings}
+                state={route.tokenTaxState}
+                onChange={route.changeTokenTax}
+                onRetry={route.loadTokenTaxes}
+                onSave={route.saveTokenTax}
+              />
+              {route.tokenTaxSettings ? (
+                <WalletTokenTaxAuditPanel
+                  events={route.tokenTaxAuditEvents}
+                  settings={route.tokenTaxSettings}
+                />
+              ) : null}
+            </>
           ) : null}
           {route.canView ? (
             <>

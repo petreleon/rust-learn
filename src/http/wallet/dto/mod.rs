@@ -11,6 +11,7 @@ pub use deposit_intent::{WalletDepositIntentRequestDto, WalletDepositIntentRespo
 pub use link::WalletLinkResponse;
 pub use retirement::{WalletRetirementRequestDto, WalletRetirementResponse};
 pub use token_tax::{
-    SetWalletTokenTaxRequest, WalletTokenTaxResponse, WalletTokenTaxSettingsResponse,
+    SetWalletTokenTaxRequest, WalletTokenTaxAuditEventResponse, WalletTokenTaxResponse,
+    WalletTokenTaxSettingsResponse,
 };
 pub use wallet::WalletResponse;

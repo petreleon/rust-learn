@@ -33,5 +33,6 @@ pub mod wallet_retirement_ledger;
 pub mod wallet_retirement_records;
 pub mod wallet_retirement_store;
 pub mod wallet_retirement_use_case;
+pub mod wallet_token_tax_audit_records;
 pub mod wallet_token_tax_store;
 pub mod wallet_token_tax_use_case;

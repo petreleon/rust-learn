@@ -8,11 +8,18 @@ import {
   loadAdminWalletReconciliation,
   loadAdminWalletSession,
   loadAdminWalletSummary,
+  loadWalletTokenTaxAudit,
   loadWalletTokenTaxes,
   saveWalletTokenTax,
 } from "../api/walletsApi";
 import { startWalletCreditsCsvDownload } from "../route/startWalletCreditsCsvDownload";
-import { adminWalletSession, walletReconciliation, walletSummary, walletTokenTaxes } from "./adminWalletsTestFixtures";
+import {
+  adminWalletSession,
+  walletReconciliation,
+  walletSummary,
+  walletTokenTaxAudit,
+  walletTokenTaxes,
+} from "./adminWalletsTestFixtures";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/admin/wallets",
@@ -29,6 +36,7 @@ vi.mock("../api/walletsApi", () => ({
   loadAdminWalletReconciliation: vi.fn(),
   loadAdminWalletSession: vi.fn(),
   loadAdminWalletSummary: vi.fn(),
+  loadWalletTokenTaxAudit: vi.fn(),
   loadWalletTokenTaxes: vi.fn(),
   saveWalletTokenTax: vi.fn(),
 }));
@@ -50,6 +58,7 @@ describe("AdminWalletsRoute", () => {
     );
     vi.mocked(loadAdminWalletSummary).mockResolvedValue(walletSummary());
     vi.mocked(loadAdminWalletReconciliation).mockResolvedValue(walletReconciliation());
+    vi.mocked(loadWalletTokenTaxAudit).mockResolvedValue(walletTokenTaxAudit());
     vi.mocked(loadWalletTokenTaxes).mockResolvedValue(walletTokenTaxes());
     vi.mocked(saveWalletTokenTax).mockResolvedValue({
       operation: "deposit",
@@ -70,6 +79,7 @@ describe("AdminWalletsRoute", () => {
     expect(loadAdminWalletSession).not.toHaveBeenCalled();
     expect(loadAdminWalletSummary).not.toHaveBeenCalled();
     expect(loadAdminWalletReconciliation).not.toHaveBeenCalled();
+    expect(loadWalletTokenTaxAudit).not.toHaveBeenCalled();
     expect(loadWalletTokenTaxes).not.toHaveBeenCalled();
   });
 
@@ -84,6 +94,7 @@ describe("AdminWalletsRoute", () => {
     expect(loadAdminWalletSession).toHaveBeenCalledWith({ token: "admin-token" });
     expect(loadAdminWalletSummary).toHaveBeenCalledWith({ token: "admin-token" });
     expect(loadAdminWalletReconciliation).toHaveBeenCalledWith({ token: "admin-token" });
+    expect(loadWalletTokenTaxAudit).not.toHaveBeenCalled();
     expect(loadWalletTokenTaxes).not.toHaveBeenCalled();
   });
 
@@ -110,6 +121,10 @@ describe("AdminWalletsRoute", () => {
     render(<AdminWalletsRoute />);
 
     expect(await screen.findByText("Token tax configuration")).toBeVisible();
+    expect(await screen.findByText("Token tax history")).toBeVisible();
+    expect(await screen.findByText("Amount - 2")).toBeVisible();
+    expect(await screen.findByText("1 to 2")).toBeVisible();
+    expect(loadWalletTokenTaxAudit).toHaveBeenCalledWith({ token: "admin-token" });
     expect(loadWalletTokenTaxes).toHaveBeenCalledWith({ token: "admin-token" });
     const depositInput = await screen.findByLabelText("Deposit tax");
     await user.clear(depositInput);
@@ -123,6 +138,7 @@ describe("AdminWalletsRoute", () => {
         token: "admin-token",
       }),
     );
+    await waitFor(() => expect(loadWalletTokenTaxAudit).toHaveBeenCalledTimes(2));
   });
 
   it("shows token tax controls for tax-only admins without loading audit data", async () => {
@@ -133,6 +149,7 @@ describe("AdminWalletsRoute", () => {
     expect(await screen.findByText("Token tax configuration")).toBeVisible();
     expect(await screen.findByText("Requires SET_RETIRE_TAX.")).toBeVisible();
     expect(loadWalletTokenTaxes).toHaveBeenCalledWith({ token: "admin-token" });
+    expect(loadWalletTokenTaxAudit).toHaveBeenCalledWith({ token: "admin-token" });
     expect(loadAdminWalletSummary).not.toHaveBeenCalled();
     expect(loadAdminWalletReconciliation).not.toHaveBeenCalled();
     expect(screen.queryByText("Wallet audit unavailable")).not.toBeInTheDocument();
@@ -146,6 +163,7 @@ describe("AdminWalletsRoute", () => {
     expect(await screen.findByText("Wallet audit unavailable")).toBeVisible();
     expect(loadAdminWalletSummary).not.toHaveBeenCalled();
     expect(loadAdminWalletReconciliation).not.toHaveBeenCalled();
+    expect(loadWalletTokenTaxAudit).not.toHaveBeenCalled();
     expect(loadWalletTokenTaxes).not.toHaveBeenCalled();
   });
 });

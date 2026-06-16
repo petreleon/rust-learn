@@ -8,17 +8,34 @@ use crate::application::wallet::manage_token_tax::{
 use crate::http::errors::ApiError;
 use crate::http::extractors::auth_user::AuthUser;
 use crate::http::wallet::dto::{
-    SetWalletTokenTaxRequest, WalletTokenTaxResponse, WalletTokenTaxSettingsResponse,
+    SetWalletTokenTaxRequest, WalletTokenTaxAuditEventResponse, WalletTokenTaxResponse,
+    WalletTokenTaxSettingsResponse,
 };
 use crate::http::wallet::errors::wallet_token_tax_error;
 
 pub async fn list_wallet_token_taxes(
-    _requester: AuthUser,
+    requester: AuthUser,
     tax: web::Data<Arc<dyn WalletTokenTaxUseCase>>,
 ) -> Result<web::Json<WalletTokenTaxSettingsResponse>, ApiError> {
-    tax.list_token_taxes()
+    tax.list_token_taxes(requester.user_id())
         .await
         .map(WalletTokenTaxSettingsResponse::from)
+        .map(web::Json)
+        .map_err(wallet_token_tax_error)
+}
+
+pub async fn list_wallet_token_tax_audit(
+    requester: AuthUser,
+    tax: web::Data<Arc<dyn WalletTokenTaxUseCase>>,
+) -> Result<web::Json<Vec<WalletTokenTaxAuditEventResponse>>, ApiError> {
+    tax.list_token_tax_audit(requester.user_id())
+        .await
+        .map(|events| {
+            events
+                .into_iter()
+                .map(WalletTokenTaxAuditEventResponse::from)
+                .collect()
+        })
         .map(web::Json)
         .map_err(wallet_token_tax_error)
 }

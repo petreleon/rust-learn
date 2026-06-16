@@ -11,8 +11,8 @@ mod handler_tests;
 pub(crate) mod test_support;
 
 pub use error::WalletTokenTaxError;
-pub use handler::{list_token_taxes, set_token_tax};
+pub use handler::{list_token_tax_audit, list_token_taxes, set_token_tax};
 pub use operation::WalletTokenTaxOperation;
-pub use output::{WalletTokenTaxSettings, WalletTokenTaxView};
+pub use output::{WalletTokenTaxAuditEventView, WalletTokenTaxSettings, WalletTokenTaxView};
 pub use service::WalletTokenTaxUseCase;
 pub use store::WalletTokenTaxStore;
