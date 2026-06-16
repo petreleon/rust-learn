@@ -1,7 +1,7 @@
 "use client";
 
 import { type TeacherCourseStudentProgressItem } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { DetailLine } from "./DetailLine";
 import { Metric } from "./Metric";
 import { formatDateTime } from "./formatDateTime";

@@ -2,7 +2,7 @@
 
 import { Clock3 } from "lucide-react";
 import { type TeacherApplicationAuditEvent } from "@/lib/teacher";
-import styles from "@/app/teach/apply/page.module.css";
+import styles from "@/features/teacher/application/page.module.css";
 import { formatDate } from "../model/formatDate";
 import { statusLabel } from "../model/statusLabel";
 

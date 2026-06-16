@@ -5,7 +5,7 @@ import { type OrganizationMemberList } from "@/lib/organization/OrganizationMemb
 import { type OrganizationWorkspaceItem } from "@/lib/organization/OrganizationWorkspaceItem";
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { MemberErrorState } from "@/components/organization-routes/MemberErrorState";
 import { SummaryCard } from "@/components/organization-routes/SummaryCard";
 import { type MemberActionState } from "../model/MemberActionState";

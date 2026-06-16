@@ -5,7 +5,7 @@ import { type PlatformTeacherApplicationItem } from "@/lib/admin/PlatformTeacher
 import { type PlatformTeacherApplicationsResponse } from "@/lib/admin/PlatformTeacherApplicationsResponse";
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { EmptyState } from "@/components/admin-routes/EmptyState";
 import { formatDate } from "@/components/admin-routes/formatDate";
 import { formatUnderscoreLabel } from "@/components/admin-routes/formatUnderscoreLabel";

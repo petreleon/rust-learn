@@ -2,7 +2,7 @@
 
 import { ExternalLink } from "lucide-react";
 import { type OrganizationWalletAudit, type OrganizationWalletRewardRecordAudit } from "@/lib/organization";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { Metric } from "./Metric";
 import { StatusPill } from "./StatusPill";
 import { formatDateTime } from "./formatDateTime";

@@ -1,7 +1,7 @@
 "use client";
 
 import { type OrganizationSessionScope } from "@/lib/session/OrganizationSessionScope";
-import styles from "@/app/session/page.module.css";
+import styles from "@/features/session/workspace/page.module.css";
 import { ScopeSummary } from "./ScopeSummary";
 
 export function OrganizationCard({ organization }: { organization: OrganizationSessionScope }) {

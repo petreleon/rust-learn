@@ -6,7 +6,7 @@ import { formatDateTime } from "@/components/organization-routes/formatDateTime"
 import { formatTokenAmount } from "@/components/organization-routes/formatTokenAmount";
 import { formatUnderscoreLabel } from "@/components/organization-routes/formatUnderscoreLabel";
 import { shortHash } from "@/components/organization-routes/shortHash";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function WalletTransactionPanels({ audit }: { audit: OrganizationWalletAudit }) {
   return (

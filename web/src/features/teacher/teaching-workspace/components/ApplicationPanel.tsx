@@ -4,7 +4,7 @@ import { AlertCircle, CheckCircle2, Clock3, FileText, Send } from "lucide-react"
 import Link from "next/link";
 import { type ReactNode } from "react";
 import { type TeacherApplication } from "@/lib/teacher/TeacherApplication";
-import styles from "@/components/teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 
 type ApplicationPanelConfig = {
   action: string;

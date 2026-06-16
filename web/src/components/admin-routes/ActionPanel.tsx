@@ -3,7 +3,7 @@
 import { ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { platformCapabilityEnabled, type PlatformAdminWorkspace, type PlatformCapabilityKey, type PlatformFraudDashboard, type PlatformRewardDashboard, type PlatformSystemStatus } from "@/lib/admin";
-import styles from "../admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { StatusPill } from "./StatusPill";
 import { actionIcons } from "./actionIcons";
 import { capabilityLabel } from "./capabilityLabel";

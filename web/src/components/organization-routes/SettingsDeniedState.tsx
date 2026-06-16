@@ -2,7 +2,7 @@
 
 import { Settings, ShieldCheck } from "lucide-react";
 import { missingOrganizationPermissions, type OrganizationCapability } from "@/lib/organization";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function SettingsDeniedState({
   capability,

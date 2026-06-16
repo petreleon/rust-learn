@@ -1,6 +1,6 @@
 "use client";
 
-import styles from "@/app/session/page.module.css";
+import styles from "@/features/session/workspace/page.module.css";
 
 export function EmptyState({ title, detail }: { title: string; detail: string }) {
   return (

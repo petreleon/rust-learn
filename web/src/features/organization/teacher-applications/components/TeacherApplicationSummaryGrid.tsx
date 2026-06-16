@@ -3,7 +3,7 @@
 import { CheckCircle2, FileText, Search, UserPlus } from "lucide-react";
 import { type OrganizationTeacherApplicationList } from "@/lib/organization/OrganizationTeacherApplicationList";
 import { SummaryCard } from "@/components/organization-routes/SummaryCard";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function TeacherApplicationSummaryGrid({
   applications,

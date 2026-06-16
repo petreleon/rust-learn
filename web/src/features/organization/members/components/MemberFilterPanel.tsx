@@ -1,7 +1,7 @@
 "use client";
 
 import { RefreshCw, Search } from "lucide-react";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { organizationMemberPermissionOptions } from "@/components/organization-routes/organizationMemberPermissionOptions";
 import { organizationMemberRoleOptions } from "@/components/organization-routes/organizationMemberRoleOptions";
 

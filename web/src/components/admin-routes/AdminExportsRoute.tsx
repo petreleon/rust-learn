@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { hasPlatformAdminAccess } from "@/lib/access";
 import { buildPlatformAdminWorkspace, downloadPlatformCsv, type PlatformCsvReport } from "@/lib/admin";
 import { ProductShell, type ShellNotice } from "../product-shell";
-import styles from "../admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { AdminDeniedState } from "./AdminDeniedState";
 import { GatedPanel } from "./GatedPanel";
 import { LoadingState } from "./LoadingState";

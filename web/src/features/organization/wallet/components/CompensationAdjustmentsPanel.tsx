@@ -5,7 +5,7 @@ import { Metric } from "@/components/organization-routes/Metric";
 import { StatusPill } from "@/components/organization-routes/StatusPill";
 import { formatDateTime } from "@/components/organization-routes/formatDateTime";
 import { formatTokenAmount } from "@/components/organization-routes/formatTokenAmount";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function CompensationAdjustmentsPanel({
   records,

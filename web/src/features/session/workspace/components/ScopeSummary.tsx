@@ -1,7 +1,7 @@
 "use client";
 
 import { type PlatformSessionScope } from "@/lib/session/PlatformSessionScope";
-import styles from "@/app/session/page.module.css";
+import styles from "@/features/session/workspace/page.module.css";
 import { formatAccessLabel, pluralize } from "../model/formatAccessLabel";
 
 export function ScopeSummary({ title, scope }: { title: string; scope: PlatformSessionScope }) {

@@ -2,7 +2,7 @@
 
 import { Landmark } from "lucide-react";
 import { ProductShell, type ShellNotice } from "@/components/product-shell";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { AdminDeniedState } from "@/components/admin-routes/AdminDeniedState";
 import { GatedPanel } from "@/components/admin-routes/GatedPanel";
 import { LoadingState } from "@/components/admin-routes/LoadingState";

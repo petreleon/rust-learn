@@ -2,7 +2,7 @@
 
 import { Pencil, Trash2, Video } from "lucide-react";
 import { type TeacherCourseWorkspaceContent } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type ActionState } from "./ActionState";
 import { isEditableTextContent } from "./isEditableTextContent";
 import { statusLabel } from "./statusLabel";

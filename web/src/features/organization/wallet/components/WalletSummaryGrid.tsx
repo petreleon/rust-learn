@@ -4,7 +4,7 @@ import { AlertTriangle, CreditCard, FileText, Trophy } from "lucide-react";
 import { type OrganizationWalletAudit } from "@/lib/organization/OrganizationWalletAudit";
 import { SummaryCard } from "@/components/organization-routes/SummaryCard";
 import { formatTokenAmount } from "@/components/organization-routes/formatTokenAmount";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function WalletSummaryGrid({
   audit,

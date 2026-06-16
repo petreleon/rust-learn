@@ -3,7 +3,7 @@
 import { AlertCircle, ArrowLeft, Clock3, FileText, Trophy, Users } from "lucide-react";
 import Link from "next/link";
 import { type TeacherCourseStudentsResponse } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { StatePanel } from "./StatePanel";
 import { StudentProgressCard } from "./StudentProgressCard";
 import { SummaryCard } from "./SummaryCard";

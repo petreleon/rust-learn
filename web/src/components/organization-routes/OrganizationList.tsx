@@ -3,7 +3,7 @@
 import { Building2, Filter } from "lucide-react";
 import Link from "next/link";
 import { type OrganizationWorkspaceItem } from "@/lib/organization";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { CapabilityRow } from "./CapabilityRow";
 import { Metric } from "./Metric";
 import { StatusPill } from "./StatusPill";

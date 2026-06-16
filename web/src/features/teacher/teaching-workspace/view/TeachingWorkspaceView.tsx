@@ -6,7 +6,7 @@ import { type FormEvent } from "react";
 import { ProductShell } from "@/components/product-shell";
 import { StatePanel } from "@/components/teacher-routes/StatePanel";
 import { StatusLine } from "@/components/teacher-routes/StatusLine";
-import styles from "@/components/teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { CoursesView } from "../components/CoursesView";
 import { DashboardView } from "../components/DashboardView";
 import { type TeachingWorkspaceRouteController } from "../route/useTeachingWorkspaceRoute";

@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import styles from "../admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 
 export function PanelLoading({ title }: { title: string }) {
   return (

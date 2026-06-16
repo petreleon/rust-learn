@@ -1,6 +1,6 @@
 "use client";
 
-import styles from "../admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { formatNumber } from "./formatNumber";
 
 export function MetricCard({

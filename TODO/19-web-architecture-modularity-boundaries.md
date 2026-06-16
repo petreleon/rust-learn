@@ -198,6 +198,13 @@ Progress:
   route export.
 - [x] Current strict architecture scan remains clean after the auth and session
   entry migration.
+- [x] Moved migrated route CSS ownership out of `app/` and legacy
+  `components/*-routes` roots into feature-owned style modules under
+  `features/{admin,organization,teacher}/shared`,
+  `features/session/{workspace,account-settings}`, and
+  `features/teacher/application`.
+- [x] Removed old feature imports of app-owned CSS and component route CSS
+  modules while preserving compatibility component rendering.
 
 Latest pilot proof:
 
@@ -207,6 +214,9 @@ Latest pilot proof:
 - Auth/session entry checkpoint:
   `make web-architecture-scan`, `cd web && npm run architecture:scan:strict`,
   `make web-lint`, `cd web && npm run test`, and `make web-build` pass.
+- Style-boundary checkpoint:
+  `make web-architecture-scan`, `cd web && npm run architecture:scan:strict`,
+  `make web-lint`, and `make web-build` pass.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/organization/members/__tests__/OrganizationMembersRoute.test.tsx`

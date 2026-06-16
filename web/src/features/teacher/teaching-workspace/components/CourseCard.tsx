@@ -6,7 +6,7 @@ import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDash
 import { DetailLine } from "@/components/teacher-routes/DetailLine";
 import { Metric } from "@/components/teacher-routes/Metric";
 import { PermissionChip } from "@/components/teacher-routes/PermissionChip";
-import styles from "@/components/teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { lifecycleTone, organizationNames, statusLabel } from "../model/courseDisplay";
 
 export function CourseCard({ course }: { course: TeacherCourseDashboardItem }) {

@@ -2,7 +2,7 @@
 
 import { CheckCircle2, Clock3, ShieldCheck, Users } from "lucide-react";
 import { type TeacherCourseEnrollmentWorkspaceResponse } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { SummaryCard } from "./SummaryCard";
 
 export function EnrollmentWorkspaceSummaryGrid({

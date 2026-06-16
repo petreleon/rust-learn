@@ -6,7 +6,7 @@ import { type OrganizationWorkspaceItem } from "@/lib/organization/OrganizationW
 import { type RouteError } from "@/shared/route-state/RouteError";
 import { MissingOrganizationWalletState } from "@/components/organization-routes/MissingOrganizationWalletState";
 import { WalletErrorState } from "@/components/organization-routes/WalletErrorState";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { type WalletLinkState } from "../model/WalletLinkState";
 import { type WalletLoadState } from "../model/WalletLoadState";
 import { walletAuditSummary } from "../model/walletAuditSummary";

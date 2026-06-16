@@ -4,7 +4,7 @@ import { type OrganizationWalletAudit } from "@/lib/organization/OrganizationWal
 import { Metric } from "@/components/organization-routes/Metric";
 import { StatusPill } from "@/components/organization-routes/StatusPill";
 import { formatTokenAmount } from "@/components/organization-routes/formatTokenAmount";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { walletAuditSummary } from "../model/walletAuditSummary";
 
 export function WalletBudgetCoveragePanels({ audit }: { audit: OrganizationWalletAudit }) {

@@ -4,7 +4,7 @@ import { WalletCards } from "lucide-react";
 import { type PlatformReportSummary } from "@/lib/admin/PlatformReportSummary";
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { PanelError } from "@/components/admin-routes/PanelError";
 import { PanelLoading } from "@/components/admin-routes/PanelLoading";
 import { SummaryCard } from "@/components/admin-routes/SummaryCard";

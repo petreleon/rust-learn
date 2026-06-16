@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import styles from "@/app/settings/account/page.module.css";
+import styles from "@/features/session/account-settings/page.module.css";
 
 export function MetricCard({
   icon,

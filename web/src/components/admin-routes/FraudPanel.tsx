@@ -2,7 +2,7 @@
 
 import { ShieldAlert } from "lucide-react";
 import { platformCapabilityEnabled, type PlatformAdminWorkspace, type PlatformFraudDashboard } from "@/lib/admin";
-import styles from "../admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { EmptyState } from "./EmptyState";
 import { GatedPanel } from "./GatedPanel";
 import { MetricCard } from "./MetricCard";

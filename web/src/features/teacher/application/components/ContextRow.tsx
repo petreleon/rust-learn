@@ -1,6 +1,6 @@
 "use client";
 
-import styles from "@/app/teach/apply/page.module.css";
+import styles from "@/features/teacher/application/page.module.css";
 
 export function ContextRow({ label, value }: { label: string; value: string }) {
   return (

@@ -3,7 +3,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { type OrganizationWorkspaceItem } from "@/lib/organization/OrganizationWorkspaceItem";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function SettingsHero({ organization }: { organization: OrganizationWorkspaceItem }) {
   const roles = organization.roles.join(", ") || "None";

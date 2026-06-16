@@ -1,7 +1,7 @@
 "use client";
 
 import { RefreshCw, Search } from "lucide-react";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { organizationCourseLifecycleOptions } from "@/components/organization-routes/organizationCourseLifecycleOptions";
 
 export type CourseRewardFilter = "all" | "rewarded" | "unrewarded";

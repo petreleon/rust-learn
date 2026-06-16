@@ -2,7 +2,7 @@
 
 import { AlertCircle, Loader2, LogIn } from "lucide-react";
 import Link from "next/link";
-import styles from "@/app/settings/account/page.module.css";
+import styles from "@/features/session/account-settings/page.module.css";
 import { type RouteError } from "../model/RouteError";
 
 export function LoadingAccount() {

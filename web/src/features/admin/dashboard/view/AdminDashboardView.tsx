@@ -1,7 +1,7 @@
 "use client";
 
 import { ProductShell, type ShellNotice } from "@/components/product-shell";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { ActionPanel } from "@/components/admin-routes/ActionPanel";
 import { AdminDeniedState } from "@/components/admin-routes/AdminDeniedState";
 import { ExportPanel } from "@/components/admin-routes/ExportPanel";

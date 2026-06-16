@@ -2,7 +2,7 @@
 
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function DeniedState() {
   return (

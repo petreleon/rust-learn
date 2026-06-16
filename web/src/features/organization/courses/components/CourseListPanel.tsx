@@ -1,7 +1,7 @@
 "use client";
 
 import { type OrganizationCourseList } from "@/lib/organization/OrganizationCourseList";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { OrganizationCourseCard } from "@/components/organization-routes/OrganizationCourseCard";
 import { StatusPill } from "@/components/organization-routes/StatusPill";
 import { organizationCourseCounts } from "./courseCounts";

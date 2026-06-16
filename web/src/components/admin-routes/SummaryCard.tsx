@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
-import styles from "../admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { formatNumber } from "./formatNumber";
 
 export function SummaryCard({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {

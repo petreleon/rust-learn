@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Download, Loader2 } from "lucide-react";
 import { type RouteError } from "@/shared/route-state/RouteError";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { type WalletCreditsCsvState } from "../model/WalletCreditsCsvState";
 
 export function WalletCreditsCsvPanel({

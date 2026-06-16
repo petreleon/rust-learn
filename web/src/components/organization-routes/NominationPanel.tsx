@@ -4,7 +4,7 @@ import { Send, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { nominateTeacherApplication, type OrganizationWorkspaceItem } from "@/lib/organization";
 import { readStoredSessionToken } from "@/lib/session";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { type SettingsSaveState } from "./SettingsSaveState";
 import { normalizeRouteError } from "./normalizeRouteError";
 

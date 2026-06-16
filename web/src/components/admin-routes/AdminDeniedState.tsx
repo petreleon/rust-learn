@@ -3,7 +3,7 @@
 import { ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { type PlatformAdminWorkspace } from "@/lib/admin";
-import styles from "../admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 
 export function AdminDeniedState({ workspace }: { workspace: PlatformAdminWorkspace }) {
   return (

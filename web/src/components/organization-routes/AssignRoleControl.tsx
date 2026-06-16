@@ -2,7 +2,7 @@
 
 import { UserPlus } from "lucide-react";
 import { useState } from "react";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { organizationMemberRoleOptions } from "./organizationMemberRoleOptions";
 
 export function AssignRoleControl({

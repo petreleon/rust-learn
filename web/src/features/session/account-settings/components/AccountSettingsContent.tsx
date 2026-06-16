@@ -1,7 +1,7 @@
 "use client";
 
 import { CreditCard } from "lucide-react";
-import styles from "@/app/settings/account/page.module.css";
+import styles from "@/features/session/account-settings/page.module.css";
 import { AccountNextStep } from "./AccountNextStep";
 import { NotificationPreferencesPanel } from "./NotificationPreferencesPanel";
 import { ProfilePanel } from "./ProfilePanel";

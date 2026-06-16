@@ -1,6 +1,6 @@
 "use client";
 
-import styles from "@/app/settings/account/page.module.css";
+import styles from "@/features/session/account-settings/page.module.css";
 
 export function PreferenceRow({
   checked,

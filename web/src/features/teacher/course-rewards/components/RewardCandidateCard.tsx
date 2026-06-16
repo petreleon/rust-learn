@@ -10,7 +10,7 @@ import { DetailLine } from "@/components/teacher-routes/DetailLine";
 import { formatDateTime } from "@/components/teacher-routes/formatDateTime";
 import { statusLabel } from "@/components/teacher-routes/statusLabel";
 import { summarizeEvidence } from "@/components/teacher-routes/summarizeEvidence";
-import styles from "@/components/teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { rewardCandidateTone } from "../model/rewardCandidateTone";
 import { type RewardDecisionDraft } from "../model/RewardDecisionDraft";
 

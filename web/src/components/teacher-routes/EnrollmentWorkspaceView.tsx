@@ -4,7 +4,7 @@ import { AlertCircle, ArrowLeft, CheckCircle2, RefreshCw, Users } from "lucide-r
 import Link from "next/link";
 import { type FormEvent } from "react";
 import { type TeacherCourseEnrollmentWorkspaceResponse, type TeacherCourseJoinRequestItem, type TeacherCourseRosterLearner } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { EnrollmentRequestCard } from "./EnrollmentRequestCard";
 import { EnrollmentWorkspaceSummaryGrid } from "./EnrollmentWorkspaceSummaryGrid";
 import { RosterLearnerCard } from "./RosterLearnerCard";

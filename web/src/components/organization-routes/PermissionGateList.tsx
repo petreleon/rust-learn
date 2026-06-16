@@ -1,7 +1,7 @@
 "use client";
 
 import { type OrganizationDashboardSummary } from "@/lib/organization";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function PermissionGateList({ dashboard }: { dashboard: OrganizationDashboardSummary }) {
   const gatedSections = [

@@ -8,7 +8,7 @@ import { DetailLine } from "@/components/teacher-routes/DetailLine";
 import { PermissionChip } from "@/components/teacher-routes/PermissionChip";
 import { SummaryCard } from "@/components/teacher-routes/SummaryCard";
 import { statusLabel } from "@/components/teacher-routes/statusLabel";
-import styles from "@/components/teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { workspaceSummary } from "../model/workspaceSummary";
 import { WorkspaceActionPanel } from "./WorkspaceActionPanel";
 

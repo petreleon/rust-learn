@@ -4,7 +4,7 @@ import { AlertTriangle, Loader2, Send } from "lucide-react";
 import { type PlatformRewardCandidateItem } from "@/lib/admin/PlatformRewardCandidateItem";
 import { type RewardCandidateAmountDecisionStatus } from "@/lib/admin/RewardCandidateAmountDecisionStatus";
 import { type RouteError } from "@/shared/route-state/RouteError";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { StatusPill } from "@/components/admin-routes/StatusPill";
 import { type RewardAmountDecisionDraft } from "../model/RewardAmountDecisionDraft";
 import { canSubmitRewardAmountDecision } from "../model/RewardAmountDecisionDraft";

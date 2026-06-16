@@ -1,7 +1,7 @@
 "use client";
 
 import { type OrganizationMemberList } from "@/lib/organization/OrganizationMemberList";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { OrganizationMemberCard } from "@/components/organization-routes/OrganizationMemberCard";
 import { StatusPill } from "@/components/organization-routes/StatusPill";
 import { memberDirectoryCounts } from "./memberCounts";

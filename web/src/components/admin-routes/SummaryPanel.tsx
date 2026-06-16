@@ -2,7 +2,7 @@
 
 import { FileText, Gauge, Landmark, Users, WalletCards } from "lucide-react";
 import { type PlatformAdminWorkspace, type PlatformReportSummary } from "@/lib/admin";
-import styles from "../admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { GatedPanel } from "./GatedPanel";
 import { PanelError } from "./PanelError";
 import { PanelLoading } from "./PanelLoading";

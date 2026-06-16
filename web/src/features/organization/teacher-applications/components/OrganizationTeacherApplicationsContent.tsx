@@ -7,7 +7,7 @@ import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import { NominationPanel } from "@/components/organization-routes/NominationPanel";
 import { TeacherApplicationErrorState } from "@/components/organization-routes/TeacherApplicationErrorState";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { TeacherApplicationFilterPanel } from "./TeacherApplicationFilterPanel";
 import { TeacherApplicationListPanel } from "./TeacherApplicationListPanel";
 import { TeacherApplicationSummaryGrid } from "./TeacherApplicationSummaryGrid";

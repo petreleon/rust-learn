@@ -11,7 +11,7 @@ import { PermissionChip } from "@/components/teacher-routes/PermissionChip";
 import { StatePanel } from "@/components/teacher-routes/StatePanel";
 import { SummaryCard } from "@/components/teacher-routes/SummaryCard";
 import { statusLabel } from "@/components/teacher-routes/statusLabel";
-import styles from "@/components/teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { defaultRewardDecisionDraft } from "../model/defaultRewardDecisionDraft";
 import { rewardStatusOptions } from "../model/rewardStatusOptions";
 import { type RewardDecisionDraft } from "../model/RewardDecisionDraft";

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { type TeacherApplication } from "@/lib/teacher/TeacherApplication";
 import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDashboardItem";
 import { SummaryCard } from "@/components/teacher-routes/SummaryCard";
-import styles from "@/components/teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type TeacherDashboardTotals } from "../model/dashboardTotals";
 import { ApplicationPanel } from "./ApplicationPanel";
 import { CourseGrid } from "./CourseGrid";

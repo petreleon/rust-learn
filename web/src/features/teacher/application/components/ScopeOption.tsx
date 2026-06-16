@@ -1,7 +1,7 @@
 "use client";
 
 import { type TeacherApplicationScope } from "@/lib/teacher";
-import styles from "@/app/teach/apply/page.module.css";
+import styles from "@/features/teacher/application/page.module.css";
 
 export function ScopeOption({
   checked,

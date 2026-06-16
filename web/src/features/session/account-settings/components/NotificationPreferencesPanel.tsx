@@ -1,5 +1,5 @@
 import { Bell, Send } from "lucide-react";
-import styles from "@/app/settings/account/page.module.css";
+import styles from "@/features/session/account-settings/page.module.css";
 import { PreferenceRow } from "./PreferenceRow";
 import { notificationDescription } from "../model/notificationDescription";
 import { type PrefsSaveState } from "../model/PrefsSaveState";

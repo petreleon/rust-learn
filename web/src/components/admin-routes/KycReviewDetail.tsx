@@ -3,7 +3,7 @@
 import { AlertTriangle, FileText, Loader2, Send, ShieldCheck } from "lucide-react";
 import { type FormEvent } from "react";
 import { type KycAuditEvent, type KycDecisionStatus, type KycSubmission } from "@/lib/admin";
-import styles from "../admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { ContextRow } from "./ContextRow";
 import { KycAuditTimeline } from "./KycAuditTimeline";
 import { StatusPill } from "./StatusPill";

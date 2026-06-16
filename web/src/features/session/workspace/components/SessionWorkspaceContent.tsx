@@ -2,7 +2,7 @@
 
 import { BookOpen, Building2, LogOut, RefreshCw, ShieldCheck, UserCircle } from "lucide-react";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
-import styles from "@/app/session/page.module.css";
+import styles from "@/features/session/workspace/page.module.css";
 import { CourseCard } from "./CourseCard";
 import { EmptyState } from "./EmptyState";
 import { OrganizationCard } from "./OrganizationCard";

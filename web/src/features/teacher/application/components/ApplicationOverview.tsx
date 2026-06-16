@@ -5,7 +5,7 @@ import Link from "next/link";
 import { type ReactNode } from "react";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
 import { type TeacherApplication } from "@/lib/teacher/TeacherApplication";
-import styles from "@/app/teach/apply/page.module.css";
+import styles from "@/features/teacher/application/page.module.css";
 import { ApplicationSummary } from "./ApplicationSummary";
 import { ContextRow } from "./ContextRow";
 

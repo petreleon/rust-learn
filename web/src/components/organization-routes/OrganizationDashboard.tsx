@@ -3,7 +3,7 @@
 import { ArrowLeft, BookOpen, CreditCard, Loader2, RefreshCw, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import { enabledOrganizationCapabilities, type OrganizationDashboardSummary, type OrganizationWorkspaceItem } from "@/lib/organization";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { ActionCard } from "./ActionCard";
 import { DashboardAlertCard } from "./DashboardAlertCard";
 import { DashboardErrorState } from "./DashboardErrorState";

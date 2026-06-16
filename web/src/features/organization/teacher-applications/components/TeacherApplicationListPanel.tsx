@@ -3,7 +3,7 @@
 import { type OrganizationTeacherApplicationList } from "@/lib/organization/OrganizationTeacherApplicationList";
 import { OrganizationTeacherApplicationCard } from "@/components/organization-routes/OrganizationTeacherApplicationCard";
 import { StatusPill } from "@/components/organization-routes/StatusPill";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { teacherApplicationCounts } from "./applicationCounts";
 
 export function TeacherApplicationListPanel({

@@ -4,7 +4,7 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent } from "react";
 import { type TeacherCourseWorkspaceContent, type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { ChapterAuthoringForm } from "./ChapterAuthoringForm";
 import { ChapterList } from "./ChapterList";
 import { ContentAuthoringForm } from "./ContentAuthoringForm";

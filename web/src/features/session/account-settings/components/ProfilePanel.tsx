@@ -1,6 +1,6 @@
 import { RefreshCw, UserRound } from "lucide-react";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
-import styles from "@/app/settings/account/page.module.css";
+import styles from "@/features/session/account-settings/page.module.css";
 import { StatusLine } from "./StatusLine";
 
 export function ProfilePanel({

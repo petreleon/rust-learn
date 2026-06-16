@@ -1,7 +1,7 @@
 "use client";
 
 import { type TeacherApplication } from "@/lib/teacher";
-import styles from "@/app/teach/apply/page.module.css";
+import styles from "@/features/teacher/application/page.module.css";
 import { formatDate } from "../model/formatDate";
 import { normalizePortfolioLinks } from "../model/normalizePortfolioLinks";
 import { scopeLabel } from "../model/scopeLabel";

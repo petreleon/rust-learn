@@ -3,7 +3,7 @@
 import { Filter, Search } from "lucide-react";
 import { type FormEvent } from "react";
 import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDashboardItem";
-import styles from "@/components/teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type CourseQuery } from "../model/CourseQuery";
 import { CourseGrid } from "./CourseGrid";
 

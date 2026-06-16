@@ -1,7 +1,7 @@
 "use client";
 
 import { ShieldCheck, Trophy, Users } from "lucide-react";
-import styles from "@/components/teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type TeacherDashboardTotals } from "../model/dashboardTotals";
 
 export function PriorityList({ totals }: { totals: TeacherDashboardTotals }) {

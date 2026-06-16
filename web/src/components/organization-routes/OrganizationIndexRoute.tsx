@@ -4,7 +4,7 @@ import { Building2, FileText, RefreshCw, Search, ShieldCheck, Users } from "luci
 import { useMemo, useState } from "react";
 import { ProductShell } from "@/components/product-shell";
 import { buildOrganizationWorkspace, filterOrganizationWorkspace } from "@/lib/organization";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { DeniedState } from "./DeniedState";
 import { ErrorState } from "./ErrorState";
 import { LoadingState } from "./LoadingState";

@@ -2,7 +2,7 @@
 
 import { RefreshCw, Search } from "lucide-react";
 import { organizationTeacherApplicationStatusOptions } from "@/components/organization-routes/organizationTeacherApplicationStatusOptions";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function TeacherApplicationFilterPanel({
   draftSearch,

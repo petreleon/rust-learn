@@ -3,7 +3,7 @@
 import { Loader2, RefreshCw, Search } from "lucide-react";
 import { type TeacherApplicationStatus } from "@/lib/admin/TeacherApplicationStatus";
 import { type LoadState } from "@/shared/route-state/LoadState";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { type TeacherApplicationFilters } from "../model/TeacherApplicationFilters";
 import { teacherApplicationStatusOptions } from "../model/teacherApplicationDisplay";
 

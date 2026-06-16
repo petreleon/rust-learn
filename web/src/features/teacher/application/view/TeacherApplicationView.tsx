@@ -3,7 +3,7 @@
 import { AlertCircle, FileText, Loader2, LogIn, RefreshCw, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { ProductShell } from "@/components/product-shell";
-import styles from "@/app/teach/apply/page.module.css";
+import styles from "@/features/teacher/application/page.module.css";
 import { ApplicationForm } from "../components/ApplicationForm";
 import { ApplicationOverview } from "../components/ApplicationOverview";
 import { AuditTimeline } from "../components/AuditTimeline";

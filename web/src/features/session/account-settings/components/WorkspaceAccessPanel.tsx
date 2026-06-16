@@ -1,7 +1,7 @@
 import { BookOpen, Building2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
-import styles from "@/app/settings/account/page.module.css";
+import styles from "@/features/session/account-settings/page.module.css";
 import { MetricCard } from "./MetricCard";
 
 export function WorkspaceAccessPanel({

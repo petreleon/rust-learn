@@ -3,7 +3,7 @@
 import { AlertTriangle, CreditCard, Loader2, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { type OrganizationWorkspaceItem } from "@/lib/organization";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { type RouteError } from "./RouteError";
 import { type WalletLinkState } from "./WalletLinkState";
 

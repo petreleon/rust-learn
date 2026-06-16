@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { type OrganizationDashboardAlert } from "@/lib/organization";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { StatusPill } from "./StatusPill";
 import { formatUnderscoreLabel } from "./formatUnderscoreLabel";
 

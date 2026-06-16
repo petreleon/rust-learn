@@ -2,7 +2,7 @@
 
 import { Loader2, RefreshCw, Search } from "lucide-react";
 import { type LoadState } from "@/shared/route-state/LoadState";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { type RewardCandidateFilters } from "../model/RewardCandidateFilters";
 import { rewardCandidateStatusOptions } from "../model/rewardCandidateDisplay";
 

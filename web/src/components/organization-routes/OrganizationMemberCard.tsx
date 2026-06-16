@@ -3,7 +3,7 @@
 import { UserMinus } from "lucide-react";
 import { useState } from "react";
 import { type OrganizationMemberListItem } from "@/lib/organization";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { AssignRoleControl } from "./AssignRoleControl";
 import { Metric } from "./Metric";
 import { StatusPill } from "./StatusPill";

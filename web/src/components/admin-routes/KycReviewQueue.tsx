@@ -2,7 +2,7 @@
 
 import { IdCard } from "lucide-react";
 import { type KycSubmission } from "@/lib/admin";
-import styles from "../admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { EmptyState } from "./EmptyState";
 import { StatusPill } from "./StatusPill";
 import { formatDate } from "./formatDate";

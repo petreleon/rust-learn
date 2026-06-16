@@ -4,7 +4,7 @@ import { type OrganizationCourseRewardDashboardRow } from "@/lib/organization/Or
 import { Metric } from "@/components/organization-routes/Metric";
 import { StatusPill } from "@/components/organization-routes/StatusPill";
 import { formatTokenAmount } from "@/components/organization-routes/formatTokenAmount";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function CourseRewardVolumePanel({
   courses,

@@ -2,7 +2,7 @@
 
 import { type FormEvent } from "react";
 import { RefreshCw, Send, Settings } from "lucide-react";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { type SettingsSaveState } from "../model/SettingsSaveState";
 
 export function OrganizationIdentityForm({

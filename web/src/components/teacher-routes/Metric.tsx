@@ -1,6 +1,6 @@
 "use client";
 
-import styles from "../teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 
 export function Metric({
   label,

@@ -8,7 +8,7 @@ import { StatusLine } from "@/components/teacher-routes/StatusLine";
 import { lifecycleTone } from "@/components/teacher-routes/lifecycleTone";
 import { routeNotice } from "@/components/teacher-routes/routeNotice";
 import { statusLabel } from "@/components/teacher-routes/statusLabel";
-import styles from "@/components/teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { workspaceSummary } from "../model/workspaceSummary";
 import { type TeacherCourseWorkspaceRouteController } from "../route/useTeacherCourseWorkspaceRoute";
 import { WorkspaceContent } from "../components/WorkspaceContent";

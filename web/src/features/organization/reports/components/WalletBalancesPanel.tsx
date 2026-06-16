@@ -3,7 +3,7 @@
 import { type OrganizationWalletBalanceRow } from "@/lib/organization/OrganizationWalletBalanceRow";
 import { StatusPill } from "@/components/organization-routes/StatusPill";
 import { formatTokenAmount } from "@/components/organization-routes/formatTokenAmount";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 
 export function WalletBalancesPanel({ wallets }: { wallets: OrganizationWalletBalanceRow[] }) {
   const hasWalletRows = wallets.length > 0;

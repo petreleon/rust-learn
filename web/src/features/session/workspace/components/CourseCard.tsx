@@ -1,7 +1,7 @@
 "use client";
 
 import { type CourseSessionScope } from "@/lib/session/CourseSessionScope";
-import styles from "@/app/session/page.module.css";
+import styles from "@/features/session/workspace/page.module.css";
 import { ScopeSummary } from "./ScopeSummary";
 
 export function CourseCard({ course }: { course: CourseSessionScope }) {

@@ -3,7 +3,7 @@
 import { BriefcaseBusiness, FileText, Trophy, Users } from "lucide-react";
 import Link from "next/link";
 import { type TeacherCourseWorkspaceResponse } from "@/lib/teacher/TeacherCourseWorkspaceResponse";
-import styles from "@/components/teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 
 export function WorkspaceActionPanel({ workspace }: { workspace: TeacherCourseWorkspaceResponse }) {
   const canViewStudents =

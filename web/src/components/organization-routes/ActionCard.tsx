@@ -3,7 +3,7 @@
 import { BookOpen, CheckCircle2, CreditCard, FileText, Settings, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import { missingOrganizationPermissions, type OrganizationCapability } from "@/lib/organization";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { actionDescriptions } from "./actionDescriptions";
 import { actionIcons } from "./actionIcons";
 

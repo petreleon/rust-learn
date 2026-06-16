@@ -2,7 +2,7 @@
 
 import { Download, Loader2 } from "lucide-react";
 import { type PlatformAdminWorkspace, type PlatformCsvReport } from "@/lib/admin";
-import styles from "../admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { GatedPanel } from "./GatedPanel";
 import { exportReports } from "./exportReports";
 import { getCapability } from "./getCapability";

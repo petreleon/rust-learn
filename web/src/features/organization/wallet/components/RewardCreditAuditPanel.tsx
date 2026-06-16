@@ -3,7 +3,7 @@
 import { type OrganizationWalletAudit } from "@/lib/organization/OrganizationWalletAudit";
 import { OrganizationWalletRewardCard } from "@/components/organization-routes/OrganizationWalletRewardCard";
 import { StatusPill } from "@/components/organization-routes/StatusPill";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { walletAuditSummary } from "../model/walletAuditSummary";
 
 export function RewardCreditAuditPanel({ audit }: { audit: OrganizationWalletAudit }) {

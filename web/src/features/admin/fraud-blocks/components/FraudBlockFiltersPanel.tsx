@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, RefreshCw, Search } from "lucide-react";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type FraudBlockFilters } from "../model/FraudBlockFilters";
 import { fraudBlockActiveOptions, fraudBlockScopeOptions } from "../model/fraudBlockDisplay";

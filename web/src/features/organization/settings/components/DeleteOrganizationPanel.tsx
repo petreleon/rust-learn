@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Send } from "lucide-react";
 import { type OrganizationWorkspaceItem } from "@/lib/organization/OrganizationWorkspaceItem";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { type SettingsSaveState } from "../model/SettingsSaveState";
 
 export function DeleteOrganizationPanel({

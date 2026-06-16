@@ -3,7 +3,7 @@
 import { CheckCircle2, Clock3, FileText, UserCheck, XCircle } from "lucide-react";
 import { type PlatformTeacherApplicationsResponse } from "@/lib/admin/PlatformTeacherApplicationsResponse";
 import { type LoadState } from "@/shared/route-state/LoadState";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { SummaryCard } from "@/components/admin-routes/SummaryCard";
 
 export function TeacherApplicationSummaryPanel({

@@ -3,7 +3,7 @@
 import { Send } from "lucide-react";
 import { type FormEvent } from "react";
 import { type TeacherCourseJoinRequestItem } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { DetailLine } from "./DetailLine";
 import { formatDateTime } from "./formatDateTime";
 import { joinRequestTone } from "./joinRequestTone";

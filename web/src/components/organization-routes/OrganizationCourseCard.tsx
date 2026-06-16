@@ -1,7 +1,7 @@
 "use client";
 
 import { type OrganizationCourseListItem } from "@/lib/organization";
-import styles from "../organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { Metric } from "./Metric";
 import { StatusPill } from "./StatusPill";
 import { formatUnderscoreLabel } from "./formatUnderscoreLabel";

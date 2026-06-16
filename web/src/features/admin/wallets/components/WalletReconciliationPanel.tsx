@@ -4,7 +4,7 @@ import { Landmark } from "lucide-react";
 import { type PlatformWalletReconciliation } from "@/lib/admin/PlatformWalletReconciliation";
 import { type LoadState } from "@/shared/route-state/LoadState";
 import { type RouteError } from "@/shared/route-state/RouteError";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { MetricCard } from "@/components/admin-routes/MetricCard";
 import { PanelError } from "@/components/admin-routes/PanelError";
 import { PanelLoading } from "@/components/admin-routes/PanelLoading";

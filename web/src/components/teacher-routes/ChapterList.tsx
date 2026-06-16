@@ -2,7 +2,7 @@
 
 import { BookOpen } from "lucide-react";
 import { type TeacherCourseWorkspaceContent, type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type ActionState } from "./ActionState";
 import { ContentRow } from "./ContentRow";
 

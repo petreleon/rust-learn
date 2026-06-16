@@ -3,7 +3,7 @@
 import { AlertTriangle, Loader2, ShieldCheck, XCircle } from "lucide-react";
 import { type DelegationItem } from "@/lib/admin/DelegationItem";
 import { type RouteError } from "@/shared/route-state/RouteError";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { ContextRow } from "@/components/admin-routes/ContextRow";
 import { formatDate } from "@/components/admin-routes/formatDate";
 import { formatUnderscoreLabel } from "@/components/admin-routes/formatUnderscoreLabel";

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { type ReactNode } from "react";
 import { type WalletSummary } from "@/lib/learner/WalletSummary";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
-import styles from "@/app/settings/account/page.module.css";
+import styles from "@/features/session/account-settings/page.module.css";
 import { type RouteError } from "../model/RouteError";
 
 export function accountNextStep(

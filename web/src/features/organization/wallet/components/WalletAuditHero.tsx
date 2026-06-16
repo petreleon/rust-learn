@@ -5,7 +5,7 @@ import Link from "next/link";
 import { type OrganizationWorkspaceItem } from "@/lib/organization/OrganizationWorkspaceItem";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import { StatusPill } from "@/components/organization-routes/StatusPill";
-import styles from "@/components/organization-routes.module.css";
+import styles from "@/features/organization/shared/organization-routes.module.css";
 import { type WalletLinkState } from "../model/WalletLinkState";
 
 export function WalletAuditHero({

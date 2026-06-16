@@ -4,7 +4,7 @@ import { AlertCircle, Loader2, LogIn, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { type TeacherCourseWorkspaceResponse } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type ActionState } from "./ActionState";
 import { type ChapterDraft } from "./ChapterDraft";
 import { ContentAuthoringView } from "./ContentAuthoringView";

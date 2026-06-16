@@ -1,6 +1,6 @@
 "use client";
 
-import styles from "../admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 
 export function ContextRow({ label, value }: { label: string; value: string }) {
   return (

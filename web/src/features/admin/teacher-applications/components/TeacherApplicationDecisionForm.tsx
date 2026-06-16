@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Loader2, Send } from "lucide-react";
 import { type PlatformTeacherApplicationItem } from "@/lib/admin/PlatformTeacherApplicationItem";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { StatusPill } from "@/components/admin-routes/StatusPill";
 import { type RouteError } from "@/shared/route-state/RouteError";
 import {

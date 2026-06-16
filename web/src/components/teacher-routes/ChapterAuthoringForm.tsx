@@ -2,7 +2,7 @@
 
 import { BookOpen, Send } from "lucide-react";
 import { type FormEvent } from "react";
-import styles from "../teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { type ActionState } from "./ActionState";
 import { type ChapterDraft } from "./ChapterDraft";
 

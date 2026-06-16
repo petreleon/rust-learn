@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ProductShell } from "@/components/product-shell";
 import { clearStoredSessionToken, fetchCurrentSession, readStoredSessionToken, type CurrentSession } from "@/lib/session";
 import { fetchTeachingCourseStudents, type TeacherCourseStudentsResponse } from "@/lib/teacher";
-import styles from "../teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { StatePanel } from "./StatePanel";
 import { StatusLine } from "./StatusLine";
 import { StudentProgressView } from "./StudentProgressView";

@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { type KycAuditEvent } from "@/lib/admin";
-import styles from "../admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { EmptyState } from "./EmptyState";
 import { formatDate } from "./formatDate";
 import { formatUnderscoreLabel } from "./formatUnderscoreLabel";

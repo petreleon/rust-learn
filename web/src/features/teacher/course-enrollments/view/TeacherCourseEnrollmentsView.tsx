@@ -7,7 +7,7 @@ import { EnrollmentWorkspaceView } from "@/components/teacher-routes/EnrollmentW
 import { StatePanel } from "@/components/teacher-routes/StatePanel";
 import { StatusLine } from "@/components/teacher-routes/StatusLine";
 import { routeNotice } from "@/components/teacher-routes/routeNotice";
-import styles from "@/components/teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import {
   courseEnrollmentTitle,
   joinRequestCountLabel,

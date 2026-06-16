@@ -5,7 +5,7 @@ import Link from "next/link";
 import { type FormEvent, useEffect, useState } from "react";
 import { type KycStatusResponse } from "@/lib/kyc";
 import { type CurrentSession } from "@/lib/session/CurrentSession";
-import styles from "@/app/settings/account/page.module.css";
+import styles from "@/features/session/account-settings/page.module.css";
 import { loadAccountKycStatus, submitAccountKyc } from "../api/accountSettingsApi";
 import { ReadinessItem } from "./ReadinessItem";
 import { kycReadinessCopy } from "../model/kycReadiness";

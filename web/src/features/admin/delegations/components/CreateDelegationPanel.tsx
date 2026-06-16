@@ -2,7 +2,7 @@
 
 import { AlertTriangle, Loader2, Send, ShieldCheck } from "lucide-react";
 import { type RouteError } from "@/shared/route-state/RouteError";
-import styles from "@/components/admin-routes.module.css";
+import styles from "@/features/admin/shared/admin-routes.module.css";
 import { type DelegationActionState } from "../model/DelegationActionState";
 import {
   canSubmitDelegationCreate,

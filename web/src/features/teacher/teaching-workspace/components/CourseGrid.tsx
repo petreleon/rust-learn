@@ -2,7 +2,7 @@
 
 import { BookOpen } from "lucide-react";
 import { type TeacherCourseDashboardItem } from "@/lib/teacher/TeacherCourseDashboardItem";
-import styles from "@/components/teacher-routes.module.css";
+import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { CourseCard } from "./CourseCard";
 
 export function CourseGrid({
