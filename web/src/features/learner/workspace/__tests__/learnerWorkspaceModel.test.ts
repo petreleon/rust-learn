@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type RewardHistoryEntry } from "@/lib/learner/RewardHistoryEntry";
+import { catalogVisibleRange } from "../model/catalogVisibleRange";
 import { contentStateTone } from "../components/contentStateTone";
 import { enrollmentTone } from "../components/enrollmentTone";
 import { humanize } from "../components/humanize";
@@ -59,6 +60,24 @@ describe("learner workspace model helpers", () => {
     expect(isWalletCreditPending(reward({ status: "amount_approved", wallet_credit: walletCredit() }))).toBe(false);
     expect(isWalletCreditPending(reward({ status: "teacher_rejected" }))).toBe(false);
   });
+
+  it("summarizes visible catalog range separately from total matches", () => {
+    expect(catalogVisibleRange(null)).toEqual({ detail: null, label: "0 shown" });
+    expect(catalogVisibleRange({
+      courses: [courseCatalogItem(1), courseCatalogItem(2)],
+      enrollment_status: null,
+      lifecycle_status: null,
+      limit: 2,
+      offset: 0,
+      organization_id: null,
+      reward_available: null,
+      search: null,
+      total: 8,
+    })).toEqual({
+      detail: "Showing 1-2 of 8 matches. Use search or filters to narrow the catalog.",
+      label: "2 of 8 shown",
+    });
+  });
 });
 
 function reward(overrides: Partial<RewardHistoryEntry>): RewardHistoryEntry {
@@ -85,5 +104,44 @@ function walletCredit(): NonNullable<RewardHistoryEntry["wallet_credit"]> {
     reward_wallet_credit_record_id: 55,
     transaction_id: 66,
     wallet_id: 77,
+  };
+}
+
+function courseCatalogItem(id: number) {
+  return {
+    access: {
+      can_request_join: false,
+      can_view_content: true,
+      can_view_course: true,
+      can_view_rewards: false,
+    },
+    content: {
+      chapter_count: 0,
+      content_count: 0,
+      content_types: [],
+      has_content: false,
+    },
+    description: null,
+    enrollment: {
+      can_request_join: false,
+      reason: null,
+      request_id: null,
+      roles: [],
+      state: "available",
+    },
+    id,
+    lifecycle_status: "published",
+    organizations: [],
+    prerequisites: [],
+    rewards: {
+      active_policy_count: 0,
+      available: false,
+      event_types: [],
+      payment_strategies: [],
+      token_amounts: [],
+    },
+    teachers: [],
+    title: `Course ${id}`,
+    topics: [],
   };
 }

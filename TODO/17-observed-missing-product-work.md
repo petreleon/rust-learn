@@ -517,8 +517,8 @@ Needed:
 - Keep improving progress semantics beyond the current "latest viewed lesson"
   model if RustLearn later distinguishes viewed, completed, and assessed
   content.
-- Add course catalog pagination or explicit "showing first N" controls if the
-  catalog count is larger than the rendered list.
+- Course catalog now shows an explicit visible range such as "2 of 8 shown"
+  and "Showing 1-2 of 8 matches" when total matches exceed rendered courses.
 - Add assessment entry points inside learner course detail routes and teacher
   course authoring routes.
 
@@ -532,7 +532,7 @@ Checks:
   learner dashboard, course learn route, and teacher student route.
 - [ ] Catalog pages do not expose generated/test-like names in normal product
   smoke data.
-- [ ] Large catalogs have pagination, load-more, or a clear visible count that
+- [x] Large catalogs have pagination, load-more, or a clear visible count that
   matches the rendered set.
 - [x] Assessment links appear only when assessments exist and handle not
   started, passed, failed, max-attempts, unpublished/empty, and preview-disabled

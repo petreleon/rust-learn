@@ -4,6 +4,7 @@ import { BookOpen, CheckCircle, RefreshCw, Search, Trophy } from "lucide-react";
 import { type FormEvent } from "react";
 import { type CourseCatalogItem, type CourseCatalogResponse } from "@/lib/learner";
 import { type CurrentSession } from "@/lib/session";
+import { catalogVisibleRange } from "../model/catalogVisibleRange";
 import styles from "../learner-workspace.module.css";
 import { CourseCatalogCard } from "./CourseCatalogCard";
 import { EmptyState } from "./EmptyState";
@@ -44,6 +45,7 @@ export function CoursesContent({
   session: CurrentSession;
 }) {
   const courses = catalog?.courses || [];
+  const visibleRange = catalogVisibleRange(catalog);
   const rewardCourseCount = courses.filter((course) => course.rewards.available).length;
   const activeFilterCount = [search ? 1 : 0, enrollmentFilter !== "all" ? 1 : 0, rewardOnly ? 1 : 0].reduce(
     (total, value) => total + value,
@@ -116,8 +118,9 @@ export function CoursesContent({
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2>Courses</h2>
-          <StatusPill label={`${courses.length} shown`} tone="neutral" />
+          <StatusPill label={visibleRange.label} tone="neutral" />
         </div>
+        {visibleRange.detail ? <p className={styles.muted}>{visibleRange.detail}</p> : null}
         {courses.length ? (
           <div className={styles.itemGrid}>
             {courses.map((course) => (
