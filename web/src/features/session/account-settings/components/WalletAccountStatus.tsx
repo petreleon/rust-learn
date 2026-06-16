@@ -2,11 +2,11 @@
 
 import { AlertCircle, CreditCard, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { type WalletSummary } from "@/lib/learner";
-import styles from "../page.module.css";
+import { type WalletSummary } from "@/lib/learner/WalletSummary";
+import styles from "@/app/settings/account/page.module.css";
 import { StatusLine } from "./StatusLine";
-import { type RouteError } from "./RouteError";
-import { type WalletLoadState } from "./WalletLoadState";
+import { type RouteError } from "../model/RouteError";
+import { type WalletLoadState } from "../model/WalletLoadState";
 
 export function WalletAccountStatus({
   error,

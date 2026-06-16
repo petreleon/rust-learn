@@ -1,8 +1,8 @@
 "use client";
 
-import { fetchMyWallet } from "@/lib/learner";
-import { normalizeAccountError } from "./normalizeAccountError";
-import { type WalletResult } from "./WalletResult";
+import { fetchMyWallet } from "@/lib/learner/fetchMyWallet";
+import { type WalletResult } from "../model/WalletResult";
+import { normalizeAccountSettingsError } from "../route/normalizeAccountSettingsError";
 
 export async function fetchWalletForAccount(token: string): Promise<WalletResult> {
   try {
@@ -12,7 +12,7 @@ export async function fetchWalletForAccount(token: string): Promise<WalletResult
     };
   } catch (error) {
     return {
-      error: normalizeAccountError(error),
+      error: normalizeAccountSettingsError(error),
       wallet: null,
     };
   }

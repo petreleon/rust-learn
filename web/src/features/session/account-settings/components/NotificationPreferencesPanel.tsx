@@ -1,8 +1,8 @@
 import { Bell, Send } from "lucide-react";
-import styles from "../page.module.css";
+import styles from "@/app/settings/account/page.module.css";
 import { PreferenceRow } from "./PreferenceRow";
-import { notificationDescription } from "./notificationDescription";
-import { type PrefsSaveState } from "./PrefsSaveState";
+import { notificationDescription } from "../model/notificationDescription";
+import { type PrefsSaveState } from "../model/PrefsSaveState";
 
 export function NotificationPreferencesPanel({
   emailEnabled,

@@ -1,10 +1,10 @@
 "use client";
 
-import { LearnerRequestError } from "@/lib/learner";
-import { SessionRequestError } from "@/lib/session";
-import { type RouteError } from "./RouteError";
+import { LearnerRequestError } from "@/lib/learner/LearnerRequestError";
+import { SessionRequestError } from "@/lib/session/SessionRequestError";
+import { type RouteError } from "../model/RouteError";
 
-export function normalizeAccountError(error: unknown): RouteError {
+export function normalizeAccountSettingsError(error: unknown): RouteError {
   if (error instanceof SessionRequestError || error instanceof LearnerRequestError) {
     return {
       code: error.code,

@@ -168,13 +168,17 @@ Progress:
   `features/session/workspace/{api,components,model,route,view}` with shared
   browser-session ownership, session loading/error normalization, moved
   permission summary tests, and focused route tests.
-- [x] Current architecture scan reports 20 dense-line findings after the
-  session workspace migration, with no long files and no API/view boundary
+- [x] Migrated account settings into
+  `features/session/account-settings/{api,components,model,route,view}` with
+  account/wallet/preferences orchestration in the route, KYC API calls behind
+  the feature API, moved readiness tests, and focused route tests.
+- [x] Current architecture scan reports 12 dense-line findings after the
+  account settings migration, with no long files and no API/view boundary
   violations.
 
 Latest pilot proof:
 
-- `make web-architecture-scan` passes in reporting mode with 20 dense-line
+- `make web-architecture-scan` passes in reporting mode with 12 dense-line
   findings, no long files, and no API/view boundary violations.
 - `make web-lint` passes with existing warnings.
 - `npm run test -- src/shared/api/__tests__/RequestError.test.ts src/shared/route-state/__tests__/normalizeRouteError.test.ts src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
@@ -205,11 +209,13 @@ Latest pilot proof:
   passes.
 - `npm run test -- src/features/session/workspace/components/__tests__/ScopeSummary.test.tsx src/features/session/workspace/__tests__/SessionWorkspaceRoute.test.tsx`
   passes.
+- `npm run test -- src/features/session/account-settings/model/__tests__/kycReadiness.test.ts src/features/session/account-settings/__tests__/AccountSettingsRoute.test.tsx`
+  passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx`
   passes.
 - `npm run test -- src/features/teacher/course-enrollments/__tests__/TeacherCourseEnrollmentsRoute.test.tsx src/components/__tests__/teacher-rewards-route.test.tsx src/components/__tests__/teacher-content-authoring-actions.test.tsx`
   passes.
-- `cd web && npm run test` passes with 42 files and 201 tests.
+- `cd web && npm run test` passes with 43 files and 206 tests.
 - `make web-api-helper-tests` passes with 83 tests.
 - `make web-build` passes.
 

@@ -1,6 +1,4 @@
-"use client";
-
-import { type WalletSummary } from "@/lib/learner";
+import { type WalletSummary } from "@/lib/learner/WalletSummary";
 import { type RouteError } from "./RouteError";
 
 export type WalletResult = {

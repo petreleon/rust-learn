@@ -3,10 +3,10 @@
 import { AlertCircle, CreditCard, Mail } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode } from "react";
-import { type WalletSummary } from "@/lib/learner";
-import { type CurrentSession } from "@/lib/session";
-import styles from "../page.module.css";
-import { type RouteError } from "./RouteError";
+import { type WalletSummary } from "@/lib/learner/WalletSummary";
+import { type CurrentSession } from "@/lib/session/CurrentSession";
+import styles from "@/app/settings/account/page.module.css";
+import { type RouteError } from "../model/RouteError";
 
 export function accountNextStep(
   session: CurrentSession,

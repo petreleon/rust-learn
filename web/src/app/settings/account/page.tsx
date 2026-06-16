@@ -1,2 +1,2 @@
 "use client";
-export { default } from "./page-parts/AccountSettingsPage";
+export { AccountSettingsRoute as default } from "@/features/session/account-settings/route/AccountSettingsRoute";

@@ -2,7 +2,7 @@
 
 import { CheckCircle2 } from "lucide-react";
 import { type ReactNode } from "react";
-import styles from "../page.module.css";
+import styles from "@/app/settings/account/page.module.css";
 
 export function StatusLine({
   icon = <CheckCircle2 size={16} aria-hidden />,
