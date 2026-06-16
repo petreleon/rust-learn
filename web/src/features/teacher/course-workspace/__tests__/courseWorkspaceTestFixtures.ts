@@ -75,9 +75,11 @@ export function courseWorkspace(): TeacherCourseWorkspaceResponse {
 function workspaceCourse(): TeacherCourseDashboardItem {
   return {
     content: { chapter_count: 1, content_count: 1, content_types: ["article"], has_content: true },
+    description: "Borrow checking fundamentals.",
     id: 9,
     lifecycle_status: "published",
     organizations: [{ id: 3, name: "Rust Org" }],
+    prerequisites: "Rust basics",
     permissions: {
       can_approve_reward_candidates: true,
       can_manage_content: true,
@@ -104,5 +106,6 @@ function workspaceCourse(): TeacherCourseDashboardItem {
       waitlisted_join_request_count: 0,
     },
     title: "Rust Safety",
+    topics: "Ownership, borrowing",
   };
 }

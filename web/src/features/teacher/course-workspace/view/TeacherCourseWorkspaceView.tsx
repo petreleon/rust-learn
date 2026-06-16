@@ -51,7 +51,7 @@ function CourseWorkspaceBody({
   if (route.loadState === "idle") return <SignedOutCourseWorkspace courseId={courseId} />;
   if (route.loadState === "error" && route.error) return <CourseWorkspaceError route={route} />;
   if (route.loadState === "success" && route.workspace) {
-    return <WorkspaceContent workspace={route.workspace} />;
+    return <WorkspaceContent courseAction={route.courseAction} workspace={route.workspace} />;
   }
   return null;
 }

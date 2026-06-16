@@ -712,6 +712,10 @@ Current evidence:
   `PUT /api/courses/{id}/lifecycle`. Teacher and organization course routes
   list existing courses, but the product UI does not expose course creation,
   metadata editing, publication, archiving, or lifecycle transition controls.
+- Teacher course workspace now loads persisted course description, topics, and
+  prerequisites from the backend read model and exposes teacher settings plus
+  draft/submitted/published/archived lifecycle update controls through the
+  course-scoped product route.
 - Organization course pages explicitly say editing, publishing, and
   organization-course ownership changes remain separate route work.
 - Backend APIs exist for reward policy creation/listing at
@@ -767,6 +771,8 @@ Checks:
 - [ ] Teacher or organization operators with the right permissions can create a
   course, edit course metadata, and move lifecycle status through valid
   transitions.
+- [x] Teacher course workspace can edit persisted course metadata and submit
+  lifecycle changes without using `/ops`.
 - [ ] Invalid lifecycle transitions, missing permissions, stale updates, and
   archived/deleted course states are blocked with clear messages.
 - [ ] Reward policies can be created, listed, activated/deactivated, scoped,
@@ -783,6 +789,8 @@ Checks:
   context instead of numeric policy id only.
 - [ ] Browser/page tests cover user-role management, course lifecycle changes,
   reward policy management, policy-backed fraud blocks, and token-tax updates.
+- [x] Page tests cover teacher course metadata save and lifecycle submit from
+  the course workspace route.
 
 ## Page-Level Product Tests
 

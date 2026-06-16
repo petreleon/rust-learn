@@ -8,9 +8,11 @@ import { defaultRewardDecisionDraft } from "../model/defaultRewardDecisionDraft"
 
 const courseBase: TeacherCourseDashboardItem = {
   content: { chapter_count: 1, content_count: 2, content_types: ["article"], has_content: true },
+  description: null,
   id: 9,
   lifecycle_status: "published",
   organizations: [],
+  prerequisites: null,
   permissions: {
     can_approve_reward_candidates: true,
     can_manage_content: true,
@@ -29,6 +31,7 @@ const courseBase: TeacherCourseDashboardItem = {
   },
   roster: { enrolled_student_count: 1, pending_join_request_count: 0, waitlisted_join_request_count: 0 },
   title: "Rust Safety",
+  topics: null,
 };
 
 const candidate: TeacherRewardCandidate = {

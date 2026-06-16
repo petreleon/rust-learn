@@ -62,9 +62,11 @@ export function teachingCourse(
 ): TeacherCourseDashboardItem {
   return {
     content: { chapter_count: 1, content_count: 2, content_types: ["article"], has_content: true },
+    description: null,
     id: 9,
     lifecycle_status: "published",
     organizations: [{ id: 3, name: "Rust Org" }],
+    prerequisites: null,
     permissions: {
       can_approve_reward_candidates: true,
       can_manage_content: true,
@@ -91,6 +93,7 @@ export function teachingCourse(
       waitlisted_join_request_count: 1,
     },
     title: "Rust Safety",
+    topics: null,
     ...overrides,
   };
 }

@@ -36,6 +36,9 @@ pub async fn build_teacher_course_dashboard_item(
         id: course.id,
         title: course.title,
         lifecycle_status: course.lifecycle_status,
+        description: course.description,
+        topics: course.topics,
+        prerequisites: course.prerequisites,
     })
 }
 

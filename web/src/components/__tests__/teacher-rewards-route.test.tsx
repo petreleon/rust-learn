@@ -50,9 +50,11 @@ function session(): CurrentSession {
 function course(canViewRewards: boolean): TeacherCourseDashboardItem {
   return {
     content: { chapter_count: 1, content_count: 2, content_types: ["article"], has_content: true },
+    description: null,
     id: 9,
     lifecycle_status: "published",
     organizations: [],
+    prerequisites: null,
     permissions: {
       can_approve_reward_candidates: false,
       can_manage_content: true,
@@ -65,6 +67,7 @@ function course(canViewRewards: boolean): TeacherCourseDashboardItem {
     rewards: { active_policy_count: 0, available: false, event_types: [], payment_strategies: [], token_amounts: [] },
     roster: { enrolled_student_count: 1, pending_join_request_count: 0, waitlisted_join_request_count: 0 },
     title: "Rust Safety",
+    topics: null,
   };
 }
 

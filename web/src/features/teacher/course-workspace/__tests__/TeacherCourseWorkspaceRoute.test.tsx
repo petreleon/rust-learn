@@ -3,7 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TeacherRequestError } from "@/lib/teacher/TeacherRequestError";
 import { clearBrowserSession, readBrowserSessionToken } from "@/shared/session/browserSession";
-import { loadTeacherCourseWorkspace } from "../api/courseWorkspaceApi";
+import {
+  loadTeacherCourseWorkspace,
+  saveTeacherCourseLifecycle,
+  saveTeacherCourseSettings,
+} from "../api/courseWorkspaceApi";
 import { TeacherCourseWorkspaceRoute } from "../route/TeacherCourseWorkspaceRoute";
 import { courseWorkspace, courseWorkspaceSession } from "./courseWorkspaceTestFixtures";
 
@@ -19,6 +23,8 @@ vi.mock("@/shared/session/browserSession", () => ({
 
 vi.mock("../api/courseWorkspaceApi", () => ({
   loadTeacherCourseWorkspace: vi.fn(),
+  saveTeacherCourseLifecycle: vi.fn(),
+  saveTeacherCourseSettings: vi.fn(),
 }));
 
 describe("TeacherCourseWorkspaceRoute", () => {
@@ -28,6 +34,22 @@ describe("TeacherCourseWorkspaceRoute", () => {
     vi.mocked(loadTeacherCourseWorkspace).mockResolvedValue({
       session: courseWorkspaceSession(),
       workspace: courseWorkspace(),
+    });
+    vi.mocked(saveTeacherCourseLifecycle).mockResolvedValue({
+      description: "Borrow checking fundamentals.",
+      id: 9,
+      lifecycle_status: "archived",
+      prerequisites: "Rust basics",
+      title: "Rust Safety",
+      topics: "Ownership, borrowing",
+    });
+    vi.mocked(saveTeacherCourseSettings).mockResolvedValue({
+      description: "Advanced ownership.",
+      id: 9,
+      lifecycle_status: "published",
+      prerequisites: "Rust basics",
+      title: "Advanced Rust Safety",
+      topics: "Ownership, traits",
     });
   });
 
@@ -44,7 +66,7 @@ describe("TeacherCourseWorkspaceRoute", () => {
     render(<TeacherCourseWorkspaceRoute courseId="9" />);
 
     expect((await screen.findAllByRole("heading", { name: "Rust Safety" })).length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { name: "Ownership" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Course settings" })).toBeVisible();
     expect(screen.getAllByRole("link", { name: "Open" })[0]).toHaveAttribute(
       "href",
       "/teach/courses/9/content",
@@ -57,11 +79,55 @@ describe("TeacherCourseWorkspaceRoute", () => {
     );
   });
 
+  it("saves course metadata through the feature API boundary", async () => {
+    const user = userEvent.setup();
+    render(<TeacherCourseWorkspaceRoute courseId="9" />);
+
+    await user.clear(await screen.findByLabelText("Title"));
+    await user.type(screen.getByLabelText("Title"), "Advanced Rust Safety");
+    await user.clear(screen.getByLabelText("Description"));
+    await user.type(screen.getByLabelText("Description"), "Advanced ownership.");
+    await user.clear(screen.getByLabelText("Topics"));
+    await user.type(screen.getByLabelText("Topics"), "Ownership, traits");
+    await user.click(screen.getByRole("button", { name: "Save course settings" }));
+
+    await waitFor(() =>
+      expect(saveTeacherCourseSettings).toHaveBeenCalledWith({
+        courseId: "9",
+        draft: {
+          description: "Advanced ownership.",
+          prerequisites: "Rust basics",
+          title: "Advanced Rust Safety",
+          topics: "Ownership, traits",
+        },
+        token: "teacher-token",
+      }),
+    );
+    expect(await screen.findByText("Course settings updated.")).toBeVisible();
+  });
+
+  it("submits lifecycle changes through the feature API boundary", async () => {
+    const user = userEvent.setup();
+    render(<TeacherCourseWorkspaceRoute courseId="9" />);
+
+    await user.selectOptions(await screen.findByLabelText("Lifecycle"), "archived");
+    await user.click(screen.getByRole("button", { name: "Update lifecycle" }));
+
+    await waitFor(() =>
+      expect(saveTeacherCourseLifecycle).toHaveBeenCalledWith({
+        courseId: "9",
+        status: "archived",
+        token: "teacher-token",
+      }),
+    );
+    expect(await screen.findByText("Course lifecycle updated.")).toBeVisible();
+  });
+
   it("clears stored session when signing out", async () => {
     const user = userEvent.setup();
     render(<TeacherCourseWorkspaceRoute courseId="9" />);
 
-    expect(await screen.findByRole("heading", { name: "Ownership" })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "Course settings" })).toBeVisible();
     await user.click(screen.getAllByRole("button", { name: "Sign out" })[0]);
 
     expect(clearBrowserSession).toHaveBeenCalled();

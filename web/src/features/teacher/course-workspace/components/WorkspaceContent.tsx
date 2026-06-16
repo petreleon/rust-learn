@@ -1,21 +1,42 @@
 "use client";
 
-import { ArrowLeft, BookOpen, FileText, ShieldCheck, Trophy, Users } from "lucide-react";
+import { ArrowLeft, BookOpen, FileText, Trophy, Users } from "lucide-react";
 import Link from "next/link";
 import { type TeacherCourseWorkspaceResponse } from "@/lib/teacher/TeacherCourseWorkspaceResponse";
 import { ChapterList } from "@/features/teacher/shared/route-kit/ChapterList";
-import { DetailLine } from "@/features/teacher/shared/route-kit/DetailLine";
 import { PermissionChip } from "@/features/teacher/shared/route-kit/PermissionChip";
 import { SummaryCard } from "@/features/teacher/shared/route-kit/SummaryCard";
 import { statusLabel } from "@/features/teacher/shared/route-kit/statusLabel";
+import { type ActionState } from "@/shared/route-state/ActionState";
 import styles from "@/features/teacher/shared/teacher-routes.module.css";
 import { workspaceSummary } from "../model/workspaceSummary";
+import { type CourseSettingsDraft } from "../model/courseSettingsModel";
+import { CourseSettingsPanel } from "./CourseSettingsPanel";
 import { WorkspaceActionPanel } from "./WorkspaceActionPanel";
 
-export function WorkspaceContent({ workspace }: { workspace: TeacherCourseWorkspaceResponse }) {
+export function WorkspaceContent({
+  courseAction,
+  workspace,
+}: {
+  courseAction: {
+    actionMessage: string | null;
+    actionState: ActionState;
+    submitCourseLifecycle: (status: string) => void;
+    submitCourseSettings: (draft: CourseSettingsDraft) => void;
+  };
+  workspace: TeacherCourseWorkspaceResponse;
+}) {
   const totals = workspaceSummary(workspace);
   const organizationNames =
     workspace.course.organizations.map((organization) => organization.name).join(", ") || "Personal course";
+  const settingsKey = [
+    workspace.course.id,
+    workspace.course.title,
+    workspace.course.lifecycle_status,
+    workspace.course.description,
+    workspace.course.topics,
+    workspace.course.prerequisites,
+  ].join(":");
   const canViewRewards =
     workspace.course.permissions.can_view_reward_candidates ||
     workspace.course.permissions.can_approve_reward_candidates;
@@ -66,21 +87,15 @@ export function WorkspaceContent({ workspace }: { workspace: TeacherCourseWorksp
 
       <section className={styles.twoColumn}>
         <WorkspaceActionPanel workspace={workspace} />
-        <section className={styles.panel}>
-          <div className={styles.panelHeader}>
-            <ShieldCheck size={20} aria-hidden />
-            <h2>Publication and ownership</h2>
-          </div>
-          <div className={styles.detailList}>
-            <DetailLine label="Lifecycle" value={statusLabel(workspace.publication.course_lifecycle_status)} />
-            <DetailLine label="Teacher roles" value={workspace.teacher_roles.join(", ") || "Delegated permission"} />
-            <DetailLine label="Organizations" value={organizationNames} />
-            <DetailLine
-              label="Per-content publication"
-              value={workspace.publication.content_publication_status_supported ? "Supported" : "Inherited from course"}
-            />
-          </div>
-        </section>
+        <CourseSettingsPanel
+          actionMessage={courseAction.actionMessage}
+          actionState={courseAction.actionState}
+          key={settingsKey}
+          onLifecycleSubmit={courseAction.submitCourseLifecycle}
+          onSettingsSubmit={courseAction.submitCourseSettings}
+          organizationNames={organizationNames}
+          workspace={workspace}
+        />
       </section>
 
       <section className={styles.courseSection}>
