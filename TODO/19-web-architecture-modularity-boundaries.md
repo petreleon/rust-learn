@@ -108,8 +108,10 @@ Progress:
   components while keeping the old content path as a compatibility export.
 - [x] Split organization course directory content into feature-owned
   components while keeping the old content path as a compatibility export.
-- [x] Current architecture scan reports 47 dense-line findings after the
-  organization course content cleanup.
+- [x] Split organization reward reports content into feature-owned
+  components while keeping the old content path as a compatibility export.
+- [x] Current architecture scan reports 46 dense-line findings after the
+  organization reports content cleanup.
 
 Latest pilot proof:
 
