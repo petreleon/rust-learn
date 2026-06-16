@@ -1,6 +1,7 @@
 use crate::support::*;
 use actix_web::{web, App};
 use rust_learn::application::wallet::audit_wallet::WalletAuditUseCase;
+use rust_learn::application::wallet::burn_tokens::TokenBurnUseCase;
 use rust_learn::application::wallet::create_deposit_intent::WalletDepositIntentUseCase;
 use rust_learn::application::wallet::link_wallet::WalletLinkUseCase;
 use rust_learn::application::wallet::manage_token_tax::WalletTokenTaxUseCase;
@@ -10,6 +11,7 @@ use rust_learn::infra::postgres::access_control::{
     organization_role_records, platform_role_records, role_catalog_store,
 };
 use rust_learn::infra::postgres::wallet::wallet_audit_use_case::PostgresWalletAuditUseCase;
+use rust_learn::infra::postgres::wallet::wallet_burn_use_case::PostgresTokenBurnUseCase;
 use rust_learn::infra::postgres::wallet::wallet_deposit_intent_use_case::PostgresWalletDepositIntentUseCase;
 use rust_learn::infra::postgres::wallet::wallet_link_use_case::PostgresWalletLinkUseCase;
 use rust_learn::infra::postgres::wallet::wallet_read_use_case::PostgresWalletReadUseCase;
@@ -119,6 +121,8 @@ pub(crate) fn wallet_test_app(
 > {
     let wallet_audit_use_case: Arc<dyn WalletAuditUseCase> =
         Arc::new(PostgresWalletAuditUseCase::new(pool.clone()));
+    let token_burn_use_case: Arc<dyn TokenBurnUseCase> =
+        Arc::new(PostgresTokenBurnUseCase::new(pool.clone()));
     let wallet_deposit_intent_use_case: Arc<dyn WalletDepositIntentUseCase> =
         Arc::new(PostgresWalletDepositIntentUseCase::new(pool.clone()));
     let wallet_link_use_case: Arc<dyn WalletLinkUseCase> =
@@ -133,6 +137,7 @@ pub(crate) fn wallet_test_app(
     App::new()
         .app_data(web::Data::new(pool))
         .app_data(web::Data::new(wallet_audit_use_case))
+        .app_data(web::Data::new(token_burn_use_case))
         .app_data(web::Data::new(wallet_deposit_intent_use_case))
         .app_data(web::Data::new(wallet_link_use_case))
         .app_data(web::Data::new(wallet_read_use_case))

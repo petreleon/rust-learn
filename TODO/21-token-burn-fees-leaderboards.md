@@ -1,9 +1,9 @@
 # TODO 21: Allowance-Based Token Burns, Fees, and Burner Leaderboards
 
 Created: 2026-06-16.
-Status: in progress.
+Status: complete.
 
-Implementation status checked before first push:
+Implementation status checked before final push:
 
 - [x] Backend migration adds burn requests, burn fee records, and immutable
   leaderboard events.
@@ -31,6 +31,9 @@ Implementation status checked before first push:
   across user, organization, and admin wallet routes.
 - [x] Reconciliation/admin failure handling exposes admin-only queue, failed
   burn inspection, and idempotent leaderboard repair routes.
+- [x] HTTP route tests cover fee-path validation and burn permission mapping.
+- [x] Docker Compose blockchain integration tests prove `burn` and `burnFrom`
+  allowance semantics.
 
 Objective: replace owner-arbitrary token burning with allowance-based burns and
 add rolling leaderboards for users and organizations that burn LearnToken.
@@ -160,13 +163,13 @@ Infra/Postgres:
 HTTP:
 
 - User routes:
-  `POST /api/wallet/burns`
-  `GET /api/wallet/burns`
-  `GET /api/wallet/burns/leaderboard?window=7d|30d|365d`
+  `POST /api/wallets/me/burns`
+  `GET /api/wallets/me/burns`
+  `GET /api/wallets/burns/leaderboard?window=7d|30d|365d`
 - Organization routes:
-  `POST /api/organizations/{id}/wallet/burns`
-  `GET /api/organizations/{id}/wallet/burns`
-  `GET /api/organizations/{id}/wallet/burns/permissions`
+  `POST /api/wallets/organizations/{id}/burns`
+  `GET /api/wallets/organizations/{id}/burns`
+  `GET /api/wallets/organizations/{id}/burns/permissions`
 - Platform/admin routes:
   reconciliation and failed burn inspection only.
 

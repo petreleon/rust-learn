@@ -24,7 +24,7 @@ test-compose: ## Run tests through Docker Compose service networking
 
 test-integration: ## Run integration tests
 	$(DOCKER_COMPOSE) up -d anvil
-	$(DOCKER_COMPOSE) --profile test run --rm --no-deps test-runner cargo test --test blockchain_integration_tests -- --ignored
+	$(DOCKER_COMPOSE) --profile test run --rm --no-deps test-runner cargo test --test blockchain_integration_tests $(CARGO_TEST_ARGS) -- --ignored
 
 preflight: ## Run standard static, frontend, manifest, and runtime smoke checks
 	$(MAKE) fmt

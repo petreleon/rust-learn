@@ -14,6 +14,8 @@ mod platform_paid_tax_helpers;
 mod platform_paid_transfer_helpers;
 #[path = "wallet_linking/support.rs"]
 mod support;
+#[path = "wallet_linking/token_burn_http_routes_validate_fee_and_permissions.rs"]
+mod token_burn_http_routes_validate_fee_and_permissions;
 #[path = "wallet_linking/user_can_link_and_read_own_wallet_idempotently.rs"]
 mod user_can_link_and_read_own_wallet_idempotently;
 #[path = "wallet_linking/wallet_audit_view_includes_reward_transactions_and_reconciliation_status.rs"]
