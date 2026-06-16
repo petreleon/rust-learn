@@ -823,6 +823,11 @@ Current evidence:
 - Teacher and organization course routes now translate backend
   `course_not_found` responses into clear deleted-course product messages
   without treating the user's session as expired.
+- Combined course-operator coverage has been rechecked: teacher route tests
+  cover course creation, metadata edits, and lifecycle updates; organization
+  route tests cover organization-owned course creation, selected-course edits,
+  and lifecycle updates; backend tests cover organization course creation
+  permissions and teacher lifecycle transitions.
 
 Needed:
 
@@ -843,7 +848,7 @@ Checks:
   assign roles without using `/ops`.
 - [x] Platform admins can see persisted role-assignment audit history without
   using `/ops`.
-- [ ] Teacher or organization operators with the right permissions can create a
+- [x] Teacher or organization operators with the right permissions can create a
   course, edit course metadata, and move lifecycle status through valid
   transitions.
 - [x] Teacher course workspace can edit persisted course metadata and submit
