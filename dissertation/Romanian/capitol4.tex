@@ -30,34 +30,37 @@ Cerințele funcționale principale sunt:
 Cerințele nefuncționale sunt la fel de importante ca funcțiile vizibile. Platforma trebuie să fie sigură, deoarece gestionează identitate, portofele și permisiuni. Trebuie să fie auditabilă, deoarece recompensele pot avea valoare economică și pot genera dispute. Trebuie să fie extensibilă, deoarece fluxurile educaționale și regulile de recompensare pot evolua. Trebuie să fie operabilă, adică să poată fi rulată local, testată, migrată și monitorizată. De asemenea, trebuie să fie rezilientă la eșecuri parțiale: o tranzacție blockchain eșuată nu trebuie să producă dublă creditare, iar un eșec de procesare video nu trebuie să blocheze API-ul.
 
 \section{Arhitectura de ansamblu}
-Figura \ref{fig:arhitectura_generala} prezintă arhitectura de ansamblu. Browserul comunică cu aplicația Next.js, iar aceasta consumă API-ul Actix Web. Backend-ul aplică middleware de autentificare și permisiuni, apoi direcționează cererile către cazuri de utilizare. Cazurile de utilizare lucrează cu reguli de domeniu și adaptoare de infrastructură. PostgreSQL păstrează starea aplicației, S3 păstrează obiectele media, iar Ethereum păstrează tokenul și evenimentele on-chain. Worker-ul preia sarcini din bază de date și interacționează cu S3 și Ethereum fără a bloca cererile utilizatorilor.
+Figura \ref{fig:arhitectura_generala} prezintă arhitectura de ansamblu. Browserul comunică cu aplicația Next.js, iar aceasta consumă API-ul Actix Web. Backend-ul aplică JWT și acces condițional, apoi direcționează cererile către cazuri de utilizare compuse în \texttt{AppState}. Cazurile de utilizare folosesc reguli de domeniu și adaptoare pentru PostgreSQL, S3 și Ethereum. Worker-ul este un proces separat: revendică joburi de încărcare din PostgreSQL, procesează media prin S3 și rulează indexerul de depozite fără a bloca API-ul.
 
 \begin{figure}[H]
     \centering
     \resizebox{\textwidth}{!}{%
-    \begin{tikzpicture}[node distance=1.7cm, every node/.style={font=\small}, bloc/.style={rectangle, rounded corners, draw=black, fill=gray!8, align=center, minimum width=3cm, minimum height=0.95cm}, store/.style={cylinder, shape border rotate=90, draw=black, fill=blue!8, align=center, minimum height=1.1cm, minimum width=1.4cm}, sageata/.style={-{Latex[length=2.2mm]}, thick}]
+    \begin{tikzpicture}[node distance=1.05cm and 1.25cm, every node/.style={font=\scriptsize}, bloc/.style={rectangle, rounded corners, draw=black, fill=gray!8, align=center, minimum width=2.75cm, minimum height=0.8cm}, store/.style={cylinder, shape border rotate=90, draw=black, fill=blue!8, align=center, minimum height=1.05cm, minimum width=1.35cm}, sageata/.style={-{Latex[length=2mm]}, thick}]
         \node[bloc] (browser) {Browser};
         \node[bloc, right=of browser] (web) {Next.js\\frontend};
-        \node[bloc, right=of web] (api) {Actix Web\\API};
-        \node[bloc, below=of api] (app) {Cazuri de utilizare\\aplicație};
-        \node[bloc, below=of app] (domain) {Reguli de\\domeniu};
-        \node[bloc, right=of app] (infra) {Adaptoare\\infrastructură};
-        \node[store, right=of infra] (pg) {PostgreSQL};
-        \node[store, below=of pg] (s3) {S3};
-        \node[store, above=of pg] (eth) {Ethereum};
-        \node[bloc, below=of infra] (worker) {Worker\\video și indexer};
+        \node[bloc, right=of web] (api) {Actix Web\\API /api};
+        \node[bloc, below=of api] (mw) {JWT + acces\\condițional};
+        \node[bloc, below=of mw] (app) {Cazuri de utilizare\\learning, rewards, wallet};
+        \node[bloc, below=of app] (domain) {Reguli de domeniu\\stări și invariante};
+        \node[bloc, right=of app] (infra) {Adaptoare\\PostgreSQL, S3, Ethereum};
+        \node[store, right=of infra] (pg) {PostgreSQL\\stare, audit, joburi};
+        \node[store, above=of pg] (s3) {S3\\media};
+        \node[store, below=of pg] (eth) {Ethereum\\LearnToken};
+        \node[bloc, below=of infra] (worker) {Worker\\upload jobs + indexer};
         \draw[sageata] (browser) -- (web);
         \draw[sageata] (web) -- (api);
-        \draw[sageata] (api) -- (app);
+        \draw[sageata] (api) -- (mw);
+        \draw[sageata] (mw) -- (app);
         \draw[sageata] (app) -- (domain);
         \draw[sageata] (app) -- (infra);
         \draw[sageata] (infra) -- (pg);
         \draw[sageata] (infra) -- (s3);
         \draw[sageata] (infra) -- (eth);
-        \draw[sageata] (worker) -- (infra);
-        \draw[sageata] (pg) -- (worker);
+        \draw[sageata] (worker) -- (pg);
+        \draw[sageata] (worker) -- (s3);
+        \draw[sageata] (worker) -- (eth);
     \end{tikzpicture}}
-    \caption{Arhitectura generală RustLearn (elaborare proprie).}
+    \caption{Arhitectura operațională RustLearn (elaborare proprie).}
     \label{fig:arhitectura_generala}
 \end{figure}
 
@@ -86,60 +89,67 @@ Această separare este valoroasă deoarece împiedică amestecarea logicii de bu
 \section{Modelul de permisiuni}
 Modelul de permisiuni este unul dintre elementele care dau valoare arhitecturii. RustLearn nu se limitează la roluri globale. Există roluri de platformă, roluri de organizație și roluri de curs. De exemplu, un utilizator poate avea permisiunea \texttt{VIEW\_COURSE} într-un curs, \texttt{MANAGE\_ORG\_MEMBERS} într-o organizație și nicio permisiune administrativă la nivel de platformă. Middleware-urile specializate verifică aceste scopuri înainte ca operațiile sensibile să fie executate.
 
-Figura \ref{fig:permisiuni} prezintă modelul conceptual. Permisiunea efectivă este rezultatul combinației dintre identitatea utilizatorului, rolurile directe, rolurile pe organizație, rolurile pe curs și eventualele permisiuni delegate. Acest model permite administrare fină și reduce riscul ca un actor să primească privilegii mai largi decât sunt necesare.
+Figura \ref{fig:permisiuni} prezintă verificarea reală folosită de sistem. O cerere protejată este transformată într-un actor, o acțiune și un scop. Serviciul de decizie verifică mai întâi rolurile și tabelele \texttt{role\_permission} pentru scopul cererii, apoi delegările active din \texttt{delegated\_permissions}. Acest model permite administrare fină și reduce riscul ca un actor să primească privilegii mai largi decât sunt necesare.
 
 \begin{figure}[H]
     \centering
-    \resizebox{0.86\textwidth}{!}{%
-    \begin{tikzpicture}[node distance=1.5cm, every node/.style={font=\small}, bloc/.style={rectangle, rounded corners, draw=black, fill=gray!10, align=center, minimum width=3.3cm, minimum height=0.95cm}, sageata/.style={-{Latex[length=2.2mm]}, thick}]
-        \node[bloc] (user) {Utilizator};
-        \node[bloc, below left=of user] (platforma) {Roluri\\platformă};
-        \node[bloc, below=of user] (org) {Roluri\\organizație};
-        \node[bloc, below right=of user] (curs) {Roluri\\curs};
-        \node[bloc, below=of org] (delegari) {Permisiuni\\delegate};
-        \node[bloc, below=of delegari, fill=blue!8] (efective) {Permisiuni efective\\pentru o cerere};
-        \draw[sageata] (user) -- (platforma);
-        \draw[sageata] (user) -- (org);
-        \draw[sageata] (user) -- (curs);
-        \draw[sageata] (platforma) |- (efective);
-        \draw[sageata] (org) -- (delegari);
-        \draw[sageata] (curs) |- (efective);
-        \draw[sageata] (delegari) -- (efective);
+    \resizebox{0.92\textwidth}{!}{%
+    \begin{tikzpicture}[node distance=1.25cm and 1.55cm, every node/.style={font=\scriptsize}, bloc/.style={rectangle, rounded corners, draw=black, fill=gray!10, align=center, minimum width=3.1cm, minimum height=0.8cm}, sageata/.style={-{Latex[length=2mm]}, thick}]
+        \node[bloc] (cerere) {Cerere protejată\\actor + acțiune + scop};
+        \node[bloc, below=of cerere, fill=blue!8] (decizie) {AccessDecision\\\texttt{can} / \texttt{can\_any}};
+        \node[bloc, left=of decizie] (roluri) {Roluri pe scop\\+ \texttt{role\_permission}};
+        \node[bloc, right=of decizie] (delegari) {Delegări active\\\texttt{delegated\_permissions}};
+        \node[bloc, below=of decizie, fill=green!8] (rezultat) {Permis sau refuzat\\pentru cererea curentă};
+        \node[bloc, below=of rezultat] (aplicare) {Middleware\\sau caz de utilizare};
+        \draw[sageata] (cerere) -- (decizie);
+        \draw[sageata] (roluri) -- (decizie);
+        \draw[sageata] (delegari) -- (decizie);
+        \draw[sageata] (decizie) -- (rezultat);
+        \draw[sageata] (rezultat) -- (aplicare);
     \end{tikzpicture}}
-    \caption{Model conceptual al permisiunilor pe scopuri (elaborare proprie).}
+    \caption{Verificarea permisiunilor pe scopuri în RustLearn (elaborare proprie).}
     \label{fig:permisiuni}
 \end{figure}
 
 \section{Fluxul de recompensare}
 Fluxul de recompensare este proiectat ca un proces auditat. Un eveniment educațional creează un candidat la recompensă. Profesorul sau sistemul verifică evenimentul, platforma poate aproba suma, apoi se planifică plata, se înregistrează confirmarea tokenului, se creditează portofelul intern, se trimite notificarea și se rulează reconcilierea. Această succesiune previne dublarea recompenselor și permite intervenție umană atunci când apar erori sau suspiciuni.
 
-Figura \ref{fig:reward_lifecycle} prezintă stările principale ale fluxului. Unele etape pot fi automate, iar altele pot necesita aprobare. Valoarea arhitecturii constă în faptul că fiecare tranziție are un motiv și poate fi auditată. Dacă tranzacția blockchain este confirmată, dar creditarea portofelului intern eșuează, sistemul nu trimite încă o tranzacție. Reconcilierea pornește de la starea confirmată și completează etapa lipsă.
+Figura \ref{fig:reward_lifecycle} prezintă stările principale definite în cod pentru un candidat la recompensă. Fluxul real separă aprobarea profesorului de aprobarea sumei, permite respingerea în ambele puncte și păstrează două căi de creditare: confirmare token urmată de portofel sau creditare directă după aprobarea sumei. Orice stare poate ajunge în \texttt{failed}, iar reconcilierea repară etapa lipsă fără a dubla recompensa.
 
 \begin{figure}[H]
     \centering
     \resizebox{\textwidth}{!}{%
-    \begin{tikzpicture}[node distance=1.2cm, every node/.style={font=\scriptsize}, stare/.style={rectangle, rounded corners, draw=black, fill=green!8, align=center, minimum width=2.3cm, minimum height=0.8cm}, sageata/.style={-{Latex[length=2mm]}, thick}]
-        \node[stare] (candidate) {candidat};
-        \node[stare, right=of candidate] (approved) {aprobat};
-        \node[stare, right=of approved] (pending) {token\\în așteptare};
-        \node[stare, right=of pending] (confirmed) {token\\confirmat};
-        \node[stare, right=of confirmed] (credited) {portofel\\creditat};
-        \node[stare, right=of credited] (notified) {notificat};
+    \begin{tikzpicture}[node distance=0.75cm and 0.7cm, every node/.style={font=\scriptsize}, stare/.style={rectangle, rounded corners, draw=black, fill=green!8, align=center, minimum width=1.9cm, minimum height=0.75cm}, sageata/.style={-{Latex[length=1.8mm]}, thick}]
+        \node[stare] (pending_teacher) {așteaptă\\profesor};
+        \node[stare, right=of pending_teacher] (teacher_ok) {aprobat\\profesor};
+        \node[stare, right=of teacher_ok] (amount_ok) {sumă\\aprobată};
+        \node[stare, right=of amount_ok] (token_pending) {token\\în așteptare};
+        \node[stare, right=of token_pending] (token_ok) {token\\confirmat};
+        \node[stare, right=of token_ok] (wallet) {portofel\\creditat};
+        \node[stare, right=of wallet] (notified) {notificat};
         \node[stare, right=of notified] (completed) {finalizat};
-        \node[stare, below=1.2cm of approved, fill=red!8] (rejected) {respins};
-        \node[stare, below=1.2cm of confirmed, fill=yellow!18] (recon) {necesită\\reconciliere};
-        \draw[sageata] (candidate) -- (approved);
-        \draw[sageata] (approved) -- (pending);
-        \draw[sageata] (pending) -- (confirmed);
-        \draw[sageata] (confirmed) -- (credited);
-        \draw[sageata] (credited) -- (notified);
+        \node[stare, below=0.95cm of pending_teacher, fill=red!8] (teacher_no) {respins\\profesor};
+        \node[stare, below=0.95cm of teacher_ok, fill=red!8] (amount_no) {sumă\\respinsă};
+        \node[stare, below=0.95cm of token_ok, fill=yellow!18] (recon) {necesită\\reconciliere};
+        \node[stare, below=0.95cm of amount_ok, fill=red!12] (failed) {eșuat};
+        \draw[sageata] (pending_teacher) -- (teacher_ok);
+        \draw[sageata] (teacher_ok) -- (amount_ok);
+        \draw[sageata] (amount_ok) -- (token_pending);
+        \draw[sageata] (token_pending) -- (token_ok);
+        \draw[sageata] (token_ok) -- (wallet);
+        \draw[sageata] (wallet) -- (notified);
         \draw[sageata] (notified) -- (completed);
-        \draw[sageata] (candidate) -- (rejected);
-        \draw[sageata] (pending) -- (recon);
-        \draw[sageata] (confirmed) -- (recon);
-        \draw[sageata] (recon) -- (credited);
+        \draw[sageata] (pending_teacher) -- (teacher_no);
+        \draw[sageata] (teacher_ok) -- (amount_no);
+        \draw[sageata, dashed] (amount_ok) to[bend right=24] node[below]{credit direct} (wallet);
+        \draw[sageata, dashed] (amount_ok) -- (recon);
+        \draw[sageata, dashed] (token_ok) -- (recon);
+        \draw[sageata, dashed] (wallet) -- (recon);
+        \draw[sageata] (recon) -- (wallet);
+        \draw[sageata, dashed] (amount_ok) -- node[right]{eroare} (failed);
+        \draw[sageata, dashed] (token_pending) -- (failed);
     \end{tikzpicture}}
-    \caption{Fluxul de stări pentru recompensa LearnToken (elaborare proprie).}
+    \caption{Fluxul real de stări pentru recompensa LearnToken (elaborare proprie).}
     \label{fig:reward_lifecycle}
 \end{figure}
 

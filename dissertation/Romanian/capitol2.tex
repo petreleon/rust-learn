@@ -17,22 +17,24 @@ Gamificarea reprezintă utilizarea elementelor inspirate din jocuri în contexte
 
 Mecanismele de recompensare trebuie proiectate atent. Un sistem bazat exclusiv pe puncte poate produce comportamente superficiale, în care utilizatorul optimizează pentru recompensă, nu pentru înțelegere. Cercetările privind învățarea online arată importanța angajamentului, a participării și a feedback-ului în menținerea activității educaționale \cite{paans2018,martin2018engagement,hrastinski2009diversity}. De aceea, recompensele trebuie legate de evenimente educaționale durabile: finalizarea unei evaluări, promovarea unui test, parcurgerea verificabilă a unui curs sau aprobarea manuală a unei activități relevante.
 
-Figura \ref{fig:motivatie_recompensa} prezintă relația dintre activitatea de învățare și recompensa tokenizată. Elementul central este verificarea. Activitatea produce dovezi, dovezile sunt evaluate prin reguli și prin decizii autorizate, iar recompensa este acordată numai dacă rezultatul este valid. Astfel, gamificarea nu înlocuiește evaluarea, ci o face mai vizibilă și mai motivantă.
+Figura \ref{fig:motivatie_recompensa} prezintă relația dintre activitatea de învățare și recompensa tokenizată. Elementul central este candidatul la recompensă, nu transferul direct de tokenuri. Activitatea produce dovezi, dovezile sunt transformate într-un candidat verificabil, iar deciziile profesorului și ale platformei stabilesc dacă portofelul poate fi creditat. Astfel, gamificarea nu înlocuiește evaluarea, ci o face mai vizibilă și mai motivantă.
 
 \begin{figure}[H]
     \centering
     \resizebox{0.94\textwidth}{!}{%
-    \begin{tikzpicture}[node distance=2.2cm, every node/.style={font=\small}, etapa/.style={rectangle, rounded corners, draw=black, fill=gray!10, align=center, minimum width=3.2cm, minimum height=1cm}, decizie/.style={diamond, draw=black, fill=blue!8, align=center, aspect=2.2, inner sep=1pt}, sageata/.style={-{Latex[length=2.4mm]}, thick}]
+    \begin{tikzpicture}[node distance=1.35cm, every node/.style={font=\scriptsize}, etapa/.style={rectangle, rounded corners, draw=black, fill=gray!10, align=center, minimum width=2.7cm, minimum height=0.85cm}, decizie/.style={diamond, draw=black, fill=blue!8, align=center, aspect=2.15, inner sep=1pt}, sageata/.style={-{Latex[length=2.2mm]}, thick}]
         \node[etapa] (invatare) {Activitate\\educațională};
-        \node[etapa, right=of invatare] (dovezi) {Dovezi de progres\\lecții, teste, curs};
-        \node[decizie, right=of dovezi] (validare) {Validare\\eligibilitate};
-        \node[etapa, right=of validare] (recompensa) {Recompensă\\LearnToken};
-        \node[etapa, below=1.4cm of validare] (audit) {Audit, raportare\\și reconciliere};
+        \node[etapa, right=of invatare] (dovezi) {Dovezi\\evaluare/progres};
+        \node[etapa, right=of dovezi] (candidat) {Candidat\\recompensă};
+        \node[decizie, right=of candidat] (validare) {Profesor +\\platformă};
+        \node[etapa, right=of validare] (portofel) {Portofel\\LearnToken};
+        \node[etapa, below=1.1cm of candidat] (audit) {Audit, idempotență\\și reconciliere};
         \draw[sageata] (invatare) -- (dovezi);
-        \draw[sageata] (dovezi) -- (validare);
-        \draw[sageata] (validare) -- node[above]{aprobat} (recompensa);
-        \draw[sageata] (validare) -- node[right]{urme} (audit);
-        \draw[sageata] (recompensa) |- (audit);
+        \draw[sageata] (dovezi) -- (candidat);
+        \draw[sageata] (candidat) -- (validare);
+        \draw[sageata] (validare) -- node[above]{aprobat} (portofel);
+        \draw[sageata] (candidat) -- (audit);
+        \draw[sageata] (portofel) |- (audit);
     \end{tikzpicture}}
     \caption{Legătura dintre învățare, validare și recompensă tokenizată (elaborare proprie).}
     \label{fig:motivatie_recompensa}

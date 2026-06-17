@@ -21,30 +21,33 @@ Al patrulea caz de utilizare este administrarea organizațională. O organizați
 \end{table}
 
 \section{Fluxul de finalizare a unui curs recompensat}
-Fluxul de finalizare a unui curs recompensat este reprezentativ pentru arhitectură deoarece traversează mai multe domenii. Cursantul finalizează lecțiile și promovează evaluarea. Domeniul de învățare înregistrează progresul și determină dacă termenii de finalizare sunt îndepliniți. Domeniul de recompense primește un eveniment eligibil și creează un candidat cu cheie de idempotență. Profesorul poate confirma sau respinge candidatul, iar platforma poate aproba suma. Abia apoi se planifică plata și se leagă tranzacția tokenizată de portofel.
+Fluxul de finalizare a unui curs recompensat este reprezentativ pentru arhitectură deoarece traversează mai multe domenii. În implementarea curentă, handoff-ul pornește după o evaluare promovată. Domeniul de învățare salvează încercarea, calculează scorul și transmite domeniului de recompense evenimentul \texttt{assessment\_completion}. Dacă există o politică activă, se creează sau se reutilizează un candidat cu cheie de idempotență. Dacă politica lipsește, răspunsul este \texttt{missing\_policy}, fără candidat nou.
 
 \begin{figure}[H]
     \centering
     \resizebox{\textwidth}{!}{%
-    \begin{tikzpicture}[node distance=1.25cm, every node/.style={font=\scriptsize}, bloc/.style={rectangle, rounded corners, draw=black, fill=gray!10, align=center, minimum width=2.65cm, minimum height=0.8cm}, sageata/.style={-{Latex[length=2mm]}, thick}]
+    \begin{tikzpicture}[node distance=1.0cm and 0.95cm, every node/.style={font=\scriptsize}, bloc/.style={rectangle, rounded corners, draw=black, fill=gray!10, align=center, minimum width=2.25cm, minimum height=0.78cm}, sageata/.style={-{Latex[length=1.8mm]}, thick}]
         \node[bloc] (learner) {Cursant};
-        \node[bloc, right=of learner] (learning) {Caz de utilizare\\învățare};
-        \node[bloc, right=of learning] (candidate) {Candidat\\recompensă};
+        \node[bloc, right=of learner] (attempt) {Evaluare\\promovată};
+        \node[bloc, right=of attempt] (handoff) {Handoff\\recompensă};
+        \node[bloc, right=of handoff, fill=green!8] (candidate) {Candidat\\așteaptă profesor};
         \node[bloc, right=of candidate] (teacher) {Decizie\\profesor};
-        \node[bloc, right=of teacher] (platform) {Aprobare\\platformă};
-        \node[bloc, below=of platform] (token) {Tranzacție\\token};
-        \node[bloc, left=of token] (wallet) {Creditare\\portofel};
-        \node[bloc, left=of wallet] (audit) {Audit și\\notificare};
-        \draw[sageata] (learner) -- (learning);
-        \draw[sageata] (learning) -- (candidate);
+        \node[bloc, right=of teacher] (amount) {Decizie\\sumă};
+        \node[bloc, below=of amount] (payout) {Token sau\\credit direct};
+        \node[bloc, left=of payout] (wallet) {Portofel\\creditat};
+        \node[bloc, left=of wallet] (audit) {Audit, notificare\\reconciliere};
+        \node[bloc, below=of handoff, fill=yellow!18] (missing) {\texttt{missing\_policy}\\fără candidat};
+        \draw[sageata] (learner) -- (attempt);
+        \draw[sageata] (attempt) -- (handoff);
+        \draw[sageata] (handoff) -- (candidate);
+        \draw[sageata] (handoff) -- (missing);
         \draw[sageata] (candidate) -- (teacher);
-        \draw[sageata] (teacher) -- (platform);
-        \draw[sageata] (platform) -- (token);
-        \draw[sageata] (token) -- (wallet);
+        \draw[sageata] (teacher) -- (amount);
+        \draw[sageata] (amount) -- (payout);
+        \draw[sageata] (payout) -- (wallet);
         \draw[sageata] (wallet) -- (audit);
-        \draw[sageata] (audit) |- (learner);
     \end{tikzpicture}}
-    \caption{Fluxul finalizării unui curs recompensat (elaborare proprie).}
+    \caption{Fluxul real al handoff-ului de recompensă după o evaluare promovată (elaborare proprie).}
     \label{fig:flux_curs_recompensat}
 \end{figure}
 
