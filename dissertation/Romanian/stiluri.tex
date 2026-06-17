@@ -1,7 +1,18 @@
+\usepackage{iftex}
+\ifPDFTeX
+    \usepackage{cmap}
+    \usepackage[T1]{fontenc}
+    \usepackage[utf8]{inputenc}
+    \usepackage{newtxtext}
+\else
+    \usepackage{fontspec}
+    \defaultfontfeatures{Ligatures=TeX}
+    \IfFontExistsTF{Times New Roman}
+        {\setmainfont{Times New Roman}}
+        {\setmainfont{TeX Gyre Termes}}
+\fi
 \usepackage{graphicx}
-\usepackage[utf8]{inputenc}
 \usepackage[a4paper,left=2.5cm,right=2cm,top=2.5cm,bottom=2cm]{geometry}
-\usepackage{times}
 \usepackage{tocloft}
 \usepackage{setspace}
 \usepackage{titlesec}

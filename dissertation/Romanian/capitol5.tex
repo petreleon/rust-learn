@@ -1,7 +1,7 @@
 \chapter{Implementarea platformei}
 
 \section{Pornirea aplicației și compunerea stării}
-Implementarea backend-ului pornește de la un entrypoint subțire. Fișierul \texttt{src/main.rs} inițializează variabilele de mediu, logging-ul, starea aplicației și serverul Actix Web. Detaliile concrete de conectare la baza de date, S3, Ethereum și use case-uri sunt mutate în stratul \texttt{bootstrap}. Această decizie menține punctul de intrare ușor de citit și face ca inițializarea să poată fi testată sau refactorizată fără a modifica rutele HTTP.
+Implementarea backend-ului pornește de la un entrypoint subțire. Fișierul \texttt{src/main.rs} inițializează variabilele de mediu, logging-ul, starea aplicației și serverul Actix Web. Detaliile concrete de conectare la baza de date, S3, Ethereum și cazurile de utilizare sunt mutate în stratul \texttt{bootstrap}. Această decizie menține punctul de intrare ușor de citit și face ca inițializarea să poată fi testată sau refactorizată fără a modifica rutele HTTP.
 
 \begin{lstlisting}[style=cod,caption={Structura simplificată a pornirii serverului RustLearn.},label={lst:pornire}]
 let app_state = bootstrap::startup::initialize_app_state().await?;
@@ -15,15 +15,15 @@ HttpServer::new(move || {
 .await
 \end{lstlisting}
 
-Starea aplicației include pool-ul PostgreSQL, starea S3, use case-urile pentru controlul accesului, conținut, identitate, KYC, învățare, notificări, organizații, raportare, recompense, aplicații de profesor și portofele. Această compunere este importantă pentru că API-ul nu creează dependențe ad-hoc în fiecare handler. În schimb, handler-ul primește dependența deja configurată, iar testarea poate înlocui porturile cu implementări controlate.
+Starea aplicației include pool-ul PostgreSQL, starea S3, cazurile de utilizare pentru controlul accesului, conținut, identitate, KYC, învățare, notificări, organizații, raportare, recompense, aplicații de profesor și portofele. Această compunere este importantă pentru că API-ul nu creează dependențe ad-hoc în fiecare gestionar de rută. În schimb, gestionarul de rută primește dependența deja configurată, iar testarea poate înlocui porturile cu implementări controlate.
 
 \section{API-ul și middleware-ul}
 API-ul este expus sub \texttt{/api}. Scope-ul principal este protejat prin middleware JWT și middleware condițional. Rutele sunt configurate pe module: identitate, notificări, învățare, organizații, raportare, KYC, recompense, control acces, aplicații profesor și portofele. Această organizare reflectă domeniile sistemului și permite adăugarea de funcții noi fără a transforma fișierul principal de rute într-o listă greu de administrat.
 
-Autentificarea cu JWT permite cererilor să transporte identitatea utilizatorului. Verificările de permisiuni sunt aplicate ulterior, în funcție de resursa accesată. De exemplu, o rută de recompense la nivel de curs trebuie să verifice permisiuni de curs, iar o rută de fraud block la nivel de platformă trebuie să verifice permisiuni de platformă. Această diferențiere este importantă deoarece același utilizator poate avea autoritate într-un context și niciun drept în altul.
+Autentificarea cu JWT permite cererilor să transporte identitatea utilizatorului. Verificările de permisiuni sunt aplicate ulterior, în funcție de resursa accesată. De exemplu, o rută de recompense la nivel de curs trebuie să verifice permisiuni de curs, iar o rută de blocaj antifraudă la nivel de platformă trebuie să verifice permisiuni de platformă. Această diferențiere este importantă deoarece același utilizator poate avea autoritate într-un context și niciun drept în altul.
 
-\section{Identitate, parole și verificare email}
-Fluxurile de identitate includ înregistrarea, autentificarea, politica de parolă, verificarea emailului, resetarea parolei și expunerea cheii publice prin JWKS. Politica de parolă solicită lungime minimă și diversitate de caractere, ceea ce reduce riscul unor parole triviale. Emailul de verificare este în prezent simulat local prin mesaje de dezvoltare, dar modelul aplicației separă deja generarea tokenului de transportul efectiv, permițând integrarea viitoare a unui furnizor real de email.
+\section{Identitate, parole și verificare e-mail}
+Fluxurile de identitate includ înregistrarea, autentificarea, politica de parolă, verificarea e-mailului, resetarea parolei și expunerea cheii publice prin JWKS. Politica de parolă solicită lungime minimă și diversitate de caractere, ceea ce reduce riscul unor parole triviale. E-mailul de verificare este în prezent simulat local prin mesaje de dezvoltare, dar modelul aplicației separă deja generarea tokenului de transportul efectiv, permițând integrarea viitoare a unui furnizor real de e-mail.
 
 Expunerea JWKS este utilă pentru verificarea externă a tokenurilor. În loc ca toate componentele să cunoască cheia privată, aplicația poate publica cheia publică pentru validare. Cheile private rămân în variabile de mediu și nu sunt comise în repository. Această separare respectă principiul că secretele operaționale nu trebuie să fie parte din codul sursă.
 
@@ -38,17 +38,17 @@ Organizațiile permit gestionarea unor programe educaționale cu membri, cursuri
 Implementarea include audit pentru deciziile privind aplicațiile de profesor. Fiecare schimbare de status poate fi urmărită, iar interfața frontend poate afișa istoricul. Această trasabilitate este importantă deoarece profesorii pot influența direct conținutul și pot aproba candidați la recompense.
 
 \section{Recompense și politici}
-Subdomeniul rewards este împărțit în use case-uri. Există module pentru trimiterea unui candidat, decizia profesorului, aprobarea sumei, planificarea plății, confirmarea tokenului, creditarea portofelului, notificarea utilizatorului, reconciliere, compensări, politici și blocaje antifraudă. Această granularitate face fluxul mai lung, dar mai sigur. Într-un sistem cu valoare economică, o implementare scurtă și implicită ar fi mai riscantă decât un proces auditat.
+Subdomeniul recompenselor este împărțit în cazuri de utilizare. Există module pentru trimiterea unui candidat, decizia profesorului, aprobarea sumei, planificarea plății, confirmarea tokenului, creditarea portofelului, notificarea utilizatorului, reconciliere, compensări, politici și blocaje antifraudă. Această granularitate face fluxul mai lung, dar mai sigur. Într-un sistem cu valoare economică, o implementare scurtă și implicită ar fi mai riscantă decât un proces auditat.
 
 Politicile de recompensare definesc evenimente eligibile, sume și stări de activare. Ele permit schimbarea regulilor fără a modifica istoricul deciziilor vechi. Dacă o politică este modificată, auditul poate indica versiunea folosită la momentul aprobării. În plus, blocajele antifraudă pot opri recompense pentru profesori, organizații, cursuri sau politici suspecte. Această funcție este necesară pentru a evita ca tokenizarea să creeze un stimulent pentru abuz.
 
 \section{Portofele și tranzacții}
-Portofelele interne permit urmărirea valorii asociate unui utilizator sau unei organizații. Sistemul diferențiază între tranzacții interne, tranzacții externe și evenimente blockchain. Tranzacția internă este utilă pentru ledger-ul aplicației, iar tranzacția externă păstrează informații precum chain id, adresă contract, hash de tranzacție, adresă sursă și destinație. Prin această separare, platforma poate explica legătura dintre starea internă și evenimentele on-chain.
+Portofelele interne permit urmărirea valorii asociate unui utilizator sau unei organizații. Sistemul diferențiază între tranzacții interne, tranzacții externe și evenimente blockchain. Tranzacția internă este utilă pentru registrul aplicației, iar tranzacția externă păstrează informații precum chain id, adresă contract, hash de tranzacție, adresă sursă și destinație. Prin această separare, platforma poate explica legătura dintre starea internă și evenimentele on-chain.
 
 Fluxurile de depunere și retragere pot avea costuri de gas plătite de utilizator sau de platformă. Pentru scenariile în care platforma plătește gas, sistemul poate aplica o taxă configurabilă. Acest detaliu arată că integrarea blockchain nu este doar tehnică, ci și economică. Platforma trebuie să știe cine suportă costul operației și cum este înregistrată această decizie.
 
 \section{Contractele inteligente}
-Contractul \texttt{LearnToken} extinde ERC-20, suportă burn și permit și permite mint doar de către owner. Această regulă reduce riscul emiterii necontrolate. \texttt{LearnTokenPresigner} permite depunerea de tokenuri și execuția unor transferuri semnate, cu nonce și deadline pentru protecție împotriva replay. \texttt{PlatformImporter} permite importul tokenurilor prin permit EIP-2612, transferând fonduri către treasury sau către un destinatar specific.
+Contractul \texttt{LearnToken} extinde ERC-20, suportă ardere și \textit{permit} și permite emitere doar de către deținătorul rolului \textit{owner}. Această regulă reduce riscul emiterii necontrolate. \texttt{LearnTokenPresigner} permite depunerea de tokenuri și execuția unor transferuri semnate, cu nonce și termen-limită pentru protecție împotriva reutilizării semnăturilor. \texttt{PlatformImporter} permite importul tokenurilor prin \textit{permit} EIP-2612, transferând fonduri către trezorerie sau către un destinatar specific.
 
 \begin{lstlisting}[style=cod,caption={Fragment conceptual al transferului semnat.},label={lst:presigner}]
 require(nonces[signer] == nonce, "invalid nonce");
@@ -58,22 +58,22 @@ require(recovered == signer, "invalid signature");
 nonces[signer] = nonce + 1;
 \end{lstlisting}
 
-Această logică este importantă pentru securitate. Nonce-ul împiedică reutilizarea aceleiași semnături, deadline-ul limitează durata de valabilitate, iar semnătura EIP-712 face cererea mai explicită pentru utilizator. Contractele nu rezolvă singure toate problemele de business, dar oferă o bază verificabilă pentru operațiile cu tokenuri.
+Această logică este importantă pentru securitate. Nonce-ul împiedică reutilizarea aceleiași semnături, termenul-limită îi limitează durata de valabilitate, iar semnătura EIP-712 face cererea mai explicită pentru utilizator. Contractele nu rezolvă singure toate problemele de business, dar oferă o bază verificabilă pentru operațiile cu tokenuri.
 
 \section{Worker, procesare video și indexare}
-Worker-ul rulează separat de API. El preia joburi, procesează încărcări video, execută retry-uri și scrie heartbeat pentru health check. Pentru video, fluxul descarcă fișierul din S3, rulează \texttt{ffmpeg}, generează un MP4 procesat și un fișier audio, apoi încarcă rezultatele înapoi în bucket. Utilizatorul primește notificare de succes sau eșec. Această abordare respectă principiul că operațiile lungi trebuie mutate din calea critică a request-ului.
+Worker-ul rulează separat de API. El preia joburi, procesează încărcări video, execută reîncercări și scrie heartbeat pentru verificarea de sănătate. Pentru video, fluxul descarcă fișierul din S3, rulează \texttt{ffmpeg}, generează un MP4 procesat și un fișier audio, apoi încarcă rezultatele înapoi în bucket. Utilizatorul primește notificare de succes sau eșec. Această abordare respectă principiul că operațiile lungi trebuie mutate din calea critică a cererii HTTP.
 
 Worker-ul include și indexer pentru depuneri de tokenuri. El citește blocuri Ethereum, filtrează evenimentele relevante, evită dublarea evenimentelor importate și actualizează starea persistentă cu următorul bloc de scanat. Astfel, sistemul poate sincroniza portofelul intern cu transferuri on-chain observate, fără a cere utilizatorului să repete acțiuni manuale.
 
 \section{Frontend-ul produsului}
-Frontend-ul Next.js este organizat în suprafețe de produs. \texttt{/learn} este dashboard-ul cursantului, \texttt{/courses} afișează catalogul, \texttt{/rewards} prezintă istoricul recompenselor, iar \texttt{/wallet} gestionează portofelul. Suprafețele \texttt{/teach} permit profesorilor să gestioneze cursuri, conținut, înscrieri, studenți și recompense. Rutele \texttt{/organizations} oferă administrare pentru organizații, iar \texttt{/admin} acoperă operațiile de platformă.
+Frontend-ul Next.js este organizat în suprafețe de produs. \texttt{/learn} este tabloul de bord al cursantului, \texttt{/courses} afișează catalogul, \texttt{/rewards} prezintă istoricul recompenselor, iar \texttt{/wallet} gestionează portofelul. Suprafețele \texttt{/teach} permit profesorilor să gestioneze cursuri, conținut, înscrieri, studenți și recompense. Rutele \texttt{/organizations} oferă administrare pentru organizații, iar \texttt{/admin} acoperă operațiile de platformă.
 
 Interfața derivă acțiunile disponibile din permisiuni, nu doar din numele rolului. Acest lucru este important pentru că rolurile pot fi directe sau delegate, iar un utilizator poate avea acces limitat într-un singur context. Un buton administrativ nu trebuie afișat doar pentru că utilizatorul are un rol textual, ci pentru că sesiunea curentă conține permisiunea necesară. Această disciplină reduce confuzia și previne apelarea unor operații care ar fi oricum respinse de backend.
 
 \section{Notificări și feedback operațional}
-Notificările oferă utilizatorului feedback pentru evenimente importante: procesare video, creditare wallet, recompense sau operații administrative. Într-o platformă educațională, notificările nu sunt doar elemente de confort. Ele reduc incertitudinea. Dacă o recompensă este întârziată, utilizatorul trebuie să vadă starea. Dacă un video nu poate fi procesat, profesorul trebuie să primească un mesaj clar. Dacă o aplicație de profesor este respinsă, auditul trebuie să păstreze motivul.
+Notificările oferă utilizatorului feedback pentru evenimente importante: procesare video, creditare portofel, recompense sau operații administrative. Într-o platformă educațională, notificările nu sunt doar elemente de confort. Ele reduc incertitudinea. Dacă o recompensă este întârziată, utilizatorul trebuie să vadă starea. Dacă un video nu poate fi procesat, profesorul trebuie să primească un mesaj clar. Dacă o aplicație de profesor este respinsă, auditul trebuie să păstreze motivul.
 
 \input{capitol5_extins.tex}
 
 \section{Concluzie}
-Implementarea RustLearn urmărește separarea clară a fluxurilor. Backend-ul expune API-uri protejate, use case-urile gestionează regulile, domeniul păstrează concepte stabile, infrastructura conectează PostgreSQL, S3 și Ethereum, iar frontend-ul oferă interfețe adaptate rolurilor. Contractele inteligente adaugă un strat verificabil pentru LearnToken, iar worker-ul asigură operații asincrone. Această implementare susține obiectivul lucrării: un sistem de eLearning în care recompensele blockchain sunt integrate controlat și auditat.
+Implementarea RustLearn urmărește separarea clară a fluxurilor. Backend-ul expune API-uri protejate, cazurile de utilizare gestionează regulile, domeniul păstrează concepte stabile, infrastructura conectează PostgreSQL, S3 și Ethereum, iar frontend-ul oferă interfețe adaptate rolurilor. Contractele inteligente adaugă un strat verificabil pentru LearnToken, iar worker-ul asigură operații asincrone. Această implementare susține obiectivul lucrării: un sistem de eLearning în care recompensele blockchain sunt integrate controlat și auditat.
