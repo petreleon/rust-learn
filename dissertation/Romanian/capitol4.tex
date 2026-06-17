@@ -148,6 +148,8 @@ Schema PostgreSQL include tabele pentru utilizatori, autentificări, cursuri, ca
 
 Persistența are două roluri. Primul este rolul operațional: aplicația trebuie să știe ce cursuri există, cine are acces, ce conținut este publicat și ce recompense sunt în așteptare. Al doilea este rolul de audit: platforma trebuie să poată explica de ce o recompensă a fost aprobată, cine a aprobat-o, ce politică era activă, ce tranzacție a fost creată și dacă portofelul a fost creditat. Pentru un sistem cu componente blockchain, baza de date nu concurează cu blockchain-ul, ci îl completează.
 
+\input{capitol4_extins.tex}
+
 \section{Valoarea arhitecturii}
 Arhitectura este valoroasă prin patru proprietăți. Prima este claritatea: fiecare strat are responsabilitate distinctă, iar fluxurile de business pot fi urmărite din HTTP către use case, domeniu și infrastructură. A doua este controlul: permisiunile pe scopuri și auditul permit administrare fină. A treia este reziliența: worker-ul, coada de joburi și reconcilierea reduc impactul eșecurilor parțiale. A patra este extensibilitatea: platforma poate adăuga noi tipuri de recompense, noi rute frontend, noi reguli de curs sau noi contracte fără a schimba fundamentul.
 

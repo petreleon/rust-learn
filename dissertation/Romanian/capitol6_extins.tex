@@ -1,0 +1,88 @@
+\section{Criterii de acceptanță}
+Pentru ca platforma să fie considerată validată la nivel de disertație, nu este suficient ca serverul să pornească. Trebuie definite criterii de acceptanță pentru fluxurile centrale. Un cursant trebuie să se poată autentifica, să vadă catalogul, să acceseze un curs permis, să parcurgă conținutul și să primească feedback pentru evaluări. Un profesor trebuie să poată crea cursuri, să gestioneze conținut, să observe studenți și să decidă candidați la recompense. Un administrator trebuie să poată gestiona politici, fraud blocks și rapoarte fără a accesa manual baza de date.
+
+La nivel tehnic, criteriile includ rularea testelor relevante, aplicarea migrațiilor, pornirea mediului local, verificarea readiness-ului și generarea artefactelor blockchain. La nivel de produs, criteriile includ mesaje clare de eroare, stări goale inteligibile și restricționarea acțiunilor în funcție de permisiuni. Această dublă perspectivă este necesară deoarece o platformă poate fi corectă tehnic, dar dificil de folosit, sau poate avea o interfață plăcută, dar reguli nesigure.
+
+\begin{table}[H]
+    \centering
+    \caption{Criterii de acceptanță pentru principalele fluxuri (elaborare proprie).}
+    \label{tab:criterii_acceptanta}
+    \begin{tabular}{P{3.4cm}P{5.1cm}P{5.1cm}}
+        \toprule
+        Flux & Criteriu funcțional & Criteriu de siguranță \\
+        \midrule
+        Autentificare & Utilizatorul primește sesiune validă și poate verifica profilul & Tokenurile expiră, parola respectă politica \\
+        Cursuri & Cursurile publicate sunt vizibile în catalog & Draft-urile rămân ascunse fără permisiune \\
+        Evaluări & Scorul este calculat și progresul se actualizează & Evenimentele nereușite nu creează recompense \\
+        Recompense & Candidatul parcurge aprobări și creditare & Idempotenta previne dublarea recompensei \\
+        Wallet & Istoricul arată tranzacțiile relevante & Operațiile externe sunt legate de audit intern \\
+        Worker & Video-ul este procesat sau eșecul este raportat & Joburile pot fi reluate controlat \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Matrice de riscuri}
+O platformă care combină educația și tokenizarea are riscuri tehnice, operaționale și etice. Riscurile tehnice includ buguri în contracte, pierderea sincronizării cu blockchain-ul, migrații greșite sau erori de permisiuni. Riscurile operaționale includ indisponibilitatea S3, creșterea cozii worker-ului, costuri de gas mai mari decât estimarea și lipsa monitorizării. Riscurile etice includ stimulente greșite, recompense disproporționate și confuzie între valoarea educațională și valoarea economică.
+
+\begin{table}[H]
+    \centering
+    \caption{Matrice sintetică de riscuri și controale (elaborare proprie).}
+    \label{tab:matrice_riscuri}
+    \begin{tabular}{P{3.6cm}P{4.8cm}P{5.2cm}}
+        \toprule
+        Risc & Impact & Control propus \\
+        \midrule
+        Dublare recompensă & Pierdere financiară și neîncredere & Idempotentă, stări, audit și reconciliere \\
+        Permisiune excesivă & Acces la date sau operații neautorizate & Scopuri de permisiuni și teste dedicate \\
+        Contract vulnerabil & Pierdere tokenuri sau blocare fonduri & OpenZeppelin, teste Foundry, audit extern \\
+        Worker blocat & Video-uri neprocesate și cozi în creștere & Heartbeat, retry și dashboard operațional \\
+        Date personale expuse & Risc legal și reputațional & Păstrare off-chain, minimizare și acces controlat \\
+        Motivație distorsionată & Învățare superficială & Recompense după validare educațională \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Testare manuală end-to-end}
+Testarea manuală end-to-end completează testele automate deoarece verifică experiența între ecrane și servicii. Un scenariu complet pornește cu un utilizator nou, continuă cu verificarea emailului, înscrierea la un curs, parcurgerea unei lecții, susținerea evaluării, generarea candidatului la recompensă, decizia profesorului, aprobarea sumei și verificarea wallet-ului. În acest traseu pot fi observate mesajele, încărcările, stările goale și restricțiile vizuale.
+
+Pentru profesor, testarea manuală trebuie să includă crearea unui curs, încărcarea unui fișier, publicarea conținutului, vizualizarea studenților și decizia asupra candidaților. Pentru administrator, scenariile includ crearea unei politici, activarea sau dezactivarea ei, aplicarea unui fraud block, consultarea auditului și exportul datelor. Aceste scenarii pot fi documentate ca script de verificare înainte de prezentarea lucrării.
+
+\section{Plan de deployment}
+Deployment-ul unei platforme RustLearn presupune cel puțin următoarele componente: API, frontend, PostgreSQL, stocare S3 compatibilă, Ethereum node sau provider, worker și mecanisme de secrete. În dezvoltare, Docker Compose oferă un mediu suficient. În producție, Kubernetes poate gestiona rollout-uri, readiness probes, volume, secrete și restart policy. Totuși, trecerea la producție trebuie făcută gradual, cu mediu de staging și rețea de test pentru contracte.
+
+Un plan rezonabil include trei etape. Prima etapă este mediul local reproductibil, folosit pentru dezvoltare și testare. A doua etapă este staging, cu servicii similare producției, dar fără valoare reală în tokenuri. A treia etapă este producția, unde secretele sunt administrate separat, contractele sunt auditate, backup-urile sunt testate, iar monitorizarea este activă. Această etapizare reduce riscul ca o eroare de dezvoltare să devină incident financiar.
+
+\section{Backup, restaurare și migrații}
+PostgreSQL este sursa principală pentru starea educațională și auditul operațional. Backup-ul bazei de date trebuie tratat ca funcție critică. O strategie minimă include backup-uri automate, verificarea restaurării și păstrarea unor copii în locații separate. Pentru S3, obiectele media trebuie versionate sau cel puțin protejate prin politici de retenție, deoarece pierderea conținutului poate afecta cursuri publicate. Pentru contracte, adresele și ABI-urile trebuie păstrate împreună cu versiunea aplicației.
+
+Migrațiile trebuie rulate controlat. Înainte de o migrare majoră, se verifică schema în staging și se rulează testele relevante. Dacă migrarea introduce tabele pentru recompense sau portofele, trebuie analizat impactul asupra datelor existente. Un \texttt{down.sql} reversibil este util, dar nu înlocuiește backup-ul. În practică, restaurarea datelor este ultima linie de apărare, iar migrațiile trebuie proiectate astfel încât să reducă nevoia de rollback.
+
+\section{Performanță și scalare}
+Performanța RustLearn depinde de trei zone: API-ul, baza de date și operațiile asincrone. API-ul Rust/Actix Web poate susține concurență bună, dar performanța reală este limitată de interogări, indexuri și servicii externe. PostgreSQL trebuie optimizat pentru interogări frecvente: catalogul cursurilor, progresul cursantului, coada de candidați și istoricul wallet-ului. Worker-ul trebuie dimensionat în funcție de numărul și mărimea fișierelor video.
+
+Scalarea trebuie făcută pe baza măsurătorilor. Dacă API-ul este bottleneck, se pot adăuga replici. Dacă baza de date este bottleneck, se analizează indexuri, pool-uri și interogări. Dacă procesarea video este bottleneck, se mărește numărul de worker-e sau se separă tipurile de joburi. Dacă blockchain-ul este bottleneck, platforma poate grupa operații, poate folosi rețele potrivite sau poate muta unele acțiuni în fluxuri semnate. Important este că arhitectura are puncte clare de scalare.
+
+\section{Conformitate și protecția datelor}
+Datele educaționale pot fi sensibile. Ele includ progres, rezultate la evaluări, relații cu organizații, cereri de profesor și eventual informații KYC. De aceea, decizia de a nu scrie aceste date pe blockchain este importantă. Blockchain-ul este dificil de modificat sau șters, iar transparența lui poate intra în conflict cu protecția datelor personale. RustLearn păstrează aceste informații în PostgreSQL, unde accesul poate fi controlat, auditat și limitat.
+
+Conformitatea viitoare ar presupune politici de retenție, export de date personale, ștergere sau anonimizare acolo unde legea o cere, consimțământ pentru prelucrare și documentarea scopurilor. Pentru tokenuri, pot apărea obligații suplimentare juridice sau fiscale, în funcție de valoarea reală și de modul de utilizare. Lucrarea nu rezolvă complet aceste aspecte, dar arhitectura le lasă spațiu: datele sensibile sunt off-chain, auditul este intern, iar fluxurile pot fi extinse cu aprobări și controale.
+
+\section{Limitări de cercetare și validare empirică}
+Validarea tehnică arată că platforma poate fi construită și operată, dar nu dovedește singură eficiența pedagogică a recompenselor. Pentru a evalua impactul real, ar fi necesar un studiu cu utilizatori. Un design posibil ar compara două grupe care parcurg același curs: una cu recompense tokenizate și una fără. Indicatorii ar putea include rata de finalizare, timpul petrecut în platformă, numărul de reveniri, scorul la evaluări și satisfacția raportată.
+
+Un astfel de studiu trebuie proiectat atent pentru a evita concluzii superficiale. Dacă grupa cu recompense finalizează mai multe lecții, nu înseamnă automat că a învățat mai bine. Trebuie analizate rezultatele evaluărilor și calitatea participării. De asemenea, recompensele trebuie calibrate astfel încât să nu transforme cursul într-un simplu mecanism de câștig. Această limitare este recunoscută în lucrare și constituie una dintre direcțiile viitoare importante.
+
+\section{Indicatori recomandați pentru monitorizare}
+Într-un mediu real, monitorizarea trebuie să acopere atât partea tehnică, cât și partea de produs. Indicatorii tehnici includ timpul de răspuns al API-ului, erorile HTTP, conexiunile PostgreSQL, latența S3, mărimea cozii worker-ului, numărul de joburi eșuate și întârzierea indexerului blockchain. Indicatorii de produs includ rata de finalizare a cursurilor, numărul de candidați la recompensă, rata de respingere, timpul mediu până la creditarea wallet-ului și numărul de fraud blocks active.
+
+Acești indicatori trebuie interpretați împreună. O creștere a candidaților la recompensă poate indica succes educațional, dar poate indica și abuz dacă este însoțită de multe fraud blocks. O scădere a finalizărilor poate indica dificultate reală a cursului sau probleme de interfață. O creștere a joburilor video eșuate poate indica fișiere invalide sau limitări de infrastructură. Monitorizarea valoroasă nu se limitează la alarme, ci oferă context pentru decizii.
+
+\section{Pregătirea susținerii și demonstrației}
+Pentru susținerea disertației, demonstrația trebuie să evidențieze mai ales partea a II-a, conform ghidului. O demonstrație potrivită poate porni de la autentificare, apoi poate prezenta catalogul, cursul, rolul profesorului, candidatul la recompensă, aprobarea și wallet-ul. Este important ca demonstrația să nu fie doar o navigare prin ecrane, ci o explicație a deciziilor arhitecturale: de ce recompensa are stări, de ce profesorul nu plătește direct, de ce tokenul este separat de datele educaționale și de ce readiness-ul verifică dependențe.
+
+În prezentare, accentul trebuie pus pe contribuții: arhitectura hibridă, modelul pe scopuri pentru permisiuni, recompensele auditate, integrarea contractelor și operabilitatea. Capturile de ecran, diagramele și fragmentele de cod din lucrare pot fi folosite ca suport. O prezentare bună trebuie să lege fiecare funcție demonstrată de problema inițială: cum poate fi recompensată activitatea educațională fără a pierde controlul, securitatea și sensul pedagogic.
+
+\section{Criterii de maturitate pentru continuarea proiectului}
+După etapa de disertație, proiectul ar trebui evaluat printr-un set de criterii de maturitate. Primul criteriu este acoperirea fluxurilor centrale prin teste automate și scenarii manuale repetabile. Al doilea criteriu este stabilitatea datelor: migrațiile trebuie să fie clare, backup-ul testat, iar exporturile să poată explica deciziile importante. Al treilea criteriu este securitatea: contractele trebuie auditate, permisiunile revizuite, iar secretele mutate în infrastructură dedicată. Al patrulea criteriu este validarea pedagogică prin utilizatori reali.
+
+Aceste criterii arată drumul de la lucrare aplicativă la produs. RustLearn are baza arhitecturală: domenii separate, audit, worker, readiness, contracte și frontend pe roluri. Pentru producție, această bază trebuie completată cu monitorizare, politici juridice, suport, proceduri de incident și analiză de impact educațional. Astfel, concluzia validării nu este că sistemul este terminat definitiv, ci că are o fundație suficient de solidă pentru dezvoltare controlată.

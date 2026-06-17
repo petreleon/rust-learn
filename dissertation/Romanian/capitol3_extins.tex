@@ -1,0 +1,101 @@
+\section{Alternative analizate pentru backend}
+Pentru backend au fost analizate mai multe familii tehnologice. Node.js ar fi oferit productivitate ridicată și un ecosistem foarte bogat pentru API-uri, autentificare și integrare web \cite{frontendBackendWebDev}. Totuși, sistemul RustLearn conține fluxuri în care stările și erorile trebuie modelate riguros: recompense, portofele, permisiuni și tranzacții. Într-un limbaj dinamic, aceste reguli pot fi implementate corect, dar o parte mai mare din verificare rămâne la testare și review. Rust transferă multe erori către compilare, iar acest lucru este valoros într-un domeniu cu consecințe financiare.
+
+Java și Kotlin ar fi fost opțiuni solide pentru aplicații enterprise. Ele au ecosistem matur, instrumente de monitorizare și framework-uri stabile. Dezavantajul pentru această lucrare este costul de configurare și amprenta mai mare a runtime-ului. Rust oferă un executabil eficient, control explicit asupra concurenței și integrare bună cu biblioteci moderne de criptografie, Ethereum și procesare asincronă. Alegerea nu afirmă că Rust este universal superior, ci că se potrivește cu obiectivele specifice: siguranță, performanță și disciplină în modelarea domeniului.
+
+Python sau Ruby ar fi permis prototipare rapidă. Pentru o demonstrație minimă, ele ar fi fost potrivite. Pentru o platformă cu autentificare, audit, recompense și worker, avantajul prototipării rapide se reduce deoarece fluxurile trebuie oricum testate riguros. În plus, integrarea cu contracte, semnături și tipuri financiare cere atenție la reprezentarea datelor. Rust nu elimină complexitatea, dar o face mai explicită.
+
+\section{Alternative analizate pentru frontend}
+Pentru frontend, o aplicație React cu Vite ar fi fost o variantă simplă și rapidă. Ea ar fi redus convențiile impuse de framework și ar fi oferit control direct asupra build-ului. Totuși, RustLearn are mai multe suprafețe distincte: cursant, profesor, organizație, administrator, portofel și recompense. Next.js oferă structură de rutare, organizare pe pagini și posibilitatea de a construi suprafețe dense fără a inventa manual toate convențiile proiectului \cite{nextAppDocs}.
+
+Flutter pentru web ar fi permis o interfață unitară pentru mai multe platforme \cite{flutterDev}. Totuși, produsul descris în lucrare este în primul rând o aplicație web administrativă și educațională, cu formulare, tabele, dashboard-uri, filtre și integrare HTTP. Ecosistemul React este mai natural pentru acest tip de produs, iar integrarea cu biblioteci de UI, testare și rutare web este mai directă. De aceea, Next.js este justificat prin potrivirea cu fluxurile de produs, nu doar prin popularitate.
+
+O altă opțiune ar fi fost separarea completă între aplicații: una pentru cursanți, una pentru profesori și una pentru administratori. Această separare poate fi utilă la scară mare, dar în faza unei lucrări aplicative ar crește costul de mentenanță. RustLearn păstrează o singură aplicație frontend, cu rute și componente diferențiate. Această alegere permite reutilizarea modelului de sesiune, a verificărilor de permisiuni și a componentelor pentru stări de încărcare, eroare și acces refuzat.
+
+\section{Contractul dintre straturi}
+Arhitectura modulară are valoare numai dacă limitele dintre straturi sunt respectate. În RustLearn, stratul HTTP nu ar trebui să decidă reguli de recompensare, iar stratul de infrastructură nu ar trebui să stabilească politici educaționale. Contractul dintre straturi este exprimat prin comenzi, porturi, DTO-uri și tipuri de domeniu. Handler-ul primește o cerere, o transformă într-o comandă și apelează un use case. Use case-ul verifică regulile și invocă porturi. Porturile sunt implementate în infrastructură.
+
+\begin{table}[H]
+    \centering
+    \caption{Contracte între straturile arhitecturii (elaborare proprie).}
+    \label{tab:contracte_straturi}
+    \begin{tabular}{P{3cm}P{5.2cm}P{5.4cm}}
+        \toprule
+        Limită & Ce trece prin limită & Ce nu trebuie să treacă \\
+        \midrule
+        HTTP - aplicație & Comenzi validate, identitate actor, parametri de rută & Obiecte Actix sau detalii de serializare \\
+        Aplicație - domeniu & Tipuri de domeniu, statusuri, reguli pure & Pool PostgreSQL, request HTTP, JSON brut \\
+        Aplicație - infrastructură & Porturi, tranzacții, rezultate persistente & Decizii pedagogice ascunse în SQL \\
+        Infrastructură - servicii externe & API S3, Ethereum, email, fișiere temporare & Reguli de permisiuni sau politici de recompensare \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Respectarea acestor limite face ca schimbările să fie localizate. Dacă formatul unui răspuns JSON se modifică, domeniul nu trebuie rescris. Dacă se schimbă furnizorul S3, use case-urile nu trebuie să cunoască detaliile noului SDK. Dacă o politică de recompensare se modifică, handler-ele nu trebuie să conțină ramuri noi. Această disciplină este una dintre justificările principale pentru structura aleasă.
+
+\section{Date off-chain și evenimente on-chain}
+O decizie importantă este delimitarea datelor care rămân off-chain de evenimentele care ajung on-chain. Datele personale, progresul detaliat, evaluările, permisiunile și notele profesorului trebuie să rămână off-chain. Ele sunt sensibile, se pot modifica, pot necesita corecturi și trebuie gestionate conform unor politici de confidențialitate. În schimb, transferul unui token, importul de fonduri sau arderea unui token pot fi reprezentate on-chain deoarece au valoare de audit public.
+
+\begin{table}[H]
+    \centering
+    \caption{Delimitarea informațiilor off-chain/on-chain (elaborare proprie).}
+    \label{tab:onchain_offchain}
+    \begin{tabular}{P{4cm}P{4.8cm}P{4.8cm}}
+        \toprule
+        Informație & Loc potrivit & Motiv \\
+        \midrule
+        Profil utilizator, email, roluri & PostgreSQL & Date personale și operații administrative frecvente \\
+        Progres pe lecții și evaluări & PostgreSQL & Necesită actualizări dese și explicații contextuale \\
+        Politică de recompensare & PostgreSQL, cu audit & Reguli versionate, administrate de platformă \\
+        Transfer LearnToken & Ethereum și oglindire internă & Audit public, interoperabilitate și confirmare externă \\
+        Creditare wallet intern & PostgreSQL & Legătură operațională între recompensă și utilizator \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Această delimitare evită două erori frecvente. Prima este supra-centralizarea, în care tokenul nu are valoare externă și rămâne doar o coloană în baza de date. A doua este supra-descentralizarea, în care platforma scrie prea multe informații pe blockchain și devine scumpă, lentă și greu de corectat. RustLearn folosește blockchain-ul ca strat de valoare, nu ca depozit general de date educaționale.
+
+\section{Costuri operaționale și costuri cognitive}
+Tehnologiile trebuie evaluate nu doar prin performanță, ci și prin costurile pe care le impun utilizatorilor și operatorilor. Blockchain-ul introduce costuri de gas, latență de confirmare, semnături și gestionarea portofelelor. Pentru un utilizator obișnuit cu aplicații web clasice, aceste concepte pot fi dificile. De aceea, interfața trebuie să ascundă detaliile inutile și să explice doar deciziile care contează: ce semnez, ce primesc, cine plătește gas-ul și ce se întâmplă dacă tranzacția eșuează.
+
+Costurile cognitive apar și pentru administratori. O platformă cu recompense trebuie să ofere dashboard-uri clare pentru candidați, politici, fraud blocks, wallet-uri și reconciliere. Dacă operatorul trebuie să inspecteze manual tabele sau loguri pentru fiecare incident, sistemul nu este operabil. De aceea, alegerea tehnologiilor este legată de modelul de administrare: PostgreSQL permite rapoarte și interogări, Diesel menține coerența tipurilor, iar Next.js permite construirea unor suprafețe dense de management.
+
+\section{De ce monolit modular, nu microservicii premature}
+Microserviciile sunt utile atunci când domeniile au ritmuri de scalare diferite, echipe separate și nevoi de deploy independent. În cazul RustLearn, o separare fizică timpurie ar adăuga probleme: comunicare între servicii, consistență distribuită, tracing, retry-uri, contracte de API interne și gestionarea mai multor procese. Pentru o disertație și pentru o platformă aflată în evoluție, aceste costuri ar masca problema principală: corectitudinea fluxurilor educaționale și de recompensare.
+
+Monolitul modular păstrează simplitatea deploy-ului, dar nu abandonează disciplina. Modulele de domeniu, aplicație, infrastructură și HTTP sunt delimitate în cod. Dacă în viitor indexerul blockchain sau procesarea video trebuie scalate separat, worker-ul oferă deja un punct natural de extracție. Dacă raportarea devine costisitoare, poate fi mutată într-un serviciu dedicat. Arhitectura actuală pregătește aceste evoluții fără a introduce complexitate înainte ca ea să fie necesară.
+
+\section{Mentenabilitate și evoluție}
+Mentenabilitatea unei platforme educaționale depinde de capacitatea de a schimba reguli fără a produce regresii. Cursurile pot primi noi tipuri de conținut, evaluările pot introduce noi scoruri, organizațiile pot cere rapoarte suplimentare, iar recompensele pot avea politici noi. Dacă aceste schimbări sunt dispersate în handler-e, SQL brut și componente frontend fără convenții, dezvoltarea devine riscantă. Structura RustLearn reduce acest risc prin tipuri de domeniu, use case-uri, migrații și teste.
+
+Evoluția tehnică este susținută și de faptul că deciziile importante sunt explicitate. Alegerea Rust nu este doar o preferință de limbaj, ci o alegere pentru siguranță. Alegerea PostgreSQL nu este doar comoditate, ci o alegere pentru integritatea relațiilor. Alegerea Ethereum nu este doar o asociere cu blockchain-ul, ci o alegere pentru tokenuri standardizate și interoperabile. O disertație aplicativă trebuie să poată explica aceste decizii, deoarece valoarea ei nu stă doar în faptul că sistemul funcționează, ci în faptul că sistemul este justificat.
+
+\section{Securitatea prin alegerea tehnologiilor}
+Securitatea nu este obținută doar prin adăugarea unui modul de autentificare. Ea este influențată de fiecare alegere tehnologică. Rust contribuie prin sistemul de tipuri și prin siguranța memoriei. PostgreSQL contribuie prin tranzacții, constrângeri și integritate referențială. Diesel contribuie prin interogări tipizate și prin legarea codului de schema bazei de date. OpenZeppelin contribuie prin implementări verificate ale standardelor tokenizate. Next.js contribuie printr-o structură clară a suprafețelor frontend, iar Actix Web prin middleware și extractori care pot aplica reguli consecvente.
+
+Această perspectivă este importantă deoarece o vulnerabilitate apare adesea la intersecția dintre straturi. O rută HTTP poate valida greșit actorul, o interogare poate omite filtrul de organizație, un frontend poate afișa o acțiune fără permisiune, iar un contract poate accepta o semnătură reutilizată. Alegerea tehnologiilor trebuie deci corelată cu modul în care ele reduc aceste erori. RustLearn nu se bazează pe o singură apărare, ci pe straturi: autentificare, autorizare, tipuri, tranzacții, audit, nonce-uri și reconciliere.
+
+\section{Portabilitate și independență operațională}
+O altă justificare a tehnologiilor este portabilitatea. PostgreSQL, S3, Docker Compose, Kubernetes și Ethereum sunt tehnologii care pot fi operate în medii diferite. În dezvoltare, S3 poate fi reprezentat de RustFS, iar Ethereum de Anvil. În producție, aceleași interfețe pot fi conectate la servicii administrate sau la infrastructură proprie. Această portabilitate reduce dependența de un singur furnizor și permite testarea locală a unor fluxuri care altfel ar cere servicii externe.
+
+Portabilitatea nu înseamnă absența costurilor. Fiecare adaptor trebuie configurat, monitorizat și testat. Totuși, beneficiul este că arhitectura rămâne explicabilă: aplicația cunoaște un contract S3, nu un bucket legat ireversibil de un furnizor; aplicația cunoaște un contract EVM, nu o rețea unică; aplicația cunoaște PostgreSQL, nu o schemă ascunsă într-un serviciu proprietar. Pentru o lucrare de disertație, această independență este valoroasă deoarece demonstrează că sistemul poate fi înțeles și rulat în afara unui mediu opac.
+
+\section{Criterii de respingere a alternativelor}
+Alegerile tehnologice devin mai convingătoare atunci când sunt însoțite de criterii de respingere. O tehnologie a fost respinsă dacă introducea complexitate disproporționată, dacă muta prea multă logică în runtime, dacă făcea dificil auditul sau dacă nu răspundea direct cerințelor. De exemplu, o bază de date documentară ar fi fost flexibilă, dar ar fi slăbit relațiile dintre cursuri, roluri, organizații și tranzacții. O arhitectură de microservicii ar fi arătat sofisticat, dar ar fi complicat tranzacțiile și testarea. O soluție complet on-chain ar fi adus transparență, dar ar fi încălcat cerințe de confidențialitate și performanță.
+
+\begin{table}[H]
+    \centering
+    \caption{Criterii folosite pentru respingerea alternativelor (elaborare proprie).}
+    \label{tab:criterii_respingere}
+    \begin{tabular}{P{3.6cm}P{5cm}P{5cm}}
+        \toprule
+        Alternativă & Avantaj inițial & Motiv de respingere \\
+        \midrule
+        NoSQL ca stocare principală & Flexibilitate de schemă & Relații și constrângeri mai greu de auditat \\
+        Microservicii timpurii & Deploy independent pe domenii & Cost operațional și consistență distribuită premature \\
+        Date educaționale on-chain & Transparență maximă & Cost, latență și expunere de date sensibile \\
+        Frontend-uri separate pe roluri & Izolare vizuală clară & Duplicare de sesiune, componente și logică de permisiuni \\
+        Token custom fără standarde & Control complet asupra ABI-ului & Risc crescut și interoperabilitate scăzută \\
+        \bottomrule
+    \end{tabular}
+\end{table}

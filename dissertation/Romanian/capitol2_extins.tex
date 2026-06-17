@@ -1,0 +1,96 @@
+\section{Repere pedagogice pentru învățarea autonomă}
+Un sistem de eLearning eficient trebuie să susțină învățarea autonomă, dar autonomia nu înseamnă abandonarea cursantului în fața unei liste de materiale. Autonomia presupune ghidaj, vizibilitate asupra progresului și posibilitatea de a reveni asupra conținutului atunci când rezultatul unei evaluări indică lacune. Cercetările privind învățarea online arată că participarea, feedback-ul și percepția utilității activităților influențează implicarea cursantului \cite{hrastinski2009diversity,martin2018engagement}. Prin urmare, platforma trebuie să facă explicit traseul: ce lecție urmează, ce condiții trebuie îndeplinite, ce evaluare validează competența și ce recompensă poate fi obținută în mod legitim.
+
+În cazul unei platforme cu recompense, proiectarea pedagogică are o responsabilitate suplimentară. Dacă recompensele sunt vizibile, ele pot orienta atenția cursantului către rezultatul extrinsec. Pentru a evita acest efect, recompensa trebuie plasată după verificarea învățării, nu înaintea ei. Cursantul trebuie să înțeleagă că tokenul este o consecință a progresului și nu scopul unic al activității. Din acest motiv, RustLearn leagă recompensele de evenimente care pot fi motivate educațional: finalizarea unui curs, promovarea unei evaluări, aprobarea unei activități de către profesor sau participarea la un program organizațional cu reguli clare.
+
+Un alt reper pedagogic este autoreglarea. Paans et al. discută variații temporale în învățarea autoreglată în medii hipertextuale \cite{paans2018}, iar această observație este relevantă pentru platformele cu trasee neliniare. Cursantul poate intra într-un curs din catalog, poate reveni la un capitol, poate repeta un test sau poate consulta istoricul recompenselor. Sistemul trebuie să păstreze coerența acestor acțiuni. Dacă progresul este fragmentat sau greu de interpretat, utilizatorul pierde sentimentul de control. Dacă, dimpotrivă, platforma explică fiecare stare, autonomia devine practicabilă.
+
+\section{Feedback, vizibilitate și reducerea efortului cognitiv}
+Designul interfeței are efect direct asupra calității învățării. O interfață încărcată obligă utilizatorul să consume energie mentală pentru orientare, iar o interfață prea săracă ascunde informații importante. Ghidurile de utilizabilitate recomandă coerență, vizibilitatea stării sistemului și feedback clar pentru acțiunile utilizatorului \cite{badashian2008,uiux_basics}. Într-o platformă educațională, aceste principii trebuie aplicate la nivel de traseu: cursantul trebuie să vadă ce cursuri are active, unde s-a oprit, ce evaluări sunt disponibile și ce recompense sunt în așteptare.
+
+Feedback-ul trebuie diferențiat după tipul de acțiune. Pentru o acțiune reversibilă, un mesaj scurt este suficient. Pentru o operație cu efect economic, precum aprobarea unei recompense, mesajul trebuie să indice starea exactă și următorul pas. De exemplu, un candidat la recompensă poate fi \textit{submitted}, \textit{teacher approved}, \textit{amount approved}, \textit{token confirmed} sau \textit{wallet credited}. Dacă interfața traduce aceste stări în mesaje clare, utilizatorul înțelege că întârzierea nu înseamnă pierderea recompensei, ci parcurgerea unui flux controlat.
+
+Figura \ref{fig:feedback_invatare} sintetizează legătura dintre acțiunea cursantului, feedback și autoreglare. Observația centrală este că feedback-ul nu este doar o reacție vizuală, ci un mecanism de orientare. El spune utilizatorului dacă activitatea a fost înregistrată, dacă este suficientă pentru progres, dacă trebuie repetată sau dacă urmează validarea profesorului.
+
+\begin{figure}[H]
+    \centering
+    \resizebox{0.92\textwidth}{!}{%
+    \begin{tikzpicture}[node distance=1.8cm, every node/.style={font=\small}, bloc/.style={rectangle, rounded corners, draw=black, fill=gray!10, align=center, minimum width=3.4cm, minimum height=0.95cm}, sageata/.style={-{Latex[length=2.2mm]}, thick}]
+        \node[bloc] (actiune) {Acțiune\\cursant};
+        \node[bloc, right=of actiune] (sistem) {Înregistrare\\în sistem};
+        \node[bloc, right=of sistem] (feedback) {Feedback\\clar};
+        \node[bloc, below=of feedback] (decizie) {Decizie\\următor pas};
+        \node[bloc, left=of decizie] (autoreglare) {Autoreglare\\și revenire};
+        \draw[sageata] (actiune) -- (sistem);
+        \draw[sageata] (sistem) -- (feedback);
+        \draw[sageata] (feedback) -- (decizie);
+        \draw[sageata] (decizie) -- (autoreglare);
+        \draw[sageata] (autoreglare) -- (actiune);
+    \end{tikzpicture}}
+    \caption{Feedback-ul ca mecanism de autoreglare în eLearning (elaborare proprie).}
+    \label{fig:feedback_invatare}
+\end{figure}
+
+\section{Tipologia recompenselor educaționale}
+Recompensele din eLearning pot fi împărțite în mai multe categorii. Prima categorie este simbolică: badge-uri, titluri, niveluri și certificate. Acestea oferă recunoaștere, dar rămân de regulă în interiorul platformei. A doua categorie este funcțională: deblocarea unor lecții, accesul la materiale avansate, prioritate la mentorat sau dreptul de a participa la proiecte. A treia categorie este economică: puncte convertibile, cupoane, tokenuri sau beneficii cu valoare externă. RustLearn se află la intersecția dintre recunoașterea educațională și recompensa economică, deoarece LearnToken este gândit ca semn verificabil al unui progres validat.
+
+Această tipologie este importantă deoarece fiecare categorie are riscuri diferite. Recompensele simbolice sunt ușor de acordat, dar pot deveni lipsite de valoare dacă sunt prea frecvente. Recompensele funcționale pot susține trasee educaționale, dar trebuie proiectate astfel încât să nu blocheze cursanții care au nevoie de recuperare. Recompensele economice au cel mai mare potențial motivațional, dar și cel mai mare risc de abuz. Ele cer politici clare, limite, audit și capacitatea de a opri temporar fluxurile suspecte.
+
+\begin{table}[H]
+    \centering
+    \caption{Tipuri de recompense și implicații pentru platformă (elaborare proprie).}
+    \label{tab:tipuri_recompense}
+    \begin{tabular}{P{3.2cm}P{5cm}P{5.4cm}}
+        \toprule
+        Tip recompensă & Avantaj & Risc controlat prin arhitectură \\
+        \midrule
+        Simbolică & Recunoaștere rapidă, ușor de înțeles de cursant & Inflație de badge-uri și pierderea relevanței \\
+        Funcțională & Încurajează trasee progresive și implicare continuă & Blocarea artificială a accesului la învățare \\
+        Economică & Creează stimulent verificabil și portabil & Fraudă, dublare, dispute și costuri de tranzacție \\
+        Socială & Susține colaborarea și reputația în comunitate & Manipulare prin interacțiuni artificiale \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Riscuri etice ale modelului learn-to-earn}
+Modelul learn-to-earn trebuie evaluat și etic, nu doar tehnic. O primă problemă este echitatea. Dacă recompensele depind de timp disponibil, dispozitive performante sau acces constant la internet, platforma poate amplifica diferențe existente. O a doua problemă este motivația. Recompensa extrinsecă poate susține implicarea pe termen scurt, dar poate slăbi interesul pentru conținut dacă este percepută ca singurul motiv de participare. O a treia problemă este transparența: utilizatorul trebuie să știe ce date sunt colectate, ce evenimente contează și de ce primește sau nu primește tokenuri.
+
+Pentru RustLearn, aceste riscuri conduc la decizii arhitecturale concrete. Regulile de recompensare trebuie să fie explicabile, politicile trebuie să fie versionate, iar istoricul deciziilor trebuie să poată fi consultat. În plus, sistemul trebuie să permită intervenție umană. O platformă complet automată ar putea acorda recompense rapid, dar ar fi mai vulnerabilă la situații neprevăzute. Într-o platformă educațională, profesorul și administratorul rămân actori importanți tocmai pentru că pot interpreta contextul.
+
+Un alt aspect etic este separarea dintre evaluarea educațională și valoarea financiară. Un cursant nu trebuie să fie penalizat economic pentru o eroare tehnică a platformei, iar o recompensă nu trebuie să fie folosită pentru a ascunde calitatea slabă a conținutului. De aceea, lucrarea tratează recompensa ca un strat suplimentar peste eLearning, nu ca înlocuitor al pedagogiei. Conținutul, evaluarea, feedback-ul și suportul profesorului rămân elementele centrale ale experienței educaționale.
+
+\section{Criterii pentru folosirea blockchain-ului}
+Blockchain-ul este justificat numai atunci când avantajele sale depășesc costurile. Pentru date care se modifică frecvent, care conțin informații personale sau care trebuie șterse la cerere, o bază de date relațională este mai potrivită. Pentru transferuri de tokenuri, evenimente auditate public și interoperabilitate cu portofele, blockchain-ul poate aduce valoare reală \cite{ethereumWhitepaper,mdpi2023web3}. Această distincție este esențială pentru o arhitectură matură.
+
+În RustLearn, criteriul principal este finalitatea evenimentului. O lecție vizualizată nu trebuie scrisă pe blockchain, deoarece este un eveniment frecvent și sensibil contextual. O recompensă aprobată și confirmată poate avea reprezentare on-chain, deoarece devine parte din istoricul economic al utilizatorului. În același timp, decizia care a condus la recompensă rămâne explicată în baza de date, prin audit intern. Rezultatul este un model dublu: blockchain-ul confirmă transferul, iar aplicația explică motivul transferului.
+
+\section{Antifraudă în platformele educaționale recompensate}
+Frauda într-o platformă de eLearning recompensată poate apărea în mai multe forme. Un utilizator poate încerca să finalizeze același eveniment de mai multe ori, să automatizeze parcurgerea lecțiilor, să exploateze o evaluare prea simplă sau să colaboreze cu un profesor pentru aprobări nejustificate. O organizație poate configura politici prea generoase pentru a muta tokenuri fără activitate reală. Un atacator tehnic poate încerca să reutilizeze semnături, să modifice adrese de portofel sau să forțeze stări inconsistente.
+
+Aceste riscuri nu pot fi eliminate printr-o singură tehnologie. Ele cer o combinație de reguli de domeniu, constrângeri de bază de date, audit, permisiuni, monitorizare și controale blockchain. Cheile de idempotentă previn repetarea aceleiași operații, politicile active definesc limitele acordării, fraud blocks pot opri actori sau cursuri suspecte, iar nonce-urile din contracte previn replay-ul semnăturilor. În acest sens, securitatea nu este un modul separat, ci o proprietate transversală a arhitecturii.
+
+\section{Poziționarea RustLearn față de soluțiile existente}
+RustLearn se diferențiază de platformele de eLearning clasice prin introducerea unui strat verificabil de recompense, dar se diferențiază și de aplicațiile Web3 pure prin păstrarea logicii educaționale într-un sistem controlat. Platformele clasice pot gestiona cursuri, progres și evaluări, dar recompensele rămân de regulă interne. Aplicațiile Web3 pot gestiona tokenuri și proprietate digitală, dar nu oferă automat instrumente pedagogice mature. RustLearn încearcă să combine cele două direcții fără a confunda rolurile lor.
+
+Această poziționare este importantă pentru tema lucrării deoarece arată că blockchain-ul nu este folosit decorativ. Valoarea lui apare în punctele în care un token trebuie emis, transferat, ars, importat sau asociat unui portofel. În rest, platforma folosește mecanisme consacrate: autentificare, permisiuni, PostgreSQL, stocare de obiecte și worker asincron. Rezultatul este o soluție care poate fi înțeleasă atât de un evaluator tehnic, cât și de un evaluator preocupat de utilitatea educațională.
+
+\section{Indicatori pentru evaluarea unei platforme recompensate}
+Stadiul cunoașterii arată că o platformă educațională recompensată nu trebuie evaluată doar prin numărul de utilizatori sau prin volumul tokenurilor distribuite. Indicatorii relevanți trebuie să măsoare progresul educațional, calitatea implicării și robustețea mecanismului de recompensare. Rata de finalizare a cursurilor, numărul de reveniri, scorurile la evaluări, timpul mediu până la feedback și satisfacția cursanților sunt indicatori pedagogici. Numărul de candidați respinși, recompensele reconciliate, fraud blocks active și timpul până la creditarea wallet-ului sunt indicatori operaționali.
+
+Această separare între indicatori pedagogici și indicatori operaționali previne o interpretare greșită a succesului. O platformă care distribuie multe tokenuri poate avea totuși învățare superficială. O platformă cu multe respingeri poate avea fie controale eficiente, fie reguli prost comunicate. De aceea, RustLearn trebuie analizată prin corelarea indicatorilor. Dacă finalizările cresc, dar scorurile scad, recompensa poate încuraja parcurgerea rapidă. Dacă timpul de creditare crește, problema poate fi în worker, în blockchain sau în fluxul de aprobare. Indicatorii devin astfel instrumente de învățare organizațională, nu doar statistici.
+
+\begin{table}[H]
+    \centering
+    \caption{Indicatori recomandați pentru evaluarea modelului learn-to-earn (elaborare proprie).}
+    \label{tab:indicatori_learntoearn}
+    \begin{tabular}{P{3.6cm}P{5.2cm}P{4.8cm}}
+        \toprule
+        Categorie & Exemple de indicatori & Interpretare \\
+        \midrule
+        Pedagogică & finalizări, scoruri, reveniri, timp pe lecții & Arată dacă recompensa susține învățarea reală \\
+        Operațională & timp de aprobare, timp de creditare, joburi eșuate & Arată dacă sistemul funcționează previzibil \\
+        Antifraudă & candidați respinși, blocaje, reconciliere & Arată calitatea controalelor și a regulilor \\
+        Experiență utilizator & erori afișate, stări goale, abandon în flux & Arată dacă interfața explică suficient procesul \\
+        \bottomrule
+    \end{tabular}
+\end{table}
