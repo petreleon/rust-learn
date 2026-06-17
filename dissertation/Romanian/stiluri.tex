@@ -10,6 +10,7 @@
 \usepackage{subcaption}
 \usepackage{booktabs}
 \usepackage{array}
+\usepackage{ragged2e}
 \usepackage{enumitem}
 \usepackage{xcolor}
 \usepackage{listings}
@@ -62,7 +63,7 @@
     colorlinks=true,
     linkcolor=black,
     citecolor=black,
-    urlcolor=blue,
+    urlcolor=black,
     pdftitle={\titluLucrare},
     pdfauthor={\numeStudentHeader}
 }
@@ -96,12 +97,17 @@
     \fancyfoot[C]{\thepage}
     \renewcommand{\headrulewidth}{0.4pt}
 }
+\fancypagestyle{partpage}{%
+    \fancyhf{}
+    \fancyfoot[C]{\thepage}
+    \renewcommand{\headrulewidth}{0pt}
+}
 
 \usepackage{float}
 
 \newcommand{\partea}[1]{
     \cleardoublepage
-    \thispagestyle{empty}
+    \thispagestyle{partpage}
     \vspace*{5cm}
     \begin{center}
         {\Huge \textbf{#1}}
@@ -121,3 +127,5 @@
     keepspaces=true,
     showstringspaces=false
 }
+
+\newcolumntype{P}[1]{>{\RaggedRight\arraybackslash}p{#1}}
