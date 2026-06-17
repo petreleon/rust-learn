@@ -3,7 +3,7 @@
 \section{Strategia de validare}
 Validarea platformei urmărește două direcții: validarea tehnică și validarea fluxurilor de produs. Validarea tehnică verifică dacă aplicația compilează, dacă migrațiile sunt coerente, dacă testele unitare și de integrare rulează, dacă frontend-ul trece testele și dacă serviciile locale pornesc în Docker Compose. Validarea fluxurilor de produs verifică scenarii precum autentificarea, accesul la cursuri, aprobarea profesorilor, administrarea recompenselor, creditarea portofelelor, raportarea și operarea worker-ului.
 
-Repository-ul include comenzi Make pentru format, teste, preflight, testare în Compose, migrații și pornirea mediului de dezvoltare. Această alegere este importantă deoarece reduce dependența de pași manuali. În loc ca fiecare dezvoltator să ghicească ce comandă trebuie rulată, Makefile-ul devine interfața operațională a proiectului. Pentru o lucrare aplicativă, această disciplină arată că sistemul nu este doar cod demonstrativ, ci un produs care poate fi rulat și verificat.
+Depozitul de cod include comenzi Make pentru format, teste, preflight, testare în Compose, migrații și pornirea mediului de dezvoltare. Această alegere este importantă deoarece reduce dependența de pași manuali. În loc ca fiecare dezvoltator să ghicească ce comandă trebuie rulată, Makefile-ul devine interfața operațională a proiectului. Pentru o lucrare aplicativă, această disciplină arată că sistemul nu este doar cod demonstrativ, ci un produs care poate fi rulat și verificat.
 
 \section{Teste backend}
 Backend-ul are teste pentru domenii critice, inclusiv recompense, permisiuni, tokenuri, integrarea blockchain și adaptoare. Testele unitare verifică reguli izolate, cum ar fi parsarea tipurilor de evenimente token sau validarea unor stări de recompensare. Testele de integrare verifică fluxuri mai largi, unde baza de date, API-ul sau Ethereum local pot interacționa. Pentru contracte, testele Foundry verifică funcțiile LearnToken, LearnTokenPresigner și PlatformImporter.
@@ -20,9 +20,9 @@ Tabelul \ref{tab:testare} sintetizează principalele niveluri de validare.
         \midrule
         Unit & Reguli de domeniu, validări, conversii de stare & Stări imposibile, parse greșit, calcule incorecte \\
         Integrare API & Rute, middleware, permisiuni, persistență & Acces neautorizat, erori de contract API, date lipsă \\
-        Blockchain & Contracte, evenimente, semnături, deploy local & Replay, emitere necontrolată, ABI incompatibil \\
+        Blockchain & Contracte, evenimente, semnături, lansare locală & Replay, emitere necontrolată, ABI incompatibil \\
         Frontend & Randare rute, stări goale, controale gated & Interfețe care afișează acțiuni fără permisiuni \\
-        Operațional & Health, readiness, Docker Compose, worker & Servicii pornite fără dependențe reale sau blocaje ascunse \\
+        Operațional & Sănătate, pregătire operațională, Docker Compose, worker & Servicii pornite fără dependențe reale sau blocaje ascunse \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -30,25 +30,25 @@ Tabelul \ref{tab:testare} sintetizează principalele niveluri de validare.
 \section{Migrații și schema bazei de date}
 Migrațiile Diesel definesc evoluția bazei de date. Fiecare schimbare de schemă trebuie să aibă \texttt{up.sql} și \texttt{down.sql}, astfel încât evoluția să fie reversibilă când este posibil. Pentru o platformă cu recompense și portofele, migrațiile nu sunt doar detalii tehnice. Ele definesc structura de audit, tranzacții, stări și constrângeri de unicitate. De exemplu, cheile de idempotență și indexurile unice reduc riscul dublării unor operații.
 
-Schema curentă include tabele pentru candidați la recompense, politici, joburi de execuție, înregistrări de plată, înregistrări de creditare a portofelului, compensări, blocaje antifraudă și evenimente de audit. Această separare permite interogări și raportări precise. Dacă toate aceste informații ar fi păstrate într-un singur câmp JSON, dezvoltarea inițială ar fi mai rapidă, dar verificarea și reconcilierea ar deveni mai dificile.
+Schema curentă include tabele pentru candidați la recompense, politici, sarcini de execuție, înregistrări de plată, înregistrări de creditare a portofelului, compensări, blocaje antifraudă și evenimente de audit. Această separare permite interogări și raportări precise. Dacă toate aceste informații ar fi păstrate într-un singur câmp JSON, dezvoltarea inițială ar fi mai rapidă, dar verificarea și reconcilierea ar deveni mai dificile.
 
-\section{Verificări de sănătate și readiness}
-RustLearn expune \texttt{/health} pentru liveness și \texttt{/ready} pentru dependențe. Diferența este importantă. Un proces poate fi viu, dar nepregătit să servească trafic dacă baza de date, S3 sau Ethereum nu sunt disponibile. Readiness-ul verifică dependențele înainte ca platforma să fie considerată operațională. Frontend-ul poate afișa aceste stări în tabloul de bord de administrare, iar Kubernetes sau Docker pot folosi endpoint-urile pentru verificări de sănătate.
+\section{Verificări de sănătate și pregătire operațională}
+RustLearn expune \texttt{/health} pentru verificarea că procesul este viu și \texttt{/ready} pentru dependențe. Diferența este importantă. Un proces poate fi viu, dar nepregătit să servească trafic dacă baza de date, S3 sau Ethereum nu sunt disponibile. Verificarea de pregătire controlează dependențele înainte ca platforma să fie considerată operațională. Frontend-ul poate afișa aceste stări în tabloul de bord de administrare, iar Kubernetes sau Docker pot folosi punctele de verificare pentru sănătate și pregătire.
 
-Worker-ul are propriul mecanism de heartbeat. El scrie periodic un fișier care poate fi verificat de health check. Dacă worker-ul se blochează, lipsa heartbeat-ului indică problema. Această verificare este utilă deoarece worker-ul nu expune neapărat un server HTTP, dar este critic pentru procesarea video și indexarea depunerilor.
+Worker-ul are propriul mecanism de semnal periodic. El scrie periodic un fișier care poate fi verificat de controlul de sănătate. Dacă worker-ul se blochează, lipsa semnalului indică problema. Această verificare este utilă deoarece worker-ul nu expune neapărat un server HTTP, dar este critic pentru procesarea video și indexarea depunerilor.
 
 \section{Docker Compose și mediu local}
 Mediul local include serviciile \texttt{app}, \texttt{web}, \texttt{db}, \texttt{rustfs}, \texttt{anvil}, \texttt{worker} și \texttt{test-runner}. PostgreSQL rulează ca bază de date, RustFS oferă stocare compatibilă S3, Anvil simulează rețeaua Ethereum, iar worker-ul rulează sarcinile asincrone. Această compunere permite testarea locală a fluxurilor care, în producție, ar depinde de servicii externe.
 
-Valoarea Docker Compose este reproducibilitatea. O platformă care integrează DB, S3, blockchain și worker poate deveni greu de pornit manual. Compose definește dependențele, variabilele și porturile într-un singur loc. În plus, același model conceptual poate fi transpus în Kubernetes, unde readiness-ul, secretele, volumele și restart policy devin elemente de operare.
+Valoarea Docker Compose este reproducibilitatea. O platformă care integrează DB, S3, blockchain și worker poate deveni greu de pornit manual. Compose definește dependențele, variabilele și porturile într-un singur loc. În plus, același model conceptual poate fi transpus în Kubernetes, unde pregătirea operațională, secretele, volumele și politicile de repornire devin elemente de operare.
 
 \section{Securitate și control al riscurilor}
-Riscurile principale sunt accesul neautorizat, dublarea recompenselor, manipularea portofelelor, expunerea secretelor și inconsistența între baza de date și blockchain. Sistemul reduce aceste riscuri prin JWT, permisiuni pe scopuri, audit, stări de recompensare, politici versionate, nonce-uri în contracte, termene-limită pentru semnături, chei de idempotență și reconciliere.
+Riscurile principale sunt accesul neautorizat, dublarea recompenselor, manipularea portofelelor, expunerea secretelor și inconsistența între baza de date și blockchain. Sistemul reduce aceste riscuri prin JWT, permisiuni pe scopuri, audit, stări de recompensare, politici cu versiuni clare, nonce-uri în contracte, termene-limită pentru semnături, chei de idempotență și reconciliere.
 
 Un risc specific aplicațiilor blockchain este tentația de a considera blockchain-ul suficient pentru audit. În realitate, blockchain-ul poate confirma o tranzacție, dar nu explică toate deciziile educaționale care au dus la ea. De aceea, RustLearn păstrează auditul deciziilor în PostgreSQL și leagă tranzacțiile externe de candidați, portofele și politici. Această legătură este necesară pentru investigații și rapoarte.
 
 \section{Limitări ale implementării}
-Implementarea curentă are limitări. În primul rând, unele fluxuri frontend marchează explicit funcții viitoare, cum ar fi progresul persistent complet, încărcarea media avansată sau anumite detalii de buget. În al doilea rând, e-mailul este încă simulat local, nu integrat cu un furnizor real. În al treilea rând, contractele nu folosesc încă proxy-uri actualizabile, ceea ce înseamnă că schimbările majore de ABI necesită redeploy și plan de reconciliere. În al patrulea rând, utilizarea tokenurilor în producție ar necesita audit de securitate dedicat și politici juridice clare.
+Implementarea curentă are limitări. În primul rând, unele fluxuri frontend marchează explicit funcții viitoare, cum ar fi progresul persistent complet, încărcarea media avansată sau anumite detalii de buget. În al doilea rând, e-mailul este încă simulat local, nu integrat cu un furnizor real. În al treilea rând, contractele nu folosesc încă proxy-uri actualizabile, ceea ce înseamnă că schimbările majore de ABI necesită publicare nouă și plan de reconciliere. În al patrulea rând, utilizarea tokenurilor în producție ar necesita audit de securitate dedicat și politici juridice clare.
 
 O altă limitare este lipsa unei evaluări cu utilizatori reali. Lucrarea validează arhitectura și implementarea tehnică, dar nu măsoară încă impactul recompenselor asupra motivației sau rezultatelor educaționale. Pentru o cercetare completă de produs, ar fi necesar un studiu cu grupuri de cursanți, comparație între cursuri cu și fără recompense și măsurarea retenției, promovării și satisfacției.
 
@@ -69,4 +69,4 @@ Pentru verificare completă, sunt recomandate următoarele scenarii:
 \input{capitol6_extins.tex}
 
 \section{Concluzie}
-Validarea RustLearn trebuie privită ca un proces continuu. Sistemul are mecanisme tehnice solide: teste, migrații, verificări de sănătate, readiness, heartbeat pentru worker și mediu local compus. Totuși, integrarea blockchain introduce riscuri suplimentare, iar trecerea în producție ar necesita audit de securitate, monitorizare, copii de siguranță și politici clare de operare. Arhitectura existentă creează baza pentru aceste etape, deoarece stările, auditul și separarea responsabilităților sunt deja prezente.
+Validarea RustLearn trebuie privită ca un proces continuu. Sistemul are mecanisme tehnice solide: teste, migrații, verificări de sănătate, pregătire operațională, semnal periodic pentru worker și mediu local compus. Totuși, integrarea blockchain introduce riscuri suplimentare, iar trecerea în producție ar necesita audit de securitate, monitorizare, copii de siguranță și politici clare de operare. Arhitectura existentă creează baza pentru aceste etape, deoarece stările, auditul și separarea responsabilităților sunt deja prezente.

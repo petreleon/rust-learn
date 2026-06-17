@@ -12,16 +12,16 @@ Al patrulea caz de utilizare este administrarea organizațională. O organizați
         Caz de utilizare & Actor principal & Date sau stări afectate \\
         \midrule
         Parcurgere curs & Cursant & Înscriere, progres, evaluări, tablou de bord cursant \\
-        Autorat curs & Profesor & Cursuri, capitole, conținut, publicare, roster \\
+        Autorat curs & Profesor & Cursuri, capitole, conținut, publicare, listă de cursanți \\
         Recompensare & Profesor și platformă & Candidați, politici, audit, tranzacții, portofel \\
         Program organizațional & Administrator organizație & Membri, roluri, cursuri asociate, rapoarte \\
-        Operare platformă & Administrator platformă & Blocaje antifraudă, KYC, exporturi, readiness, politici \\
+        Operare platformă & Administrator platformă & Blocaje antifraudă, KYC, exporturi, pregătire operațională, politici \\
         \bottomrule
     \end{tabular}
 \end{table}
 
 \section{Fluxul de finalizare a unui curs recompensat}
-Fluxul de finalizare a unui curs recompensat este reprezentativ pentru arhitectură deoarece traversează mai multe domenii. În implementarea curentă, handoff-ul pornește după o evaluare promovată. Domeniul de învățare salvează încercarea, calculează scorul și transmite domeniului de recompense evenimentul \texttt{assessment\_completion}. Dacă există o politică activă, se creează sau se reutilizează un candidat cu cheie de idempotență. Dacă politica lipsește, răspunsul este \texttt{missing\_policy}, fără candidat nou.
+Fluxul de finalizare a unui curs recompensat este reprezentativ pentru arhitectură deoarece traversează mai multe domenii. În implementarea curentă, transferul către recompense pornește după o evaluare promovată. Domeniul de învățare salvează încercarea, calculează scorul și transmite domeniului de recompense evenimentul \texttt{assessment\_completion}. Dacă există o politică activă, se creează sau se reutilizează un candidat cu cheie de idempotență. Dacă politica lipsește, răspunsul este \texttt{missing\_policy}, fără candidat nou.
 
 \begin{figure}[H]
     \centering
@@ -29,32 +29,32 @@ Fluxul de finalizare a unui curs recompensat este reprezentativ pentru arhitectu
     \begin{tikzpicture}[node distance=1.0cm and 0.95cm, every node/.style={font=\scriptsize}, bloc/.style={rectangle, rounded corners, draw=black, fill=gray!10, align=center, minimum width=2.25cm, minimum height=0.78cm}, sageata/.style={-{Latex[length=1.8mm]}, thick}]
         \node[bloc] (learner) {Cursant};
         \node[bloc, right=of learner] (attempt) {Evaluare\\promovată};
-        \node[bloc, right=of attempt] (handoff) {Handoff\\recompensă};
-        \node[bloc, right=of handoff, fill=green!8] (candidate) {Candidat\\așteaptă profesor};
+        \node[bloc, right=of attempt] (transfer) {Transfer către\\recompense};
+        \node[bloc, right=of transfer, fill=green!8] (candidate) {Candidat\\așteaptă profesor};
         \node[bloc, right=of candidate] (teacher) {Decizie\\profesor};
         \node[bloc, right=of teacher] (amount) {Decizie\\sumă};
         \node[bloc, below=of amount] (payout) {Token sau\\credit direct};
         \node[bloc, left=of payout] (wallet) {Portofel\\creditat};
         \node[bloc, left=of wallet] (audit) {Audit, notificare\\reconciliere};
-        \node[bloc, below=of handoff, fill=yellow!18] (missing) {\texttt{missing\_policy}\\fără candidat};
+        \node[bloc, below=of transfer, fill=yellow!18] (missing) {\texttt{missing\_policy}\\fără candidat};
         \draw[sageata] (learner) -- (attempt);
-        \draw[sageata] (attempt) -- (handoff);
-        \draw[sageata] (handoff) -- (candidate);
-        \draw[sageata] (handoff) -- (missing);
+        \draw[sageata] (attempt) -- (transfer);
+        \draw[sageata] (transfer) -- (candidate);
+        \draw[sageata] (transfer) -- (missing);
         \draw[sageata] (candidate) -- (teacher);
         \draw[sageata] (teacher) -- (amount);
         \draw[sageata] (amount) -- (payout);
         \draw[sageata] (payout) -- (wallet);
         \draw[sageata] (wallet) -- (audit);
     \end{tikzpicture}}
-    \caption{Fluxul real al handoff-ului de recompensă după o evaluare promovată (elaborare proprie).}
+    \caption{Fluxul real al transferului către recompense după o evaluare promovată (elaborare proprie).}
     \label{fig:flux_curs_recompensat}
 \end{figure}
 
 Acest flux demonstrează de ce recompensa nu poate fi un efect secundar ascuns într-o rută de progres. Dacă un utilizator repetă aceeași evaluare, sistemul trebuie să recunoască evenimentul deja procesat. Dacă profesorul respinge candidatul, trebuie păstrat motivul. Dacă tranzacția token este confirmată, dar creditarea internă eșuează, reconcilierea trebuie să repare doar etapa lipsă. Fiecare tranziție are deci o justificare tehnică și una de produs.
 
 \section{Modelarea stărilor și invariantelor}
-Platforma conține mai multe cicluri de viață. Cursurile pot fi draft, submitted, published sau archived. Aplicațiile de profesor pot fi pending, approved, rejected sau returned pentru completări. Candidații la recompense parcurg stări de validare și execuție. Joburile worker-ului pot fi queued, processing, completed sau failed. Fiecare ciclu de viață impune invariante: un curs nepublicat nu trebuie să fie vizibil public, o recompensă respinsă nu trebuie plătită, un job finalizat nu trebuie procesat din nou fără motiv administrativ.
+Platforma conține mai multe cicluri de viață. Cursurile pot fi draft, submitted, published sau archived. Aplicațiile de profesor pot fi pending, approved, rejected sau returned pentru completări. Candidații la recompense parcurg stări de validare și execuție. Sarcinile worker-ului pot fi queued, processing, completed sau failed. Fiecare ciclu de viață impune invariante: un curs nepublicat nu trebuie să fie vizibil public, o recompensă respinsă nu trebuie plătită, o sarcină finalizată nu trebuie procesată din nou fără motiv administrativ.
 
 Aceste invariante sunt mai ușor de controlat atunci când stările sunt explicite. O coloană booleană precum \texttt{paid=true} nu ar fi suficientă pentru recompense, deoarece nu distinge între plată planificată, tranzacție confirmată și portofel creditat. Prin urmare, RustLearn folosește stări descriptive și evenimente de audit. În plus, baza de date poate impune unicitate și referințe, iar codul de domeniu poate valida tranzițiile permise.
 
@@ -70,7 +70,7 @@ Aceste invariante sunt mai ușor de controlat atunci când stările sunt explici
         Recompense & Același eveniment nu produce două recompense valide & Cheie de idempotență și audit \\
         Portofel & Creditarea internă urmează confirmării tokenului & Tranziții de stare și reconciliere \\
         Permisiuni & Rolurile sunt evaluate în scopul resursei accesate & Middleware pe platformă, organizație și curs \\
-        Worker & Un job eșuat nu blochează permanent coada & Retry, status și heartbeat \\
+        Worker & O sarcină eșuată nu blochează permanent coada & Reîncercare, stare și semnal periodic \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -81,9 +81,9 @@ Un risc al aplicațiilor mari este amestecarea domeniilor. De exemplu, domeniul 
 Această frontieră face sistemul mai ușor de explicat. Profesorul poate vedea progresul și candidații la recompense, dar nu trebuie să manipuleze direct registrul intern. Administratorul platformei poate gestiona politici și blocaje, dar nu trebuie să modifice conținutul cursului. Worker-ul poate procesa video și indexa evenimente, dar nu decide reguli pedagogice. Fiecare domeniu are un vocabular propriu, iar interacțiunile dintre domenii sunt controlate prin cazuri de utilizare.
 
 \section{Arhitectura rapoartelor și exporturilor}
-Rapoartele sunt importante pentru organizații și administratori deoarece transformă datele operaționale în decizii. Un administrator de organizație trebuie să poată vedea câți membri sunt activi, ce cursuri sunt asociate organizației, ce recompense au fost sponsorizate și ce sold există în portofel. Administratorul platformei are nevoie de o vedere mai largă: candidați în așteptare, blocaje antifraudă active, tranzacții eșuate, exporturi CSV și stări de readiness.
+Rapoartele sunt importante pentru organizații și administratori deoarece transformă datele operaționale în decizii. Un administrator de organizație trebuie să poată vedea câți membri sunt activi, ce cursuri sunt asociate organizației, ce recompense au fost sponsorizate și ce sold există în portofel. Administratorul platformei are nevoie de o vedere mai largă: candidați în așteptare, blocaje antifraudă active, tranzacții eșuate, exporturi CSV și stări de pregătire operațională.
 
-Din punct de vedere arhitectural, raportarea nu trebuie să fie doar o interogare ad-hoc scrisă în interfață. Ea trebuie să respecte permisiunile și să diferențieze datele pe scopuri. Un membru obișnuit al unei organizații nu trebuie să vadă informații financiare sensibile. Un profesor nu trebuie să vadă rapoarte globale ale platformei. De aceea, raportarea folosește aceleași principii ca restul aplicației: cazuri de utilizare, permisiuni și DTO-uri explicite.
+Din punct de vedere arhitectural, raportarea nu trebuie să fie doar o interogare punctuală scrisă în interfață. Ea trebuie să respecte permisiunile și să diferențieze datele pe scopuri. Un membru obișnuit al unei organizații nu trebuie să vadă informații financiare sensibile. Un profesor nu trebuie să vadă rapoarte globale ale platformei. De aceea, raportarea folosește aceleași principii ca restul aplicației: cazuri de utilizare, permisiuni și DTO-uri explicite.
 
 \section{Valoarea pentru fiecare actor}
 Pentru cursant, valoarea arhitecturii constă în claritate și încredere. El vede progresul, recompensele și stările portofelului fără a fi obligat să înțeleagă detaliile infrastructurii. Pentru profesor, valoarea constă în controlul conținutului și al candidaților la recompense. Profesorul poate administra cursul, dar nu poate încălca regulile globale de plată. Pentru organizație, valoarea constă în posibilitatea de a sponsoriza învățarea și de a urmări rezultatele. Pentru platformă, valoarea constă în audit, antifraudă și operabilitate.
@@ -93,10 +93,10 @@ Această analiză pe actori arată că arhitectura nu este o simplă diagramă t
 \section{Scalabilitate conceptuală}
 Scalabilitatea nu înseamnă doar mai multe cereri pe secundă. Într-o platformă educațională, scalabilitatea conceptuală înseamnă capacitatea de a adăuga noi tipuri de cursuri, noi reguli de recompensare, noi roluri și noi integrări fără a schimba fundamentul. RustLearn susține această evoluție prin separarea domeniilor și prin modelarea explicită a stărilor. De exemplu, un nou tip de recompensă poate porni de la același model de candidat, politică, aprobare și execuție.
 
-La nivel tehnic, scalabilitatea poate fi abordată incremental. API-ul poate fi replicat, PostgreSQL poate fi optimizat prin indexuri și conexiuni gestionate, S3 poate livra fișiere mari independent de baza de date, iar worker-ul poate fi multiplicat dacă joburile sunt idempotente. Blockchain-ul rămâne folosit selectiv, ceea ce limitează costurile. Acest mod de scalare este realist pentru o platformă în creștere, deoarece nu presupune trecerea imediată la o arhitectură distribuită complexă.
+La nivel tehnic, scalabilitatea poate fi abordată incremental. API-ul poate fi replicat, PostgreSQL poate fi optimizat prin indexuri și conexiuni gestionate, S3 poate livra fișiere mari independent de baza de date, iar worker-ul poate fi multiplicat dacă sarcinile sunt idempotente. Blockchain-ul rămâne folosit selectiv, ceea ce limitează costurile. Acest mod de scalare este realist pentru o platformă în creștere, deoarece nu presupune trecerea imediată la o arhitectură distribuită complexă.
 
 \section{Analiza cazurilor de eroare}
-O arhitectură valoroasă nu descrie doar fluxul fericit, ci și cazurile de eroare. În RustLearn, erorile posibile sunt tratate ca stări sau rezultate controlate. Dacă autentificarea eșuează, API-ul returnează un răspuns clar și nu execută gestionarul de rută sensibil. Dacă utilizatorul nu are permisiune, middleware-ul sau cazul de utilizare oprește operația. Dacă o recompensă este blocată de o politică antifraudă, candidatul rămâne explicabil, nu dispare. Dacă worker-ul nu poate procesa un video, jobul capătă stare de eșec și mesajul poate fi afișat profesorului.
+O arhitectură valoroasă nu descrie doar fluxul fericit, ci și cazurile de eroare. În RustLearn, erorile posibile sunt tratate ca stări sau rezultate controlate. Dacă autentificarea eșuează, API-ul returnează un răspuns clar și nu execută gestionarul de rută sensibil. Dacă utilizatorul nu are permisiune, middleware-ul sau cazul de utilizare oprește operația. Dacă o recompensă este blocată de o politică antifraudă, candidatul rămâne explicabil, nu dispare. Dacă worker-ul nu poate procesa un video, sarcina capătă stare de eșec și mesajul poate fi afișat profesorului.
 
 Integrarea blockchain introduce erori speciale. O tranzacție poate fi respinsă, poate rămâne în așteptare, poate fi confirmată după o întârziere sau poate fi observată de indexer după restart. Arhitectura răspunde prin separarea etapelor: planificare, confirmare, creditare, notificare și reconciliere. Această separare este mai lungă decât un update direct, dar permite repararea controlată. Într-un sistem cu valoare economică, claritatea stărilor este mai importantă decât scurtarea fluxului.
 
@@ -110,15 +110,15 @@ Integrarea blockchain introduce erori speciale. O tranzacție poate fi respinsă
         \midrule
         Cerere fără JWT valid & Acces la rută protejată & Middleware de autentificare \\
         Rol insuficient în curs & Modificare neautorizată & Permisiuni pe scop și cazuri de utilizare \\
-        Video invalid sau S3 indisponibil & Material neprocesat & Job cu status, retry și notificare \\
+        Video invalid sau S3 indisponibil & Material neprocesat & Sarcină cu stare, reîncercare și notificare \\
         Tranzacție token întârziată & Wallet necreditat imediat & Stare intermediară și reconciliere \\
-        Fraud block activ & Recompensă nejustificată & Oprire flux și audit al blocajului \\
+        Blocaj antifraudă activ & Recompensă nejustificată & Oprire flux și audit al blocajului \\
         Migrație parțială & Inconsistență date & Ținte Make, copii de siguranță și verificări de schemă \\
         \bottomrule
     \end{tabular}
 \end{table}
 
 \section{Decizii privind granularitatea auditului}
-Auditul poate fi prea sărac sau prea zgomotos. Dacă se auditează doar tranzacția finală, se pierde explicația deciziei. Dacă se auditează fiecare citire minoră, istoricul devine greu de folosit. RustLearn adoptă o granularitate orientată pe decizii: aplicarea pentru profesor, aprobarea sau respingerea, schimbarea politicii de recompensare, crearea unui blocaj antifraudă, decizia asupra candidatului, confirmarea tokenului și creditarea portofelului. Aceste evenimente au semnificație de business și pot fi utile într-o dispută.
+Auditul poate fi prea sărac sau prea zgomotos. Dacă se auditează doar tranzacția finală, se pierde explicația deciziei. Dacă se auditează fiecare citire minoră, istoricul devine greu de folosit. RustLearn adoptă o granularitate orientată pe decizii: aplicarea pentru profesor, aprobarea sau respingerea, schimbarea politicii de recompensare, crearea unui blocaj antifraudă, decizia asupra candidatului, confirmarea tokenului și creditarea portofelului. Aceste evenimente au semnificație funcțională și pot fi utile într-o dispută.
 
 Granularitatea auditului este legată de arhitectură. Dacă logica ar fi împrăștiată în gestionare de rute, auditul ar fi inconsistent. Pentru că deciziile trec prin cazuri de utilizare, fiecare tranziție importantă poate produce un eveniment uniform. Această uniformitate permite interfețe de audit, exporturi și rapoarte. Ea este, de asemenea, o formă de documentare la rulare: istoricul sistemului explică nu doar ce date există, ci cum au ajuns în acea stare.

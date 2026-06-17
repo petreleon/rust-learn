@@ -23,12 +23,12 @@ Importanța socială a accesului la educație este legată de reducerea unor cer
 Recompensele cu jetoane digitale trebuie tratate cu prudență. Dacă sunt implementate superficial, ele pot încuraja comportamente oportuniste, colectarea artificială de puncte sau dependența de motivație extrinsecă. De aceea, lucrarea pune accent pe un flux de recompensare auditat: un eveniment educațional produce un candidat la recompensă, eligibilitatea este verificată, suma este aprobată, tranzacția este planificată, iar creditarea portofelului intern se face numai după confirmarea etapei relevante. În acest mod, recompensa devine o consecință a progresului educațional durabil, nu un substitut al învățării.
 
 \section{Problema abordată}
-Problema analizată constă în proiectarea și implementarea unui sistem de eLearning care să integreze recompense blockchain fără a compromite performanța, securitatea și controlul administrativ necesare unei platforme educaționale. Un sistem exclusiv descentralizat ar oferi transparență, dar ar fi costisitor, lent și dificil de adaptat pentru operații educaționale frecvente. Un sistem exclusiv centralizat ar fi mai simplu de operat, dar ar pierde valoarea auditabilă a transferurilor tokenizate și ar depinde complet de încrederea în operatorul platformei.
+Problema analizată constă în proiectarea și implementarea unui sistem de eLearning care să integreze recompense blockchain fără a compromite performanța, securitatea și controlul administrativ necesare unei platforme educaționale. Un sistem exclusiv descentralizat ar oferi transparență, dar ar fi costisitor, lent și dificil de adaptat pentru operații educaționale frecvente. Un sistem exclusiv centralizat ar fi mai simplu de operat, dar ar pierde valoarea auditabilă a transferurilor prin tokenuri și ar depinde complet de încrederea în operatorul platformei.
 
 Soluția propusă este o arhitectură hibridă. Backend-ul Rust/Actix Web gestionează autentificarea, permisiunile, cursurile, progresul, evaluările, organizațiile și operațiile administrative. PostgreSQL păstrează starea operațională și istoricul necesar raportării. Stocarea compatibilă S3 gestionează fișierele de curs, iar un worker separat procesează materialele video. Contractele Solidity și integrarea Ethereum gestionează LearnToken, importul de tokenuri și transferurile semnate. Frontend-ul Next.js oferă interfețe diferențiate pentru cursanți, profesori, organizații și administratori.
 
 \section{Obiective}
-Obiectivul general al lucrării este realizarea unei platforme de eLearning bazate pe blockchain, capabilă să urmărească activitatea educațională și să susțină recompense tokenizate într-un mod controlat. Obiectivele specifice sunt:
+Obiectivul general al lucrării este realizarea unei platforme de eLearning bazate pe blockchain, capabilă să urmărească activitatea educațională și să susțină recompense prin tokenuri într-un mod controlat. Obiectivele specifice sunt:
 
 \begin{itemize}[leftmargin=1.4cm]
     \item analiza stadiului actual privind eLearning-ul, gamificarea și aplicațiile hibride Web2/Web3;
@@ -37,7 +37,7 @@ Obiectivul general al lucrării este realizarea unei platforme de eLearning baza
     \item implementarea unui model de roluri și permisiuni pe trei niveluri: platformă, organizație și curs;
     \item proiectarea unui flux de recompensare cu stări auditate, reconciliere și protecție împotriva dublării recompenselor;
     \item integrarea unui token ERC-20 cu suport pentru operații semnate și import de fonduri prin standarde Ethereum;
-    \item validarea soluției prin teste, migrații reversibile, verificări de readiness și scenarii de operare locală.
+    \item validarea soluției prin teste, migrații reversibile, verificări de pregătire operațională și scenarii de operare locală.
 \end{itemize}
 
 \section{Contribuții}

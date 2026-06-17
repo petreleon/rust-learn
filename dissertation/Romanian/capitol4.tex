@@ -3,7 +3,7 @@
 \section{Descriere generală}
 RustLearn este platforma aplicativă dezvoltată pentru tema \textit{\titluLucrare}. Sistemul combină funcții de eLearning cu mecanisme de recompensare bazate pe LearnToken. Din punct de vedere funcțional, platforma permite autentificarea utilizatorilor, administrarea cursurilor, publicarea conținutului, urmărirea progresului, gestionarea organizațiilor, evaluarea cursanților, administrarea portofelelor și operarea unui flux de recompense. Din punct de vedere tehnic, sistemul este format dintr-un backend Rust/Actix Web, o bază de date PostgreSQL, stocare compatibilă S3, un worker de procesare, contracte Solidity și un frontend Next.js.
 
-Arhitectura a fost proiectată pentru a evita două extreme. Prima extremă este platforma complet centralizată, în care toate recompensele sunt doar înregistrări interne. Aceasta ar fi simplă, dar ar reduce valoarea de transparență și interoperabilitate a tokenului. A doua extremă este platforma complet on-chain, în care fiecare progres, rol sau evaluare ar fi tranzacție blockchain. Aceasta ar fi costisitoare, lentă și nepotrivită pentru date educaționale sensibile. RustLearn folosește o cale intermediară: operațiile educaționale rămân off-chain, iar tokenurile și tranzacțiile relevante sunt integrate cu Ethereum.
+Arhitectura a fost proiectată pentru a evita două extreme. Prima extremă este platforma complet centralizată, în care toate recompensele sunt doar înregistrări interne. Aceasta ar fi simplă, dar ar reduce valoarea de transparență și interoperabilitate a tokenului. A doua extremă este platforma complet în blockchain, în care fiecare progres, rol sau evaluare ar fi tranzacție blockchain. Aceasta ar fi costisitoare, lentă și nepotrivită pentru date educaționale sensibile. RustLearn folosește o cale intermediară: operațiile educaționale rămân în afara blockchain-ului, iar tokenurile și tranzacțiile relevante sunt integrate cu Ethereum.
 
 \section{Actorii sistemului}
 Sistemul are patru categorii principale de actori. Cursantul consumă conținut, solicită înscrierea la cursuri, parcurge lecții, susține evaluări, urmărește recompensele și își gestionează portofelul. Profesorul creează conținut, administrează cursurile pe care le predă, verifică înscrieri, evaluează studenți și aprobă candidați la recompensă în limita permisiunilor primite. Organizația gestionează programe educaționale, membri, cursuri sponsorizate, rapoarte și bugete de recompensare. Administratorul platformei gestionează roluri globale, aplicații de profesor, politici de recompensare, blocaje antifraudă, exporturi, KYC, portofele și reconciliere.
@@ -23,14 +23,14 @@ Cerințele funcționale principale sunt:
     \item candidați la recompensă, politici de recompensare, aprobări, plăți, creditare portofel și notificări;
     \item blocaje antifraudă și reconciliere pentru stări inconsistente;
     \item procesarea fișierelor video prin worker și stocare de obiecte;
-    \item verificări de sănătate și readiness pentru baza de date, S3 și Ethereum.
+    \item verificări de sănătate și de pregătire operațională pentru baza de date, S3 și Ethereum.
 \end{itemize}
 
 \section{Cerințe nefuncționale}
 Cerințele nefuncționale sunt la fel de importante ca funcțiile vizibile. Platforma trebuie să fie sigură, deoarece gestionează identitate, portofele și permisiuni. Trebuie să fie auditabilă, deoarece recompensele pot avea valoare economică și pot genera dispute. Trebuie să fie extensibilă, deoarece fluxurile educaționale și regulile de recompensare pot evolua. Trebuie să fie operabilă, adică să poată fi rulată local, testată, migrată și monitorizată. De asemenea, trebuie să fie rezilientă la eșecuri parțiale: o tranzacție blockchain eșuată nu trebuie să producă dublă creditare, iar un eșec de procesare video nu trebuie să blocheze API-ul.
 
 \section{Arhitectura de ansamblu}
-Figura \ref{fig:arhitectura_generala} prezintă arhitectura de ansamblu. Browserul comunică cu aplicația Next.js, iar aceasta consumă API-ul Actix Web. Backend-ul aplică JWT și acces condițional, apoi direcționează cererile către cazuri de utilizare compuse în \texttt{AppState}. Cazurile de utilizare folosesc reguli de domeniu și adaptoare pentru PostgreSQL, S3 și Ethereum. Worker-ul este un proces separat: revendică joburi de încărcare din PostgreSQL, procesează media prin S3 și rulează indexerul de depozite fără a bloca API-ul.
+Figura \ref{fig:arhitectura_generala} prezintă arhitectura de ansamblu. Browserul comunică cu aplicația Next.js, iar aceasta consumă API-ul Actix Web. Backend-ul aplică JWT și acces condițional, apoi direcționează cererile către cazuri de utilizare compuse în \texttt{AppState}. Cazurile de utilizare folosesc reguli de domeniu și adaptoare pentru PostgreSQL, S3 și Ethereum. Worker-ul este un proces separat: revendică sarcini de încărcare din PostgreSQL, procesează media prin S3 și rulează indexerul de depozite fără a bloca API-ul.
 
 \begin{figure}[H]
     \centering
@@ -40,13 +40,13 @@ Figura \ref{fig:arhitectura_generala} prezintă arhitectura de ansamblu. Browser
         \node[bloc, right=of browser] (web) {Next.js\\frontend};
         \node[bloc, right=of web] (api) {Actix Web\\API /api};
         \node[bloc, below=of api] (mw) {JWT + acces\\condițional};
-        \node[bloc, below=of mw] (app) {Cazuri de utilizare\\learning, rewards, wallet};
+        \node[bloc, below=of mw] (app) {Cazuri de utilizare\\învățare, recompense, portofel};
         \node[bloc, below=of app] (domain) {Reguli de domeniu\\stări și invariante};
         \node[bloc, right=of app] (infra) {Adaptoare\\PostgreSQL, S3, Ethereum};
-        \node[store, right=of infra] (pg) {PostgreSQL\\stare, audit, joburi};
+        \node[store, right=of infra] (pg) {PostgreSQL\\stare, audit, sarcini};
         \node[store, above=of pg] (s3) {S3\\media};
         \node[store, below=of pg] (eth) {Ethereum\\LearnToken};
-        \node[bloc, below=of infra] (worker) {Worker\\upload jobs + indexer};
+        \node[bloc, below=of infra] (worker) {Worker\\încărcări + indexer};
         \draw[sageata] (browser) -- (web);
         \draw[sageata] (web) -- (api);
         \draw[sageata] (api) -- (mw);
@@ -67,7 +67,7 @@ Figura \ref{fig:arhitectura_generala} prezintă arhitectura de ansamblu. Browser
 \section{Straturile aplicației}
 Codul backend este separat în straturi. Directorul \texttt{src/http} conține rute, DTO-uri, extractori și middleware. Directorul \texttt{src/application} conține cazuri de utilizare, comenzi, porturi și rezultate. Directorul \texttt{src/domain} păstrează vocabularul de domeniu și regulile pure. Directorul \texttt{src/infra} conține adaptoare concrete pentru PostgreSQL, S3, Ethereum, JWT și notificări. Directorul \texttt{src/bootstrap} compune aplicația, configurează starea, înregistrează rutele și pornește contractele necesare.
 
-Această separare este valoroasă deoarece împiedică amestecarea logicii de business cu detaliile HTTP. De exemplu, o regulă privind validarea unei recompense nu trebuie să depindă de un gestionar de rută Actix. Ea trebuie să poată fi testată ca serviciu de aplicație sau regulă de domeniu. La fel, interogările PostgreSQL trebuie încapsulate în adaptoare, nu scrise direct în rute. Rezultatul este un cod mai testabil și mai ușor de modificat.
+Această separare este valoroasă deoarece împiedică amestecarea logicii funcționale cu detaliile HTTP. De exemplu, o regulă privind validarea unei recompense nu trebuie să depindă de un gestionar de rută Actix. Ea trebuie să poată fi testată ca serviciu de aplicație sau regulă de domeniu. La fel, interogările PostgreSQL trebuie încapsulate în adaptoare, nu scrise direct în rute. Rezultatul este un cod mai testabil și mai ușor de modificat.
 
 \begin{table}[H]
     \centering
@@ -79,7 +79,7 @@ Această separare este valoroasă deoarece împiedică amestecarea logicii de bu
         \midrule
         \texttt{http} & Expune API-ul, validează forma cererilor, aplică middleware și transformă răspunsurile în JSON. \\
         \texttt{application} & Ordonează pașii unui caz de utilizare, verifică porturi, produce rezultate și erori controlate. \\
-        \texttt{domain} & Definește reguli și concepte independente de framework: roluri, permisiuni, statusuri, tipuri de recompensă. \\
+        \texttt{domain} & Definește reguli și concepte independente de cadrul tehnic: roluri, permisiuni, stări, tipuri de recompensă. \\
         \texttt{infra} & Implementează accesul concret la PostgreSQL, S3, Ethereum, JWT, e-mail local și notificări. \\
         \texttt{bootstrap} & Leagă modulele, construiește starea aplicației și configurează pornirea procesului. \\
         \bottomrule
@@ -161,9 +161,9 @@ Persistența are două roluri. Primul este rolul operațional: aplicația trebui
 \input{capitol4_extins.tex}
 
 \section{Valoarea arhitecturii}
-Arhitectura este valoroasă prin patru proprietăți. Prima este claritatea: fiecare strat are responsabilitate distinctă, iar fluxurile de business pot fi urmărite din HTTP către cazul de utilizare, domeniu și infrastructură. A doua este controlul: permisiunile pe scopuri și auditul permit administrare fină. A treia este reziliența: worker-ul, coada de joburi și reconcilierea reduc impactul eșecurilor parțiale. A patra este extensibilitatea: platforma poate adăuga noi tipuri de recompense, noi rute frontend, noi reguli de curs sau noi contracte fără a schimba fundamentul.
+Arhitectura este valoroasă prin patru proprietăți. Prima este claritatea: fiecare strat are responsabilitate distinctă, iar fluxurile funcționale pot fi urmărite din HTTP către cazul de utilizare, domeniu și infrastructură. A doua este controlul: permisiunile pe scopuri și auditul permit administrare fină. A treia este reziliența: worker-ul, coada de sarcini și reconcilierea reduc impactul eșecurilor parțiale. A patra este extensibilitatea: platforma poate adăuga noi tipuri de recompense, noi rute ale interfeței, noi reguli de curs sau noi contracte fără a schimba fundamentul.
 
-Valoarea practică apare mai ales în fluxurile în care educația și tokenizarea se întâlnesc. O finalizare de curs nu devine automat transfer on-chain; ea devine o decizie verificabilă. Un token nu este doar un număr într-o bază de date; el are o reprezentare prin contract. O eroare nu este doar un mesaj pierdut; ea produce o stare ce poate fi reconciliată. Această combinație face sistemul mai potrivit pentru o platformă educațională reală decât o arhitectură simplificată în care toate aceste operații sunt tratate informal.
+Valoarea practică apare mai ales în fluxurile în care educația și tokenizarea se întâlnesc. O finalizare de curs nu devine automat transfer în blockchain; ea devine o decizie verificabilă. Un token nu este doar un număr într-o bază de date; el are o reprezentare prin contract. O eroare nu este doar un mesaj pierdut; ea produce o stare ce poate fi reconciliată. Această combinație face sistemul mai potrivit pentru o platformă educațională reală decât o arhitectură simplificată în care toate aceste operații sunt tratate informal.
 
 \section{Concluzie}
 RustLearn folosește o arhitectură hibridă și modulară pentru a susține cerințe educaționale și blockchain în același sistem. Backend-ul rămâne responsabil pentru reguli, permisiuni și fluxuri, baza de date păstrează starea și auditul, worker-ul procesează activități asincrone, iar Ethereum adaugă transparență pentru tokenuri. Această arhitectură oferă un echilibru între performanță, control și verificabilitate.

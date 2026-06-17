@@ -6,7 +6,7 @@ Aplicațiile de eLearning au evoluat de la simple depozite de fișiere și teste
 Un sistem educațional digital trebuie să rezolve mai multe nevoi. Cursantul are nevoie de acces rapid la lecții, de navigare clară, de feedback și de un mod de a înțelege ce trebuie făcut în continuare. Profesorul are nevoie de instrumente de creare și publicare a conținutului, de evaluare, de observare a progresului și de moderare. Organizațiile au nevoie de administrarea membrilor, cursurilor și rapoartelor. Administratorii platformei au nevoie de control asupra rolurilor, auditului, securității și integrărilor. Aceste cerințe duc la o concluzie importantă: eLearning-ul nu poate fi tratat ca o simplă interfață web, ci ca un sistem socio-tehnic cu fluxuri de lucru diferite.
 
 \section{Principii de proiectare pentru experiența educațională}
-O interfață de eLearning trebuie să fie ușor de înțeles, previzibilă și accesibilă. Principiile UI/UX discutate în literatura de specialitate pun accent pe claritatea navigării, reducerea efortului cognitiv și coerența componentelor vizuale \cite{uiux_basics,uiux_comprehensive_guide}. Într-un context educațional, aceste principii au o miză suplimentară: dacă interfața este confuză, cursantul consumă energie pentru orientare, nu pentru învățare. Astfel, ecranul principal trebuie să indice cursurile active, lecțiile următoare, statusul evaluărilor și eventualele notificări importante.
+O interfață de eLearning trebuie să fie ușor de înțeles, previzibilă și accesibilă. Principiile UI/UX discutate în literatura de specialitate pun accent pe claritatea navigării, reducerea efortului cognitiv și coerența componentelor vizuale \cite{uiux_basics,uiux_comprehensive_guide}. Într-un context educațional, aceste principii au o miză suplimentară: dacă interfața este confuză, cursantul consumă energie pentru orientare, nu pentru învățare. Astfel, ecranul principal trebuie să indice cursurile active, lecțiile următoare, starea evaluărilor și eventualele notificări importante.
 
 Personalizarea este un alt principiu relevant. Platforma trebuie să afișeze informații diferite pentru un cursant, un profesor, un administrator de organizație sau un operator de platformă. Personalizarea nu înseamnă doar preferințe vizuale, ci adaptarea suprafeței de lucru la permisiunile reale ale utilizatorului. Dacă un profesor are acces la un curs, interfața trebuie să afișeze conținutul, înscrierile și coada de recompense pentru acel curs. Dacă utilizatorul are doar rol de cursant, aceeași platformă trebuie să ascundă operațiile administrative și să evidențieze lecțiile, progresul și istoricul recompenselor.
 
@@ -17,7 +17,7 @@ Gamificarea reprezintă utilizarea elementelor inspirate din jocuri în contexte
 
 Mecanismele de recompensare trebuie proiectate atent. Un sistem bazat exclusiv pe puncte poate produce comportamente superficiale, în care utilizatorul optimizează pentru recompensă, nu pentru înțelegere. Cercetările privind învățarea online arată importanța angajamentului, a participării și a feedback-ului în menținerea activității educaționale \cite{paans2018,martin2018engagement,hrastinski2009diversity}. De aceea, recompensele trebuie legate de evenimente educaționale durabile: finalizarea unei evaluări, promovarea unui test, parcurgerea verificabilă a unui curs sau aprobarea manuală a unei activități relevante.
 
-Figura \ref{fig:motivatie_recompensa} prezintă relația dintre activitatea de învățare și recompensa tokenizată. Elementul central este candidatul la recompensă, nu transferul direct de tokenuri. Activitatea produce dovezi, dovezile sunt transformate într-un candidat verificabil, iar deciziile profesorului și ale platformei stabilesc dacă portofelul poate fi creditat. Astfel, gamificarea nu înlocuiește evaluarea, ci o face mai vizibilă și mai motivantă.
+Figura \ref{fig:motivatie_recompensa} prezintă relația dintre activitatea de învățare și recompensa prin tokenuri. Elementul central este candidatul la recompensă, nu transferul direct de tokenuri. Activitatea produce dovezi, dovezile sunt transformate într-un candidat verificabil, iar deciziile profesorului și ale platformei stabilesc dacă portofelul poate fi creditat. Astfel, gamificarea nu înlocuiește evaluarea, ci o face mai vizibilă și mai motivantă.
 
 \begin{figure}[H]
     \centering
@@ -36,7 +36,7 @@ Figura \ref{fig:motivatie_recompensa} prezintă relația dintre activitatea de �
         \draw[sageata] (candidat) -- (audit);
         \draw[sageata] (portofel) |- (audit);
     \end{tikzpicture}}
-    \caption{Legătura dintre învățare, validare și recompensă tokenizată (elaborare proprie).}
+    \caption{Legătura dintre învățare, validare și recompensă prin tokenuri (elaborare proprie).}
     \label{fig:motivatie_recompensa}
 \end{figure}
 
@@ -45,7 +45,7 @@ Modelul \textit{learn-to-earn} propune recompensarea cursanților pentru activit
 
 Limitarea multor platforme learn-to-earn este concentrarea pe conținut legat de domeniul cripto. Această concentrare este firească în fazele inițiale ale ecosistemului, deoarece utilizatorii familiarizați cu portofele și tokenuri sunt mai dispuși să accepte astfel de mecanisme. Totuși, ideea poate fi extinsă la educația STEM, la programe de recalificare, la cursuri organizaționale și la programe de învățare continuă. În aceste cazuri, recompensa nu trebuie văzută ca speculație financiară, ci ca instrument de recunoaștere și stimulare.
 
-Un model matur learn-to-earn trebuie să includă controale împotriva abuzului. Dacă un cursant poate obține recompense repetate pentru același eveniment sau poate produce dovezi artificiale de progres, sistemul își pierde credibilitatea. De aceea, sunt necesare chei de idempotență, politici de recompensare versionate, stări intermediare și mecanisme de blocare pentru profesori, organizații, cursuri sau politici suspecte. Aceste cerințe depășesc simpla gamificare și transformă recompensa într-un proces administrativ și tehnic.
+Un model matur learn-to-earn trebuie să includă controale împotriva abuzului. Dacă un cursant poate obține recompense repetate pentru același eveniment sau poate produce dovezi artificiale de progres, sistemul își pierde credibilitatea. De aceea, sunt necesare chei de idempotență, politici de recompensare cu versiuni clare, stări intermediare și mecanisme de blocare pentru profesori, organizații, cursuri sau politici suspecte. Aceste cerințe depășesc simpla gamificare și transformă recompensa într-un proces administrativ și tehnic.
 
 \section{Aplicații hibride Web2/Web3}
 O aplicație hibridă combină infrastructura centralizată a aplicațiilor web cu mecanisme descentralizate precum blockchain-ul, contractele inteligente și portofelele cripto. Literatura despre Web3 subliniază ideea de control asupra datelor, proprietate digitală și aplicații descentralizate \cite{mdpi2023web3,moralis2024dapps}. În practică, însă, multe aplicații au nevoie de componente Web2 pentru performanță, experiență de utilizare și conformitate operațională. Această combinație este valoroasă în special pentru eLearning, unde majoritatea operațiilor sunt frecvente, sensibile la latență și dependente de permisiuni.
@@ -63,8 +63,8 @@ Tabelul \ref{tab:comparatie_hibrid} sintetizează diferențele dintre cele trei 
         Criteriu & Sistem centralizat & Sistem descentralizat & Sistem hibrid \\
         \midrule
         Performanță & Foarte bună pentru operații frecvente și interogări complexe & Depinde de rețea, costuri și confirmări & Bună pentru fluxuri educaționale, cu blockchain folosit selectiv \\
-        Audit public & Limitat la logurile operatorului & Puternic pentru evenimente on-chain & Puternic pentru tokenuri, completat de audit intern \\
-        Cost operațional & Predictibil, mai ales pentru date și fișiere & Costuri pe tranzacții și contracte & Costuri controlate prin alegerea evenimentelor on-chain \\
+        Audit public & Limitat la jurnalele operatorului & Puternic pentru evenimente în blockchain & Puternic pentru tokenuri, completat de audit intern \\
+        Cost operațional & Predictibil, mai ales pentru date și fișiere & Costuri pe tranzacții și contracte & Costuri controlate prin alegerea evenimentelor în blockchain \\
         Experiență utilizator & Familiară și rapidă & Poate necesita portofel și semnături dese & Familiară, cu opțiuni Web3 când sunt necesare \\
         Control administrativ & Ridicat & Limitat de regulile contractului & Ridicat pentru educație, transparent pentru recompense \\
         \bottomrule
